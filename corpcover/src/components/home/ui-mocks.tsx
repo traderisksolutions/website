@@ -1,82 +1,104 @@
-// Coded product views used as images on the home page. Example data only; each is marked "Example".
+// Coded visuals for the home page. Example data only, each marked "Example". No app chrome:
+// Corp Cover has no client dashboard, so each visual is the thing the client actually sees.
 
-const Pdf = () => <svg width="9" height="11" viewBox="0 0 10 12" aria-hidden><path d="M1 1h5l3 3v7H1z" fill="#c8453b" /></svg>;
+const Pdf = ({ c = "#c8453b" }: { c?: string }) => <svg width="11" height="13" viewBox="0 0 10 12" aria-hidden><path d="M1 1h5l3 3v7H1z" fill={c} /></svg>;
 
-function Rail() {
-  return (
-    <div className="ui-rail" aria-hidden>
-      <span className="ui-rail-logo">CC</span>
-      {["New", "Review", "Claims", "Files"].map(l => <span key={l}><i />{l}</span>)}
-    </div>
-  );
-}
-
-/** Policy review table: cover, limit, what the contract asks, result. */
-export function ReviewMock({ currency = "S$" }: { currency?: string }) {
-  const rows: [string, string, string, string, string][] = [
-    ["Public liability", `${currency}2,000,000`, "Contractual liability", `${currency}5,000,000`, "rose:Below contract"],
-    ["Work injury", "Statutory", "Non-manual above cap", "Statutory", "mint:Meets"],
-    ["Contractor's all risks", `${currency}850,000`, "Defective design", `${currency}1,200,000`, "sand:Under-insured"],
-    ["Professional indemnity", "Not held", "–", "Tender clause 3.1", "rose:Missing"],
-    ["Fire and property", `${currency}600,000`, "Flood, unless added", "–", "sky:Check average"],
-    ["Goods in transit", `${currency}80,000`, "Unattended vehicle", "–", "grey:Reading"],
+/** The PDF report a policy review produces: one page, cover by cover. */
+export function ReportMock({ currency = "S$" }: { currency?: string }) {
+  const rows: [string, string, string, string][] = [
+    ["Public liability", `${currency}2,000,000`, `Lease asks ${currency}5,000,000`, "rose:Below contract"],
+    ["Work injury compensation", "Statutory", "Statutory", "mint:Meets"],
+    ["Contractor's all risks", `${currency}850,000`, `Contract sum ${currency}1,200,000`, "sand:Under-insured"],
+    ["Professional indemnity", "Not held", "Tender clause 3.1", "rose:Missing"],
+    ["Fire and property", `${currency}600,000`, "–", "sky:Check average"],
   ];
   return (
-    <div className="ui-win">
-      <Rail />
-      <div className="ui-main">
-        <p className="ui-kicker">Policy review <span className="ui-tag">Example</span></p>
-        <p className="ui-title">Lim &amp; Tan Engineering</p>
-        <div className="ui-files"><span><Pdf />Schedule_PL_2026.pdf</span><span><Pdf />Main_contract.pdf</span></div>
-        <div className="ui-table" role="table" aria-label="Example policy review">
-          <div className="ui-tr ui-th" role="row"><span>Cover</span><span>Limit</span><span>Main exclusion</span><span>Contract asks</span><span>Result</span></div>
-          {rows.map(([c, l, x, k, r]) => {
-            const [tone, label] = r.split(":");
-            return <div key={c} className="ui-tr" role="row"><b>{c}</b><span>{l}</span><span>{x}</span><span>{k}</span><span><em className={`ui-chip ui-${tone}`}>{label}</em></span></div>;
-          })}
-        </div>
+    <div className="rp-page">
+      <div className="rp-head"><span>Corp Cover</span><span className="ui-tag">Example</span></div>
+      <p className="rp-kicker">Policy review report · 22 Oct 2026</p>
+      <p className="rp-title">Lim &amp; Tan Engineering Pte Ltd</p>
+      <div className="rp-sum">
+        <span><b>5</b>covers read</span><span><b>3</b>gaps against contracts</span><span><b>12</b>clauses cited</span>
       </div>
+      <div className="ui-table" role="table" aria-label="Example policy review">
+        <div className="ui-tr ui-th rp-tr" role="row"><span>Cover</span><span>Limit</span><span>Contract asks</span><span>Result</span></div>
+        {rows.map(([c, l, k, r]) => {
+          const [tone, label] = r.split(":");
+          return <div key={c} className="ui-tr rp-tr" role="row"><b>{c}</b><span>{l}</span><span>{k}</span><span><em className={`ui-chip ui-${tone}`}>{label}</em></span></div>;
+        })}
+      </div>
+      <p className="rp-foot">Each result cites the clause in your schedule or wording. Page 1 of 4.</p>
     </div>
   );
 }
 
-/** Ask: one written thread, answer cites the clause. */
-export function AskMock({ currency = "S$" }: { currency?: string }) {
+/** Ask: a written thread between the business and the AI, with the clause cited. */
+export function ChatMock({ currency = "S$" }: { currency?: string }) {
   return (
-    <div className="ui-win">
-      <Rail />
-      <div className="ui-main">
-        <p className="ui-kicker">Ask <span className="ui-tag">Example</span></p>
-        <p className="ui-title">Lease requirement</p>
-        <div className="ui-chat">
-          <p className="ui-me">Our landlord wants {currency}5M public liability. We hold {currency}2M. What do we do?</p>
-          <p className="ui-us">Raise the limit to {currency}5M before the lease starts, and ask the insurer to name the landlord as an additional insured. Both are added by endorsement. <span className="ui-cite">Lease 11.2</span></p>
-          <p className="ui-me">Does the premium change?</p>
-          <p className="ui-us">Yes. The insurer quotes the extra premium for the rest of the period.</p>
-        </div>
-        <div className="ui-composer">Ask about your cover<i /></div>
-      </div>
+    <div className="cm">
+      <p className="cm-who">You</p>
+      <p className="cm-me">Our landlord wants {currency}5M public liability. We hold {currency}2M. What do we do?</p>
+      <p className="cm-who cm-ai"><i aria-hidden />Corp Cover AI</p>
+      <p className="cm-ai-msg">Raise the limit to {currency}5M before the lease starts, and ask the insurer to name the landlord as an additional insured. Both are added by endorsement. <span className="ui-cite">Lease 11.2</span></p>
+      <p className="cm-who">You</p>
+      <p className="cm-me">Does the premium change?</p>
+      <p className="cm-who cm-ai"><i aria-hidden />Corp Cover AI</p>
+      <p className="cm-ai-msg">Yes. The insurer quotes the extra premium for the rest of the period. An adviser can request it today.</p>
+      <div className="ui-composer">Ask about your cover<i /></div>
     </div>
   );
 }
 
-/** Select: business type, then the covers it usually holds. */
-export function SelectMock() {
+/** Review: the upload screen for a policy. */
+export function UploadMock() {
+  const files: [string, string, number, string][] = [
+    ["Schedule_PL_2026.pdf", "1.2 MB", 100, "#c8453b"],
+    ["Policy_wording.pdf", "3.8 MB", 100, "#c8453b"],
+    ["Main_contract.pdf", "2.1 MB", 64, "#c8453b"],
+    ["Lease_agreement.docx", "640 KB", 0, "#2f5fa8"],
+  ];
   return (
-    <div className="ui-win">
-      <Rail />
-      <div className="ui-main">
-        <p className="ui-kicker">Select <span className="ui-tag">Example</span></p>
-        <p className="ui-title">Your business type</p>
-        <div className="ui-input">renovation</div>
-        <div className="ui-list">
-          <span className="on">Renovation or interior design contractor <small>Construction</small></span>
-          <span>Main contractor or builder <small>Construction</small></span>
-          <span>M&amp;E or specialist subcontractor <small>Construction</small></span>
-        </div>
-        <p className="ui-label">Common for this type</p>
-        <div className="ui-opts"><span className="on">Contractor&apos;s all risks</span><span className="on">Public liability</span><span className="on">Work injury compensation</span><span>Not sure</span></div>
+    <div className="up">
+      <p className="up-title">Send your policy</p>
+      <div className="up-drop">
+        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden><path d="M12 16V4m0 0-4 4m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <span>Drop the schedule, wording and contracts</span>
+        <small>PDF, Word or photos · up to 25 MB each</small>
       </div>
+      <ul className="up-list">
+        {files.map(([n, size, pct, c]) => (
+          <li key={n}>
+            <Pdf c={c} />
+            <span className="up-name">{n}<small>{size}</small></span>
+            <span className="up-state">{pct === 100 ? "Uploaded" : pct === 0 ? "Waiting" : `${pct}%`}</span>
+            <span className="up-bar"><i style={{ width: `${pct}%` }} /></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Choose: the list of business cover, grouped. */
+export function CoverListMock() {
+  const groups: [string, [string, string][]][] = [
+    ["Liability", [["Public liability", "Required by most leases"], ["Professional indemnity", "Consultants, tenders"], ["Directors and officers", "Board decisions"], ["Cyber liability", "Data and ransomware"]]],
+    ["Assets", [["Fire and property", "Premises and stock"], ["Business interruption", "Lost profit after damage"], ["Contractor's all risks", "Works in progress"]]],
+    ["Required by law", [["Work injury compensation", "Employees"]]],
+  ];
+  return (
+    <div className="cl">
+      {groups.map(([g, items]) => (
+        <div key={g} className="cl-group">
+          <p className="cl-label">{g}</p>
+          {items.map(([n, d], i) => (
+            <div key={n} className={`cl-row${g === "Liability" && i === 0 ? " on" : ""}`}>
+              <span className="cl-box" aria-hidden />
+              <span><b>{n}</b><small>{d}</small></span>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

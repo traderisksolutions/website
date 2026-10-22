@@ -33,7 +33,7 @@ export function SiteFooter() {
             <Column title="Services">
               <Link href={mpath(m, "/policy-review")}>Review</Link>
               <Link href={mpath(m, "/ask")}>Ask</Link>
-              <Link href={mpath(m, "/get-covered")}>Select</Link>
+              <Link href={mpath(m, "/get-covered")}>Choose</Link>
               <Link href={mpath(m, "/claims")}>Claim second opinion</Link>
             </Column>
             <Column title="Blogs">

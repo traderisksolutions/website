@@ -11,7 +11,7 @@ import findPhoto from "../../public/images/start/find.jpg";
 const cards: { path: string; word: string; photo: StaticImageData; label: string; big?: boolean }[] = [
   { path: "/policy-review", word: "Review", photo: reviewPhoto, label: "Review your policy" },
   { path: "/ask", word: "Ask", photo: askPhoto, label: "Ask a question", big: true },
-  { path: "/get-covered", word: "Select", photo: findPhoto, label: "Select your cover" },
+  { path: "/get-covered", word: "Choose", photo: findPhoto, label: "Choose your cover" },
 ];
 
 /** Start (Revolut): three photo cards, one word and a "Here" button each; each opens its own page. */

@@ -10,7 +10,7 @@ import { marketOf, mpath } from "@/lib/market";
 const LINKS = [
   { path: "/policy-review", label: "Review" },
   { path: "/ask", label: "Ask" },
-  { path: "/get-covered", label: "Select" },
+  { path: "/get-covered", label: "Choose" },
   { path: "/articles", label: "Blogs" },
   { path: "/about", label: "About" },
 ];

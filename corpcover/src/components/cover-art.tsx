@@ -96,14 +96,15 @@ function Drawing({ art }: { art: Article["art"] }) {
   }
 }
 
-export function CoverArt({ article, compact = false }: { article: Article; compact?: boolean }) {
+/** `bg` / `mark` give the Lenny's Newsletter treatment: warm ground, highlighter tag. */
+export function CoverArt({ article, compact = false, bg = BG, mark = Y }: { article: Pick<Article, "title" | "topic" | "cover" | "art">; compact?: boolean; bg?: string; mark?: string }) {
   const lines = article.cover;
   // Fit the longest line into the left 210px; bold Helvetica runs ~0.6em per character.
   const size = Math.min(36, Math.floor(210 / (Math.max(...lines.map(l => l.length)) * 0.6)));
   const top = 133 - (lines.length * (size + 2)) / 2 - 10;
   return (
     <svg viewBox="0 0 400 266" role="img" aria-label={article.title} className="block h-full w-full" preserveAspectRatio="xMidYMid slice">
-      <rect width="400" height="266" fill={BG} />
+      <rect width="400" height="266" fill={bg} />
       <g transform={compact ? "translate(125 20) scale(1.25)" : "translate(246 44) scale(0.92)"}>
         <Drawing art={article.art} />
       </g>
@@ -113,7 +114,7 @@ export function CoverArt({ article, compact = false }: { article: Article; compa
             <text key={l} x="24" y={top + (i + 1) * (size + 2)} fontSize={size} fontWeight={800} letterSpacing="-0.5">{l}</text>
           ))}
           <g transform={`translate(26 ${top + lines.length * (size + 2) + 14}) rotate(-3)`}>
-            <rect width={article.topic.length * 7.4 + 18} height="22" fill={Y} stroke={K} strokeWidth={1.5} />
+            <rect width={article.topic.length * 7.4 + 18} height="22" fill={mark} stroke={K} strokeWidth={1.5} />
             <text x="9" y="15.5" fontSize="12" fontWeight={700}>{article.topic}</text>
           </g>
         </g>

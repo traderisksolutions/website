@@ -17,17 +17,20 @@ export type Guide = Article & { market: MarketKey; html?: string; headings?: { i
 
 const ART_BY_TOPIC: Record<string, Article["art"]> = { "Required by law": "hardhat", Liability: "umbrella", Property: "building", Directors: "gavel", Claims: "document" };
 
-/** Two short lines for the cover card from the title: whole words, about 16 characters each. */
+/** Up to three short lines for the cover card: the title's subject (before any colon), whole words, about 15 characters each. */
 export function coverLines(title: string): string[] {
-  const words = title.replace(/[:?]/g, "").split(/\s+/).filter(Boolean);
+  const subject = title.split(":")[0].replace(/[?]/g, "");
+  const words = subject.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let cur = "";
   for (const w of words) {
-    if (lines.length === 2) break;
-    if (cur && (cur + " " + w).length > 16) { lines.push(cur); cur = w; } else cur = cur ? `${cur} ${w}` : w;
+    if (cur && (cur + " " + w).length > 15) { lines.push(cur); cur = w; } else cur = cur ? `${cur} ${w}` : w;
   }
-  if (lines.length < 2 && cur) lines.push(cur);
-  return lines;
+  if (cur) lines.push(cur);
+  const out = lines.slice(0, 3);
+  // A cut title must not end on a joining word ("…the limits in").
+  if (lines.length > 3) out[2] = out[2].replace(/\s+(in|and|the|for|of|to|a|an|with|on)$/i, "");
+  return out;
 }
 
 function fromRemote(r: Remote, m: MarketKey): Guide {
