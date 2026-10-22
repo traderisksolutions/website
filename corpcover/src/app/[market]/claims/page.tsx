@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { ClaimFlow } from "@/components/claim-flow";
 import { JsonLd } from "@/lib/json-ld";
 import { MARKETS, alternates, marketParam, type MarketKey } from "@/lib/market";
-import { PLANS } from "@/lib/claim";
+import { PLANS, PROCESS, SLA_HOURS } from "@/lib/claim";
+import { site } from "@/site";
 import { getGuides } from "@/lib/blog-api";
 import { ArticleCard } from "@/components/article-card";
 
@@ -11,17 +12,12 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const m = await marketParam(params), M = MARKETS[m];
   return {
-    title: { absolute: `Insurance claim rejected in ${M.name}? Get it reviewed` },
-    description: `Claim rejected, denied or underpaid in ${M.name}? Send the policy and the insurer's letter. We check each reason against the clause it cites, then an adviser calls. From ${PLANS.personal.price}.`,
+    title: { absolute: `Insurance claim rejected in ${M.name}? Review in ${SLA_HOURS}h` },
+    description: `Claim rejected, denied or underpaid in ${M.name}? Pay online, send the policy and the insurer's letter, and get a PDF report on each reason within ${SLA_HOURS} hours. From ${PLANS.personal.price}.`,
     alternates: alternates(m, "/claims"), twitter: { card: "summary_large_image" },
   };
 }
 
-const STEPS: [string, string][] = [
-  ["Send the claim", "The policy schedule and wording, the insurer's letter and your emails with the insurer."],
-  ["AI read of the wording", "Each reason the insurer gave, set against the clause it relies on, with the questions to put back to the insurer."],
-  ["Call with a second adviser", "An adviser who did not sell you the policy goes through the read and the options with you."],
-];
 
 const faq = (m: MarketKey): { q: string; a: string }[] => {
   const M = MARKETS[m];
@@ -35,7 +31,9 @@ const faq = (m: MarketKey): { q: string; a: string }[] => {
     { q: "What is a claim second opinion?", a: "A reading of your policy and the insurer's decision by someone who was not involved in the sale or the claim. It shows which reasons hold up against the wording and which do not." },
     { q: "Is this legal advice?", a: "No. The review explains how the policy wording applies to each reason in the insurer's letter. We do not act for you, contact the insurer, negotiate, or prepare documents for any proceeding. For court action, speak to a lawyer." },
     { q: "Is AI used?", a: "Yes. An AI model reads the documents first. A person checks the reading before the call." },
-    { q: "What does it cost?", a: `${PLANS.personal.price} for a personal claim and ${PLANS.business.price} for a business claim, per review. You pay after sending the claim details, before the read starts.` },
+    { q: "What does it cost?", a: `${PLANS.personal.price} for a personal claim and ${PLANS.business.price} for a business claim, per review. You pay by card on a Stripe payment page after sending the claim details. The price never depends on what the insurer pays.` },
+    { q: "How long does a claim review take?", a: `The PDF report arrives by email within ${SLA_HOURS} hours of receiving your documents. A broker then follows up in the same email thread.` },
+    { q: "What is in the report?", a: "Each reason the insurer gave, the clause it relies on, the wording quoted, and a finding: supported by the wording, not supported, or unclear. It ends with the questions to put back to the insurer and the deadline for the dispute body." },
     { q: "Which claims can you review?", a: "Personal: travel, health, motor, home, personal accident, life and critical illness. Business: fire and property, business interruption, public and product liability, professional indemnity, work injury, cargo, burglary and fidelity." },
     { q: "What documents do I need?", a: "The policy schedule and full wording, the claim form, the insurer's decision letter, and any emails with the insurer or a loss adjuster. Photos, receipts and reports help where the loss is disputed." },
   ];
@@ -47,19 +45,26 @@ export default async function Claims({ params }: { params: Promise<{ market: str
   const guides = (await getGuides(m)).filter(g => g.topic === "Claims").slice(0, 6);
   return (
     <main className="flex-1">
+      <JsonLd data={{
+        "@context": "https://schema.org", "@type": "Service", name: "Rejected insurance claim review", serviceType: "Insurance claim second opinion",
+        description: `A PDF report on a rejected, denied or underpaid insurance claim in ${M.name}, delivered within ${SLA_HOURS} hours of receiving the documents, followed by a broker by email.`,
+        areaServed: { "@type": "Country", name: M.name }, provider: { "@type": "Organization", name: site.name, url: site.url },
+        url: `${site.url}/${m}/claims`,
+        offers: (["personal", "business"] as const).map(p => ({ "@type": "Offer", name: PLANS[p].label, price: PLANS[p].value, priceCurrency: "USD", availability: "https://schema.org/InStock" })),
+      }} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />
       <section className="wrap pb-12 pt-[clamp(48px,8vw,104px)]">
         <p className="text-[13px] uppercase tracking-[.06em] text-ink-2">Claim second opinion</p>
         <h1 className="t-h1 mt-4 max-w-[16ch]">Rejected insurance claim review</h1>
-        <p className="t-lede mt-5">For a claim in {M.name} that the insurer rejected, denied or underpaid. Send the policy and the insurer&apos;s letter. We check each reason against the clause it relies on. Then an adviser who did not sell you the policy calls you.</p>
+        <p className="t-lede mt-5">For a claim in {M.name} that the insurer rejected, denied or underpaid. Pay online and send the policy and the insurer&apos;s letter. Within {SLA_HOURS} hours you get a PDF report that sets each reason against the clause it relies on. A broker who did not sell you the policy then follows up by email.</p>
         <ul className="mt-6 flex flex-wrap gap-2">
-          {[`Personal claim ${PLANS.personal.price}`, `Business claim ${PLANS.business.price}`, "AI read and a call with a second adviser", "Not legal advice"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
+          {[`Personal claim ${PLANS.personal.price}`, `Business claim ${PLANS.business.price}`, `PDF report in ${SLA_HOURS} hours`, "Not legal advice"].map(f => <li key={f} className="rounded-full bg-base px-3.5 py-1.5 text-[14.5px]">{f}</li>)}
         </ul>
       </section>
 
       <section className="wrap grid items-start gap-12 pb-[clamp(64px,8vw,104px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <ol className="grid gap-8">
-          {STEPS.map(([t, d], i) => (
+          {PROCESS.map(([t, d], i) => (
             <li key={t} className="grid grid-cols-[44px_minmax(0,1fr)] gap-x-2 gap-y-1">
               <span className="row-span-2 pt-1 tabular-nums text-ink-3">{String(i + 1).padStart(2, "0")}</span>
               <b className="t-h3">{t}</b>

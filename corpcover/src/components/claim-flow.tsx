@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { site } from "@/site";
 import { CC } from "@/lib/find/questions";
-import { CLAIM_TYPES, DOCS, EMPTY_CLAIM, PLANS, STATUSES, claimStepError, type ClaimState, type Plan } from "@/lib/claim";
+import { CLAIM_TYPES, DOCS, EMPTY_CLAIM, PLANS, SLA_HOURS, STATUSES, claimStepError, paymentUrl, type ClaimState, type Plan } from "@/lib/claim";
 import { MARKETS, type MarketKey } from "@/lib/market";
 import { RailsMark } from "./logo";
 
@@ -34,6 +34,8 @@ export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
       const r = await fetch("/api/claim", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...s, id, market, website: hp, sourceUrl: location.href }) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(r.status === 400 && j.error ? j.error : `Could not send. Please try again, or call +65 ${site.phone}.`);
+      const pay = s.plan ? paymentUrl(s.plan, s.email.trim(), id) : null;
+      if (pay) { location.assign(pay); return; }
       setDone(true);
     } catch (x) { setErr(x instanceof Error ? x.message : "Could not send."); }
     finally { setBusy(false); }
@@ -43,7 +45,7 @@ export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
     <div className="gc-card" role="status">
       <div className="gc-head"><h3>Request received</h3><RailsMark id="cl-done-mark" className="gc-mark" /></div>
       <div className="gc-body">
-        <p className="text-ink-2">Within 1 working day we email {s.email} a secure link to upload the documents and to pay {s.plan ? PLANS[s.plan].price : ""}. The AI read starts once both are in, and an adviser then calls to go through it.</p>
+        <p className="text-ink-2">We email {s.email} a payment link for {s.plan ? PLANS[s.plan].price : ""}. Reply to that email with the policy and the insurer&apos;s letter. Your PDF report arrives in the same thread within {SLA_HOURS} hours of receiving the documents, and a broker follows up there.</p>
       </div>
     </div>
   );
@@ -121,7 +123,7 @@ export function ClaimFlow({ market = "sg" }: { market?: MarketKey }) {
           {err && <p role="alert" className="text-sm font-medium text-[#b42318]">{err}</p>}
           <div className="flex gap-3">
             {step > 0 && <button type="button" onClick={() => { setStep(step - 1); setErr(""); }} className="btn-press btn-press--white">← Back</button>}
-            <button type="submit" disabled={busy} className="btn-press flex-1">{step < 3 ? <>Continue <span aria-hidden>→</span></> : busy ? "Sending…" : "Send for review"}</button>
+            <button type="submit" disabled={busy} className="btn-press flex-1">{step < 3 ? <>Continue <span aria-hidden>→</span></> : busy ? "Sending…" : s.plan ? `Continue to payment, ${PLANS[s.plan].price}` : "Continue to payment"}</button>
           </div>
         </div>
       </form>

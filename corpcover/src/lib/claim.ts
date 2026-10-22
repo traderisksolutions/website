@@ -3,10 +3,39 @@
 // Shared by the intake and its route.
 
 export const PLANS = {
-  personal: { label: "Personal claim", price: "US$10", note: "Travel, health, motor, home or personal accident" },
-  business: { label: "Business claim", price: "US$200", note: "Property, business interruption, liability, work injury, cargo" },
+  personal: { label: "Personal claim", price: "US$10", value: 10, note: "Travel, health, motor, home or personal accident" },
+  business: { label: "Business claim", price: "US$200", value: 200, note: "Property, business interruption, liability, work injury, cargo" },
 } as const;
 export type Plan = keyof typeof PLANS;
+
+/** Hours from receiving the documents to sending the PDF report. Test phase, 22 Oct 2026. */
+export const SLA_HOURS = 24;
+
+/** The service, end to end. One source for the page, the form, the paid page and the FAQ. */
+export const PROCESS: [string, string][] = [
+  ["Pay by card", "Send the claim details and pay online. The payment page is run by Stripe."],
+  ["Send the documents", "Reply to our email with the policy schedule, the wording and the insurer's letter."],
+  [`PDF report within ${SLA_HOURS} hours`, "Each reason the insurer gave, set against the clause it relies on: supported, not supported or unclear."],
+  ["A broker follows up", "A broker who did not sell you the policy replies in the same email thread."],
+];
+
+/** Stripe Payment Links, one per plan. Unset: the form ends on "we email you a payment link". */
+const PAYMENT_LINKS: Record<Plan, string | undefined> = {
+  personal: process.env.NEXT_PUBLIC_STRIPE_LINK_PERSONAL,
+  business: process.env.NEXT_PUBLIC_STRIPE_LINK_BUSINESS,
+};
+
+/** The plan's payment page with the email prefilled and the intake id attached, or null when not configured. */
+export function paymentUrl(plan: Plan, email: string, id: string): string | null {
+  const base = PAYMENT_LINKS[plan];
+  if (!base) return null;
+  try {
+    const u = new URL(base);
+    u.searchParams.set("prefilled_email", email);
+    u.searchParams.set("client_reference_id", id);
+    return u.toString();
+  } catch { return null; }
+}
 
 export const CLAIM_TYPES: Record<Plan, string[]> = {
   personal: ["Travel", "Health or hospitalisation", "Motor", "Home or contents", "Personal accident", "Life or critical illness", "Other personal claim"],
