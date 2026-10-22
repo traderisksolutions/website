@@ -11,20 +11,18 @@ const whatsapp = `https://wa.me/65${site.phone.replace(/\s/g, "")}`;
 export function HomeHero({ m }: { m: MarketKey }) {
   const M = MARKETS[m];
   return (
-    <section className="wrap pt-4" aria-labelledby="hero-h">
-      <div className="hh-panel">
+    <section className="hh" aria-labelledby="hero-h">
         <div className="hh-copy">
           <p className="hh-badge">{m === "sg" ? "Singapore" : `${M.name} · Singapore headquartered`}</p>
           <h1 id="hero-h" className="hh-h1">Get the <b>right</b> insurance <b>coverage</b></h1>
           <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex w-full flex-wrap gap-2.5">
             <a href={whatsapp} target="_blank" rel="noopener" className="btn btn-primary">Speak with an adviser</a>
             <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Explore cover options</Link>
           </div>
           <p className="hh-trust"><span aria-hidden className="hh-dots"><i /><i /><i /></span>Trusted by 200+ businesses</p>
         </div>
         <div className="hh-media" aria-hidden><ReviewMock currency={M.currency} /></div>
-      </div>
     </section>
   );
 }
