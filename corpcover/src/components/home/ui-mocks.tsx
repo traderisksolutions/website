@@ -102,3 +102,39 @@ export function CoverListMock() {
     </div>
   );
 }
+
+/** Claim second opinion: page 1 of the PDF report the client receives. */
+export function ClaimReportMock({ currency = "S$", body = "FIDReC" }: { currency?: string; body?: string }) {
+  const rows: [string, string, string, string][] = [
+    ["No damage at the insured premises", "Extension 4.6 Suppliers' premises", "Damage at a Singapore supplier is deemed Damage at the Premises.", "rose:Not supported"],
+    ["Notice given 21 days after the event", "Condition 5.3 Claims notification", "Notice “as soon as reasonably practicable”. No fixed number of days.", "sand:Unclear"],
+    ["Sum insured below gross profit", "Condition 5.7 Average", "Payment reduced in proportion. Not a ground to refuse.", "mint:Supported in part"],
+  ];
+  return (
+    <div className="cr">
+      <div className="rp-head"><span>Corp Cover</span><span className="ui-tag">Example</span></div>
+      <p className="rp-kicker">Claim second opinion · Business interruption · 22 Oct 2026</p>
+      <p className="rp-title">GreenPoint Pte Ltd</p>
+      <div className="cr-facts">
+        <span><small>Claimed</small>{currency}186,000</span><span><small>Paid</small>{currency}0</span><span><small>Insurer decision</small>Rejected</span>
+      </div>
+      <div className="rp-sum">
+        <span><b>1</b>not supported</span><span><b>1</b>unclear</span><span><b>1</b>supported in part</span>
+      </div>
+      <p className="cr-h">Each reason the insurer gave</p>
+      <ol className="cr-list">
+        {rows.map(([reason, clause, quote, r], i) => {
+          const [tone, label] = r.split(":");
+          return (
+            <li key={reason}>
+              <span className="cr-top"><b>{i + 1}. {reason}</b><em className={`ui-chip ui-${tone}`}>{label}</em></span>
+              <span className="cr-clause">{clause}</span>
+              <q>{quote}</q>
+            </li>
+          );
+        })}
+      </ol>
+      <p className="cr-next">Next step: write to the insurer within 14 days quoting Extension 4.6. If the final reply stands, file with {body} within 6 months.</p>
+    </div>
+  );
+}

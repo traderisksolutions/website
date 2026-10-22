@@ -1,10 +1,8 @@
 import Link from "next/link";
-import Image from "next/image";
 import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 import type { Guide } from "@/lib/blog-api";
 import { CoverArt } from "@/components/cover-art";
-import { ChatMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
-import secondOpinion from "../../../public/images/second-opinion.jpg";
+import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
 
 /** Hero (Rillet solution page): tinted panel, copy left, product view right. Copy pattern from Chapter. */
 export function HomeHero({ m }: { m: MarketKey }) {
@@ -43,8 +41,8 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
           </ul>
           <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Check my claim</Link>
         </div>
-        <Link href={mpath(m, "/claims")} className="cf-art" aria-label="Claim second opinion">
-          <Image src={secondOpinion} alt="A magnifying glass resting on a page of printed text" fill sizes="(min-width: 860px) 50vw, 100vw" placeholder="blur" className="object-cover" />
+        <Link href={mpath(m, "/claims")} className="cf-art grain grain-evergreen" aria-label="Example claim second opinion report">
+          <span className="cf-sheet" aria-hidden><ClaimReportMock currency={MARKETS[m].currency} body={MARKETS[m].disputeBody} /></span>
         </Link>
       </div>
     </section>

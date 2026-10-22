@@ -367,7 +367,7 @@ h1, h2, h3 { text-wrap: balance; }
 }
 
 /* Claim feature: Harvey Tenet. Stone panel, centred copy left, textured square right. */
-.cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #e4e1da; }
+.cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #e4e1da; align-items: center; }
 .cf-copy { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; padding: clamp(32px, 5vw, 72px) clamp(20px, 4vw, 56px); }
 .cf-eyebrow { font-size: 14px; font-weight: 500; color: var(--accent); }
 .cf-h2 { margin-top: 18px; font-weight: 500; font-size: clamp(2.1rem, 3.6vw, 3.2rem); line-height: 1.05; letter-spacing: -0.035em; }
@@ -379,8 +379,10 @@ h1, h2, h3 { text-wrap: balance; }
 .cf-ticks b { font-weight: 500; color: var(--ink); }
 .cf-ticks span { color: var(--ink-2); font-size: 15px; }
 .cf-art { position: relative; display: block; aspect-ratio: 1; border-radius: 10px; overflow: hidden; }
+.cf-sheet { position: absolute; left: 11%; right: 0; top: 11%; bottom: 0; display: block; transition: transform .8s var(--ease); }
+.cf-art:hover .cf-sheet { transform: translateY(-6px); }
 .cf-word { font-weight: 300; font-size: clamp(2.6rem, 5.4vw, 5.2rem); line-height: .95; letter-spacing: -0.04em; text-align: center; transition: transform .8s var(--ease); }
-.cf-art img { transition: transform .9s var(--ease); } .cf-art:hover img { transform: scale(1.03); }
+
 @media (max-width: 860px) { .cf-panel { grid-template-columns: 1fr; } .cf-art { aspect-ratio: 4 / 3; } }
 
 /* Service cards: Harvey "One Platform". Hovered card grows, siblings shrink and wash out. */
@@ -497,3 +499,18 @@ h1, h2, h3 { text-wrap: balance; }
 .cl-box { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid #b9bdb8; background: #fff; }
 .cl-row.on { background: var(--accent-soft); color: var(--accent); }
 .cl-row.on .cl-box { border-color: var(--accent); background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.2l2.6 2.4L12 5.4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat; }
+
+/* Claim report page (claims panel), Harvey style: white sheet on a green grain square, bleeding off right and bottom. */
+.cr { height: 100%; background: #fff; color: var(--ink); border-radius: 6px 0 0 0; padding: clamp(18px, 2.6vw, 34px); display: grid; gap: 12px; align-content: start; font-size: 12.5px; letter-spacing: 0; text-align: left; box-shadow: 0 30px 70px -20px rgba(0, 0, 0, .45); overflow: hidden; }
+.cr-facts { display: flex; gap: 18px; flex-wrap: wrap; }
+.cr-facts span { display: grid; font-weight: 500; }
+.cr-facts small { font-size: 10.5px; font-weight: 400; color: var(--ink-3); }
+.cr-h { margin-top: 4px; font-size: 13px; font-weight: 600; }
+.cr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cr-list li { display: grid; gap: 4px; padding-top: 10px; box-shadow: inset 0 1px 0 #eeede8; }
+.cr-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.cr-top b { font-weight: 500; }
+.cr-top em { flex: none; }
+.cr-clause { font-size: 11px; color: var(--ink-3); }
+.cr-list q { font-style: italic; color: var(--ink-2); padding-left: 9px; box-shadow: inset 2px 0 0 var(--accent); quotes: none; }
+.cr-next { font-size: 11.5px; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 9px 11px; }
