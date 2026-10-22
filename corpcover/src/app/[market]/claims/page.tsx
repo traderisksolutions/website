@@ -1,3 +1,4 @@
+import { FaqList } from "@/components/faq-list";
 import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import { ClaimFlow } from "@/components/claim-flow";
@@ -57,7 +58,7 @@ export default async function Claims({ params }: { params: Promise<{ market: str
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <p className="text-[14px] font-medium text-accent">Claim review</p>
         <h1 className="t-h1 mt-4 max-w-[16ch]">Rejected insurance claim review</h1>
-        <p className="t-lede mt-7">For a claim in {M.name} that the insurer rejected, denied or underpaid. Pay online and send the policy and the insurer&apos;s letter. Within {SLA_HOURS} hours you get a PDF report that sets each reason against the clause it relies on. A broker who did not sell you the policy then follows up by email.</p>
+        <p className="t-lede mt-7">For a claim in {M.name} that the insurer rejected, denied or underpaid. You pay first to secure the review, then send the policy and the insurer&apos;s letter. Within {SLA_HOURS} hours you get a PDF report that sets each reason against the clause it relies on. A broker who did not sell you the policy then follows up by email.</p>
         <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
           { icon: "clock", title: `PDF report in ${SLA_HOURS} hours`, text: `Within ${SLA_HOURS} hours of receiving your documents. Personal claim ${PLANS.personal.price}, business claim ${PLANS.business.price}.` },
           { icon: "doc", title: "Each reason checked", text: "Every reason the insurer gave, set against the clause it relies on, with the wording quoted." },
@@ -89,14 +90,7 @@ export default async function Claims({ params }: { params: Promise<{ market: str
       <section className="py-[clamp(96px,12vw,176px)]">
         <div className="wrap">
           <h2 className="t-h2">Questions about claim reviews</h2>
-          <div className="mt-[clamp(40px,5vw,64px)] grid gap-x-16 gap-y-12 md:grid-cols-2">
-            {qa.map(f => (
-              <div key={f.q} className="">
-                <h3 className="t-h3">{f.q}</h3>
-                <p className="mt-2 text-ink-2">{f.a}</p>
-              </div>
-            ))}
-          </div>
+          <FaqList items={qa} className="mt-[clamp(32px,4vw,48px)]" />
         </div>
       </section>
     </main>

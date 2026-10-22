@@ -13,8 +13,8 @@ export const SLA_HOURS = 24;
 
 /** The service, end to end. One source for the page, the form, the paid page and the FAQ. */
 export const PROCESS: [string, string][] = [
-  ["Pay by card", "Send the claim details and pay online. The payment page is run by Stripe."],
-  ["Send the documents", "Reply to our email with the policy schedule, the wording and the insurer's letter."],
+  ["Pay first", "Choose personal or business and pay by card on Stripe. Payment secures your review slot."],
+  ["Tell us about the claim", "After payment, answer a few questions. Then reply to our email with the policy, the wording and the insurer's letter."],
   [`PDF report within ${SLA_HOURS} hours`, "Each reason the insurer gave, set against the clause it relies on: supported, not supported or unclear."],
   ["A broker follows up", "A broker who did not sell you the policy replies in the same email thread."],
 ];
@@ -51,28 +51,32 @@ export type ClaimState = {
 export const EMPTY_CLAIM: ClaimState = { plan: "", type: "", status: "", insurer: "", amount: "", decisionDate: "", docs: [], story: "", name: "", email: "", cc: "+65", phone: "", consent: false, ack: false };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** Steps (pay first, 22 Oct 2026): 0 plan · 1 contact → Stripe · 2 about the claim · 3 documents and story. */
 export function claimStepError(step: number, s: ClaimState, ccs: string[]): string {
   if (step === 0) return s.plan ? "" : "Choose personal or business.";
   if (step === 1) {
-    if (!s.plan || !CLAIM_TYPES[s.plan].includes(s.type)) return "Choose the type of claim.";
-    if (!STATUSES.includes(s.status)) return "Choose where the claim is now.";
-    if (s.insurer.trim().length < 2) return "Enter the insurer.";
-    return "";
-  }
-  if (step === 2) {
-    if (!s.docs.length) return "Tick the documents you have.";
-    if (s.story.trim().length < 20) return "Describe what happened in a few sentences.";
-    return "";
-  }
-  if (step === 3) {
     if (s.name.trim().length < 2) return "Enter your name.";
     if (!EMAIL_RE.test(s.email.trim())) return "Enter a valid email.";
     if (!ccs.includes(s.cc)) return "Choose a country code.";
     const d = s.phone.replace(/\D/g, "").length;
     if (d < 7 || d > 12) return "Enter the phone number without the country code.";
     if (!s.ack) return "Tick to confirm you understand what the review is.";
-    if (!s.consent) return "Tick the consent box to send.";
+    if (!s.consent) return "Tick the consent box to continue.";
+    return "";
+  }
+  if (step === 2) {
+    if (!s.plan || !CLAIM_TYPES[s.plan].includes(s.type)) return "Choose the type of claim.";
+    if (!STATUSES.includes(s.status)) return "Choose where the claim is now.";
+    if (s.insurer.trim().length < 2) return "Enter the insurer.";
+    return "";
+  }
+  if (step === 3) {
+    if (!s.docs.length) return "Tick the documents you have.";
+    if (s.story.trim().length < 20) return "Describe what happened in a few sentences.";
     return "";
   }
   return "";
 }
+
+/** Saved between the payment page and the details form (same browser). */
+export const CLAIM_KEY = "cc-claim-start";

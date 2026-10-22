@@ -1,3 +1,4 @@
+import { FaqList } from "@/components/faq-list";
 import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
 import { Chat } from "@/components/chat";
@@ -47,15 +48,7 @@ export default async function Ask({ params }: { params: Promise<{ market: string
       <section className="py-[clamp(96px,12vw,176px)]">
         <div className="wrap">
           <h2 className="t-h2">Questions owners ask</h2>
-          <div className="mt-[clamp(40px,5vw,64px)] grid gap-x-16 gap-y-12 md:grid-cols-2">
-            {faqs.map(f => (
-              <div key={f.q} className="">
-                <h3 className="t-h3">{f.q}</h3>
-                <p className="mt-2 text-ink-2">{f.a}</p>
-                <ul className="mt-3 grid gap-1.5 text-[15px] text-ink-2">{f.points.map(p => <li key={p}>{p}</li>)}</ul>
-              </div>
-            ))}
-          </div>
+          <FaqList items={faqs} className="mt-[clamp(32px,4vw,48px)]" />
         </div>
       </section>
     </main>

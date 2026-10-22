@@ -39,18 +39,20 @@ export async function POST(req: Request) {
     phone: str(b.phone, 24).replace(/[^\d ]/g, ""), consent: b.consent === true, ack: b.ack === true,
   };
   const ccs = CC.map(c => c[1]);
-  for (let step = 0; step <= 3; step++) { const e = claimStepError(step, s, ccs); if (e) return json({ error: e }, 400); }
-  if (!plan || !CLAIM_TYPES[plan].includes(s.type) || !STATUSES.includes(s.status)) return json({ error: "bad request" }, 400);
+  // "start" = plan and contact, saved before the client goes to Stripe; "details" = the rest, after payment.
+  const start = b.stage === "start";
+  for (let step = 0; step <= (start ? 1 : 3); step++) { const e = claimStepError(step, s, ccs); if (e) return json({ error: e }, 400); }
+  if (!plan || (!start && (!CLAIM_TYPES[plan].includes(s.type) || !STATUSES.includes(s.status)))) return json({ error: "bad request" }, 400);
   const market = isMarket(b.market) ? b.market : "sg";
   const body = {
     id, site: "corpcover", kind: "enquiry", status: "submitted", source_url: str(b.sourceUrl, 500) || null,
     client: { company_name: plan === "business" ? `${s.name} (business claim)` : `${s.name} (personal claim)`, contact_name: s.name, email: s.email, phone: `${s.cc} ${s.phone.replace(/\s+/g, "")}`, industry: null },
     answers: {
-      form: "claim-v1", market: MARKETS[market].code, plan: PLANS[plan].label, price: PLANS[plan].price, claim_type: s.type, claim_status: s.status,
-      insurer: s.insurer, amount_claimed: s.amount || null, decision_date: s.decisionDate || null, documents_held: s.docs, what_happened: s.story,
+      form: "claim-v1", market: MARKETS[market].code, plan: PLANS[plan].label, price: PLANS[plan].price, claim_type: s.type || null, claim_status: s.status || null, stage: start ? "sent to payment" : "details received",
+      insurer: s.insurer || null, amount_claimed: s.amount || null, decision_date: s.decisionDate || null, documents_held: s.docs, what_happened: s.story || null,
     },
-    product_requests: [{ product: `Claim second opinion: ${s.type}` }],
-    flags: ["claim_second_opinion"], proposal_fields: {}, documents: [], booking: null, consent_pdpa: true,
+    product_requests: [{ product: `Claim review: ${s.type || PLANS[plan].label}` }],
+    flags: ["claim_second_opinion", ...(start ? ["awaiting_details"] : [])], proposal_fields: {}, documents: [], booking: null, consent_pdpa: true,
   };
   try {
     const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-api-key": key, "x-forwarded-user-agent": req.headers.get("user-agent") ?? "" }, body: JSON.stringify(body), signal: AbortSignal.timeout(15_000) });
