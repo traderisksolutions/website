@@ -70,7 +70,7 @@ export function SiteHeader() {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3" aria-label="Mobile primary">
-          {[{ href: mpath(m), label: "Home" }, ...links, { href: `${mpath(m)}#faq`, label: "FAQ" }].map(l => (
+          {[{ href: mpath(m), label: "Home" }, ...links, { href: mpath(m, "/ask"), label: "FAQ" }].map(l => (
             <Link key={l.href} href={l.href} onClick={close} tabIndex={open ? 0 : -1} aria-current={l.href === mpath(m) ? (path === mpath(m) ? "page" : undefined) : current(l.href)}
               className="rounded-[12px] px-3 py-2.5 text-[16px] text-ink-2 hover:bg-ink/5 hover:text-ink aria-[current=page]:bg-ink/5 aria-[current=page]:text-ink">{l.label}</Link>
           ))}

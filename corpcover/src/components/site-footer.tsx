@@ -43,7 +43,7 @@ export function SiteFooter() {
             <Column title="Company">
               <Link href={mpath(m, "/about")}>About</Link>
               <Link href={mpath(m, "/how-we-compare")}>How we compare</Link>
-              <Link href={`${mpath(m)}#faq`}>FAQ</Link>
+              <Link href={mpath(m, "/ask")}>FAQ</Link>
             </Column>
             <Column title="Contact">
               <a href={whatsapp} target="_blank" rel="noopener">Message an adviser</a>
