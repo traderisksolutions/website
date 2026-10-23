@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { CompanyHeader } from '@/components/crm/CompanyHeader'
 import { AlertsPanel, LeftOffPanel } from '@/components/crm/AlertsPanel'
+import { AccountNotesPanel } from '@/components/crm/AccountNotesPanel'
 import { CompanyNexus } from '@/components/crm/CompanyNexus'
 import { PeoplePanel } from '@/components/crm/PeoplePanel'
 import { PoliciesPanel, type Policy, type CompanyValue } from '@/components/crm/PoliciesPanel'
@@ -234,6 +235,7 @@ function CompanyWorkspace() {
           <>
             <AlertsPanel alerts={ov.alerts} />
             <LeftOffPanel leftOff={ov.leftOff} />
+            <AccountNotesPanel notes={company.notes} onSave={notes => patchCompany({ notes })} />
           </>
         )}
 
