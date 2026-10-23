@@ -4,240 +4,29 @@
    ═══════════════════════════════════════════════════════════════ */
 
 var NAV_HTML = `
-  <header class="nav">
-    <button class="nav-hamburger" aria-label="Open menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-    <a href="/" class="logo" aria-label="Home">
-      <span class="logo-text">Trade Risk Solutions</span>
-    </a>
-    <nav class="nav-links" aria-label="Primary">
-      <a href="/about">Why us</a>
-      <a href="/business">Business</a>
-
-      <!-- PRODUCTS MEGA -->
-      <div class="nav-item" id="products-nav-item">
-        <button class="nav-dropdown-btn" id="products-btn" aria-expanded="false" aria-haspopup="true">Products<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-        <div class="nav-mega" id="products-mega" role="menu">
-          <div class="nav-mega-inner">
-            <div class="mega-left">
-              <button class="mega-cat active" data-cat="personal">
-                <span class="mega-cat-title">Personal</span>
-                <span class="mega-cat-sub">Individuals &amp; home</span>
-              </button>
-              <button class="mega-cat" data-cat="business">
-                <span class="mega-cat-title">For Business</span>
-                <span class="mega-cat-sub">Commercial insurance</span>
-              </button>
-              <button class="mega-cat" data-cat="workforce">
-                <span class="mega-cat-title">Workforce</span>
-                <span class="mega-cat-sub">Employee benefits</span>
-              </button>
-              <button class="mega-cat" data-cat="api">
-                <span class="mega-cat-title">API</span>
-                <span class="mega-cat-sub">Embedded &amp; white label</span>
-              </button>
-            </div>
-            <div class="mega-right">
-              <!-- Personal -->
-              <div class="mega-panel active" data-panel="personal">
-                <a href="/personal/home-contents" class="mega-link-item"><span class="mega-link-title">Home contents insurance</span><span class="mega-link-sub">Protect your home &amp; belongings</span></a>
-                <a href="/personal/fire" class="mega-link-item"><span class="mega-link-title">Fire insurance</span><span class="mega-link-sub">Coverage against fire &amp; extraneous perils</span></a>
-                <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Single trip travel</span><span class="mega-link-sub">One-trip travel protection</span></a>
-                <a href="/consumers/travel" class="mega-link-item"><span class="mega-link-title">Annual trip travel</span><span class="mega-link-sub">Year-round travel coverage</span></a>
-                <a href="/personal/maid" class="mega-link-item"><span class="mega-link-title">Maid insurance</span><span class="mega-link-sub">Mandatory foreign domestic worker cover</span></a>
-                <a href="/personal/personal-accident" class="mega-link-item"><span class="mega-link-title">Personal accident</span><span class="mega-link-sub">24/7 accident &amp; disability protection</span></a>
-              </div>
-              <!-- Business -->
-              <div class="mega-panel" data-panel="business">
-                <a href="/business" class="mega-panel-overview">View all business insurance &rarr;</a>
-                <div class="mega-biz-toggle">
-                  <button class="mega-biz-pill mega-biz-pill--active" data-biz="assets">Assets</button>
-                  <button class="mega-biz-pill" data-biz="liabilities">Liabilities</button>
-                </div>
-                <div class="mega-biz-panel mega-biz-panel--active" data-biz="assets">
-                  <div class="mega-business-cols">
-                    <div class="mega-business-col">
-                      <div class="mega-section-head">Property &amp; Business</div>
-                      <a href="/commercial/property" class="mega-prod-link">Industrial All Risk (IAR) &amp; Fire</a>
-                      <a href="/commercial/revenue" class="mega-prod-link">Business Interruption (BI)</a>
-                      <div class="mega-section-head">Engineering &amp; Construction</div>
-                      <a href="/commercial/car" class="mega-prod-link">Contractors&#39; All Risks (CAR)</a>
-                      <a href="/commercial/equipment" class="mega-prod-link">Machinery Breakdown</a>
-                      <a href="/commercial/electronic-equipment" class="mega-prod-link">Electronic Equipment Insurance</a>
-                      <div class="mega-section-head">Commercial Motor</div>
-                      <a href="/commercial/motor" class="mega-prod-link">Commercial Vehicle Insurance</a>
-                    </div>
-                    <div class="mega-business-col">
-                      <div class="mega-section-head">Marine, Stock &amp; Logistics</div>
-                      <a href="/commercial/inventory" class="mega-prod-link">Marine Cargo</a>
-                      <a href="/commercial/stock-throughput" class="mega-prod-link">Stock Throughput</a>
-                      <a href="/commercial/inland-transit" class="mega-prod-link">Inland Transit</a>
-                      <div class="mega-section-head">Trade Credit &amp; Bonds</div>
-                      <a href="/commercial/financial-assets" class="mega-prod-link">Trade Credit</a>
-                      <a href="/commercial/surety-bonds" class="mega-prod-link">Surety Bonds</a>
-                    </div>
-                  </div>
-                </div>
-                <div class="mega-biz-panel" data-biz="liabilities">
-                  <div class="mega-business-cols">
-                    <div class="mega-business-col">
-                      <div class="mega-section-head">General Liability</div>
-                      <a href="/commercial/core-liability" class="mega-prod-link">General Comprehensive Liability</a>
-                      <div class="mega-section-head">Professional &amp; Management</div>
-                      <a href="/commercial/professional" class="mega-prod-link">Professional Indemnity (PI)</a>
-                      <a href="/commercial/dao" class="mega-prod-link">Directors &amp; Officers (D&amp;O)</a>
-                      <a href="/commercial/imi" class="mega-prod-link">Investment Management Insurance (IMI)</a>
-                      <div class="mega-section-head">Environmental Liability</div>
-                      <a href="#" class="mega-prod-link">Environmental Liability</a>
-                    </div>
-                    <div class="mega-business-col">
-                      <div class="mega-section-head">Cyber Insurance</div>
-                      <a href="/commercial/cyber" class="mega-prod-link">Cyber Insurance</a>
-                      <div class="mega-section-head">Employee &amp; Workforce</div>
-                      <a href="/commercial/workmen" class="mega-prod-link">Work Injury Compensation (WICA)</a>
-                      <a href="/commercial/foreign-worker" class="mega-prod-link">Foreign Worker Medical</a>
-                      <a href="/commercial/foreign-worker-bond" class="mega-prod-link">Foreign Worker Bond</a>
-                      <a href="/employees/medical" class="mega-prod-link">Group Health Insurance</a>
-                      <a href="/employees/benefits" class="mega-prod-link">Employee Benefits Insurance</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <!-- Workforce -->
-              <div class="mega-panel" data-panel="workforce">
-                <div class="mega-section">
-                  <div class="mega-section-head">Workers</div>
-                  <a href="/commercial/workmen" class="mega-link-item"><span class="mega-link-title">Work Injury Compensation (WICA)</span><span class="mega-link-sub">Mandatory WICA insurance</span></a>
-                  <a href="/commercial/foreign-worker" class="mega-link-item"><span class="mega-link-title">Foreign Worker Medical Insurance</span><span class="mega-link-sub">Medical coverage for foreign workers</span></a>
-                  <a href="/commercial/foreign-worker-bond" class="mega-link-item"><span class="mega-link-title">Foreign Worker Bond Insurance</span><span class="mega-link-sub">Bond insurance for work permit holders</span></a>
-                </div>
-                <div class="mega-section">
-                  <div class="mega-section-head">Employees</div>
-                  <a href="/employees/medical" class="mega-link-item"><span class="mega-link-title">Group Health Insurance</span><span class="mega-link-sub">Group health &amp; hospitalisation</span></a>
-                  <a href="/employees/group-travel" class="mega-link-item"><span class="mega-link-title">Group Business Travel</span><span class="mega-link-sub">Business travel coverage</span></a>
-                  <a href="/employees/benefits" class="mega-link-item"><span class="mega-link-title">Employee Benefits Insurance</span><span class="mega-link-sub">Comprehensive benefits package</span></a>
-                </div>
-                <div class="mega-section">
-                  <div class="mega-section-head">Executive</div>
-                  <a href="/employees/dao" class="mega-link-item"><span class="mega-link-title">D&amp;O Liability</span><span class="mega-link-sub">Directors &amp; Officers protection</span></a>
-                  <a href="/employees/keyman" class="mega-link-item"><span class="mega-link-title">Keyman Insurance</span><span class="mega-link-sub">Key person &amp; business continuity</span></a>
-                </div>
-              </div>
-              <!-- API -->
-              <div class="mega-panel" data-panel="api">
-                <a href="/api" class="mega-link-item"><span class="mega-link-title">Custom Coverage White Label</span><span class="mega-link-sub">Embedded insurance for your platform</span></a>
-                <a href="/api" class="mega-link-item"><span class="mega-link-title">Gig worker coverage</span><span class="mega-link-sub">Coverage for gig economy workers</span></a>
-                <a href="/api" class="mega-link-item"><span class="mega-link-title">Rentals</span><span class="mega-link-sub">Rental vehicle &amp; property coverage</span></a>
-              </div>
-            </div>
-          </div>
-        </div>
+  <header class="tn">
+    <div class="tn-in">
+      <a href="/" class="tn-logo" aria-label="Trade Risk Solutions home"><span class="t">TRS</span><span class="c" lang="zh-Hans">保风</span></a>
+      <nav class="tn-links" aria-label="Main">
+        <div class="tn-dd"><button type="button" class="tn-trig" aria-expanded="false" aria-haspopup="true">Products <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m2 3.5 3 3 3-3"/></svg></button>
+          <div class="tn-panel"><div><h6>Business cover</h6><a class="tn-i" href="/commercial/property/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg><span><b>Property and business</b><span>Protect assets and lost income</span></span></a><a class="tn-i" href="/commercial/car/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6 20V9l4-3 4 3v11M14 20v-7h4v7"/></svg><span><b>Engineering and construction</b><span>Cover projects from start to handover</span></span></a><a class="tn-i" href="/commercial/inventory/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h13l3-5h3M3 17V7h10v10"/><circle cx="6" cy="18.5" r="1.5"/><circle cx="17" cy="18.5" r="1.5"/></svg><span><b>Motor, marine and logistics</b><span>Insure goods and the fleet that moves them</span></span></a><a class="tn-i" href="/commercial/financial-assets/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4zM4 10h16M8 15h4"/></svg><span><b>Trade credit and bonds</b><span>Get paid when buyers default</span></span></a><a class="tn-i" href="/commercial/core-liability/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 8h14M7 8l-3 7h6zM17 8l-3 7h6z"/></svg><span><b>Liability</b><span>Defend the business when it is sued</span></span></a><a class="tn-i" href="/commercial/cyber/"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 12h8M8 9h5"/></svg><span><b>Cyber</b><span>Recover fast after a breach</span></span></a></div><div><h6>Workforce and personal</h6><a class="tn-i" href="/commercial/workmen/"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2 20c0-4 3-6 7-6M15 11l2 2 4-4"/></svg><span><b>Workforce</b><span>Stay compliant for every worker</span></span></a><a class="tn-i" href="/employees/benefits/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z"/></svg><span><b>Employee benefits</b><span>Offer cover that helps you hire</span></span></a><a class="tn-i" href="/personal/home-contents/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg><span><b>Personal</b><span>Protect your home, family and helper</span></span></a><a class="tn-i" href="/api"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8 4 12l4 4M16 8l4 4-4 4M14 5l-4 14"/></svg><span><b>API</b><span>Embed cover in your platform</span></span></a></div></div></div>
+        <div class="tn-dd"><button type="button" class="tn-trig" aria-expanded="false" aria-haspopup="true">Solutions <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m2 3.5 3 3 3-3"/></svg></button>
+          <div class="tn-panel"><div><h6>Industrial</h6><a class="tn-i" href="/solutions/logistics/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l2 3h14l2-3M5 17V9h14v8M9 9V5h6v4"/></svg><span><b>Logistics and freight</b><span>Keep cargo moving through every handover</span></span></a><a class="tn-i" href="/solutions/energy/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c3 4 6 6 6 11a6 6 0 0 1-12 0c0-3 2-5 3-7 1 2 2 3 3 3 0-3-1-5 0-7z"/></svg><span><b>Energy and chemicals</b><span>Secure capacity for high-consequence sites</span></span></a><a class="tn-i" href="/solutions/wholesale/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10"/></svg><span><b>Wholesale and distribution</b><span>Protect stock and sell on credit terms</span></span></a><a class="tn-i" href="/solutions/built-environment/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4h12M6 8l12-4M14 4v5M3 21h8"/></svg><span><b>Built environment</b><span>Protect every project to handover</span></span></a><a class="tn-i" href="/solutions/manufacturing/"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg><span><b>Manufacturing</b><span>Keep the line running after a breakdown</span></span></a></div><div><h6>Services</h6><a class="tn-i" href="/solutions/financial-services/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18M5 10v8M9 10v8M15 10v8M19 10v8M3 21h18M12 3l9 5H3z"/></svg><span><b>Financial services</b><span>Meet MAS requirements and protect directors</span></span></a><a class="tn-i" href="/solutions/healthcare/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></svg><span><b>Healthcare and life sciences</b><span>Run trials and practice with confidence</span></span></a><a class="tn-i" href="/solutions/professional-services/"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2M3 12h18"/></svg><span><b>Professional services</b><span>Protect the advice you give</span></span></a><a class="tn-i" href="/solutions/tech-media-startups/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15c-1 2-1 4-1 4s2 0 4-1M9 15l-2-2c2-6 6-9 12-9 0 6-3 10-9 12z"/><circle cx="14.5" cy="9.5" r="1.5"/></svg><span><b>Tech, media and start-ups</b><span>Scale cover from Series A to IPO</span></span></a></div></div></div>
+        <a class="tn-a" href="/about">About</a>
+      </nav>
+      <div class="tn-r">
+        <a href="#" class="s-btn s-o" data-ctac-modal data-track="nav_get_quote">Get a quote</a>
+        <a class="s-btn s-p" href="https://wa.me/6589386813?text=Hi%20TRS%2C%20I%27d%20like%20to%20talk%20to%20a%20broker." target="_blank" rel="noopener" data-track="whatsapp_direct">Talk to a broker</a>
+        <button type="button" class="tn-burger" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       </div>
-
-      <!-- SOLUTIONS -->
-      <div class="nav-dropdown">
-        <button class="nav-dropdown-trigger">Solutions<svg class="nav-chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-        <div class="nav-dropdown-panel nav-dropdown-panel--solutions">
-          <div class="nav-dd-inner nav-dd-inner--solutions">
-            <p class="sol-who">Who is it for?</p>
-            <div class="sol-grid">
-              <a href="/solutions/logistics" class="sol-sector"><span class="sol-sector-name">Logistics, Transportation &amp; Maritime</span><span class="sol-sector-tag">Freight, transport &amp; shipping</span></a>
-              <a href="/solutions/energy" class="sol-sector"><span class="sol-sector-name">Energy &amp; Chemicals</span><span class="sol-sector-tag">Oil, gas, chemicals &amp; renewables</span></a>
-              <a href="/solutions/wholesale" class="sol-sector"><span class="sol-sector-name">Wholesale Trade &amp; Consumers</span><span class="sol-sector-tag">Retail, e-commerce &amp; hospitality</span></a>
-              <a href="/solutions/financial-services" class="sol-sector"><span class="sol-sector-name">Financial Services &amp; Insurance</span><span class="sol-sector-tag">Banking, insurance &amp; wealth</span></a>
-              <a href="/solutions/built-environment" class="sol-sector"><span class="sol-sector-name">Built Environment</span><span class="sol-sector-tag">Construction, real estate &amp; data centres</span></a>
-              <a href="/solutions/healthcare" class="sol-sector"><span class="sol-sector-name">Healthcare &amp; Biomedical Sciences</span><span class="sol-sector-tag">Medical devices, pharma &amp; life sciences</span></a>
-              <a href="/solutions/manufacturing" class="sol-sector"><span class="sol-sector-name">Manufacturing, Electronics &amp; Aerospace</span><span class="sol-sector-tag">Industrial, electronics &amp; defence</span></a>
-              <a href="/solutions/professional-services" class="sol-sector"><span class="sol-sector-name">Professional &amp; Business Services</span><span class="sol-sector-tag">Consulting, legal &amp; accounting</span></a>
-              <a href="/solutions/tech-media-startups" class="sol-sector"><span class="sol-sector-name">Tech, Media &amp; Startups</span><span class="sol-sector-tag">Technology, media &amp; venture-backed</span></a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </nav>
-    <div class="nav-actions">
-      <a href="#" class="btn btn-primary" data-track="nav_contact_us">Contact us</a>
+    </div>
+    <div class="tn-drawer">
+      <details><summary>Products</summary><h6>Business cover</h6><a class="tn-i" href="/commercial/property/"><span><b>Property and business</b><span>Protect assets and lost income</span></span></a><a class="tn-i" href="/commercial/car/"><span><b>Engineering and construction</b><span>Cover projects from start to handover</span></span></a><a class="tn-i" href="/commercial/inventory/"><span><b>Motor, marine and logistics</b><span>Insure goods and the fleet that moves them</span></span></a><a class="tn-i" href="/commercial/financial-assets/"><span><b>Trade credit and bonds</b><span>Get paid when buyers default</span></span></a><a class="tn-i" href="/commercial/core-liability/"><span><b>Liability</b><span>Defend the business when it is sued</span></span></a><a class="tn-i" href="/commercial/cyber/"><span><b>Cyber</b><span>Recover fast after a breach</span></span></a><h6>Workforce and personal</h6><a class="tn-i" href="/commercial/workmen/"><span><b>Workforce</b><span>Stay compliant for every worker</span></span></a><a class="tn-i" href="/employees/benefits/"><span><b>Employee benefits</b><span>Offer cover that helps you hire</span></span></a><a class="tn-i" href="/personal/home-contents/"><span><b>Personal</b><span>Protect your home, family and helper</span></span></a><a class="tn-i" href="/api"><span><b>API</b><span>Embed cover in your platform</span></span></a></details>
+      <details><summary>Solutions</summary><h6>Industrial</h6><a class="tn-i" href="/solutions/logistics/"><span><b>Logistics and freight</b><span>Keep cargo moving through every handover</span></span></a><a class="tn-i" href="/solutions/energy/"><span><b>Energy and chemicals</b><span>Secure capacity for high-consequence sites</span></span></a><a class="tn-i" href="/solutions/wholesale/"><span><b>Wholesale and distribution</b><span>Protect stock and sell on credit terms</span></span></a><a class="tn-i" href="/solutions/built-environment/"><span><b>Built environment</b><span>Protect every project to handover</span></span></a><a class="tn-i" href="/solutions/manufacturing/"><span><b>Manufacturing</b><span>Keep the line running after a breakdown</span></span></a><h6>Services</h6><a class="tn-i" href="/solutions/financial-services/"><span><b>Financial services</b><span>Meet MAS requirements and protect directors</span></span></a><a class="tn-i" href="/solutions/healthcare/"><span><b>Healthcare and life sciences</b><span>Run trials and practice with confidence</span></span></a><a class="tn-i" href="/solutions/professional-services/"><span><b>Professional services</b><span>Protect the advice you give</span></span></a><a class="tn-i" href="/solutions/tech-media-startups/"><span><b>Tech, media and start-ups</b><span>Scale cover from Series A to IPO</span></span></a></details>
+      <a href="/about">About</a>
+      <div class="s-acts"><a class="s-btn s-p" href="https://wa.me/6589386813?text=Hi%20TRS%2C%20I%27d%20like%20to%20talk%20to%20a%20broker." target="_blank" rel="noopener" data-track="whatsapp_direct">Talk to a broker</a><a href="#" class="s-btn s-o" data-ctac-modal data-track="drawer_get_quote">Get a quote</a></div>
     </div>
   </header>
-
-  <!-- MOBILE DRAWER -->
-  <div class="nav-drawer-overlay" aria-hidden="true"></div>
-  <aside class="nav-drawer" aria-label="Mobile navigation">
-    <div class="nav-drawer-top">
-      <span class="logo-text">Trade Risk Solutions</span>
-      <button class="nav-drawer-close" aria-label="Close menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <nav class="nav-drawer-links">
-      <a href="/about">Why us</a>
-      <a href="/business">Business</a>
-
-      <button class="nav-drawer-accordion">Products<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <div class="nav-drawer-sub">
-        <span class="nav-drawer-group-label">Personal</span>
-        <a href="/personal/home-contents">Home contents insurance</a>
-        <a href="/personal/fire">Fire insurance</a>
-        <a href="/consumers/travel">Single trip travel</a>
-        <a href="/consumers/travel">Annual trip travel</a>
-        <a href="/personal/maid">Maid insurance</a>
-        <a href="/personal/personal-accident">Personal accident</a>
-        <span class="nav-drawer-group-label">Business &#8212; Assets</span>
-        <a href="/commercial/property">IAR &amp; Fire</a>
-        <a href="/commercial/revenue">Business Interruption</a>
-        <a href="/commercial/car">Contractors&#39; All Risks (CAR)</a>
-        <a href="/commercial/equipment">Machinery Breakdown</a>
-        <a href="/commercial/electronic-equipment">Electronic Equipment Insurance</a>
-        <a href="/commercial/inventory">Marine Cargo</a>
-        <a href="/commercial/stock-throughput">Stock Throughput</a>
-        <a href="/commercial/inland-transit">Inland Transit</a>
-        <a href="/commercial/financial-assets">Trade Credit</a>
-        <a href="/commercial/surety-bonds">Surety Bonds</a>
-        <a href="/commercial/motor">Commercial Vehicle Insurance</a>
-        <span class="nav-drawer-group-label">Business &#8212; Liabilities</span>
-        <a href="/commercial/core-liability">General Comprehensive Liability</a>
-        <a href="/commercial/imi">Investment Management Insurance (IMI)</a>
-        <a href="/commercial/medical-malpractice">Medical Malpractice Insurance</a>
-        <a href="/commercial/dao">Directors &amp; Officers (D&amp;O)</a>
-        <a href="/commercial/professional">Professional Indemnity (PI)</a>
-        <a href="/commercial/cyber">Cyber Insurance</a>
-        <span class="nav-drawer-group-label">Workforce benefits</span>
-        <span class="nav-drawer-inner-label">Workers</span>
-        <a href="/commercial/workmen">WICA Insurance</a>
-        <a href="/commercial/foreign-worker">Foreign Worker Medical</a>
-        <a href="/commercial/foreign-worker-bond">Foreign Worker Bond</a>
-        <span class="nav-drawer-inner-label">Employees</span>
-        <a href="/employees/medical">Group Health Insurance</a>
-        <a href="/employees/group-travel">Group Business Travel</a>
-        <a href="/employees/benefits">Employee Benefits Insurance</a>
-        <span class="nav-drawer-inner-label">Executive</span>
-        <a href="/employees/dao">D&amp;O Liability</a>
-        <a href="/employees/keyman">Keyman Insurance</a>
-        <span class="nav-drawer-group-label">API</span>
-        <a href="/api">Custom Coverage White Label</a>
-        <a href="/api">Gig worker</a>
-        <a href="/api">Rentals</a>
-      </div>
-
-      <button class="nav-drawer-accordion">Solutions<svg class="acc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
-      <div class="nav-drawer-sub">
-        <a href="/solutions/logistics">Logistics, Transportation &amp; Maritime</a>
-        <a href="/solutions/financial-services">Financial Services &amp; Insurance</a>
-        <a href="/solutions/tech-media-startups">Tech, Media &amp; Startups</a>
-        <a href="/solutions/built-environment">Built Environment</a>
-        <a href="/solutions/healthcare">Healthcare &amp; Biomedical Sciences</a>
-        <a href="/solutions/manufacturing">Manufacturing, Electronics &amp; Aerospace</a>
-        <a href="/solutions/energy">Energy &amp; Chemicals</a>
-        <a href="/solutions/wholesale">Wholesale Trade &amp; Consumers</a>
-        <a href="/solutions/professional-services">Professional &amp; Business Services</a>
-      </div>
-    </nav>
-    <div class="nav-drawer-cta">
-      <a href="#" class="btn btn-primary btn-lg" data-track="drawer_contact_us">Contact us</a>
-    </div>
-  </aside>
 `;
 
 /* ── Inject nav into #nav-root placeholder ── */
@@ -252,97 +41,23 @@ var NAV_HTML = `
    ═══════════════════════════════════════════════════════════════ */
 
 var FOOTER_HTML = `
-  <footer class="ft">
-    <div class="ft-inner">
-      <div class="ft-top">
-
-        <div class="ft-brand">
-          <a href="/" class="ft-logo" aria-label="Trade Risk Solutions home">
-            <span class="ft-logo-text">Trade Risk Solutions</span>
-          </a>
-          <p class="ft-tagline">MAS-licensed insurance broker.<br>Singapore's institutional risk partner.</p>
-          <div class="ft-contact-block">
-            <a href="tel:+6562380888" class="ft-contact-link">+65 6238 0888</a>
-            <a href="mailto:enquiry@trade-risksol.com" class="ft-contact-link">enquiry@trade-risksol.com</a>
-            <address class="ft-address">Suntec Tower 2, 9 Temasek Boulevard<br>Singapore 038989</address>
+  <footer class="tf">
+    <div class="tf-in">
+      <div class="tf-g">
+        <div>
+          <a href="/" class="tf-lock" aria-label="Trade Risk Solutions home"><span class="t">TRS</span><span class="d">Trade Risk Solutions</span><span class="c" lang="zh-Hans">保风</span></a>
+          <div class="tf-contact">
+            <a href="tel:+6562380888">+65 6238 0888</a>
+            <a href="mailto:enquiry@trade-risksol.com">enquiry@trade-risksol.com</a>
+            <a href="https://wa.me/6589386813?text=Hi%20TRS%2C%20I%27d%20like%20to%20talk%20to%20a%20broker." target="_blank" rel="noopener" data-track="whatsapp_direct">WhatsApp a broker</a>
+            <address>Suntec Tower 2, 9 Temasek Boulevard<br>Singapore 038989</address>
           </div>
         </div>
-
-        <div class="ft-col">
-          <p class="ft-col-head">Company</p>
-          <div class="ft-col-links">
-            <a href="/about" class="ft-link">Why Us</a>
-            <a href="/pricing" class="ft-link">Pricing</a>
-            <a href="/claims" class="ft-link">Claims</a>
-          </div>
-        </div>
-
-        <div class="ft-col">
-          <p class="ft-col-head">Personal</p>
-          <div class="ft-col-links">
-            <a href="/personal/fire" class="ft-link">Fire Insurance</a>
-            <a href="/personal/home-contents" class="ft-link">Home Contents</a>
-            <a href="/personal/maid" class="ft-link">Maid Insurance</a>
-            <a href="/personal/personal-accident" class="ft-link">Personal Accident</a>
-          </div>
-        </div>
-
-        <div class="ft-col">
-          <p class="ft-col-head">Business Assets</p>
-          <div class="ft-col-links">
-            <a href="/commercial/property" class="ft-link">Commercial Property</a>
-            <a href="/commercial/equipment" class="ft-link">Equipment &amp; Machinery</a>
-            <a href="/commercial/electronic-equipment" class="ft-link">Electronic Equipment</a>
-            <a href="/commercial/inventory" class="ft-link">Stock &amp; Inventory</a>
-            <a href="/commercial/stock-throughput" class="ft-link">Stock Throughput</a>
-            <a href="/commercial/financial-assets" class="ft-link">Financial Assets</a>
-            <a href="/commercial/inland-transit" class="ft-link">Inland Transit</a>
-            <a href="/commercial/imi" class="ft-link">Marine &amp; IMI</a>
-            <a href="/commercial/motor" class="ft-link">Motor Fleet</a>
-          </div>
-        </div>
-
-        <div class="ft-col">
-          <p class="ft-col-head">Business Liabilities</p>
-          <div class="ft-col-links">
-            <a href="/commercial/cyber" class="ft-link">Cyber Insurance</a>
-            <a href="/commercial/dao" class="ft-link">Directors &amp; Officers</a>
-            <a href="/commercial/core-liability" class="ft-link">Core Liability</a>
-            <a href="/commercial/professional" class="ft-link">Professional Indemnity</a>
-            <a href="/commercial/medical-malpractice" class="ft-link">Medical Malpractice</a>
-            <a href="/commercial/workmen" class="ft-link">Work Injury (WICA)</a>
-            <a href="/commercial/foreign-worker" class="ft-link">Foreign Worker</a>
-            <a href="/commercial/foreign-worker-bond" class="ft-link">Foreign Worker Bond</a>
-            <a href="/commercial/surety-bonds" class="ft-link">Surety Bonds</a>
-            <a href="/commercial/revenue" class="ft-link">Business Interruption</a>
-            <a href="/commercial/specialized" class="ft-link">Specialized Risks</a>
-          </div>
-        </div>
-
-        <div class="ft-col">
-          <p class="ft-col-head">Solutions</p>
-          <div class="ft-col-links">
-            <a href="/solutions/logistics" class="ft-link">Logistics &amp; Maritime</a>
-            <a href="/solutions/financial-services" class="ft-link">Financial Services</a>
-            <a href="/solutions/tech-media-startups" class="ft-link">Tech, Media &amp; Startups</a>
-            <a href="/solutions/built-environment" class="ft-link">Built Environment</a>
-            <a href="/solutions/healthcare" class="ft-link">Healthcare &amp; Biomedical</a>
-            <a href="/solutions/manufacturing" class="ft-link">Manufacturing &amp; Aerospace</a>
-            <a href="/solutions/energy" class="ft-link">Energy &amp; Chemicals</a>
-            <a href="/solutions/wholesale" class="ft-link">Wholesale Trade</a>
-            <a href="/solutions/professional-services" class="ft-link">Professional Services</a>
-          </div>
-        </div>
-
+        <div class="tf-col"><h6>Products</h6><a href="/commercial/property/">Property and business</a><a href="/commercial/car/">Engineering and construction</a><a href="/commercial/inventory/">Motor, marine and logistics</a><a href="/commercial/financial-assets/">Trade credit and bonds</a><a href="/commercial/core-liability/">Liability</a><a href="/commercial/cyber/">Cyber</a><a href="/commercial/workmen/">Workforce</a><a href="/employees/benefits/">Employee benefits</a><a href="/personal/home-contents/">Personal</a><a href="/api">API</a></div>
+        <div class="tf-col"><h6>Solutions</h6><a href="/solutions/logistics/">Logistics and freight</a><a href="/solutions/energy/">Energy and chemicals</a><a href="/solutions/wholesale/">Wholesale and distribution</a><a href="/solutions/built-environment/">Built environment</a><a href="/solutions/manufacturing/">Manufacturing</a><a href="/solutions/financial-services/">Financial services</a><a href="/solutions/healthcare/">Healthcare and life sciences</a><a href="/solutions/professional-services/">Professional services</a><a href="/solutions/tech-media-startups/">Tech, media and start-ups</a></div>
+        <div class="tf-col"><h6>TRS</h6><a href="/about">About</a><a href="/pricing">Pricing</a><a href="/api">API</a></div>
       </div>
-
-      <div class="ft-bottom">
-        <p class="ft-copy">&copy; 2025 Trade Risk Solutions Pte Ltd. All rights reserved.</p>
-        <div class="ft-legal">
-          <a href="#" class="ft-legal-link">Privacy Policy</a>
-          <a href="#" class="ft-legal-link">Terms of Service</a>
-        </div>
-      </div>
+      <div class="tf-legal"><span>&copy; 2026 Trade Risk Solutions Pte Ltd. MAS-licensed insurance broker.</span></div>
     </div>
   </footer>
 `;
@@ -362,7 +77,7 @@ var FOOTER_HTML = `
   /* ── Scroll → pill transform ── */
   var THRESHOLD = 60;
   function onScroll() {
-    nav.classList.toggle('nav--scrolled', window.scrollY > THRESHOLD);
+    if (nav) nav.classList.toggle('nav--scrolled', window.scrollY > THRESHOLD);
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
@@ -809,7 +524,7 @@ var FOOTER_HTML = `
   card.querySelectorAll('.nav-ctac-dept-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var dept = btn.dataset.dept;
-      if (dept === 'Claims') { closeCard(); window.location.href = '/claims'; return; }
+      if (dept === 'Claims') { closeCard(); window.open('https://wa.me/6589386813?text=' + encodeURIComponent('Hi TRS, I need help with a claim.'), '_blank', 'noopener'); return; }
       selectedDept = dept;
       showMainForm();
       setTimeout(function () { firstNameInput.focus(); }, 50);

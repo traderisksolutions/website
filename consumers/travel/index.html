@@ -9,10 +9,9 @@
   <title>Travel Insurance — TRS Personal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Archivo:wdth,wght@62..125,400..900&family=Zhi+Mang+Xing&display=swap" />
   <link rel="stylesheet" href="/styles/main.css" />
-  <link rel="stylesheet" href="/styles/product.css" />
+  <link rel="stylesheet" href="/styles/site.css" />
   <script defer src="/_vercel/insights/script.js"></script>
   <link rel="canonical" href="https://traderisksolutions.com.sg/consumers/travel/" />
   <meta property="og:type" content="website" />
@@ -25,149 +24,15 @@
   <meta name="twitter:title" content="Travel Insurance — TRS Personal" />
   <meta name="twitter:description" content="Trade Risk Solutions — corporate insurance broker in Singapore." />
   <meta name="twitter:image" content="https://traderisksolutions.com.sg/og-image.png" />
+
 </head>
-<body>
-
+<body class="s-site">
   <div id="nav-root"></div>
-
-  <!-- HERO: Travel Insurance (pill toggle) -->
-  <style>
-    .travel-tab-wrap { margin: 8px 0 24px; }
-    .travel-tab-rail {
-      display: inline-flex; background: rgba(255,255,255,0.18); backdrop-filter: blur(12px) saturate(160%);
-      border: 1px solid rgba(255,255,255,0.35); border-radius: 100px; padding: 4px; gap: 2px;
-    }
-    .travel-tab {
-      padding: 9px 22px; border-radius: 100px; border: none; background: transparent;
-      cursor: pointer; font-family: var(--font, "Archivo", sans-serif); font-size: 13.5px; font-weight: 500;
-      color: rgba(255,255,255,0.75); transition: all 0.15s; white-space: nowrap;
-    }
-    .travel-tab.active { background: rgba(255,255,255,0.92); color: #18181b; font-weight: 600; }
-    .travel-tab:not(.active):hover { background: rgba(255,255,255,0.25); color: #fff; }
-    .travel-panel { display: none; }
-    .travel-panel.active { display: block; }
-  </style>
-  <section class="ph-hero">
-    <div class="ph-hero-inner">
-      <div class="ph-left">
-        <p class="ph-eyebrow">Travel Insurance</p>
-        <div class="travel-tab-wrap">
-          <div class="travel-tab-rail" role="tablist" aria-label="Travel plan type">
-            <button class="travel-tab active" data-panel="single" role="tab" aria-selected="true">Single Trip</button>
-            <button class="travel-tab" data-panel="annual" role="tab" aria-selected="false">Annual Trip</button>
-          </div>
-        </div>
-        <h1 class="ph-heading" id="travel-heading">Wander with absolute peace of mind</h1>
-        <a href="#" class="ph-btn" data-ctac-modal data-track="product_contact">
-          Contact us
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
-      </div>
-      <div class="ph-right">
-        <p class="ph-desc" id="travel-desc">Comprehensive, trip-specific protection covering medical emergencies, travel disruptions, and baggage loss from the moment you depart until you return home.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SINGLE TRIP CARDS -->
-  <div class="travel-panel active" id="panel-single">
-    <section class="ph-cards-section">
-      <div class="ph-cards-inner">
-        <div class="ph-cards-grid">
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
-            <p class="ph-card-title">Overseas Medical Care</p>
-            <p class="ph-card-body">Full coverage for emergency medical treatment, hospital stays, and outpatient care while traveling outside Singapore.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <p class="ph-card-title">Journey Disruption</p>
-            <p class="ph-card-body">Compensation for non-refundable flight cancellations, missed connections, travel delays, or unexpected trip curtailments.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
-            <p class="ph-card-title">Baggage &amp; Personal Effects</p>
-            <p class="ph-card-body">Protection against the loss, theft, or accidental damage of your luggage, personal electronics, and vital travel documents.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-            <p class="ph-card-title">24/7 Global Evacuation</p>
-            <p class="ph-card-body">Immediate access to emergency medical evacuation, repatriation services, and international assistance helplines worldwide.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ANNUAL TRIP CARDS -->
-  <div class="travel-panel" id="panel-annual">
-    <section class="ph-cards-section">
-      <div class="ph-cards-inner">
-        <div class="ph-cards-grid">
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
-            <p class="ph-card-title">Unlimited Multi-Trip Protection</p>
-            <p class="ph-card-body">Continuous, seamless coverage for every business trip or weekend getaway you take over a rolling 12-month period.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-            <p class="ph-card-title">Travel Delay Cash Benefits</p>
-            <p class="ph-card-body">Automated or swift cash payouts for extended airline delays, flight overbookings, or baggage arrival delays.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
-            <p class="ph-card-title">Leisure Sports Protection</p>
-            <p class="ph-card-body">Built-in coverage for popular vacation activities like skiing, scuba diving, and trekking without requiring costly premium add-ons.</p>
-          </div>
-          <div class="ph-card">
-            <div class="ph-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
-            <p class="ph-card-title">Rental Car Excess Waiver</p>
-            <p class="ph-card-body">Eliminates high rental company out-of-pocket charges by covering the insurance excess on rental vehicles driven overseas.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- FOOTER CTA -->
-  <section class="footer-cta-section">
-    <div class="footer-cta-wrap">
-      <h2 class="footer-cta-heading">Find out what the right coverage looks like for you.</h2>
-      <button class="footer-cta-btn" data-track="product_footer_contact" data-ctac-modal aria-label="Contact us">
-        Contact us
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-      </button>
-    </div>
-  </section>
-
+<section class="s-w"><nav class="s-crumb" aria-label="Breadcrumb"><a href="/#services">Products</a><span>/</span>Workforce and personal<span>/</span>Personal</nav><div class="s-hero2"><div><h1 class="s-h1">Travel insurance</h1><p class="s-lede">Wander with absolute peace of mind</p></div><div class="s-hr"><p>Comprehensive, trip-specific protection covering medical emergencies, travel disruptions, and baggage loss from the moment you depart until you return home.</p><div class="s-acts"><a href="#" class="s-btn s-o" data-ctac-modal data-track="page_get_quote">Get a quote</a><a class="s-btn s-p" href="https://wa.me/6589386813?text=Hi%20TRS%2C%20I%27d%20like%20to%20talk%20to%20a%20broker." target="_blank" rel="noopener" data-track="whatsapp_direct">Talk to a broker <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a></div></div></div></section><section class="s-sec s-dark"><div class="s-w"><p class="s-eb">Coverage</p><h2 class="s-h2">What travel insurance covers</h2><div class="s-cov"><div><h3>Overseas Medical Care</h3><p>Full coverage for emergency medical treatment, hospital stays, and outpatient care while traveling outside Singapore.</p></div><div><h3>Journey Disruption</h3><p>Compensation for non-refundable flight cancellations, missed connections, travel delays, or unexpected trip curtailments.</p></div><div><h3>Baggage &amp; Personal Effects</h3><p>Protection against the loss, theft, or accidental damage of your luggage, personal electronics, and vital travel documents.</p></div><div><h3>24/7 Global Evacuation</h3><p>Immediate access to emergency medical evacuation, repatriation services, and international assistance helplines worldwide.</p></div><div><h3>Unlimited Multi-Trip Protection</h3><p>Continuous, seamless coverage for every business trip or weekend getaway you take over a rolling 12-month period.</p></div><div><h3>Travel Delay Cash Benefits</h3><p>Automated or swift cash payouts for extended airline delays, flight overbookings, or baggage arrival delays.</p></div><div><h3>Leisure Sports Protection</h3><p>Built-in coverage for popular vacation activities like skiing, scuba diving, and trekking without requiring costly premium add-ons.</p></div><div><h3>Rental Car Excess Waiver</h3><p>Eliminates high rental company out-of-pocket charges by covering the insurance excess on rental vehicles driven overseas.</p></div></div></div></section><section class="s-sec s-tint"><div class="s-w"><p class="s-eb">How TRS places it</p><h2 class="s-h2">From the first review to every claim after it</h2><div class="s-steps"><div><i>1</i><h3>Review</h3><p>A named broker reads the current policy against how the business runs today and lists the gaps.</p></div><div><i>2</i><h3>Market</h3><p>TRS takes the risk to the insurers with appetite for it and sets the quotes side by side: premium, deductibles, exclusions.</p></div><div><i>3</i><h3>Manage</h3><p>The same team handles mid-term changes, renewals and the claim, from first notice to settlement.</p></div></div></div></section><section class="s-sec"><div class="s-w"><p class="s-eb">Personal</p><h2 class="s-h2">More in personal</h2><div class="s-rel"><a href="/personal/fire/"><span><b>Fire insurance</b><span>Safeguard your property's foundation</span></span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a><a href="/personal/home-contents/"><span><b>Home contents insurance</b><span>Protect what matters at home</span></span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a><a href="/personal/maid/"><span><b>Maid insurance</b><span>Care for those who care for your home</span></span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a><a href="/personal/personal-accident/"><span><b>Personal accident insurance</b><span>Prepared for life's unpredictable moments</span></span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a><a href="/consumers/motor/"><span><b>Motor insurance</b><span>Drive with completeconfidence</span></span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a></div></div></section><section class="s-sec s-tint"><div class="s-w s-close"><h2 class="s-h2">Find out what the right coverage looks like for you.</h2><p class="s-sub">A broker reads your current schedule against your operations and replies within two working days.</p><div class="s-acts"><a class="s-btn s-p" href="https://wa.me/6589386813?text=Hi%20TRS%2C%20I%27d%20like%20to%20talk%20to%20a%20broker." target="_blank" rel="noopener" data-track="whatsapp_direct">Talk to a broker <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 12 12 4M6 4h6v6"/></svg></a><a href="#" class="s-btn s-o" data-ctac-modal data-track="page_get_quote">Get a quote</a></div></div></section>
   <div id="footer-root"></div>
-
   <script src="/scripts/product-taxonomy.js"></script>
   <script src="/scripts/nav.js"></script>
-  <script>
-    var TRAVEL = {
-      single: {
-        heading: 'Wander with absolute peace of mind',
-        desc: 'Comprehensive, trip-specific protection covering medical emergencies, travel disruptions, and baggage loss from the moment you depart until you return home.'
-      },
-      annual: {
-        heading: 'Frequent departures, continuous protection',
-        desc: 'The smart, cost-effective solution for frequent travelers. Enjoy year-round coverage for unlimited international trips without the hassle of buying a policy every time you fly.'
-      }
-    };
-    document.querySelectorAll('.travel-tab').forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        var p = tab.dataset.panel;
-        document.querySelectorAll('.travel-tab').forEach(function(t) {
-          t.classList.toggle('active', t === tab);
-          t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
-        });
-        document.getElementById('travel-heading').textContent = TRAVEL[p].heading;
-        document.getElementById('travel-desc').textContent = TRAVEL[p].desc;
-        document.querySelectorAll('.travel-panel').forEach(function(panel) { panel.classList.remove('active'); });
-        document.getElementById('panel-' + p).classList.add('active');
-      });
-    });
-  </script>
+  <script src="/scripts/analytics.js" defer></script>
+  <script src="/scripts/site.js" defer></script>
 </body>
 </html>

@@ -3,53 +3,114 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "x-vercel-skip-toolbar", "value": "1" }
+        {
+          "key": "x-vercel-skip-toolbar",
+          "value": "1"
+        }
       ]
     },
     {
       "source": "/(.*)\\.(png|jpg|jpeg|webp|svg|ico|gif)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/styles/(.*)\\.css",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
       ]
     },
     {
       "source": "/scripts/(.*)\\.js",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        }
       ]
     },
     {
       "source": "/sitemap.xml",
       "headers": [
-        { "key": "Content-Type", "value": "application/xml" },
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
+        {
+          "key": "Content-Type",
+          "value": "application/xml"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
       ]
     },
     {
       "source": "/robots.txt",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=86400" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/about",     "destination": "/about.html" },
-    { "source": "/solutions", "destination": "/solutions.html" },
-    { "source": "/pricing",   "destination": "/pricing.html" },
-    { "source": "/claims",    "destination": "/claims.html" },
-    { "source": "/api",       "destination": "/api.html" },
-    { "source": "/api/",      "destination": "/api.html" }
+    {
+      "source": "/about",
+      "destination": "/about.html"
+    },
+    {
+      "source": "/solutions",
+      "destination": "/solutions.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing.html"
+    },
+    {
+      "source": "/api",
+      "destination": "/api.html"
+    },
+    {
+      "source": "/api/",
+      "destination": "/api.html"
+    }
   ],
   "redirects": [
-    { "source": "/api/(white-label|gig-worker|rentals)",  "destination": "/api", "permanent": true },
-    { "source": "/api/(white-label|gig-worker|rentals)/", "destination": "/api", "permanent": true },
-    { "source": "/(dashboard|roadplus|supabase|tools|ai-inbound|benefixe|newsouthsea|corpcover)/(.*)", "destination": "/", "permanent": false },
-    { "source": "/(.*)\\.(py|sql|ts|tsx|md)", "destination": "/", "permanent": false }
+    {
+      "source": "/claims",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/claims.html",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/api/(white-label|gig-worker|rentals)",
+      "destination": "/api",
+      "permanent": true
+    },
+    {
+      "source": "/api/(white-label|gig-worker|rentals)/",
+      "destination": "/api",
+      "permanent": true
+    },
+    {
+      "source": "/(dashboard|roadplus|supabase|tools|ai-inbound|benefixe|newsouthsea|corpcover)/(.*)",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/(.*)\\.(py|sql|ts|tsx|md)",
+      "destination": "/",
+      "permanent": false
+    }
   ]
 }
