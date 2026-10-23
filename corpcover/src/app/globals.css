@@ -276,6 +276,7 @@ h1, h2, h3 { text-wrap: balance; }
 
 /* ── Get covered (Corgi pattern): one card per question on a ruled cream page, pressable buttons. ── */
 .gc-page { background: var(--paper); }
+.gc-page.terrain { padding-top: 72px; }
 .gc-card { background: #fff; border-radius: var(--r-md); box-shadow: 0 0 0 1px var(--rule), 0 12px 40px -18px rgba(20, 67, 47, .35); overflow: visible; text-align: left; }
 .gc-head { position: relative; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: clamp(20px, 3.4vw, 32px); padding-right: 96px; background: var(--base); border-bottom: 1px solid var(--rule); border-radius: var(--r-md) var(--r-md) 0 0; overflow: hidden; }
 .gc-head h3 { font-size: clamp(1.45rem, 3.2vw, 2rem); font-weight: 600; letter-spacing: -0.03em; line-height: 1.12; }
@@ -380,7 +381,7 @@ h1, h2, h3 { text-wrap: balance; }
 .hh-win .ui-rose { background: rgba(230, 110, 100, .16); color: #f0a49c; }
 /* Navbar over the hero */
 .nav--dark .nav-links > a { color: rgba(255, 255, 255, .82); }
-.nav--dark .nav-links > a:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+.nav--dark .nav-links > a:hover, .nav--dark .nav-links > a[aria-current="page"] { color: #fff; background: rgba(255, 255, 255, .14); }
 .nav--dark .nav-actions .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .7); }
 .nav--dark .nav-actions .btn-primary { background: #fff; color: var(--ink); }
 .nav--dark .nav-hamburger span { background: #fff; }
@@ -643,3 +644,30 @@ h1, h2, h3 { text-wrap: balance; }
 .chat-send { border-radius: 8px; background: var(--primary); color: #fff; transition: background .15s, opacity .15s; }
 .chat-send:hover { background: var(--primary-2); }
 .chat-send:disabled { opacity: .35; }
+
+/* ══ Painted grounds (24 Oct 2026), after Werner Bronkhorst. Hero + three benefits per page; Cover quotes is light green throughout. ══ */
+.terrain { position: relative; isolation: isolate; margin-top: -72px; padding-top: 72px; background: #14361f center / cover no-repeat; }
+.terrain-forest { background-image: url("/images/terrain-forest.webp"); }
+.terrain-jungle { background-image: url("/images/terrain-jungle.webp"); }
+.terrain-football { background-image: url("/images/terrain-football.webp"); background-color: #2f7f32; }
+.terrain-tennis { background-image: url("/images/terrain-tennis.webp"); background-color: #1d5232; }
+.terrain-golf { background-image: url("/images/terrain-golf.webp"); background-color: #1f5a2c; }
+.terrain-light { background: #d5e6ac url("/images/terrain-light.webp") center top / cover no-repeat; }
+.terrain-dark { color: #fff; --ink-2: rgba(255, 255, 255, .84); --ink-3: rgba(255, 255, 255, .62); --accent: #d6ecc0; }
+.terrain-dark::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(4, 14, 7, .62), rgba(4, 14, 7, .18) 70%, rgba(4, 14, 7, .08)), linear-gradient(0deg, rgba(4, 14, 7, .3), transparent 45%); }
+.terrain-dark .ft-ico { background: rgba(255, 255, 255, .14); color: #fff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.terrain-dark .btn-primary { background: #fff; color: var(--ink); }
+.terrain-dark .btn-primary:hover { background: #e8eee9; }
+.terrain-dark .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .75); }
+.terrain-dark .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
+/* Cards keep the light palette on a painted ground */
+.terrain-dark .bg-paper, .terrain-dark .chat-window { color: #141816; --ink: #141816; --ink-2: #5e6460; --ink-3: #858b87; --accent: #14432f; }
+.terrain-light .qf, .terrain-light .gc-card { background: transparent; }
+.terrain-tennis { background-position: right top; }
+.terrain-dark input { color: #141816; }
+.terrain-dark input::placeholder { color: #858b87; }
+.terrain-light { --ink-2: #3c423e; --ink-3: #4f5652; }
+@media (max-width: 767px) {
+  .terrain-dark::before { background: linear-gradient(180deg, rgba(4, 14, 7, .5), rgba(4, 14, 7, .42)); }
+}

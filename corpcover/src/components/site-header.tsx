@@ -16,6 +16,8 @@ const LINKS = [
   { path: "/about", label: "About" },
 ];
 
+const DARK_TOPS = ["/", SERVICES.review.path, SERVICES.chat.path, SERVICES.claim.path, "/articles", "/about"];
+
 const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
 
 /** Tallycent's bar: full width, links centred, frosted fade after 24px of scroll;
@@ -43,8 +45,8 @@ export function SiteHeader() {
   }, [open]);
 
   const close = () => setOpen(false);
-  // Home opens on the dark grass hero: white bar until the page scrolls.
-  const dark = !scrolled && !open && path === mpath(m);
+  // These pages open on a dark painted ground: white bar until the page scrolls.
+  const dark = !scrolled && !open && DARK_TOPS.some(p => path === mpath(m, p));
   const current = (href: string) => (path === href || path.startsWith(`${href}/`) ? "page" : undefined);
 
   return (

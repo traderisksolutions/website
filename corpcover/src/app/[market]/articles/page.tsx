@@ -1,3 +1,4 @@
+import { Terrain } from "@/components/terrain";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BlogGrid, BlogGridFromUrl } from "@/components/blog-grid";
@@ -17,12 +18,14 @@ export default async function Blogs({ params }: { params: Promise<{ market: stri
   const articles = await getGuides(m);
   return (
     <main className="flex-1">
-      <section className="wrap pb-10 pt-[clamp(72px,10vw,144px)] sm:pb-14">
+      <Terrain kind="football">
+      <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Insights</h1>
         <p className="mt-5 t-lede">Plain guides to business insurance in {M.name}: what each policy covers, what it excludes and what to check.</p>
         <Subscribe variant="inline" className="mt-7" />
       </section>
-      <section className="wrap pb-28" aria-label="All blogs">
+      </Terrain>
+      <section className="wrap pb-28 pt-[clamp(56px,7vw,96px)]" aria-label="All blogs">
         <Suspense fallback={<BlogGrid articles={articles} label="All blogs" />}><BlogGridFromUrl articles={articles} /></Suspense>
       </section>
     </main>

@@ -1,3 +1,4 @@
+import { Terrain } from "@/components/terrain";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { StartButton } from "@/components/start-actions";
@@ -26,6 +27,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
   const m = await marketParam(params), M = MARKETS[m];
   return (
     <main className="flex-1">
+      <Terrain kind="golf">
       <section className="wrap pb-14 pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Business insurance advice for {M.adj} companies</h1>
         <p className="mt-5 t-lede">
@@ -37,7 +39,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
         </div>
       </section>
 
-      <section className="py-[clamp(96px,12vw,176px)]">
+      <section className="pb-[clamp(96px,12vw,176px)] pt-[clamp(56px,7vw,96px)]">
         <div className="wrap">
           <h2 className="t-h2">How we work</h2>
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
@@ -47,6 +49,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
           </div>
         </div>
       </section>
+      </Terrain>
 
       <section className="wrap grid gap-14 pb-[clamp(96px,12vw,176px)] pt-[clamp(56px,8vw,104px)] lg:grid-cols-2">
         <div>

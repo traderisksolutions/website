@@ -1,3 +1,4 @@
+import { Terrain } from "@/components/terrain";
 import { FaqList } from "@/components/faq-list";
 import { FeatureTrio } from "@/components/feature-trio";
 import type { Metadata } from "next";
@@ -55,6 +56,7 @@ export default async function Claims({ params }: { params: Promise<{ market: str
         offers: (["personal", "business"] as const).map(p => ({ "@type": "Offer", name: PLANS[p].label, price: PLANS[p].value, priceCurrency: "USD", availability: "https://schema.org/InStock" })),
       }} />
       <JsonLd data={{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: qa.map(f => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }} />
+      <Terrain kind="tennis">
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <p className="text-[14px] font-medium text-accent">Claim review</p>
         <h1 className="t-h1 mt-4 max-w-[16ch]">Rejected insurance claim review</h1>
@@ -65,6 +67,7 @@ export default async function Claims({ params }: { params: Promise<{ market: str
           { icon: "person", title: "Broker follow-up", text: "A broker who did not sell you the policy replies in the same email thread. Not legal advice." },
         ]} />
       </section>
+      </Terrain>
 
       <section className="wrap grid items-start gap-12 pb-[clamp(96px,12vw,176px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <ol className="grid gap-8">
