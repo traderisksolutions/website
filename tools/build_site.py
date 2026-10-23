@@ -318,3 +318,19 @@ for f in glob.glob('**/*.html', recursive=True):
     if t != s:
         open(f, 'w').write(t); n += 1
 print('versioned asset links in', n, 'pages')
+
+
+# ---------------------------------------------------------------- link previews
+# New share image on every page; the home page description matches the new copy.
+HOME_DESC = ('TRS is an insurance brokerage for businesses in Singapore. Property, liability, cyber and '
+             'workforce cover placed with 18 Singapore-licensed insurers, run by one named team.')
+for f in glob.glob('**/*.html', recursive=True):
+    if f.startswith(SKIP) or f.startswith('googled'):
+        continue
+    s = open(f).read(); t = s.replace('/og-image.png"', '/og-image-2026.png"')
+    if f == 'index.html':
+        t = re.sub(r'(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")[^"]*(")',
+                   lambda m: m.group(1) + HOME_DESC + m.group(2), t)
+    if t != s:
+        open(f, 'w').write(t)
+print('share image and home description set')
