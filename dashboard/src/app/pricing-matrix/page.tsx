@@ -124,7 +124,7 @@ function PricingMatrix() {
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[640px]">
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Pricing Matrix</h1>
+          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <button onClick={() => { setTab('quotes'); setNewQuote(true); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">

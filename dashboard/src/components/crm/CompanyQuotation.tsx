@@ -9,7 +9,7 @@ import type { QuoteRow, QuoteKind } from '@/lib/crm/types'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
-const KIND_LABEL: Record<QuoteKind, string> = { pricing_matrix: 'Pricing matrix' }
+const KIND_LABEL: Record<QuoteKind, string> = { pricing_matrix: 'Employment benefits' }
 
 /**
  * Quotations prepared for this client.

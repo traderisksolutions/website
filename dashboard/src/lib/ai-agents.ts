@@ -44,7 +44,7 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
   },
   pricingmatrix: {
     id: 'pricingmatrix',
-    label: 'Pricing matrix',
+    label: 'Employment benefits',
     // One agent since 2 Oct 2026, when Group Benefits became Pricing Matrix; its group-benefits
     // features are attributed here, under the key set up to track this module's spend.
     work: 'Reads each insurer\u2019s brochure and premium calculator onto a canonical schedule, then prices a census and compares the options.',

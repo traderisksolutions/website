@@ -53,7 +53,7 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Wrench,
     items: [
       { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,      description: 'Raise and issue debit notes' },
-      { title: 'Pricing Matrix', href: '/pricing-matrix',   icon: HeartPulse,   description: 'Insurer calculators and quotes' },
+      { title: 'Employment Benefits', href: '/pricing-matrix', icon: HeartPulse, description: 'Insurer calculators and quotes' },
       { title: 'Match Threads',  href: '/companies/triage', icon: Link2,        description: 'Decide which company unmatched email belongs to' },
       { title: 'Contacts',       href: '/contacts',         icon: Users,        description: 'Every person on file' },
       { title: 'Finance',        href: '/finance',          icon: Landmark,     description: 'Receipts and reconciliation' },
