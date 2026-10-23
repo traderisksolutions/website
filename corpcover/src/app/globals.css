@@ -664,7 +664,6 @@ h1, h2, h3 { text-wrap: balance; }
 /* Cards keep the light palette on a painted ground */
 .terrain-dark .bg-paper, .terrain-dark .chat-window { color: #141816; --ink: #141816; --ink-2: #5e6460; --ink-3: #858b87; --accent: #14432f; }
 .terrain-light .qf, .terrain-light .gc-card { background: transparent; }
-.terrain-tennis { background-position: right top; }
 .terrain-dark input { color: #141816; }
 .terrain-dark input::placeholder { color: #858b87; }
 .terrain-light { --ink-2: #3c423e; --ink-3: #4f5652; }
