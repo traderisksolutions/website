@@ -3,7 +3,7 @@
  * sensitive fields and never keeps the token. No network: fetch is injected.
  */
 import { describe, it, expect } from 'vitest'
-import { fetchTalenox, TALENOX_EMPLOYEES_URL, mapTalenoxEmployee } from '@/lib/hr/talenox'
+import { fetchTalenox, TALENOX_EMPLOYEES_URL, mapTalenoxEmployee, mapTalenoxDependants, dependantRelationship } from '@/lib/hr/talenox'
 import { HrConnectorError } from '@/lib/hr/connectors'
 import sample from '@/lib/hr/talenox-sample.json'
 
@@ -28,7 +28,8 @@ describe('fetchTalenox', () => {
   it('follows page / total_pages and returns every employee', async () => {
     const { impl, calls } = sampleFetch()
     const read = await fetchTalenox(TOKEN, impl, TODAY)
-    expect(calls.map(c => c.url)).toEqual([TALENOX_EMPLOYEES_URL, `${TALENOX_EMPLOYEES_URL}?page=2`])
+    const listCalls = calls.map(c => c.url).filter(u => !u.startsWith(`${TALENOX_EMPLOYEES_URL}/`))
+    expect(listCalls).toEqual([TALENOX_EMPLOYEES_URL, `${TALENOX_EMPLOYEES_URL}?page=2`])
     expect(read.source).toBe('talenox')
     expect(read.meta).toMatchObject({ pages: 2, count: 3, endpoint: TALENOX_EMPLOYEES_URL })
     expect(read.employees.map(e => e.key)).toEqual(['10231', '10232', '10233'])
@@ -92,7 +93,7 @@ describe('fetchTalenox', () => {
         : { data: [{ id: 1, name: 'First' }], next: `${TALENOX_EMPLOYEES_URL}?cursor=abc` }
       return { ok: true, status: 200, text: async () => JSON.stringify(body) }
     }, TODAY)
-    expect(urls).toHaveLength(2)
+    expect(urls.filter(u => !u.startsWith(`${TALENOX_EMPLOYEES_URL}/`))).toHaveLength(2)
     expect(read.employees.map(e => e.name)).toEqual(['First', 'Second'])
   })
 
@@ -117,5 +118,55 @@ describe('fetchTalenox', () => {
     const read = await fetchTalenox(TOKEN, async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ employees: [{ id: 9, birthdate: '1990-01-01' }] }) }), TODAY)
     expect(read.employees).toEqual([])
     expect(read.skipped).toEqual([{ key: '9', reason: 'No name on the Talenox record' }])
+  })
+})
+
+describe('Talenox dependants', () => {
+  const KIN = [
+    { id: 11, name: 'Tan Mei Ling', relationship: 'Wife', birthdate: '1988-03-14', gender: 'Female' },
+    { id: 12, name: 'Tan Jun Hao', relationship: 'Son', birthdate: '2016-07-02', gender: 'Male' },
+    { id: 13, name: 'Tan Ah Kow', relationship: 'Father', birthdate: '1955-01-01', gender: 'Male' },
+    { id: 14, name: 'Lim Sister', relationship: 'Emergency contact' },
+    { id: 15, name: 'Tan Jia Yi', relationship: 'Daughter', birthdate: 'unknown' },
+  ]
+
+  it('takes spouse and children only', () => {
+    expect(['Spouse', 'wife', 'Husband', 'Son', 'daughter', 'Child'].map(dependantRelationship)).toEqual(['spouse', 'spouse', 'spouse', 'child', 'child', 'child'])
+    expect(['Father', 'Mother', 'Sibling', 'Friend', ''].map(dependantRelationship)).toEqual([null, null, null, null, null])
+    const deps = mapTalenoxDependants({ next_of_kins: KIN }, 'E1', TODAY)
+    expect(deps.map(d => [d.name, d.relationship, d.dob, d.gender])).toEqual([
+      ['Tan Mei Ling', 'spouse', '1988-03-14', 'F'],
+      ['Tan Jun Hao', 'child', '2016-07-02', 'M'],
+      ['Tan Jia Yi', 'child', null, null],
+    ])
+    expect(deps[2].issues).toEqual(['Date of birth not readable: unknown'])
+    expect(deps.every(d => d.employeeKey === 'E1')).toBe(true)
+  })
+
+  it('reads next_of_kins from the list when present, with no extra requests', async () => {
+    const urls: string[] = []
+    const read = await fetchTalenox(TOKEN, async (url: string) => {
+      urls.push(url)
+      return { ok: true, status: 200, text: async () => JSON.stringify([{ id: 1, name: 'Tan Wei', birthdate: '1985-05-05', gender: 'M', next_of_kins: KIN }]) }
+    }, TODAY)
+    expect(urls).toEqual([TALENOX_EMPLOYEES_URL])
+    expect(read.dependants.map(d => d.name)).toEqual(['Tan Mei Ling', 'Tan Jun Hao', 'Tan Jia Yi'])
+  })
+
+  it('reads each active employee once when the list has no next_of_kins; a failed read does not fail the list', async () => {
+    const urls: string[] = []
+    const read = await fetchTalenox(TOKEN, async (url: string) => {
+      urls.push(url)
+      if (url === TALENOX_EMPLOYEES_URL) return { ok: true, status: 200, text: async () => JSON.stringify([
+        { id: 1, name: 'Tan Wei', birthdate: '1985-05-05' },
+        { id: 2, name: 'Ng Li', birthdate: '1990-01-01' },
+        { id: 3, name: 'Left Already', birthdate: '1980-01-01', resign_date: '2025-01-01' },
+      ]) }
+      if (url.endsWith('/1')) return { ok: true, status: 200, text: async () => JSON.stringify({ id: 1, name: 'Tan Wei', next_of_kins: KIN.slice(0, 2) }) }
+      return { ok: false, status: 500, text: async () => 'error' }
+    }, TODAY)
+    expect(urls.sort()).toEqual([TALENOX_EMPLOYEES_URL, `${TALENOX_EMPLOYEES_URL}/1`, `${TALENOX_EMPLOYEES_URL}/2`])
+    expect(read.employees).toHaveLength(3)
+    expect(read.dependants.map(d => `${d.employeeKey}:${d.name}`)).toEqual(['1:Tan Mei Ling', '1:Tan Jun Hao'])
   })
 })

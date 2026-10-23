@@ -42,8 +42,12 @@ export default function LandingPage() {
               <Link href={`/connect/${token}/upload`} className={`hrc-btn${draft ? '' : ' p'}`}>Upload a file</Link>
             </div>
             <div className="hrc-opt">
-              <div><b>Connect Talenox</b><span>Paste an API token from your Talenox account. It is used once to read the employee list and is not stored.</span></div>
+              <div><b>Connect Talenox</b><span>Paste an API token from your Talenox account. It is used once to read the employee list, with spouse and children, and is not stored.</span></div>
               <Link href={`/connect/${token}/talenox`} className="hrc-btn">Connect Talenox</Link>
+            </div>
+            <div className="hrc-opt">
+              <div><b>Connect SimplePay</b><span>Paste an API key from your SimplePay account. It is used once to read the employee list and is not stored.</span></div>
+              <Link href={`/connect/${token}/simplepay`} className="hrc-btn">Connect SimplePay</Link>
             </div>
             <div className="hrc-opt">
               <div><b>Connect Workday</b><span>Your Workday administrator creates an integration user with read access to worker data. The password is used once and is not stored.</span></div>

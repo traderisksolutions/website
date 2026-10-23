@@ -8,13 +8,21 @@
  *
  * Talenox's field names have shifted between versions, so every field is read from a list of
  * candidate keys. A key we do not know is kept in `raw` (minus sensitive keys) for audit.
+ *
+ * Dependants come from each employee's `next_of_kins` (name, relationship, birthdate, gender).
+ * Only a spouse or a child becomes a dependant; parents, siblings and emergency contacts do not.
+ * When the list omits next_of_kins, each active employee's record is read once for it; a record
+ * that cannot be read leaves that employee without dependants, never fails the list. HR confirms
+ * every dependant on the review page.
  */
-import type { HrEmployee, HrRead } from './types'
+import type { HrDependant, HrEmployee, HrRead } from './types'
 import { HrConnectorError, asText, isPastOrToday, isoDate, normaliseGender, normaliseStatus, pick, rowIssues, stripSensitive } from './connectors'
 import { todaySGT, type CalendarDate } from '../dates/dob'
 
 export const TALENOX_EMPLOYEES_URL = 'https://api.talenox.com/api/v2/employees'
 const MAX_PAGES = 50
+const MAX_DETAIL_READS = 300
+const DETAIL_CONCURRENCY = 5
 
 type FetchLike = (input: string, init?: { method?: string; headers?: Record<string, string> }) => Promise<{ ok: boolean; status: number; text(): Promise<string> }>
 
@@ -63,6 +71,34 @@ function categoryOf(r: Rec): string | null {
   return asText(pick(r, 'department'))
 }
 
+/** spouse / child from Talenox's relationship wording, or null for anyone else. */
+export function dependantRelationship(raw: unknown): HrDependant['relationship'] | null {
+  const s = String(raw ?? '').toLowerCase()
+  if (/\b(spouse|wife|husband|partner)\b/.test(s)) return 'spouse'
+  if (/\b(child|children|son|daughter|kid)\b/.test(s)) return 'child'
+  return null
+}
+
+/** The spouse and children on one employee's next_of_kins, mapped to dependants. */
+export function mapTalenoxDependants(r: Rec, employeeKey: string, today: CalendarDate = todaySGT()): HrDependant[] {
+  const kin = pick(r, 'next_of_kins', 'next_of_kin', 'family_members', 'dependants', 'dependents')
+  if (!Array.isArray(kin)) return []
+  const out: HrDependant[] = []
+  kin.forEach((k, i) => {
+    if (!isRec(k)) return
+    const relationship = dependantRelationship(pick(k, 'relationship', 'relation', 'relationship_type'))
+    if (!relationship) return
+    const name = asText(pick(k, 'name', 'full_name')) ?? asText(`${asText(pick(k, 'first_name')) ?? ''} ${asText(pick(k, 'last_name')) ?? ''}`.trim()) ?? ''
+    if (!name) return
+    const dobRaw = pick(k, 'birthdate', 'date_of_birth', 'dob')
+    const dob = isoDate(dobRaw, today)
+    const issues: string[] = []
+    if (!dob) issues.push(dobRaw ? `Date of birth not readable: ${String(dobRaw)}` : 'No date of birth')
+    out.push({ key: `${employeeKey}-kin-${asText(pick(k, 'id')) ?? i + 1}`, employeeKey, name, relationship, dob, gender: normaliseGender(pick(k, 'gender', 'sex')), issues })
+  })
+  return out
+}
+
 export function mapTalenoxEmployee(r: Rec, index: number, today: CalendarDate = todaySGT()): HrEmployee {
   const id = asText(pick(r, 'id', 'employee_id', 'employee_no', 'uuid')) ?? `talenox-${index + 1}`
   const name = asText(pick(r, 'name', 'full_name', 'display_name'))
@@ -103,6 +139,7 @@ export async function fetchTalenox(token: string, fetchImpl: FetchLike = fetch a
   const employees: HrEmployee[] = []
   const skipped: HrRead['skipped'] = []
   const seen = new Set<string>()
+  const records: { key: string; rec: Rec; active: boolean }[] = []
   let url: string | null = TALENOX_EMPLOYEES_URL
   let pages = 0
 
@@ -122,26 +159,51 @@ export async function fetchTalenox(token: string, fetchImpl: FetchLike = fetch a
     catch { throw new HrConnectorError('Talenox returned a response that was not JSON.', res.status) }
 
     pages += 1
-    const records = employeesOf(body)
-    if (pages === 1 && !records.length && !Array.isArray(body) && !(isRec(body) && Object.values(body).some(Array.isArray))) {
+    const pageRecords = employeesOf(body)
+    if (pages === 1 && !pageRecords.length && !Array.isArray(body) && !(isRec(body) && Object.values(body).some(Array.isArray))) {
       throw new HrConnectorError('Talenox returned no employee list for this token.', res.status)
     }
-    for (let i = 0; i < records.length; i++) {
-      const e = mapTalenoxEmployee(records[i], employees.length + i, today)
+    for (let i = 0; i < pageRecords.length; i++) {
+      const e = mapTalenoxEmployee(pageRecords[i], employees.length + i, today)
       if (!e.name) { skipped.push({ key: e.key, reason: 'No name on the Talenox record' }); continue }
       if (seen.has(e.key)) continue
       seen.add(e.key)
       employees.push(e)
+      records.push({ key: e.key, rec: pageRecords[i], active: e.status !== 'inactive' })
     }
     const next = nextPageUrl(body, url)
     url = next && next !== url ? next : null
   }
 
+  // Dependants: from the list when it carries next_of_kins, else one record read per active employee.
+  const listHasKin = records.some(r => 'next_of_kins' in r.rec || 'next_of_kin' in r.rec)
+  const dependants: HrDependant[] = []
+  let detailReads = 0
+  if (listHasKin) {
+    for (const r of records) if (r.active) dependants.push(...mapTalenoxDependants(r.rec, r.key, today))
+  } else {
+    const queue = records.filter(r => r.active).slice(0, MAX_DETAIL_READS)
+    const worker = async () => {
+      for (let r = queue.shift(); r; r = queue.shift()) {
+        try {
+          const res = await fetchImpl(`${TALENOX_EMPLOYEES_URL}/${encodeURIComponent(r.key)}`, { method: 'GET', headers: { Authorization: `Bearer ${t}`, Accept: 'application/json' } })
+          detailReads += 1
+          if (!res.ok) continue
+          const body = JSON.parse(await res.text()) as unknown
+          const rec = isRec(body) && isRec(body.employee) ? body.employee : body
+          if (isRec(rec)) dependants.push(...mapTalenoxDependants(rec, r.key, today))
+        } catch { /* this employee keeps no dependants; HR adds them on review */ }
+      }
+    }
+    await Promise.all(Array.from({ length: DETAIL_CONCURRENCY }, worker))
+    dependants.sort((a, b) => a.employeeKey.localeCompare(b.employeeKey) || a.key.localeCompare(b.key))
+  }
+
   return {
     source: 'talenox',
     employees,
-    dependants: [],
+    dependants,
     skipped,
-    meta: { endpoint: TALENOX_EMPLOYEES_URL, pages, count: employees.length, fetchedAt: new Date().toISOString() },
+    meta: { endpoint: TALENOX_EMPLOYEES_URL, pages, count: employees.length, dependants: dependants.length, detailReads, fetchedAt: new Date().toISOString() },
   }
 }

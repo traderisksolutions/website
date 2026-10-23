@@ -1,13 +1,13 @@
 # HR Connect
 
-A client's HR provides the employee list for a group benefits quotation through a link the broker sends from the dashboard. Three ways in: upload an Excel or CSV, paste a Talenox API token, or give a Workday integration user. The list lands on the quotation as a submission and feeds Quick quote. No model is involved anywhere in this flow.
+A client's HR provides the employee list for a group benefits quotation through a link the broker sends from the dashboard. Four ways in: upload an Excel or CSV, paste a Talenox API token, paste a SimplePay API key, or give a Workday integration user. The list lands on the quotation as a submission and feeds Quick quote. No model is involved anywhere in this flow.
 
 ## Where it lives
 
 - Broker: Pricing Matrix → HR links tab → Send a link; row → link page (timeline, received list, Resend, Close, Quote from this list). Company page → Quotation → Send HR a link.
-- HR: `/connect/<token>` (public, no sign-in; `/connect` is in `PUBLIC_PATHS`), then `/upload`, `/talenox`, `/workday`, `/review`, `/done`.
+- HR: `/connect/<token>` (public, no sign-in; `/connect` is in `PUBLIC_PATHS`), then `/upload`, `/talenox`, `/simplepay`, `/workday`, `/review`, `/done`.
 - API: dashboard `/api/group-benefits/hr-links/**` (session or cron bearer); public `/api/public/hr/<token>/**` (open in the API gate, reason in `src/lib/api-gate/policy.ts`; 60 requests per 10 minutes per token per server instance).
-- Code: `src/lib/hr/` (types, tokens, links, email, public, rate-limit, spreadsheet, talenox, workday, connectors), `src/app/connect/**`, `src/components/hr-connect/**`, `src/components/group-benefits/hr/**`.
+- Code: `src/lib/hr/` (types, tokens, links, email, public, rate-limit, spreadsheet, talenox, simplepay, workday, connectors), `src/app/connect/**`, `src/components/hr-connect/**`, `src/components/group-benefits/hr/**`.
 - Tables: `hr_links`, `hr_link_events`, `hr_submissions` (migration `20261019_hr_connect.sql`, applied 19 Oct 2026).
 
 ## The link
@@ -25,7 +25,11 @@ Verified 19 Oct 2026 on a 15-row Gembridge file with a title row above the heade
 
 ## Talenox
 
-HR pastes an API token from their Talenox account (API access is on every Talenox plan). One call to `https://api.talenox.com/api/v2/employees` with the token as a bearer; the token is used once and not stored. Field mapping is tolerant (`name` or first + last; `birthdate`, `date_of_birth` or `dob`; resign date in the past → inactive). Not yet exercised against a live Talenox account: the mapping is unit-tested on a sample response. First live run: open a link, paste a real token, compare the list with the Talenox screen.
+HR pastes an API token from their Talenox account (API access is on every Talenox plan). One call to `https://api.talenox.com/api/v2/employees` with the token as a bearer; the token is used once and not stored. Field mapping is tolerant (`name` or first + last; `birthdate`, `date_of_birth` or `dob`; resign date in the past → inactive). Dependants (added 23 Oct 2026): each employee's `next_of_kins` gives name, relationship, birthdate and gender; spouse, wife, husband, partner → spouse; child, son, daughter → child; parents, siblings and emergency contacts are ignored. When the list omits `next_of_kins`, each active employee's record is read once (`GET /employees/:id`, 5 at a time, at most 300); a failed read leaves that employee without dependants and never fails the list. HR confirms them on review. Not yet exercised against a live Talenox account: the mapping is unit-tested on a sample response. First live run: open a link, paste a real token, compare the list with the Talenox screen.
+
+## SimplePay
+
+Added 23 Oct 2026. HR creates an API user in SimplePay (Settings → Users → API Users; owner or administrator) with access to the company being quoted and pastes the key. `GET https://api.payroll.simplepay.cloud/v1/clients` lists the companies the key can see; one is read directly, several return 409 with the list and HR picks. Then `GET /v1/clients/:id/employees` (items wrapped as `{ employee: {...} }`): first and last name, birthdate, job title, appointment date, termination date. The key goes in the `Authorization` header as is, is used once and not stored. SimplePay keeps no dependants and no gender, so HR adds spouse and children on review and a missing gender is not flagged. Limit 1,000 requests an hour per key; 429 and 503 have their own messages. Migration `20261023_hr_simplepay.sql` adds `simplepay` to the `hr_submissions.source` check; without it the draft save fails. Not yet exercised against a live account.
 
 ## Workday
 

@@ -40,7 +40,7 @@ export default function TalenoxPage() {
             A Talenox account administrator creates it.
             <ol>
               <li>Sign in to Talenox as an administrator.</li>
-              <li>Open the profile menu and choose the API or integrations settings.</li>
+              <li>Open the menu at the top right and choose API settings.</li>
               <li>Create a token with read access to employees and copy it. Talenox&rsquo;s help pages describe the exact steps for your plan.</li>
               <li>Paste it below. You can delete the token in Talenox as soon as the list has been read.</li>
             </ol>
@@ -48,7 +48,7 @@ export default function TalenoxPage() {
 
           <h2>What is read</h2>
           <div className="hrc-facts">
-            <div className="hrc-fact"><b>Read</b><span>Name, date of birth, gender, job title or department, immigration status, hire date, employment status</span></div>
+            <div className="hrc-fact"><b>Read</b><span>Name, date of birth, gender, job title or department, immigration status, hire date, employment status; spouse and children from next of kin</span></div>
             <div className="hrc-fact"><b>Not read</b><span>Salary, bank details, NRIC or passport numbers, addresses, contact details, payroll</span></div>
           </div>
 
