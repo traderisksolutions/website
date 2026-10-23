@@ -23,7 +23,7 @@ export default async function Ask({ params }: { params: Promise<{ market: string
   return (
     <main className="flex-1">
       <JsonLd data={faqPage(faqs)} />
-      <Terrain kind="jungle">
+      <Terrain shade="evergreen">
       <section className="wrap grid items-start gap-12 pb-[clamp(96px,12vw,176px)] pt-[clamp(72px,10vw,144px)] lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-16">
         <div>
           <h1 className="t-h1">Adviser chat</h1>

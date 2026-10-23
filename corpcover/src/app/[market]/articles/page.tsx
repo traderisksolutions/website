@@ -18,7 +18,7 @@ export default async function Blogs({ params }: { params: Promise<{ market: stri
   const articles = await getGuides(m);
   return (
     <main className="flex-1">
-      <Terrain kind="football">
+      <Terrain shade="moss">
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Insights</h1>
         <p className="mt-5 t-lede">Plain guides to business insurance in {M.name}: what each policy covers, what it excludes and what to check.</p>

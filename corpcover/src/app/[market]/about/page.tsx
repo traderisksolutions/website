@@ -27,7 +27,7 @@ export default async function About({ params }: { params: Promise<{ market: stri
   const m = await marketParam(params), M = MARKETS[m];
   return (
     <main className="flex-1">
-      <Terrain kind="golf">
+      <Terrain shade="pine">
       <section className="wrap pb-14 pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Business insurance advice for {M.adj} companies</h1>
         <p className="mt-5 t-lede">

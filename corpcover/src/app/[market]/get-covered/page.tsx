@@ -16,10 +16,10 @@ export default async function GetCoveredPage({ params, searchParams }: { params:
   const m = await marketParam(params);
   const { biz = "" } = await searchParams;
   return (
-    <main className="gc-page terrain terrain-light flex-1">
+    <main className="gc-page terrain terrain-dark grain grain-pine flex-1">
       <div className="mx-auto w-full max-w-[680px] px-4 pb-[clamp(96px,12vw,176px)] pt-[clamp(56px,8vw,112px)]">
         <h1 className="t-h1 mb-[clamp(36px,5vw,56px)] text-center">{SERVICES.quotes.name}</h1>
-        <GetCovered initialBiz={biz} market={m} />
+        <div className="frost"><GetCovered initialBiz={biz} market={m} /></div>
       </div>
     </main>
   );

@@ -24,7 +24,7 @@ const steps = [
 export default function PolicyReview() {
   return (
     <main className="flex-1">
-      <Terrain kind="forest">
+      <Terrain shade="moss">
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
         <h1 className="t-h1">Policy review</h1>
         <p className="mt-7 t-lede">Most business owners renew without reading the wording, then find out what is missing when they claim. Know what you actually bought before that happens.</p>
