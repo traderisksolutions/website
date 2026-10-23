@@ -366,11 +366,6 @@ h1, h2, h3 { text-wrap: balance; }
 .hh-link:hover { box-shadow: inset 0 -2px 0 #fff; }
 .hh-media { align-self: end; display: flex; height: min(80svh, 760px); }
 .hh-win { flex: 1; min-width: 640px; display: flex; border-radius: 14px 0 0 0; overflow: hidden; background: #141716; border: 1px solid rgba(255, 255, 255, .1); border-right: 0; border-bottom: 0; box-shadow: 0 40px 90px -30px rgba(0, 0, 0, .6); }
-.hh-rail { flex: none; width: 64px; display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 24px 0; border-right: 1px solid rgba(255, 255, 255, .07); }
-.hh-rail i { width: 16px; height: 16px; border: 1.5px solid rgba(255, 255, 255, .55); border-radius: 4px; }
-.hh-rail i.on { width: 32px; height: 32px; border: 0; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 9px #fff, inset 0 0 0 11px #141716; }
-.hh-rail b:first-of-type { margin-top: auto; }
-.hh-rail b { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 500; background: rgba(255, 255, 255, .1); color: rgba(255, 255, 255, .8); }
 /* Report in the window, dark */
 .hh-win .rp-page { flex: 1; min-width: 0; padding: 40px 44px; background: #1a1d1c; color: #f2f3f2; --ink: #f2f3f2; --ink-2: rgba(255, 255, 255, .66); --ink-3: rgba(255, 255, 255, .45); font-size: 13.5px; }
 .hh-win .rp-head { color: #fff; box-shadow: inset 0 -1px 0 rgba(255, 255, 255, .14); }
@@ -396,7 +391,7 @@ h1, h2, h3 { text-wrap: balance; }
   .hh-media { height: 380px; }
   .hh-win { min-width: 560px; }
 }
-@media (max-width: 520px) { .hh-win .rp-page { padding: 28px 24px; } .hh-rail { width: 52px; } }
+@media (max-width: 520px) { .hh-win .rp-page { padding: 28px 24px; } }
 
 /* Claim feature: Harvey Tenet. Stone panel, centred copy left, textured square right. */
 .cf-panel { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding: 16px; border-radius: 14px; background: #f1f4f2; align-items: center; }

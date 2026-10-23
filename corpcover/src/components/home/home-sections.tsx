@@ -28,7 +28,6 @@ export function HomeHero({ m }: { m: MarketKey }) {
       </div>
       <div className="hh-media" aria-hidden>
         <div className="hh-win">
-          <div className="hh-rail"><i className="on" /><i /><i /><i /><i /><b>A</b><b>N</b></div>
           <ReportMock currency={M.currency} />
         </div>
       </div>
