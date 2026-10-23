@@ -33,18 +33,33 @@ export async function loadInsurerContacts(): Promise<{ insurers: InsurerOption[]
 export const contactsFor = (insurer: string, contacts: InsurerContact[]) =>
   contacts.filter(c => normInsurer(c.insurer) === normInsurer(insurer))
 
+/** Every contact as name and email, one per line. */
+export function ContactLines({ people }: { people: InsurerContact[] }) {
+  if (people.length === 0) return <span className="text-[14px]" style={{ color: '#9aa0a6' }}>None on file</span>
+  return (
+    <span className="flex flex-col gap-0.5">
+      {people.map(p => (
+        <span key={p.contact_id} className="text-[14px] leading-snug" style={{ color: '#202124' }}>
+          {p.name ?? p.email}{p.name && <span className="ml-2 text-[13px]" style={{ color: '#5f6368' }}>{p.email}</span>}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 const COVER_LINES = [
   'Group Hospital & Surgical (GHS)', 'Group Term Life (GTL)', 'Group Personal Accident (GPA)',
   'Group Outpatient GP and Specialist', 'Group Dental',
 ]
 
-function draftBody(v: { firstName: string; company: string; start: string; lives: string }) {
+function draftBody(v: { firstName: string; company: string; start: string; lives: string; plan: string | null }) {
   const start = v.start ? new Date(v.start).toLocaleDateString('en-SG', { day: 'numeric', month: 'long', year: 'numeric' }) : '[policy start]'
   return [
     `Dear ${v.firstName || 'Sir/Madam'},`,
     '',
     `We would like a group employee benefits quotation for ${v.company || '[company]'}.`,
     '',
+    ...(v.plan ? [`Plan: ${v.plan}`] : []),
     `Policy start: ${start}`,
     `Lives: ${v.lives || '[employees and dependants]'}`,
     `Covers: ${COVER_LINES.join('; ')}`,
@@ -58,10 +73,12 @@ function draftBody(v: { firstName: string; company: string; start: string; lives
   ].join('\n')
 }
 
-export function InsurerEmailDialog({ open, onClose, initialInsurer, initialCompany, initialStart, initialLives }: {
+export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan, initialCompany, initialStart, initialLives }: {
   open: boolean
   onClose: () => void
   initialInsurer?: string | null
+  /** A named plan at that insurer, e.g. Cigna Care Connect 2.0; goes in the subject and the brief. */
+  initialPlan?: string | null
   initialCompany?: string | null
   initialStart?: string | null
   initialLives?: string | null
@@ -131,13 +148,13 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialCompa
       toEmail: to[0].email,
       toName: to[0].name ?? undefined,
       cc: to.slice(1).map(p => p.email).join(', ') || undefined,
-      subject: `Group employee benefits quotation: ${company.trim() || '[company]'}`,
-      body: draftBody({ firstName, company: company.trim(), start, lives: lives.trim() }),
+      subject: `Group employee benefits quotation${initialPlan ? ` (${initialPlan})` : ''}: ${company.trim() || '[company]'}`,
+      body: draftBody({ firstName, company: company.trim(), start, lives: lives.trim(), plan: initialPlan ?? null }),
     })
   }
 
   return (
-    <HrModal open={open} onClose={onClose} title="Email insurer" width={600}>
+    <HrModal open={open} onClose={onClose} title={initialPlan ? `Email ${initialPlan}` : 'Email insurer'} width={600}>
       <div className="flex flex-col gap-4">
         {loadError && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{loadError}</p>}
 

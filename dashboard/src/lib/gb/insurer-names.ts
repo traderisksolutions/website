@@ -16,3 +16,14 @@ export function shortInsurer(name: string | null | undefined): string {
   for (const [re, short] of SHORT) if (re.test(s)) return short
   return s || 'Unknown insurer'
 }
+
+/**
+ * Higher-tier plans quoted by email, one row each. Cigna Care Connect 1.0 and 2.0 are different
+ * tiers with different benefit tables, so they are asked for separately.
+ */
+export type OnRequestPlan = { key: string; insurer: string; label: string; rates: string }
+export const ON_REQUEST_PLANS: OnRequestPlan[] = [
+  { key: 'cigna-ccc-1', insurer: 'Cigna', label: 'Cigna Care Connect 1.0', rates: 'Published 2025 age-band rates' },
+  { key: 'cigna-ccc-2', insurer: 'Cigna', label: 'Cigna Care Connect 2.0', rates: 'On request' },
+  { key: 'april-myhealth', insurer: 'April', label: 'April MyHEALTH', rates: 'On request' },
+]

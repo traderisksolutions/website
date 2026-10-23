@@ -11,12 +11,10 @@ import { ValueScore } from '@/components/group-benefits/ValueScore'
 import type { Comparison } from '@/lib/gb/compare'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
-import { shortInsurer } from '@/lib/gb/insurer-names'
+import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
 import { Step } from '@/components/group-benefits/Step'
-import { InsurerEmailDialog, loadInsurerContacts, contactsFor, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
-
-/** Quoted by email once the local insurers are compared. */
-const ON_REQUEST = ['Cigna', 'April']
+import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
+import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
@@ -44,10 +42,12 @@ export default function QuoteDetailPage() {
   const [attachFormat, setAttachFormat] = useState<'xlsx' | 'csv'>('xlsx')
   const [showThreadPick, setShowThreadPick] = useState(false)
   const [preparing, setPreparing] = useState<string | null>(null)
-  const [emailInsurer, setEmailInsurer] = useState<{ insurer: string | null } | null>(null)
+  const [emailInsurer, setEmailInsurer] = useState<{ insurer: string | null; plan?: string } | null>(null)
+  const [editingContacts, setEditingContacts] = useState<string | null>(null)
   const [contacts, setContacts] = useState<InsurerContact[]>([])
   const [folderError, setFolderError] = useState<string | null>(null)
-  useEffect(() => { loadInsurerContacts().then(d => setContacts(d.contacts)).catch(() => {}) }, [])
+  const reloadContacts = () => loadInsurerContacts().then(d => setContacts(d.contacts)).catch(() => {})
+  useEffect(() => { void reloadContacts() }, [])
 
   /** The company's Employment Benefits folder in Drive, created on first open. */
   async function openFolder(name: string) {
@@ -199,23 +199,27 @@ export default function QuoteDetailPage() {
       {priced && (
         <section className="mb-10">
           <Step n={3} className="mb-4">Quote on request</Step>
-          <Register label="Insurers quoted on request" minWidth={560}>
+          <Register label="Quoted on request" minWidth={760}>
             <RegisterHead>
-              <RegisterTh first width={200}>Insurer</RegisterTh>
+              <RegisterTh first width={220}>Plan</RegisterTh>
+              <RegisterTh>Rates</RegisterTh>
               <RegisterTh>Contact</RegisterTh>
               <RegisterTh last align="right">{''}</RegisterTh>
             </RegisterHead>
             <tbody>
-              {ON_REQUEST.map(n => {
-                const people = contactsFor(n, contacts)
-                return (
-                  <RegisterRow key={n} onClick={() => setEmailInsurer({ insurer: n })}>
-                    <RegisterCell first primary={n} />
-                    <RegisterCell><span className="text-[14px]" style={{ color: people.length ? '#3c4043' : '#9aa0a6' }}>{people.length ? people.map(c => c.name ?? c.email).join(', ') : 'None on file'}</span></RegisterCell>
-                    <RegisterCell last align="right"><span className="inline-flex items-center gap-1.5 text-[13px] font-medium"><Mail size={14} /> Email</span></RegisterCell>
-                  </RegisterRow>
-                )
-              })}
+              {ON_REQUEST_PLANS.map(p => (
+                <RegisterRow key={p.key}>
+                  <RegisterCell first primary={p.label} secondary={p.insurer} />
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.rates}</span></RegisterCell>
+                  <RegisterCell nowrap={false}><ContactLines people={contactsFor(p.insurer, contacts)} /></RegisterCell>
+                  <RegisterCell last align="right">
+                    <span className="inline-flex items-center gap-4">
+                      <button className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }} onClick={() => setEditingContacts(p.insurer)}>Edit contacts</button>
+                      <button className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#202124' }} onClick={() => setEmailInsurer({ insurer: p.insurer, plan: p.label })}><Mail size={14} /> Email</button>
+                    </span>
+                  </RegisterCell>
+                </RegisterRow>
+              ))}
             </tbody>
           </Register>
         </section>
@@ -305,7 +309,8 @@ export default function QuoteDetailPage() {
         </details>
       )}
 
-      <InsurerEmailDialog open={!!emailInsurer} onClose={() => setEmailInsurer(null)} initialInsurer={emailInsurer?.insurer}
+      <InsurerContactsDialog open={!!editingContacts} insurer={editingContacts} onClose={() => setEditingContacts(null)} onChanged={() => void reloadContacts()} />
+      <InsurerEmailDialog open={!!emailInsurer} onClose={() => setEmailInsurer(null)} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan}
         initialCompany={company} initialStart={q.effective_date} initialLives={q.member_count ? `${q.member_count} members` : null} />
     </div>
     </div>
