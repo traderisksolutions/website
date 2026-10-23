@@ -99,7 +99,7 @@ export default function HrLinkPage() {
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-      <button onClick={() => router.push('/pricing-matrix?tab=hrlinks')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: MUTED }}>← Employment Benefits</button>
+      <button onClick={() => router.push('/pricing-matrix?tab=hrlinks')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: MUTED }}>← Employee lists</button>
 
       {pending && <p className="m-0 py-10 text-[15px]" style={{ color: MUTED }}>{MIGRATION_PENDING_LINE}</p>}
       {loading && !pending && <p className="m-0 py-10 text-center text-[15px]" style={{ color: MUTED }}>Loading…</p>}

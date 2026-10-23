@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { Pencil, Sparkles } from 'lucide-react'
+import { FolderOpen, Pencil, Sparkles } from 'lucide-react'
 import { Btn, Chip } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { BoardChip } from '@/components/board/BoardChip'
@@ -28,6 +28,23 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
 }) {
   const [editing, setEditing] = useState(false)
   const [changing, setChanging] = useState(false)
+  const [opening, setOpening] = useState(false)
+  const [driveError, setDriveError] = useState<string | null>(null)
+
+  /** The company's one Drive folder (debit notes, employment benefits, every document). Created on first open. */
+  async function openDrive() {
+    // Opened before the request so the browser does not treat the new tab as a pop-up.
+    const tab = window.open('', '_blank')
+    setOpening(true); setDriveError(null)
+    try {
+      const res = await fetch(`/api/companies/${company.id}/drive`, { method: 'POST' })
+      const d = await res.json().catch(() => ({})) as { url?: string; error?: string }
+      if (!res.ok || !d.url) { tab?.close(); setDriveError(d.error ?? `Drive folder failed (${res.status})`); return }
+      if (tab) tab.location.href = d.url; else window.location.href = d.url
+    } catch (e) {
+      tab?.close(); setDriveError(e instanceof Error ? e.message : 'Drive folder failed')
+    } finally { setOpening(false) }
+  }
   const [confirming, setConfirming] = useState(false)
   const [team, setTeam] = useState<{ email: string; name: string }[]>([])
   const [savingOwner, setSavingOwner] = useState(false)
@@ -97,10 +114,12 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
             )}
           </div>
           {status && <p className="m-0 mt-2 text-[14px]" style={{ color: MUTED }}>{status}</p>}
+          {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{driveError}</p>}
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
           <BoardChip companyId={company.id} />
+          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={openDrive} loading={opening} title={driveError ?? undefined}><FolderOpen size={14} /> Drive</Btn>
           <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => setEditing(true)}><Pencil size={14} /> Edit</Btn>
           <Btn level="primary" className="h-12 px-6 rounded-[12px] text-[15px]" onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>
         </div>

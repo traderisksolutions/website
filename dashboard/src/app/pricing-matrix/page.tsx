@@ -2,13 +2,16 @@
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UploadCloud, Loader2, Clock, Plus } from 'lucide-react'
+import { UploadCloud, Loader2, Clock, Plus, Mail, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQuote'
 import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
+import { InsurerEmailDialog, loadInsurerContacts, contactsFor, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
+import { shortInsurer } from '@/lib/gb/insurer-names'
+import { normInsurer } from '@/lib/insurers'
 import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
 import type { HrLinkCensusResponse, HrLinkDetailResponse } from '@/components/group-benefits/hr/labels'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
@@ -36,12 +39,16 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-type Tab = 'tables' | 'coverage' | 'quotes' | 'hrlinks' | 'activity'
-const TABS: readonly Tab[] = ['tables', 'coverage', 'quotes', 'hrlinks', 'activity']
-const TAB_LABEL: Record<Tab, string> = { tables: 'Rate tables', coverage: 'Coverage', quotes: 'Quotes', hrlinks: 'HR links', activity: 'Activity' }
+// Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
+type Tab = 'quotes' | 'hrlinks' | 'tables' | 'coverage' | 'activity'
+const TABS: readonly Tab[] = ['quotes', 'hrlinks', 'tables', 'coverage', 'activity']
+const TAB_LABEL: Record<Tab, string> = { quotes: 'Quotes', hrlinks: 'Employee lists', tables: 'Insurers', coverage: 'Coverage', activity: 'Activity' }
+
+/** Insurers quoted by email, listed even before a contact is on file. */
+const ON_REQUEST = ['Cigna', 'April']
 
 /**
- * Pricing Matrix — one module since 2 Oct 2026.
+ * Employment Benefits (was Pricing Matrix; renamed 23 Oct 2026, address kept) — one module since 2 Oct 2026.
  *
  * There used to be two: this one (then "Group Benefits") holding every insurer, rate and quote, and
  * an older /pricing-matrix that by then held none — no calculators, no rates, no quotes. The empty
@@ -62,7 +69,7 @@ function PricingMatrix() {
   // Four tabs since 2 Oct 2026. Old links still land: ?tab=quote opens a new quote, and the retired
   // Source files and Calculators tabs open Rate tables, which now lists the Drive files too.
   const asked = params.get('tab')
-  const initialTab: Tab = asked === 'quote' ? 'quotes' : TABS.find(t => t === asked) ?? 'tables'
+  const initialTab: Tab = asked === 'quote' ? 'quotes' : TABS.find(t => t === asked) ?? 'quotes'
   const company = params.get('company') ?? undefined
   const companyId = params.get('companyId') ?? null
   const hrLinkId = params.get('hrLink') ?? null
@@ -72,6 +79,8 @@ function PricingMatrix() {
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
+  const [emailInsurer, setEmailInsurer] = useState<{ insurer: string | null } | null>(null)
+  const [driveUrl, setDriveUrl] = useState<string | null>(null)
   // Arriving from the company page with ?tab=hrlinks&company=…: the dialog opens once, filled in.
   const [sendFromUrl, setSendFromUrl] = useState(asked === 'hrlinks' && !!(company || companyId))
   const hrCompany: CompanyPick | null = company || companyId ? { id: companyId, name: company ?? '' } : null
@@ -87,6 +96,10 @@ function PricingMatrix() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+  useEffect(() => {
+    fetch('/api/group-benefits/folder', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then((d: { url?: string } | null) => setDriveUrl(d?.url ?? null)).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!hrLinkId) return
@@ -126,67 +139,35 @@ function PricingMatrix() {
         <div className="min-w-0 max-w-[640px]">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {driveUrl && (
+            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-[12px] border border-[#dadce0] bg-white text-[#202124] text-[15px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#f8f9fa]">
+              <FolderOpen size={16} /> Drive
+            </a>
+          )}
+          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#dadce0] bg-white text-[#202124] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]">
+            <Mail size={16} /> Email insurer
+          </button>
           <button onClick={() => { setTab('quotes'); setNewQuote(true); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
             <Plus size={16} /> Quote
           </button>
         </div>
       </div>
 
-      {/* On a phone the bar scrolls sideways on its own instead of widening the page. */}
-      <div className="mt-8 mb-6 flex items-center gap-7 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }}>
+      {/* On a phone the bar scrolls sideways on its own instead of widening the page. The underline
+          sits inside the bar and the scrollbar is hidden, so a desktop never shows a scroll handle. */}
+      <div className="mt-8 mb-6 flex items-end gap-7 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid #e8eaed' }}>
         {TABS.map(t => (
           <button key={t} onClick={() => { setTab(t); if (t === 'quotes') setNewQuote(false) }}
             className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
             {TAB_LABEL[t]}
-            {tab === t && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
+            {tab === t && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full bg-[#202124]" aria-hidden />}
           </button>
         ))}
       </div>
 
       {tab === 'tables' && (
-        <div className="flex justify-end mb-3">
-          <button onClick={() => setShowUpload(true)} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] bg-white hover:bg-[#f8f9fa]">
-            <UploadCloud size={14} /> Upload rate PDF
-          </button>
-        </div>
-      )}
-      {tab === 'tables' && (
-        loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
-        : tables.length === 0 ? (
-          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
-        ) : (
-          <Register label="Rate tables" minWidth={920}>
-            <RegisterHead>
-              <RegisterTh first width={280}>Insurer</RegisterTh>
-              <RegisterTh>Products</RegisterTh>
-              <RegisterTh align="right">Year</RegisterTh>
-              <RegisterTh>Status</RegisterTh>
-              <RegisterTh>Rates</RegisterTh>
-              <RegisterTh last align="right">Uploaded</RegisterTh>
-            </RegisterHead>
-            <tbody>
-              {tables.map(t => (
-                <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
-                  <RegisterCell first primary={t.insurer_name || 'Unknown insurer'} secondary={t.version > 1 ? `Version ${t.version}` : t.source_pdf_name ?? 'Version 1'} />
-                  <RegisterCell className="max-w-[260px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
-                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#202124' : '#9aa0a6' }}>{t.plan_year ?? '—'}</span></RegisterCell>
-                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{STATUS_LABEL[t.status] ?? t.status}</span></RegisterCell>
-                  <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{VERIFICATION[v.status].label}</span> })()}</RegisterCell>
-                  <RegisterCell last align="right" primary={new Date(t.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })} secondary={t.approved_at ? `approved ${new Date(t.approved_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : 'not yet approved'} />
-                </RegisterRow>
-              ))}
-            </tbody>
-          </Register>
-        )
-      )}
-      {/* The files rate tables are read from, in the same tab: one list of what is priced and
-          where it came from. */}
-      {tab === 'tables' && (
-        <section className="mt-10">
-          <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]">Files in Drive</h2>
-          <SourceFilesTab />
-        </section>
+        <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={insurer => setEmailInsurer({ insurer })} />
       )}
       {tab === 'quotes' && newQuote && (
         <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← All quotes</button>
@@ -211,12 +192,109 @@ function PricingMatrix() {
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} onDialogClosed={() => setSendFromUrl(false)} />}
       {tab === 'activity' && <ActivityTab />}
 
+      <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} onClose={() => setEmailInsurer(null)} />
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}
     </div>
     </div>
   )
 }
 
+
+/**
+ * Insurers, in two groups. Priced here: the local insurers whose rate tables are loaded; a quote
+ * prices them all at once. Quote on request: everyone else with an employee benefits contact
+ * (Cigna, April), emailed from the row. The Drive files the rate tables are read from sit below.
+ */
+function InsurersTab({ tables, loading, onUpload, onEmail }: {
+  tables: RateTable[]; loading: boolean; onUpload: () => void; onEmail: (insurer: string) => void
+}) {
+  const router = useRouter()
+  const [contacts, setContacts] = useState<InsurerContact[]>([])
+  const [contactsError, setContactsError] = useState<string | null>(null)
+  useEffect(() => {
+    loadInsurerContacts().then(d => setContacts(d.contacts)).catch(e => setContactsError(e instanceof Error ? e.message : 'Could not load contacts'))
+  }, [])
+
+  const priced = new Set(tables.map(t => normInsurer(t.insurer_name)))
+  const onRequest = Array.from(new Set([...ON_REQUEST, ...contacts.map(c => c.insurer)]))
+    .filter(n => !priced.has(normInsurer(n)))
+    .sort((a, b) => contactsFor(b, contacts).length - contactsFor(a, contacts).length || shortInsurer(a).localeCompare(shortInsurer(b)))
+  const who = (name: string | null) => contactsFor(name ?? '', contacts)
+  const names = (list: InsurerContact[]) => list.map(c => c.name ?? c.email).join(', ')
+  const h2 = 'm-0 text-[16px] font-medium tracking-[-0.01em]'
+
+  return (
+    <div className="flex flex-col gap-10">
+      <section>
+        <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <h2 className={h2}>Priced here · {tables.length}</h2>
+          <button onClick={onUpload} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] bg-white hover:bg-[#f8f9fa]">
+            <UploadCloud size={14} /> Upload rate PDF
+          </button>
+        </div>
+        {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
+        : tables.length === 0 ? (
+          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
+        ) : (
+          <Register label="Insurers priced here" minWidth={920}>
+            <RegisterHead>
+              <RegisterTh first width={200}>Insurer</RegisterTh>
+              <RegisterTh>Products</RegisterTh>
+              <RegisterTh align="right">Year</RegisterTh>
+              <RegisterTh>Rates</RegisterTh>
+              <RegisterTh>Contact</RegisterTh>
+              <RegisterTh last align="right">Approved</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {tables.map(t => {
+                const people = who(t.insurer_name)
+                return (
+                  <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
+                    <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
+                    <RegisterCell className="max-w-[240px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={t.product_code}>{t.product_code}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#202124' : '#9aa0a6' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                    <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</span> })()}</RegisterCell>
+                    <RegisterCell className="max-w-[220px]"><span className="block text-[14px] truncate" style={{ color: people.length ? '#3c4043' : '#9aa0a6' }} title={people.map(c => c.email).join(', ')}>{people.length ? names(people) : 'None on file'}</span></RegisterCell>
+                    <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{t.approved_at ? new Date(t.approved_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Not approved'}</span></RegisterCell>
+                  </RegisterRow>
+                )
+              })}
+            </tbody>
+          </Register>
+        )}
+      </section>
+
+      <section>
+        <h2 className={cn(h2, 'mb-3')}>Quote on request · {onRequest.length}</h2>
+        {contactsError && <p className="m-0 mb-3 text-[13px]" style={{ color: '#c5221f' }}>{contactsError}</p>}
+        <Register label="Insurers quoted on request" minWidth={640}>
+          <RegisterHead>
+            <RegisterTh first width={200}>Insurer</RegisterTh>
+            <RegisterTh>Contact</RegisterTh>
+            <RegisterTh last align="right">{''}</RegisterTh>
+          </RegisterHead>
+          <tbody>
+            {onRequest.map(n => {
+              const people = who(n)
+              return (
+                <RegisterRow key={n} onClick={() => onEmail(n)}>
+                  <RegisterCell first primary={shortInsurer(n)} />
+                  <RegisterCell className="max-w-[360px]"><span className="block text-[14px] truncate" style={{ color: people.length ? '#3c4043' : '#9aa0a6' }} title={people.map(c => c.email).join(', ')}>{people.length ? names(people) : 'None on file'}</span></RegisterCell>
+                  <RegisterCell last align="right"><span className="inline-flex items-center gap-1.5 text-[13px] font-medium" style={{ color: '#202124' }}><Mail size={14} /> Email</span></RegisterCell>
+                </RegisterRow>
+              )
+            })}
+          </tbody>
+        </Register>
+      </section>
+
+      <section>
+        <h2 className={cn(h2, 'mb-3')}>Files in Drive</h2>
+        <SourceFilesTab />
+      </section>
+    </div>
+  )
+}
 
 type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
 
@@ -250,7 +328,7 @@ function QuotesTab({ onNew }: { onNew: () => void }) {
               <RegisterCell first primary={q.company_name || 'Untitled'} secondary={q.effective_date ? `effective ${q.effective_date}` : 'no effective date'} />
               <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: '#202124' }}>{q.member_count}</span></RegisterCell>
               <RegisterCell className="max-w-[280px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={(q.product_codes ?? []).join(', ')}>{(q.product_codes ?? []).join(', ') || '—'}</span></RegisterCell>
-              {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={best.insurer_name} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
+              {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
               <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{new Date(q.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></RegisterCell>
             </RegisterRow>
           )

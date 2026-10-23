@@ -10,6 +10,7 @@ import { actor, json } from '@/lib/marketing/auth'
 import { createLink, isMigrationPending, listLinks, MIGRATION_PENDING_LINE, recordEvent } from '@/lib/hr/links'
 import { defaultMessage, sendLinkEmail, linkUrl } from '@/lib/hr/email'
 import { toIsoDate } from '@/lib/dates/dob'
+import { fileEbCompanyFolder } from '@/lib/company-drive'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { link, token } = await createLink(input, who)
+    fileEbCompanyFolder(link.company_name)
     try {
       await sendLinkEmail(link, token, who)
       return json({ link, url: linkUrl(token) })

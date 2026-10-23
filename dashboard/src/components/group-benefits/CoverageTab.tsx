@@ -14,6 +14,7 @@ import { Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/Tip'
 import { Segmented } from '@/components/crm/primitives'
+import { shortInsurer } from '@/lib/gb/insurer-names'
 
 type Insurer = { tableId: string; name: string | null; planYear: number | null; verification: 'calculator' | 'brochure' | 'unverified' }
 type ProductRow = { code: string; canonName: string; abbrev: string; cells: Record<string, { labels: string[]; plans: number } | null> }
@@ -22,14 +23,11 @@ type Payload = { insurers: Insurer[]; products: ProductRow[]; benefits: BenefitR
 
 const INK = '#202124', MUTED = '#5f6368', FAINT = '#9aa0a6', RULE = '#e8eaed'
 
+/** A read-only mark, not a checkbox: a check where offered, a dash where not. Nothing here is ticked by hand. */
 function Tick({ on }: { on: boolean }) {
-  return (
-    <span aria-label={on ? 'Offered' : 'Not offered'} role="img"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-[4px] flex-shrink-0"
-          style={on ? { background: INK, color: '#fff' } : { border: `1px solid #dadce0` }}>
-      {on && <Check size={12} strokeWidth={3} />}
-    </span>
-  )
+  return on
+    ? <Check size={14} strokeWidth={2.5} aria-label="Offered" role="img" className="flex-shrink-0 mt-[2px]" style={{ color: INK }} />
+    : <span aria-label="Not offered" role="img" className="text-[13px] leading-[18px]" style={{ color: '#bdc1c6' }}>—</span>
 }
 
 export function CoverageTab() {
@@ -74,7 +72,7 @@ export function CoverageTab() {
   const nameInput = (code: string, canon: string) => (
     <input aria-label={`TRS name for ${canon}`} value={names[code] ?? ''} placeholder={canon}
            onChange={e => setNames(n => ({ ...n, [code]: e.target.value }))}
-           className="w-full min-w-[180px] px-2 py-1 text-[13px] border border-transparent hover:border-[#dadce0] focus:border-[#202124] rounded-md bg-transparent focus:outline-none placeholder:text-[#3c4043]" />
+           className="w-full min-w-[240px] px-2 py-1 text-[13px] border border-transparent hover:border-[#dadce0] focus:border-[#202124] rounded-md bg-transparent focus:outline-none placeholder:text-[#3c4043]" />
   )
 
   const everyLine = d.benefits.filter(b => b.productCode === product)
@@ -85,7 +83,7 @@ export function CoverageTab() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <Segmented value={view} onChange={v => setView(v)} options={[{ value: 'covers', label: 'Covers' }, { value: 'lines', label: 'Benefit lines' }]} />
-          <Tip text="A tick means the insurer's current rate table prices the cover, or its schedule prints the benefit line. The wording under each tick is the insurer's own. Type TRS's name in the first column to standardise it; a blank keeps the canonical name." />
+          <Tip text="Reference only; nothing here needs ticking. A check means the insurer's current rate table prices the cover, or its schedule prints the benefit line; the wording under it is the insurer's own. Type TRS's name in the first column to standardise it; a blank keeps the canonical name." />
         </div>
         <button onClick={save} disabled={!dirty || saving}
                 className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
@@ -108,13 +106,13 @@ export function CoverageTab() {
       )}
 
       <div className="relative overflow-x-auto border rounded-lg" style={{ borderColor: RULE }}>
-        <table className="w-full border-collapse" style={{ minWidth: 320 + d.insurers.length * 170 }}>
+        <table className="w-full border-collapse" style={{ minWidth: 270 + d.insurers.length * 150 }}>
           <thead>
             <tr className="bg-[#f8f9fa]" style={{ color: MUTED }}>
-              <th className={cn(th, 'sticky left-0 bg-[#f8f9fa] z-10 min-w-[240px]')}>{view === 'covers' ? 'Cover' : 'Benefit line'} · TRS name</th>
+              <th className={cn(th, 'sticky left-0 bg-[#f8f9fa] z-10 w-[270px] min-w-[270px]')}>{view === 'covers' ? 'Cover' : 'Benefit line'} · TRS name</th>
               {d.insurers.map(i => (
                 <th key={i.tableId} className={cn(th, 'border-l')} style={{ borderColor: RULE }}>
-                  <div className="normal-case tracking-normal text-[12.5px]" style={{ color: INK }}>{i.name}</div>
+                  <div className="normal-case tracking-normal text-[12.5px]" style={{ color: INK }} title={i.name ?? undefined}>{shortInsurer(i.name)}</div>
                   <div className="normal-case tracking-normal font-normal">{i.planYear ?? ''}</div>
                 </th>
               ))}

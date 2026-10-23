@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
+import { fileEbCompanyFolder } from '@/lib/company-drive'
 import { draftQuotation, DraftError } from '@/lib/gb/draft'
 import { parseDocumentDate } from '@/lib/dates/dob'
 import type { CoverSpec } from '@/lib/gb/plan-rules'
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     })
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId,
                        new_value: { company: body?.company_name, members: census.length, covers: covers.map(c => c.code), via: 'quick-quote' } })
+    fileEbCompanyFolder(body?.company_name)
     return NextResponse.json({ quotation_id: d.quotationId, complete: d.complete.length, partial: d.partial, notes: d.notes })
   } catch (e) {
     if (e instanceof DraftError) return NextResponse.json({ error: e.message }, { status: 422 })

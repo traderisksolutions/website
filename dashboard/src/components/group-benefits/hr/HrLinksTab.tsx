@@ -11,7 +11,7 @@ import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkRow, 
 const MUTED = '#5f6368'
 
 /**
- * The HR links register on the Pricing Matrix page: every link sent to a client's HR, its status
+ * The Employee lists tab (HR links) on the Employment Benefits page: every link sent to a client's HR, its status
  * word, and what came back. `Send a link` opens the dialog; a row opens the link's page.
  * `openSend` with `initialCompany` is how the company page arrives with the company filled in.
  */
@@ -65,9 +65,9 @@ export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="m-0 text-[13.5px] tabular-nums" style={{ color: MUTED }}>
-          {loading ? 'Loading…' : pending ? MIGRATION_PENDING_LINE : `${rows.length} link${rows.length === 1 ? '' : 's'}`}
+          {loading ? 'Loading…' : pending ? MIGRATION_PENDING_LINE : `${rows.length} requested from client HR`}
         </p>
-        <Btn level="primary" onClick={() => setDialog(true)} disabled={pending}>Send a link</Btn>
+        <Btn level="secondary" onClick={() => setDialog(true)} disabled={pending}>Send HR a link</Btn>
       </div>
 
       {notice && (
@@ -80,7 +80,7 @@ export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
       {error && <p className="m-0 text-[13.5px]" style={{ color: '#c5221f' }}>{error}</p>}
 
       {!pending && !loading && (
-        <Register label="HR links" minWidth={920}>
+        <Register label="Employee lists" minWidth={920}>
           <RegisterHead>
             <RegisterTh first width={200}>Reference</RegisterTh>
             <RegisterTh>Company</RegisterTh>

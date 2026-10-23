@@ -40,6 +40,16 @@ function nextMonthFirst(): string {
   return `${y}-${String(m).padStart(2, '0')}-01`
 }
 
+/** A numbered step heading: the order a quote is built in. */
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <h3 className="m-0 text-[15px] font-medium inline-flex items-center gap-2.5">
+      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-semibold tabular-nums" style={{ background: '#f1f3f4', color: '#202124' }}>{n}</span>
+      {children}
+    </h3>
+  )
+}
+
 const fmtDob = (iso?: string | null) => (iso ? iso.split('-').reverse().join('/') : '')
 
 export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initialCompany?: string; initialRead?: InitialRead; onUseWizard: () => void }) {
@@ -108,18 +118,47 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
 
   return (
     <div className="flex flex-col gap-6 max-w-[880px]" style={{ color: '#202124' }}>
-      {/* ── Census ── */}
+      {/* ── 1 Company ── */}
+      <section className="flex flex-col gap-2">
+        <Step n={1}>Company</Step>
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          <label htmlFor="qq-company" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+            Company
+            <input id="qq-company" value={company} onChange={e => setCompany(e.target.value)} className={inp} placeholder="Acme Pte Ltd" />
+          </label>
+          <label htmlFor="qq-eff" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+            Policy start
+            <input id="qq-eff" type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} />
+          </label>
+          <div className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+            Basis
+            <div role="radiogroup" aria-label="Basis" className="inline-flex rounded-md border border-[#dadce0] overflow-hidden w-fit">
+              {(['new_business', 'renewal'] as const).map(b => (
+                <button key={b} role="radio" aria-checked={basis === b} onClick={() => setBasis(b)}
+                        className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#202124] text-white' : 'text-[#5f6368] hover:bg-[#f8f9fa]')}>
+                  {b === 'new_business' ? 'New business' : 'Renewal'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 2 Employee list ── */}
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="m-0 text-[15px] font-medium inline-flex items-center">
-            Census <Tip text="CSV or Excel. A name and a date of birth per person is enough; dates are read day first (05/07/1987 is 5 July). Relationship, category, work pass and occupation class are used when their columns are found. Dependants take the category of the employee above them." />
-          </h3>
+          <Step n={2}>
+            Employee list <Tip text="CSV or Excel. A name and a date of birth per person is enough; dates are read day first (05/07/1987 is 5 July). Relationship, category, work pass and occupation class are used when their columns are found. Dependants take the category of the employee above them." />
+          </Step>
           <div className="flex items-center gap-3">
             {!showUpload && (
               <button onClick={() => setShowUpload(true)} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
                 Upload a file instead
               </button>
             )}
+            <a href={`/pricing-matrix?tab=hrlinks${company.trim() ? `&company=${encodeURIComponent(company.trim())}` : ''}`} className="text-[12.5px] no-underline hover:underline" style={{ color: '#5f6368' }}>
+              Ask HR for the list
+            </a>
             <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
               Map plans by hand
             </button>
@@ -129,7 +168,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
           <label htmlFor="qq-file" className={cn('flex items-center justify-center gap-2 border border-dashed rounded-lg py-6 cursor-pointer text-[13px]',
             reading ? 'border-[#9aa0a6]' : 'border-[#dadce0] hover:border-[#9aa0a6]')} style={{ color: '#5f6368' }}>
             {reading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
-            {reading ? 'Reading…' : read ? `${read.filename} · upload another` : 'Upload census (.csv, .xlsx)'}
+            {reading ? 'Reading…' : read ? `${read.filename} · upload another` : 'Upload employee list (.csv, .xlsx)'}
             <input id="qq-file" type="file" accept=".csv,.txt,.xlsx,.xls,.xlsm,text/csv" className="hidden"
                    onChange={e => { const f = e.target.files?.[0]; if (f) void upload(f); e.target.value = '' }} />
           </label>
@@ -181,9 +220,9 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
 
       {/* ── Covers ── */}
       <section className="flex flex-col gap-2">
-        <h3 className="m-0 text-[15px] font-medium inline-flex items-center">
+        <Step n={3}>
           Covers <Tip text="Each insurer is priced on its tier matching these facts. Where several tiers match, the lowest-cost one is used. Where none matches exactly, the closest is used and the quotation's notes say so." />
-        </h3>
+        </Step>
         <div className="border border-[#e8eaed] rounded-lg divide-y divide-[#f1f3f4]">
           {COVERS.map(c => {
             const on = !!specs[c.code]
@@ -239,36 +278,13 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
         </div>
       </section>
 
-      {/* ── Policy ── */}
-      <section className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <label htmlFor="qq-company" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
-          Company
-          <input id="qq-company" value={company} onChange={e => setCompany(e.target.value)} className={inp} placeholder="Acme Pte Ltd" />
-        </label>
-        <label htmlFor="qq-eff" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
-          Policy start
-          <input id="qq-eff" type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} />
-        </label>
-        <div className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
-          Basis
-          <div role="radiogroup" aria-label="Basis" className="inline-flex rounded-md border border-[#dadce0] overflow-hidden w-fit">
-            {(['new_business', 'renewal'] as const).map(b => (
-              <button key={b} role="radio" aria-checked={basis === b} onClick={() => setBasis(b)}
-                      className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#202124] text-white' : 'text-[#5f6368] hover:bg-[#f8f9fa]')}>
-                {b === 'new_business' ? 'New business' : 'Renewal'}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={price} disabled={!ready || pricing}
                 className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
           {pricing && <Loader2 size={14} className="animate-spin" />}
           {pricing ? 'Pricing…' : 'Price at every insurer'}
         </button>
-        {!members.length && <span className="text-[12.5px]" style={{ color: '#9aa0a6' }}>Upload a census first</span>}
+        {!members.length && <span className="text-[12.5px]" style={{ color: '#9aa0a6' }}>Add the employee list first</span>}
         {error && <span className="text-[12.5px]" style={{ color: '#c5221f' }}>{error}</span>}
       </div>
     </div>

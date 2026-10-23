@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
+import { fileEbCompanyFolder }       from '@/lib/company-drive'
 import { createQuotation, QuotationInputError, type QuotationInput } from '@/lib/gb/quotation'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
     const { quotationId, result } = await createQuotation(body, user.id)
 
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: quotationId ?? undefined, new_value: { company: body.company_name, members: body.census?.length ?? 0, insurers: body.rate_table_ids?.length ?? 0 } })
+    fileEbCompanyFolder(body.company_name)
     return NextResponse.json({ quotation_id: quotationId, ...result })
   } catch (e) {
     if (e instanceof QuotationInputError) return NextResponse.json({ error: e.message }, { status: 400 })
