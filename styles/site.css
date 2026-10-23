@@ -72,6 +72,11 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 @media (min-width: 860px) { .s-outs { grid-template-columns: repeat(3, 1fr); } }
 .s-oc { border-radius: 12px; padding: 28px; background: var(--s-beige); display: flex; flex-direction: column; justify-content: space-between; gap: 28px; min-height: 230px; }
 .s-oc span { font-size: 15px; }
+@media (min-width: 860px) { .s-outs-q { grid-template-columns: 1.6fr 1fr 1fr; } }
+.s-q { background: var(--s-mint); margin: 0; }
+.s-q blockquote { margin: 0; font-family: var(--s-serif); font-size: clamp(22px, 2vw, 28px); line-height: 1.32; color: var(--s-g); }
+.s-q figcaption { font-size: 14px; font-weight: 500; color: var(--s-ink); }
+.s-q figcaption span { display: block; font-weight: 400; color: var(--s-sub); margin-top: 2px; }
 .s-oc b { font-family: var(--s-serif); font-weight: 400; font-size: clamp(56px, 6vw, 84px); line-height: 1; color: var(--s-g2); }
 /* services, North */
 .s-north { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 44px 40px; margin-top: 64px; }

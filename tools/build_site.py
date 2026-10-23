@@ -255,10 +255,10 @@ def home():
           '<div><h3>White-glove service</h3><p>TRS gathers the information, completes the proposal forms, negotiates with insurers and runs the claim. The business reviews and signs; TRS does the work in between.</p></div>'
           '<div><h3>Transparent pricing and review</h3><p>Quotes are set side by side with premium, deductibles and key exclusions in plain terms. Each programme is reviewed against the business as it stands, not as it stood last year.</p></div>'
           '</div></div></div></section>')
-    b += ('<section class="s-sec s-tint"><div class="s-w"><h2 class="s-h2">Proven in action</h2><p class="s-sub">Turning great experiences into impactful savings.</p><div class="s-outs">'
-          '<div class="s-oc"><span>Singapore-licensed insurers TRS places with</span><b>18</b></div>'
-          '<div class="s-oc"><span>Years placing corporate programmes</span><b>15+</b></div>'
-          '<div class="s-oc"><span>Comparative quotes and a policy binder</span><b>48h</b></div></div></div></section>')
+    b += ('<section class="s-sec s-tint"><div class="s-w"><h2 class="s-h2">Proven in action</h2><p class="s-sub">Turning great experiences into impactful savings.</p><div class="s-outs s-outs-q">'
+          '<figure class="s-oc s-q"><blockquote>&ldquo;The TRS team was professional from the first meeting. Their advice was transparent, so we could make the right decisions for the business with confidence.&rdquo;</blockquote><figcaption>Chief Financial Officer<span>TRS client</span></figcaption></figure>'
+          '<div class="s-oc"><span>Saved in premiums for one client</span><b>$100K</b></div>'
+          '<div class="s-oc"><span>From first review to a placed programme</span><b>14 days</b></div></div></div></section>')
     b += ('<section class="s-sec" id="services"><div class="s-w"><h2 class="s-h2">Get the right insurance for you</h2><p class="s-sub">TRS structures cover around the risk profile of the business and places it with 18 Singapore-licensed insurers.</p><div class="s-north">'
           + ''.join(f'<a class="s-ni" href="/{p}/"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="{ic}"/></svg><h3>{e(t)}</h3><p>{e(d)}</p></a>' for t, p, d, ic in SERVICES)
           + '</div></div></section>')
