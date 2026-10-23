@@ -9,6 +9,7 @@
  * model call on request, never on load, and says when the weights have moved since it was written.
  */
 
+import { shortInsurer } from '@/lib/gb/insurer-names'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -230,7 +231,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
                 <tr key={i.tableId} className="border-t border-[#f1f3f4]">
                   <td className={cn(td, 'text-right')} style={{ color: ink }}>{i.rank ?? '—'}</td>
                   <td className={cn(td, 'min-w-[180px]')}>
-                    <div className="font-semibold" style={{ color: ink }}>{i.insurerName}</div>
+                    <div className="font-semibold" style={{ color: ink }} title={i.insurerName}>{shortInsurer(i.insurerName)}</div>
                     <div className="text-[11.5px]" style={{ color: '#5f6368' }}>{i.planLabels.join(', ')}</div>
                     {i.verification && i.verification !== 'calculator' && (
                       <div className="text-[11px] font-medium" style={{ color: VERIFICATION[i.verification].color }}>{VERIFICATION[i.verification].label}</div>

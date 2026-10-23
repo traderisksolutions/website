@@ -50,7 +50,7 @@ function draftBody(v: { firstName: string; company: string; start: string; lives
     `Covers: ${COVER_LINES.join('; ')}`,
     'Requirements: [ward class, co-payment, overseas cover, maternity]',
     '',
-    'The member list is attached.',
+    'Member list: [attach the employee list before sending]',
     '',
     'Please send the quotation with the benefit schedule.',
     '',
@@ -58,10 +58,13 @@ function draftBody(v: { firstName: string; company: string; start: string; lives
   ].join('\n')
 }
 
-export function InsurerEmailDialog({ open, onClose, initialInsurer }: {
+export function InsurerEmailDialog({ open, onClose, initialInsurer, initialCompany, initialStart, initialLives }: {
   open: boolean
   onClose: () => void
   initialInsurer?: string | null
+  initialCompany?: string | null
+  initialStart?: string | null
+  initialLives?: string | null
 }) {
   const [insurers, setInsurers] = useState<InsurerOption[]>([])
   const [contacts, setContacts] = useState<InsurerContact[]>([])
@@ -79,7 +82,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer }: {
 
   useEffect(() => {
     if (!open) return
-    setCompany(''); setStart(''); setLives(''); setAdding(false); setNewName(''); setNewEmail(''); setError(null)
+    setCompany(initialCompany ?? ''); setStart(initialStart ?? ''); setLives(initialLives ?? ''); setAdding(false); setNewName(''); setNewEmail(''); setError(null)
     loadInsurerContacts()
       .then(d => {
         setInsurers(d.insurers); setContacts(d.contacts); setLoadError(null)
@@ -87,7 +90,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer }: {
         setInsurerId(first?.id ?? '')
       })
       .catch(e => setLoadError(e instanceof Error ? e.message : 'Could not load insurers'))
-  }, [open, initialInsurer])
+  }, [open, initialInsurer]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const insurer = insurers.find(i => i.id === insurerId) ?? null
   const people = useMemo(() => insurer ? contactsFor(insurer.name, contacts) : [], [insurer, contacts])

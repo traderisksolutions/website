@@ -19,11 +19,12 @@ type CompanyHit = { id: string; name: string; domain?: string | null }
  * who asked for the quote, the policy start, and the three opening paragraphs, editable. The rest of
  * the email is fixed server-side. Preview shows the paragraphs as the email will carry them.
  */
-export function SendLinkDialog({ open, onClose, onSent, initialCompany, quotationId }: {
+export function SendLinkDialog({ open, onClose, onSent, initialCompany, initialEffectiveDate, quotationId }: {
   open: boolean
   onClose: () => void
   onSent: (link: HrLink, mailError?: string, url?: string) => void
   initialCompany?: CompanyPick | null
+  initialEffectiveDate?: string | null
   quotationId?: string | null
 }) {
   const [company, setCompany] = useState<CompanyPick>({ id: null, name: '' })
@@ -42,7 +43,7 @@ export function SendLinkDialog({ open, onClose, onSent, initialCompany, quotatio
   useEffect(() => {
     if (!open) return
     setCompany(initialCompany ?? { id: null, name: '' })
-    setRecipientName(''); setRecipientEmail(''); setCcEmail(''); setRequestedBy(''); setEffectiveDate('')
+    setRecipientName(''); setRecipientEmail(''); setCcEmail(''); setRequestedBy(''); setEffectiveDate(initialEffectiveDate ?? '')
     setMessage(''); setMessageEdited(false); setPreview(false); setSending(false); setError(null)
   }, [open, initialCompany?.id, initialCompany?.name]) // eslint-disable-line react-hooks/exhaustive-deps
 

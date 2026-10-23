@@ -17,6 +17,7 @@ import type { HrLinkCensusResponse, HrLinkDetailResponse } from '@/components/gr
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { createClient } from '@/lib/supabase/client'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { Segmented } from '@/components/crm/primitives'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
 // (e.g. a Vercel "Request Entity Too Large" page) instead of crashing on JSON.parse.
@@ -82,7 +83,7 @@ function PricingMatrix() {
   const [emailInsurer, setEmailInsurer] = useState<{ insurer: string | null } | null>(null)
   const [driveUrl, setDriveUrl] = useState<string | null>(null)
   // Arriving from the company page with ?tab=hrlinks&company=…: the dialog opens once, filled in.
-  const [sendFromUrl, setSendFromUrl] = useState(asked === 'hrlinks' && !!(company || companyId))
+  const [sendFromUrl, setSendFromUrl] = useState(asked === 'hrlinks' && !!(company || companyId || params.get('send')))
   const hrCompany: CompanyPick | null = company || companyId ? { id: companyId, name: company ?? '' } : null
   // Arriving with ?hrLink=<id>: the census comes from the link's submission, not a file.
   const [hrRead, setHrRead] = useState<InitialRead | null>(null)
@@ -189,7 +190,7 @@ function PricingMatrix() {
       )}
       {tab === 'quotes' && !newQuote && <QuotesTab onNew={() => setNewQuote(true)} />}
       {tab === 'coverage' && <CoverageTab />}
-      {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} onDialogClosed={() => setSendFromUrl(false)} />}
+      {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
       {tab === 'activity' && <ActivityTab />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} onClose={() => setEmailInsurer(null)} />
@@ -297,14 +298,40 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
 }
 
 type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string }
+type QuoteFilter = 'all' | 'waiting' | 'priced'
 
+const fmtDay = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
+const lowest = (q: Quote) => [...(q.results ?? [])].filter(r => r.total > 0).sort((a, b) => a.total - b.total)[0]
+
+/**
+ * One row per company, the latest quote first. A company quoted three times is one row with
+ * "3 quotes"; casing differences ("BCEI SG PTE LTD" / "BCEI SG Pte Ltd") are the same company.
+ * Waiting = no employee list yet, which is the next thing to chase.
+ */
 function QuotesTab({ onNew }: { onNew: () => void }) {
   const router = useRouter()
   const [rows, setRows] = useState<Quote[]>([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<QuoteFilter>('all')
   useEffect(() => {
-    fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(d); setLoading(false) }).catch(() => setLoading(false))
+    fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => setLoading(false))
   }, [])
+
+  const companies = (() => {
+    const m = new Map<string, Quote[]>()
+    for (const q of rows) {
+      const k = (q.company_name ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() || `untitled:${q.id}`
+      m.set(k, [...(m.get(k) ?? []), q])
+    }
+    return Array.from(m.values()).map(list => {
+      const sorted = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))
+      const latestPriced = sorted.find(q => q.member_count > 0 && lowest(q))
+      return { latest: sorted[0], shown: latestPriced ?? sorted[0], count: list.length, priced: !!latestPriced }
+    }).sort((a, b) => b.latest.created_at.localeCompare(a.latest.created_at))
+  })()
+  const waiting = companies.filter(c => !c.priced).length
+  const shown = companies.filter(c => filter === 'all' || (filter === 'waiting' ? !c.priced : c.priced))
+
   if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
   if (rows.length === 0) return (
     <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>
@@ -312,29 +339,38 @@ function QuotesTab({ onNew }: { onNew: () => void }) {
     </p>
   )
   return (
-    <Register label="Quotes" minWidth={760}>
-      <RegisterHead>
-        <RegisterTh first width={260}>Company</RegisterTh>
-        <RegisterTh align="right">Members</RegisterTh>
-        <RegisterTh>Products</RegisterTh>
-        <RegisterTh align="right">Lowest premium</RegisterTh>
-        <RegisterTh last align="right">Created</RegisterTh>
-      </RegisterHead>
-      <tbody>
-        {rows.map(q => {
-          const best = [...(q.results ?? [])].sort((a, b) => a.total - b.total)[0]
-          return (
-            <RegisterRow key={q.id} onClick={() => router.push(`/pricing-matrix/quote/${q.id}`)}>
-              <RegisterCell first primary={q.company_name || 'Untitled'} secondary={q.effective_date ? `effective ${q.effective_date}` : 'no effective date'} />
-              <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: '#202124' }}>{q.member_count}</span></RegisterCell>
-              <RegisterCell className="max-w-[280px]"><span className="block text-[14px] truncate" style={{ color: '#3c4043' }} title={(q.product_codes ?? []).join(', ')}>{(q.product_codes ?? []).join(', ') || '—'}</span></RegisterCell>
-              {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
-              <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{new Date(q.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })}</span></RegisterCell>
-            </RegisterRow>
-          )
-        })}
-      </tbody>
-    </Register>
+    <div className="flex flex-col gap-4">
+      <Segmented value={filter} onChange={setFilter} className="self-start" options={[
+        { value: 'all', label: 'All', count: companies.length },
+        { value: 'waiting', label: 'Waiting for employee list', count: waiting },
+        { value: 'priced', label: 'Priced', count: companies.length - waiting },
+      ]} />
+      <Register label="Quotes" minWidth={760}>
+        <RegisterHead>
+          <RegisterTh first width={300}>Company</RegisterTh>
+          <RegisterTh>Status</RegisterTh>
+          <RegisterTh align="right">Members</RegisterTh>
+          <RegisterTh align="right">Lowest premium</RegisterTh>
+          <RegisterTh last align="right">Updated</RegisterTh>
+        </RegisterHead>
+        <tbody>
+          {shown.length === 0 && <tr><td colSpan={5} className="py-10 text-center text-[14px]" style={{ color: '#5f6368' }}>None.</td></tr>}
+          {shown.map(({ latest, shown: q, count, priced }) => {
+            const best = priced ? lowest(q) : undefined
+            return (
+              <RegisterRow key={q.id} onClick={() => router.push(`/pricing-matrix/quote/${q.id}`)}>
+                <RegisterCell first primary={q.company_name || 'Untitled'}
+                  secondary={[q.effective_date ? `starts ${fmtDay(q.effective_date)}` : null, count > 1 ? `${count} quotes` : null].filter(Boolean).join(' · ') || undefined} />
+                <RegisterCell><span className={CHIP} style={priced ? undefined : { background: '#fef7e0', color: '#b06000' }}>{priced ? 'Priced' : 'Waiting for employee list'}</span></RegisterCell>
+                <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: q.member_count ? '#202124' : '#9aa0a6' }}>{q.member_count || '—'}</span></RegisterCell>
+                {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
+                <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{fmtDay(latest.created_at)}</span></RegisterCell>
+              </RegisterRow>
+            )
+          })}
+        </tbody>
+      </Register>
+    </div>
   )
 }
 

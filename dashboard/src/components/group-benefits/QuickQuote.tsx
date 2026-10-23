@@ -18,6 +18,7 @@ import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
 import { describeSpec, withDefaults, type CoverSpec, type Hospital, type Tier } from '@/lib/gb/plan-rules'
 import { parseBirthDate } from '@/lib/dates/dob'
 import { useCoverNames } from './useCoverNames'
+import { Step } from './Step'
 
 export type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
 type Read = { members: Member[]; unread: string[]; found: Record<string, string>; sheet: string | null; filename: string }
@@ -38,16 +39,6 @@ function nextMonthFirst(): string {
   const y = t.getUTCMonth() === 11 ? t.getUTCFullYear() + 1 : t.getUTCFullYear()
   const m = (t.getUTCMonth() + 1) % 12 + 1
   return `${y}-${String(m).padStart(2, '0')}-01`
-}
-
-/** A numbered step heading: the order a quote is built in. */
-function Step({ n, children }: { n: number; children: React.ReactNode }) {
-  return (
-    <h3 className="m-0 text-[15px] font-medium inline-flex items-center gap-2.5">
-      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-semibold tabular-nums" style={{ background: '#f1f3f4', color: '#202124' }}>{n}</span>
-      {children}
-    </h3>
-  )
 }
 
 const fmtDob = (iso?: string | null) => (iso ? iso.split('-').reverse().join('/') : '')
@@ -156,7 +147,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
                 Upload a file instead
               </button>
             )}
-            <a href={`/pricing-matrix?tab=hrlinks${company.trim() ? `&company=${encodeURIComponent(company.trim())}` : ''}`} className="text-[12.5px] no-underline hover:underline" style={{ color: '#5f6368' }}>
+            <a href={`/pricing-matrix?tab=hrlinks&send=1${company.trim() ? `&company=${encodeURIComponent(company.trim())}` : ''}${effDate ? `&start=${effDate}` : ''}`} className="text-[12.5px] no-underline hover:underline" style={{ color: '#5f6368' }}>
               Ask HR for the list
             </a>
             <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>

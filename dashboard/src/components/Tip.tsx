@@ -10,7 +10,7 @@ export function Tip({ text, placement = 'top' }: {
     <Tooltip
       title={text}
       placement={placement}
-      overlayInnerStyle={{ fontSize: 12, maxWidth: 260, lineHeight: 1.55 }}
+      styles={{ container: { fontSize: 12, maxWidth: 260, lineHeight: 1.55 } }}
     >
       <span style={{
         display: 'inline-flex', alignItems: 'center', cursor: 'help',

@@ -15,9 +15,11 @@ const MUTED = '#5f6368'
  * word, and what came back. `Send a link` opens the dialog; a row opens the link's page.
  * `openSend` with `initialCompany` is how the company page arrives with the company filled in.
  */
-export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
+export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, initialQuotationId, onDialogClosed }: {
   openSend?: boolean
   initialCompany?: CompanyPick | null
+  initialEffectiveDate?: string | null
+  initialQuotationId?: string | null
   onDialogClosed?: () => void
 }) {
   const router = useRouter()
@@ -88,10 +90,11 @@ export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
             <RegisterTh>Status</RegisterTh>
             <RegisterTh>Sent</RegisterTh>
             <RegisterTh>Submitted</RegisterTh>
-            <RegisterTh last align="right">Lives</RegisterTh>
+            <RegisterTh align="right">Lives</RegisterTh>
+            <RegisterTh last align="right">{''}</RegisterTh>
           </RegisterHead>
           <tbody>
-            {rows.length === 0 && <RegisterEmpty colSpan={7}>No links sent yet.</RegisterEmpty>}
+            {rows.length === 0 && <RegisterEmpty colSpan={8}>No employee lists requested yet.</RegisterEmpty>}
             {rows.map(r => {
               const n = lives(r)
               return (
@@ -102,7 +105,12 @@ export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
                   <RegisterCell><span className={CHIP}>{linkStatusWord(r)}</span></RegisterCell>
                   <RegisterCell primary={fmtDate(r.sent_at)} secondary={`valid to ${fmtDate(r.expires_at)}`} />
                   <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r.submitted_at ? '#202124' : '#9aa0a6' }}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>
-                  <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: n != null ? '#202124' : '#9aa0a6' }}>{n ?? '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: n != null ? '#202124' : '#9aa0a6' }}>{n ?? '—'}</span></RegisterCell>
+                  <RegisterCell last align="right">
+                    {r.submitted_at
+                      ? <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/pricing-matrix?tab=quote&hrLink=${r.id}`) }}>Quote</Btn>
+                      : <span className="text-[13px]" style={{ color: '#9aa0a6' }}>Waiting for HR</span>}
+                  </RegisterCell>
                 </RegisterRow>
               )
             })}
@@ -110,7 +118,7 @@ export function HrLinksTab({ openSend, initialCompany, onDialogClosed }: {
         </Register>
       )}
 
-      <SendLinkDialog open={dialog} onClose={closeDialog} onSent={sent} initialCompany={initialCompany} />
+      <SendLinkDialog open={dialog} onClose={closeDialog} onSent={sent} initialCompany={initialCompany} initialEffectiveDate={initialEffectiveDate} quotationId={initialQuotationId} />
     </div>
   )
 }
