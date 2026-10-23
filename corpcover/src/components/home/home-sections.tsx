@@ -5,21 +5,33 @@ import { SERVICES } from "@/lib/services";
 import { CoverArt } from "@/components/cover-art";
 import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
 
-/** Hero (Rillet solution page): tinted panel, copy left, product view right. Copy pattern from Chapter. */
+/** Hero (Cohere North): painted grass ground, copy bottom-left, product window bleeding right and bottom.
+ *  Ground is code-drawn by scripts/paint-hero-grass.py. */
 export function HomeHero({ m }: { m: MarketKey }) {
   const M = MARKETS[m];
+  const points = [
+    "Policy review against your contracts, leases and tenders",
+    "Cover quotes from several insurers in one request",
+    "Adviser chat on any clause in your wording",
+  ];
   return (
     <section className="hh" aria-labelledby="hero-h">
-        <div className="hh-copy">
-          <p className="hh-badge">{m === "sg" ? "Singapore" : `${M.name} · Singapore headquartered`}</p>
-          <h1 id="hero-h" className="hh-h1">Get the <b>right</b> insurance <b>coverage</b></h1>
-          <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
-          <div className="flex w-full flex-wrap gap-2.5">
-            {(["review", "quotes", "chat"] as const).map(k => <Link key={k} href={mpath(m, SERVICES[k].path)} className="btn btn-primary">{SERVICES[k].name}</Link>)}
-          </div>
-          <p className="hh-trust"><span aria-hidden className="hh-dots"><i /><i /><i /></span>Trusted by 200+ businesses</p>
+      <div className="hh-copy">
+        <p className="hh-badge">{m === "sg" ? "Singapore" : `${M.name} · Singapore headquartered`}</p>
+        <h1 id="hero-h" className="hh-h1">Get the right insurance coverage</h1>
+        <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
+        <ul className="hh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
+        <div className="hh-ctas">
+          <Link href={mpath(m, SERVICES.quotes.path)} className="hh-cta">{SERVICES.quotes.name}</Link>
+          <Link href={mpath(m, SERVICES.review.path)} className="hh-link">{SERVICES.review.name}</Link>
         </div>
-        <div className="hh-media" aria-hidden><ReportMock currency={M.currency} /></div>
+      </div>
+      <div className="hh-media" aria-hidden>
+        <div className="hh-win">
+          <div className="hh-rail"><i className="on" /><i /><i /><i /><i /><b>A</b><b>N</b></div>
+          <ReportMock currency={M.currency} />
+        </div>
+      </div>
     </section>
   );
 }

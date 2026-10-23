@@ -43,15 +43,17 @@ export function SiteHeader() {
   }, [open]);
 
   const close = () => setOpen(false);
+  // Home opens on the dark grass hero: white bar until the page scrolls.
+  const dark = !scrolled && !open && path === mpath(m);
   const current = (href: string) => (path === href || path.startsWith(`${href}/`) ? "page" : undefined);
 
   return (
     <>
-      <header className={`nav${scrolled ? " nav--scrolled" : ""}`}>
+      <header className={`nav${scrolled ? " nav--scrolled" : ""}${dark ? " nav--dark" : ""}`}>
         <button type="button" className="nav-hamburger" aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
           <span /><span /><span />
         </button>
-        <Link href={mpath(m)} className="logo" aria-label={`${site.name} home`}><Logo id="logo-nav" name={site.name} /></Link>
+        <Link href={mpath(m)} className="logo" aria-label={`${site.name} home`}><Logo id="logo-nav" tone={dark ? "white" : "steel"} name={site.name} /></Link>
         <nav className="nav-links" aria-label="Primary">
           {links.map(l => <Link key={l.href} href={l.href} aria-current={current(l.href)}>{l.label}</Link>)}
         </nav>
