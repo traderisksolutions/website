@@ -298,3 +298,23 @@ for p in GROUP:
 for s in SOL:
     write('solutions/%s/index.html' % s, solution(s))
 print('built', 2 + len(GROUP) + len(SOL), 'pages')
+
+
+# ---------------------------------------------------------------- cache-busting
+# CSS and JS are served with a one-day browser cache (vercel.json), favicons longer.
+# Every site page links them with ?v=<content hash>, so a change reaches returning visitors at once.
+import hashlib, glob
+ASSETS = ['/styles/site.css', '/styles/main.css', '/scripts/site.js', '/scripts/nav.js', '/scripts/product-taxonomy.js',
+          '/scripts/analytics.js', '/favicon.ico', '/favicon-192.png', '/apple-touch-icon.png']
+VER = {a: hashlib.sha1(open(a.lstrip('/'), 'rb').read()).hexdigest()[:8] for a in ASSETS}
+SKIP = ('dashboard/', 'corpcover/', 'newsouthsea/', 'benefixe/', 'ai-inbound/', 'tools/', 'supabase/', 'roadplus/', 'node_modules/')
+n = 0
+for f in glob.glob('**/*.html', recursive=True):
+    if f.startswith(SKIP) or f.startswith('googled'):
+        continue
+    s = open(f).read(); t = s
+    for a, v in VER.items():
+        t = re.sub(r'(["\'])' + re.escape(a) + r'(\?v=[0-9a-f]+)?(["\'])', lambda m: m.group(1) + a + '?v=' + v + m.group(3), t)
+    if t != s:
+        open(f, 'w').write(t); n += 1
+print('versioned asset links in', n, 'pages')
