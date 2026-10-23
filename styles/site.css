@@ -150,8 +150,16 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 .s-ab p:first-child { font-family: var(--s-serif); font-size: clamp(24px, 2.4vw, 30px); line-height: 1.4; }
 
 /* ---------------- nav (Rillet) ---------------- */
-.tn { position: sticky; top: 0; z-index: 50; background: rgba(255, 255, 255, .96); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid transparent; transition: border-color .2s; font-family: var(--s-ui); }
-.tn.tn-scrolled { border-bottom-color: var(--s-hair); }
+/* Navbar follows the page; once scrolled, a frosted white band that fades out below it (Corp Cover). */
+.tn { position: sticky; top: 0; z-index: 50; isolation: isolate; font-family: var(--s-ui); }
+.tn::before {
+  content: ""; position: absolute; inset: 0 0 -68px 0; z-index: -1; pointer-events: none; opacity: 0; transition: opacity .3s ease;
+  background: linear-gradient(180deg, #fff 0%, #fff 50%, rgba(255,255,255,.85) 62%, rgba(255,255,255,.4) 80%, rgba(255,255,255,0) 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,.85) 46%, rgba(0,0,0,.6) 58%, rgba(0,0,0,.34) 70%, rgba(0,0,0,.14) 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,.85) 46%, rgba(0,0,0,.6) 58%, rgba(0,0,0,.34) 70%, rgba(0,0,0,.14) 82%, transparent 100%);
+}
+.tn.tn-scrolled::before, body.tn-open .tn::before { opacity: 1; }
 .tn-in { max-width: 1240px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); height: 68px; display: flex; align-items: center; gap: 32px; }
 .tn-logo { display: inline-flex; align-items: baseline; gap: 10px; color: var(--s-g); }
 .tn-logo .t { font-family: var(--s-mark); font-weight: 500; font-stretch: 125%; letter-spacing: .2em; padding-left: .2em; font-size: 21px; line-height: 1; }
@@ -205,4 +213,9 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 .tf-col a:hover { color: var(--s-g2); }
 .tf-legal { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--s-hair); display: flex; flex-wrap: wrap; gap: 8px 24px; font-size: 12.5px; color: var(--s-sub); }
 .tf-legal a { color: var(--s-sub); }
+/* Fade up on scroll. Hidden only once site.js has run (html.s-js), so the page is complete without JS. */
+@media (prefers-reduced-motion: no-preference) {
+  html.s-js .s-rv { opacity: 0; transform: translateY(18px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+  html.s-js .s-rv.s-in { opacity: 1; transform: none; }
+}
 @media (prefers-reduced-motion: reduce) { .s-cr-tr, .s-cr-img, .s-cr-t, .s-rot, .tn-panel, .tn-drawer, .s-im img { transition: none; } }

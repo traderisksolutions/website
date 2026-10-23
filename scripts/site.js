@@ -1,9 +1,23 @@
 /* TRS site behaviour (24 Oct 2026): nav menus and drawer, rotating headline verb, industries carousel.
    Loaded on every page after nav.js. Each block checks for its elements first. */
 (function () {
+  var REV = '.s-sec > .s-w > .s-h2, .s-sec > .s-w > .s-sub, .s-sec > .s-w > .s-eb, .s-vn > div, .s-logos img, .s-wwd-pic, .s-wwd-l > div, .s-outs > *, .s-north > *, .s-cov > div, .s-ic > *, .s-steps > *, .s-rel > a, .s-ab > p, .s-cpl, .s-ablk, .s-cr-vp, .s-close > *';
+  if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var els = Array.prototype.slice.call(document.querySelectorAll(REV));
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('s-in'); io.unobserve(en.target); } });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+    els.forEach(function (el, k) {
+      el.classList.add('s-rv');
+      var r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight) el.classList.add('s-in'); else { el.style.transitionDelay = (k % 4) * 70 + 'ms'; io.observe(el); }
+    });
+    document.documentElement.classList.add('s-js');
+  }
+
   var tn = document.querySelector('.tn');
   if (tn) {
-    var onScroll = function () { tn.classList.toggle('tn-scrolled', window.scrollY > 8); };
+    var onScroll = function () { tn.classList.toggle('tn-scrolled', window.scrollY > 24); };
     window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
     document.querySelectorAll('.tn-dd').forEach(function (dd) {
       var trig = dd.querySelector('.tn-trig');
