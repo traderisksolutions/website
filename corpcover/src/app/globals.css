@@ -347,16 +347,13 @@ h1, h2, h3 { text-wrap: balance; }
 .grain-sand { color: var(--ink); background: radial-gradient(60% 60% at 15% 85%, rgba(196, 210, 198, .6), transparent 70%), linear-gradient(160deg, #eef1ec 0%, #d9e2da 100%); }
 .grain-stone::before, .grain-sand::before { opacity: .35; mix-blend-mode: multiply; }
 
-/* Hero: Fernstone (fernstone.com). Centred copy on white with a fading dot field, the report window below in a light frame. */
+/* Hero: Fernstone (fernstone.com) on the evergreen page ground. Centred copy, the report window below in a light frame, cut by the section edge. */
 .fh { position: relative; isolation: isolate; text-align: center; padding: clamp(72px, 9vw, 120px) 16px 0; overflow: hidden; }
-.fh::before { content: ""; position: absolute; z-index: -1; left: 50%; top: 34%; width: min(1100px, 120vw); height: 520px; transform: translateX(-50%); pointer-events: none;
-  background-image: radial-gradient(rgba(20, 67, 47, .22) 1px, transparent 1.4px); background-size: 9px 9px;
-  -webkit-mask-image: radial-gradient(50% 50% at 50% 50%, #000, transparent 75%); mask-image: radial-gradient(50% 50% at 50% 50%, #000, transparent 75%); }
 .fh-h1 { margin: 0 auto; font-weight: 400; font-size: clamp(2.6rem, 6vw, 5rem); line-height: 1.04; letter-spacing: -0.04em; max-width: 19ch; text-wrap: balance; }
-.fh-lede { margin: 26px auto 0; max-width: 40ch; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.5; color: var(--ink-2); text-wrap: balance; }
+.fh-lede { margin: 26px auto 0; max-width: 54ch; font-size: clamp(17px, 1.6vw, 20px); line-height: 1.5; color: var(--ink-2); text-wrap: balance; }
 .fh-points { list-style: none; margin: 26px auto 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 28px; font-size: 15px; color: var(--ink-2); }
 .fh-points li { display: flex; align-items: center; gap: 8px; }
-.fh-points li::before { content: ""; flex: none; width: 15px; height: 15px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='none' stroke='%2314432f' stroke-width='1.3'/%3E%3Cpath d='M5.2 8.2l1.9 1.8 3.7-3.8' fill='none' stroke='%2314432f' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat; }
+.fh-points li::before { content: ""; flex: none; width: 15px; height: 15px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='none' stroke='%23ffffff' stroke-width='1.3'/%3E%3Cpath d='M5.2 8.2l1.9 1.8 3.7-3.8' fill='none' stroke='%23ffffff' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/15px no-repeat; }
 .fh-ctas { margin-top: 36px; display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
 .fh-ctas .btn { padding: 15px 24px; font-size: 16px; display: inline-flex; align-items: center; gap: 14px; }
 .fh-win { position: relative; margin: clamp(56px, 7vw, 88px) auto 0; max-width: 1100px; height: clamp(380px, 46vw, 560px); overflow: hidden; text-align: left;
@@ -635,7 +632,7 @@ h1, h2, h3 { text-wrap: balance; }
 .terrain-dark .btn-ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .75); }
 .terrain-dark .btn-ghost:hover { background: rgba(255, 255, 255, .1); }
 /* Light cards keep the light palette on a dark ground */
-.terrain-dark .bg-paper, .terrain-dark .frost { color: #141816; --ink: #141816; --ink-2: #5e6460; --ink-3: #858b87; --accent: #14432f; }
+.terrain-dark .bg-paper, .terrain-dark .frost, .terrain-dark .fh-win { color: #141816; --ink: #141816; --ink-2: #5e6460; --ink-3: #858b87; --accent: #14432f; }
 /* Chat on a dark ground: dark frosted glass, same as the benefit cards */
 .terrain-dark .chat-window { color: #fff; --ink: #fff; --ink-2: rgba(255, 255, 255, .82); --ink-3: rgba(255, 255, 255, .58); --base: rgba(255, 255, 255, .08); --accent: #2a6a4c;
   background: rgba(8, 20, 12, .42); border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 30px 70px -40px rgba(0, 0, 0, .6);
@@ -663,4 +660,13 @@ h1, h2, h3 { text-wrap: balance; }
 .terrain-dark .ft li { padding: clamp(24px, 3vw, 36px) clamp(20px, 2.4vw, 28px); border-radius: var(--r-md); background: rgba(8, 20, 12, .42); border: 1px solid rgba(255, 255, 255, .12);
   -webkit-backdrop-filter: blur(16px) saturate(130%); backdrop-filter: blur(16px) saturate(130%); align-self: stretch; }
 .terrain-dark .ft { gap: 16px; }
-.fh + .hp-sec { padding-top: var(--sec); }
+.terrain > .fh { padding-bottom: 0; }
+.fh-win { border-color: rgba(255, 255, 255, .18); box-shadow: 0 30px 90px -40px rgba(0, 0, 0, .6); }
+/* By the numbers: Legora. Label left, three figures in the hero's type (Helvetica 400, tight tracking). */
+.nb-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr)); gap: 40px clamp(24px, 3vw, 48px); align-items: start; }
+.nb-label { font-size: 13px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); padding-top: .9em; }
+.nb-stat { display: grid; gap: 14px; }
+.nb-stat b { font-weight: 400; font-size: clamp(3rem, 5.6vw, 5rem); line-height: 1; letter-spacing: -0.04em; color: var(--ink); }
+.nb-stat span { max-width: 22ch; font-size: 17px; line-height: 1.45; color: var(--ink-2); }
+.nb + .hp-sec { padding-top: 0; }
+@media (max-width: 860px) { .nb-grid { grid-template-columns: minmax(0, 1fr); } .nb-label { padding-top: 0; } }

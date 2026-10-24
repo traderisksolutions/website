@@ -3,6 +3,7 @@ import { MARKETS, mpath, type MarketKey } from "@/lib/market";
 import type { Guide } from "@/lib/blog-api";
 import { SERVICES } from "@/lib/services";
 import { CoverArt } from "@/components/cover-art";
+import { Terrain } from "@/components/terrain";
 import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
 
 /** Hero (Fernstone): centred headline, one line on what Corp Cover is, three ticks, two actions, the report window below. */
@@ -10,6 +11,7 @@ export function HomeHero({ m }: { m: MarketKey }) {
   const M = MARKETS[m];
   const points = ["Policy review against your contracts", "Cover quotes from several insurers", "Adviser chat on any clause"];
   return (
+    <Terrain shade="evergreen">
     <section className="fh" aria-labelledby="hero-h">
       <h1 id="hero-h" className="fh-h1">Get the right insurance coverage</h1>
       <p className="fh-lede">Corp Cover is where businesses come for insurance advice and plain guides to what their policies cover.</p>
@@ -23,6 +25,24 @@ export function HomeHero({ m }: { m: MarketKey }) {
       <div className="fh-win" aria-hidden>
         <div className="fh-bar"><b><i>GP</i>GreenPoint Pte Ltd</b><span>Policy review · {M.name}</span></div>
         <ReportMock currency={M.currency} />
+      </div>
+    </section>
+    </Terrain>
+  );
+}
+
+/** By the numbers (Legora solution page): label left, three large figures with a line each. Figures supplied by Corp Cover. */
+export function Numbers() {
+  const stats: [string, string][] = [
+    ["S$1M+", "Claims awarded to clients"],
+    ["250+", "Clients served"],
+    ["15%+", "Average saving on the previous policy"],
+  ];
+  return (
+    <section className="nb" aria-labelledby="nb-h">
+      <div className="wrap nb-grid">
+        <h2 id="nb-h" className="nb-label">CorpCover by the numbers</h2>
+        {stats.map(([n, l]) => <p key={l} className="nb-stat"><b>{n}</b><span>{l}</span></p>)}
       </div>
     </section>
   );
