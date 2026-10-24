@@ -5,31 +5,24 @@ import { SERVICES } from "@/lib/services";
 import { CoverArt } from "@/components/cover-art";
 import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
 
-/** Hero (Cohere North): painted grass ground, copy bottom-left, product window bleeding right and bottom.
- *  Ground is code-drawn by scripts/paint-hero-grass.py. */
+/** Hero (Fernstone): centred headline, one line on what Corp Cover is, three ticks, two actions, the report window below. */
 export function HomeHero({ m }: { m: MarketKey }) {
   const M = MARKETS[m];
-  const points = [
-    "Policy review against your contracts, leases and tenders",
-    "Cover quotes from several insurers in one request",
-    "Adviser chat on any clause in your wording",
-  ];
+  const points = ["Policy review against your contracts", "Cover quotes from several insurers", "Adviser chat on any clause"];
   return (
-    <section className="hh" aria-labelledby="hero-h">
-      <div className="hh-copy">
-        <p className="hh-badge">{m === "sg" ? "Singapore" : `${M.name} · Singapore headquartered`}</p>
-        <h1 id="hero-h" className="hh-h1">Get the right insurance coverage</h1>
-        <p className="hh-lede">Advisers compare plans across insurers and have saved businesses millions in premiums.</p>
-        <ul className="hh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
-        <div className="hh-ctas">
-          <Link href={mpath(m, SERVICES.quotes.path)} className="hh-cta">{SERVICES.quotes.name}</Link>
-          <Link href={mpath(m, SERVICES.review.path)} className="hh-link">{SERVICES.review.name}</Link>
-        </div>
+    <section className="fh" aria-labelledby="hero-h">
+      <h1 id="hero-h" className="fh-h1">Get the right insurance coverage</h1>
+      <p className="fh-lede">Corp Cover is where businesses come for insurance advice and plain guides to what their policies cover.</p>
+      <ul className="fh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
+      <div className="fh-ctas">
+        <Link href={mpath(m, SERVICES.review.path)} className="btn btn-ghost">{SERVICES.review.name}</Link>
+        <Link href={mpath(m, SERVICES.quotes.path)} className="btn btn-primary">{SERVICES.quotes.name}
+          <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 12 12 4M5.5 4H12v6.5" /></svg>
+        </Link>
       </div>
-      <div className="hh-media" aria-hidden>
-        <div className="hh-win">
-          <ReportMock currency={M.currency} />
-        </div>
+      <div className="fh-win" aria-hidden>
+        <div className="fh-bar"><b><i>GP</i>GreenPoint Pte Ltd</b><span>Policy review · {M.name}</span></div>
+        <ReportMock currency={M.currency} />
       </div>
     </section>
   );

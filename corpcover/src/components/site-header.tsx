@@ -16,7 +16,7 @@ const LINKS = [
   { path: "/about", label: "About" },
 ];
 
-const DARK_TOPS = ["/", SERVICES.review.path, SERVICES.quotes.path, SERVICES.chat.path, SERVICES.claim.path, "/articles", "/about"];
+const DARK_TOPS = [SERVICES.review.path, SERVICES.quotes.path, SERVICES.chat.path, SERVICES.claim.path, "/articles", "/about"];
 
 const tel = `tel:+65${site.phone.replace(/\s/g, "")}`;
 
