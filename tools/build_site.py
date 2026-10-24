@@ -252,7 +252,7 @@ def home():
     b += ('<section class="s-sec"><div class="s-w"><h2 class="s-h2">Why leading companies trust TRS</h2><p class="s-sub">TRS runs the insurance programme for the business, from the first review to every claim after it.</p>'
           '<div class="s-wwd"><div class="s-wwd-pic"><img src="/images/why-trs.jpg" alt="A TRS broker reviewing a policy schedule with a client" loading="lazy" width="1400" height="1400"></div><div class="s-wwd-l">'
           '<div><h3>Dedicated risk management team</h3><p>A named team with more than 50 years of combined experience in broking, underwriting and claims, assigned to each account from the first review to every renewal after it.</p></div>'
-          '<div><h3>White-glove service</h3><p>TRS gathers the information, completes the proposal forms, negotiates with insurers and runs the claim. The business reviews and signs; TRS does the work in between.</p></div>'
+          '<div><h3>White-glove service</h3><p>TRS gathers the information, negotiates with insurers and runs the claim. The business completes and signs the proposal forms.</p></div>'
           '<div><h3>Transparent pricing and review</h3><p>Quotes are set side by side with premium, deductibles and key exclusions in plain terms. Each programme is reviewed against the business as it stands, not as it stood last year.</p></div>'
           '</div></div></div></section>')
     b += ('<section class="s-sec s-tint"><div class="s-w"><h2 class="s-h2">Proven in action</h2><p class="s-sub">Turning great experiences into impactful savings.</p><div class="s-outs s-outs-q">'
