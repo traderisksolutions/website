@@ -300,6 +300,137 @@ for s in SOL:
 print('built', 2 + len(GROUP) + len(SOL), 'pages')
 
 
+# ---------------------------------------------------------------- insights
+import sys, datetime, glob
+sys.path.insert(0, os.path.dirname(__file__))
+from insights_content import POSTS
+SITE = 'https://www.traderisksolutions.com.sg'
+CATS = ['Workforce', 'Liability', 'Property and projects', 'Claims', 'Working with a broker']
+
+
+def ins_head(title, desc, url, jsonld):
+    t = e(title)
+    return ('<head>\n  <meta charset="UTF-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n'
+            '  <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png" />\n  <link rel="shortcut icon" href="/favicon.ico" />\n'
+            '  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />\n'
+            f'  <title>{t}</title>\n  <meta name="description" content="{html.escape(desc)}" />\n  <link rel="canonical" href="{url}" />\n'
+            f'  <meta property="og:type" content="article" />\n  <meta property="og:url" content="{url}" />\n  <meta property="og:title" content="{t}" />\n'
+            f'  <meta property="og:description" content="{html.escape(desc)}" />\n  <meta property="og:image" content="https://traderisksolutions.com.sg/og-image-2026.png" />\n'
+            '  <meta property="og:site_name" content="Trade Risk Solutions" />\n  <meta name="twitter:card" content="summary_large_image" />\n'
+            '  ' + FONTS + '\n  <link rel="stylesheet" href="/styles/main.css" />\n  <link rel="stylesheet" href="/styles/site.css" />\n'
+            '  <script defer src="/_vercel/insights/script.js"></script>\n'
+            '  <script type="application/ld+json">' + json.dumps(jsonld, ensure_ascii=False) + '</script>\n</head>')
+
+
+def ins_page(head, body):
+    return ('<!DOCTYPE html>\n<html lang="en">\n' + head + '\n<body class="s-site">\n  <div id="nav-root"></div>\n' + body +
+            '\n  <div id="footer-root"></div>\n  <script src="/scripts/product-taxonomy.js"></script>\n  <script src="/scripts/nav.js"></script>\n'
+            '  <script src="/scripts/analytics.js" defer></script>\n  <script src="/scripts/site.js" defer></script>\n</body>\n</html>\n')
+
+
+def iso(d):
+    return datetime.datetime.strptime(d, '%d %b %Y').date().isoformat()
+
+
+def table_html(t):
+    head, rows = t
+    return ('<div class="s-tbl"><table><thead><tr>' + ''.join(f'<th>{e(h)}</th>' for h in head) + '</tr></thead><tbody>' +
+            ''.join('<tr>' + ''.join(f'<td>{e(c)}</td>' for c in r) + '</tr>' for r in rows) + '</tbody></table></div>')
+
+
+POSTS_BY_PRODUCT = {}
+for po in POSTS:
+    for l in po['links']:
+        POSTS_BY_PRODUCT.setdefault(l, []).append(po)
+
+for po in POSTS:
+    url = f"{SITE}/insights/{po['slug']}/"
+    secs = ''
+    for i, sec in enumerate(po['sections']):
+        h, paras = sec[0], sec[1]
+        secs += f'<h2>{e(h)}</h2>' + ''.join(f'<p>{e(x)}</p>' for x in paras)
+        if len(sec) > 2 and sec[2]:
+            secs += table_html(sec[2])
+        if i == 1:
+            secs += (f'<div class="s-in-cta"><b>Want this checked against your own policies?</b>'
+                     f'<a class="s-btn s-on" href="{WA}" target="_blank" rel="noopener" data-track="whatsapp_direct">Talk to a broker</a></div>')
+    faq = ''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in po['faq'])
+    rel = ''.join(f'<a href="/{l}/"><span><b>{e(GROUP[l][2])}</b><span>{e(PROD[l]["lede"])}</span></span>{ARROW}</a>' for l in po['links'] if l in GROUP)
+    src = ''.join(f'<li><a href="{u}" target="_blank" rel="noopener">{e(lbl)}</a></li>' for lbl, u in po['sources'])
+    more = [x for x in POSTS if x['cat'] == po['cat'] and x['slug'] != po['slug']][:3]
+    morel = ''.join(f'<a class="s-row" href="/insights/{x["slug"]}/"><span class="s-rc">{e(x["cat"])}</span><b>{e(x["title"])}</b><span class="s-rd">{x["minutes"]} min read</span></a>' for x in more)
+    body = (f'<article class="s-w s-art"><nav class="s-crumb" aria-label="Breadcrumb"><a href="/insights/">Insights</a><span>/</span>{e(po["cat"])}</nav>'
+            f'<h1 class="s-art-h">{e(po["title"])}</h1><div class="s-by"><span>By the TRS broking team</span><span>{po["date"]}</span><span>{po["minutes"]} min read</span></div>'
+            f'<div class="s-ans"><b>The short answer</b>{e(po["answer"])}</div><div class="s-prose">{secs}</div>'
+            + (f'<h2 class="s-art-sub">Frequently asked questions</h2><div class="s-faq">{faq}</div>' if faq else '')
+            + (f'<h2 class="s-art-sub">Related cover</h2><div class="s-rel">{rel}</div>' if rel else '')
+            + (f'<h2 class="s-art-sub">Sources</h2><ul class="s-src">{src}</ul>' if src else '')
+            + '<p class="s-disc">General information only, not advice on any particular policy. Cover depends on the policy wording and the insurer\'s terms.</p>'
+            + (f'<h2 class="s-art-sub">More in {e(po["cat"].lower())}</h2><div class="s-list">{morel}</div>' if morel else '') + '</article>' + close_band())
+    ld = [{'@context': 'https://schema.org', '@type': 'Article', 'headline': po['title'], 'description': po['desc'], 'datePublished': iso(po['date']),
+           'dateModified': iso(po['date']), 'mainEntityOfPage': url, 'image': 'https://traderisksolutions.com.sg/og-image-2026.png',
+           'author': {'@type': 'Organization', 'name': 'Trade Risk Solutions'}, 'publisher': {'@type': 'Organization', 'name': 'Trade Risk Solutions', 'logo': {'@type': 'ImageObject', 'url': 'https://traderisksolutions.com.sg/favicon-192.png'}}},
+          {'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
+              {'@type': 'ListItem', 'position': 1, 'name': 'Insights', 'item': SITE + '/insights/'},
+              {'@type': 'ListItem', 'position': 2, 'name': po['title'], 'item': url}]}]
+    if po['faq']:
+        ld.append({'@context': 'https://schema.org', '@type': 'FAQPage', 'mainEntity': [
+            {'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}} for q, a in po['faq']]})
+    os.makedirs(f"insights/{po['slug']}", exist_ok=True)
+    open(f"insights/{po['slug']}/index.html", 'w').write(ins_page(ins_head(po['title'] + ' | TRS', po['desc'], url, ld), body))
+
+feat = POSTS[0]
+rows_html = ''.join(f'<a class="s-row" data-cat="{e(x["cat"])}" href="/insights/{x["slug"]}/"><span class="s-rc">{e(x["cat"])}</span><b>{e(x["title"])}</b><span class="s-rd">{x["minutes"]} min read</span></a>' for x in POSTS[1:])
+idx = ('<section class="s-w"><div class="s-bh"><div><h1 class="s-h1">Insights</h1><p class="s-lede">Guides, rule changes and claim lessons for Singapore businesses.</p></div>'
+       '<div class="s-flt" role="group" aria-label="Filter by topic"><button type="button" aria-pressed="true" data-c="all">All</button>'
+       + ''.join(f'<button type="button" aria-pressed="false" data-c="{e(c)}">{e(c)}</button>' for c in CATS) + '</div></div>'
+       f'<a class="s-feat" data-cat="{e(feat["cat"])}" href="/insights/{feat["slug"]}/"><span class="s-feat-im">{e(feat["title"].split("?")[0])}?</span><span><span class="s-rc">{e(feat["cat"])}</span>'
+       f'<b>{e(feat["title"])}</b><span class="s-feat-d">{e(feat["desc"])}</span><span class="s-rd">{feat["minutes"]} min read</span></span></a>'
+       f'<div class="s-list" id="s-list">{rows_html}</div><p class="s-empty" hidden>No posts on this topic yet.</p></section>' + close_band())
+ld = {'@context': 'https://schema.org', '@type': 'Blog', 'name': 'TRS Insights', 'url': SITE + '/insights/',
+      'blogPost': [{'@type': 'BlogPosting', 'headline': x['title'], 'url': f"{SITE}/insights/{x['slug']}/", 'datePublished': iso(x['date'])} for x in POSTS]}
+os.makedirs('insights', exist_ok=True)
+open('insights/index.html', 'w').write(ins_page(ins_head('Insights: business insurance guides for Singapore | TRS',
+     'Guides to WICA, foreign worker insurance, D&O, professional indemnity, cyber, construction and claims for Singapore businesses, from the TRS broking team.',
+     SITE + '/insights/', ld), idx))
+
+# related reading on product pages
+for pth, posts in POSTS_BY_PRODUCT.items():
+    f = pth + '/index.html'
+    if not os.path.exists(f):
+        continue
+    s0 = open(f).read()
+    if 's-related-reading' in s0:
+        continue
+    links = ''.join(f'<a class="s-row" href="/insights/{x["slug"]}/"><span class="s-rc">{e(x["cat"])}</span><b>{e(x["title"])}</b><span class="s-rd">{x["minutes"]} min read</span></a>' for x in posts)
+    sec = f'<section class="s-sec s-related-reading"><div class="s-w"><p class="s-eb">Insights</p><h2 class="s-h2">Related reading</h2><div class="s-list" style="margin-top:32px">{links}</div></div></section>'
+    s0 = s0.replace('<section class="s-sec s-tint"><div class="s-w s-close">', sec + '<section class="s-sec s-tint"><div class="s-w s-close">', 1)
+    open(f, 'w').write(s0)
+
+# sitemap
+sm = open('sitemap.xml').read()
+add = ''.join(f'  <url><loc>https://traderisksolutions.com.sg/insights/{x["slug"]}/</loc><lastmod>{iso(x["date"])}</lastmod></url>\n' for x in POSTS if f'/insights/{x["slug"]}/' not in sm)
+if '/insights/</loc>' not in sm:
+    add = f'  <url><loc>https://traderisksolutions.com.sg/insights/</loc><lastmod>{iso(POSTS[0]["date"])}</lastmod></url>\n' + add
+if add:
+    open('sitemap.xml', 'w').write(sm.replace('</urlset>', add + '</urlset>'))
+print('insights:', len(POSTS), 'posts')
+
+
+# ---------------------------------------------------------------- canonical host
+# The apex redirects to www, and Search Console tracks www, so every canonical, og:url and sitemap URL uses www.
+APEX, WWW = 'https://traderisksolutions.com.sg/', 'https://www.traderisksolutions.com.sg/'
+for f in glob.glob('**/*.html', recursive=True) + ['sitemap.xml', 'robots.txt']:
+    if f.startswith(('dashboard/', 'corpcover/', 'newsouthsea/', 'benefixe/', 'ai-inbound/', 'tools/', 'supabase/', 'roadplus/', 'node_modules/')):
+        continue
+    s0 = open(f).read()
+    t = re.sub(r'(<link rel="canonical" href="|<meta property="og:url" content="|<loc>|Sitemap: )https://traderisksolutions\.com\.sg/', lambda m: m.group(1) + WWW, s0)
+    t = t.replace('"item": "' + APEX, '"item": "' + WWW)
+    if t != s0:
+        open(f, 'w').write(t)
+print('canonical host set to www')
+
+
 # ---------------------------------------------------------------- cache-busting
 # CSS and JS are served with a one-day browser cache (vercel.json), favicons longer.
 # Every site page links them with ?v=<content hash>, so a change reaches returning visitors at once.

@@ -52,6 +52,17 @@
     }, 2400);
   }
 
+  var flt = document.querySelector('.s-flt');
+  if (flt) {
+    flt.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      var c = b.getAttribute('data-c'), shown = 0;
+      flt.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      document.querySelectorAll('[data-cat]').forEach(function (r) { var on = c === 'all' || r.getAttribute('data-cat') === c; r.hidden = !on; if (on) shown++; });
+      var em = document.querySelector('.s-empty'); if (em) em.hidden = shown > 0;
+    });
+  }
+
   var tr = document.querySelector('.s-cr-tr');
   if (tr) {
     var cards = tr.querySelectorAll('.s-cr-c'), dots = document.querySelectorAll('.s-cr-dots button'), cur = 2;

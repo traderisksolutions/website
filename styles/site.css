@@ -218,4 +218,46 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
   html.s-js .s-rv { opacity: 0; transform: translateY(18px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
   html.s-js .s-rv.s-in { opacity: 1; transform: none; }
 }
+/* insights */
+.s-bh { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px; padding: 72px 0 32px; }
+.s-bh .s-h1 { font-size: clamp(48px, 6vw, 80px); }
+.s-flt { display: flex; flex-wrap: wrap; gap: 6px; }
+.s-flt button { font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--s-hair); background: #fff; color: var(--s-ink); cursor: pointer; }
+.s-flt button[aria-pressed="true"] { background: var(--s-g); color: #fff; border-color: var(--s-g); }
+.s-feat { display: grid; gap: 28px; padding: 28px 0 48px; border-bottom: 1px solid var(--s-hair); color: var(--s-ink); }
+@media (min-width: 860px) { .s-feat { grid-template-columns: 1.3fr 1fr; gap: 56px; align-items: center; } }
+.s-feat-im { aspect-ratio: 16/10; border-radius: 12px; background: var(--s-g); display: flex; align-items: flex-end; padding: 28px; color: var(--s-mint); font-family: var(--s-serif); font-size: clamp(24px, 2.6vw, 34px); line-height: 1.15; }
+.s-feat b { display: block; margin-top: 12px; font-family: var(--s-serif); font-weight: 500; font-size: clamp(26px, 2.8vw, 36px); line-height: 1.12; }
+.s-feat-d { display: block; margin-top: 14px; color: var(--s-sub); font-size: 16px; }
+.s-feat .s-rd { display: block; margin-top: 14px; }
+.s-rc { font-family: var(--s-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--s-g2); }
+.s-rd { font-size: 13px; color: var(--s-sub); white-space: nowrap; }
+.s-list { border-bottom: 1px solid var(--s-hair); }
+.s-row { display: grid; grid-template-columns: 180px 1fr auto; gap: 24px; align-items: baseline; padding: 22px 0; border-top: 1px solid var(--s-hair); color: var(--s-ink); }
+.s-list .s-row:first-child { border-top: 0; }
+.s-row b { font-family: var(--s-serif); font-weight: 500; font-size: 22px; line-height: 1.25; }
+.s-row:hover b { color: var(--s-g2); }
+@media (max-width: 700px) { .s-row { grid-template-columns: 1fr; gap: 6px; } }
+.s-empty { padding: 28px 0; color: var(--s-sub); }
+.s-art { max-width: 800px; padding-bottom: 96px; }
+.s-art-h { margin: 18px 0 0; font-family: var(--s-serif); font-weight: 500; font-size: clamp(34px, 4.4vw, 54px); line-height: 1.08; text-wrap: balance; }
+.s-by { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; font-size: 13.5px; color: var(--s-sub); }
+.s-ans { margin-top: 32px; padding: 22px 24px; border-radius: 12px; background: var(--s-mint); color: var(--s-g); font-size: 17px; line-height: 1.6; }
+.s-ans b { display: block; font-family: var(--s-mono); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+.s-prose h2, .s-art-sub { font-family: var(--s-serif); font-weight: 500; font-size: 28px; line-height: 1.2; margin: 44px 0 0; }
+.s-prose p { font-size: 17.5px; line-height: 1.7; margin: 14px 0 0; }
+.s-tbl { overflow-x: auto; margin-top: 18px; }
+.s-tbl table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
+.s-tbl th, .s-tbl td { border-bottom: 1px solid var(--s-hair); padding: 11px 10px; text-align: left; vertical-align: top; }
+.s-tbl th { font-size: 12.5px; font-weight: 600; color: var(--s-sub); }
+.s-in-cta { margin-top: 36px; padding: 24px 26px; border-radius: 12px; background: var(--s-g); color: #fff; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.s-in-cta b { font-family: var(--s-serif); font-weight: 400; font-size: 23px; }
+.s-btn.s-on { background: #fff; color: var(--s-g); }
+.s-faq { margin-top: 16px; border-top: 1px solid var(--s-hair); }
+.s-faq details { border-bottom: 1px solid var(--s-hair); padding: 16px 0; }
+.s-faq summary { cursor: pointer; font-weight: 500; font-size: 17px; }
+.s-faq p { margin: 10px 0 0; font-size: 16px; line-height: 1.65; color: var(--s-sub); }
+.s-src { margin: 14px 0 0; padding-left: 18px; font-size: 14.5px; line-height: 1.7; }
+.s-src a { color: var(--s-g2); text-decoration: underline; text-underline-offset: 3px; }
+.s-disc { margin-top: 32px; font-size: 13px; color: var(--s-sub); }
 @media (prefers-reduced-motion: reduce) { .s-cr-tr, .s-cr-img, .s-cr-t, .s-rot, .tn-panel, .tn-drawer, .s-im img { transition: none; } }
