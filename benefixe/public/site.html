@@ -6,7 +6,7 @@
 <title>Benefixe — Group benefits and the Insider Pass</title>
 <meta name="description" content="Group hospital, outpatient, life, accident and dental cover for Singapore companies, compared across 3 insurers, with the Insider Pass for every employee.">
 <meta property="og:title" content="Benefixe — Group benefits and the Insider Pass">
-<meta property="og:description" content="Group insurance for Singapore companies, with 18 perks for every employee.">
+<meta property="og:description" content="Group insurance for Singapore companies, with 5 perks for every employee.">
 <meta property="og:url" content="https://benefixe.com/">
 <meta property="og:image" content="https://benefixe.com/img/team.jpg">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -412,6 +412,12 @@ body.locked { overflow: hidden; }
 .perk-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .perk-grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .perk-grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.perk-grid.five { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.perk-grid.five > li { grid-column: span 2; }
+.perk-grid.five > li:nth-child(-n+2) { grid-column: span 3; }
+.perk-card.soon { cursor: default; }
+.perk-art.soon { display: grid; place-items: center; background: var(--surface, #f1f5f6); border: 1px dashed rgba(20,48,61,.22); font-size: 15px; color: var(--ink-3); }
+.perk-card.soon:hover .perk-art { transform: none; }
 .perk-card { display: block; width: 100%; border: 0; padding: 0; background: none; text-align: left; cursor: pointer; }
 .perk-art { display: block; aspect-ratio: 4 / 3; border-radius: 24px; overflow: hidden; transition: transform .5s var(--ease); }
 .perk-card:hover .perk-art { transform: scale(.985); }
@@ -422,7 +428,8 @@ body.locked { overflow: hidden; }
 .close-band p { font-size: 18px; color: var(--ink-2); }
 .close-band .btn { margin-top: 10px; }
 @media (max-width: 1000px) { .perk-grid.cols-3, .perk-grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .density { display: none; } }
-@media (max-width: 600px) { .perk-grid.cols-2, .perk-grid.cols-3, .perk-grid.cols-4 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .perk-grid.five > li, .perk-grid.five > li:nth-child(-n+2) { grid-column: span 3; } .perk-grid.five > li:last-child { grid-column: 1 / -1; } .perk-grid.five > li:last-child .perk-art { aspect-ratio: 8 / 3; } }
+@media (max-width: 600px) { .perk-grid.cols-2, .perk-grid.cols-3, .perk-grid.cols-4 { grid-template-columns: 1fr; } .perk-grid.five > li, .perk-grid.five > li:nth-child(-n+2), .perk-grid.five > li:last-child { grid-column: 1 / -1; } .perk-grid.five > li:last-child .perk-art { aspect-ratio: 4 / 3; } }
 
 /* Group benefits: wonderful.ai + Apple */
 .cover-wall { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
@@ -733,7 +740,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   <section class="hero grain">
     <div class="hero-field" aria-hidden="true"></div>
     <h1>Group benefits your team<br>uses every week.</h1>
-    <p class="hero-sub">Hospital, life and accident cover for Singapore companies, with the Insider Pass for every employee. 18 perks: eSIM, bikes, gyms, counselling.</p>
+    <p class="hero-sub">Hospital, life and accident cover for Singapore companies, with the Insider Pass for every employee. 5 perks: eSIM, bikes, counselling, sauna and recovery.</p>
     <div class="hero-actions">
       <button type="button" class="btn hero-btn light" data-contact>Get in touch</button>
       <a class="btn hero-btn glass" href="#insider-pass">Explore Insider Pass</a>
@@ -754,15 +761,15 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
               <div class="hw-row"><span>Group term life</span><span class="tag">GTL</span></div>
               <div class="hw-row"><span>Group personal accident</span><span class="tag">GPA</span></div>
               <div class="hw-row"><span>Dental</span><span class="tag">DEN</span></div>
-              <div class="hw-row"><b style="font-weight:500">Insider Pass · 18 perks</b><span class="tag dark">PASS</span></div>
+              <div class="hw-row"><b style="font-weight:500">Insider Pass · 5 perks</b><span class="tag dark">PASS</span></div>
             </div>
             <div class="hw-card">
               <div class="mono">Insider Pass · October</div>
               <div class="hw-row" style="margin-top:8px"><span>Passes active</span><span>25 / 25</span></div>
               <div class="hw-row"><span>eSIM data used</span><span>142 GB</span></div>
               <div class="hw-row"><span>Bike minutes</span><span>9,860</span></div>
-              <div class="hw-row"><span>Classes booked</span><span>87</span></div>
               <div class="hw-row"><span>Counselling sessions</span><span>6</span></div>
+              <div class="hw-row"><span>Sauna sessions</span><span>31</span></div>
               <div class="hw-row"><span>Joiners this month</span><span>2</span></div>
             </div>
           </div>
@@ -775,10 +782,10 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   <section class="wrap statement reveal" id="h-about">
     <p class="eyebrow">About Benefixe</p>
     <h2>Cover and perks.<br>One plan.</h2>
-    <p class="lede">Benefixe arranges group insurance for Singapore companies of 3 to 200+ employees, compared across <strong>3 insurers</strong>. Every plan includes the <strong>Insider Pass</strong>: 18 perks for travel, transport, wellness and daily life. One admin page handles joiners, leavers and claims, and <strong>quotes arrive in 5 working days</strong>.</p>
+    <p class="lede">Benefixe arranges group insurance for Singapore companies of 3 to 200+ employees, compared across <strong>3 insurers</strong>. Every plan includes the <strong>Insider Pass</strong>: 5 perks for travel, commute, therapy, wellness and recovery. One admin page handles joiners, leavers and claims, and <strong>quotes arrive in 5 working days</strong>.</p>
     <dl class="facts">
       <div><dd>3 – 200+</dd><dt>Employees per company</dt></div>
-      <div><dd>S$4,350</dd><dt>Retail value of perks per employee a year</dt></div>
+      <div><dd>5</dd><dt>Perks per employee</dt></div>
       <div><dd>S$0</dd><dt>Insider Pass cost on a group plan</dt></div>
     </dl>
   </section>
@@ -791,27 +798,27 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
         <div class="chapters">
           <div class="chapter on" data-i="0">
             <span class="k">Insider Pass · Travel</span>
-            <h3>Land with data.<br>Wait in the lounge.</h3>
-            <p>An eSIM covers 14 Asian countries and switches on when the plane lands.</p>
-            <ul><li><span>Asia eSIM</span><span>10 GB / month</span></li><li><span>Airport lounges</span><span>4 visits / yr</span></li><li><span>Hotel booking</span><span>8% back</span></li></ul>
+            <h3>Land with data.<br>No roaming bill.</h3>
+            <p>A travel eSIM covers 14 Asian countries and switches on when the plane lands.</p>
+            <ul><li><span>Data</span><span>10 GB / month</span></li><li><span>Countries</span><span>14 in Asia</span></li><li><span>Set-up</span><span>Once</span></li></ul>
           </div>
           <div class="chapter" data-i="1">
-            <span class="k">Insider Pass · Move</span>
+            <span class="k">Insider Pass · Commute</span>
             <h3>An hour of bike<br>every day.</h3>
-            <p>Shared bikes and e-bikes across Singapore, plus car-share credit for the days it rains.</p>
-            <ul><li><span>Bike rental</span><span>60 min / day</span></li><li><span>Car sharing</span><span>S$30 / month</span></li><li><span>Airport rides</span><span>12 / yr</span></li></ul>
+            <p>Shared bikes and e-bikes across Singapore, unlocked with the member QR.</p>
+            <ul><li><span>Ride minutes</span><span>60 / day</span></li><li><span>Bikes</span><span>Bike and e-bike</span></li><li><span>Unlock</span><span>Member QR</span></li></ul>
           </div>
           <div class="chapter" data-i="2">
-            <span class="k">Insider Pass · Wellness</span>
-            <h3>Six classes a month.<br>Four sessions to talk.</h3>
-            <p>Gyms, yoga, spin and pilates at 400 studios. Licensed counsellors by video or in person.</p>
-            <ul><li><span>Gym and studio pass</span><span>6 / month</span></li><li><span>Counselling</span><span>4 / yr</span></li><li><span>Health screening</span><span>1 / yr</span></li></ul>
+            <span class="k">Insider Pass · Therapy</span>
+            <h3>Four sessions<br>to talk.</h3>
+            <p>Licensed counsellors by video or in person, booked from the member page.</p>
+            <ul><li><span>Counselling</span><span>4 / yr</span></li><li><span>Format</span><span>Video or in person</span></li><li><span>Booking</span><span>Member page</span></li></ul>
           </div>
           <div class="chapter" data-i="3">
-            <span class="k">Insider Pass · Everyday</span>
-            <h3>Coffee on Mondays.<br>A desk on Fridays.</h3>
-            <p>A free coffee every week at 80 cafés and a co-working day pass every month.</p>
-            <ul><li><span>Coffee</span><span>1 / week</span></li><li><span>Co-working</span><span>1 / month</span></li><li><span>Online courses</span><span>12 months</span></li></ul>
+            <span class="k">Insider Pass · Wellness</span>
+            <h3>Two sauna sessions<br>a month.</h3>
+            <p>Sauna sessions at partner studios across Singapore.</p>
+            <ul><li><span>Sauna</span><span>2 / month</span></li><li><span>Session</span><span>60 min</span></li><li><span>Entry</span><span>Member QR</span></li></ul>
           </div>
         </div>
         <div class="phone-wrap">
@@ -821,37 +828,37 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
                 <div class="scr-h"><span>Travel</span><span class="mono">Tokyo · 09:41</span></div>
                 <div class="pass-mini"><div><b style="font-weight:600">benefixe</b><div class="mono" style="margin-top:3px">Insider Pass</div></div><div class="mono">Member · 0001</div></div>
                 <div class="panel"><div class="scr-h" style="font-weight:500"><span>eSIM · Japan</span><span style="color:#1fa855;font-size:12px">● Connected</span></div><div class="big" style="margin-top:12px">6.2 <small>/ 10 GB</small></div><div class="bar"><b style="width:62%"></b></div></div>
-                <div class="panel"><div class="sl"><span>Lounge visits</span><b>1 / 4</b></div><div class="sl"><span>Hotel cashback</span><b>S$38</b></div></div>
+                <div class="panel"><div class="sl"><span>Countries</span><b>14</b></div><div class="sl"><span>Data resets</span><b>1 Nov</b></div></div>
               </div>
               <div class="scr" data-i="1">
-                <div class="scr-h"><span>Move</span><span class="mono">Today</span></div>
+                <div class="scr-h"><span>Commute</span><span class="mono">Today</span></div>
                 <div class="panel"><div style="font-size:13px;font-weight:500">Ride minutes</div><div class="big" style="margin-top:12px">42 <small>/ 60 min</small></div><div class="bar"><b style="width:70%"></b></div></div>
-                <div class="panel"><div class="sl"><span>Nearest bike</span><b>120 m</b></div><div class="sl"><span>Car-share credit</span><b>S$18 / S$30</b></div><div class="sl"><span>Airport rides left</span><b>11</b></div></div>
+                <div class="panel"><div class="sl"><span>Nearest bike</span><b>120 m</b></div><div class="sl"><span>Rides this month</span><b>18</b></div></div>
                 <div class="cta-pill">Unlock bike</div>
               </div>
               <div class="scr" data-i="2">
-                <div class="scr-h"><span>Wellness</span><span class="mono">4 / 6 this month</span></div>
+                <div class="scr-h"><span>Therapy</span><span class="mono">3 left this year</span></div>
                 <div class="panel">
-                  <div class="sl"><span><span class="mono" style="font-size:10px">Mon 07:00</span><br>Spin · Tanjong Pagar</span><span class="tag dark">Booked</span></div>
-                  <div class="sl"><span><span class="mono" style="font-size:10px">Wed 18:30</span><br>Yoga · Raffles Place</span><span class="tag dark">Booked</span></div>
-                  <div class="sl"><span><span class="mono" style="font-size:10px">Sat 09:00</span><br>Pilates · Tiong Bahru</span><span class="tag">Open</span></div>
+                  <div class="sl"><span><span class="mono" style="font-size:10px">Thu 19:00</span><br>Counselling · Video</span><span class="tag dark">Booked</span></div>
+                  <div class="sl"><span><span class="mono" style="font-size:10px">Last session</span><br>12 Sep · In person</span><span class="tag">Done</span></div>
                 </div>
-                <div class="panel"><div class="sl"><span>Counselling</span><b>3 left</b></div><div class="sl"><span>Screening</span><b>Due Nov</b></div></div>
+                <div class="cta-pill">Book a session</div>
               </div>
               <div class="scr" data-i="3">
-                <div class="scr-h"><span>Everyday</span><span class="mono">October</span></div>
-                <div class="panel"><div style="font-size:13px;font-weight:500">Coffee</div><div class="stamps"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
-                <div class="panel"><div class="sl"><span>Co-working</span><b>1 pass left</b></div><div class="sl"><span>Courses</span><b>2 in progress</b></div><div class="sl"><span>Laundry credit</span><b>S$15</b></div></div>
+                <div class="scr-h"><span>Wellness</span><span class="mono">1 / 2 this month</span></div>
+                <div class="panel">
+                  <div class="sl"><span><span class="mono" style="font-size:10px">Sat 10:00</span><br>Sauna · 60 min</span><span class="tag dark">Booked</span></div>
+                  <div class="sl"><span><span class="mono" style="font-size:10px">Wed 07:30</span><br>Sauna · 60 min</span><span class="tag">Open</span></div>
+                </div>
                 <div class="cta-pill">Show member QR</div>
               </div>
-            </div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <div class="see-all reveal"><a class="btn btn-primary hero-btn" href="#insider-pass">See all 18 perks</a></div>
+  <div class="see-all reveal"><a class="btn btn-primary hero-btn" href="#insider-pass">See all 5 perks</a></div>
 
   <!-- Group benefits -->
   <section class="cv-band" id="h-benefits">
@@ -912,7 +919,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
     <ul class="value-grid">
       <li><div class="value-tile ph"><img src="img/stairs.jpg" alt=""><span>Independent</span></div><p><b>Independent.</b> Every quote compares 3 insurers on the same specification. You see the full table, including the options we did not recommend.</p></li>
       <li><div class="value-tile ph"><img src="img/whitebuilding.jpg" alt=""><span>Plain</span></div><p><b>Plain.</b> Each plan arrives as one page: what is covered, what is not, and the cost per employee.</p></li>
-      <li><div class="value-tile ph"><img src="img/tower.jpg" alt=""><span>Used</span></div><p><b>Used.</b> The Insider Pass gives every employee 18 perks they reach for weekly, so the plan is felt before anyone files a claim.</p></li>
+      <li><div class="value-tile ph"><img src="img/tower.jpg" alt=""><span>Used</span></div><p><b>Used.</b> The Insider Pass gives every employee 5 perks they reach for weekly, so the plan is felt before anyone files a claim.</p></li>
       <li><div class="value-tile ph"><img src="img/glasshouse.jpg" alt=""><span>Accountable</span></div><p><b>Accountable.</b> Claims and perk usage are reviewed 60 days before renewal, with a written recommendation.</p></li>
     </ul>
   </section>
@@ -958,15 +965,13 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
 <div class="view" data-view="insider-pass" hidden>
   <section class="wrap page-top">
     <h1 class="kicker">Insider Pass</h1>
-    <p class="editorial-lede">One membership with 18 perks for travel, transport, wellness and daily life. Included for every employee on a Benefixe group plan, or <a href="#faq">S$240 a year</a> on its own.</p>
+    <p class="editorial-lede">One membership with 5 perks for travel, commute, therapy, wellness and recovery. Included for every employee on a Benefixe group plan, or <a href="#faq">S$240 a year</a> on its own.</p>
   </section>
   <section class="wrap grid-sec">
     <div class="grid-bar">
-      <p><b>Insider Pass</b><span>, <span id="perk-count">18</span> perks</span></p>
-      <div class="cat-tabs" role="radiogroup" aria-label="Category" id="perk-cats"></div>
-      <div class="density" role="group" aria-label="Grid density" id="density"></div>
+      <p><b>Insider Pass</b><span>, 5 perks</span></p>
     </div>
-    <ul class="perk-grid cols-3" id="perk-grid"></ul>
+    <ul class="perk-grid five" id="perk-grid"></ul>
   </section>
   <section class="wrap close-band">
     <h2 class="h-light">The pass for your whole team.</h2>
@@ -1001,7 +1006,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   <section class="wrap ap-feature">
     <p class="ap-eyebrow">Covers</p>
     <h2>Every cover your team needs. One renewal.</h2>
-    <p class="ap-lede">A Benefixe plan brings <b>hospital and surgical</b>, <b>outpatient GP and specialist</b>, <b>term life</b>, <b>personal accident</b> and <b>dental</b> cover into one policy year. Every covered employee also receives <b>the Insider Pass, with 18 perks</b>.</p>
+    <p class="ap-lede">A Benefixe plan brings <b>hospital and surgical</b>, <b>outpatient GP and specialist</b>, <b>term life</b>, <b>personal accident</b> and <b>dental</b> cover into one policy year. Every covered employee also receives <b>the Insider Pass, with 5 perks</b>.</p>
     <div class="ap-wide ph"><img src="img/consult.jpg" alt="A doctor speaking with a patient"></div>
     <div class="ap-cols">
       <div><h3>Hospital.</h3><p>Room and board to the ward class you choose, surgery, ICU, and treatment before and after a stay.</p></div>
@@ -1339,7 +1344,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   onScroll();
 })();
 </script>
-<script>window.__BFX = {"icons": {"sim": "<path d=\"M7 3h7l4 4v14H7z\" /><rect x=\"10\" y=\"11\" width=\"5\" height=\"6\" rx=\"1\" />", "lounge": "<path d=\"M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3\" /><path d=\"M3 11h18v5H3z\" /><path d=\"M6 16v3M18 16v3\" />", "hotel": "<path d=\"M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-8v6\" /><circle cx=\"6.5\" cy=\"11.5\" r=\"1.5\" />", "bike": "<circle cx=\"6\" cy=\"16\" r=\"3.5\" /><circle cx=\"18\" cy=\"16\" r=\"3.5\" /><path d=\"M6 16l4-7h5l3 7M10 9l3 7M14 6h2\" />", "car": "<path d=\"M5 16V12l2-5h10l2 5v4z\" /><path d=\"M5 12h14\" /><circle cx=\"8\" cy=\"16\" r=\"1.5\" /><circle cx=\"16\" cy=\"16\" r=\"1.5\" />", "taxi": "<path d=\"M3 15l4-1 3-6h4l2 6 5 1\" /><path d=\"M2 18h20\" /><path d=\"M10 8V5h4v3\" />", "dumbbell": "<path d=\"M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12\" />", "mind": "<path d=\"M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z\" />", "tooth": "<path d=\"M7 4c-2 0-3 1.8-3 4 0 3 1.5 4 2 7l1 5h2l1.5-5h3L15 20h2l1-5c.5-3 2-4 2-7 0-2.2-1-4-3-4-2 0-3 1-5 1S9 4 7 4z\" />", "pulse": "<path d=\"M3 12h4l2-5 4 10 2-5h6\" />", "physio": "<circle cx=\"12\" cy=\"5\" r=\"2\" /><path d=\"M12 7v6l-4 7M12 13l4 7M7 10h10\" />", "moon": "<path d=\"M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z\" />", "bag": "<path d=\"M5 8h14l-1 12H6z\" /><path d=\"M9 8V6a3 3 0 0 1 6 0v2\" />", "coffee": "<path d=\"M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z\" /><path d=\"M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3\" />", "desk": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"11\" rx=\"1.5\" /><path d=\"M9 19h6M12 15v4\" />", "book": "<path d=\"M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z\" /><path d=\"M4 20a2 2 0 0 1 2-2h13v3H6\" />", "phone": "<rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\" /><path d=\"M11 18h2\" />", "shirt": "<path d=\"M8 3l-5 3 2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z\" />"}, "perks": [{"name": "Asia eSIM", "offer": "10GB data a month in 14 countries", "about": "Install once. Data switches on when you land.", "cat": "Travel", "icon": "sim", "value": 360}, {"name": "Airport lounges", "offer": "4 lounge visits a year", "about": "Changi and 1,300 airports worldwide.", "cat": "Travel", "icon": "lounge", "value": 200}, {"name": "Hotel booking", "offer": "8% back on hotel stays", "about": "Credited to your account after check-out.", "cat": "Travel", "icon": "hotel", "value": 150}, {"name": "Bike rental", "offer": "60 ride minutes a day", "about": "Shared bikes and e-bikes across Singapore.", "cat": "Move", "icon": "bike", "value": 480}, {"name": "Car sharing", "offer": "S$30 drive credit a month", "about": "Hourly cars from 1,500 parking spots.", "cat": "Move", "icon": "car", "value": 360}, {"name": "Airport rides", "offer": "S$10 off, 12 rides a year", "about": "Ride-hailing to and from Changi.", "cat": "Move", "icon": "taxi", "value": 120}, {"name": "Gym and studio pass", "offer": "6 classes a month", "about": "Gyms, yoga, spin and pilates at 400 studios.", "cat": "Wellness", "icon": "dumbbell", "value": 540}, {"name": "Counselling", "offer": "4 sessions a year", "about": "Licensed counsellors, video or in person.", "cat": "Wellness", "icon": "mind", "value": 480}, {"name": "Dental", "offer": "1 scale and polish a year", "about": "At 60 partner clinics.", "cat": "Wellness", "icon": "tooth", "value": 90}, {"name": "Health screening", "offer": "1 screening a year, 60 markers", "about": "Blood panel and doctor review.", "cat": "Wellness", "icon": "pulse", "value": 180}, {"name": "Physiotherapy", "offer": "25% off every session", "about": "Sports injuries, back and neck.", "cat": "Wellness", "icon": "physio", "value": 100}, {"name": "Sleep and meditation", "offer": "12 months premium", "about": "Guided sleep, focus and breathing.", "cat": "Wellness", "icon": "moon", "value": 90}, {"name": "Food delivery", "offer": "Free delivery over S$15", "about": "Lunch at the office, dinner at home.", "cat": "Everyday", "icon": "bag", "value": 120}, {"name": "Coffee", "offer": "1 free coffee a week", "about": "At 80 independent cafés.", "cat": "Everyday", "icon": "coffee", "value": 260}, {"name": "Co-working", "offer": "1 day pass a month", "about": "Desks in 30 spaces across the island.", "cat": "Everyday", "icon": "desk", "value": 360}, {"name": "Online courses", "offer": "12 months unlimited", "about": "Design, data, finance and languages.", "cat": "Everyday", "icon": "book", "value": 240}, {"name": "Phone repair", "offer": "20% off repairs", "about": "Screens and batteries, same day.", "cat": "Everyday", "icon": "phone", "value": 40}, {"name": "Laundry", "offer": "S$15 laundry credit a month", "about": "Pickup and delivery to your door.", "cat": "Everyday", "icon": "shirt", "value": 180}], "blogs": [{"slug": "perks-or-pay-rise", "title": "Perks or a pay rise: what each dollar costs the employer", "dek": "A S$100 raise costs more than S$100. Group benefits and perks are priced differently.", "topic": "Perks", "date": "2026-10-10", "min": 4, "body": [["p", "A raise is the simplest reward to give and the most expensive per dollar the employee notices. Employer CPF, bonus multipliers and future increments all build on base pay. Benefits sit outside that chain."], ["h2", "What a raise costs"], ["ul", ["Employer CPF applies to the raise. For employees aged 55 and below, the employer rate is 17% of wages up to the monthly ceiling.", "A S$100 monthly raise therefore costs S$117 a month, or S$1,404 a year, before bonuses.", "Bonuses expressed in months of salary grow with every raise.", "Raises are rarely reversed. The cost repeats every year."]], ["h2", "What benefits cost"], ["ul", ["Group insurance premiums are a fixed amount per employee per year, reviewed at renewal.", "Employer-paid group medical premiums do not attract CPF.", "Perk memberships are bought at group rates, below what an employee pays alone."]], ["h2", "Where each one fits"], ["p", "Pay should track the market rate for the role. Benefits cover the costs every employee faces regardless of role: hospital bills, travel data, transport, fitness. Spending on the second does not replace the first. It reduces how often pay has to do work it is expensive at."], ["h2", "Tax treatment"], ["p", "Medical benefits, including group medical insurance paid by the employer, are generally not taxable to the employee. Many lifestyle perks are benefits-in-kind, and some are taxable. IRAS publishes which benefits are taxable and how they are valued."]]}, {"slug": "foreign-worker-medical-insurance", "title": "Medical insurance for Work Permit and S Pass holders", "dek": "The cover MOM requires, the co-payment split, and what the employer still pays.", "topic": "Group insurance", "date": "2026-10-06", "min": 4, "body": [["p", "Employers must buy and maintain medical insurance for every Work Permit and S Pass holder they employ. The employer is responsible for the employee's medical costs, and the insurance covers part of that responsibility."], ["h2", "Minimum cover"], ["ul", ["Inpatient care and day surgery, with an annual claim limit of at least S$60,000 per employee.", "Claims above S$15,000 are co-paid: the insurer pays 75% and the employer 25%.", "Cover must run for the whole period of employment and be renewed with the pass."]], ["h2", "What the employer still pays"], ["ul", ["Outpatient treatment, unless a separate outpatient plan is bought.", "The 25% co-payment above S$15,000.", "Bills above the annual limit."]], ["p", "Employers may not recover these costs from the employee's salary."], ["h2", "Putting it on a group plan"], ["p", "Work Permit and S Pass holders can be covered on the same group plan as other staff, with hospital, outpatient and accident cover set at the same level. One policy, one renewal date and one claims process replaces separate pass-by-pass policies."], ["h2", "What to check"], ["ul", ["The policy meets the current MOM minimum, not the one in force when it was first bought.", "New joiners are added before their pass is issued.", "Work injury compensation is a separate, additional requirement."]]]}, {"slug": "group-hospital-surgical-insurance", "title": "Group hospital and surgical insurance, explained", "dek": "What a GHS plan pays, how it works with MediShield Life, and the four terms that set its value.", "topic": "Group insurance", "date": "2026-10-02", "min": 5, "body": [["p", "Group hospital and surgical insurance (GHS) pays hospital bills for employees, and optionally their families, while they are on the payroll. It is the core of most Singapore group benefits plans."], ["h2", "What it pays"], ["ul", ["Room and board, up to the ward class in the plan.", "Surgery, ICU, and hospital services such as tests and medicine.", "Pre- and post-hospital treatment within a set number of days.", "Day surgery that does not need an overnight stay."]], ["h2", "How it works with MediShield Life"], ["p", "MediShield Life covers every Singapore Citizen and Permanent Resident for large hospital bills, sized for subsidised wards. A GHS plan pays alongside it and alongside any Integrated Shield Plan the employee holds. How a claim is split depends on the policies involved."], ["h2", "The four terms that set its value"], ["ul", ["Ward class: 1-bed private, 2-bed, 4-bed or subsidised. This drives most of the premium.", "Limits: per-day room limits and per-condition limits, or as-charged cover.", "Pre-existing conditions: larger groups usually have them covered; small groups may not.", "Dependants: spouse and children added at the employer's or employee's cost."]], ["h2", "When cover ends"], ["p", "Cover stops when the employee leaves the payroll. Employees who rely on it should hold personal cover as well, because a new personal policy after diagnosis may exclude that condition."]]}, {"slug": "first-benefits-plan", "title": "A first benefits plan for a team of 10", "dek": "What to cover first, what it costs to decide, and the data an insurer needs to quote.", "topic": "Employers", "date": "2026-09-28", "min": 4, "body": [["p", "Most companies buy their first group plan between 5 and 20 employees, usually when a hire asks about benefits during an offer. A first plan should cover the large, unpredictable costs first and add everyday benefits after."], ["h2", "Order of cover"], ["ul", ["Hospital and surgical: the largest single bill an employee can face.", "Personal accident: pays on accidental injury or death, at work or outside it.", "Term life: a lump sum to the family.", "Outpatient GP and specialist: frequent, small claims. Add when the budget allows.", "Dental and lifestyle perks: last, and the most visible to employees."]], ["h2", "Data an insurer needs"], ["ul", ["Name, date of birth and gender for each employee.", "Job title or occupation class.", "Pass type for foreign employees.", "Dependants to include, if any.", "Current claims history, if a plan already exists."]], ["h2", "Decisions to make once"], ["ul", ["One plan for everyone, or tiers by grade.", "Whether dependants are paid for by the company or the employee.", "Whether new joiners are covered from day one or after probation."]], ["p", "Write these down. They become the benefits section of every offer letter."]]}]};</script>
+<script>window.__BFX = {"icons": {"sim": "<path d=\"M7 3h7l4 4v14H7z\" /><rect x=\"10\" y=\"11\" width=\"5\" height=\"6\" rx=\"1\" />", "lounge": "<path d=\"M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3\" /><path d=\"M3 11h18v5H3z\" /><path d=\"M6 16v3M18 16v3\" />", "hotel": "<path d=\"M3 19V6M3 15h18v4M21 15v-3a3 3 0 0 0-3-3h-8v6\" /><circle cx=\"6.5\" cy=\"11.5\" r=\"1.5\" />", "bike": "<circle cx=\"6\" cy=\"16\" r=\"3.5\" /><circle cx=\"18\" cy=\"16\" r=\"3.5\" /><path d=\"M6 16l4-7h5l3 7M10 9l3 7M14 6h2\" />", "car": "<path d=\"M5 16V12l2-5h10l2 5v4z\" /><path d=\"M5 12h14\" /><circle cx=\"8\" cy=\"16\" r=\"1.5\" /><circle cx=\"16\" cy=\"16\" r=\"1.5\" />", "taxi": "<path d=\"M3 15l4-1 3-6h4l2 6 5 1\" /><path d=\"M2 18h20\" /><path d=\"M10 8V5h4v3\" />", "dumbbell": "<path d=\"M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12\" />", "mind": "<path d=\"M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z\" />", "tooth": "<path d=\"M7 4c-2 0-3 1.8-3 4 0 3 1.5 4 2 7l1 5h2l1.5-5h3L15 20h2l1-5c.5-3 2-4 2-7 0-2.2-1-4-3-4-2 0-3 1-5 1S9 4 7 4z\" />", "pulse": "<path d=\"M3 12h4l2-5 4 10 2-5h6\" />", "physio": "<circle cx=\"12\" cy=\"5\" r=\"2\" /><path d=\"M12 7v6l-4 7M12 13l4 7M7 10h10\" />", "moon": "<path d=\"M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z\" />", "bag": "<path d=\"M5 8h14l-1 12H6z\" /><path d=\"M9 8V6a3 3 0 0 1 6 0v2\" />", "coffee": "<path d=\"M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z\" /><path d=\"M17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3\" />", "desk": "<rect x=\"4\" y=\"4\" width=\"16\" height=\"11\" rx=\"1.5\" /><path d=\"M9 19h6M12 15v4\" />", "book": "<path d=\"M4 5a2 2 0 0 1 2-2h13v15H6a2 2 0 0 0-2 2z\" /><path d=\"M4 20a2 2 0 0 1 2-2h13v3H6\" />", "phone": "<rect x=\"7\" y=\"3\" width=\"10\" height=\"18\" rx=\"2\" /><path d=\"M11 18h2\" />", "shirt": "<path d=\"M8 3l-5 3 2 4 3-1v12h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z\" />"}, "perks": [{"name": "Travel eSIM", "offer": "10 GB data a month across Asia", "about": "Install once. Data switches on when you land.", "cat": "Travel", "icon": "sim", "value": 360}, {"name": "Bike rental", "offer": "60 ride minutes a day", "about": "Shared bikes and e-bikes across Singapore.", "cat": "Commute", "icon": "bike", "value": 480}, {"name": "Counselling", "offer": "4 sessions a year", "about": "Licensed counsellors, video or in person.", "cat": "Therapy", "icon": "mind", "value": 480}, {"name": "Sauna", "offer": "2 sessions a month", "about": "Sauna sessions at partner studios across Singapore.", "cat": "Wellness", "icon": "sauna", "value": 720}, {"name": "Recovery", "offer": "Coming soon", "about": "", "cat": "Recovery", "icon": "", "value": 0, "soon": true}], "blogs": [{"slug": "perks-or-pay-rise", "title": "Perks or a pay rise: what each dollar costs the employer", "dek": "A S$100 raise costs more than S$100. Group benefits and perks are priced differently.", "topic": "Perks", "date": "2026-10-10", "min": 4, "body": [["p", "A raise is the simplest reward to give and the most expensive per dollar the employee notices. Employer CPF, bonus multipliers and future increments all build on base pay. Benefits sit outside that chain."], ["h2", "What a raise costs"], ["ul", ["Employer CPF applies to the raise. For employees aged 55 and below, the employer rate is 17% of wages up to the monthly ceiling.", "A S$100 monthly raise therefore costs S$117 a month, or S$1,404 a year, before bonuses.", "Bonuses expressed in months of salary grow with every raise.", "Raises are rarely reversed. The cost repeats every year."]], ["h2", "What benefits cost"], ["ul", ["Group insurance premiums are a fixed amount per employee per year, reviewed at renewal.", "Employer-paid group medical premiums do not attract CPF.", "Perk memberships are bought at group rates, below what an employee pays alone."]], ["h2", "Where each one fits"], ["p", "Pay should track the market rate for the role. Benefits cover the costs every employee faces regardless of role: hospital bills, travel data, transport, fitness. Spending on the second does not replace the first. It reduces how often pay has to do work it is expensive at."], ["h2", "Tax treatment"], ["p", "Medical benefits, including group medical insurance paid by the employer, are generally not taxable to the employee. Many lifestyle perks are benefits-in-kind, and some are taxable. IRAS publishes which benefits are taxable and how they are valued."]]}, {"slug": "foreign-worker-medical-insurance", "title": "Medical insurance for Work Permit and S Pass holders", "dek": "The cover MOM requires, the co-payment split, and what the employer still pays.", "topic": "Group insurance", "date": "2026-10-06", "min": 4, "body": [["p", "Employers must buy and maintain medical insurance for every Work Permit and S Pass holder they employ. The employer is responsible for the employee's medical costs, and the insurance covers part of that responsibility."], ["h2", "Minimum cover"], ["ul", ["Inpatient care and day surgery, with an annual claim limit of at least S$60,000 per employee.", "Claims above S$15,000 are co-paid: the insurer pays 75% and the employer 25%.", "Cover must run for the whole period of employment and be renewed with the pass."]], ["h2", "What the employer still pays"], ["ul", ["Outpatient treatment, unless a separate outpatient plan is bought.", "The 25% co-payment above S$15,000.", "Bills above the annual limit."]], ["p", "Employers may not recover these costs from the employee's salary."], ["h2", "Putting it on a group plan"], ["p", "Work Permit and S Pass holders can be covered on the same group plan as other staff, with hospital, outpatient and accident cover set at the same level. One policy, one renewal date and one claims process replaces separate pass-by-pass policies."], ["h2", "What to check"], ["ul", ["The policy meets the current MOM minimum, not the one in force when it was first bought.", "New joiners are added before their pass is issued.", "Work injury compensation is a separate, additional requirement."]]]}, {"slug": "group-hospital-surgical-insurance", "title": "Group hospital and surgical insurance, explained", "dek": "What a GHS plan pays, how it works with MediShield Life, and the four terms that set its value.", "topic": "Group insurance", "date": "2026-10-02", "min": 5, "body": [["p", "Group hospital and surgical insurance (GHS) pays hospital bills for employees, and optionally their families, while they are on the payroll. It is the core of most Singapore group benefits plans."], ["h2", "What it pays"], ["ul", ["Room and board, up to the ward class in the plan.", "Surgery, ICU, and hospital services such as tests and medicine.", "Pre- and post-hospital treatment within a set number of days.", "Day surgery that does not need an overnight stay."]], ["h2", "How it works with MediShield Life"], ["p", "MediShield Life covers every Singapore Citizen and Permanent Resident for large hospital bills, sized for subsidised wards. A GHS plan pays alongside it and alongside any Integrated Shield Plan the employee holds. How a claim is split depends on the policies involved."], ["h2", "The four terms that set its value"], ["ul", ["Ward class: 1-bed private, 2-bed, 4-bed or subsidised. This drives most of the premium.", "Limits: per-day room limits and per-condition limits, or as-charged cover.", "Pre-existing conditions: larger groups usually have them covered; small groups may not.", "Dependants: spouse and children added at the employer's or employee's cost."]], ["h2", "When cover ends"], ["p", "Cover stops when the employee leaves the payroll. Employees who rely on it should hold personal cover as well, because a new personal policy after diagnosis may exclude that condition."]]}, {"slug": "first-benefits-plan", "title": "A first benefits plan for a team of 10", "dek": "What to cover first, what it costs to decide, and the data an insurer needs to quote.", "topic": "Employers", "date": "2026-09-28", "min": 4, "body": [["p", "Most companies buy their first group plan between 5 and 20 employees, usually when a hire asks about benefits during an offer. A first plan should cover the large, unpredictable costs first and add everyday benefits after."], ["h2", "Order of cover"], ["ul", ["Hospital and surgical: the largest single bill an employee can face.", "Personal accident: pays on accidental injury or death, at work or outside it.", "Term life: a lump sum to the family.", "Outpatient GP and specialist: frequent, small claims. Add when the budget allows.", "Dental and lifestyle perks: last, and the most visible to employees."]], ["h2", "Data an insurer needs"], ["ul", ["Name, date of birth and gender for each employee.", "Job title or occupation class.", "Pass type for foreign employees.", "Dependants to include, if any.", "Current claims history, if a plan already exists."]], ["h2", "Decisions to make once"], ["ul", ["One plan for everyone, or tiers by grade.", "Whether dependants are paid for by the company or the employee.", "Whether new joiners are covered from day one or after probation."]], ["p", "Write these down. They become the benefits section of every offer letter."]]}]};</script>
 <script>
 (() => {
   const D = window.__BFX;
@@ -1383,21 +1388,15 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   document.addEventListener('click', e => { const b = e.target.closest('[data-contact]'); if (b) { e.preventDefault(); contact(); } });
 
   /* ── Insider Pass: editorial grid + perk modal (image left, content right) ── */
-  const CATS = ['All', 'Travel', 'Move', 'Wellness', 'Everyday'];
-  let cat = 'All', cols = 3, shown = [], cur = 0;
+  let shown = [], cur = 0;
   const grid = $('#perk-grid');
-  $('#perk-cats').innerHTML = CATS.map(c => `<button type="button" role="radio" aria-checked="${c === cat}">${c}</button>`).join('');
-  const densIcon = n => `<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">${Array.from({ length: n }, (_, i) => { const g = 1.5, w = (16 - g * (n - 1)) / n; return `<rect x="${i * (w + g)}" y="1" width="${w}" height="14" fill="currentColor"/>`; }).join('')}</svg>`;
-  $('#density').innerHTML = [2, 3, 4].map(n => `<button type="button" aria-pressed="${n === cols}" aria-label="${n} columns" data-n="${n}">${densIcon(n)}</button>`).join('');
   const perkArt = p => `<img src="img/${p.icon}.jpg" alt="${esc(p.name)}" loading="lazy" decoding="async">`;
   function drawPerks() {
-    shown = D.perks.map((p, i) => ({ ...p, i })).filter(p => cat === 'All' || p.cat === cat);
-    $('#perk-count').textContent = shown.length;
-    grid.className = `perk-grid cols-${cols}`;
-    grid.innerHTML = shown.map((p, k) => `<li><button type="button" class="perk-card" data-k="${k}"><span class="perk-art ph">${perkArt(p)}</span><span class="perk-cap"><i>${String(k + 1).padStart(2, '0')}</i>${esc(p.name)}</span><span class="perk-sub" style="display:block">${esc(p.offer)}</span></button></li>`).join('');
+    shown = D.perks.filter(p => !p.soon);
+    grid.innerHTML = D.perks.map((p, k) => p.soon
+      ? `<li><div class="perk-card soon" aria-disabled="true"><span class="perk-art soon" aria-hidden="true"></span><span class="perk-cap"><i>${String(k + 1).padStart(2, '0')}</i>${esc(p.name)}</span><span class="perk-sub" style="display:block">${esc(p.offer)}</span></div></li>`
+      : `<li><button type="button" class="perk-card" data-k="${k}"><span class="perk-art ph">${perkArt(p)}</span><span class="perk-cap"><i>${String(k + 1).padStart(2, '0')}</i>${esc(p.name)}</span><span class="perk-sub" style="display:block">${esc(p.offer)}</span></button></li>`).join('');
   }
-  $('#perk-cats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cat = b.textContent; $$('#perk-cats button').forEach(x => x.setAttribute('aria-checked', String(x === b))); drawPerks(); });
-  $('#density').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; cols = Number(b.dataset.n); $$('#density button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawPerks(); });
   grid.addEventListener('click', e => { const b = e.target.closest('.perk-card'); if (b) perkModal(Number(b.dataset.k)); });
   function perkModal(k) {
     cur = (k + shown.length) % shown.length; const p = shown[cur];
@@ -1430,9 +1429,9 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
     ['Group benefits', 'Switching from a current plan', 'A new plan starts on the day the old one ends. We align dates so there is no gap in cover.'],
     ['Group benefits', 'How savings are found', 'By removing overlapping cover, matching ward class and limits to the team, and comparing 3 insurers on one specification.'],
     ['Insider Pass', 'Cost of the Insider Pass', 'Included on every Benefixe group plan at no extra cost. Individuals can join for S$240 a year.'],
-    ['Insider Pass', 'Perks included', '18 perks across travel, transport, wellness and everyday life, including an Asia eSIM, bike rental, gym classes and counselling.'],
+    ['Insider Pass', 'Perks included', '5 perks: a travel eSIM, bike rental, counselling, sauna sessions and a recovery perk to be announced.'],
     ['Insider Pass', 'How employees redeem perks', 'Each perk has a code, a link or a member QR on the employee’s member page.'],
-    ['Insider Pass', 'Monthly allowances', 'Allowances reset on the 1st of each month. Unused minutes, classes and credits do not carry over.'],
+    ['Insider Pass', 'Monthly allowances', 'Allowances reset on the 1st of each month. Unused data, ride minutes and sessions do not carry over.'],
     ['Insider Pass', 'New partners', 'Partners are added through the year. Members receive an email when a perk goes live.'],
     ['Claims and changes', 'Making a claim', 'Employees submit receipts on their member page. We follow up with the insurer until the claim is settled.'],
     ['Claims and changes', 'Joiners and leavers', 'Add or remove employees each month. Premiums adjust pro rata.'],
@@ -1452,10 +1451,10 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
 
   /* ── Resources: blog index (wonderful.ai) and article ── */
   const EXTRA = [
-    { slug: 'insider-pass-member-page', title: 'Insider Pass: 18 perks on one member page', dek: 'What employees see on day one, how codes work, and when allowances reset.', topic: 'Product', date: '2026-10-13', min: 3, body: [['p', 'Every employee on a Benefixe group plan receives an Insider Pass invite on enrolment. The pass opens a member page that holds every perk.'], ['h2', 'On the member page'], ['ul', ['A code, link or QR for each of the 18 perks.', 'Allowance left this month: data, ride minutes, classes, credits.', 'New partners, marked when they go live.']], ['h2', 'Allowances'], ['p', 'Monthly allowances reset on the 1st. Unused amounts do not carry over. Yearly perks, such as lounge visits and screening, reset on the membership date.']] },
+    { slug: 'insider-pass-member-page', title: 'Insider Pass: 5 perks on one member page', dek: 'What employees see on day one, how codes work, and when allowances reset.', topic: 'Product', date: '2026-10-13', min: 3, body: [['p', 'Every employee on a Benefixe group plan receives an Insider Pass invite on enrolment. The pass opens a member page that holds every perk.'], ['h2', 'On the member page'], ['ul', ['A code, link or QR for each of the 5 perks.', 'Allowance left this month: data, ride minutes, sessions.', 'New partners, marked when they go live.']], ['h2', 'Allowances'], ['p', 'Monthly allowances reset on the 1st. Unused amounts do not carry over. Yearly perks, such as counselling, reset on the membership date.']] },
     { slug: 'what-a-review-covers', title: 'What a group benefits review covers', dek: 'The four documents we read, the gaps we look for, and what the comparison shows.', topic: 'Guides', date: '2026-09-24', min: 4, body: [['p', 'A review starts with what the company already has. Most savings come from cover that overlaps or no longer fits the team.'], ['h2', 'Documents we read'], ['ul', ['The current policy schedule and benefit table.', 'Twelve months of claims, by benefit.', 'The staff list with ages and pass types.', 'The renewal quote, if one has arrived.']], ['h2', 'What we look for'], ['ul', ['Ward class and limits that do not match how the team claims.', 'Benefits paid twice across separate policies.', 'Staff missing from cover, often new joiners or pass holders.']], ['h2', 'What the comparison shows'], ['p', 'Three insurers quote the same specification. The table shows premium per employee, limits and exclusions side by side, with our recommendation marked.']] },
   ];
-  const BLOG_ART = { 'perks-or-pay-rise': ['S$117', 'ember'], 'foreign-worker-medical-insurance': ['S$60,000', 'night'], 'group-hospital-surgical-insurance': ['GHS', 'dusk'], 'first-benefits-plan': ['10 people', 'sage'], 'insider-pass-member-page': ['18 perks', 'ember'], 'what-a-review-covers': ['Review', 'night'] };
+  const BLOG_ART = { 'perks-or-pay-rise': ['S$117', 'ember'], 'foreign-worker-medical-insurance': ['S$60,000', 'night'], 'group-hospital-surgical-insurance': ['GHS', 'dusk'], 'first-benefits-plan': ['10 people', 'sage'], 'insider-pass-member-page': ['5 perks', 'ember'], 'what-a-review-covers': ['Review', 'night'] };
   const TOPIC_MAP = { Perks: 'Perspectives', 'Group insurance': 'Guides', Employers: 'Guides' };
   const POSTS = [...D.blogs.map(b => ({ ...b, topic: TOPIC_MAP[b.topic] || b.topic })), ...EXTRA].sort((a, b) => b.date.localeCompare(a.date));
   const BLOG_IMG = { 'perks-or-pay-rise': 'coworkers', 'foreign-worker-medical-insurance': 'workers', 'group-hospital-surgical-insurance': 'ward', 'first-benefits-plan': 'team', 'insider-pass-member-page': 'sim', 'what-a-review-covers': 'writing' };
@@ -1502,7 +1501,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   const WHY = [
     ['three', 'Three insurers on every quote.', 'One specification, one table.', 'Each review asks 3 insurers to quote the same cover. You see every option side by side, including the ones we did not recommend.', 'A table of premium per employee, limits and exclusions, with our recommendation marked.'],
     ['clock', 'Quotes in 5 working days.', 'From the day we receive the staff list.', 'A spreadsheet of names, birth dates and roles is enough to start. We prepare the specification and request quotes the same week.', 'Three quotes and a written comparison within 5 working days.'],
-    ['pass', 'Insider Pass included.', '18 perks for every covered employee.', 'Every Benefixe group plan includes the Insider Pass at no extra cost: eSIM data, bike rental, gym classes, counselling and 14 more.', 'Invites for every employee on the first day of the policy.'],
+    ['pass', 'Insider Pass included.', '5 perks for every covered employee.', 'Every Benefixe group plan includes the Insider Pass at no extra cost: eSIM data, bike rental, counselling, sauna sessions and a recovery perk.', 'Invites for every employee on the first day of the policy.'],
     ['page', 'One admin page.', 'Joiners, leavers and claims in one place.', 'Add or remove employees each month. Premiums adjust pro rata. Claims are submitted and tracked on the same page.', 'A monthly summary of headcount, premium and open claims.'],
     ['cal', 'A review before every renewal.', '60 days ahead, in writing.', 'We review claims and perk usage 60 days before renewal and recommend what to keep, change or drop.', 'A written renewal recommendation and fresh quotes if the market has moved.'],
     ['globe', 'Every pass type on one plan.', 'EP, S Pass and Work Permit holders.', 'Foreign employees join the same plan as local staff, with cover set to meet MOM requirements for Work Permit and S Pass holders.', 'One policy, one renewal date and one claims process for the whole team.'],
@@ -1539,9 +1538,9 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
     { code: 'DEN', icon: 'tooth', pre: '', hl: 'Dental care', post: ' at panel clinics.', body: 'Check-ups, scaling, fillings and extractions for every covered employee.',
       pts: ['Check-ups and scaling', 'Fillings and extractions', 'Annual limit per employee'],
       name: 'Dental', covers: 'Routine check-ups, scaling and polishing, fillings and extractions at panel clinics, up to an annual limit per employee.', check: 'The annual limit, which treatments are covered, and whether non-panel clinics are reimbursed.' },
-    { code: 'PASS', icon: 'spark', pre: '', hl: '18 perks', post: ' for every employee.', body: 'The Insider Pass comes with every Benefixe group plan at no extra cost.',
-      pts: ['eSIM, bikes and gym classes', 'Counselling and health screening', 'One member page for every code'],
-      name: 'Insider Pass', covers: 'An Asia eSIM, bike rental, gym and studio classes, counselling, health screening, coffee, co-working and 11 more perks, all on one member page.', check: 'Nothing to buy. Every covered employee receives an invite on the first day of the policy.', link: '#insider-pass' },
+    { code: 'PASS', icon: 'spark', pre: '', hl: '5 perks', post: ' for every employee.', body: 'The Insider Pass comes with every Benefixe group plan at no extra cost.',
+      pts: ['Travel eSIM and bike rental', 'Counselling and sauna sessions', 'One member page for every code'],
+      name: 'Insider Pass', covers: 'A travel eSIM, bike rental, counselling, sauna sessions and a recovery perk, all on one member page.', check: 'Nothing to buy. Every covered employee receives an invite on the first day of the policy.', link: '#insider-pass' },
   ];
   const cv = $('#carousel');
   cv.innerHTML = COVERS.map((c, i) => `<li class="cv-tile">
@@ -1555,7 +1554,7 @@ body:not(.solid-top) .nav:not(.scrolled) .nav-cta { background: #fff !important;
   cv.addEventListener('click', e => {
     const b = e.target.closest('[data-cv]'); if (!b) return; const c = COVERS[Number(b.dataset.cv)];
     layer.dataset.kind = 'cover';
-    openModal(`<h2>${esc(c.name)}</h2><p class="lead"><b>What it covers.</b>${esc(c.covers)}</p><p class="lead"><b>What to check.</b>${esc(c.check)}</p>${c.link ? `<a class="alink" href="${c.link}">See all 18 perks ›</a><br>` : ''}<button type="button" class="alink" data-contact>Review your cover with us ›</button>`);
+    openModal(`<h2>${esc(c.name)}</h2><p class="lead"><b>What it covers.</b>${esc(c.covers)}</p><p class="lead"><b>What to check.</b>${esc(c.check)}</p>${c.link ? `<a class="alink" href="${c.link}">See all 5 perks ›</a><br>` : ''}<button type="button" class="alink" data-contact>Review your cover with us ›</button>`);
   });
 
   /* ── Router: each navbar item is its own page ── */
