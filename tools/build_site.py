@@ -453,8 +453,8 @@ print('versioned asset links in', n, 'pages')
 
 # ---------------------------------------------------------------- link previews
 # New share image on every page; the home page description matches the new copy.
-HOME_DESC = ('TRS is an insurance brokerage for businesses in Singapore. Property, liability, cyber and '
-             'workforce cover placed with 18 Singapore-licensed insurers, run by one named team.')
+HOME_DESC = ('TRS is an insurance broker for businesses in Singapore. Property, liability, cyber and '
+             'workforce cover placed with 18 Singapore-licensed insurers.')
 for f in glob.glob('**/*.html', recursive=True):
     if f.startswith(SKIP) or f.startswith('googled'):
         continue
@@ -465,3 +465,70 @@ for f in glob.glob('**/*.html', recursive=True):
     if t != s:
         open(f, 'w').write(t)
 print('share image and home description set')
+
+
+# ---------------------------------------------------------------- search metadata
+# Product pages get their own title and description (the archived heads had none), every page
+# gets structured data, and legacy pages link to canonical (trailing-slash) URLs.
+from seo_meta import PRODUCT_META, INSIGHT_TITLES, SOLUTION_META, ABOUT_META
+ORG = {'@type': 'InsuranceAgency', '@id': WWW + '#org', 'name': 'Trade Risk Solutions', 'alternateName': 'TRS',
+       'url': WWW, 'logo': WWW + 'favicon-192.png', 'image': WWW + 'og-image-2026.png',
+       'description': HOME_DESC, 'telephone': '+65 6238 0888', 'email': 'enquiry@trade-risksol.com',
+       'address': {'@type': 'PostalAddress', 'streetAddress': 'Suntec Tower 2, 9 Temasek Boulevard',
+                   'addressLocality': 'Singapore', 'postalCode': '038989', 'addressCountry': 'SG'},
+       'areaServed': {'@type': 'Country', 'name': 'Singapore'}}
+
+
+def set_meta(s, title=None, desc=None):
+    if title:
+        s = re.sub(r'<title>.*?</title>', lambda m: f'<title>{html.escape(title, quote=False)}</title>', s, count=1, flags=re.S)
+        s = re.sub(r'(<meta (?:property="og:title"|name="twitter:title") content=")[^"]*(")', lambda m: m.group(1) + html.escape(title) + m.group(2), s)
+    if desc:
+        d = html.escape(desc)
+        if 'name="description"' not in s:
+            s = s.replace('</title>', '</title>\n  <meta name="description" content="" />', 1)
+        s = re.sub(r'(<meta (?:name="description"|property="og:description"|name="twitter:description") content=")[^"]*(")', lambda m: m.group(1) + d + m.group(2), s)
+    return s
+
+
+def set_ld(s, data):
+    s = re.sub(r'\s*<script type="application/ld\+json" data-seo>.*?</script>', '', s, flags=re.S)
+    return s.replace('</head>', '  <script type="application/ld+json" data-seo>' + json.dumps(data, ensure_ascii=False) + '</script>\n</head>', 1)
+
+
+def crumbs_ld(items):
+    return {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': n, 'item': WWW + u} for i, (n, u) in enumerate(items)]}
+
+
+def edit(f, fn):
+    s = open(f).read(); t = fn(s)
+    if t != s:
+        open(f, 'w').write(t)
+
+
+edit('index.html', lambda s: set_ld(set_meta(s, desc=HOME_DESC), {'@context': 'https://schema.org', '@graph': [
+    ORG, {'@type': 'WebSite', '@id': WWW + '#site', 'url': WWW, 'name': 'Trade Risk Solutions', 'publisher': {'@id': WWW + '#org'}}]}))
+edit('about.html', lambda s: set_ld(set_meta(s, *ABOUT_META), {'@context': 'https://schema.org', '@graph': [
+    ORG, {'@type': 'AboutPage', 'url': WWW + 'about', 'about': {'@id': WWW + '#org'}}]}))
+for p, (title, desc) in PRODUCT_META.items():
+    name = GROUP[p][2]
+    edit(p + '/index.html', lambda s: set_ld(set_meta(s, title, desc), {'@context': 'https://schema.org', '@graph': [
+        {'@type': 'Service', 'name': name, 'serviceType': name, 'description': desc, 'url': WWW + p + '/',
+         'provider': ORG, 'areaServed': {'@type': 'Country', 'name': 'Singapore'}},
+        crumbs_ld([('Home', ''), (name, p + '/')])]}))
+for slug in SOL:
+    edit('solutions/%s/index.html' % slug, lambda s: set_ld(set_meta(s, *SOLUTION_META[slug]), {'@context': 'https://schema.org', '@graph': [
+        crumbs_ld([('Home', ''), (SOL[slug][0], 'solutions/%s/' % slug)])]}))
+for po in POSTS:
+    edit('insights/%s/index.html' % po['slug'], lambda s: set_meta(s, INSIGHT_TITLES[po['slug']]).replace(
+        'content="https://traderisksolutions.com.sg/og-image-2026.png"', 'content="' + WWW + 'og-image-2026.png"'))
+edit('business/index.html', lambda s: s.replace('<h2 class="biz-showcase-h2">Business insurance across every risk category</h2>',
+                                                 '<h1 class="biz-showcase-h2">Business insurance across every risk category</h1>'))
+edit('workforce/index.html', lambda s: s.replace('href="/commercial/professional-indemnity"', 'href="/employees/dao/"'))
+edit('chat/index.html', lambda s: s if 'name="robots"' in s else s.replace('</title>', '</title>\n  <meta name="robots" content="noindex, follow" />', 1))
+for f in ('business/index.html', 'workforce/index.html'):
+    edit(f, lambda s: re.sub(r'href="/((?:commercial|employees|personal|consumers)/[a-z-]+|workforce|business)"', r'href="/\1/"', s))
+edit('workforce/index.html', lambda s: set_meta(s, 'Workforce Insurance & Employee Benefits Singapore | TRS',
+    'Workforce insurance in Singapore: WICA, foreign worker medical and bond, group medical, employee benefits and keyman.'))
+edit('business/index.html', lambda s: set_meta(s, desc='Business insurance in Singapore: property, liability, cyber, marine, construction, trade credit and bonds, placed by TRS.'))
+print('search metadata set on', len(PRODUCT_META), 'product pages')
