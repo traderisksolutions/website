@@ -247,8 +247,8 @@ def home():
          '<div><p class="s-vn-l s-vn-big-l">Premium saved through programme reviews</p><p class="s-vn-big">$10M+</p></div>'
          '<div><p class="s-vn-l">Clients served</p><p class="s-vn-n">250+</p></div>'
          '<div><p class="s-vn-l">Average saving on premium*</p><p class="s-vn-n">15%</p></div>'
-         '<p class="s-vn-note"><b>Note</b>: figures in SGD. *Average across clients who moved their programme to TRS from a previous broker.</p></div>'
-         '<div class="s-logos">' + ''.join(f'<img src="/logos/clients/{n}.png" alt="{e(a)}" style="height:{h}px" loading="lazy">' for n, a, h in LOGOS) + '</div></section>')
+         '<p class="s-vn-note"><b>Note</b>: figures in SGD. *Average across clients who moved their programme to TRS from a previous broker.</p>'
+         '</div></section>')  # client logos (LOGOS) hidden 24 Oct 2026 until client permission is confirmed
     b += ('<section class="s-sec"><div class="s-w"><h2 class="s-h2">Why leading companies trust TRS</h2><p class="s-sub">TRS runs the insurance programme for the business, from the first review to every claim after it.</p>'
           '<div class="s-wwd"><div class="s-wwd-pic"><img src="/images/why-trs.jpg" alt="A TRS broker reviewing a policy schedule with a client" loading="lazy" width="1400" height="1400"></div><div class="s-wwd-l">'
           '<div><h3>Dedicated risk management team</h3><p>A named team with more than 50 years of combined experience in broking, underwriting and claims, assigned to each account from the first review to every renewal after it.</p></div>'
