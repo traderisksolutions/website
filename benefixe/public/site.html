@@ -683,7 +683,7 @@ details.q p { padding: 0 0 22px; color: var(--ink-2); font-size: 16px; max-width
     { cat: 'Recovery', name: 'Recovery', title: 'Coming soon', offer: 'Coming soon', about: '', img: '', soon: true }
   ];
   const COVERS = [
-    { tab: 'Hospital and Surgical', short: 'hospital', title: 'Hospital bills, from ward to ICU', body: 'Room and board, surgery, intensive care, and treatment before and after a stay.', img: 'ward', alt: 'A hospital ward',
+    { tab: 'Hospital and Surgical', short: 'hospital', title: 'Hospital bills, from ward to ICU', body: 'Room and board, surgery, intensive care, and treatment before and after a stay.', img: 'hospital-suite', alt: 'A bright private suite', pos: '70% 50%',
       rows: [['Ward', 'Private 1-bed, 4-bed or government'], ['Intensive care', 'As charged'], ['Outpatient cancer and kidney dialysis', 'Up to S$75,000 a year'], ['Pre- and post-hospital treatment', 'As charged'], ['Overseas emergencies', '150% of inpatient benefits'], ['Extended major medical', 'Up to S$100,000 more']] },
     { tab: 'Outpatient', short: 'outpatient', title: 'GP, specialist and everything in between', body: 'Clinic visits, specialists on referral, and the therapies a doctor prescribes.', img: 'doctor', alt: 'A doctor with a stethoscope',
       rows: [['Panel GP visits', 'As charged, unlimited'], ['Specialist consultations', 'Up to S$2,000 a year'], ['Physiotherapy and chiropractic', 'Up to S$1,000 a year'], ['Traditional Chinese medicine', 'Up to 6 visits a year'], ['Telemedicine', 'As charged'], ['Accident and emergency', 'Up to S$150 a visit']] },
@@ -780,7 +780,7 @@ details.q p { padding: 0 0 22px; color: var(--ink-2); font-size: 16px; max-width
   /* ── Covers: Neko split. The panel crossing mid-screen sets the tab and photo. ── */
   function renderCovers(sec) {
     sec.innerHTML = `<div class="cv-split">
-      <div class="cv-media" aria-hidden="true">${COVERS.map((c, i) => `<img src="img/${c.img}.jpg" alt="" class="${i ? '' : 'on'}" loading="lazy">`).join('')}</div>
+      <div class="cv-media" aria-hidden="true">${COVERS.map((c, i) => `<img src="img/${c.img}.jpg" alt="" class="${i ? '' : 'on'}" style="object-position:${c.pos || '50% 50%'}" loading="${i ? 'lazy' : 'eager'}">`).join('')}</div>
       <div class="cv-body">
         <div class="cv-tabs" role="tablist" aria-label="Covers">${COVERS.map((c, i) => `<button type="button" role="tab" aria-selected="${!i}" data-i="${i}">${esc(c.tab)}</button>`).join('')}</div>
         ${COVERS.map((c, i) => `<div class="cv-panel" data-i="${i}" role="tabpanel" aria-label="${esc(c.tab)}">
