@@ -63,7 +63,7 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 /* why trust, Blackstone advisors */
 .s-wwd { display: grid; gap: 40px; margin-top: 48px; align-items: start; }
 @media (min-width: 900px) { .s-wwd { grid-template-columns: 1fr 1fr; gap: 96px; } }
-.s-wwd-pic img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.s-wwd-pic img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; object-position: 50% 45%; }
 .s-wwd-l { display: flex; flex-direction: column; gap: 48px; }
 .s-wwd-l h3 { margin: 0; font-family: var(--s-serif); font-weight: 400; font-size: 28px; line-height: 1.15; }
 .s-wwd-l p { margin: 16px 0 0; font-size: 16.5px; line-height: 1.65; max-width: 48ch; }
