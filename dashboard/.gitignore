@@ -17,3 +17,6 @@ tsconfig.tsbuildinfo
 # lying around holding live service keys; .env*.local did not match it.
 .env*
 !.env.example
+
+# A symlinked node_modules (git worktrees) is a file, not a directory; this line catches it too.
+node_modules
