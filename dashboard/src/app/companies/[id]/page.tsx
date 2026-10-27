@@ -246,7 +246,6 @@ function CompanyWorkspace() {
           draftsCount={draftsCount}
           onCompany={c => setOv(prev => prev ? { ...prev, company: c } : prev)}
           onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
-          onAskAi={() => window.dispatchEvent(new CustomEvent('chat:open'))}
           onDrafts={() => setDraftsOpen(true)}
         />
 

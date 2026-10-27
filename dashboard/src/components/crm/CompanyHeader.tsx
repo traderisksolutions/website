@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin, Sparkles } from 'lucide-react'
+import { FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
 import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -24,14 +24,13 @@ const ACTION_BTN = 'h-10 px-4 rounded-[10px] text-[14px]'
 const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#202124] focus:bg-[#f8f9fa] data-[highlighted]:bg-[#f8f9fa]'
 
 /** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
-export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onStage, onAskAi, onDrafts }: {
+export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onStage, onDrafts }: {
   company: Company
   statusLine: string
   /** Drafts waiting for approval across the company's placements and policies; null while unknown. */
   draftsCount: number | null
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
-  onAskAi: () => void
   onDrafts: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -152,12 +151,11 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
           {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{driveError}</p>}
         </div>
 
-        {/* Three actions: drafts (only when some wait), Ask AI, and a More menu for the rest. */}
+        {/* Two actions: drafts (only when some wait, then primary) and a More menu for the rest. Ask AI lives in the chat dock. */}
         <div className="flex items-center gap-2 flex-wrap">
           {draftsCount !== null && draftsCount > 0 && (
-            <Btn level="secondary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
+            <Btn level="primary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
           )}
-          <Btn level="primary" className={ACTION_BTN} onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>
           <DropdownMenu modal={false}>
             {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
             <DropdownMenuTrigger
