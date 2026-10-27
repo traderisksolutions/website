@@ -78,7 +78,7 @@ export async function titleThread(thread: TitleThreadRow, latest: Pick<MsgRow, '
     const r = await callGemini({
       agent: 'housekeeping', feature: 'thread_title', model: GEMINI_LITE,
       system: SYSTEM, parts: [{ text: parts }],
-      maxOutputTokens: 400, thinkingShare: 0, temperature: 0,
+      maxOutputTokens: 400, temperature: 0,
       metadata: { thread_id: thread.id },
     })
     if (!r.text) {
