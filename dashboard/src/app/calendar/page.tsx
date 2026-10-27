@@ -304,7 +304,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
         <Btn size="xs" level="secondary" onClick={generateRenewalEmail} disabled={sending}>Draft renewal email</Btn>
         <LinkBtn size="xs" level="secondary" href="/debit-notes/new">New debit note</LinkBtn>
         {e.companyId && (
-          <Link href={`/companies?company=${e.companyId}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Open company →</Link>
+          <Link href={`/companies/${e.companyId}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Open company →</Link>
         )}
       </div>
     </EventCard>
@@ -321,7 +321,7 @@ function RenewalOverdueCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal_
     ]}>
       <p className="text-[13px] m-0" style={{ color: MUTED }}>Still marked active. Either the renewal was placed and not recorded, or it lapsed.</p>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
-        <LinkBtn size="xs" level="secondary" href={`/companies?company=${e.companyId ?? ''}`}>Open company</LinkBtn>
+        <LinkBtn size="xs" level="secondary" href={e.companyId ? `/companies/${e.companyId}` : '/companies'}>Open company</LinkBtn>
         <Link href={`/debit-notes?company_id=${e.companyId ?? ''}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Debit notes →</Link>
       </div>
     </EventCard>

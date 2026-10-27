@@ -19,7 +19,7 @@ export function BoardChip({ companyId }: { companyId: string }) {
   }, [companyId])
   if (open === null) return null
   return (
-    <Link href={`/?company=${companyId}`} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold border border-input bg-transparent text-foreground no-underline hover:bg-muted" title="Pressing items on the board">
+    <Link href={`/companies/${companyId}`} className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-[12px] font-semibold border border-input bg-transparent text-foreground no-underline hover:bg-muted" title="Pressing items on the board">
       <ListChecks size={12} /> {open === 0 ? 'Add to-do' : `${open} to-do${open === 1 ? '' : 's'}`}
       {overdue > 0 && <span style={{ color: '#5f6368' }}>· {overdue} past due date</span>}
     </Link>

@@ -10,16 +10,21 @@ import { AlertsPanel, LeftOffPanel } from '@/components/crm/AlertsPanel'
 import { AccountNotesPanel } from '@/components/crm/AccountNotesPanel'
 import { CompanyNexus } from '@/components/crm/CompanyNexus'
 import { PeoplePanel } from '@/components/crm/PeoplePanel'
-import { PoliciesPanel, type Policy, type CompanyValue } from '@/components/crm/PoliciesPanel'
-import { CompanyQuotation } from '@/components/crm/CompanyQuotation'
+import { type Policy, type CompanyValue } from '@/components/crm/PoliciesPanel'
+import { CompanyQuotes } from '@/components/crm/CompanyQuotes'
 import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
-import { CompanyTimeline } from '@/components/crm/CompanyTimeline'
+import { CompanyLog } from '@/components/crm/CompanyLog'
 import { Spinner } from '@/components/crm/primitives'
+import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
+import { MembersPanel } from '@/components/policies/MembersPanel'
+import { ReviewDraftsDrawer, type QueueItem } from '@/components/placement/ReviewDraftsDrawer'
+import type { PolicyView } from '@/components/policies/types'
 import type {
   Company, CompanyThread, Person, PaymentDerived, PaymentSummary,
   QuoteRow, ActivityEvent, Stage, Alert, LeftOff, CaseRow,
 } from '@/lib/crm/types'
+import type { LinePosition, PlacementBundle } from '@/lib/placement/types'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
@@ -34,6 +39,7 @@ type Overview = {
   statusLine: string
   summaryStale: boolean
 }
+type PlacementData = { bundle: PlacementBundle; positions: LinePosition[] }
 type Detail = {
   contactList: { id: string; name: string; email: string | null; phone: string | null }[]
   policies: Policy[]
@@ -43,16 +49,20 @@ type Detail = {
 }
 
 const TABS = [
-  { key: 'overview',  label: 'Overview'            },
-  { key: 'nexus',     label: 'Nexus'               },
-  { key: 'threads',   label: 'Threads'             },
-  { key: 'people',    label: 'People'              },
-  { key: 'purchases', label: 'Purchase history'    },
-  { key: 'quotation', label: 'Quotation'           },
-  { key: 'payments',  label: 'Finance'             },
-  { key: 'activity',  label: 'Activity'            },
+  { key: 'overview', label: 'Overview' },
+  { key: 'policies', label: 'Policies' },
+  { key: 'quotes',   label: 'Quotes'   },
+  { key: 'members',  label: 'Members'  },
+  { key: 'payments', label: 'Finance'  },
+  { key: 'threads',  label: 'Threads'  },
+  { key: 'log',      label: 'Log'      },
+  { key: 'nexus',    label: 'Nexus'    },
 ] as const
 type Tab = typeof TABS[number]['key']
+/** Older links still name the tabs that were folded or renamed. */
+const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies' }
+const EMPTY_BUNDLE: PlacementData = { bundle: { placements: [], lines: [], rounds: [], dispatches: [], quotes: [], log: [] }, positions: [] }
+const EMPTY_DETAIL: Detail = { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }
 
 export default function CompanyWorkspacePage() {
   return <Suspense fallback={<Spinner />}><CompanyWorkspace /></Suspense>
@@ -62,7 +72,8 @@ function CompanyWorkspace() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const search = useSearchParams()
-  const tab = (TABS.some(t => t.key === search.get('tab')) ? search.get('tab') : 'overview') as Tab
+  const asked = search.get('tab') ?? ''
+  const tab: Tab = TABS.some(t => t.key === asked) ? asked as Tab : TAB_ALIAS[asked] ?? 'overview'
   const setTab = (t: Tab) => router.replace(`/companies/${id}${t === 'overview' ? '' : `?tab=${t}`}`, { scroll: false })
 
   const [ov, setOv] = useState<Overview | null>(null)
@@ -71,8 +82,12 @@ function CompanyWorkspace() {
   const [threads, setThreads] = useState<CompanyThread[] | null>(null)
   const [people, setPeople] = useState<{ people: Person[]; observedDomains: { domain: string; count: number }[] } | null>(null)
   const [quotes, setQuotes] = useState<QuoteRow[] | null>(null)
+  const [placementData, setPlacementData] = useState<PlacementData | null>(null)
+  const [policies, setPolicies] = useState<PolicyView[] | null>(null)
   const [cases, setCases] = useState<CaseRow[] | null>(null)
   const [activity, setActivity] = useState<ActivityEvent[] | null>(null)
+  const [draftsCount, setDraftsCount] = useState<number | null>(null)
+  const [draftsOpen, setDraftsOpen] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {
@@ -94,21 +109,31 @@ function CompanyWorkspace() {
 
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)), [id, j])
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
-  const reloadDetail = useCallback(() => {
-    void j<Detail>(`/api/companies/${id}`, { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }).then(setDetail)
-  }, [id, j])
+  const loadPlacements = useCallback(() => j<PlacementData>(`/api/companies/${id}/placements`, EMPTY_BUNDLE).then(setPlacementData), [id, j])
+  const loadPolicies = useCallback(() => j<{ policies: PolicyView[] }>(`/api/companies/${id}/policies`, { policies: [] }).then(r => setPolicies(r.policies)), [id, j])
+  const loadActivity = useCallback(() => j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)), [id, j])
+  const loadDrafts = useCallback(() => j<{ queue: QueueItem[] }>(`/api/companies/${id}/drafts`, { queue: [] }).then(r => setDraftsCount(r.queue.length)), [id, j])
+  const reloadDetail = useCallback(() => { void j<Detail>(`/api/companies/${id}`, EMPTY_DETAIL).then(setDetail) }, [id, j])
 
   // Everything else loads in the background so any tab is instant once open.
   useEffect(() => {
     void Promise.all([
-      j<Detail>(`/api/companies/${id}`, { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }).then(setDetail),
+      j<Detail>(`/api/companies/${id}`, EMPTY_DETAIL).then(setDetail),
       loadThreads(),
       loadCases(),
       j<{ people: Person[]; observedDomains: { domain: string; count: number }[] }>(`/api/companies/${id}/people`, { people: [], observedDomains: [] }).then(setPeople),
       j<{ quotes: QuoteRow[] }>(`/api/companies/${id}/quotes`, { quotes: [] }).then(r => setQuotes(r.quotes)),
-      j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)),
+      loadPlacements(),
+      loadPolicies(),
+      loadActivity(),
+      loadDrafts(),
     ])
-  }, [id, j, loadThreads, loadCases])
+  }, [id, j, loadThreads, loadCases, loadPlacements, loadPolicies, loadActivity, loadDrafts])
+
+  /** After any placement, policy or draft changes: the spine, its log and the approval count. */
+  const onSpineChanged = useCallback(() => { void loadPlacements(); void loadPolicies(); void loadActivity(); void loadDrafts(); reloadDetail() }, [loadPlacements, loadPolicies, loadActivity, loadDrafts, reloadDetail])
+  const onDraftsCount = useCallback((n: number) => setDraftsCount(n), [])
+  const closeDrafts = useCallback(() => setDraftsOpen(false), [])
 
   // Tell the chat dock which company is open so "Ask AI" has the right scope.
   useEffect(() => {
@@ -142,15 +167,29 @@ function CompanyWorkspace() {
   // A plain count per tab, as on Companies. Never an urgency figure.
   const countFor = (t: Tab): number | null => {
     switch (t) {
-      case 'threads': return threads?.length ?? null
-      case 'nexus': return cases?.length ?? null
-      case 'people': return people?.people.length ?? null
-      case 'purchases': return detail?.policies.length ?? null
-      case 'quotation': return quotes?.length ?? null
+      case 'policies': return policies?.length ?? null
+      case 'quotes': return quotes === null && placementData === null ? null
+        : (placementData?.bundle.placements.filter(p => p.status === 'open' || p.status === 'presented').length ?? 0) + (quotes?.length ?? 0)
+      case 'members': return policies ? policies.filter(p => p.is_eb).length : null
       case 'payments': return detail?.paymentSummary.openCount ?? null
+      case 'threads': return threads?.length ?? null
+      case 'log': return placementData === null && activity === null ? null : (placementData?.bundle.log.length ?? 0) + (activity?.length ?? 0)
+      case 'nexus': return cases?.length ?? null
       default: return null
     }
   }
+
+  const drafts = (
+    <ReviewDraftsDrawer
+      companyId={id}
+      open={draftsOpen}
+      onClose={closeDrafts}
+      onChanged={onSpineChanged}
+      onCount={onDraftsCount}
+      lines={placementData?.bundle.lines}
+      policies={policies}
+    />
+  )
 
   // Reading the client's mail is a full-screen job, so the Threads tab drops the page
   // chrome and runs edge to edge under one slim bar that continues the main navigation.
@@ -193,6 +232,7 @@ function CompanyWorkspace() {
             ? <CompanyMail threads={threads} companyId={id} companyName={company.name} fullHeight onRefresh={() => { setThreads(null); void loadThreads() }} />
             : <Spinner label="Loading conversations…" />}
         </div>
+        {drafts}
       </div>
     )
   }
@@ -203,9 +243,11 @@ function CompanyWorkspace() {
         <CompanyHeader
           company={company}
           statusLine={ov.statusLine}
+          draftsCount={draftsCount}
           onCompany={c => setOv(prev => prev ? { ...prev, company: c } : prev)}
           onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
           onAskAi={() => window.dispatchEvent(new CustomEvent('chat:open'))}
+          onDrafts={() => setDraftsOpen(true)}
         />
 
         {/* Eight tabs on one line from laptop width up; only a phone ever scrolls them. */}
@@ -236,8 +278,30 @@ function CompanyWorkspace() {
             <AlertsPanel alerts={ov.alerts} />
             <LeftOffPanel leftOff={ov.leftOff} />
             <AccountNotesPanel notes={company.notes} onSave={notes => patchCompany({ notes })} />
+            {people ? (
+              <PeoplePanel
+                people={people.people}
+                observedDomains={people.observedDomains}
+                knownDomains={company.domains}
+                onAddDomain={async d => { await patchCompany({ domains: [...company.domains, d] }) }}
+              />
+            ) : <Spinner />}
           </>
         )}
+
+        {tab === 'policies' && <PoliciesRegister policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} />}
+
+        {tab === 'quotes' && (quotes && threads ? (
+          <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+        ) : <Spinner />)}
+
+        {tab === 'members' && <MembersPanel policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />}
+
+        {tab === 'payments' && (detail ? (
+          <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} onChanged={reloadDetail} />
+        ) : <Spinner />)}
+
+        {tab === 'log' && <CompanyLog bundle={placementData?.bundle ?? null} events={activity} onChanged={onSpineChanged} />}
 
         {tab === 'nexus' && (threads && cases ? (
           <CompanyNexus
@@ -252,28 +316,8 @@ function CompanyWorkspace() {
             onCasesChanged={() => { void loadCases(); void loadThreads() }}
           />
         ) : <Spinner />)}
-
-        {tab === 'people' && (people ? (
-          <PeoplePanel
-            people={people.people}
-            observedDomains={people.observedDomains}
-            knownDomains={company.domains}
-            onAddDomain={async d => { await patchCompany({ domains: [...company.domains, d] }) }}
-          />
-        ) : <Spinner />)}
-
-        {tab === 'purchases' && (detail ? <PoliciesPanel policies={detail.policies} value={detail.value} /> : <Spinner />)}
-
-        {tab === 'quotation' && (quotes && threads ? (
-          <CompanyQuotation companyId={id} companyName={company.name} quotes={quotes} />
-        ) : <Spinner />)}
-
-        {tab === 'payments' && (detail ? (
-          <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} onChanged={reloadDetail} />
-        ) : <Spinner />)}
-
-        {tab === 'activity' && (activity ? <CompanyTimeline events={activity} /> : <Spinner />)}
       </div>
+      {drafts}
     </div>
   )
 }

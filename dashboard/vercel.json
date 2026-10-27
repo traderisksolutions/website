@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/gsc-sync",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/placement-chase",
+      "schedule": "30 1 * * *"
+    },
+    {
+      "path": "/api/cron/policy-position",
+      "schedule": "30 17 * * 0"
     }
   ]
 }

@@ -7,7 +7,7 @@
  * below or it lands in `unattributed` — which the spend page shows rather than hides.
  */
 
-export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'group_benefit' | 'unattributed'
+export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'group_benefit' | 'placement' | 'benefits_admin' | 'unattributed'
 
 export interface AgentSpec {
   id:    AgentId
@@ -63,6 +63,26 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     envKey: 'GEMINI_API_KEY_GROUP_BENEFIT',
     // 3.8 Flash: the deeper reasoner, at the same price as 3.6 Flash through 2026. Every call
     // keeps 30% of its allowance for thinking and 70% for the answer (thinkingShare 0.3).
+    model: 'gemini-3.8-flash',
+  },
+  placement: {
+    id: 'placement',
+    label: 'Placement',
+    // 27 Oct 2026. One agent for the whole loop: reads the client's request into policy lines,
+    // writes the email to each insurer, reads every reply into a quote, notices when the client
+    // changes the ask, drafts the chase and the comparison back to the client. Never sends.
+    work: 'Reads a request into policy lines, writes to each insurer, reads the replies into quotes, chases, and drafts the comparison for the client.',
+    envKey: 'GEMINI_API_KEY_PLACEMENT',
+    model: 'gemini-3.8-flash',
+  },
+  benefits_admin: {
+    id: 'benefits_admin',
+    label: 'Benefits admin',
+    // 27 Oct 2026. After an employee benefits policy is bound: reads the client's joiner and
+    // leaver mail into movements, drafts the endorsement request to the insurer, reads the
+    // insurer's debit and credit notes into the policy's transactions. Never sends.
+    work: 'Reads staff movements off client mail, drafts the endorsement request, and reads the insurer\u2019s debit and credit notes onto the policy.',
+    envKey: 'GEMINI_API_KEY_BENEFITS_ADMIN',
     model: 'gemini-3.8-flash',
   },
 }
@@ -131,6 +151,20 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   pm_plan_match:              'pricingmatrix',
   pm_classify_categories:     'pricingmatrix',
   pm_recommend:               'pricingmatrix',
+
+  // ── Placement ─────────────────────────────────────────────────────────────
+  placement_intake:         'placement',
+  placement_dispatch_draft: 'placement',
+  placement_reply_read:     'placement',
+  placement_client_change:  'placement',
+  placement_chase_draft:    'placement',
+  placement_client_summary: 'placement',
+
+  // ── Benefits admin ────────────────────────────────────────────────────────
+  policy_movement_classify: 'benefits_admin',
+  policy_movement_read:     'benefits_admin',
+  policy_note_read:         'benefits_admin',
+  policy_movement_draft:    'benefits_admin',
 }
 
 export function agentOfFeature(feature: string | null | undefined): AgentId {

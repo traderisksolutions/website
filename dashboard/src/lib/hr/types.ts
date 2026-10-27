@@ -59,6 +59,8 @@ export type HrLink = {
   company_id: string | null
   company_name: string
   quotation_id: string | null
+  /** The policy (company spine) this list is for; pricing runs on its placement line when HR submits. */
+  policy_id: string | null
   effective_date: string | null
   recipient_name: string
   recipient_email: string

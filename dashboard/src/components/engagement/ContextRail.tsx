@@ -106,7 +106,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
               <p className="m-0 text-[15px] font-medium leading-[1.3]" style={{ color: INK }}>{company?.name ?? lead.companyName ?? 'Company'}</p>
               {company && <p className="m-0 mt-0.5 text-[13px]" style={{ color: BODY }}>{[company.domains[0] ?? company.domain, KIND_LABEL[company.kind] ?? company.kind].filter(Boolean).join(' · ')}</p>}
               <p className="m-0 mt-2 text-[13px]" style={{ color: BODY }}><span style={{ color: MUTED }}>Owner</span>&nbsp;&nbsp;{company ? (nameOf(company.owner_email) ?? 'No owner yet') : '…'}</p>
-              <Link href={`/companies?company=${companyId}`} className={CARD_LINK} style={{ color: INK }}>Open company →</Link>
+              <Link href={`/companies/${companyId}`} className={CARD_LINK} style={{ color: INK }}>Open company →</Link>
             </>
           ) : (
             <>

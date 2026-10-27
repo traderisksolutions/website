@@ -255,7 +255,6 @@ export async function POST(req: NextRequest) {
       const threads = threadRes.ok ? await threadRes.json() : []
       const thread  = Array.isArray(threads) ? threads[0] : null
       if (thread?.subject) subject = thread.subject.startsWith('Re:') ? thread.subject : `Re: ${thread.subject}`
-      if (customSubject?.trim()) subject = customSubject.trim()
       gmailThreadId    = thread?.gmail_thread_id ?? null
       conversationRoot = thread?.conversation_root_id ?? draft.thread_id
 
@@ -287,6 +286,10 @@ export async function POST(req: NextRequest) {
         forking = !known.has(rEmail)
       }
     }
+    // The subject the reviewer typed wins; a threadless draft otherwise keeps its own subject.
+    if (customSubject?.trim()) subject = customSubject.trim()
+    else if (!draft.thread_id && typeof draft.subject === 'string' && draft.subject.trim()) subject = draft.subject.trim()
+
 
     // 4. Load signature and build final bodies
     let finalHtml = htmlBody ?? null
@@ -474,6 +477,7 @@ export async function POST(req: NextRequest) {
     // 7b. Thread-less send from ops (e.g. RFQ) → create the Engagement thread now
     //     so it appears instantly. Ingestion later dedups by gmail_message_id.
     //     Personal-mailbox sends appear on the next ops sync (per decision).
+    let threadDbId: string | null = null
     if (!draft.thread_id && isOpsSender && sent.threadId && sent.id) {
       try {
         // Resolve/create the recipient contact so the thread reads as the insurer.
@@ -493,6 +497,7 @@ export async function POST(req: NextRequest) {
         })
         const newThread = tRes.ok ? (await tRes.json())[0] : null
         if (newThread?.id) {
+          threadDbId = newThread.id
           await fetch(`${SB_URL}/rest/v1/email_messages?on_conflict=gmail_message_id`, {
             method: 'POST', headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
             body: JSON.stringify({ thread_id: newThread.id, gmail_message_id: sent.id, rfc822_message_id: storedMessageId, direction: 'outbound', from_address: FROM_EMAIL, subject, body_text: sentBodyPlain, body_html: finalHtml, sent_at: sentAt, has_attachments: emailAttachments.length > 0 }),
@@ -574,7 +579,7 @@ export async function POST(req: NextRequest) {
     // The post-send draft evaluation ran here. It scored the human's edits to teach the
     // learning loop, which was removed on 2 Oct 2026; nothing consumes the score now.
 
-    return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null })
+    return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null, threadDbId })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

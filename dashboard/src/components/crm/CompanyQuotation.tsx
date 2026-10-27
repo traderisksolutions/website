@@ -25,7 +25,7 @@ export function CompanyQuotation({ companyId, companyName, quotes }: {
 }) {
   return (
     <SectionCard
-      title="Quotes"
+      title="Employment benefits"
       actions={
         <>
           {/* Opens the Pricing Matrix HR links tab with the Send HR a link dialog filled in for this company. */}

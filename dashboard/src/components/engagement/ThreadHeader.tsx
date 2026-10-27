@@ -62,7 +62,7 @@ export function ThreadHeader({ subject, lead, needsReply, lastDirection, ownerNa
   const type = lead.category ? TYPE_LABEL[lead.category] ?? lead.category : null
 
   const parts: React.ReactNode[] = []
-  if (lead.companyId) parts.push(<Link key="co" href={`/companies?company=${lead.companyId}`} className="no-underline hover:underline underline-offset-[3px] decoration-[#9aa0a6]" style={{ color: INK }}>{lead.companyName ?? 'Company'}</Link>)
+  if (lead.companyId) parts.push(<Link key="co" href={`/companies/${lead.companyId}`} className="no-underline hover:underline underline-offset-[3px] decoration-[#9aa0a6]" style={{ color: INK }}>{lead.companyName ?? 'Company'}</Link>)
   if (type) parts.push(<span key="type">{type}</span>)
   if (state) parts.push(<span key="state">{state}</span>)
   if (ownerName) parts.push(<span key="owner">Owner {ownerName}</span>)
@@ -96,7 +96,7 @@ export function ThreadHeader({ subject, lead, needsReply, lastDirection, ownerNa
               {menu && (
                 <div role="menu" aria-label="More actions" className="absolute right-0 top-full mt-1.5 w-60 rounded-[12px] bg-white p-1.5 z-30" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); onAddTask() }} className={MENU_ITEM} style={{ color: INK }}><Plus size={14} /> Add to-do</button>
-                  {lead.companyId && <Link href={`/companies?company=${lead.companyId}`} role="menuitem" className={cn(MENU_ITEM, 'block')} style={{ color: INK }}>Open company page</Link>}
+                  {lead.companyId && <Link href={`/companies/${lead.companyId}`} role="menuitem" className={cn(MENU_ITEM, 'block')} style={{ color: INK }}>Open company page</Link>}
                   <div className="my-1" style={{ borderTop: `1px solid ${HAIR}` }} />
                   {confirm
                     ? <div className="px-3 py-2 flex items-center justify-between gap-2 text-[13px]"><span style={{ color: BODY }}>Delete this thread?</span>

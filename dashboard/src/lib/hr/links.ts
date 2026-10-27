@@ -19,13 +19,14 @@ export function isMigrationPending(e: unknown): boolean {
 const isConflict = (e: unknown) => e instanceof Error && /\(409\)|23505/.test(e.message)
 
 /** Every column except token_hash. The hash never leaves this module. */
-const LINK_COLS = 'id,reference,company_id,company_name,quotation_id,effective_date,recipient_name,recipient_email,cc_email,requested_by,message,status,sent_by,sent_at,expires_at,opened_at,submitted_at,created_at,updated_at'
+const LINK_COLS = 'id,reference,company_id,company_name,quotation_id,policy_id,effective_date,recipient_name,recipient_email,cc_email,requested_by,message,status,sent_by,sent_at,expires_at,opened_at,submitted_at,created_at,updated_at'
 const SUB_COLS = 'id,link_id,company_id,source,source_meta,employees,dependants,employee_count,dependant_count,status,submitted_by_name,submitted_by_email,consent_text,consent_at,created_at,updated_at'
 
 export type CreateLinkInput = {
   company_id?: string | null
   company_name: string
   quotation_id?: string | null
+  policy_id?: string | null
   effective_date?: string | null
   recipient_name: string
   recipient_email: string
@@ -52,6 +53,7 @@ export async function createLink(input: CreateLinkInput, actor: { email: string 
     company_id: isUuid(input.company_id) ? input.company_id : null,
     company_name: input.company_name.trim(),
     quotation_id: isUuid(input.quotation_id) ? input.quotation_id : null,
+    policy_id: isUuid(input.policy_id) ? input.policy_id : null,
     effective_date: input.effective_date || null,
     recipient_name: input.recipient_name.trim(),
     recipient_email: input.recipient_email.trim().toLowerCase(),

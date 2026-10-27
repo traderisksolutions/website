@@ -14,7 +14,7 @@ describe('agent registry', () => {
   })
 
   it('has a label for every id, including unattributed', () => {
-    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'pricingmatrix', 'group_benefit', 'unattributed']
+    const ids: AgentId[] = ['housekeeping', 'crm', 'askai', 'pricingmatrix', 'group_benefit', 'placement', 'benefits_admin', 'unattributed']
     for (const id of ids) expect(agentLabel(id)).toBeTruthy()
   })
 
@@ -44,6 +44,22 @@ describe('agent registry', () => {
       expect(agentOfFeature(f)).toBe('group_benefit')
     }
     expect(AGENTS.group_benefit.envKey).toBe('GEMINI_API_KEY_GROUP_BENEFIT')
+  })
+
+  it('attributes every placement feature to the placement agent, on its own key', () => {
+    for (const f of ['placement_intake', 'placement_dispatch_draft', 'placement_reply_read',
+                     'placement_client_change', 'placement_chase_draft', 'placement_client_summary']) {
+      expect(agentOfFeature(f)).toBe('placement')
+    }
+    expect(AGENTS.placement.envKey).toBe('GEMINI_API_KEY_PLACEMENT')
+  })
+
+  it('attributes every benefits admin feature to its own agent and key', () => {
+    for (const f of ['policy_movement_classify', 'policy_movement_read', 'policy_note_read', 'policy_movement_draft']) {
+      expect(agentOfFeature(f)).toBe('benefits_admin')
+    }
+    expect(AGENTS.benefits_admin.envKey).toBe('GEMINI_API_KEY_BENEFITS_ADMIN')
+    expect(AGENTS.benefits_admin.model).toBe('gemini-3.8-flash')
   })
 
   it('reports an unknown feature as unattributed rather than guessing', () => {

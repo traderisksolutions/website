@@ -6,6 +6,7 @@
  * caller (API route), this module talks to Supabase via service-key REST-over-fetch.
  */
 import { findMasterPolicy, type PolicyLike } from '@/lib/policies/endorsement'
+import { pickBoundPolicy, type BoundPolicyLike } from '@/lib/policies/spine'
 import { SB_URL, sbH } from '@/lib/debit-note-storage'
 import { logActivity }  from '@/lib/log-activity'
 
@@ -122,7 +123,14 @@ async function findMasterPolicyId(customerId: string, input: Exclude<PolicyInput
   return master?.id ?? null
 }
 
-async function resolvePolicy(input: PolicyInput, customerId: string, eventType?: 'new_business' | 'renewal' | 'endorsement'): Promise<string> {
+/** The policy the placement bound for this company that this note bills, if there is one:
+ *  the spine row created at quoting time, matched on class, or the only bound policy. */
+async function findBoundPolicyId(companyId: string, classOfInsurance: string | null): Promise<string | null> {
+  const bound = await pg(`policies?company_id=eq.${enc(companyId)}&lifecycle=eq.bound&select=id,label,class_of_insurance,product_line&order=bound_at.desc.nullslast`).catch(() => [] as Json[])
+  return pickBoundPolicy(bound as unknown as BoundPolicyLike[], classOfInsurance)
+}
+
+async function resolvePolicy(input: PolicyInput, customerId: string, companyId: string, eventType?: 'new_business' | 'renewal' | 'endorsement'): Promise<string> {
   if ('policyId' in input) return input.policyId
 
   // An endorsement is an amendment to the main policy: it is billed under that policy, its
@@ -134,6 +142,7 @@ async function resolvePolicy(input: PolicyInput, customerId: string, eventType?:
 
   const fields = {
     customer_id: customerId,
+    company_id: companyId,
     policy_number: input.policyNumber ?? null,
     insurer: input.insurer,
     product_type: input.productType ?? null,
@@ -162,6 +171,20 @@ async function resolvePolicy(input: PolicyInput, customerId: string, eventType?:
       // overwrite the master's description and term with the amendment's.
       if (eventType !== 'endorsement') await pg(`policies?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(fields) })
       return id
+    }
+  }
+
+  // The first note on a cover the placement bound: it goes on that policy, which is now live,
+  // rather than becoming a second row beside it.
+  if (eventType !== 'endorsement') {
+    const boundId = await findBoundPolicyId(companyId, input.classOfInsurance ?? null)
+    if (boundId) {
+      await pg(`policies?id=eq.${boundId}`, { method: 'PATCH', body: JSON.stringify({
+        customer_id: customerId, policy_number: input.policyNumber ?? null, insurer: input.insurer,
+        class_of_insurance: input.classOfInsurance ?? null, start_date: input.startDate ?? null, end_date: input.endDate ?? null,
+        premium: input.premium ?? null, lifecycle: 'live', status: 'active',
+      }) })
+      return boundId
     }
   }
 
@@ -274,7 +297,7 @@ export async function commitDebitNote(input: {
   }
 
   const customerId = await resolveCustomer(companyId, contactId)
-  const policyId    = await resolvePolicy(input.policy, customerId, input.debitNote.eventType)
+  const policyId    = await resolvePolicy(input.policy, customerId, companyId, input.debitNote.eventType)
 
   // Line items are GST-inclusive (the debit-notes/new form folds GST into the printed premium
   // line — see that page's comment) — gstAmount is tracked purely for internal reporting, never

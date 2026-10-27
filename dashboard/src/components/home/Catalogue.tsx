@@ -1,20 +1,18 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Pin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { StaffMember } from '@/lib/crm/staff'
-import type { Company } from '@/lib/crm/types'
 import { useBoardData, type Row } from '@/components/board/useBoardData'
 import { isOpen, sortTasks } from '@/components/board/model'
 import { PersonTag, dueLabel } from '@/components/board/TodoEditor'
-import { CompanyDrawer } from '@/components/companies/CompanyDrawer'
 
 /**
  * Home: the companies pinned to work on, managed by the team. A card is the company, its open
  * to-dos as white labels in a list that scrolls inside the card, and the owner's badge at the
- * foot. Opening a card is where to-dos are added, edited and removed. Search reaches every
+ * foot. Opening a card goes to the company page. Search reaches every
  * client, and a result can be pinned from there. Companies are added on the Companies page.
  */
 
@@ -34,13 +32,10 @@ function nextDue(r: Row): string | null {
 
 export function Catalogue() {
   const router = useRouter()
-  const search = useSearchParams()
-  const { data, rows, error, sync, actions, patchCompany, workloads, staff, staffList, me, today, reload } = useBoardData()
+  const { data, rows, error, sync, patchCompany, staff, today, reload } = useBoardData()
   const [q, setQ] = useState('')
   const [limit, setLimit] = useState(PAGE)
-  const [selected, setSelected] = useState<string | null>(null)
 
-  useEffect(() => { const id = search.get('company'); if (id) setSelected(id) }, [search])
   useEffect(() => { setLimit(PAGE) }, [q])
 
   // Until the pin column exists, fall back to companies with open to-dos, and say so.
@@ -54,14 +49,12 @@ export function Catalogue() {
     .sort((a, b) => (nextDue(a) ?? '9999').localeCompare(nextDue(b) ?? '9999') || a.company.name.localeCompare(b.company.name)), [rows, needle, pinsAvailable])
   const shown = visible.slice(0, limit)
 
-  const select = (id: string) => { setSelected(id); router.replace(`/?company=${id}`, { scroll: false }) }
-  const close = useCallback(() => { setSelected(null); router.replace('/', { scroll: false }) }, [router])
-  const selectedRow = selected ? rows.find(r => r.company.id === selected) ?? null : null
+  const select = (id: string) => router.push(`/companies/${id}`)
   const pin = (id: string, on: boolean) => void patchCompany(id, { pinned: on })
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div className={cn('mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-16 pt-14 pb-20 transition-[padding]', selectedRow && 'lg:pr-[500px]')}>
+      <div className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-16 pt-14 pb-20">
 
         <header className="text-center max-w-[720px] mx-auto">
           <h1 className="m-0 text-[36px] sm:text-[44px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>Companies to work on</h1>
@@ -97,8 +90,8 @@ export function Catalogue() {
                   {needle ? <>No clients match. <button type="button" onClick={() => setQ('')} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Clear search</button></> : 'Nothing pinned. Search a company and pin it to work on it.'}
                 </p>
               ) : (
-                <ul className={cn('m-0 p-0 list-none grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3', selectedRow ? 'lg:grid-cols-2 xl:grid-cols-3' : 'lg:grid-cols-4 xl:grid-cols-5')}>
-                  {shown.map(r => <ClientCard key={r.company.id} r={r} today={today} staff={staff} selected={selected === r.company.id} onOpen={() => select(r.company.id)} highlight={needle} searching={!!needle} pinsAvailable={pinsAvailable} onPin={on => pin(r.company.id, on)} />)}
+                <ul className="m-0 p-0 list-none grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {shown.map(r => <ClientCard key={r.company.id} r={r} today={today} staff={staff} onOpen={() => select(r.company.id)} highlight={needle} searching={!!needle} pinsAvailable={pinsAvailable} onPin={on => pin(r.company.id, on)} />)}
                 </ul>
               )}
 
@@ -112,17 +105,12 @@ export function Catalogue() {
         </div>
 
       </div>
-
-      {selectedRow && (
-        <CompanyDrawer row={selectedRow} today={today} staff={staff} staffList={staffList} workloads={workloads} actions={actions} me={me}
-          onClose={close} onPatchCompany={patchCompany} onCompanyUpdated={(c: Company) => { void patchCompany(c.id, { name: c.name }) }} />
-      )}
     </div>
   )
 }
 
-function ClientCard({ r, today, staff, selected, onOpen, highlight, searching, pinsAvailable, onPin }: {
-  r: Row; today: string; staff: Map<string, StaffMember>; selected: boolean; onOpen: () => void; highlight: string; searching: boolean; pinsAvailable: boolean; onPin: (on: boolean) => void
+function ClientCard({ r, today, staff, onOpen, highlight, searching, pinsAvailable, onPin }: {
+  r: Row; today: string; staff: Map<string, StaffMember>; onOpen: () => void; highlight: string; searching: boolean; pinsAvailable: boolean; onPin: (on: boolean) => void
 }) {
   const c = r.company
   const open = sortTasks(c.tasks.filter(isOpen), today)
@@ -134,7 +122,7 @@ function ClientCard({ r, today, staff, selected, onOpen, highlight, searching, p
   }
   return (
     <li>
-      <article className={cn('group relative h-[220px] rounded-[16px] px-4 pt-4 pb-3 flex flex-col cursor-pointer transition-[background-color,transform] motion-safe:hover:-translate-y-0.5 hover:bg-[#e8eaed] focus-within:ring-2 focus-within:ring-[#202124]', selected && 'ring-2 ring-[#202124]')}
+      <article className="group relative h-[220px] rounded-[16px] px-4 pt-4 pb-3 flex flex-col cursor-pointer transition-[background-color,transform] motion-safe:hover:-translate-y-0.5 hover:bg-[#e8eaed] focus-within:ring-2 focus-within:ring-[#202124]"
         style={{ background: FIELD, color: INK }} onClick={onOpen}>
         <h3 className="m-0 text-[14px] font-medium leading-[1.3] line-clamp-2" title={c.name}>{mark(c.name)}</h3>
 

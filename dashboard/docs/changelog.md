@@ -4,6 +4,36 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-10-27 (later) — Company spine: the policy is the record; employment benefits inside the same flow
+
+Every company is a full page now; the right-hand drawer on Companies and Home is gone and every link lands on `/companies/[id]`. Tabs: Overview (with People) · Policies · Quotes · Members · Finance · Threads · Log · Nexus.
+
+- **Policies** (`policies` extended, `supabase/migrations/20261027_company_spine.sql`): keyed on the company, with a lifecycle (quoting → presented → bound → live → renewal due / lapsed / declined / closed), the chosen quote and insurer, the bound premium. A placement line creates a quoting policy; *Choose* on any quote binds it (siblings marked not chosen, open dispatches withdrawn, the log records the decision); the first debit note raised for a bound policy makes it live and fills in the policy number and period instead of creating a second row.
+- **Employment benefits is a placement line** (`employee_benefits` / `group_health`). Tier A (Income, AIA, Raffles, QBE, Singlife) is priced by the rate engine into the same quotes table (source *rate table*); Tier C (every other EB contact on file) is asked by email through the same dispatches, with the employee list in the request. Tier B is Cigna Care Connect 1.0: its published 2025 rates (3 plans × 15 age bands × 9 modules, excl. GST, new business 2–9 employees) were loaded from the Drive folder as an approved rate table, so the engine prices it too. The employee list comes from an upload or an HR link (Talenox, SimplePay, Workday, CSV) now keyed on the policy; a submitted list prices the line on its own.
+- **Members** (`policy_members`), **movements** (`policy_movements`), **insurer notes** (`policy_transactions`, debits positive, credits negative, read from the insurer's email and attachments with the excerpt each figure came from) and **weekly position** (`policy_position_weekly`: pax, joins, leaves, billed, credited, net for the week and to date; Monday cron). A client email listing joiners and leavers becomes movements plus a drafted endorsement request to the chosen insurer; the insurer's debit or credit note becomes a transaction matched to the movement. Proration is the insurer's; we log what they issued.
+- **New agent `benefits_admin`** (`GEMINI_API_KEY_BENEFITS_ADMIN`): classifies and reads movement mail, reads insurer notes, drafts the request. Approval queue is now company-wide (`GET /api/companies/[id]/drafts`) and reachable from the page header on every tab.
+- **EB page** (`/pricing-matrix`): the Quotes tab is the cross-company register of EB policies with their lifecycle; a new quotation starts on the company page. Employee lists link to their policy. Insurers, Coverage and Activity unchanged.
+
+Schema: `20261027_placement.sql` then `20261027_company_spine.sql` (apply before deploying). New env: `GEMINI_API_KEY_PLACEMENT`, `GEMINI_API_KEY_BENEFITS_ADMIN` (both optional; shared keys until set).
+
+---
+
+## 2026-10-27 — Placement: request → insurers → quotes → client, round after round
+
+The retired RFQ workflow is replaced by **Placement** on the company page's **Quotes** tab (was Quotation). A placement holds the policy lines a client asked for; each line is sent to every insurer contact on file for its product line; replies are read into quotes with a verbatim excerpt per figure; a change of ask opens a new round and every insurer is asked again; the company keeps a log of what happened. Runbook: `docs/placement.md`.
+
+- **Lines and rounds.** `placement_lines` carry the current spec (insured, limit, excess, period, scope, extensions, notes); `placement_rounds` snapshot the spec asked each time and the change in words. Previous-round dispatches without an answer are withdrawn when a new round opens.
+- **Dispatches and quotes.** One `placement_dispatches` row per insurer and line, with the Gmail thread, chase date and count; `placement_quotes` keep premium/limit/excess/validity verbatim with `evidence` per field and normalised amounts for comparison. A premium without an excerpt is flagged `needs_review`.
+- **The agent.** New agent `placement` (`GEMINI_API_KEY_PLACEMENT`, gemini-3.8-flash), six features: reads the client thread into lines, writes the email to each underwriter (one email per person, covering every line they handle), reads each reply (quote / decline / info request / acknowledgement), reads client replies for a change of ask, drafts chases, drafts the comparison to the client. Every draft lands in `ai_drafts` as pending; a person approves and sends from the tab. Never auto-sends.
+- **Ingest hook.** `/api/email/ingest` calls `/api/placements/inbound` for every stored message; matched by our thread id or Gmail's, so replies link even when the request went out from a personal mailbox.
+- **Chase cron.** `/api/cron/placement-chase` at 09:30 SGT drafts follow-ups for dispatches past their chase date (3 working days, then every 2, up to three).
+- **Company memory.** `placement_log`: opened, sent, reply, quote, declined, ask, change, chase, decision, note. Shown on the tab; read by the agent before every draft.
+- **Send route.** `customSubject` now applies to threadless drafts (it was ignored unless the draft had a thread), and the response carries `threadDbId` for a thread created at send time.
+
+Schema: `supabase/migrations/20261027_placement.sql` (apply before deploying). New env: `GEMINI_API_KEY_PLACEMENT` (optional; shared keys used until set).
+
+---
+
 ## 2026-10-12 — Marketing: one article engine for four websites
 
 New top-level **Marketing** section (Articles, Generate, Knowledge, Search Console, Sites).

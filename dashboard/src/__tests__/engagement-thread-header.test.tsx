@@ -61,7 +61,7 @@ describe('ThreadHeader', () => {
 
   it('writes the context line in words: company link, type, state, owner', () => {
     render(<ThreadHeader {...props()} />)
-    expect(screen.getByRole('link', { name: 'Sompo' })).toHaveAttribute('href', '/companies?company=co-1')
+    expect(screen.getByRole('link', { name: 'Sompo' })).toHaveAttribute('href', '/companies/co-1')
     expect(screen.getByText('Quotation request')).toBeInTheDocument()
     expect(screen.getByText('Awaiting your reply')).toBeInTheDocument()
     expect(screen.getByText('Owner Hasya Mohamed')).toBeInTheDocument()
@@ -105,7 +105,7 @@ describe('ThreadHeader', () => {
     render(<ThreadHeader {...p} />)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Open company page' })).toHaveAttribute('href', '/companies?company=co-1')
+    expect(screen.getByRole('menuitem', { name: 'Open company page' })).toHaveAttribute('href', '/companies/co-1')
     fireEvent.click(screen.getByRole('menuitem', { name: 'Add to-do' }))
     expect(p.onAddTask).toHaveBeenCalledOnce()
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { FolderOpen, Pencil, Sparkles } from 'lucide-react'
+import { FolderOpen, MailCheck, Pencil, Pin, Sparkles } from 'lucide-react'
 import { Btn, Chip } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { BoardChip } from '@/components/board/BoardChip'
@@ -19,17 +19,33 @@ function withoutMoney(line: string): string {
 }
 
 /** Name, stage, owner and domain on one line, then one muted status line. No stat boxes. */
-export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi }: {
+export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onStage, onAskAi, onDrafts }: {
   company: Company
   statusLine: string
+  /** Drafts waiting for approval across the company's placements and policies; null while unknown. */
+  draftsCount: number | null
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
   onAskAi: () => void
+  onDrafts: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [changing, setChanging] = useState(false)
   const [opening, setOpening] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
+  const [pinning, setPinning] = useState(false)
+
+  // Pinned to Home, or not. The column may not exist yet; then the control stays hidden.
+  const pinsAvailable = company.home_pinned_at !== undefined
+  const pinned = !!company.home_pinned_at
+  async function togglePin() {
+    setPinning(true)
+    try {
+      const res = await fetch(`/api/companies/${company.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pinned: !pinned }) })
+      const d = await res.json()
+      if (res.ok && d.company) onCompany(d.company)
+    } finally { setPinning(false) }
+  }
 
   /** The company's one Drive folder (debit notes, employment benefits, every document). Created on first open. */
   async function openDrive() {
@@ -98,6 +114,18 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
             {/* Owners are chosen per company: one or many. Nobody is an owner by default. */}
             <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="md" />
             {company.domains.length > 0 && <span>{company.domains[0]}</span>}
+            {pinsAvailable && (
+              <button
+                type="button"
+                onClick={togglePin}
+                disabled={pinning}
+                aria-pressed={pinned}
+                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px] disabled:opacity-50"
+                style={{ color: INK }}
+              >
+                <Pin size={12} /> {pinning ? 'Saving…' : pinned ? 'Unpin from Home' : 'Pin to Home'}
+              </button>
+            )}
             {company.confirmed_at === null && (
               <span className="inline-flex items-center gap-2">
                 <Chip title="Mail filing created this record from an email domain. Check the name, then confirm it.">Unconfirmed</Chip>
@@ -119,6 +147,7 @@ export function CompanyHeader({ company, statusLine, onCompany, onStage, onAskAi
 
         <div className="flex items-center gap-3 flex-wrap">
           <BoardChip companyId={company.id} />
+          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={onDrafts}><MailCheck size={14} /> Drafts to approve{draftsCount ? ` (${draftsCount})` : ''}</Btn>
           <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={openDrive} loading={opening} title={driveError ?? undefined}><FolderOpen size={14} /> Drive</Btn>
           <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => setEditing(true)}><Pencil size={14} /> Edit</Btn>
           <Btn level="primary" className="h-12 px-6 rounded-[12px] text-[15px]" onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>

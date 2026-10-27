@@ -22,8 +22,9 @@ export function shortInsurer(name: string | null | undefined): string {
  * tiers with different benefit tables, so they are asked for separately.
  */
 export type OnRequestPlan = { key: string; insurer: string; label: string; rates: string }
+// Cigna Care Connect 1.0 left this list on 27 Oct 2026: its published 2025 rates are loaded as an
+// approved rate table (Tier B), so the engine prices it like the five local insurers.
 export const ON_REQUEST_PLANS: OnRequestPlan[] = [
-  { key: 'cigna-ccc-1', insurer: 'Cigna', label: 'Cigna Care Connect 1.0', rates: 'Published 2025 age-band rates' },
   { key: 'cigna-ccc-2', insurer: 'Cigna', label: 'Cigna Care Connect 2.0', rates: 'On request' },
   { key: 'april-myhealth', insurer: 'April', label: 'April MyHEALTH', rates: 'On request' },
 ]

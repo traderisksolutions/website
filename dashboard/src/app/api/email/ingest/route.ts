@@ -4,6 +4,7 @@ import { autofileThread } from '@/lib/crm/autofile'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
 import { extractHighlights }    from '@/lib/extract-highlights'
+import { internalHeaders }      from '@/lib/api-gate/internal'
 
 export const maxDuration = 300
 
@@ -705,6 +706,17 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string):
     headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
     body:    JSON.stringify(participants),
   })
+
+  // 4a. Placement: if this thread is a request to an insurer or the client thread of an open
+  //     placement, the agent reads the message (src/lib/placement/workflow.ts). Cheap when it
+  //     is neither; runs in its own function and never blocks ingest.
+  waitUntil(
+    fetch(`${origin}/api/placements/inbound`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '', ...internalHeaders() },
+      body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_thread_id: gmailThreadId ?? null, direction }),
+    }).catch(() => {}),
+  )
 
   // 4b. Still unfiled? Give the thread a company from its domain, creating the organisation if
   // we have not met it before (src/lib/crm/autofile.ts). Runs after the participants are stored

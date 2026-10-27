@@ -7,15 +7,14 @@ import { cn } from '@/lib/utils'
 import { NewCompanyDialog } from '@/components/crm/dialogs'
 import { useBoardData, type Row } from '@/components/board/useBoardData'
 import { CompanyTable, compareRows, SORT_LABEL, type Sort, type SortKey } from '@/components/companies/CompanyTable'
-import { CompanyDrawer } from '@/components/companies/CompanyDrawer'
 import { needsAttention } from '@/components/companies/attention'
 import { inRenewalWindow, RENEWAL_WINDOWS, renewalBucket, type RenewalWindow } from '@/lib/crm/renewal'
-import { STAGES, STAGE_LABEL, type Company } from '@/lib/crm/types'
+import { STAGES, STAGE_LABEL } from '@/lib/crm/types'
 
 /**
  * Companies: the portfolio, in Home's design system. A title and one sentence, search, plain
  * text views with counts, one summary line whose figures filter, then the table — every
- * column sortable, the Company column frozen. A row opens the same panel Home uses.
+ * column sortable, the Company column frozen. A row opens the company page.
  */
 export default function CompaniesPage() {
   return <Suspense fallback={null}><CompaniesInner /></Suspense>
@@ -35,7 +34,7 @@ const DEFAULT_SORT: Sort = { key: 'renewal', dir: 'desc' }
 function CompaniesInner() {
   const router = useRouter()
   const search = useSearchParams()
-  const { data, rows, error, sync, actions, patchCompany, workloads, staff, staffList, me, today, reload } = useBoardData()
+  const { data, rows, error, sync, workloads, staff, staffList, me, today, reload } = useBoardData()
   const [q, setQ] = useState('')
   const [view, setView] = useState<View>('all')
   // ?kind=insurer opens Companies → Insurers directly; the rate-table and calculator pickers
@@ -43,12 +42,10 @@ function CompaniesInner() {
   const [kind, setKind] = useState<'client' | 'insurer'>(search.get('kind') === 'insurer' ? 'insurer' : 'client')
   const [f, setF] = useState<Filters>(EMPTY)
   const [sort, setSort] = useState<Sort>(DEFAULT_SORT)
-  const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { const id = search.get('company'); if (id) setSelected(id) }, [search])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === '/' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)) { e.preventDefault(); searchRef.current?.focus() } }
     document.addEventListener('keydown', onKey)
@@ -90,9 +87,7 @@ function CompaniesInner() {
     return [...list].sort((a, b) => compareRows(a, b, sort))
   }, [rows, q, f, sort, today, me, staff, view, inView, kind])
 
-  const selectedRow = selected ? rows.find(r => r.company.id === selected) ?? null : null
-  const select = (id: string) => { setSelected(id); router.replace(`/companies?company=${id}`, { scroll: false }) }
-  const close = useCallback(() => { setSelected(null); router.replace('/companies', { scroll: false }) }, [router])
+  const select = (id: string) => router.push(`/companies/${id}`)
 
   const chips: { label: string; clear: () => void }[] = [
     ...(f.stage ? [{ label: `Stage: ${STAGE_LABEL[f.stage as keyof typeof STAGE_LABEL] ?? f.stage}`, clear: () => setF(v => ({ ...v, stage: '' })) }] : []),
@@ -113,7 +108,7 @@ function CompaniesInner() {
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div className={cn('mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20 transition-[padding]', selectedRow && 'lg:pr-[500px]')}>
+      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
         {/* Header */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
@@ -123,7 +118,7 @@ function CompaniesInner() {
               {(['client', 'insurer'] as const).map(k => {
                 const on = kind === k
                 const n = rows.filter(r => r.company.kind === k).length
-                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => { setKind(k); setSelected(null) }} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#80868b' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
+                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#80868b' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
               })}
             </div>
           </div>
@@ -167,18 +162,13 @@ function CompaniesInner() {
             {visible.length === 0 ? (
               <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>No companies match. <button type="button" onClick={() => { setView('all'); setF(EMPTY); setQ('') }} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Clear filters</button></p>
             ) : (
-              <CompanyTable rows={visible} today={today} staff={staff} workloads={workloads} selectedId={selected} onSelect={select} sort={sort} onSort={onSort} highlight={q} />
+              <CompanyTable rows={visible} today={today} staff={staff} workloads={workloads} selectedId={null} onSelect={select} sort={sort} onSort={onSort} highlight={q} />
             )}
           </>
         )}
 
         <NewCompanyDialog open={creating} onClose={() => setCreating(false)} />
       </div>
-
-      {selectedRow && (
-        <CompanyDrawer row={selectedRow} today={today} staff={staff} staffList={staffList} workloads={workloads} actions={actions} me={me}
-          onClose={close} onPatchCompany={patchCompany} onCompanyUpdated={(c: Company) => { void patchCompany(c.id, { name: c.name }) }} />
-      )}
     </div>
   )
 }

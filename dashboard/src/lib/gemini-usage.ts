@@ -131,6 +131,18 @@ export type AiFeature =
   | 'ask_ai_grounded'
   | 'ask_ai_clause'
   | 'crm_next_reply'
+  // The placement agent (27 Oct 2026): request → insurers → quotes → client, round after round.
+  | 'placement_intake'
+  | 'placement_dispatch_draft'
+  | 'placement_reply_read'
+  | 'placement_client_change'
+  | 'placement_chase_draft'
+  | 'placement_client_summary'
+  // The benefits admin agent (27 Oct 2026): movements and insurer notes on a live EB policy.
+  | 'policy_movement_classify'
+  | 'policy_movement_read'
+  | 'policy_note_read'
+  | 'policy_movement_draft'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

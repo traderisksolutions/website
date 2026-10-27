@@ -9,6 +9,7 @@ import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQ
 import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
+import { EbPoliciesTab } from '@/components/group-benefits/EbPoliciesTab'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
@@ -54,8 +55,10 @@ const TAB_LABEL: Record<Tab, string> = { quotes: 'Quotes', hrlinks: 'Employee li
  * an older /pricing-matrix that by then held none — no calculators, no rates, no quotes. The empty
  * one was deleted and this one took its name and address; /group-benefits redirects here.
  *
- * ?tab=quote&company=<name> opens the quote wizard for a client, which is how the company page's
- * "New quotation" button arrives. ?tab=quote&hrLink=<id> opens Quick quote with the census HR
+ * Since 27 Oct 2026 the Quotes tab is the register of employment-benefits policies across companies
+ * (GET /api/eb/policies); "New quotation" opens a placement and lands on the company's Members tab.
+ * The engine-by-hand paths below stay reachable under "By hand".
+ * ?tab=quote&company=<name> opens the quote wizard for a client, which is how older links arrive. ?tab=quote&hrLink=<id> opens Quick quote with the census HR
  * submitted through that link. ?tab=hrlinks&company=<name>&companyId=<id> opens the HR links tab
  * with the Send HR a link dialog filled in, which is how the company page's "Send HR a link" arrives.
  */
@@ -148,8 +151,8 @@ function PricingMatrix() {
           <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#dadce0] bg-white text-[#202124] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]">
             <Mail size={16} /> Email insurer
           </button>
-          <button onClick={() => { setTab('quotes'); setNewQuote(true); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
-            <Plus size={16} /> Quote
+          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
+            <Plus size={16} /> Quotes
           </button>
         </div>
       </div>
@@ -179,7 +182,13 @@ function PricingMatrix() {
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#c5221f' }}>{hrReadError}</p>
       )}
       {tab === 'quotes' && newQuote && !byHand && hrReadState !== 'loading' && (
-        <QuickQuote key={hrRead ? hrLinkId ?? 'hr' : 'file'} initialCompany={company} initialRead={hrRead ?? undefined} onUseWizard={() => setByHand(true)} />
+        <div className="flex flex-col gap-10">
+          <QuickQuote key={hrRead ? hrLinkId ?? 'hr' : 'file'} initialCompany={company} initialRead={hrRead ?? undefined} onUseWizard={() => setByHand(true)} />
+          <section>
+            <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]">Engine quotes</h2>
+            <QuotesTab onNew={() => window.scrollTo({ top: 0 })} />
+          </section>
+        </div>
       )}
       {tab === 'quotes' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
@@ -187,7 +196,7 @@ function PricingMatrix() {
           <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
         </div>
       )}
-      {tab === 'quotes' && !newQuote && <QuotesTab onNew={() => setNewQuote(true)} />}
+      {tab === 'quotes' && !newQuote && <EbPoliciesTab onByHand={() => { setNewQuote(true); setByHand(false) }} />}
       {tab === 'coverage' && <CoverageTab />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
       {tab === 'activity' && <ActivityTab />}

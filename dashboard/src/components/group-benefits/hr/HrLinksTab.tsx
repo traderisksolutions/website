@@ -1,12 +1,14 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { Btn } from '@/components/crm/primitives'
 import type { HrLink } from '@/lib/hr/types'
 import { SendLinkDialog, type CompanyPick } from './SendLinkDialog'
-import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkRow, type HrLinksListResponse } from './labels'
+import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkDetailResponse, type HrLinkRow, type HrLinksListResponse } from './labels'
+import type { EbPolicyRow } from '@/app/api/eb/policies/route'
 
 const MUTED = '#5f6368'
 
@@ -29,8 +31,36 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
   const [error, setError] = useState<string | null>(null)
   const [dialog, setDialog] = useState(!!openSend)
   const [notice, setNotice] = useState<{ text: string; linkId: string; url?: string } | null>(null)
+  // Links sent for a policy (company spine) price on that policy's placement line, not through Quick quote.
+  const [policies, setPolicies] = useState<Map<string, EbPolicyRow>>(new Map())
+  const [pricing, setPricing] = useState<string | null>(null)
 
   useEffect(() => { if (openSend) setDialog(true) }, [openSend])
+  useEffect(() => {
+    fetch('/api/eb/policies', { cache: 'no-store' }).then(r => r.ok ? r.json() : { policies: [] })
+      .then((d: { policies?: EbPolicyRow[] }) => setPolicies(new Map((d.policies ?? []).map(p => [p.id, p]))))
+      .catch(() => {})
+  }, [])
+
+  /** The submitted list priced on the policy's line, then the company's Members tab. */
+  async function priceOnPolicy(r: HrLinkRow, policy: EbPolicyRow) {
+    if (!policy.placement_line_id) { setError('The policy has no placement line; open the company and recreate the placement.'); return }
+    setPricing(r.id); setError(null)
+    try {
+      const dr = await fetch(`/api/group-benefits/hr-links/${r.id}`, { cache: 'no-store' })
+      const dd = await dr.json().catch(() => ({})) as HrLinkDetailResponse
+      const submissionId = dd.submission?.status === 'submitted' ? dd.submission.id : null
+      if (!dr.ok || !submissionId) { setError(dd.error ?? 'The link has no submitted list yet.'); return }
+      const pr = await fetch(`/api/placements/lines/${policy.placement_line_id}/price`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ submission_id: submissionId }),
+      })
+      const pd = await pr.json().catch(() => ({})) as { error?: string; quotes?: unknown[] }
+      if (!pr.ok) { setError(pd.error ?? `Pricing failed (${pr.status}).`); return }
+      router.push(`/companies/${policy.company_id}?tab=members`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Pricing failed.')
+    } finally { setPricing(null) }
+  }
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -97,10 +127,19 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
             {rows.length === 0 && <RegisterEmpty colSpan={8}>No employee lists requested yet.</RegisterEmpty>}
             {rows.map(r => {
               const n = lives(r)
+              const policy = r.policy_id ? policies.get(r.policy_id) ?? null : null
+              const policyHref = r.policy_id && r.company_id ? `/companies/${r.company_id}?tab=members` : null
               return (
                 <RegisterRow key={r.id} onClick={() => router.push(`/pricing-matrix/hr-links/${r.id}`)}>
                   <RegisterCell first identityWidth={180} primary={r.reference} secondary={r.effective_date ? `effective ${fmtDate(r.effective_date)}` : 'no policy start'} />
-                  <RegisterCell className="max-w-[260px]"><span className="block text-[14px] truncate" style={{ color: '#202124' }} title={r.company_name}>{r.company_name}</span></RegisterCell>
+                  <RegisterCell className="max-w-[260px]">
+                    <span className="block text-[14px] truncate" style={{ color: '#202124' }} title={r.company_name}>{r.company_name}</span>
+                    {policyHref && (
+                      <Link href={policyHref} onClick={e => e.stopPropagation()} className="block text-[12.5px] truncate no-underline hover:underline" style={{ color: MUTED }}>
+                        {policy ? `${policy.label} · ${policy.lifecycle_label}` : 'Policy'}
+                      </Link>
+                    )}
+                  </RegisterCell>
                   <RegisterCell primary={<span className="text-[14px] font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
                   <RegisterCell><span className={CHIP}>{linkStatusWord(r)}</span></RegisterCell>
                   <RegisterCell primary={fmtDate(r.sent_at)} secondary={`valid to ${fmtDate(r.expires_at)}`} />
@@ -108,7 +147,9 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
                   <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: n != null ? '#202124' : '#9aa0a6' }}>{n ?? '—'}</span></RegisterCell>
                   <RegisterCell last align="right">
                     {r.submitted_at
-                      ? <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/pricing-matrix?tab=quote&hrLink=${r.id}`) }}>Quote</Btn>
+                      ? (policy
+                        ? <Btn size="xs" level="primary" loading={pricing === r.id} onClick={e => { e.stopPropagation(); void priceOnPolicy(r, policy) }}>Quote</Btn>
+                        : <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/pricing-matrix?tab=quote&hrLink=${r.id}`) }}>Quote</Btn>)
                       : <span className="text-[13px]" style={{ color: '#9aa0a6' }}>Waiting for HR</span>}
                   </RegisterCell>
                 </RegisterRow>
