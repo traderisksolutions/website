@@ -6,7 +6,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
 import type { InsurerRoute } from '@/lib/placement/store'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
-const COLS = 4
+const COLS = 3
 const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-[#202124]'
 
 /**
@@ -72,12 +72,11 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
   return (
     <div className="flex flex-col gap-2">
       <p className="m-0 text-[13px]" style={{ color: INK }}>{selected} of {routes.length} contacts selected</p>
-      <Register label="Insurer contacts" minWidth={520}>
+      <Register label="Insurer contacts" minWidth={480}>
         <RegisterHead>
-          <RegisterTh first>Insurer</RegisterTh>
-          <RegisterTh>Contact</RegisterTh>
-          <RegisterTh>Email</RegisterTh>
-          <RegisterTh last align="right">Ask</RegisterTh>
+          <RegisterTh first width={64}>Ask</RegisterTh>
+          <RegisterTh>Insurer</RegisterTh>
+          <RegisterTh last>Contact</RegisterTh>
         </RegisterHead>
         <tbody>
           {groups.map(([insurer, rs]) => {
@@ -99,10 +98,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
               </RegisterGroupRow>,
               ...rs.map(r => (
                 <RegisterRow key={r.contact_id}>
-                  <RegisterCell first identityWidth={180} primary={r.insurer_name} />
-                  <RegisterCell primary={r.name ?? '—'} />
-                  <RegisterCell primary={r.email} />
-                  <RegisterCell last align="right">
+                  <RegisterCell first identityWidth={64}>
                     <input
                       type="checkbox"
                       className={checkboxCls}
@@ -111,6 +107,8 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
                       aria-label={`Ask ${r.name ?? r.email} at ${r.insurer_name}`}
                     />
                   </RegisterCell>
+                  <RegisterCell primary={r.insurer_name} />
+                  <RegisterCell last primary={r.name ?? '—'} secondary={r.email} />
                 </RegisterRow>
               )),
             ]

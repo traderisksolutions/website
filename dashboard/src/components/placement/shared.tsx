@@ -60,4 +60,4 @@ export function SpecFields({ value, onChange, compact }: { value: Spec; onChange
 }
 
 /** The dialog shell shared by the placement dialogs: full-width on a phone, capped on desktop. */
-export const dialogCls = 'max-w-[720px] max-h-[100dvh] sm:max-h-[90vh] overflow-y-auto'
+export const dialogCls = 'w-[calc(100vw-32px)] max-w-[720px] max-h-[90vh] overflow-y-auto overflow-x-hidden [&>*]:min-w-0'

@@ -1,16 +1,16 @@
 'use client'
 
 import { Suspense } from 'react'
-import { Catalogue } from '@/components/home/Catalogue'
+import { Board } from '@/components/home/Board'
 
 /**
- * Home is the client catalogue: an introduction, search, plain text views, one feature block,
- * and a calm grid of relationship cards that open the company detail in place.
+ * Home is the board: the pinned companies in one column per stage of the work, each card
+ * showing its threads, its policies and where every quote stands.
  */
 export default function HomePage() {
   return (
     <Suspense fallback={null}>
-      <Catalogue />
+      <Board />
     </Suspense>
   )
 }
