@@ -17,10 +17,16 @@ import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
 /** Line · Round · Insurer · Contact · Status · Premium · Limit · Valid until · Last contact · Thread · action */
-const COLS = 11
+const COLS = 10
+/** The premium as a figure: the normalised amount when read, else the insurer's words, short. */
+function money(q: { premium_amount: number | null; currency: string | null; premium_text: string | null }): string {
+  if (q.premium_amount != null) return `${q.currency === 'SGD' || !q.currency ? 'S$' : q.currency + ' '}${q.premium_amount.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const t = (q.premium_text ?? '').trim()
+  return t ? (t.length > 24 ? t.slice(0, 22) + '…' : t) : '—'
+}
 /** A button inside the dense grid or the placement line: 22px tall so the row stays 34px. */
 const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
-const CONTACT_MAX = 36
+const CONTACT_MAX = 30
 
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
@@ -168,14 +174,13 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
               {errors[p.id] && <p className="text-[12.5px] m-0 mt-1" style={{ color: ERROR }}>{errors[p.id]}</p>}
 
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : (
-                <Register label={`${p.title} lines`} minWidth={1180} dense className="mt-1.5">
+                <Register label={`${p.title} lines`} minWidth={1040} dense className="mt-1.5">
                   <RegisterHead>
                     <RegisterTh first>Line</RegisterTh>
-                    <RegisterTh align="right">Round</RegisterTh>
                     <RegisterTh>Insurer</RegisterTh>
                     <RegisterTh>Contact</RegisterTh>
                     <RegisterTh>Status</RegisterTh>
-                    <RegisterTh>Premium</RegisterTh>
+                    <RegisterTh>Premium p.a.</RegisterTh>
                     <RegisterTh>Limit</RegisterTh>
                     <RegisterTh>Valid until</RegisterTh>
                     <RegisterTh>Last contact</RegisterTh>
@@ -196,8 +201,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                         return [groupRow, (
                           <RegisterRow key={pos.line.id}>
                             <RegisterCell first primary={label} title={label} />
-                            <RegisterCell align="right" primary={roundNo} />
-                            <RegisterCell colSpan={COLS - 2} last><Muted>No insurer asked yet</Muted></RegisterCell>
+                            <RegisterCell colSpan={COLS - 1} last><Muted>No insurer asked yet</Muted></RegisterCell>
                           </RegisterRow>
                         )]
                       }
@@ -207,11 +211,10 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                         return (
                           <RegisterRow key={q.id}>
                             <RegisterCell first primary={i === 0 ? label : ''} title={i === 0 ? label : undefined} />
-                            <RegisterCell align="right" primary={roundNo} />
                             <RegisterCell primary={q.insurer_name} />
                             <RegisterCell title={plan}><Muted>{clip(plan, CONTACT_MAX)}</Muted></RegisterCell>
                             <RegisterCell primary="Priced" />
-                            <RegisterCell primary={q.premium_text ?? '—'} />
+                            <RegisterCell primary={money(q)} title={q.premium_text ?? undefined} />
                             <RegisterCell primary={q.limit_text ?? '—'} />
                             <RegisterCell primary={q.valid_until ? fmtDate(q.valid_until) : '—'} />
                             <RegisterCell primary={fmtDate(q.created_at)} />
@@ -228,11 +231,10 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                         return (
                           <RegisterRow key={dp.dispatch.id}>
                             <RegisterCell first primary={i === 0 ? label : ''} title={i === 0 ? label : undefined} />
-                            <RegisterCell align="right" primary={roundNo} />
                             <RegisterCell primary={dp.dispatch.insurer_name} />
                             <RegisterCell title={dp.dispatch.to_email}><Muted>{clip(dp.dispatch.to_email, CONTACT_MAX)}</Muted></RegisterCell>
                             <RegisterCell primary={dispatchWord(dp)} />
-                            <RegisterCell primary={q?.premium_text ? `${q.premium_text}${q.needs_review ? ' · check' : ''}` : '—'} />
+                            <RegisterCell primary={q ? `${money(q)}${q.needs_review ? ' · check' : ''}` : '—'} title={q?.premium_text ?? undefined} />
                             <RegisterCell primary={q?.limit_text ?? '—'} />
                             <RegisterCell primary={q?.valid_until ? fmtDate(q.valid_until) : '—'} />
                             <RegisterCell primary={last ? fmtDate(last) : '—'} />
