@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { FolderOpen, MailCheck, Pencil, Pin, Sparkles } from 'lucide-react'
-import { Btn, Chip } from './primitives'
+import { FolderOpen, ListChecks, MailCheck, MoreHorizontal, Pencil, Pin, Sparkles } from 'lucide-react'
+import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
 import { EditCompanyDialog } from './dialogs'
-import { BoardChip } from '@/components/board/BoardChip'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { dialogCls } from '@/components/placement/shared'
 import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
 
@@ -18,7 +20,10 @@ function withoutMoney(line: string): string {
   return line.split(' · ').filter(p => !/outstanding$/i.test(p.trim())).join(' · ')
 }
 
-/** Name, stage, owner and domain on one line, then one muted status line. No stat boxes. */
+const ACTION_BTN = 'h-10 px-4 rounded-[10px] text-[14px]'
+const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#202124] focus:bg-[#f8f9fa] data-[highlighted]:bg-[#f8f9fa]'
+
+/** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
 export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onStage, onAskAi, onDrafts }: {
   company: Company
   statusLine: string
@@ -30,6 +35,7 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
   onDrafts: () => void
 }) {
   const [editing, setEditing] = useState(false)
+  const [addingTodo, setAddingTodo] = useState(false)
   const [changing, setChanging] = useState(false)
   const [opening, setOpening] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
@@ -98,7 +104,7 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
 
       <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0 flex-1">
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] break-words" style={{ color: INK }}>{company.name}</h1>
+          <h1 className="m-0 text-[28px] sm:text-[30px] font-medium tracking-[-0.02em] leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis min-w-0" title={company.name} style={{ color: INK }}>{company.name}</h1>
 
           <div className="mt-3 flex items-center gap-x-3 gap-y-2 flex-wrap text-[14px]" style={{ color: MUTED }}>
             <select
@@ -145,16 +151,89 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
           {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{driveError}</p>}
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <BoardChip companyId={company.id} />
-          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={onDrafts}><MailCheck size={14} /> Drafts to approve{draftsCount ? ` (${draftsCount})` : ''}</Btn>
-          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={openDrive} loading={opening} title={driveError ?? undefined}><FolderOpen size={14} /> Drive</Btn>
-          <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => setEditing(true)}><Pencil size={14} /> Edit</Btn>
-          <Btn level="primary" className="h-12 px-6 rounded-[12px] text-[15px]" onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>
+        {/* Three actions: drafts (only when some wait), Ask AI, and a More menu for the rest. */}
+        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+          {draftsCount !== null && draftsCount > 0 && (
+            <Btn level="secondary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
+          )}
+          <Btn level="primary" className={ACTION_BTN} onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Btn level="tertiary" className="h-10 w-10 px-0 justify-center rounded-[10px]" aria-label="More actions" title="More actions" loading={opening}>
+                {!opening && <MoreHorizontal size={18} />}
+              </Btn>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e8eaed] bg-white p-1.5 shadow-[0_12px_32px_rgba(32,33,36,0.12)]">
+              <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
+              <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
+              <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
+      <NewTodoDialog open={addingTodo} onClose={() => setAddingTodo(false)} companyId={company.id} staff={team} />
       <EditCompanyDialog open={editing} onClose={() => setEditing(false)} company={company} onSaved={onCompany} />
     </div>
+  )
+}
+
+/** A to-do for this company on the board: title, owner, due date, note. */
+function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onClose: () => void; companyId: string; staff: { email: string; name: string }[] }) {
+  const [title, setTitle] = useState('')
+  const [who, setWho] = useState('')
+  const [due, setDue] = useState('')
+  const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    setTitle(''); setWho(''); setDue(''); setNote(''); setError(null)
+  }, [open])
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim()) { setError('Give the to-do a title.'); return }
+    setSaving(true); setError(null)
+    try {
+      const res = await fetch('/api/board/tasks', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, title: title.trim(), note: note.trim() || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }),
+      })
+      const d = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) throw new Error(d.error ?? 'Could not save.')
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save.')
+    } finally { setSaving(false) }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
+      <DialogContent className={dialogCls}>
+        <DialogHeader>
+          <DialogTitle>New to-do</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={submit} className="flex flex-col gap-3">
+          <Field label="Title"><input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} autoFocus required /></Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field label="Owner">
+              <select className={`${inputCls} appearance-none`} value={who} onChange={e => setWho(e.target.value)}>
+                <option value="">No one yet</option>
+                {staff.map(s => <option key={s.email} value={s.email}>{s.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Due date"><input type="date" className={inputCls} value={due} onChange={e => setDue(e.target.value)} /></Field>
+          </div>
+          <Field label="Internal note"><textarea className={textareaCls} rows={2} value={note} onChange={e => setNote(e.target.value)} /></Field>
+          {error && <p className="m-0 text-[12px]" style={{ color: '#c5221f' }} role="alert">{error}</p>}
+          <div className="flex justify-end gap-2 pt-1">
+            <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
+            <Btn type="submit" level="primary" loading={saving}>Create to-do</Btn>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
