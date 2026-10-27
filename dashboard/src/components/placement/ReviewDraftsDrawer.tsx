@@ -15,7 +15,10 @@ type DraftRow = { id: string; to_email: string | null; subject: string | null; b
 /** GET /api/companies/[id]/drafts → { queue: QueueItem[] } */
 export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'client' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
 type SendState = { phase: 'idle' } | { phase: 'sending' } | { phase: 'sent' } | { phase: 'error'; message: string }
-type Item = QueueItem & { subject: string; body: string; state: SendState }
+/** One recipient of a request item while its fan-out runs: the dispatch id keys the line. */
+type RecipientState = { phase: 'queued' | 'sending' | 'sent' | 'error'; message?: string }
+type Item = QueueItem & { subject: string; body: string; state: SendState; recipients: Record<string, RecipientState> }
+type FanoutClone = { draft_id: string; dispatch_id: string; to_email: string; insurer_name: string }
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -29,7 +32,8 @@ export function bodyToHtml(body: string): string {
 /**
  * Every draft the agents prepared for this company — placement requests, follow-ups, client
  * summaries, movement requests to the insurer — each read and sent by a person. Nothing leaves
- * without an approval; the three-step send mirrors the inbox composer.
+ * without an approval; the three-step send mirrors the inbox composer. A request is one draft
+ * per policy line shared by every insurer asked; sending it fans the text out per insurer first.
  */
 export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCount, lines, policies }: {
   companyId: string
@@ -51,7 +55,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
     setError(null)
     try {
       const d = await callApi<{ queue: QueueItem[] }>(`/api/companies/${companyId}/drafts`)
-      setItems(d.queue.map(q => ({ ...q, subject: q.draft.subject ?? '', body: q.draft.body ?? '', state: { phase: 'idle' } })))
+      setItems(d.queue.map(q => ({ ...q, subject: q.draft.subject ?? '', body: q.draft.body ?? '', state: { phase: 'idle' }, recipients: {} })))
       onCount?.(d.queue.length)
     } catch (e) {
       setError(errText(e))
@@ -74,17 +78,23 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
 
   const setItem = (id: string, patch: Partial<Item>) => setItems(xs => xs ? xs.map(x => x.draft.id === id ? { ...x, ...patch } : x) : xs)
 
+  /** The three-step send for one draft id: approve, mail, then file the thread where the kind needs it. */
+  async function sendDraft(draftId: string, item: Pick<Item, 'kind' | 'subject' | 'body'>, toEmail: string | null): Promise<void> {
+    await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: item.body } })
+    const sent = await callApi<{ ok: boolean; gmailMessageId?: string | null; gmailThreadId?: string | null }>('/api/email/send', {
+      method: 'POST',
+      body: { draftId, htmlBody: bodyToHtml(item.body), toEmail: toEmail ?? undefined, customSubject: item.subject, fromEmail: FROM_EMAIL },
+    })
+    const ids = { draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null }
+    if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
+    if (item.kind === 'movement') await callApi('/api/policies/movements/sent', { method: 'POST', body: ids })
+  }
+
+  /** A single-recipient draft (chase, client, movement, or a request already fanned out). */
   async function sendOne(item: Item): Promise<boolean> {
     setItem(item.draft.id, { state: { phase: 'sending' } })
     try {
-      await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId: item.draft.id, status: 'approved', content: item.body } })
-      const sent = await callApi<{ ok: boolean; gmailMessageId?: string | null; gmailThreadId?: string | null }>('/api/email/send', {
-        method: 'POST',
-        body: { draftId: item.draft.id, htmlBody: bodyToHtml(item.body), toEmail: item.draft.to_email ?? undefined, customSubject: item.subject, fromEmail: FROM_EMAIL },
-      })
-      const ids = { draft_id: item.draft.id, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null }
-      if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
-      if (item.kind === 'movement') await callApi('/api/policies/movements/sent', { method: 'POST', body: ids })
+      await sendDraft(item.draft.id, item, item.draft.to_email)
       setItem(item.draft.id, { state: { phase: 'sent' } })
       onChanged()
       return true
@@ -95,13 +105,50 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
     }
   }
 
+  const setRecipient = (itemId: string, dispatchId: string, r: RecipientState) =>
+    setItems(xs => xs ? xs.map(x => x.draft.id === itemId ? { ...x, recipients: { ...x.recipients, [dispatchId]: r } } : x) : xs)
+
+  /**
+   * A request shared by several dispatches: fan the reviewed text out into one draft per
+   * insurer, then run the three-step send per clone. A failed recipient stays in the queue as
+   * its own request item on the next load; the others are not held back by it.
+   */
+  async function sendRequest(item: Item): Promise<boolean> {
+    if (item.dispatches.length <= 1) return sendOne(item)
+    setItem(item.draft.id, { state: { phase: 'sending' }, recipients: Object.fromEntries(item.dispatches.map(d => [d.id, { phase: 'queued' }])) })
+    let clones: FanoutClone[]
+    try {
+      clones = (await callApi<{ clones: FanoutClone[] }>(`/api/placements/drafts/${item.draft.id}/fanout`, { method: 'POST', body: { subject: item.subject, body: item.body } })).clones
+    } catch (e) {
+      setItem(item.draft.id, { state: { phase: 'error', message: errText(e) }, recipients: {} })
+      onChanged()
+      return false
+    }
+    let failed = 0
+    for (const c of clones) {
+      setRecipient(item.draft.id, c.dispatch_id, { phase: 'sending' })
+      try {
+        await sendDraft(c.draft_id, item, c.to_email)
+        setRecipient(item.draft.id, c.dispatch_id, { phase: 'sent' })
+      } catch (e) {
+        failed++
+        setRecipient(item.draft.id, c.dispatch_id, { phase: 'error', message: errText(e) })
+      }
+    }
+    setItem(item.draft.id, { state: failed === 0 ? { phase: 'sent' } : { phase: 'error', message: `${failed} of ${clones.length} not sent` } })
+    onChanged()
+    return failed === 0
+  }
+
+  const send = (item: Item) => item.kind === 'request' ? sendRequest(item) : sendOne(item)
+
   async function sendAll() {
     if (!items) return
     setSendingAll(true)
     for (const id of items.map(i => i.draft.id)) {
       const current = itemsRef.current?.find(x => x.draft.id === id)
       if (!current || current.state.phase === 'sent') continue
-      await sendOne(current)
+      await send(current)
     }
     setSendingAll(false)
   }
@@ -154,18 +201,41 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
             const movements = item.movements ?? []
             const moved = movements.length > 0 ? `${movements.length} movement${movements.length === 1 ? '' : 's'}: ${movements.map(m => m.member_name).join(', ')}` : ''
             const policy = policyLabel(item.policyId)
+            // A request shared by several insurers lists them and sends to each; everything else has one address.
+            const fanned = item.kind === 'request' && item.dispatches.length > 1
+            const sendLabel = fanned ? `Send to ${item.dispatches.length} insurers` : 'Approve and send'
             return (
               <section key={item.draft.id} className="py-4 first:pt-0" style={{ borderBottom: '1px solid #e8eaed' }}>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="min-w-0">
-                    <span className="block text-[15px] font-medium" style={{ color: INK }}>{KIND_WORD[item.kind] ?? item.kind}</span>
-                    <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>
-                      To {item.draft.to_email ?? '—'}
-                      {insurers && ` · ${insurers}`}
-                      {lineLabels && ` · ${lineLabels}`}
-                      {policy && ` · ${policy}`}
-                      {moved && ` · ${moved}`}
+                    <span className="block text-[15px] font-medium" style={{ color: INK }}>
+                      {item.kind === 'request' && lineLabels ? lineLabels : (KIND_WORD[item.kind] ?? item.kind)}
                     </span>
+                    {fanned ? (
+                      <ul className="list-none m-0 mt-1 p-0 flex flex-col gap-0.5">
+                        {item.dispatches.map(d => {
+                          const r = item.recipients[d.id]
+                          return (
+                            <li key={d.id} className="flex items-baseline justify-between gap-3 text-[12.5px]" style={{ color: MUTED }}>
+                              <span className="min-w-0 truncate">{d.insurer_name} — {d.to_email}</span>
+                              {r && (
+                                <span className="flex-shrink-0" style={{ color: r.phase === 'error' ? ERROR : MUTED }}>
+                                  {r.phase === 'queued' ? 'Queued' : r.phase === 'sending' ? 'Sending…' : r.phase === 'sent' ? 'Sent' : r.message ?? 'Not sent'}
+                                </span>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    ) : (
+                      <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>
+                        To {item.draft.to_email ?? '—'}
+                        {insurers && ` · ${insurers}`}
+                        {item.kind !== 'request' && lineLabels && ` · ${lineLabels}`}
+                        {policy && ` · ${policy}`}
+                        {moved && ` · ${moved}`}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[13px] flex-shrink-0" style={{ color: item.state.phase === 'error' ? ERROR : MUTED }}>
                     {item.state.phase === 'sending' ? 'Sending…' : item.state.phase === 'sent' ? 'Sent' : item.state.phase === 'error' ? item.state.message : ''}
@@ -181,7 +251,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
                   {!sent && (
                     <div className="flex justify-end gap-2">
                       <Btn level="tertiary" size="xs" disabled={busy} onClick={() => discard(item)}>Discard</Btn>
-                      <Btn level="secondary" size="xs" disabled={busy} loading={item.state.phase === 'sending'} onClick={() => sendOne(item)}>Approve and send</Btn>
+                      <Btn level="secondary" size="xs" disabled={busy} loading={item.state.phase === 'sending'} onClick={() => send(item)}>{sendLabel}</Btn>
                     </div>
                   )}
                 </div>

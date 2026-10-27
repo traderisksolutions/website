@@ -176,6 +176,11 @@ export async function createDraft(d: { contact_id: string; to_email: string; sub
   })
   return rows[0] ?? null
 }
+/** One draft with the fields a fan-out needs; null when it does not exist. */
+export async function draftById(id: string): Promise<(DraftRow & { cc: string[] | null; generated_by: string | null }) | null> {
+  const rows = await sbTry<(DraftRow & { cc: string[] | null; generated_by: string | null })[]>(`ai_drafts?id=eq.${id}&select=id,to_email,subject,body,status,thread_id,contact_id,email_type,created_at,cc,generated_by&limit=1`, [])
+  return rows[0] ?? null
+}
 export async function pendingDrafts(ids: string[]): Promise<DraftRow[]> {
   if (ids.length === 0) return []
   return sbTry<DraftRow[]>(`ai_drafts?id=in.(${ids.join(',')})&select=id,to_email,subject,body,status,thread_id,contact_id,email_type,created_at&order=created_at.asc`, [])

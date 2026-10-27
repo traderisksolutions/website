@@ -5,15 +5,17 @@
  * group_benefits | rfq | claim | renewal | general | other and stores it on email_threads for a
  * badge. Always 200.
  *
- * One category acts as well as labels: a group benefits request is handed straight to the group
+ * Two categories act as well as label: a group benefits request is handed straight to the group
  * benefits agent (/api/group-benefits/intake), which prices the census and opens a draft
- * quotation on the Pricing Matrix. Nothing is sent.
+ * quotation on the Pricing Matrix; an rfq from a client is handed to the placement agent
+ * (/api/placements/auto), which opens the placement and drafts the insurer requests. Nothing is sent.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { waitUntil } from '@vercel/functions'
 import { internalHeaders } from '@/lib/api-gate/internal'
+import { shouldAutoPlace, AUTO_PLACE_CONFIDENCE } from '@/lib/placement/auto'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
@@ -93,6 +95,27 @@ ${text}`
           body: JSON.stringify({ thread_id, message_id: message_id ?? null }),
         }).catch(e => void logError({ source: 'internal', feature: 'gb_intake_handoff', message: String(e), threadId: thread_id })),
       )
+    }
+
+    // A client's request for any other cover goes to the placement agent, which opens the
+    // placement and drafts the requests for the broker to approve. Same hand-off shape as above.
+    if (category === 'rfq' && (parsed.confidence ?? 0) >= AUTO_PLACE_CONFIDENCE) {
+      const [tRows, pRows] = await Promise.all([
+        fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread_id}&select=company_id,companies(kind)&limit=1`, { headers: sbH(), cache: 'no-store' })
+          .then(r => r.ok ? r.json() as Promise<{ company_id: string | null; companies: { kind: string | null } | null }[]> : []).catch(() => []),
+        fetch(`${SB_URL}/rest/v1/placements?client_thread_id=eq.${thread_id}&status=neq.closed&select=id&limit=1`, { headers: sbH(), cache: 'no-store' })
+          .then(r => r.ok ? r.json() as Promise<{ id: string }[]> : []).catch(() => []),
+      ])
+      const t = tRows[0]
+      if (shouldAutoPlace({ category, confidence: parsed.confidence, companyKind: t?.company_id ? t.companies?.kind ?? null : null, hasOpenPlacement: pRows.length > 0 })) {
+        waitUntil(
+          fetch(`${req.nextUrl.origin}/api/placements/auto`, {
+            method: 'POST',
+            headers: internalHeaders({ 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' }),
+            body: JSON.stringify({ thread_id }),
+          }).catch(e => void logError({ source: 'internal', feature: 'placement_auto_handoff', message: String(e), threadId: thread_id })),
+        )
+      }
     }
 
     return NextResponse.json({ ok: true, category })

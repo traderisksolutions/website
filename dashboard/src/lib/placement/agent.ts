@@ -74,7 +74,8 @@ Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ 
 // ── 2. The email to an insurer ───────────────────────────────────────────────────────────────
 
 export type DispatchDraftInput = {
-  insurerName: string; contactName: string | null
+  /** Null = the same request goes to several insurers: address no insurer or person by name. */
+  insurerName: string | null; contactName: string | null
   clientName: string
   lines: { label: string; productLine: string; spec: Spec }[]
   roundNo: number; changeSummary: string | null; previousPremium: string | null
@@ -84,8 +85,11 @@ export type DispatchDraftInput = {
 export type DraftText = { subject: string; body: string }
 
 export async function draftToInsurer(i: DispatchDraftInput): Promise<DraftText | null> {
+  const reader = i.insurerName
+    ? `Reader: ${i.contactName ?? 'the underwriter'} at ${i.insurerName}.`
+    : 'Reader: the underwriter at each insurer being asked. The same email goes to several insurers, so name no insurer and no person; open with "Dear Underwriter," and write as to one reader.'
   const task = `Write the email a broker at Trade Risk Solutions sends to an underwriter asking for a quotation.
-Reader: ${i.contactName ?? 'the underwriter'} at ${i.insurerName}.
+${reader}
 Client: ${i.clientName}. Inception: ${i.inceptionDate ?? 'to be confirmed'}.
 ${i.roundNo > 1 ? `This is a REVISED request (round ${i.roundNo}). What changed: ${i.changeSummary ?? 'see spec'}. ${i.previousPremium ? `Their last quoted premium was ${i.previousPremium}.` : ''} Ask for a revised premium on the new terms and say the rest stays as previously submitted.` : 'This is the first request.'}
 Lines to quote (each with its spec):

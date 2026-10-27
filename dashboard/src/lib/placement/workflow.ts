@@ -10,6 +10,7 @@ import { describeChanges, normaliseSpec, specDiff } from './spec'
 import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
 import * as agent from './agent'
+import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
 import type { Placement, PlacementDispatch, PlacementLine, PlacementRound, RoundReason, Spec } from './types'
 
 const now = () => new Date().toISOString()
@@ -83,7 +84,8 @@ export type RoundAsk = {
 /**
  * Opens a round on each line given and asks the insurer contacts on file for that product line:
  * every one of them unless the broker picked (opts.contactIds across all lines, ask.contact_ids per line).
- * One email per underwriter: a contact who handles two of the lines gets one draft covering both.
+ * One draft per line per round, shared by every dispatch of that line: the text names no insurer,
+ * and the review screen fans it out into one draft per recipient at send time (fanoutDraft).
  */
 export async function openRounds(placement: Placement, asks: RoundAsk[], actor: string, opts: {
   /** Keep only these insurer routes (employment benefits: the Tier C insurers with no rate table). */
@@ -119,12 +121,11 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
       detail: { acted: true, spec: normaliseSpec(a.spec) } })
   }
 
-  // 2. Route: the contacts on file for each line, narrowed to the broker's pick, grouped by email so one person gets one email.
+  // 2. Route: the contacts on file for each line, narrowed to the broker's pick.
   const allRoutes = await store.insurerRoutes([...new Set(asks.map(a => a.line.product_line))])
   const routes = opts.filterRoute ? allRoutes.filter(opts.filterRoute) : allRoutes
   const chosen = opts.contactIds ? new Set(opts.contactIds) : null
-  type Group = { email: string; name: string | null; insurer_name: string; insurer_company_id: string | null; contact_id: string; asks: RoundAsk[] }
-  const groups = new Map<string, Group>()
+  const routed: { ask: RoundAsk; recipients: store.InsurerRoute[] }[] = []
   for (const a of asks) {
     const onFile = routes.filter(r => r.product_line === a.line.product_line)
     if (onFile.length === 0) { unrouted.push(a.line.label ?? a.line.product_line); continue }
@@ -136,35 +137,31 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
       await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: a.line.id, round_id: roundOf.get(a.line.id)?.id ?? null, kind: 'info', actor, text: `No insurer chosen for ${label}` })
       continue
     }
-    for (const r of forLine) {
-      const g = groups.get(r.email) ?? { email: r.email, name: r.name, insurer_name: r.insurer_name, insurer_company_id: r.insurer_company_id, contact_id: r.contact_id, asks: [] }
-      if (!g.asks.some(x => x.line.id === a.line.id)) g.asks.push(a)
-      groups.set(r.email, g)
-    }
+    // One dispatch per contact email: a person listed twice for the line is asked once.
+    const seen = new Set<string>()
+    routed.push({ ask: a, recipients: forLine.filter(r => !seen.has(r.email) && seen.add(r.email)) })
   }
 
-  // 3. One draft per underwriter, one dispatch per (underwriter, line).
+  // 3. One draft per line, one dispatch per (line, contact), all pointing at that draft.
   let drafts = 0
-  for (const g of groups.values()) {
-    const first = g.asks[0]
-    const round = roundOf.get(first.line.id)!
-    const prevQuote = (bundle?.quotes ?? []).filter(q => q.line_id === first.line.id && q.insurer_name === g.insurer_name && q.status !== 'superseded').sort((x, y) => y.created_at.localeCompare(x.created_at))[0]
+  for (const { ask: a, recipients } of routed) {
+    const round = roundOf.get(a.line.id)!
     const text = await agent.draftToInsurer({
-      insurerName: g.insurer_name, contactName: g.name, clientName: company?.company_name ?? 'the client',
-      lines: g.asks.map(a => ({ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec })),
-      roundNo: round.round_no, changeSummary: g.asks.map(a => a.change_summary).filter(Boolean).join('; ') || null,
-      previousPremium: prevQuote?.premium_text ?? null, inceptionDate: placement.inception_date, memory,
+      insurerName: null, contactName: null, clientName: company?.company_name ?? 'the client',
+      lines: [{ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec }],
+      roundNo: round.round_no, changeSummary: a.change_summary, previousPremium: null, inceptionDate: placement.inception_date, memory,
     })
     let draftId: string | null = null
     if (text) {
       const body = opts.extraBody?.trim() ? `${text.body}\n\n${opts.extraBody.trim()}` : text.body
-      const draft = await store.createDraft({ contact_id: g.contact_id, to_email: g.email, subject: text.subject, body, email_type: DRAFT_TYPE.dispatch })
+      // The shared draft is addressed to the first recipient; fanoutDraft re-addresses a clone per dispatch.
+      const draft = await store.createDraft({ contact_id: recipients[0].contact_id, to_email: recipients[0].email, subject: text.subject, body, email_type: DRAFT_TYPE.dispatch })
       draftId = draft?.id ?? null
       if (draftId) drafts++
     }
-    const rows = await store.insert<PlacementDispatch>('placement_dispatches', g.asks.map(a => ({
-      placement_id: placement.id, line_id: a.line.id, round_id: roundOf.get(a.line.id)!.id, company_id: placement.company_id,
-      insurer_company_id: g.insurer_company_id, insurer_name: g.insurer_name, insurer_contact_id: g.contact_id, to_email: g.email,
+    const rows = await store.insert<PlacementDispatch>('placement_dispatches', recipients.map(r => ({
+      placement_id: placement.id, line_id: a.line.id, round_id: round.id, company_id: placement.company_id,
+      insurer_company_id: r.insurer_company_id, insurer_name: r.insurer_name, insurer_contact_id: r.contact_id, to_email: r.email,
       ai_draft_id: draftId, status: 'drafted',
     })))
     dispatches.push(...rows)
@@ -197,6 +194,30 @@ export async function markSent(draftId: string, sent: { gmailThreadId: string | 
       text: `Request sent to ${d.insurer_name} (${d.to_email})`, thread_id: t?.id ?? null })
   }
   return updated
+}
+
+// ── Fan-out ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Splits a shared request draft into one clone per dispatch carrying the reviewed text, repoints
+ * each dispatch at its clone and retires the original. Each clone is then approved, sent and
+ * marked sent on its own, so every insurer gets its own Gmail thread.
+ */
+export async function fanoutDraft(draftId: string, text: FanoutText, actor: string): Promise<{ clones: FanoutClone[] }> {
+  const draft = await store.draftById(draftId)
+  if (!draft) throw new Error('Draft not found')
+  if (draft.email_type !== DRAFT_TYPE.dispatch) throw new Error('Only a placement request draft can be fanned out')
+  if (draft.status !== 'pending') throw new Error(`Draft is ${draft.status}, not pending`)
+  const targets = (await store.dispatchesForDraft(draftId)).filter(d => d.status === 'drafted')
+  if (targets.length === 0) throw new Error('No dispatch is waiting on that draft')
+  const inserted = await store.insert<{ id: string }>('ai_drafts', cloneRows(draft, targets, text))
+  const clones = pairClones(targets, inserted)
+  for (const c of clones) await store.patch('placement_dispatches', `id=eq.${c.dispatch_id}`, { ai_draft_id: c.draft_id })
+  await store.patchNoTs('ai_drafts', `id=eq.${draftId}`, { status: 'superseded' })
+  const d = targets[0]
+  await store.log({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, kind: 'info', actor,
+    text: `Request approved for ${clones.length} insurer${clones.length === 1 ? '' : 's'}: ${clones.map(c => c.insurer_name).join(', ')}`, detail: { ai_draft_id: draftId, clone_ids: clones.map(c => c.draft_id) } })
+  return { clones }
 }
 
 // ── Inbound ─────────────────────────────────────────────────────────────────────────────────

@@ -116,11 +116,15 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
         {data && placements.map(p => {
           const positions = data.positions.filter(x => x.line.placement_id === p.id)
           const busy = busyFor === p.id
+          const byAgent = p.created_by === 'agent'
+          // Still the agent's proposal while nothing has gone to an insurer: Dismiss stands in for Close.
+          const proposal = byAgent && p.status === 'open' && positions.every(x => x.dispatches.every(d => d.dispatch.status === 'drafted'))
           return (
             <div key={p.id} className="py-5 first:pt-0" style={{ borderBottom: '1px solid #e8eaed' }}>
               <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
                 <div className="min-w-0">
                   <span className="block text-[15px] font-medium leading-tight" style={{ color: INK }}>{p.title}</span>
+                  {byAgent && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>Proposed by the agent</span>}
                   <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>
                     {STATUS_WORD[p.status]}
                     {p.inception_date && ` · Inception ${fmtDate(p.inception_date)}`}
@@ -130,7 +134,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {p.status !== 'closed' && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => emailClient(p)}>Email client</Btn>}
                   {(p.status === 'open' || p.status === 'presented') && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => patchStatus(p, 'bound')}>Mark bound</Btn>}
-                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => patchStatus(p, 'closed')}>Close</Btn>}
+                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
                 </div>
               </div>
               {errors[p.id] && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{errors[p.id]}</p>}
