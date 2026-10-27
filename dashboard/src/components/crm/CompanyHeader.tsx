@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { FolderOpen, ListChecks, MailCheck, MoreHorizontal, Pencil, Pin, Sparkles } from 'lucide-react'
+import { FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin, Sparkles } from 'lucide-react'
 import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -102,8 +102,9 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
     <div className="mb-8">
       <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
 
-      <div className="mt-3 flex items-end justify-between gap-6 flex-wrap">
-        <div className="min-w-0 flex-1">
+      {/* Name and stage row take the full width; the actions sit on their own row beneath. */}
+      <div className="mt-3 flex flex-col gap-4">
+        <div className="min-w-0">
           <h1 className="m-0 text-[28px] sm:text-[30px] font-medium tracking-[-0.02em] leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis min-w-0" title={company.name} style={{ color: INK }}>{company.name}</h1>
 
           <div className="mt-3 flex items-center gap-x-3 gap-y-2 flex-wrap text-[14px]" style={{ color: MUTED }}>
@@ -152,16 +153,22 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
         </div>
 
         {/* Three actions: drafts (only when some wait), Ask AI, and a More menu for the rest. */}
-        <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           {draftsCount !== null && draftsCount > 0 && (
             <Btn level="secondary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
           )}
           <Btn level="primary" className={ACTION_BTN} onClick={onAskAi}><Sparkles size={14} /> Ask AI</Btn>
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Btn level="tertiary" className="h-10 w-10 px-0 justify-center rounded-[10px]" aria-label="More actions" title="More actions" loading={opening}>
-                {!opening && <MoreHorizontal size={18} />}
-              </Btn>
+            {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
+            <DropdownMenuTrigger
+              type="button"
+              aria-label="More actions"
+              title="More actions"
+              disabled={opening}
+              className="inline-flex items-center justify-center h-10 w-10 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ color: INK }}
+            >
+              {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e8eaed] bg-white p-1.5 shadow-[0_12px_32px_rgba(32,33,36,0.12)]">
               <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>

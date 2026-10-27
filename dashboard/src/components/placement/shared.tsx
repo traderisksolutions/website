@@ -59,6 +59,6 @@ export function SpecFields({ value, onChange, compact }: { value: Spec; onChange
   )
 }
 
-/** The dialog shell shared by the placement dialogs: full-width on a phone, capped on desktop. */
+/** The dialog shell shared by the placement dialogs: full-width on a phone, 640px on desktop, centred. */
 // The app scales its root with body { zoom: var(--ui-zoom) }, so viewport units are divided by it here.
-export const dialogCls = 'w-[calc((100vw-24px)/var(--ui-zoom))] max-w-[720px] max-h-[calc(92vh/var(--ui-zoom))] overflow-y-auto overflow-x-hidden [&>*]:min-w-0'
+export const dialogCls = 'w-[calc((100vw-24px)/var(--ui-zoom))] max-w-[640px] max-h-[calc(92vh/var(--ui-zoom))] overflow-y-auto overflow-x-hidden [&>*]:min-w-0'

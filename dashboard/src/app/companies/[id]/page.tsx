@@ -52,7 +52,7 @@ const TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'policies', label: 'Policies' },
   { key: 'quotes',   label: 'Quotes'   },
-  { key: 'members',  label: 'Members'  },
+  { key: 'members',  label: 'Employees' },
   { key: 'payments', label: 'Finance'  },
   { key: 'threads',  label: 'Threads'  },
   { key: 'log',      label: 'Log'      },
@@ -60,7 +60,7 @@ const TABS = [
 ] as const
 type Tab = typeof TABS[number]['key']
 /** Older links still name the tabs that were folded or renamed. */
-const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies' }
+const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies', employees: 'members' }
 const EMPTY_BUNDLE: PlacementData = { bundle: { placements: [], lines: [], rounds: [], dispatches: [], quotes: [], log: [] }, positions: [] }
 const EMPTY_DETAIL: Detail = { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }
 
