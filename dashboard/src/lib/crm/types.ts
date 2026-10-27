@@ -224,6 +224,8 @@ export interface CaseRow {
 export interface CompanyThread {
   id: string
   subject: string | null
+  /** Housekeeping agent's short title; display via threadTitle() in ./subject. */
+  display_subject: string | null
   snippet: string | null
   category: string | null
   status: string

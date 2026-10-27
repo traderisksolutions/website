@@ -6,6 +6,8 @@ export type Lead = {
   topic: string | null; details: string | null; message: string | null
   page_url: string | null; status: string; notes?: string | null
   subject?: string | null
+  /** Housekeeping agent's short title (email_threads.display_subject); show via threadTitle(). */
+  display_subject?: string | null
   snippet?: string | null
   /** Direction of the newest message, from the conversations API — "inbound" means the client
    *  wrote last and nobody has answered. */
@@ -51,7 +53,7 @@ export type RealMsg = {
 
 export type ThreadState = {
   loading: boolean
-  thread:  { id: string; subject: string | null; status: string; last_message_at: string | null; message_count: number } | null
+  thread:  { id: string; subject: string | null; display_subject?: string | null; status: string; last_message_at: string | null; message_count: number } | null
   messages: RealMsg[]
   error:    string | null
 }

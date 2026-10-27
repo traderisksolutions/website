@@ -16,6 +16,7 @@ import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { waitUntil } from '@vercel/functions'
 import { internalHeaders } from '@/lib/api-gate/internal'
 import { shouldAutoPlace, AUTO_PLACE_CONFIDENCE } from '@/lib/placement/auto'
+import { titleThreadIfNeeded } from '@/lib/crm/thread-title'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
     const msg  = mRes.ok ? (await mRes.json())[0] : null
     const text = `${msg?.subject ?? ''}\n\n${(msg?.body_text ?? '').slice(0, 4000)}`.trim()
     if (!text) return NextResponse.json({ ok: true, skipped: 'no content' })
+
+    // Housekeeping title (email_threads.display_subject): written when the thread has none or
+    // the subject moved. Deferred so it never holds classification; its own try/catch inside.
+    waitUntil(titleThreadIfNeeded(thread_id).catch(e => void logError({ source: 'internal', feature: 'thread_title', message: String(e), threadId: thread_id })))
 
     const prompt = `Classify this inbound email to a Singapore insurance broker into exactly ONE category:
 - "group_benefits": a request to quote, renew or review GROUP EMPLOYEE BENEFITS — group hospital & surgical (GHS), term life (GTL), critical illness, personal accident, outpatient GP/specialist, dental, foreign worker medical — usually with an employee list or census. Takes priority over "rfq" and "renewal" when the cover is employee benefits.

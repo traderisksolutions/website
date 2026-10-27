@@ -4,19 +4,26 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { FilePlus } from 'lucide-react'
 import { SectionCard, Empty, Spinner, Btn } from '@/components/crm/primitives'
-import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow } from '@/components/ui/register'
 import { fmtDate, fmtRelative } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
 import type { CompanyThread } from '@/lib/crm/types'
-import type { DispatchPosition, LinePosition, Placement, PlacementBundle, PlacementLine, PlacementStatus, Spec } from '@/lib/placement/types'
+import type { DispatchPosition, LinePosition, Placement, PlacementBundle, PlacementLine, PlacementQuote, PlacementStatus, Spec } from '@/lib/placement/types'
 import type { PolicyView } from '@/components/policies/types'
 import { NewPlacementDialog } from './NewPlacementDialog'
 import { NewRoundDialog } from './NewRoundDialog'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
-const LINE_COLS = 9
+/** Line · Round · Insurer · Contact · Status · Premium · Limit · Valid until · Last contact · Thread · action */
+const COLS = 11
+/** A button inside the dense grid or the placement line: 22px tall so the row stays 34px. */
+const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
+const CONTACT_MAX = 36
+
+const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
+const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
 
 /** Where one insurer stands on one line, in words. Chase due outranks the plain sent state. */
 function dispatchWord(dp: DispatchPosition): string {
@@ -33,16 +40,20 @@ function dispatchWord(dp: DispatchPosition): string {
   }
 }
 
-const later = (a: string | null, b: string | null) => (!a ? b : !b ? a : a > b ? a : b)
-
 type RoundTarget = { placementId: string; line: PlacementLine; currentSpec: Spec; currentContactIds: string[]; prefill?: { spec: Spec; source_log_id: string } }
 
 /** The insurer contacts asked in the line's current round. */
 const contactsAsked = (pos: LinePosition) => pos.dispatches.map(d => d.dispatch.insurer_contact_id).filter((id): id is string => !!id)
 
+const lineLabel = (line: PlacementLine) => line.label ?? productLineLabel(line.product_line)
+
+/** Muted one-line text in a cell. */
+const Muted = ({ children }: { children: React.ReactNode }) => <span className="text-[13px]" style={{ color: MUTED }}>{children}</span>
+
 /**
  * Placements for this client: every policy asked for, every insurer asked, and what each one
- * said. The log lives on the Log tab; drafts to approve open from the page header.
+ * said, as one dense grid per placement. The log lives on the Log tab; drafts to approve open
+ * from the page header.
  */
 export function PlacementPanel({ companyId, companyName, threads, data, policies, onChanged, onOpenDrafts }: {
   companyId: string
@@ -105,6 +116,26 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
     }
   }
 
+  const openNewRound = (p: Placement, pos: LinePosition) =>
+    setRound({ placementId: p.id, line: pos.line, currentSpec: pos.round?.spec ?? pos.line.spec, currentContactIds: contactsAsked(pos) })
+  const openPendingRound = (p: Placement, pos: LinePosition) => pos.pendingChange && setRound({
+    placementId: p.id, line: pos.line, currentSpec: pos.round?.spec ?? pos.line.spec, currentContactIds: contactsAsked(pos),
+    prefill: { spec: ((pos.pendingChange.detail as { spec?: Spec })?.spec ?? {}), source_log_id: pos.pendingChange.id },
+  })
+
+  /** The action cell: Chosen in words, Choose as a button, nothing when the quote cannot be picked. */
+  const actionCell = (p: Placement, policy: PolicyView | null, q: PlacementQuote | null) => {
+    const chosen = !!q && (q.status === 'selected' || (!!policy?.chosen_quote_id && policy.chosen_quote_id === q.id))
+    return (
+      <RegisterCell last align="right">
+        {q && chosen && <span className="text-[13px]" style={{ color: INK }}>Chosen</span>}
+        {q && !chosen && policy && q.status !== 'not_chosen' && (
+          <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busyFor !== null} loading={busyFor === q.id} onClick={() => choose(p, policy, q.id)}>Choose</Btn>
+        )}
+      </RegisterCell>
+    )
+  }
+
   return (
     <>
       <SectionCard
@@ -120,30 +151,29 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
           // Still the agent's proposal while nothing has gone to an insurer: Dismiss stands in for Close.
           const proposal = byAgent && p.status === 'open' && positions.every(x => x.dispatches.every(d => d.dispatch.status === 'drafted'))
           return (
-            <div key={p.id} className="py-5 first:pt-0" style={{ borderBottom: '1px solid #e8eaed' }}>
-              <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                <div className="min-w-0">
-                  <span className="block text-[15px] font-medium leading-tight" style={{ color: INK }}>{p.title}</span>
-                  {byAgent && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>Proposed by the agent</span>}
-                  <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>
-                    {STATUS_WORD[p.status]}
-                    {p.inception_date && ` · Inception ${fmtDate(p.inception_date)}`}
-                    {p.client_thread_id && <> · <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline" style={{ color: INK }}>Client thread</Link></>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => emailClient(p)}>Email client</Btn>}
-                  {(p.status === 'open' || p.status === 'presented') && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => patchStatus(p, 'bound')}>Mark bound</Btn>}
-                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
-                </div>
+            <div key={p.id} className="py-3 first:pt-0 border-b border-[#e8eaed] last:border-b-0">
+              {/* One 24px line: title · status · inception · client thread · origin, actions on the right. */}
+              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-[12.5px] whitespace-nowrap" style={{ color: MUTED }}>
+                <span className="text-[13px] font-medium truncate min-w-0" style={{ color: INK }} title={p.title}>{p.title}</span>
+                <span>· {STATUS_WORD[p.status]}</span>
+                {p.inception_date && <span>· Inception {fmtDate(p.inception_date)}</span>}
+                {p.client_thread_id && <span>· <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline" style={{ color: INK }}>Client thread</Link></span>}
+                {byAgent && <span>· Proposed by the agent</span>}
+                <span className="ml-auto flex items-center gap-1 shrink-0">
+                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => emailClient(p)}>Email client</Btn>}
+                  {(p.status === 'open' || p.status === 'presented') && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'bound')}>Mark bound</Btn>}
+                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
+                </span>
               </div>
-              {errors[p.id] && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{errors[p.id]}</p>}
+              {errors[p.id] && <p className="text-[12.5px] m-0 mt-1" style={{ color: ERROR }}>{errors[p.id]}</p>}
 
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : (
-                <Register label={`${p.title} lines`} minWidth={1160}>
+                <Register label={`${p.title} lines`} minWidth={1180} dense className="mt-1.5">
                   <RegisterHead>
                     <RegisterTh first>Line</RegisterTh>
+                    <RegisterTh align="right">Round</RegisterTh>
                     <RegisterTh>Insurer</RegisterTh>
+                    <RegisterTh>Contact</RegisterTh>
                     <RegisterTh>Status</RegisterTh>
                     <RegisterTh>Premium</RegisterTh>
                     <RegisterTh>Limit</RegisterTh>
@@ -155,75 +185,67 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   <tbody>
                     {positions.map(pos => {
                       const policy = policyForLine(pos.line)
-                      const lineCell = (
-                        <LineCell
-                          pos={pos}
-                          onNewRound={() => setRound({ placementId: p.id, line: pos.line, currentSpec: pos.round?.spec ?? pos.line.spec, currentContactIds: contactsAsked(pos) })}
-                          onOpenPending={() => pos.pendingChange && setRound({
-                            placementId: p.id, line: pos.line, currentSpec: pos.round?.spec ?? pos.line.spec, currentContactIds: contactsAsked(pos),
-                            prefill: { spec: ((pos.pendingChange.detail as { spec?: Spec })?.spec ?? {}), source_log_id: pos.pendingChange.id },
-                          })}
-                        />
+                      const label = lineLabel(pos.line)
+                      const roundNo = pos.roundNo > 0 ? pos.roundNo : '—'
+                      const asked = pos.dispatches.length + pos.engineQuotes.length
+                      const groupRow = (
+                        <LineGroupRow key={`g:${pos.line.id}`} pos={pos} label={label} asked={asked}
+                          onNewRound={() => openNewRound(p, pos)} onOpenPending={() => openPendingRound(p, pos)} />
                       )
-                      if (pos.dispatches.length === 0 && pos.engineQuotes.length === 0) {
-                        return (
+                      if (asked === 0) {
+                        return [groupRow, (
                           <RegisterRow key={pos.line.id}>
-                            <RegisterCell first nowrap={false}>{lineCell}</RegisterCell>
-                            <RegisterCell colSpan={LINE_COLS - 1} last><span className="text-[14px]" style={{ color: MUTED }}>No insurer on file for this line</span></RegisterCell>
+                            <RegisterCell first primary={label} title={label} />
+                            <RegisterCell align="right" primary={roundNo} />
+                            <RegisterCell colSpan={COLS - 2} last><Muted>No insurer asked yet</Muted></RegisterCell>
                           </RegisterRow>
-                        )
+                        )]
                       }
                       // Rate-engine quotes first (employment benefits tiers A and B), then the insurers asked by email.
                       const engineRows = pos.engineQuotes.map((q, i) => {
-                        const chosen = q.status === 'selected' || (!!policy?.chosen_quote_id && policy.chosen_quote_id === q.id)
+                        const plan = q.plan_label ?? 'Rate table'
                         return (
                           <RegisterRow key={q.id}>
-                            <RegisterCell first nowrap={false}>{i === 0 ? lineCell : null}</RegisterCell>
-                            <RegisterCell primary={q.insurer_name} secondary={q.plan_label ? (q.plan_label.length > 44 ? q.plan_label.slice(0, 42) + '…' : q.plan_label) : 'Rate table'} />
-                            <RegisterCell><span className="text-[14px]" style={{ color: INK }}>Priced</span></RegisterCell>
+                            <RegisterCell first primary={i === 0 ? label : ''} title={i === 0 ? label : undefined} />
+                            <RegisterCell align="right" primary={roundNo} />
+                            <RegisterCell primary={q.insurer_name} />
+                            <RegisterCell title={plan}><Muted>{clip(plan, CONTACT_MAX)}</Muted></RegisterCell>
+                            <RegisterCell primary="Priced" />
                             <RegisterCell primary={q.premium_text ?? '—'} />
                             <RegisterCell primary={q.limit_text ?? '—'} />
                             <RegisterCell primary={q.valid_until ? fmtDate(q.valid_until) : '—'} />
                             <RegisterCell primary={fmtDate(q.created_at)} />
-                            <RegisterCell><span className="text-[14px]" style={{ color: MUTED }}>Rate table</span></RegisterCell>
-                            <RegisterCell last align="right">
-                              {chosen && <span className="text-[14px]" style={{ color: INK }}>Chosen</span>}
-                              {!chosen && policy && q.status !== 'not_chosen' && (
-                                <Btn size="xs" level="tertiary" disabled={busyFor !== null} loading={busyFor === q.id} onClick={() => choose(p, policy, q.id)}>Choose</Btn>
-                              )}
-                            </RegisterCell>
+                            <RegisterCell><Muted>Rate table</Muted></RegisterCell>
+                            {actionCell(p, policy, q)}
                           </RegisterRow>
                         )
                       })
                       const offset = pos.engineQuotes.length
-                      return [...engineRows, ...pos.dispatches.map((dp, i0) => {
+                      const dispatchRows = pos.dispatches.map((dp, i0) => {
                         const i = i0 + offset
                         const q = dp.quote
                         const last = later(dp.dispatch.last_inbound_at, dp.dispatch.last_outbound_at)
-                        const chosen = !!q && (q.status === 'selected' || (!!policy?.chosen_quote_id && policy.chosen_quote_id === q.id))
                         return (
                           <RegisterRow key={dp.dispatch.id}>
-                            <RegisterCell first nowrap={false}>{i === 0 ? lineCell : null}</RegisterCell>
-                            <RegisterCell primary={dp.dispatch.insurer_name} secondary={dp.dispatch.to_email} />
-                            <RegisterCell><span className="text-[14px]" style={{ color: INK }}>{dispatchWord(dp)}</span></RegisterCell>
+                            <RegisterCell first primary={i === 0 ? label : ''} title={i === 0 ? label : undefined} />
+                            <RegisterCell align="right" primary={roundNo} />
+                            <RegisterCell primary={dp.dispatch.insurer_name} />
+                            <RegisterCell title={dp.dispatch.to_email}><Muted>{clip(dp.dispatch.to_email, CONTACT_MAX)}</Muted></RegisterCell>
+                            <RegisterCell primary={dispatchWord(dp)} />
                             <RegisterCell primary={q?.premium_text ? `${q.premium_text}${q.needs_review ? ' · check' : ''}` : '—'} />
                             <RegisterCell primary={q?.limit_text ?? '—'} />
                             <RegisterCell primary={q?.valid_until ? fmtDate(q.valid_until) : '—'} />
                             <RegisterCell primary={last ? fmtDate(last) : '—'} />
                             <RegisterCell>
                               {dp.threadHref
-                                ? <Link href={dp.threadHref} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
-                                : <span className="text-[14px]" style={{ color: MUTED }}>—</span>}
+                                ? <Link href={dp.threadHref} className="text-[13px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
+                                : <Muted>—</Muted>}
                             </RegisterCell>
-                            <RegisterCell last align="right">
-                              {q && chosen && <span className="text-[14px]" style={{ color: INK }}>Chosen</span>}
-                              {q && !chosen && policy && q.status !== 'not_chosen' && (
-                                <Btn size="xs" level="tertiary" disabled={busyFor !== null} loading={busyFor === q.id} onClick={() => choose(p, policy, q.id)}>Choose</Btn>
-                              )}
-                            </RegisterCell>
+                            {actionCell(p, policy, q)}
                           </RegisterRow>
                         )
-                      })]
+                      })
+                      return [groupRow, ...engineRows, ...dispatchRows]
                     })}
                   </tbody>
                 </Register>
@@ -250,25 +272,27 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   )
 }
 
-/** The identity cell of a line: label, round and limit, the agent's next step, a pending client change. */
-function LineCell({ pos, onNewRound, onOpenPending }: { pos: LinePosition; onNewRound: () => void; onOpenPending: () => void }) {
+/**
+ * The line's group row, one line tall: label · round · limit · quoted of asked, the agent's next
+ * step in muted text, and on the right New round plus Open round when a client change is waiting.
+ */
+function LineGroupRow({ pos, label, asked, onNewRound, onOpenPending }: {
+  pos: LinePosition; label: string; asked: number; onNewRound: () => void; onOpenPending: () => void
+}) {
   const limit = pos.round?.spec?.limit ?? pos.line.spec?.limit
+  const summary = [label, pos.roundNo > 0 ? `round ${pos.roundNo}` : 'no round', limit ? `limit ${limit}` : null, `${pos.quotedCount} of ${asked} quoted`].filter(Boolean).join(' · ')
   return (
-    <div className="flex flex-col gap-1">
-      <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }}>{pos.line.label ?? productLineLabel(pos.line.product_line)}</span>
-      <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>
-        {pos.roundNo > 0 ? `Round ${pos.roundNo}` : 'No round'}
-        {limit && ` · limit ${limit}`}
-      </span>
-      {pos.line.next_step && <span className="block text-[12.5px] whitespace-normal" style={{ color: MUTED }}>{pos.line.next_step}</span>}
-      {pos.pendingChange && (
-        <span className="block text-[12.5px] whitespace-normal" style={{ color: INK }}>
-          {pos.pendingChange.text}
-          {' '}
-          <Btn level="tertiary" size="xs" className="h-6 px-1.5 align-middle" onClick={onOpenPending}>Open round</Btn>
+    <RegisterGroupRow colSpan={COLS}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="truncate shrink-0 max-w-[60%]" title={summary}>{summary}</span>
+        {pos.line.next_step && <span className="font-normal truncate min-w-0" style={{ color: MUTED }} title={pos.line.next_step}>{pos.line.next_step}</span>}
+        <span className="ml-auto flex items-center gap-1 shrink-0">
+          {pos.pendingChange && (
+            <Btn size="xs" level="tertiary" className={ROW_BTN} title={pos.pendingChange.text} onClick={onOpenPending}>Open round (client change)</Btn>
+          )}
+          <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>
         </span>
-      )}
-      <span className="block"><Btn level="tertiary" size="xs" className="h-7 px-2 -ml-2" onClick={onNewRound}>New round</Btn></span>
-    </div>
+      </div>
+    </RegisterGroupRow>
   )
 }

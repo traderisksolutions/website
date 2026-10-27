@@ -32,11 +32,11 @@ export async function GET(req: NextRequest) {
     // 1. Fetch all threads ordered by last activity
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
     type ThreadRow = {
-      id: string; subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
+      id: string; subject: string | null; display_subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
       company_id: string | null; companies: { id: string; name: string; owner_email?: string | null } | null
     }
     const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
+      `${SB_URL}/rest/v1/email_threads?select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     const include = req.nextUrl.searchParams.get('include')
     if (include && UUID.test(include) && !threads.some(t => t.id === include)) {
       const one = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&limit=1`,
+        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&limit=1`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
       const rows: ThreadRow[] = one.ok ? await one.json() : []
@@ -144,6 +144,7 @@ export async function GET(req: NextRequest) {
         created_at:       t.last_message_at,
         source:           'email' as const,
         subject:          t.subject,
+        display_subject:  t.display_subject ?? null,
         snippet:          t.snippet,
         first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
         last_name:        contact?.last_name  ?? null,

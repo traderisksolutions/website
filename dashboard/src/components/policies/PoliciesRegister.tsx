@@ -12,7 +12,12 @@ import type { PlacementBundle, PlacementRound } from '@/lib/placement/types'
 import { callApi, errText, dialogCls, INK, MUTED, ERROR } from '@/components/placement/shared'
 import { fmtAmount, lifecycleWord, type PolicyView, type SpineQuote } from './types'
 
-const COLS = 8
+/** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
+const COLS = 9
+/** A button inside the dense grid: 22px tall so the row stays 34px. */
+const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
+const PLAN_MAX = 36
+const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 
 /**
  * The company's policies: one row per line of cover, from first quote to lapse. A row opens to
@@ -61,9 +66,10 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
         {!policies && <Spinner label="Loading policies…" />}
         {policies && policies.length === 0 && <Empty compact>No policies on file.</Empty>}
         {policies && policies.length > 0 && (
-          <Register label="Policies" minWidth={1100}>
+          <Register label="Policies" minWidth={1100} dense>
             <RegisterHead>
               <RegisterTh first>Line</RegisterTh>
+              <RegisterTh>Policy no.</RegisterTh>
               <RegisterTh>Insurer</RegisterTh>
               <RegisterTh align="right">Premium</RegisterTh>
               <RegisterTh>Period</RegisterTh>
@@ -79,15 +85,17 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                 const premium = p.bound_premium ?? p.billed ?? p.premium
                 const period = p.start_date || p.end_date ? `${fmtDate(p.start_date)} – ${fmtDate(p.end_date)}` : '—'
                 const line = p.label ?? p.class_of_insurance ?? (p.product_line ? productLineLabel(p.product_line) : 'Policy')
-                const under = [p.class_of_insurance && p.class_of_insurance !== line ? p.class_of_insurance : null, p.product_line ? productLineLabel(p.product_line) : null, p.policy_number].filter(Boolean).join(' · ')
+                // Class and product line sit behind the Line cell's title; the policy number has its own column.
+                const under = [line, p.class_of_insurance && p.class_of_insurance !== line ? p.class_of_insurance : null, p.product_line ? productLineLabel(p.product_line) : null].filter(Boolean).join(' · ')
                 const canClose = !['closed', 'declined', 'lapsed'].includes(p.lifecycle)
                 return (
                   <PolicyRows key={p.id} expanded={expanded} onToggle={() => setOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
                     row={
                       <>
-                        <RegisterCell first identityWidth={280} primary={line} secondary={under || undefined} />
+                        <RegisterCell first primary={line} title={under} />
+                        <RegisterCell primary={p.policy_number ?? '—'} />
                         <RegisterCell primary={p.insurer ?? '—'} />
-                        <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} secondary={p.bound_premium == null && p.billed != null ? 'billed' : undefined} />
+                        <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
                         <RegisterCell align="right" primary={p.debitNoteCount} />
@@ -96,22 +104,23 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                       </>
                     }
                     detail={
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[13px]" style={{ color: MUTED }}>{quotes.length === 0 ? 'No quotes yet' : `${quotes.length} quote${quotes.length === 1 ? '' : 's'}`}</span>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 flex-wrap min-h-6">
+                          <span className="text-[12.5px]" style={{ color: MUTED }}>{quotes.length === 0 ? 'No quotes yet' : `${quotes.length} quote${quotes.length === 1 ? '' : 's'}`}</span>
                           <span className="ml-auto flex items-center gap-1.5 flex-wrap">
-                            {p.lifecycle === 'bound' && <Btn size="xs" level="secondary" disabled={busy === p.id} onClick={e => { e.stopPropagation(); setLiveFor(p) }}>Mark live</Btn>}
+                            {p.lifecycle === 'bound' && <Btn size="xs" level="secondary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); setLiveFor(p) }}>Mark live</Btn>}
                             {canClose && p.lifecycle !== 'bound' && p.lifecycle !== 'live' && p.lifecycle !== 'renewal_due' && (
-                              <Btn size="xs" level="tertiary" disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'declined') }}>Declined</Btn>
+                              <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'declined') }}>Declined</Btn>
                             )}
-                            {canClose && <Btn size="xs" level="tertiary" disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'closed') }}>Close</Btn>}
+                            {canClose && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'closed') }}>Close</Btn>}
                           </span>
                         </div>
-                        {errors[p.id] && <p className="text-[13px] m-0" style={{ color: ERROR }}>{errors[p.id]}</p>}
+                        {errors[p.id] && <p className="text-[12.5px] m-0" style={{ color: ERROR }}>{errors[p.id]}</p>}
                         {quotes.length > 0 && (
-                          <Register label={`${line} quotes`} minWidth={880}>
+                          <Register label={`${line} quotes`} minWidth={960} dense>
                             <RegisterHead>
                               <RegisterTh first>Insurer</RegisterTh>
+                              <RegisterTh>Plan</RegisterTh>
                               <RegisterTh align="right">Round</RegisterTh>
                               <RegisterTh align="right">Premium</RegisterTh>
                               <RegisterTh>Limit</RegisterTh>
@@ -125,21 +134,22 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                                 const chosen = q.id === p.chosen_quote_id || q.status === 'selected'
                                 return (
                                   <RegisterRow key={q.id}>
-                                    <RegisterCell first identityWidth={220} primary={q.insurer_name} secondary={q.plan_label ?? undefined} />
+                                    <RegisterCell first primary={q.insurer_name} title={q.insurer_name} />
+                                    <RegisterCell title={q.plan_label ?? undefined}><span className="text-[13px]" style={{ color: MUTED }}>{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
                                     <RegisterCell align="right" primary={rounds.get(q.round_id)?.round_no ?? '—'} />
-                                    <RegisterCell align="right" primary={q.premium_amount != null ? fmtAmount(q.premium_amount, q.currency ?? 'SGD') : (q.premium_text ?? '—')} secondary={q.needs_review ? 'check' : undefined} />
+                                    <RegisterCell align="right" primary={`${q.premium_amount != null ? fmtAmount(q.premium_amount, q.currency ?? 'SGD') : (q.premium_text ?? '—')}${q.needs_review ? ' · check' : ''}`} />
                                     <RegisterCell primary={q.limit_text ?? '—'} />
                                     <RegisterCell primary={q.valid_until ? fmtDate(q.valid_until) : '—'} />
                                     <RegisterCell primary={q.source === 'rate_table' ? 'Rate table' : 'Insurer'} />
                                     <RegisterCell>
                                       {q.thread_id
-                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
-                                        : <span className="text-[14px]" style={{ color: MUTED }}>—</span>}
+                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-[13px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
+                                        : <span className="text-[13px]" style={{ color: MUTED }}>—</span>}
                                     </RegisterCell>
                                     <RegisterCell last align="right">
                                       {chosen
-                                        ? <span className="text-[14px]" style={{ color: INK }}>Chosen</span>
-                                        : <Btn size="xs" level="tertiary" disabled={busy !== null || q.status === 'not_chosen'} loading={busy === q.id} onClick={e => { e.stopPropagation(); void choose(p, q.id) }}>Choose</Btn>}
+                                        ? <span className="text-[13px]" style={{ color: INK }}>Chosen</span>
+                                        : <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy !== null || q.status === 'not_chosen'} loading={busy === q.id} onClick={e => { e.stopPropagation(); void choose(p, q.id) }}>Choose</Btn>}
                                     </RegisterCell>
                                   </RegisterRow>
                                 )
@@ -169,7 +179,7 @@ function PolicyRows({ row, detail, expanded, onToggle }: { row: React.ReactNode;
       <RegisterRow onClick={onToggle} selected={expanded}>{row}</RegisterRow>
       {expanded && (
         <tr style={{ borderBottom: '1px solid #e8eaed', background: '#fafafa' }}>
-          <td colSpan={COLS} className="px-6 py-4">{detail}</td>
+          <td colSpan={COLS} className="px-[10px] py-2">{detail}</td>
         </tr>
       )}
     </>

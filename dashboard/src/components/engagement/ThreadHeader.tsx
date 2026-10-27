@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import type { Lead } from './types'
 import { fullName } from './helpers'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
+import { cleanSubject } from '@/lib/crm/subject'
 
 /**
  * The reader header: subject, then who wrote, then one context line (company · type · state ·
@@ -26,8 +27,11 @@ const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim',
 const ICON_BTN = 'h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]'
 const MENU_ITEM = 'w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer inline-flex items-center gap-2 hover:bg-[#f8f9fa] no-underline'
 
-export function ThreadHeader({ subject, lead, needsReply, lastDirection, ownerName, onBack, onReply, onReplyAll, onAddTask, onDelete, deleting, contextOpen, onToggleContext }: {
+export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDirection, ownerName, onBack, onReply, onReplyAll, onAddTask, onDelete, deleting, contextOpen, onToggleContext }: {
+  /** Raw thread subject; kept in the heading's tooltip. */
   subject: string | null
+  /** Housekeeping agent's title (email_threads.display_subject). Shown first when set. */
+  displaySubject?: string | null
   lead: Lead
   needsReply: boolean
   lastDirection: 'inbound' | 'outbound' | null
@@ -57,6 +61,7 @@ export function ThreadHeader({ subject, lead, needsReply, lastDirection, ownerNa
   }, [menu])
 
   const contact = fullName(lead)
+  const heading = displaySubject?.trim() || (subject?.trim() ? cleanSubject(subject) : null) || contact
   const state = needsReply ? 'Awaiting your reply' : lastDirection === 'outbound' ? 'Awaiting client reply' : null
   const threadId = lead.thread_id ?? (lead.source === 'thread' ? lead.id : null)
   const type = lead.category ? TYPE_LABEL[lead.category] ?? lead.category : null
@@ -78,7 +83,7 @@ export function ThreadHeader({ subject, lead, needsReply, lastDirection, ownerNa
 
         <div className="flex items-start justify-between gap-x-5 gap-y-3 flex-wrap">
           <div className="min-w-0 flex-1 basis-[280px]">
-            <h1 className="m-0 text-[22px] font-medium leading-[1.25] tracking-[-0.02em] line-clamp-2" style={{ color: INK, textWrap: 'balance' }}>{subject ?? contact}</h1>
+            <h1 className="m-0 text-[22px] font-medium leading-[1.25] tracking-[-0.02em] line-clamp-2" style={{ color: INK, textWrap: 'balance' }} title={subject ?? undefined}>{heading}</h1>
             <p className="m-0 mt-2 text-[14px] truncate" style={{ color: BODY }}>
               {contact}{lead.email && <span style={{ color: FAINT }}> · {lead.email}</span>}
             </p>

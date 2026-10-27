@@ -11,6 +11,7 @@ import { EngagementComposePanel } from '@/components/engagement-agent/engagement
 import { extractEmail } from '@/components/engagement/helpers'
 import type { Lead, RealMsg } from '@/components/engagement/types'
 import type { CompanyThread } from '@/lib/crm/types'
+import { threadTitle } from '@/lib/crm/subject'
 
 /**
  * Reading and answering this company's mail without leaving its page.
@@ -144,9 +145,9 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
               {visible.map(t => (
                 <li key={t.id} className={cn('border-b border-[#e8eaed] last:border-b-0', selectedId === t.id ? 'bg-[#f1f3f4]' : 'hover:bg-[#f8f9fa]')}>
                   <div className="flex items-start gap-2 py-3 px-2">
-                    {onCombine && <input type="checkbox" className="mt-1.5 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} aria-label={`Select ${t.subject ?? 'thread'}`} />}
+                    {onCombine && <input type="checkbox" className="mt-1.5 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} aria-label={`Select ${threadTitle(t)}`} />}
                     <button onClick={() => openThread(t.id)} className="min-w-0 flex-1 text-left bg-transparent border-0 p-0 cursor-pointer">
-                      <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }}>{t.subject ?? '(no subject)'}</p>
+                      <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }} title={t.subject ?? undefined}>{threadTitle(t)}</p>
                       <p className="text-[12.5px] m-0 mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
                         {t.needsReply && <Chip>Awaiting reply</Chip>}
                         {t.category && <Chip className="capitalize">{t.category === 'group_benefits' ? 'Group benefits' : t.category}</Chip>}
@@ -173,7 +174,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
                     <button type="button" onClick={() => setSelectedId(null)} className="md:hidden inline-flex items-center gap-1 text-[13px] bg-transparent border-0 p-0 mb-1 cursor-pointer" style={{ color: MUTED }}>
                       <ArrowLeft size={12} /> All threads
                     </button>
-                    <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-snug" style={{ color: INK }}>{current.subject ?? '(no subject)'}</p>
+                    <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-snug" style={{ color: INK }} title={current.subject ?? undefined}>{threadTitle(current)}</p>
                     <p className="text-[13px] m-0 mt-0.5" style={{ color: MUTED }}>
                       {current.contact?.name ?? current.contact?.email ?? 'Unknown contact'} · {messages?.length ?? 0} message{(messages?.length ?? 0) === 1 ? '' : 's'}
                       {current.caseIds.length > 0 && <> · <Link href={`/nexus?case=${current.caseIds[0]}`} className="underline underline-offset-4" style={{ color: INK }}>in a case</Link></>}

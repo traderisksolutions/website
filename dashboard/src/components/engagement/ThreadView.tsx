@@ -322,7 +322,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   return (
     <div className="flex-1 flex min-w-0 overflow-hidden bg-white" style={{ color: INK }}>
       <EaWorkspaceColumn className="relative">
-        <ThreadHeader subject={thread?.subject ?? lead.subject ?? lead.topic ?? null} lead={lead} needsReply={needsReply} lastDirection={lastDirection} ownerName={ownerName}
+        <ThreadHeader subject={thread?.subject ?? lead.subject ?? lead.topic ?? null} displaySubject={thread?.display_subject ?? lead.display_subject ?? null} lead={lead} needsReply={needsReply} lastDirection={lastDirection} ownerName={ownerName}
           elevated={headerElevated} onBack={onBack} onReply={() => openComposer(false)} onReplyAll={() => openComposer(true)} onAddTask={() => setTaskOpen(true)}
           onDelete={handleDelete} deleting={deleting} contextOpen={contextOpen} onToggleContext={toggleContext} />
 

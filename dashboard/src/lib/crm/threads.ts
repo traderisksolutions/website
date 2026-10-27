@@ -8,7 +8,7 @@ import { personName } from './format'
 import type { CompanyThread } from './types'
 
 type ThreadRow = {
-  id: string; subject: string | null; snippet: string | null; category: string | null; status: string
+  id: string; subject: string | null; display_subject: string | null; snippet: string | null; category: string | null; status: string
   message_count: number; last_message_at: string | null; contact_id: string | null
   contacts: { id: string; first_name: string | null; last_name: string | null; email: string | null } | null
 }
@@ -16,7 +16,7 @@ type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'
 type SummaryRow = { thread_id: string; summary: string | null; next_action: string | null; created_at: string }
 type CaseLink = { thread_id: string; case_id: string }
 
-const THREAD_SELECT = 'id,subject,snippet,category,status,message_count,last_message_at,contact_id,contacts(id,first_name,last_name,email)'
+const THREAD_SELECT = 'id,subject,display_subject,snippet,category,status,message_count,last_message_at,contact_id,contacts(id,first_name,last_name,email)'
 
 export async function listCompanyThreads(companyId: string, threadIds?: string[]): Promise<CompanyThread[]> {
   const ids = threadIds ?? await getCompanyThreadIds(companyId)
@@ -47,7 +47,7 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
       const last = lastDir.get(t.id)
       const sum  = latestSummary.get(t.id)
       return {
-        id: t.id, subject: t.subject, snippet: t.snippet, category: t.category, status: t.status,
+        id: t.id, subject: t.subject, display_subject: t.display_subject ?? null, snippet: t.snippet, category: t.category, status: t.status,
         // email_threads.message_count is stale (0 everywhere), so count the real rows.
         message_count: counts.get(t.id) ?? 0, last_message_at: t.last_message_at,
         lastDirection: last?.direction ?? null,

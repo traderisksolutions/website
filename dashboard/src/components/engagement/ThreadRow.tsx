@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { fullName, timeAgo, leadNeedsReply } from './helpers'
+import { threadTitle } from '@/lib/crm/subject'
 
 /**
  * One conversation in the navigator. Grid `14px 1fr auto`: an ink dot when the thread needs a
@@ -29,7 +30,9 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
   const needs = leadNeedsReply(lead, threadState)
   const name = fullName(lead) || lead.email?.split('@')[0] || '—'
   const company = lead.companyName ?? lead.company ?? null
-  const subject = lead.subject ?? lead.topic ?? lead.snippet ?? '(no subject)'
+  // The housekeeping title, else the cleaned subject; the raw subject stays in the tooltip.
+  const hasSubject = !!(lead.display_subject?.trim() || lead.subject?.trim())
+  const subject = hasSubject ? threadTitle(lead) : (lead.topic ?? lead.snippet ?? '(no subject)')
   const timestamp = msgs.at(-1)?.sent_at ?? lead.created_at
   const last = msgs.at(-1)
   const state = needs ? 'Needs your reply' : (last?.direction === 'outbound' || lead.lastDirection === 'outbound') ? 'Awaiting client' : null
@@ -46,7 +49,7 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
       <span data-dot className="mt-[7px] w-2 h-2 rounded-full" style={{ background: needs ? INK : 'transparent' }} aria-hidden />
       <span className="min-w-0 text-[14px] font-medium leading-snug truncate">{name}</span>
       <span className="text-[12px] tabular-nums pt-0.5 whitespace-nowrap" style={{ color: FAINT }}>{timeAgo(timestamp)}</span>
-      <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: BODY }}>
+      <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: BODY }} title={lead.subject ?? undefined}>
         {company ? <><b className="font-medium" style={{ color: INK }}>{company}</b> · </> : null}{subject}
       </span>
       {density !== 'compact' && stateLine && (

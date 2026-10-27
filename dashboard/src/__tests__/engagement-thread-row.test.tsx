@@ -137,11 +137,18 @@ describe('EngagementThreadRow', () => {
 describe('ThreadRow (navigator)', () => {
   const dotOf = () => screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
 
-  it('renders sender, company and subject', () => {
+  it('renders sender, company and the cleaned subject, raw subject in the tooltip', () => {
     render(<ThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
     expect(screen.getByText('Alice Tan')).toBeInTheDocument()
     expect(screen.getByText('Acme Corp')).toBeInTheDocument()
-    expect(screen.getByText(/Re: Marine insurance quotation/)).toBeInTheDocument()
+    expect(screen.getByText(/Marine insurance quotation/)).toBeInTheDocument()
+    expect(screen.queryByText(/Re: Marine/)).not.toBeInTheDocument()
+    expect(screen.getByTitle('Re: Marine insurance quotation')).toBeInTheDocument()
+  })
+
+  it('shows the housekeeping title when the thread has one', () => {
+    render(<ThreadRow lead={{ ...baseLead, display_subject: 'Acme — marine cargo quotation' }} isActive={false} threadState={emptyThread} onClick={vi.fn()} />)
+    expect(screen.getByText(/Acme — marine cargo quotation/)).toBeInTheDocument()
   })
 
   it('shows an ink dot and "Needs your reply" when the last message is inbound', () => {

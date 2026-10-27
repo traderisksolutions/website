@@ -47,9 +47,12 @@ function props(over: Partial<Parameters<typeof ThreadHeader>[0]> = {}) {
 }
 
 describe('ThreadHeader', () => {
-  it('renders the subject as the heading and the contact with a faint email', () => {
+  it('renders the cleaned subject as the heading, keeps the raw subject in the tooltip, and shows the contact with a faint email', () => {
     render(<ThreadHeader {...props()} />)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('RE: (TRS) Sompo — AAS AV382 Cargo Insurance')
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveTextContent('Sompo — AAS AV382 Cargo Insurance')
+    expect(h1).not.toHaveTextContent('(TRS)')
+    expect(h1).toHaveAttribute('title', 'RE: (TRS) Sompo — AAS AV382 Cargo Insurance')
     expect(screen.getByText('Lily Cheng')).toBeInTheDocument()
     expect(screen.getByText('· lcheng@sompo-intl.com')).toBeInTheDocument()
   })
@@ -57,6 +60,11 @@ describe('ThreadHeader', () => {
   it('falls back to the contact name when there is no subject', () => {
     render(<ThreadHeader {...props({ subject: null })} />)
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Lily Cheng')
+  })
+
+  it('prefers the housekeeping title over the subject', () => {
+    render(<ThreadHeader {...props({ displaySubject: 'Sompo — cargo quotation (AV382)' })} />)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Sompo — cargo quotation (AV382)')
   })
 
   it('writes the context line in words: company link, type, state, owner', () => {

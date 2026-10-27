@@ -10,8 +10,9 @@ import { sbTry, inChunks, isInternal, isAutomated, bareEmail, displayNameFromAdd
 import { derivePayment }             from '@/lib/crm/payments'
 import { todaySGT, addDays }         from '@/lib/crm/format'
 import type { DebitNoteRow } from '@/lib/crm/types'
+import { threadTitle }               from '@/lib/crm/subject'
 
-type ThreadRow = { id: string; subject: string | null; company_id: string | null; contact_id: string | null; last_message_at: string | null; category: string | null; contacts: { company_id: string | null } | null }
+type ThreadRow = { id: string; subject: string | null; display_subject: string | null; company_id: string | null; contact_id: string | null; last_message_at: string | null; category: string | null; contacts: { company_id: string | null } | null }
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; sent_at: string }
 type PolicyRow = { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; end_date: string; customers: { company_id: string | null } | null }
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
     const totals = summariseAll(rows)
 
     const [threads, debitNotes, policies, unlinked, drafts] = await Promise.all([
-      sbTry<ThreadRow[]>(`email_threads?deleted_at=is.null&status=eq.active&select=id,subject,company_id,contact_id,last_message_at,category,contacts(company_id)&order=last_message_at.desc&limit=150`, []),
+      sbTry<ThreadRow[]>(`email_threads?deleted_at=is.null&status=eq.active&select=id,subject,display_subject,company_id,contact_id,last_message_at,category,contacts(company_id)&order=last_message_at.desc&limit=150`, []),
       sbTry<DebitNoteRow[]>(`debit_notes?status=in.(unpaid,partially_paid)&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at&order=payment_due_date.asc&limit=200`, []),
       sbTry<PolicyRow[]>(`policies?status=eq.active&end_date=gte.${today}&end_date=lte.${addDays(today, 60)}&select=id,policy_number,insurer,class_of_insurance,end_date,customers(company_id)&order=end_date.asc&limit=50`, []),
       sbTry<{ id: string }[]>(`email_threads?company_id=is.null&deleted_at=is.null&select=id&limit=1000`, []),
@@ -48,7 +49,7 @@ export async function GET(req: NextRequest) {
       const m = last.get(t.id)
       if (!m || m.direction !== 'inbound' || isInternal(m.from_address) || isAutomated(m.from_address)) return []
       const companyId = t.company_id ?? t.contacts?.company_id ?? null
-      return [{ threadId: t.id, subject: t.subject, category: t.category, companyId, companyName: companyId ? nameById.get(companyId) ?? null : null, from: displayNameFromAddress(m.from_address) ?? bareEmail(m.from_address), at: m.sent_at }]
+      return [{ threadId: t.id, subject: threadTitle(t), category: t.category, companyId, companyName: companyId ? nameById.get(companyId) ?? null : null, from: displayNameFromAddress(m.from_address) ?? bareEmail(m.from_address), at: m.sent_at }]
     }).slice(0, 25)
 
     const payments = debitNotes.map(d => derivePayment(d)).filter(d => d.outstanding > 0)

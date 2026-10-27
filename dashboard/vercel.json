@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/policy-position",
       "schedule": "30 17 * * 0"
+    },
+    {
+      "path": "/api/cron/thread-titles",
+      "schedule": "15 2 * * *"
     }
   ]
 }

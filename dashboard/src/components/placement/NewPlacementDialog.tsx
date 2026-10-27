@@ -7,6 +7,7 @@ import { Btn, Field, inputCls } from '@/components/crm/primitives'
 import { fmtDate } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import type { CompanyThread } from '@/lib/crm/types'
+import { threadTitle } from '@/lib/crm/subject'
 import type { Placement, PlacementLine, Spec } from '@/lib/placement/types'
 import { callApi, errText, dialogCls, selectCls, ProductLineSelect, SpecFields, INK, MUTED, ERROR } from './shared'
 import { ContactPicker } from './ContactPicker'
@@ -130,7 +131,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                 <select className={selectCls} value={threadId} onChange={e => setThreadId(e.target.value)}>
                   <option value="">None</option>
                   {sortedThreads.map(t => (
-                    <option key={t.id} value={t.id}>{(t.subject ?? '(no subject)').slice(0, 80)} · {fmtDate(t.last_message_at)}</option>
+                    <option key={t.id} value={t.id}>{threadTitle(t).slice(0, 80)} · {fmtDate(t.last_message_at)}</option>
                   ))}
                 </select>
               </Field>

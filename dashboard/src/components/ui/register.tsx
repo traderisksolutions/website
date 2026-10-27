@@ -1,5 +1,6 @@
 'use client'
 
+import { createContext, useContext } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -10,6 +11,9 @@ import { cn } from '@/lib/utils'
  * rows 16px tall-padded on a hairline; the first column frozen with an inset hairline; a cell is a
  * 15px medium primary line over a 12.5px muted secondary line; numbers right-aligned and tabular;
  * hover #f8f9fa; the selected row on a soft blue with a 3px ink bar. Status is words, never colour.
+ *
+ * `dense` (Quotes, Policies): 32px header at 12px, 34px rows at 13px, 10px cell padding, identity
+ * column 200px. One line per row; secondary text belongs in its own column or a title attr.
  */
 
 const INK = '#202124'
@@ -17,15 +21,21 @@ const MUTED = '#5f6368'
 const RULE = '#e8eaed'
 const SELECTED = '#eef3fc'
 
-export function Register({ children, label, minWidth = 720, maxHeight, className }: {
+const DenseContext = createContext(false)
+
+export function Register({ children, label, minWidth = 720, maxHeight, className, dense = false }: {
   children: React.ReactNode; label: string; minWidth?: number; maxHeight?: string; className?: string
+  /** Excel-like spacing for grids that must fit one screen. Read by every cell inside. */
+  dense?: boolean
 }) {
   return (
-    <div className={cn('rounded-[16px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
-      <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-        <table className="w-full border-collapse" style={{ minWidth }} aria-label={label}>{children}</table>
+    <DenseContext.Provider value={dense}>
+      <div className={cn('rounded-[16px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
+        <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
+          <table className="w-full border-collapse" style={{ minWidth }} aria-label={label}>{children}</table>
+        </div>
       </div>
-    </div>
+    </DenseContext.Provider>
   )
 }
 
@@ -37,21 +47,29 @@ export function RegisterHead({ children }: { children: React.ReactNode }) {
   )
 }
 
+/** Horizontal padding of a cell: 10px in a dense register, the card inset otherwise. */
+function cellPad(dense: boolean, first: boolean | undefined, last: boolean | undefined) {
+  if (dense) return cn('px-[10px]', first && 'sticky left-0 shadow-[inset_-1px_0_0_#e8eaed]')
+  return cn(first ? 'sticky left-0 pl-6 pr-3 shadow-[inset_-1px_0_0_#e8eaed]' : 'px-3', last && 'pr-5')
+}
+
 export function RegisterTh({ children, align = 'left', first, last, active, dir, onSort, hint, className, width }: {
   children?: React.ReactNode; align?: 'left' | 'right'; first?: boolean; last?: boolean
   active?: boolean; dir?: 'asc' | 'desc'; onSort?: () => void; hint?: string; className?: string; width?: number | string
 }) {
+  const dense = useContext(DenseContext)
   const Icon = active ? (dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  const size = dense ? 'h-8 text-[12px]' : 'h-11 text-[13px]'
   return (
     <th scope="col" aria-sort={onSort ? (active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={width ? { width } : undefined}
-      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-3 shadow-[inset_-1px_0_0_#e8eaed]' : 'px-3', last && 'pr-5', className)}>
+      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : 'text-left', first && 'z-30 bg-white', cellPad(dense, first, last), className)}>
       {onSort ? (
         <button type="button" onClick={onSort} title={hint}
-          className={cn('group inline-flex items-center gap-1.5 h-11 bg-transparent border-0 cursor-pointer text-[13px] whitespace-nowrap', align === 'right' && 'flex-row-reverse', active && 'font-medium')} style={{ color: active ? INK : MUTED }}>
+          className={cn('group inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer whitespace-nowrap', size, align === 'right' && 'flex-row-reverse', active && 'font-medium')} style={{ color: active ? INK : MUTED }}>
           {children}<Icon size={13} className={cn(active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
         </button>
       ) : (
-        <span className="inline-flex items-center h-11 text-[13px]" style={{ color: MUTED }} title={hint}>{children}</span>
+        <span className={cn('inline-flex items-center', size)} style={{ color: MUTED }} title={hint}>{children}</span>
       )}
     </th>
   )
@@ -71,21 +89,25 @@ export function RegisterRow({ children, selected, onClick, className, style }: {
 }
 
 /** A cell: `primary` over `secondary`, or free `children`. `first` freezes it as the row's identity column. */
-export function RegisterCell({ primary, secondary, children, align = 'left', first, last, selected, className, colSpan, title, nowrap = true, identityWidth = 260 }: {
+export function RegisterCell({ primary, secondary, children, align = 'left', first, last, selected, className, colSpan, title, nowrap = true, identityWidth }: {
   primary?: React.ReactNode; secondary?: React.ReactNode; children?: React.ReactNode; align?: 'left' | 'right'
   first?: boolean; last?: boolean; selected?: boolean; className?: string; colSpan?: number; title?: string; nowrap?: boolean
-  /** Width of the frozen identity block in px; wider when the table has few columns. */
+  /** Width of the frozen identity block in px; wider when the table has few columns. 260 by default, 200 when dense. */
   identityWidth?: number
 }) {
+  const dense = useContext(DenseContext)
+  const width = identityWidth ?? (dense ? 200 : 260)
   return (
     <td colSpan={colSpan} title={title}
-      className={cn('py-4 align-middle', align === 'right' && 'text-right', nowrap && 'whitespace-nowrap',
-        first ? cn('relative sticky left-0 z-10 pl-6 pr-3 shadow-[inset_-1px_0_0_#e8eaed]', selected ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]') : 'px-3', last && 'pr-5', className)}>
+      className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', align === 'right' && 'text-right', nowrap && 'whitespace-nowrap',
+        first && cn('relative z-10', selected ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]'), cellPad(dense, first, last), className)}>
       {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
-      <div className="min-w-0 max-w-full" style={first ? { width: identityWidth } : undefined}>
-        {primary !== undefined && <span className={cn('block leading-tight', first ? 'text-[15px] font-medium truncate' : 'text-[14px] tabular-nums')} style={{ color: INK }}>{primary}</span>}
-        {secondary !== undefined && <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{secondary}</span>}
+      <div className="min-w-0 max-w-full" style={first ? { width } : undefined}>
+        {primary !== undefined && (
+          <span className={cn('block leading-tight', first ? cn(dense ? 'text-[13px]' : 'text-[15px]', 'font-medium truncate') : cn(dense ? 'text-[13px]' : 'text-[14px]', 'tabular-nums'))} style={{ color: INK }}>{primary}</span>
+        )}
+        {secondary !== undefined && <span className={cn('block truncate', dense ? 'text-[12px]' : 'text-[12.5px] mt-0.5')} style={{ color: MUTED }}>{secondary}</span>}
         {children}
       </div>
     </td>
@@ -94,16 +116,18 @@ export function RegisterCell({ primary, secondary, children, align = 'left', fir
 
 /** A quiet divider row for grouped registers (Contacts by company): label, count, nothing else. */
 export function RegisterGroupRow({ children, colSpan, onClick, open }: { children: React.ReactNode; colSpan: number; onClick?: () => void; open?: boolean }) {
+  const dense = useContext(DenseContext)
   return (
     <tr onClick={onClick} aria-expanded={onClick ? open : undefined} className={cn(onClick && 'cursor-pointer hover:bg-[#f8f9fa]')} style={{ borderBottom: `1px solid ${RULE}`, background: '#fafafa' }}>
-      <td colSpan={colSpan} className="pl-6 pr-4 py-2 text-[13px] font-medium" style={{ color: '#3c4043' }}>{children}</td>
+      <td colSpan={colSpan} className={cn('font-medium', dense ? 'px-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: '#3c4043' }}>{children}</td>
     </tr>
   )
 }
 
 export function RegisterEmpty({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
+  const dense = useContext(DenseContext)
   return (
-    <tr><td colSpan={colSpan} className="py-16 text-center text-[15px]" style={{ color: MUTED }}>{children}</td></tr>
+    <tr><td colSpan={colSpan} className={cn('text-center', dense ? 'py-8 text-[13px]' : 'py-16 text-[15px]')} style={{ color: MUTED }}>{children}</td></tr>
   )
 }
 

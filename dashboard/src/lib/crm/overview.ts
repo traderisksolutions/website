@@ -10,6 +10,7 @@ import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
 import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from './format'
 import { STAGE_LABEL } from './types'
+import { threadTitle, cleanSubject } from './subject'
 import type { Alert, Company, CompanyOverview, LeftOff, PaymentSummary } from './types'
 
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
@@ -36,7 +37,7 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   // Replies
   const waiting = threads.filter(t => t.needsReply)
   for (const t of waiting.slice(0, 5)) {
-    alerts.push({ id: `reply-${t.id}`, kind: 'awaiting_reply', tone: 'amber', title: `Awaiting our reply: ${t.subject ?? '(no subject)'}`, detail: `${t.contact?.name ?? t.contact?.email ?? 'Client'} wrote ${fmtRelative(t.last_message_at)}`, href: `/engagement?lead=${t.id}`, at: t.last_message_at })
+    alerts.push({ id: `reply-${t.id}`, kind: 'awaiting_reply', tone: 'amber', title: `Awaiting our reply: ${threadTitle(t)}`, detail: `${t.contact?.name ?? t.contact?.email ?? 'Client'} wrote ${fmtRelative(t.last_message_at)}`, href: `/engagement?lead=${t.id}`, at: t.last_message_at })
   }
   if (waiting.length > 5) alerts.push({ id: 'reply-more', kind: 'awaiting_reply', tone: 'amber', title: `${waiting.length - 5} more thread${waiting.length - 5 === 1 ? '' : 's'} awaiting a reply`, detail: null, href: `/companies/${company.id}?tab=threads`, at: null })
 
@@ -60,8 +61,8 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   const outbound = lastMsgs.filter(m => m.direction === 'outbound').sort((a, b) => b.sent_at.localeCompare(a.sent_at))[0]
   const inbound  = lastMsgs.filter(m => m.direction === 'inbound').sort((a, b) => b.sent_at.localeCompare(a.sent_at))[0]
   const leftOff: LeftOff = {
-    lastOutbound: outbound ? { at: outbound.sent_at, by: displayNameFromAddress(outbound.from_address) ?? bareEmail(outbound.from_address), subject: outbound.subject, threadId: outbound.thread_id } : null,
-    lastInbound:  inbound  ? { at: inbound.sent_at,  from: displayNameFromAddress(inbound.from_address) ?? bareEmail(inbound.from_address), subject: inbound.subject, threadId: inbound.thread_id } : null,
+    lastOutbound: outbound ? { at: outbound.sent_at, by: displayNameFromAddress(outbound.from_address) ?? bareEmail(outbound.from_address), subject: outbound.subject ? cleanSubject(outbound.subject) : null, threadId: outbound.thread_id } : null,
+    lastInbound:  inbound  ? { at: inbound.sent_at,  from: displayNameFromAddress(inbound.from_address) ?? bareEmail(inbound.from_address), subject: inbound.subject ? cleanSubject(inbound.subject) : null, threadId: inbound.thread_id } : null,
     lastStageChange: audit[0] ? { at: audit[0].created_at, stage: STAGE_LABEL[(audit[0].new_value?.stage ?? company.stage) as keyof typeof STAGE_LABEL] ?? String(audit[0].new_value?.stage), by: audit[0].user_name } : null,
   }
 

@@ -6,9 +6,11 @@
 import { sbTry, inChunks, enc, displayNameFromAddress, bareEmail } from './db'
 import type { ActivityEvent, CaseRow, PaymentDerived, QuoteRow } from './types'
 import { fmtMoney } from './format'
+import { threadTitle, cleanSubject } from './subject'
 
 type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
 type AuditRow = { id: string; action: string; created_at: string; user_name: string | null; old_value: Record<string, unknown> | null; new_value: Record<string, unknown> | null }
+type ThreadTitleRow = { id: string; subject: string | null; display_subject: string | null }
 type DraftRow = { id: string; thread_id: string | null; status: string; generated_by: string | null; email_type: string | null; subject: string | null; created_at: string; sent_at: string | null }
 
 const DRAFT_SOURCE: Record<string, string> = { auto: 'Agent drafted a reply automatically', gemini: 'Agent drafted a reply', gdrive: 'Agent drafted a reply from the knowledge base', rag: 'Agent drafted a reply from the knowledge base', manual: 'Staff wrote a draft' }
@@ -21,7 +23,7 @@ export interface ActivityInputs {
 }
 
 export async function buildActivity(companyId: string, input: ActivityInputs, limit = 80): Promise<ActivityEvent[]> {
-  const [messages, audit, drafts] = await Promise.all([
+  const [messages, audit, drafts, threads] = await Promise.all([
     input.threadIds.length
       ? inChunks(input.threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=${limit}`, []))
       : Promise.resolve([] as MsgRow[]),
@@ -29,7 +31,11 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
     input.threadIds.length
       ? inChunks(input.threadIds, 100, c => sbTry<DraftRow[]>(`ai_drafts?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,status,generated_by,email_type,subject,created_at,sent_at&order=created_at.desc&limit=40`, []))
       : Promise.resolve([] as DraftRow[]),
+    input.threadIds.length
+      ? inChunks(input.threadIds, 100, c => sbTry<ThreadTitleRow[]>(`email_threads?id=in.(${c.join(',')})&select=id,subject,display_subject`, []))
+      : Promise.resolve([] as ThreadTitleRow[]),
   ])
+  const titleByThread = new Map(threads.map(t => [t.id, threadTitle(t)]))
 
   const events: ActivityEvent[] = []
 
@@ -42,7 +48,7 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
     const who = displayNameFromAddress(m.from_address) ?? bareEmail(m.from_address)
     events.push({
       id: `msg-${m.id}`, kind: m.direction === 'inbound' ? 'email_in' : 'email_out', at: m.sent_at,
-      title: m.subject?.trim() || '(no subject)',
+      title: titleByThread.get(m.thread_id) ?? cleanSubject(m.subject),
       detail: m.direction === 'inbound' ? `From ${who}` : `Sent by ${who}`,
       href: `/engagement?lead=${m.thread_id}`,
     })
