@@ -1,39 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CloseBand } from "@/components/close-band";
-import { Eyebrow } from "@/components/ui";
+import { JbApart, JbCol, JbCta, JbH2, JbHead, JbLinks, JbNote, JbP } from "@/components/jb";
 import { FAMILIES, LINES } from "@/content/coverage";
 
-export const metadata: Metadata = { title: "Coverage", description: "Lines of business placed by New South Sea." };
+export const metadata: Metadata = { title: "Coverage", description: "Ten lines in four families. What each policy may cover, what moves price and terms, and the file we build." };
 
 export default function CoveragePage() {
   return (
     <>
-      <section className="border-b border-rule">
-        <div className="wrap grid gap-8 py-16 lg:grid-cols-[3fr_9fr] lg:gap-0 lg:py-24">
-          <Eyebrow className="pt-3">Coverage</Eyebrow>
-          <div className="reveal flex flex-col gap-6">
-            <h1 className="display h1 text-ink">What we insure</h1>
-            <p className="lede">Ten types of business insurance. Each page explains what the policy covers, what affects the price and what we need from you.</p>
-          </div>
-        </div>
-      </section>
-      <section className="wrap section flex flex-col">
-        {FAMILIES.map((family, fi) => (
-          <div key={family} className="grid gap-6 border-t border-rule py-10 lg:grid-cols-[3fr_9fr] lg:gap-0">
-            <Eyebrow num={String(fi + 1).padStart(2, "0")} className="pt-2">{family}</Eyebrow>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {LINES.filter(l => l.family === family).map(l => (
-                <Link key={l.slug} href={`/coverage/${l.slug}`} className="card group flex flex-col gap-3 pt-6 transition-colors">
-                  <span className="display text-[24px] text-ink group-hover:text-umber">{l.name}</span>
-                  <span className="body">{l.thesis}</span>
-                </Link>
-              ))}
-            </div>
+      <JbHead crumbs={[{ label: "Home", href: "/" }, { label: "Coverage" }]} title="Coverage" lede="Ten lines in four families. Each guide states what the policy may cover, what moves price and terms, and the file we build before going to market." />
+      <JbCol>
+        <JbP>Standard programmes are written for standard risks. The lines below are placed for companies whose exposures do not fit the form: cat-exposed property, regulated financial firms, products sold into the United States, cyber after an incident, large contract works.</JbP>
+        <JbP>Each guide is written for the reader who buys insurance for a living. It sets out the scope of cover, the facts that move price and terms, what we ask for before going to market, and the three mistakes we see most often at renewal.</JbP>
+        {FAMILIES.map(f => (
+          <div key={f} style={{ display: "contents" }}>
+            <JbH2>{f}</JbH2>
+            <JbLinks rows={LINES.filter(l => l.family === f).map(l => ({ title: l.name, sub: l.summary, href: `/coverage/${l.slug}` }))} />
           </div>
         ))}
-      </section>
-      <CloseBand />
+        <JbNote>Appetite by class, including the accounts taken case by case, is set out on the <Link href="/appetite">Appetite</Link> page.</JbNote>
+      </JbCol>
+      <JbApart label="What sets us apart" items={[
+        { title: "Wording before price", body: "Two policies at the same premium can pay very different claims. Every quote is compared clause by clause." },
+        { title: "Selected markets", body: "Risks go to insurers with real appetite for them. A short list of strong approaches returns better terms than a wide circulation." },
+        { title: "Claims are part of the job", body: "The broker who placed the cover stays with the claim. Placement and claims advice are not separated." },
+      ]} />
+      <JbCta title="Send the renewal 120 days out." line="" />
     </>
   );
 }

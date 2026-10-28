@@ -5,7 +5,7 @@ import { site } from "@/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const paths = [
-    "", "/coverage", "/industries", "/how-we-work", "/claims", "/about", "/contact", "/complaints", "/privacy",
+    "", "/coverage", "/industries", "/appetite", "/how-we-work", "/claims", "/about", "/contact", "/complaints", "/privacy",
     ...LINES.map(l => `/coverage/${l.slug}`),
     ...INDUSTRIES.map(i => `/industries/${i.slug}`),
   ];

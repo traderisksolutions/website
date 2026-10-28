@@ -1,4 +1,4 @@
-import type { Stage } from "@/components/stage-timeline";
+export type Stage = { title: string; headline: string; body: string; points: string[]; photo?: string };
 
 // The placement cycle, used on /how-we-work and summarised on the home page.
 export const PLACEMENT: Stage[] = [
