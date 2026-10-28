@@ -1,6 +1,13 @@
 import type { MetadataRoute } from "next";
+import { LINES } from "@/content/coverage";
+import { INDUSTRIES } from "@/content/industries";
 import { site } from "@/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: site.url, changeFrequency: "monthly", priority: 1 }];
+  const paths = [
+    "", "/coverage", "/industries", "/how-we-work", "/claims", "/about", "/contact", "/complaints", "/privacy",
+    ...LINES.map(l => `/coverage/${l.slug}`),
+    ...INDUSTRIES.map(i => `/industries/${i.slug}`),
+  ];
+  return paths.map(p => ({ url: `${site.url}${p}`, changeFrequency: "monthly", priority: p ? 0.7 : 1 }));
 }

@@ -1,17 +1,133 @@
 @import "tailwindcss";
 
+/* Brand (24 Oct 2026): the locked NSS system. One colour, NSS navy, from the logo file.
+   Serif for display and headings (Cormorant Garamond for the mark and large sizes, EB Garamond for
+   mid-size titles), Geist for body and interface. Reference: privatebank.jpmorgan.com/apac (serif
+   headlines over full-bleed photography, sans body, square controls, warm off-white bands).
+   Token names (ultra, bronze, umber, night) are kept so components did not need renaming:
+   ultra = NSS navy, bronze and umber = slate, night = deep navy. */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface: #ffffff;
+  --stone: #f8f7f4;        /* warm off-white band */
+  --night: #0f1e3a;        /* deep navy: dark bands, overlays */
+  --ultra-deep: #142846;   /* navy hover */
+  --ultra: #1c3358;        /* NSS navy: mark, block, buttons, links */
+  --ultra-tint: #eef2f7;
+  --bronze: #7a8ba3;       /* slate: registered name, secondary numbers, rules */
+  --bronze-hi: #5f7089;
+  --umber: #1c3358;
+  --ink: #111111;
+  --ink-2: #2a2a2a;
+  --muted: #625f5a;
+  --rule: rgba(17, 17, 17, 0.09);
+  --rule-strong: rgba(17, 17, 17, 0.22);
+  --field: #f8f7f4;
+  --foreground: var(--ink);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-field: var(--field);
+  --color-ultra: var(--ultra);
+  --color-ultra-deep: var(--ultra-deep);
+  --color-ultra-tint: var(--ultra-tint);
+  --color-bronze: var(--bronze);
+  --color-umber: var(--umber);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-stone: var(--stone);
+  --color-night: var(--night);
+  --font-display: var(--font-cormorant), "Iowan Old Style", Georgia, serif;
+  --font-serif: var(--font-eb), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-geist), "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-cn: "Songti SC", "Noto Serif CJK SC", "Noto Serif SC", "SimSun", serif;
 }
 
+html { scroll-behavior: smooth; }
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Layout */
+.wrap { width: 100%; max-width: 1800px; margin-inline: auto; padding-inline: clamp(20px, 4vw, 72px); }
+.section { padding-block: 104px; }
+@media (min-width: 768px) { .section { padding-block: 144px; } }
+@media (min-width: 1280px) { .section { padding-block: 192px; } }
+
+/* Type. .display is the serif: EB Garamond at text sizes, Cormorant Garamond at .h1 and .h2. */
+.display { font-family: var(--font-serif); font-weight: 500; letter-spacing: -0.012em; line-height: 1.08; text-wrap: balance; }
+.display.h1, .display.h2 { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.015em; line-height: 1.02; }
+.serif { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.01em; line-height: 1.02; text-wrap: balance; }
+.h1 { font-size: clamp(46px, 6.6vw, 104px); }
+.h2 { font-size: clamp(36px, 4.6vw, 68px); }
+.h3 { font-size: clamp(24px, 2.6vw, 32px); }
+.lede { font-size: clamp(16px, 1.3vw, 18px); line-height: 1.55; color: var(--muted); max-width: 56ch; text-wrap: pretty; }
+.body { font-size: 16px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+.eyebrow { font-family: var(--font-sans); font-size: 12px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.eyebrow-num { color: var(--ultra); }
+.accent { color: var(--ultra); }
+.accent-i { font-style: italic; font-weight: 500; color: var(--ultra); }
+
+/* Controls: square, as on the reference. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding-inline: 20px; border-radius: 0; font-size: 15px; font-weight: 500; transition: background-color .2s, color .2s, border-color .2s; white-space: nowrap; }
+.btn-primary { background: var(--ultra); color: #fff; }
+.btn-primary:hover { background: var(--ultra-deep); }
+.btn-ghost { border: 1px solid var(--rule-strong); color: var(--ink); background: #fff; }
+.btn-ghost:hover { border-color: var(--ink); }
+.btn-on-dark { background: #fff; color: var(--night); }
+.btn-on-dark:hover { background: var(--stone); }
+.btn-ghost-dark { border: 1.5px solid rgba(255,255,255,.55); color: #fff; }
+.btn-ghost-dark:hover { background: #fff; color: var(--ink); }
+.link { color: var(--ultra); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.link:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--ultra); outline-offset: 3px; }
+
+/* Surfaces (24 Oct 2026): no boxes, no vertical lines. Items are separated by space and one hairline above each.
+   Reference: bessemertrust.com, pictet.com, rockco.com, privatebank.citi.com. */
+.card { background: transparent; border: 0; border-top: 1px solid var(--rule); border-radius: 0; }
+.cells { display: grid; gap: 48px clamp(28px, 4vw, 64px); }
+.cells > * { background: transparent; border-top: 1px solid var(--rule); min-width: 0; }
+.cells > [class*="bg-"] { border-top: 0; }
+.hairline { border-color: var(--rule); }
+
+/* Scroll fade-up. Only when JS has run (html.js); every element is visible at rest without it.
+   Section children and grid items rise 18px over .9s as they enter the viewport; grid items stagger. */
+@media (prefers-reduced-motion: no-preference) {
+  html.js main section:not(.hero) > *, html.js main .cells > * { opacity: 0; transform: translateY(18px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
+  html.js main .cells > :nth-child(2) { transition-delay: .08s; }
+  html.js main .cells > :nth-child(3) { transition-delay: .16s; }
+  html.js main .cells > :nth-child(4) { transition-delay: .24s; }
+  html.js main .cells > :nth-child(5) { transition-delay: .32s; }
+  html.js main .cells > :nth-child(n+6) { transition-delay: .4s; }
+  html.js main .in { opacity: 1; transform: none; }
+}
+
+/* Hero overlay: photograph darkened to deep navy so white serif holds 4.5:1. */
+.hero-shade { background: linear-gradient(180deg, rgba(15,30,58,.35) 0%, rgba(15,30,58,.55) 55%, rgba(15,30,58,.82) 100%); }
+
+/* Image placeholders: grey frames that name the photograph the client still has to supply. */
+.ph { position: relative; background: linear-gradient(135deg, #f0efea, #e4e2dc); border-radius: 0; overflow: hidden; }
+.ph::after { content: attr(data-label); position: absolute; left: 16px; bottom: 14px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #8a8679; }
+
+/* Motion: content is visible at rest; .reveal only adds a short rise when the page supports it. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+}
+
+/* Apple-style modal and drawer: grey-blur backdrop fades, panel rises; reverse on close. */
+.backdrop { position: fixed; inset: 0; z-index: 60; background: rgba(17,19,24,.28); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .25s ease; }
+.backdrop[data-open="true"] { opacity: 1; pointer-events: auto; }
+.sheet { position: fixed; z-index: 61; opacity: 0; transform: translateY(12px) scale(.98); pointer-events: none; transition: opacity .25s ease, transform .3s cubic-bezier(.2,.7,.2,1); }
+.sheet[data-open="true"] { opacity: 1; transform: none; pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .backdrop, .sheet { transition: none; } }
