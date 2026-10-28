@@ -58,7 +58,7 @@ export function JbCta({ title, line }: { title: ReactNode; line?: string }) {
   return (
     <section className="jb-cta">
       <h2 className="jb-cta-h">{title}</h2>
-      <Link href="/contact" className="btn">Contact us</Link>
+      <Link href="/contact?purpose=review" className="btn">Request a programme review</Link>
       {line !== undefined && <p className="jb-line">{line || `${site.email} · ${site.hours}`}</p>}
     </section>
   );

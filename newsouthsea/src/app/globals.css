@@ -4,7 +4,7 @@
    Story and register: hedgespecialty.com. Navbar: harvey.ai layout in Hedge's order. Hero: gic.com.sg navy panel on the
    harbour. Home sections: GIC prose + cards, alternating bands. Coverage: Harvey bento tiles. Inner pages: juliusbaer.com
    bespoke-lending layout. Contact: apple.com buy-page form. Serif = EB Garamond (headings, mark), sans = Helvetica Neue.
-   Square everywhere. One CTA: Contact us. */
+   Square everywhere. Primary button: Request a programme review (→ /contact?purpose=review); header control stays Contact us. */
 :root {
   --paper: #ffffff; --band: #f3f3f1; --navy: #1c3358; --navy-deep: #142846; --ink: #1c3358; --ink-2: #3a4a6b;
   --slate: #7a8ba3; --muted: #6c7a93; --tint: #eef2f7; --rule: rgba(28,51,88,.14); --rule-strong: rgba(28,51,88,.3); --on-navy: #ffffff;

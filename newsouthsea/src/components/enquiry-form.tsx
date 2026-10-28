@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { INDUSTRIES } from "@/content/industries";
 import { LINES } from "@/content/coverage";
 import { site } from "@/site";
@@ -42,6 +42,8 @@ export function EnquiryForm() {
   const [msg, setMsg] = useState("We reply within one working day.");
   const [ref, setRef] = useState("");
   const set = <K extends keyof F>(k: K, v: F[K]) => setF(p => ({ ...p, [k]: v }));
+  // ?purpose=review preselects the Programme review tile (the site-wide primary button lands here).
+  useEffect(() => { if (new URLSearchParams(window.location.search).get("purpose") === "review") setF(p => p.purpose ? p : { ...p, purpose: "Programme review" }); }, []);
   const field = (k: keyof F, bad = false) => ({ id: `af-${k}`, name: k, className: "af-input", "aria-invalid": bad || undefined });
 
   const d1 = !!f.purpose;

@@ -46,7 +46,7 @@ export default function Home() {
           <h1 className="caps-h1">A wholesale insurance brokerage for hard&#8209;to&#8209;place risks.</h1>
           <div className="side">
             <p className="lede">{site.name} makes specialty coverage easier to place. Structured intake and named broker support help retail agents prepare difficult commercial risks for current market review.</p>
-            <div className="btns"><Link href="/contact" className="btn">Contact us <span className="arrow">↗</span></Link><Link href="/coverage" className="btn ghost">Lines we place</Link></div>
+            <div className="btns"><Link href="/contact?purpose=review" className="btn">Request a programme review <span className="arrow">↗</span></Link><Link href="/coverage" className="btn ghost">Lines we place</Link></div>
           </div>
         </div>
       </section>
