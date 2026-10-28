@@ -7,19 +7,25 @@ import { PLACEMENT } from "@/content/process";
 import { site } from "@/site";
 
 // Home: Hedge's story order. Hero = gic.com.sg navy panel on the harbour. Each section = statement, bold heading,
-// two paragraphs (GIC), then cards (NSS tile: white soft-lift, navy left rule, navy chip, navy on hover).
+// two paragraphs (GIC), then cards (NSS tile). 01 = flex.one split (heading + ticks beside prose); 03 = flex.one open icon trio.
 // Bands alternate white / grey. Coverage = harvey.ai bento tiles. Close = night harbour.
 
-const DIFFERENCE = [
-  { k: "01 · Dedicated", t: "The team moves like your own.", pts: ["A broker, an account handler and a claims contact per client.", "The same three people at inception, mid-term and renewal.", "No rotating inboxes. The person you started with closes the file."] },
-  { k: "02 · Fast", t: "First read in [x] days. Firm terms when the file is ready.", pts: ["An indication on appetite and structure within [x] working days of a complete file.", "Intake, triage and market selection run in parallel, not in sequence.", "Firm terms once subjectivities are known, not before."] },
-  { k: "03 · Hard risks", t: "The accounts others cannot place.", pts: ["Cat-exposed property and typhoon-exposed single sites.", "Regulated financial firms. D&O with a going-concern note.", "Cyber after an incident, US products exposure, large contract works."] },
-];
 const STAGE_TAGS = ["~ 120 days out", "~ one file per line", "~ timing by file", "~ before inception", "~ same working day"];
+const TICKS = [
+  "One broker, one account handler and one claims contact per client, from inception through claim.",
+  "First read within [x] working days of a complete file. Firm terms once subjectivities are known.",
+  "Cat-exposed property, regulated financial firms, D&O with a going-concern note, cyber after an incident.",
+];
+const ICO = {
+  live: <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 12 7 12 10 5 14 19 17 12 21 12" /></svg>,
+  shared: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20v-1.5a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5V20" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18.5 13.6a5 5 0 0 1 3 4.6V20" /></svg>,
+  closed: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v12H3z" /><polyline points="8.5 14 11 16.5 15.5 12" /></svg>,
+};
+// 03 The file: flex.one open trio (icon chip, serif heading, one paragraph).
 const FILE = [
-  { k: "01 · Live", t: "Live, not a status email.", pts: ["Market responses, open subjectivities and quotes as they land.", "One record, updated as it happens.", "No inbox archaeology at renewal."] },
-  { k: "02 · Shared", t: "Everyone, same file.", pts: ["Finance, legal, the board pack and the insurer work from one file.", "No stale attachments, no “forward the latest”.", "Permissions by person, by line."] },
-  { k: "03 · Closed", t: "Clean binders, delivered.", pts: ["Policy checked against the quote.", "Subjectivities tracked through delivery.", "A clear file history stays with the account."] },
+  { icon: ICO.live, t: "Live, not a status email.", p: "Market responses, open subjectivities and quotes land in one record as they arrive. The named people on the account, on the client side and ours, read the same file. No checking-in emails and no PDF ping-pong." },
+  { icon: ICO.shared, t: "Everyone, same file.", p: "Finance, legal, the board pack and the insurer read from the file the broker works. When a subjectivity closes or an adjuster responds, the file updates and the people on it see it. Permissions by person, by line." },
+  { icon: ICO.closed, t: "Clean binders, delivered.", p: "At bind the policy is checked against the quote and subjectivities are tracked through delivery. The file history stays with the account from one renewal to the next, so nothing is rebuilt from scratch." },
 ];
 const WIDE = new Set(["property-business-interruption", "directors-officers"]);
 
@@ -46,13 +52,17 @@ export default function Home() {
       </section>
 
       <section className="plain"><div className="wrap sec stack">
-        <Head n="01" label="The difference" title="Named brokers on" accent="the hard files." />
-        <div className="prose">
-          <h3>Named brokers on the hard files</h3>
-          <p>Most commercial programmes are renewed on last year&apos;s schedule by whoever picks up the file that month. The wording is rarely read against the contracts it is meant to answer. The gap shows at the claim, when the insurer reads it first.</p>
-          <p>{site.name} works the other way round. A broker, an account handler and a claims contact are named at the first meeting and stay with the account through renewal and claim. Submissions are built as underwriting files, not forms. Markets are selected for the risk rather than circulated, and terms are compared clause by clause before any recommendation is made.</p>
+        <div className="head"><p className="eb"><span className="n">01 The difference</span></p></div>
+        <div className="split">
+          <div>
+            <h2 className="sh">Named brokers on <span className="accent">the hard files.</span></h2>
+            <ul className="ticks">{TICKS.map(t => <li key={t}>{t}</li>)}</ul>
+          </div>
+          <div className="sp">
+            <p>Most commercial programmes are renewed on last year&apos;s schedule by whoever picks up the file that month. The wording is rarely read against the contracts it is meant to answer. The gap shows at the claim, when the insurer reads it first.</p>
+            <p>{site.name} works the other way round. A broker, an account handler and a claims contact are named at the first meeting and stay with the account through renewal and claim. Submissions are built as underwriting files, not forms. Markets are selected for the risk rather than circulated, and terms are compared clause by clause before any recommendation is made.</p>
+          </div>
         </div>
-        <div className="cards c3">{DIFFERENCE.map(c => <Card key={c.k} {...c} />)}</div>
       </div></section>
 
       <section className="band"><div className="wrap sec stack">
@@ -68,12 +78,9 @@ export default function Home() {
 
       <section className="plain"><div className="wrap sec stack">
         <Head n="03" label="The file" title="One file per line," accent="from review through claim." />
-        <div className="prose">
-          <h3>A running file note from review through claim</h3>
-          <p>Every placement lives as a single file: the wording, the quotes, the subjectivities, the markets approached and their responses, and later the claim. It is visible to the named people working the account, on the client side and ours. There are no &ldquo;checking in&rdquo; emails, no PDF ping-pong and no guessing where the renewal stands.</p>
-          <p>Finance, legal and the board pack read from the same file the insurer does. When a subjectivity closes, a quote lands or an adjuster responds, the file updates and the people on it see it. The file history stays with the account from one renewal to the next, so nothing is rebuilt from scratch.</p>
+        <div className="trio">
+          {FILE.map(f => <div key={f.t}><span className="ico">{f.icon}</span><h3>{f.t}</h3><p>{f.p}</p></div>)}
         </div>
-        <div className="cards c3">{FILE.map(c => <Card key={c.k} {...c} />)}</div>
       </div></section>
 
       <section className="band"><div className="wrap sec stack">

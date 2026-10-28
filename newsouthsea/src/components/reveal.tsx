@@ -8,7 +8,7 @@ import { useEffect } from "react";
 export function Reveal() {
   const path = usePathname();
   useEffect(() => {
-    const els = document.querySelectorAll<HTMLElement>("main section:not(.hero) > *, main .cards > *, main .hgrid > *");
+    const els = document.querySelectorAll<HTMLElement>("main section:not(.hero) > *, main .cards > *, main .hgrid > *, main .trio > *");
     const io = new IntersectionObserver(entries => {
       for (const e of entries) if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
     }, { rootMargin: "0px 0px -8% 0px", threshold: 0.05 });

@@ -473,9 +473,27 @@ a.card:hover .ct{color:var(--navy)}
 html { scroll-behavior: smooth; }
 /* Scroll rise: only under html.js; complete at rest without it */
 @media (prefers-reduced-motion: no-preference) {
-  html.js main section:not(.hero) > *, html.js main .cards > *, html.js main .hgrid > * { opacity: 0; transform: translateY(18px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
+  html.js main section:not(.hero) > *, html.js main .cards > *, html.js main .hgrid > *, html.js main .trio > * { opacity: 0; transform: translateY(18px); transition: opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1); }
   html.js main .cards > :nth-child(2), html.js main .hgrid > :nth-child(2) { transition-delay: .08s; }
   html.js main .cards > :nth-child(3), html.js main .hgrid > :nth-child(3) { transition-delay: .16s; }
   html.js main .cards > :nth-child(n+4), html.js main .hgrid > :nth-child(n+4) { transition-delay: .24s; }
-  html.js main section:not(.hero) > .in, html.js main .cards > .in, html.js main .hgrid > .in { opacity: 1; transform: none; }
+  html.js main section:not(.hero) > .in, html.js main .cards > .in, html.js main .hgrid > .in, html.js main .trio > .in { opacity: 1; transform: none; }
 }
+
+/* Flex blocks (flex.one/flex-capital): open icon trio; split heading + ticks beside prose */
+.trio{display:grid;grid-template-columns:1fr;gap:40px 48px}
+.trio>div{display:flex;flex-direction:column;gap:22px;min-width:0}
+.trio .ico{width:56px;height:56px;display:grid;place-items:center;background:var(--band);color:var(--navy)}
+.band .trio .ico{background:var(--paper)}
+.trio .ico svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:square;stroke-linejoin:miter}
+.trio h3{font-family:var(--display);font-weight:500;font-size:clamp(26px,2.3vw,32px);line-height:1.15;letter-spacing:-.01em;color:var(--ink);margin:0}
+.trio p{font-size:17px;line-height:1.65;color:var(--ink-2);margin:0;text-wrap:pretty}
+.split{display:grid;grid-template-columns:1fr;gap:36px 80px;align-items:start}
+.split .sh{font-family:var(--display);font-weight:500;font-size:clamp(30px,2.9vw,42px);line-height:1.12;letter-spacing:-.015em;color:var(--ink);margin:0 0 28px;text-wrap:balance;white-space:normal}
+.split .ticks{display:flex;flex-direction:column;gap:16px;list-style:none;padding:0;margin:0}
+.split .ticks li{display:flex;gap:14px;align-items:flex-start;font-size:17px;line-height:1.5;color:var(--ink)}
+.split .ticks li::before{content:"";flex:0 0 14px;width:14px;height:8px;margin-top:7px;border-left:1.5px solid var(--navy);border-bottom:1.5px solid var(--navy);transform:rotate(-45deg)}
+.split .sp{display:flex;flex-direction:column;gap:22px}
+.split .sp p{font-size:18px;line-height:1.7;color:var(--ink-2);margin:0;text-wrap:pretty}
+@media (min-width:768px){.trio{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1024px){.split{grid-template-columns:5fr 6fr}}
