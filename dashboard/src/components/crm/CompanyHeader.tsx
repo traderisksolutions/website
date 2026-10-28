@@ -20,7 +20,7 @@ function withoutMoney(line: string): string {
   return line.split(' · ').filter(p => !/outstanding$/i.test(p.trim())).join(' · ')
 }
 
-const ACTION_BTN = 'h-10 px-4 rounded-[10px] text-[14px]'
+const ACTION_BTN = 'h-9 px-4 rounded-[10px] text-[14px]'
 const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#202124] focus:bg-[#f8f9fa] data-[highlighted]:bg-[#f8f9fa]'
 
 /** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
@@ -101,8 +101,8 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
     <div className="mb-8">
       <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
 
-      {/* Name and stage row take the full width; the actions sit on their own row beneath. */}
-      <div className="mt-3 flex flex-col gap-4">
+      {/* The name takes the full width on one line; stage, people, domain, pin and the actions share the row beneath. */}
+      <div className="mt-3">
         <div className="min-w-0">
           <h1 className="m-0 text-[28px] sm:text-[30px] font-medium tracking-[-0.02em] leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis min-w-0" title={company.name} style={{ color: INK }}>{company.name}</h1>
 
@@ -146,34 +146,33 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
                 </button>
               </span>
             )}
+            {/* Two actions at the right of the stage row: drafts (only when some wait, then primary) and a More menu for the rest. Ask AI lives in the chat dock. */}
+            <span className="ml-auto inline-flex items-center gap-2">
+              {draftsCount !== null && draftsCount > 0 && (
+                <Btn level="primary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
+              )}
+              <DropdownMenu modal={false}>
+                {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
+                <DropdownMenuTrigger
+                  type="button"
+                  aria-label="More actions"
+                  title="More actions"
+                  disabled={opening}
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: INK }}
+                >
+                  {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e8eaed] bg-white p-1.5 shadow-[0_12px_32px_rgba(32,33,36,0.12)]">
+                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
+                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
+                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </span>
           </div>
           {status && <p className="m-0 mt-2 text-[14px]" style={{ color: MUTED }}>{status}</p>}
           {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{driveError}</p>}
-        </div>
-
-        {/* Two actions: drafts (only when some wait, then primary) and a More menu for the rest. Ask AI lives in the chat dock. */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {draftsCount !== null && draftsCount > 0 && (
-            <Btn level="primary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
-          )}
-          <DropdownMenu modal={false}>
-            {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
-            <DropdownMenuTrigger
-              type="button"
-              aria-label="More actions"
-              title="More actions"
-              disabled={opening}
-              className="inline-flex items-center justify-center h-10 w-10 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ color: INK }}
-            >
-              {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e8eaed] bg-white p-1.5 shadow-[0_12px_32px_rgba(32,33,36,0.12)]">
-              <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
-              <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
-              <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

@@ -634,3 +634,9 @@ select:focus-visible {
 .email-original img { max-width: 100%; height: auto; }
 .email-original a { text-decoration: underline; }
 .email-original blockquote { border-left: 2px solid #e8eaed; padding-left: 0.75em; margin: 0.5em 0; }
+
+/* The dense register (src/components/ui/register.tsx): every cell reads at 13px, whatever size a
+   caller's inline span asks for. One line per 34px row. */
+table.register td :is(.text-\[14px\], .text-\[15px\], .text-\[13\.5px\]) { font-size: 13px; }
+table.register td :is(.text-\[12\.5px\]) { font-size: 12px; }
+table.register td .mt-0\.5 { margin-top: 0; }

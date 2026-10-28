@@ -7,8 +7,8 @@ import { cn } from '@/lib/utils'
 /**
  * TableShell: the register look (src/components/ui/register.tsx, the Companies table) for the
  * pages that compose their own thead/tbody. Same exported names as before so callers keep
- * working: one outlined 16px card, sticky white header with 13px muted labels, the first column
- * frozen, hairline rows with 16px padding, hover #f8f9fa. Pass `matrix` for wide grids (a wider
+ * working: one outlined 16px card, sticky white header with 12px muted labels, the first column
+ * frozen, 34px hairline rows at 13px (the dense register), hover #f8f9fa. Pass `matrix` for wide grids (a wider
  * minimum width, cells never wrap). Status is words, never colour.
  */
 export function TableShell({ matrix, className, children, label, minWidth, maxHeight }: {
@@ -49,8 +49,8 @@ export function TableHead({ className, children, ...props }: ThHTMLAttributes<HT
     <th
       scope="col"
       className={cn(
-        'h-11 px-4 py-0 text-left align-middle text-[13px] font-normal whitespace-nowrap text-[#5f6368]',
-        'first:sticky first:left-0 first:z-30 first:bg-white first:pl-6 first:shadow-[inset_-1px_0_0_#e8eaed] last:pr-6',
+        'h-8 px-[10px] py-0 text-left align-middle text-[12px] font-normal whitespace-nowrap text-[#5f6368]',
+        'first:sticky first:left-0 first:z-30 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e8eaed] last:pr-4',
         className,
       )}
       {...props}
@@ -64,8 +64,8 @@ export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCel
   return (
     <td
       className={cn(
-        'px-4 py-4 align-middle text-[14px] text-[#202124]',
-        'first:sticky first:left-0 first:z-10 first:bg-white first:pl-6 first:shadow-[inset_-1px_0_0_#e8eaed] group-hover:first:bg-[#f8f9fa] last:pr-6',
+        'px-[10px] py-1.5 align-middle text-[13px] text-[#202124]',
+        'first:sticky first:left-0 first:z-10 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e8eaed] group-hover:first:bg-[#f8f9fa] last:pr-4',
         '[.matrix_&]:whitespace-nowrap',
         className,
       )}

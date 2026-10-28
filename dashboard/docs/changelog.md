@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-10-28 — Every table is the dense register
+
+The Quotes grid's spacing is now the house register everywhere (`src/components/ui/register.tsx`, `dense` defaults to true): 32px header at 12px, 34px rows at 13px, 10px cell padding, the first column inset 16px. A global rule (`table.register td` in `globals.css`) pins any 14/15px text a caller left inside a cell to 13px, so all 38 registers read at one size without a sweep. `TableShell` and the shadcn `Table` wrapper match.
+
+- **Companies** (`src/components/companies/CompanyTable.tsx`): one line per row; the domain, debit-note count and the full renewal wording moved into title attrs; threads show the count with "n awaiting" inline.
+- **Company page**: Open items, Where we left off and the Log are one line per row (date in the When column, the relative time in the tooltip; detail inline after the entry). The More menu sits at the right of the stage row, not on a row of its own.
+
+---
+
 ## 2026-10-27 (later) — Company spine: the policy is the record; employment benefits inside the same flow
 
 Every company is a full page now; the right-hand drawer on Companies and Home is gone and every link lands on `/companies/[id]`. Tabs: Overview (with People) · Policies · Quotes · Members · Finance · Threads · Log · Nexus.

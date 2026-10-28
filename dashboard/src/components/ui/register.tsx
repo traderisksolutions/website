@@ -12,8 +12,12 @@ import { cn } from '@/lib/utils'
  * 15px medium primary line over a 12.5px muted secondary line; numbers right-aligned and tabular;
  * hover #f8f9fa; the selected row on a soft blue with a 3px ink bar. Status is words, never colour.
  *
- * `dense` (Quotes, Policies): 32px header at 12px, 34px rows at 13px, 10px cell padding, identity
- * column 200px. One line per row; secondary text belongs in its own column or a title attr.
+ * Since 28 Oct 2026 every register is dense (the Quotes grid Jarod signed off): 32px header at
+ * 12px, 34px rows at 13px, 10px cell padding, the first column inset 16px, identity column 200px.
+ * One line per row where it can be; a secondary line stays 12px under the primary. The global rule
+ * `table.register td` in globals.css pins any 14/15px text a caller left inside a cell to 13px, so
+ * the grid reads at one size without touching 38 call sites. `dense={false}` restores the old
+ * 16px-padded register for the rare editorial list.
  */
 
 const INK = '#202124'
@@ -23,16 +27,16 @@ const SELECTED = '#eef3fc'
 
 const DenseContext = createContext(false)
 
-export function Register({ children, label, minWidth = 720, maxHeight, className, dense = false }: {
+export function Register({ children, label, minWidth = 720, maxHeight, className, dense = true }: {
   children: React.ReactNode; label: string; minWidth?: number; maxHeight?: string; className?: string
-  /** Excel-like spacing for grids that must fit one screen. Read by every cell inside. */
+  /** Excel-like spacing (the default). Read by every cell inside; false restores the 16px-padded register. */
   dense?: boolean
 }) {
   return (
     <DenseContext.Provider value={dense}>
       <div className={cn('rounded-[16px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
         <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-          <table className="w-full border-collapse" style={{ minWidth }} aria-label={label}>{children}</table>
+          <table className={cn('w-full border-collapse', dense && 'register')} style={{ minWidth }} aria-label={label}>{children}</table>
         </div>
       </div>
     </DenseContext.Provider>
@@ -49,7 +53,7 @@ export function RegisterHead({ children }: { children: React.ReactNode }) {
 
 /** Horizontal padding of a cell: 10px in a dense register, the card inset otherwise. */
 function cellPad(dense: boolean, first: boolean | undefined, last: boolean | undefined) {
-  if (dense) return cn('px-[10px]', first && 'sticky left-0 shadow-[inset_-1px_0_0_#e8eaed]')
+  if (dense) return cn(first ? 'sticky left-0 pl-4 pr-[10px] shadow-[inset_-1px_0_0_#e8eaed]' : 'px-[10px]', last && 'pr-4')
   return cn(first ? 'sticky left-0 pl-6 pr-3 shadow-[inset_-1px_0_0_#e8eaed]' : 'px-3', last && 'pr-5')
 }
 
@@ -119,7 +123,7 @@ export function RegisterGroupRow({ children, colSpan, onClick, open }: { childre
   const dense = useContext(DenseContext)
   return (
     <tr onClick={onClick} aria-expanded={onClick ? open : undefined} className={cn(onClick && 'cursor-pointer hover:bg-[#f8f9fa]')} style={{ borderBottom: `1px solid ${RULE}`, background: '#fafafa' }}>
-      <td colSpan={colSpan} className={cn('font-medium', dense ? 'px-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: '#3c4043' }}>{children}</td>
+      <td colSpan={colSpan} className={cn('font-medium', dense ? 'pl-4 pr-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: '#3c4043' }}>{children}</td>
     </tr>
   )
 }

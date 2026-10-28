@@ -6,6 +6,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
 import type { Alert, LeftOff } from '@/lib/crm/types'
 
+const MUTED = '#5f6368'
 const BODY = '#3c4043'
 
 /** Open items on the register: the item, its detail, when. A row opens what it names. */
@@ -25,7 +26,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
               <RegisterRow key={a.id} onClick={a.href ? () => router.push(a.href!) : undefined}>
                 <RegisterCell first identityWidth={520} primary={a.title} />
                 <RegisterCell nowrap={false}><span className="text-[14px]" style={{ color: BODY }}>{a.detail ?? '—'}</span></RegisterCell>
-                <RegisterCell last align="right" title={a.at ? fmtDateTime(a.at) : undefined} primary={a.at ? fmtRelative(a.at) : '—'} secondary={a.at ? fmtDate(a.at) : undefined} />
+                <RegisterCell last align="right" title={a.at ? `${fmtRelative(a.at)} · ${fmtDateTime(a.at)}` : undefined} primary={a.at ? fmtDate(a.at) : '—'} />
               </RegisterRow>
             ))}
           </tbody>
@@ -59,9 +60,9 @@ export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
           <tbody>
             {rows.map((r, i) => (
               <RegisterRow key={i} onClick={r.href ? () => router.push(r.href!) : undefined}>
-                <RegisterCell first identityWidth={520} primary={r.event} secondary={r.detail ?? undefined} />
+                <RegisterCell first identityWidth={520} title={r.detail ?? undefined} primary={r.detail ? <>{r.event} <span className="font-normal" style={{ color: MUTED }}>· {r.detail}</span></> : r.event} />
                 <RegisterCell><span className="text-[14px]" style={{ color: BODY }}>{r.who ?? '—'}</span></RegisterCell>
-                <RegisterCell last align="right" title={fmtDateTime(r.at)} primary={fmtRelative(r.at)} secondary={fmtDate(r.at)} />
+                <RegisterCell last align="right" title={`${fmtRelative(r.at)} · ${fmtDateTime(r.at)}`} primary={fmtDate(r.at)} />
               </RegisterRow>
             ))}
           </tbody>

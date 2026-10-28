@@ -92,11 +92,10 @@ export function CompanyLog({ bundle, events, onChanged }: {
             <tbody>
               {visible.map(e => (
                 <RegisterRow key={e.id}>
-                  <RegisterCell first identityWidth={140} title={fmtDateTime(e.at)} primary={fmtRelative(e.at)} secondary={fmtDate(e.at)} />
+                  <RegisterCell first identityWidth={120} title={`${fmtRelative(e.at)} · ${fmtDateTime(e.at)}`} primary={fmtDate(e.at)} />
                   <RegisterCell primary={e.kind} />
                   <RegisterCell nowrap={false}>
-                    <span className="block text-[14px] whitespace-pre-wrap" style={{ color: INK }}>{e.text}</span>
-                    {e.detail && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>{e.detail}</span>}
+                    <span className="block text-[13px] whitespace-pre-wrap" style={{ color: INK }} title={e.detail ?? undefined}>{e.text}{e.detail && <span style={{ color: MUTED }}> · {e.detail}</span>}</span>
                   </RegisterCell>
                   <RegisterCell last align="right">
                     {e.href

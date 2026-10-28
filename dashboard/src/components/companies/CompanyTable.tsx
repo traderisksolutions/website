@@ -12,7 +12,9 @@ import { badgesFor, type BadgeKey, type BadgeTone } from './badges'
 
 /**
  * The Companies table in Home's design system: white, hairlines, sentence-case headers that
- * sort, tabular numbers on the right, the Company column frozen. States are words.
+ * sort, tabular numbers on the right, the Company column frozen. States are words. Dense since
+ * 28 Oct 2026 like every register: 32px header at 12px, 34px rows at 13px, one line per row;
+ * the domain, the debit-note count and the full renewal wording live in title attrs.
  */
 
 export type SortKey = 'name' | 'stage' | 'threads' | 'ltv' | 'renewal' | 'owner'
@@ -32,7 +34,7 @@ export function Tag({ tone, children, title, onClick, className }: { tone: Badge
   return onClick ? <button type="button" onClick={e => { e.stopPropagation(); onClick() }} title={title} className={cn(cls, 'border-0')}>{children}</button> : <span title={title} className={cls}>{children}</span>
 }
 export function StageTag({ stage }: { stage: string }) {
-  return <span className="text-[13.5px]" style={{ color: '#3c4043' }}>{STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}</span>
+  return <span className="text-[13px]" style={{ color: '#3c4043' }}>{STAGE_LABEL[stage as keyof typeof STAGE_LABEL] ?? stage}</span>
 }
 export function RenewalCell({ date, today, compact, align = 'left' }: { date: string | null; today: string; compact?: boolean; align?: 'left' | 'right' }) {
   if (!date) return <span className="text-[13px]" style={{ color: '#9aa0a6' }}>No renewal date</span>
@@ -42,8 +44,8 @@ export function RenewalCell({ date, today, compact, align = 'left' }: { date: st
   const when = d === 0 ? 'today' : d === 1 ? 'tomorrow' : d > 1 ? `in ${d} days` : d === -1 ? 'ended yesterday' : `ended ${-d} days ago`
   return (
     <span className={cn('inline-flex', compact ? 'items-baseline gap-2' : 'flex-col gap-0.5', align === 'right' && 'items-end text-right')}>
-      <span className="text-[14px] tabular-nums" style={{ color: INK }}>{nice}</span>
-      <span className="text-[12.5px]" style={{ color: MUTED }}>{when}</span>
+      <span className="text-[13px] tabular-nums" style={{ color: INK }}>{nice}</span>
+      <span className="text-[12px]" style={{ color: MUTED }}>{when}</span>
     </span>
   )
 }
@@ -91,7 +93,7 @@ function SortHeader({ col, sort, onSort, className }: { col: typeof COLUMNS[numb
   return (
     <th scope="col" aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('py-0 font-normal', col.align === 'right' ? 'text-right' : 'text-left', className)}>
       <button type="button" onClick={() => onSort(col.key)} title={col.hint}
-        className={cn('group inline-flex items-center gap-1.5 h-11 bg-transparent border-0 cursor-pointer text-[13px] whitespace-nowrap', col.align === 'right' && 'flex-row-reverse', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
+        className={cn('group inline-flex items-center gap-1.5 h-8 bg-transparent border-0 cursor-pointer text-[12px] whitespace-nowrap', col.align === 'right' && 'flex-row-reverse', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
         {col.label}
         <Icon size={13} className={cn(on ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
       </button>
@@ -115,11 +117,11 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
     <>
       <div className="hidden md:block rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }}>
         <div className="overflow-auto max-h-[calc(100vh-260px)]">
-          <table className="w-full border-collapse min-w-[960px]" aria-label="Client companies">
+          <table className="register w-full border-collapse min-w-[960px]" aria-label="Client companies">
             <thead className="sticky top-0 z-20 bg-white">
               <tr style={{ borderBottom: `1px solid ${RULE}` }}>
                 {COLUMNS.map((col, i) => (
-                  <SortHeader key={col.key} col={col} sort={sort} onSort={onSort} className={cn(i === 0 ? 'sticky left-0 z-30 bg-white pl-6 pr-4 min-w-[280px] shadow-[inset_-1px_0_0_#e8eaed]' : 'px-4', i === COLUMNS.length - 1 && 'pr-6')} />
+                  <SortHeader key={col.key} col={col} sort={sort} onSort={onSort} className={cn(i === 0 ? 'sticky left-0 z-30 bg-white pl-4 pr-[10px] min-w-[260px] shadow-[inset_-1px_0_0_#e8eaed]' : 'px-[10px]', i === COLUMNS.length - 1 && 'pr-4')} />
                 ))}
               </tr>
             </thead>
@@ -133,24 +135,23 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
                   <tr key={c.id} tabIndex={0} aria-selected={on} data-company={c.id} onClick={() => onSelect(c.id)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.id) } }}
                     className={cn('group cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', on ? 'bg-[#eef3fc]' : 'hover:bg-[#f8f9fa]')} style={{ borderBottom: `1px solid ${RULE}` }}>
-                    <td className={cn('sticky left-0 z-10 pl-6 pr-4 py-4 align-middle min-w-[280px] max-w-[340px] shadow-[inset_-1px_0_0_#e8eaed]', on ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]')}>
+                    <td className={cn('sticky left-0 z-10 pl-4 pr-[10px] py-1.5 align-middle min-w-[260px] max-w-[320px] shadow-[inset_-1px_0_0_#e8eaed]', on ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]')}>
                       {on && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
-                      <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }} title={c.name}>{mark(c.name)}</span>
-                      <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{c.domains[0] ? mark(c.domains[0]) : c.industry ?? 'No domain on file'}</span>
+                      <span className="block text-[13px] font-medium leading-tight truncate" style={{ color: INK }} title={c.domains[0] ? `${c.name} · ${c.domains[0]}` : c.name}>{mark(c.name)}</span>
                     </td>
-                    <td className="px-4 py-4 align-middle"><StageTag stage={c.stage} /></td>
-                    <td className="px-4 py-4 align-middle text-right whitespace-nowrap">
-                      <span className="block text-[14px] tabular-nums" style={{ color: INK }}>{c.openThreads}</span>
-                      <span className="block text-[12.5px]" style={{ color: MUTED }}>{c.needsReply > 0 ? `${c.needsReply} awaiting reply` : c.openThreads === 0 ? 'No open threads' : 'None waiting on us'}</span>
+                    <td className="px-[10px] py-1.5 align-middle whitespace-nowrap"><StageTag stage={c.stage} /></td>
+                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap" title={c.needsReply > 0 ? `${c.needsReply} awaiting our reply` : c.openThreads === 0 ? 'No open threads' : 'None waiting on us'}>
+                      <span className="text-[13px] tabular-nums" style={{ color: INK }}>{c.openThreads}</span>
+                      {c.needsReply > 0 && <span className="text-[12px] ml-1.5" style={{ color: MUTED }}>{c.needsReply} awaiting</span>}
                     </td>
-                    <td className="px-4 py-4 align-middle text-right whitespace-nowrap">
-                      {ltv ? <><span className="block text-[14px] tabular-nums" style={{ color: INK }}>{money(ltv.total, ltv.currency)}</span><span className="block text-[12.5px]" style={{ color: MUTED }}>{ltv.notes} debit note{ltv.notes === 1 ? '' : 's'}</span></> : <span style={{ color: '#9aa0a6' }}>—</span>}
+                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap" title={ltv ? `${ltv.notes} debit note${ltv.notes === 1 ? '' : 's'}` : undefined}>
+                      {ltv ? <span className="text-[13px] tabular-nums" style={{ color: INK }}>{money(ltv.total, ltv.currency)}</span> : <span style={{ color: '#9aa0a6' }}>—</span>}
                     </td>
-                    <td className="px-4 py-4 align-middle text-right whitespace-nowrap"><RenewalCell date={c.nextRenewalDate} today={today} align="right" /></td>
-                    <td className="px-4 pr-6 py-4 align-middle whitespace-nowrap">
+                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap"><RenewalCell date={c.nextRenewalDate} today={today} compact align="right" /></td>
+                    <td className="px-[10px] pr-4 py-1.5 align-middle whitespace-nowrap">
                       <span className="flex items-center gap-2.5">
-                        {owners.length ? owners.map(o => <PersonTag key={o} email={o} staff={staff} size="md" />) : <span className="text-[13.5px]" style={{ color: MUTED }}>No owner</span>}
-                        <span className="text-[12.5px]" style={{ color: MUTED }}>{c.lastActivityAt ? `Last activity ${relative(c.lastActivityAt)}` : 'No activity yet'}</span>
+                        {owners.length ? owners.map(o => <PersonTag key={o} email={o} staff={staff} size="sm" />) : <span className="text-[13px]" style={{ color: MUTED }}>No owner</span>}
+                        <span className="text-[12px]" style={{ color: MUTED }}>{c.lastActivityAt ? `Last activity ${relative(c.lastActivityAt)}` : 'No activity yet'}</span>
                       </span>
                     </td>
                   </tr>
