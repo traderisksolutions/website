@@ -13,6 +13,8 @@ import type { PolicyView } from '@/components/policies/types'
 import { NewPlacementDialog } from './NewPlacementDialog'
 import { NewRoundDialog } from './NewRoundDialog'
 import { ComparisonGrid } from './ComparisonGrid'
+import { IssueDebitNoteDialog } from './IssueDebitNoteDialog'
+import { sharedOn } from '@/lib/placement/compare'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
@@ -43,6 +45,10 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   const [round, setRound] = useState<RoundTarget | null>(null)
   const [busyFor, setBusyFor] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [leftOut, setLeftOut] = useState<Set<string>>(new Set())
+  const [dnFor, setDnFor] = useState<{ pos: LinePosition; placement: Placement; policy: PolicyView | null } | null>(null)
+  const shared = useMemo(() => sharedOn(data?.bundle.shares), [data])
+  const toggleEmail = (id: string) => setLeftOut(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   const setErr = (id: string, msg: string | null) => setErrors(e => { const n = { ...e }; if (msg) n[id] = msg; else delete n[id]; return n })
 
@@ -66,10 +72,14 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
     }
   }
 
-  async function emailClient(p: Placement) {
+  /** Current quotes on the placement's lines, and those ticked for the next comparison email. */
+  const emailable = (positions: LinePosition[]) => positions.flatMap(x => [...x.dispatches.flatMap(d => d.quotes), ...x.engineQuotes]).filter(q => q.status !== 'not_chosen')
+  async function emailClient(p: Placement, positions: LinePosition[]) {
     setBusyFor(p.id); setErr(p.id, null)
     try {
-      await callApi<{ draftId: string }>(`/api/placements/${p.id}/client-draft`, { method: 'POST', body: {} })
+      const all = emailable(positions)
+      const ticked = all.filter(q => !leftOut.has(q.id)).map(q => q.id)
+      await callApi<{ draftId: string }>(`/api/placements/${p.id}/client-draft`, { method: 'POST', body: ticked.length === all.length ? {} : { quote_ids: ticked } })
       onChanged()
       onOpenDrafts()
     } catch (e) {
@@ -112,8 +122,16 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                 {p.client_thread_id && <span>· <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline" style={{ color: INK }}>Client thread</Link></span>}
                 {byAgent && <span>· Proposed by the agent</span>}
                 <span className="ml-auto flex items-center gap-1 shrink-0">
-                  {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => emailClient(p)}>Email client</Btn>}
-                  {(p.status === 'open' || p.status === 'presented') && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'bound')}>Mark bound</Btn>}
+                  {p.status !== 'closed' && (() => {
+                    const all = emailable(positions)
+                    const n = all.filter(q => !leftOut.has(q.id)).length
+                    return (
+                      <Btn size="xs" level="secondary" className={ROW_BTN} disabled={busy || n === 0} loading={busy} onClick={() => emailClient(p, positions)}
+                        title="Drafts the comparison email with a table of the ticked prices; you check it and send it">
+                        Draft comparison email{all.length ? ` (${n} of ${all.length})` : ''}
+                      </Btn>
+                    )
+                  })()}
                   {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
                 </span>
               </div>
@@ -121,8 +139,9 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
 
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : positions.map(pos => (
                 <div key={pos.line.id} className="mt-2.5">
-                  <LineHeader pos={pos} label={lineLabel(pos.line)} onNewRound={() => openNewRound(p, pos)} onOpenPending={() => openPendingRound(p, pos)} />
-                  <ComparisonGrid pos={pos} policy={policyForLine(pos.line)} onChanged={onChanged} onOpenDrafts={onOpenDrafts} />
+                  <LineHeader pos={pos} label={lineLabel(pos.line)} onNewRound={() => openNewRound(p, pos)} onOpenPending={() => openPendingRound(p, pos)}
+                    onIssueDn={() => setDnFor({ pos, placement: p, policy: policyForLine(pos.line) })} />
+                  <ComparisonGrid pos={pos} policy={policyForLine(pos.line)} shared={shared} leftOut={leftOut} onToggleEmail={toggleEmail} onChanged={onChanged} onOpenDrafts={onOpenDrafts} />
                 </div>
               ))}
             </div>
@@ -130,6 +149,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
         })}
       </SectionCard>
 
+      <IssueDebitNoteDialog target={dnFor} onClose={() => setDnFor(null)} onDone={onChanged} />
       <NewPlacementDialog open={newOpen} onClose={() => setNewOpen(false)} companyId={companyId} companyName={companyName} threads={threads} onDone={onChanged} />
       {round && (
         <NewRoundDialog
@@ -151,9 +171,16 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
  * The line's heading, one line tall: label · round · limit · quoted of asked, the agent's next
  * step in muted text, and on the right New round plus Open round when a client change is waiting.
  */
-function LineHeader({ pos, label, onNewRound, onOpenPending }: {
-  pos: LinePosition; label: string; onNewRound: () => void; onOpenPending: () => void
+function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn }: {
+  pos: LinePosition; label: string; onNewRound: () => void; onOpenPending: () => void; onIssueDn: () => void
 }) {
+  const l = pos.line
+  const finished = l.status === 'done' || !!l.done_at
+  const bind = finished ? 'Done'
+    : l.insurer_confirmed_at ? 'Insurer confirmed'
+    : l.confirm_sent_at ? 'Confirmation sent'
+    : l.client_confirmed_at ? 'Client chose'
+    : null
   const asked = pos.dispatches.length + pos.engineQuotes.length
   const limit = pos.round?.spec?.limit ?? pos.line.spec?.limit
   const summary = [pos.roundNo > 0 ? `Round ${pos.roundNo}` : 'No round', limit ? `limit ${limit}` : null, `${pos.quotedCount} of ${asked} quoted`].filter(Boolean).join(' · ')
@@ -161,12 +188,17 @@ function LineHeader({ pos, label, onNewRound, onOpenPending }: {
     <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-[12.5px]" style={{ color: MUTED }}>
       <span className="font-medium shrink-0" style={{ color: INK }}>{label}</span>
       <span className="shrink-0">· {summary}</span>
+      {bind && <span className="shrink-0 px-1.5 rounded-[5px]" style={{ background: '#d2e3fc', color: INK }}>{bind}</span>}
       {pos.line.next_step && <span className="truncate min-w-0" title={pos.line.next_step}>· {pos.line.next_step}</span>}
       <span className="ml-auto flex items-center gap-1 shrink-0">
         {pos.pendingChange && (
           <Btn size="xs" level="tertiary" className={ROW_BTN} title={pos.pendingChange.text} onClick={onOpenPending}>Open round (client change)</Btn>
         )}
-        <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>
+        {(l.status === 'bound' || l.insurer_confirmed_at) && !finished && (
+          <Btn size="xs" level={l.insurer_confirmed_at ? 'secondary' : 'tertiary'} className={ROW_BTN} onClick={onIssueDn}
+            title={l.insurer_confirmed_at ? undefined : 'The insurer has not confirmed cover yet'}>Issue debit note</Btn>
+        )}
+        {!finished && l.status !== 'bound' && <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>}
       </span>
     </div>
   )

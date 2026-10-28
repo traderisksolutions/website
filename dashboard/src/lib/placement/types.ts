@@ -65,6 +65,12 @@ export interface PlacementLine {
   /** Set when the line's debit note is issued and filed in Drive. */
   done_at?: string | null
   debit_note_id?: string | null
+  /** The quote the client picked, and the confirmation with that insurer (20261029_placement_bind.sql). */
+  picked_quote_id?: string | null
+  client_confirmed_at?: string | null
+  confirm_draft_id?: string | null
+  confirm_sent_at?: string | null
+  insurer_confirmed_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -192,6 +198,22 @@ export interface PlacementLogEntry {
   created_at: string
 }
 
+/** One comparison sent (or drafted) to the client: the quotes it carried, kept as sent. */
+export interface PlacementShare {
+  id: string
+  placement_id: string
+  company_id: string
+  ai_draft_id: string | null
+  quote_ids: string[]
+  subject: string | null
+  body: string | null
+  status: 'drafted' | 'sent' | 'discarded'
+  sent_at: string | null
+  sent_by: string | null
+  sent_from: string | null
+  created_by: string | null
+  created_at: string
+}
 /** Everything the company tab needs, in one read. */
 export interface PlacementBundle {
   placements: Placement[]
@@ -200,6 +222,8 @@ export interface PlacementBundle {
   dispatches: PlacementDispatch[]
   quotes: PlacementQuote[]
   tiers: PlacementTier[]
+  /** Comparisons to the client; absent before 20261029_placement_bind.sql is applied. */
+  shares?: PlacementShare[]
   log: PlacementLogEntry[]
 }
 

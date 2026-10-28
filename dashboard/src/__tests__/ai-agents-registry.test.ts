@@ -48,7 +48,7 @@ describe('agent registry', () => {
 
   it('attributes every placement feature to the placement agent, on its own key', () => {
     for (const f of ['placement_intake', 'placement_dispatch_draft', 'placement_reply_read',
-                     'placement_client_change', 'placement_chase_draft', 'placement_client_summary', 'placement_tier_ask']) {
+                     'placement_client_change', 'placement_chase_draft', 'placement_client_summary', 'placement_tier_ask', 'placement_bind_confirm']) {
       expect(agentOfFeature(f)).toBe('placement')
     }
     expect(AGENTS.placement.envKey).toBe('GEMINI_API_KEY_PLACEMENT')

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Btn, Empty, Field, Spinner, inputCls, textareaCls } from '@/components/crm/primitives'
+import { bodyToHtml } from '@/lib/placement/compare'
 import { productLineLabel } from '@/lib/product-lines'
 import type { PlacementBundle, PlacementDispatch } from '@/lib/placement/types'
 import type { PolicyMovement, PolicyView } from '@/components/policies/types'
@@ -10,25 +11,19 @@ import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 type Sender = { email: string; label: string; type: 'shared' | 'personal' }
-const KIND_WORD = { request: 'Request', chase: 'Follow-up', client: 'Client', movement: 'Movement' } as const
+const KIND_WORD = { request: 'Request', chase: 'Follow-up', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
 
 type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string }
 /** GET /api/companies/[id]/drafts → { queue: QueueItem[] } */
-export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'client' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
+export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'client' | 'confirm' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
 type SendState = { phase: 'idle' } | { phase: 'sending' } | { phase: 'sent' } | { phase: 'error'; message: string }
 /** One recipient of a request item while its fan-out runs: the dispatch id keys the line. */
 type RecipientState = { phase: 'queued' | 'sending' | 'sent' | 'error'; message?: string }
 type Item = QueueItem & { subject: string; body: string; state: SendState; recipients: Record<string, RecipientState> }
 type FanoutClone = { draft_id: string; dispatch_id: string; to_email: string; insurer_name: string }
 
-const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-
-/** Plain text → paragraphs: blank line splits a `<p>`, a single newline is a `<br>`. */
-export function bodyToHtml(body: string): string {
-  return body.replace(/\r\n/g, '\n').trim().split(/\n{2,}/)
-    .map(p => `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`)
-    .join('')
-}
+/** Plain text → HTML; a block of "| a | b |" rows (the comparison table) becomes a table. */
+export { bodyToHtml }
 
 /**
  * Every draft the agents prepared for this company — placement requests, follow-ups, client
@@ -104,6 +99,8 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
     }
     if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
     if (item.kind === 'movement') await callApi('/api/policies/movements/sent', { method: 'POST', body: ids })
+    if (item.kind === 'client') await callApi('/api/placements/shares/sent', { method: 'POST', body: ids })
+    if (item.kind === 'confirm') await callApi('/api/placements/confirm/sent', { method: 'POST', body: ids })
   }
 
   /** A single-recipient draft (chase, client, movement, or a request already fanned out). */
@@ -270,7 +267,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
                     <input className={inputCls} value={item.subject} disabled={busy || sent} onChange={e => setItem(item.draft.id, { subject: e.target.value })} />
                   </Field>
                   <Field label="Body">
-                    <textarea className={textareaCls} rows={12} value={item.body} disabled={busy || sent} onChange={e => setItem(item.draft.id, { body: e.target.value })} />
+                    <textarea className={item.kind === 'client' ? `${textareaCls} font-mono text-[12px]` : textareaCls} rows={item.kind === 'client' ? 20 : 12} value={item.body} disabled={busy || sent} onChange={e => setItem(item.draft.id, { body: e.target.value })} />
                   </Field>
                   {!sent && (
                     <div className="flex justify-end gap-2">

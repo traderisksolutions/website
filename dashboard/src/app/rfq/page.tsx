@@ -19,13 +19,13 @@ type Unmatched = {
 }
 type Filter = 'all' | 'broker' | 'insurer' | 'client' | 'unmatched'
 
-const STAGE_FILL: Partial<Record<RegisterStage, XlFill>> = { chase: 'warn', drafted: 'info', not_asked: 'info', all_in: 'good', bound: 'good', shared: 'quiet' }
+const STAGE_FILL: Partial<Record<RegisterStage, XlFill>> = { chase: 'warn', drafted: 'info', not_asked: 'info', all_in: 'good', bound: 'good', shared: 'quiet', client_chose: 'pick', confirming: 'quiet', dn_due: 'good' }
 const WAIT_WORD: Record<Exclude<WaitingOn, null>, string> = { broker: 'Us', insurer: 'Insurers', client: 'Client' }
 const sgd = (n: number) => n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const who = (email: string | null) => email ? (email === 'agent' ? 'agent' : email.split('@')[0] + '@') : ''
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 /** Stages a broker acts on first sort to the top; within a stage, the oldest request first. */
-const STAGE_ORDER: RegisterStage[] = ['chase', 'drafted', 'not_asked', 'all_in', 'bound', 'quoting', 'waiting', 'shared', 'done', 'dropped', 'lost']
+const STAGE_ORDER: RegisterStage[] = ['chase', 'client_chose', 'dn_due', 'drafted', 'not_asked', 'all_in', 'bound', 'quoting', 'waiting', 'confirming', 'shared', 'done', 'dropped', 'lost']
 
 /**
  * Requests for quotes: every line still in play across every client, one spreadsheet row each,

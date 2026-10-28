@@ -9,7 +9,7 @@ import type { Placement, PlacementDispatch } from '@/lib/placement/types'
 import { MOVEMENT_DRAFT_TYPE } from './inbound'
 import type { PolicyMovement } from './types'
 
-export type QueueKind = 'request' | 'chase' | 'client' | 'movement'
+export type QueueKind = 'request' | 'chase' | 'client' | 'confirm' | 'movement'
 export type QueueItem = {
   draft: store.DraftRow
   kind: QueueKind

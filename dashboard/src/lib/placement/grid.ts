@@ -106,10 +106,11 @@ export function lowestByOption(grid: LineGrid): Map<string, string> {
 
 export type RegisterStage =
   | 'not_asked' | 'drafted' | 'waiting' | 'chase' | 'quoting' | 'all_in'
-  | 'shared' | 'bound' | 'done' | 'dropped' | 'lost'
+  | 'shared' | 'client_chose' | 'confirming' | 'dn_due' | 'bound' | 'done' | 'dropped' | 'lost'
 export const STAGE_WORD: Record<RegisterStage, string> = {
   not_asked: 'Not asked', drafted: 'Drafts to send', waiting: 'Waiting on insurers', chase: 'Chase due',
-  quoting: 'Quotes coming in', all_in: 'All answered', shared: 'With client', bound: 'Bound, DN to issue',
+  quoting: 'Quotes coming in', all_in: 'All answered', shared: 'With client',
+  client_chose: 'Client chose, confirm', confirming: 'Confirming with insurer', dn_due: 'Insurer confirmed, DN due', bound: 'Bound, DN to issue',
   done: 'Done', dropped: 'Dropped', lost: 'Lost',
 }
 /** Who the line waits on. */
@@ -120,6 +121,10 @@ export function lineStage(pos: LinePosition, placement: Pick<Placement, 'status'
   if (s === 'done' || pos.line.done_at) return { stage: 'done', waitingOn: null }
   if (s === 'dropped' || s === 'closed') return { stage: 'dropped', waitingOn: null }
   if (s === 'lost') return { stage: 'lost', waitingOn: null }
+  const l = pos.line
+  if (l.insurer_confirmed_at) return { stage: 'dn_due', waitingOn: 'broker' }
+  if (l.confirm_sent_at) return { stage: 'confirming', waitingOn: 'insurer' }
+  if (l.client_confirmed_at && s !== 'bound') return { stage: 'client_chose', waitingOn: 'broker' }
   if (s === 'bound' || placement.status === 'bound') return { stage: 'bound', waitingOn: 'broker' }
   if (s === 'presented' || placement.status === 'presented') return { stage: 'shared', waitingOn: 'client' }
   const live = pos.dispatches.filter(d => d.dispatch.status !== 'withdrawn')

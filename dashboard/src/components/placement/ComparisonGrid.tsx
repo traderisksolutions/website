@@ -39,9 +39,14 @@ const QUOTE_ROWS: { key: string; label: string; value: (q: PlacementQuote) => st
  * here at any time; asking for them drafts a follow-up to every insurer on the line for a person
  * to send.
  */
-export function ComparisonGrid({ pos, policy, onChanged, onOpenDrafts }: {
+export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, onChanged, onOpenDrafts }: {
   pos: LinePosition
   policy: PolicyView | null
+  /** Quote id → when it last went to the client. */
+  shared: Map<string, string>
+  /** Quotes the broker unticked for the next comparison email. */
+  leftOut: Set<string>
+  onToggleEmail: (quoteId: string) => void
   onChanged: () => void
   onOpenDrafts: () => void
 }) {
@@ -66,7 +71,9 @@ export function ComparisonGrid({ pos, policy, onChanged, onOpenDrafts }: {
   }
   const ask = () => run('ask', () => tiersApi({ ask: true }), onOpenDrafts)
   const drop = (tierId: string) => run(tierId, () => tiersApi({ drop: [tierId] }))
-  const choose = (quoteId: string) => policy && run(quoteId, () => callApi(`/api/policies/${policy.id}/choose`, { method: 'POST', body: { quote_id: quoteId } }))
+  // The client chose it: the confirmation to that insurer is drafted; sending it binds the policy.
+  const pick = (quoteId: string) => run(quoteId, () => callApi<{ draftId: string | null }>(`/api/placements/quotes/${quoteId}/pick`, { method: 'POST' }), onOpenDrafts)
+  const bound = pos.line.status === 'bound' || pos.line.status === 'done'
 
   const nOpt = grid.options.length
   const cols = 1 + grid.insurers.length * nOpt
@@ -160,14 +167,33 @@ export function ComparisonGrid({ pos, policy, onChanged, onOpenDrafts }: {
                 : ''))}
             </XlRow>
             <XlRow>
-              <XlCell label align="left" muted>Client choice</XlCell>
+              <XlCell label align="left" muted>In next email</XlCell>
               {perCell(c => {
                 const q = c.quote
-                if (!q) return ''
-                if (q.status === 'selected' || q.id === chosenId) return <span className="font-medium">Chosen</span>
-                if (!policy || q.status === 'not_chosen') return ''
-                return <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} loading={busy === q.id} onClick={() => choose(q.id)}>Choose</Btn>
+                if (!q || c.state !== 'quoted' || q.status === 'not_chosen') return ''
+                return <input type="checkbox" aria-label={`Include ${c.option.label} from this insurer in the comparison email`} checked={!leftOut.has(q.id)} onChange={() => onToggleEmail(q.id)} className="align-middle cursor-pointer" />
               })}
+            </XlRow>
+            <XlRow>
+              <XlCell label align="left" muted>Sent to client</XlCell>
+              {perCell(c => c.quote && shared.has(c.quote.id) ? fmtDate(shared.get(c.quote.id)!) : '')}
+            </XlRow>
+            <XlRow>
+              <XlCell label align="left" muted>Client choice</XlCell>
+              {grid.insurers.flatMap(ins => ins.cells.map(c => {
+                const q = c.quote
+                const key = `${ins.key}:${c.option.key}`
+                if (!q) return <XlCell key={key} />
+                if (q.status === 'selected' || q.id === chosenId) return <XlCell key={key} fill="pick" strong>Chosen</XlCell>
+                if (q.id === pos.line.picked_quote_id && q.dispatch_id) return <XlCell key={key} fill="pick" title="The confirmation to the insurer is drafted or sent">Picked</XlCell>
+                if (bound || q.status === 'not_chosen' || c.state !== 'quoted') return <XlCell key={key} />
+                return (
+                  <XlCell key={key}>
+                    <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} loading={busy === q.id} onClick={() => pick(q.id)}
+                      title="Drafts the confirmation to this insurer; sending it binds the policy">Client chose</Btn>
+                  </XlCell>
+                )
+              }))}
             </XlRow>
           </tbody>
         </XlGrid>

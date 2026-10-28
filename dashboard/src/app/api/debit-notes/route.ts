@@ -122,9 +122,10 @@ export async function POST(req: NextRequest) {
 
     // File it in the company's Drive folder, as the import path does. Best-effort: a note with no
     // Drive folder is still issued, and the quote request it finishes stays open until it is filed.
+    let driveFolderUrl: string | null = null
     if (pdfForDrive) {
       try {
-        const driveFolderUrl = await archiveDebitNoteToDrive(company?.name ?? 'Unknown company', [{ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfForDrive }])
+        driveFolderUrl = await archiveDebitNoteToDrive(company?.name ?? 'Unknown company', [{ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfForDrive }])
         await attachDebitNoteArchival(result.debitNoteId, { driveFolderUrl })
       } catch (e) {
         console.error('Drive archival failed (debit note still issued):', e)
@@ -139,6 +140,7 @@ export async function POST(req: NextRequest) {
       ...result,
       pdfPath,
       downloadUrl,
+      driveFolderUrl,
       companyName: company?.name ?? null,
       contactEmail: contact?.email ?? null,
     })

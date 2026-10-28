@@ -11,11 +11,13 @@ import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
+import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
+import { choosePolicyQuote } from '@/lib/policies/spine'
 import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
-import type { Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementRound, PlacementTier, RoundReason, Spec } from './types'
+import type { Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
 
 const now = () => new Date().toISOString()
-const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT', tier: 'PLACEMENT_TIER' } as const
+const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT', tier: 'PLACEMENT_TIER', confirm: 'PLACEMENT_CONFIRM' } as const
 const tierAsks = (tiers: PlacementTier[]): agent.TierAsk[] => tiers.map(t => ({ label: t.label, spec: t.spec ?? {}, target_premium: t.target_premium }))
 const liveTiers = (b: PlacementBundle | null, lineId: string): PlacementTier[] => (b?.tiers ?? []).filter(t => t.line_id === lineId && t.status !== 'dropped')
 const MAX_CHASES = 3
@@ -372,6 +374,13 @@ async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, att
   for (const [i, { d, key, line, tiers }] of items.entries()) {
     const base = baseOf(d)
     const label = line?.label ?? insurer
+    // The insurer confirming the option we confirmed to them: the line moves to the debit note.
+    // Checked first, so figures restated in a confirmation are not filed as a new quote.
+    const picked = line?.picked_quote_id ? bundle?.quotes.find(q => q.id === line.picked_quote_id) : null
+    if (line && line.confirm_sent_at && !line.insurer_confirmed_at && picked?.dispatch_id === d.id && (read.kind === 'confirmation' || (read.kind !== 'decline' && read.kind !== 'info_request' && !!read.policy_number))) {
+      await confirmFromInsurer(line, d, read.policy_number, read.summary, base, via)
+      continue
+    }
     const qs = read.quotes.filter(q => q.line_key === key)
     if (qs.length) {
       for (const q of qs) {
@@ -433,7 +442,10 @@ async function handleClientReply(p: Placement, messageId: string, threadId: stri
   const atts = await store.attachmentsFor(messageId, !!msg.has_attachments)
   const positions = derivePositions(bundle)
   const read = await agent.readClientReply(msg, atts, {
-    lines: positions.map(x => ({ label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, bestPremium: x.best?.premium_text ?? null })),
+    lines: positions.map(x => ({
+      label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, bestPremium: x.best?.premium_text ?? null,
+      quoted: x.dispatches.flatMap(d => d.quotes.map(q => `${d.dispatch.insurer_name}${d.dispatch.insurer_product_name ? ` · ${d.dispatch.insurer_product_name}` : ''} [${optionLabel(x, q)}] ${q.premium_text ?? ''}`.trim())),
+    })),
     memory: agent.memoryLines(bundle.log),
   })
   const via = forwardedBy ? ` (forwarded by ${forwardedBy})` : ''
@@ -475,7 +487,19 @@ async function handleClientReply(p: Placement, messageId: string, threadId: stri
       if (pos) await store.patch('placement_lines', `id=eq.${pos.line.id}`, { next_step: `Client change to confirm: ${summary || read.summary}` })
     }
   } else if (read.kind === 'acceptance') {
-    await store.log({ ...base, kind: 'decision', text: `Client wants to proceed${via}: ${read.summary}` })
+    // Each clear pick drafts the confirmation to that insurer; anything unclear waits for a broker.
+    const placed: string[] = []
+    for (const pick of read.picks) {
+      const hit = resolvePick(positions, pick)
+      if (!hit) continue
+      await recordPick(hit.quote.id, 'agent', { messageId, threadId })
+      placed.push(hit.pos.line.id)
+    }
+    const open = positions.filter(x => !placed.includes(x.line.id) && !lineFinished(x.line.status) && x.line.status !== 'bound')
+    if (placed.length === 0 || (read.picks.length > placed.length)) {
+      await store.log({ ...base, kind: 'decision', text: `Client wants to proceed${via}: ${read.summary}${placed.length ? '' : ' — choose the quote on the grid to draft the confirmation'}`, detail: { acted: false, picks: read.picks } })
+      for (const x of open) await store.patch('placement_lines', `id=eq.${x.line.id}`, { next_step: `Client wants to proceed: ${read.summary} — pick the quote they chose` })
+    }
   } else if (read.kind !== 'tiers' && read.kind !== 'change') {
     await store.log({ ...base, kind: read.kind === 'question' ? 'ask' : 'reply', text: `Client${via}: ${read.summary}` })
   }
@@ -635,39 +659,159 @@ export async function runChases(nowDate = new Date()): Promise<{ drafted: number
 
 // ── Client summary ──────────────────────────────────────────────────────────────────────────
 
-export async function draftClientSummary(placementId: string, actor: string): Promise<{ draftId: string } | null> {
+/**
+ * Drafts the comparison to the client: a table per line built from the stored figures, with the
+ * model's words around it. `quoteIds` limits it to the quotes the broker ticked; partial is fine,
+ * and the email names who is still pricing. Saved as a share so what went out is kept.
+ */
+export async function draftClientSummary(placementId: string, actor: string, quoteIds?: string[] | null): Promise<{ draftId: string } | null> {
   const bundle = await store.loadPlacement(placementId)
   const p = bundle?.placements[0]
   if (!bundle || !p) return null
   const company = await store.company(p.company_id)
-  const positions = derivePositions(bundle)
+  const positions = derivePositions(bundle).filter(x => !lineFinished(x.line.status))
+  const lines = emailLines(positions, quoteIds?.length ? new Set(quoteIds) : null)
+  const included = lines.flatMap(l => l.quotes.map(q => q.quote.id))
+  if (included.length === 0) throw new Error('None of the ticked quotes can be sent (expired or not chosen).')
   const contact = p.client_contact_id ? (await store.sbTryContact(p.client_contact_id)) : null
-  const text = await agent.draftClientSummary({
-    clientName: company?.company_name ?? 'the client', contactName: contact?.name ?? null, placementTitle: p.title,
-    lines: positions.map(x => ({
-      label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, roundNo: x.roundNo,
-      quotes: x.dispatches.filter(d => !d.expired).flatMap(d => d.quotes.map(q => ({ insurer: d.dispatch.insurer_name, tier: q.tier_id ? (x.tiers.find(t => t.id === q.tier_id)?.label ?? q.tier_label ?? null) : null, premium: q.premium_text, perHead: q.premium_per_head_text ?? null, limit: q.limit_text, excess: q.excess_text, validity: q.validity_text, subjectivities: q.subjectivities, exclusions: q.exclusions }))),
-      declined: x.dispatches.filter(d => d.dispatch.status === 'declined').map(d => d.dispatch.insurer_name),
-      awaiting: x.dispatches.filter(d => !d.quote && d.dispatch.status !== 'declined' && d.dispatch.status !== 'withdrawn').map(d => d.dispatch.insurer_name),
-    })),
-    memory: agent.memoryLines(bundle.log),
-  })
-  if (!text) return null
-  const to = contact?.email ?? null
-  if (!to || !p.client_contact_id) {
+  if (!contact?.email || !p.client_contact_id) {
     await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'info', actor: 'system', text: 'No client contact on the placement — set the client thread, then draft again.' })
     return null
   }
-  const draft = await store.createDraft({ contact_id: p.client_contact_id, to_email: to, subject: withRef(text.subject, p.ref), body: text.body, thread_id: p.client_thread_id, email_type: DRAFT_TYPE.client })
+  const words = await agent.draftClientSummary({
+    clientName: company?.company_name ?? 'the client', contactName: contact.name ?? null, placementTitle: p.title, inceptionDate: p.inception_date,
+    lines: positions.map((x, i) => ({
+      label: lines[i].label, spec: x.round?.spec ?? x.line.spec, roundNo: x.roundNo,
+      quotes: lines[i].quotes.map(e => ({ insurer: e.insurer, product: e.product, option: e.option, premium: e.quote.premium_text, perHead: e.quote.premium_per_head_text ?? null, limit: e.quote.limit_text, keyTerms: e.quote.key_terms, subjectivities: e.quote.subjectivities, exclusions: e.quote.exclusions })),
+      pending: lines[i].pending, declined: lines[i].declined,
+    })),
+    memory: agent.memoryLines(bundle.log),
+  })
+  if (!words) return null
+  const body = comparisonBody(words, lines)
+  const subject = withRef(words.subject, p.ref)
+  const draft = await store.createDraft({ contact_id: p.client_contact_id, to_email: contact.email, subject, body, thread_id: p.client_thread_id, email_type: DRAFT_TYPE.client })
   if (!draft) return null
-  await store.patchNoTs('placements', `id=eq.${p.id}`, { status: 'presented', updated_at: now() })
-  for (const x of positions) await store.patch('placement_lines', `id=eq.${x.line.id}`, { status: 'presented', next_step: 'Comparison drafted — approve and send to the client' })
-  await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'decision', actor, text: `Comparison to the client drafted (${positions.reduce((n, x) => n + x.quotedCount, 0)} quotes) — awaiting approval`, detail: { ai_draft_id: draft.id } })
+  await store.insert<PlacementShare>('placement_shares', { placement_id: p.id, company_id: p.company_id, ai_draft_id: draft.id, quote_ids: included, subject, body, status: 'drafted', created_by: actor })
+    .catch(e => console.error('[placement] share not saved (apply 20261029_placement_bind.sql)', e))
+  for (const x of positions) await store.patch('placement_lines', `id=eq.${x.line.id}`, { next_step: 'Comparison drafted — check and send it to the client' })
+  const partial = lines.some(l => l.pending.length > 0)
+  await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'decision', actor, text: `Comparison to the client drafted (${included.length} price${included.length === 1 ? '' : 's'}${partial ? ', more to come' : ''}) — awaiting approval`, detail: { ai_draft_id: draft.id, quote_ids: included } })
   return { draftId: draft.id }
 }
 
+/** After the comparison is sent: the share is kept as sent and the request waits on the client. */
+export async function markShareSent(draftId: string, sent: SentFacts): Promise<PlacementShare | null> {
+  const at = now()
+  const [share] = await store.patchNoTs<PlacementShare>('placement_shares', `ai_draft_id=eq.${draftId}`, {
+    status: 'sent', sent_at: at, sent_by: sent.actor, sent_from: sent.fromEmail?.trim().toLowerCase() || null, rfc822_message_id: sent.rfc822MessageId?.trim() || null,
+    ...(sent.subject ? { subject: sent.subject } : {}),
+  }).catch(() => [] as PlacementShare[])
+  // Without the share table the placement is still found through the log entry that names the draft.
+  const placementId = share?.placement_id ?? (await store.rows<{ placement_id: string }>(`placement_log?detail->>ai_draft_id=eq.${draftId}&select=placement_id&limit=1`))[0]?.placement_id
+  if (!placementId) return null
+  const bundle = await store.loadPlacement(placementId)
+  const p = bundle?.placements[0]
+  if (!bundle || !p) return share ?? null
+  if (p.status === 'open') await store.patchNoTs('placements', `id=eq.${p.id}`, { status: 'presented', updated_at: at })
+  const quoteLines = new Set(bundle.quotes.filter(q => share?.quote_ids.includes(q.id)).map(q => q.line_id))
+  for (const l of bundle.lines) {
+    if (lineFinished(l.status) || l.status === 'bound' || (share && !quoteLines.has(l.id))) continue
+    await store.patch('placement_lines', `id=eq.${l.id}`, { status: 'presented', next_step: 'Comparison sent — waiting for the client to choose' })
+  }
+  await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'sent', actor: sent.actor, text: `Comparison sent to the client${sent.fromEmail ? ` from ${sent.fromEmail}` : ''}${share ? ` (${share.quote_ids.length} price${share.quote_ids.length === 1 ? '' : 's'})` : ''}`, detail: { ai_draft_id: draftId, share_id: share?.id ?? null } })
+  return share ?? null
+}
+
+// ── Bind ────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * The client chose a quote (read from their email, or a broker pressed Client chose). Drafts
+ * the confirmation to that insurer for a person to send; sending it binds the policy. A
+ * rate-table price has nobody to confirm with, so it is bound at once.
+ */
+export async function recordPick(quoteId: string, actor: string, opts: { messageId?: string | null; threadId?: string | null } = {}): Promise<{ draftId: string | null; bound: boolean }> {
+  const [q] = await store.rows<PlacementQuote>(`placement_quotes?id=eq.${quoteId}&limit=1`)
+  if (!q) throw new Error('Quote not found')
+  const bundle = await store.loadPlacement(q.placement_id)
+  const p = bundle?.placements[0]
+  const pos = bundle ? derivePositions(bundle).find(x => x.line.id === q.line_id) : null
+  if (!bundle || !p || !pos) throw new Error('Placement not found')
+  const line = pos.line
+  const base = { company_id: p.company_id, placement_id: p.id, line_id: line.id, round_id: q.round_id, dispatch_id: q.dispatch_id, thread_id: opts.threadId ?? null, message_id: opts.messageId ?? null }
+  const at = now()
+  const option = optionLabel(pos, q)
+  const by = actor === 'agent' ? 'Client chose (read from their email)' : 'Client chose'
+
+  if (!q.dispatch_id && actor === 'agent') {
+    // A rate-table price has no insurer email to send; binding it is left to a person.
+    await store.patch('placement_lines', `id=eq.${line.id}`, { picked_quote_id: q.id, client_confirmed_at: at, next_step: `Client chose ${q.insurer_name} (${option}) — press Client chose on the grid to bind it` })
+    await store.log({ ...base, kind: 'decision', actor, text: `${by} ${q.insurer_name} (${option}) on ${line.label ?? line.product_line}; rate-table price, waiting for a broker to bind`, detail: { quote_id: q.id, acted: false } })
+    return { draftId: null, bound: false }
+  }
+  if (!q.dispatch_id) {
+    await bindQuote(line, q, actor)
+    await store.patch('placement_lines', `id=eq.${line.id}`, { picked_quote_id: q.id, client_confirmed_at: at, next_step: `Bound with ${q.insurer_name} — issue the debit note` })
+    await store.log({ ...base, kind: 'decision', actor, text: `${by} ${q.insurer_name} (${option}) on ${line.label ?? line.product_line}; rate-table price, bound`, detail: { quote_id: q.id } })
+    return { draftId: null, bound: true }
+  }
+  const d = bundle.dispatches.find(x => x.id === q.dispatch_id)
+  if (!d) throw new Error('The request behind this quote is missing')
+  const company = await store.company(p.company_id)
+  const contact = d.insurer_contact_id ? await store.sbTryContact(d.insurer_contact_id) : null
+  const text = await agent.draftInsurerConfirmation({
+    insurerName: d.insurer_name, product: d.insurer_product_name ?? null, contactName: contact?.name ?? null, clientName: company?.company_name ?? 'our client',
+    lineLabel: line.label ?? line.product_line, option, premium: q.premium_text, perHead: q.premium_per_head_text ?? null, limit: q.limit_text, excess: q.excess_text,
+    validity: q.validity_text, subjectivities: q.subjectivities, spec: pos.round?.spec ?? line.spec, inceptionDate: p.inception_date,
+  })
+  const draft = text && d.insurer_contact_id
+    ? await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: withRef(text.subject, p.ref), body: text.body, thread_id: d.thread_id, email_type: DRAFT_TYPE.confirm })
+    : null
+  await store.patch('placement_lines', `id=eq.${line.id}`, {
+    picked_quote_id: q.id, client_confirmed_at: at, confirm_draft_id: draft?.id ?? null, confirm_sent_at: null, insurer_confirmed_at: null,
+    next_step: draft ? `Client chose ${d.insurer_name} (${option}) — check and send the confirmation` : `Client chose ${d.insurer_name} (${option}) — confirm it with the insurer`,
+  })
+  await store.log({ ...base, kind: 'decision', actor, text: `${by} ${d.insurer_name} (${option}) on ${line.label ?? line.product_line}${draft ? '; confirmation to the insurer drafted — awaiting approval' : '; the agent could not draft the confirmation'}`,
+    detail: { quote_id: q.id, ai_draft_id: draft?.id ?? null } })
+  return { draftId: draft?.id ?? null, bound: false }
+}
+
+/** The policy is bound to the quote; without a policy row the quote and line are marked directly. */
+async function bindQuote(line: PlacementLine, q: PlacementQuote, actor: string): Promise<void> {
+  if (line.policy_id) { await choosePolicyQuote(line.policy_id, q.id, actor); return }
+  await store.patchNoTs('placement_quotes', `id=eq.${q.id}`, { status: 'selected' })
+  await store.patchNoTs('placement_quotes', `line_id=eq.${q.line_id}&id=neq.${q.id}&status=neq.superseded`, { status: 'not_chosen' })
+  await store.patch('placement_lines', `id=eq.${line.id}`, { status: 'bound' })
+}
+
+/** After the confirmation to the insurer is sent: the policy is bound and the line waits on the insurer. */
+export async function markConfirmSent(draftId: string, sent: SentFacts): Promise<PlacementLine | null> {
+  const [line] = await store.rows<PlacementLine>(`placement_lines?confirm_draft_id=eq.${draftId}&limit=1`)
+  if (!line?.picked_quote_id) return null
+  const [q] = await store.rows<PlacementQuote>(`placement_quotes?id=eq.${line.picked_quote_id}&limit=1`)
+  if (!q) return null
+  const [p] = await store.rows<Placement>(`placements?id=eq.${line.placement_id}&limit=1`)
+  await bindQuote(line, q, sent.actor)
+  const at = now()
+  const [updated] = await store.patch<PlacementLine>('placement_lines', `id=eq.${line.id}`, { confirm_sent_at: at, next_step: `Confirmation sent to ${q.insurer_name} — waiting for them to confirm cover` })
+  if (q.dispatch_id) await store.patch('placement_dispatches', `id=eq.${q.dispatch_id}`, { last_outbound_at: at, ...(sent.gmailThreadId ? { gmail_thread_id: sent.gmailThreadId } : {}) })
+  if (p) await store.log({ company_id: p.company_id, placement_id: p.id, line_id: line.id, dispatch_id: q.dispatch_id, kind: 'sent', actor: sent.actor,
+    text: `Confirmation sent to ${q.insurer_name}${sent.fromEmail ? ` from ${sent.fromEmail}` : ''}; ${line.label ?? line.product_line} bound`, detail: { ai_draft_id: draftId, quote_id: q.id } })
+  return updated ?? null
+}
+
+/** The insurer confirmed cover: record it, take the policy number if given, and point at the debit note. */
+type LogBase = { company_id: string; placement_id: string; line_id: string; round_id: string; dispatch_id: string; thread_id: string | null; message_id: string }
+async function confirmFromInsurer(line: PlacementLine, d: PlacementDispatch, policyNumber: string | null, summary: string, base: LogBase, via: string): Promise<void> {
+  const at = now()
+  await store.patch('placement_lines', `id=eq.${line.id}`, { insurer_confirmed_at: at, next_step: `${d.insurer_name} confirmed cover — issue the debit note` })
+  await store.patch('placement_dispatches', `id=eq.${d.id}`, { last_inbound_at: at, next_chase_at: null })
+  if (policyNumber && line.policy_id) await store.patchNoTs('policies', `id=eq.${line.policy_id}&policy_number=is.null`, { policy_number: policyNumber, updated_at: at })
+  await store.log({ ...base, kind: 'decision', text: `${d.insurer_name} confirmed cover on ${line.label ?? line.product_line}${via}${policyNumber ? ` (policy ${policyNumber})` : ''}: ${summary}`, detail: { policy_number: policyNumber } })
+}
+
 /** The drafts waiting on a person for this placement: requests, chases and the client email. */
-export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'client' }[]> {
+export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'client' | 'confirm' }[]> {
   const bundle = await store.loadPlacement(placementId)
   if (!bundle) return []
   const dispatchDraftIds = [...new Set(bundle.dispatches.filter(d => d.ai_draft_id && d.status === 'drafted').map(d => d.ai_draft_id!))]
@@ -680,7 +824,7 @@ export async function reviewQueue(placementId: string): Promise<{ draft: store.D
   return drafts.map(draft => ({
     draft,
     dispatches: bundle.dispatches.filter(d => d.ai_draft_id === draft.id),
-    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.chase || draft.email_type === DRAFT_TYPE.tier ? 'chase' : 'request',
+    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.confirm ? 'confirm' : draft.email_type === DRAFT_TYPE.chase || draft.email_type === DRAFT_TYPE.tier ? 'chase' : 'request',
   }))
 }
 

@@ -4,7 +4,7 @@
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import type {
   LogKind, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementLogEntry,
-  PlacementQuote, PlacementRound, PlacementTier,
+  PlacementQuote, PlacementRound, PlacementShare, PlacementTier,
 } from './types'
 import { domainOf, isOrgDomain, type OpenDispatch } from './match'
 import { listProducts } from '@/lib/insurer-products'
@@ -17,14 +17,15 @@ export async function loadBundle(companyId: string): Promise<PlacementBundle> {
   const log = await sbTry<PlacementLogEntry[]>(`placement_log?company_id=eq.${companyId}&order=created_at.desc&limit=400`, [])
   if (ids.length === 0) return { placements, lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log }
   const f = `placement_id=in.(${ids.join(',')})`
-  const [lines, rounds, dispatches, quotes, tiers] = await Promise.all([
+  const [lines, rounds, dispatches, quotes, tiers, shares] = await Promise.all([
     sbTry<PlacementLine[]>(`placement_lines?${f}&order=sort.asc,created_at.asc`, []),
     sbTry<PlacementRound[]>(`placement_rounds?${f}&order=round_no.asc`, []),
     sbTry<PlacementDispatch[]>(`placement_dispatches?${f}&order=created_at.asc`, []),
     sbTry<PlacementQuote[]>(`placement_quotes?${f}&order=created_at.asc`, []),
     sbTry<PlacementTier[]>(`placement_tiers?${f}&order=sort.asc,created_at.asc`, []),
+    sbTry<PlacementShare[]>(`placement_shares?${f}&status=neq.discarded&select=id,placement_id,company_id,ai_draft_id,quote_ids,subject,status,sent_at,sent_by,sent_from,created_by,created_at&order=created_at.desc`, []),
   ])
-  return { placements, lines, rounds, dispatches: await withProductNames(dispatches), quotes, tiers, log }
+  return { placements, lines, rounds, dispatches: await withProductNames(dispatches), quotes, tiers, shares: shares.map(s => ({ ...s, body: s.body ?? null })), log }
 }
 
 /**
@@ -67,7 +68,7 @@ export async function loadPlacement(id: string): Promise<PlacementBundle | null>
   const keep = (x: { placement_id: string | null }) => x.placement_id === id
   return {
     placements: [p], lines: b.lines.filter(keep), rounds: b.rounds.filter(keep),
-    dispatches: b.dispatches.filter(keep), quotes: b.quotes.filter(keep), tiers: b.tiers.filter(keep), log: b.log.filter(e => keep(e) || e.placement_id == null),
+    dispatches: b.dispatches.filter(keep), quotes: b.quotes.filter(keep), tiers: b.tiers.filter(keep), shares: (b.shares ?? []).filter(keep), log: b.log.filter(e => keep(e) || e.placement_id == null),
   }
 }
 
