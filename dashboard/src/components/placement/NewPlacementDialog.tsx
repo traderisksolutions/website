@@ -191,7 +191,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                 {validRows.map(r => (
                   <div key={r.key} className="flex flex-col gap-2">
                     <span className="text-[12.5px]" style={{ color: MUTED }}>Line {rows.indexOf(r) + 1} · {r.label.trim() || productLineLabel(r.product_line)}</span>
-                    <ContactPicker productLines={[r.product_line]} value={picks[r.key] ?? null} onChange={next => setPick(r.key, next)} />
+                    <ContactPicker productLines={[r.product_line]} companyId={companyId} value={picks[r.key] ?? null} onChange={next => setPick(r.key, next)} />
                   </div>
                 ))}
               </div>

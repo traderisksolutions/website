@@ -167,7 +167,7 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
     const rows = await store.insert<PlacementDispatch>('placement_dispatches', recipients.map(r => ({
       placement_id: placement.id, line_id: a.line.id, round_id: round.id, company_id: placement.company_id,
       insurer_company_id: r.insurer_company_id, insurer_name: r.insurer_name, insurer_contact_id: r.contact_id, to_email: r.email,
-      ai_draft_id: draftId, status: 'drafted',
+      insurer_product_id: r.product_id ?? null, ai_draft_id: draftId, status: 'drafted',
     })))
     dispatches.push(...rows)
   }

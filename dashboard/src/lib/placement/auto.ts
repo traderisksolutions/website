@@ -8,6 +8,7 @@
  */
 import { sbTry } from '@/lib/crm/db'
 import * as store from './store'
+import { suggestInsurers } from '@/lib/insurer-products'
 import { createPlacement, proposeFromThread, type NewLine } from './workflow'
 
 /** Below this the classifier is guessing, and a guess should not open a placement. */
@@ -84,10 +85,16 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
   if (proposed.length === 0) return { status: 'no_lines' }
 
   const askedLines = [...new Set(proposed.filter(l => l.product_line !== EB_PRODUCT_LINE).map(l => l.product_line))]
-  const routes = askedLines.length > 0 ? await store.insurerRoutes(askedLines) : []
+  // The Insurers page ranks and ticks up to five per line; a line with no products there falls
+  // back to one contact per insurer from the old list.
+  const [suggested, routes] = askedLines.length > 0
+    ? await Promise.all([suggestInsurers(askedLines, thread.company_id), store.insurerRoutes(askedLines)])
+    : [{} as Awaited<ReturnType<typeof suggestInsurers>>, [] as store.InsurerRoute[]]
   const lines: NewLine[] = proposed.map(l => ({
     product_line: l.product_line, label: l.label, spec: l.spec,
-    contact_ids: l.product_line === EB_PRODUCT_LINE ? [] : pickDefaultContacts(routes, l.product_line),
+    contact_ids: l.product_line === EB_PRODUCT_LINE ? []
+      : suggested[l.product_line] ? suggested[l.product_line].filter(s => s.picked && s.contact).map(s => s.contact!.contact_id)
+      : pickDefaultContacts(routes, l.product_line),
   }))
 
   // The agent's read takes a while; another call may have placed this thread meanwhile.

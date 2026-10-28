@@ -1,14 +1,16 @@
 /**
- * GET /api/placements/routes?product_lines=a,b[&tier=c] → { routes: InsurerRoute[] }
- * The insurer contacts on file for the product lines, one row per insurer and person, sorted by
- * insurer then name. tier=c keeps only the insurers with no rate table here (employment benefits).
- * The broker picks from this list before any request is drafted.
+ * GET /api/placements/routes?product_lines=a,b[&tier=c][&company_id=uuid] → { routes: InsurerRoute[], suggestions }
+ * The insurer contacts on file for the product lines, one row per insurer product and person,
+ * sorted by insurer then name. tier=c keeps only the insurers with no rate table here (employment
+ * benefits). suggestions: per line, the Insurers page products ranked for this client, up to five
+ * ticked, each with its reasons. The broker picks from this before any request is drafted.
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { isValidProductLine } from '@/lib/product-lines'
 import * as store from '@/lib/placement/store'
 import { approvedInsurerNames, tierOf } from '@/lib/placement/eb'
+import { suggestInsurers } from '@/lib/insurer-products'
 import { errorResponse, fail, gate } from '@/lib/placement/api'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +25,8 @@ export async function GET(req: NextRequest) {
   if (unknown) return fail(`Unknown product line: ${unknown}`)
   const tier = sp.get('tier')
   if (tier != null && tier !== 'c') return fail('tier must be c')
+  const companyId = sp.get('company_id')
+  if (companyId != null && !/^[0-9a-f-]{36}$/i.test(companyId)) return fail('company_id is not valid')
 
   try {
     let routes = await store.insurerRoutes(lines)
@@ -31,7 +35,8 @@ export async function GET(req: NextRequest) {
       routes = routes.filter(r => tierOf(r.insurer_name, approved) === 'C')
     }
     routes.sort((a, b) => a.insurer_name.localeCompare(b.insurer_name) || (a.name ?? a.email).localeCompare(b.name ?? b.email) || a.email.localeCompare(b.email))
-    return NextResponse.json({ routes })
+    const suggestions = tier === 'c' ? {} : await suggestInsurers(lines, companyId)
+    return NextResponse.json({ routes, suggestions })
   } catch (e) {
     return errorResponse(e)
   }

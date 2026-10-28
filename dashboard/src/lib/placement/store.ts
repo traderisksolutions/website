@@ -7,6 +7,7 @@ import type {
   PlacementQuote, PlacementRound, PlacementTier,
 } from './types'
 import { domainOf, isOrgDomain, type OpenDispatch } from './match'
+import { listProducts } from '@/lib/insurer-products'
 
 const SEL = { prefer: { 'Prefer': 'return=representation' } }
 
@@ -191,10 +192,29 @@ export async function markQuoting(companyId: string): Promise<void> {
 
 // ── Insurer routing ─────────────────────────────────────────────────────────────────────────
 
-export type InsurerRoute = { insurer_name: string; insurer_company_id: string | null; contact_id: string; email: string; name: string | null; product_line: string }
+export type InsurerRoute = {
+  insurer_name: string; insurer_company_id: string | null; contact_id: string; email: string; name: string | null; product_line: string
+  /** The insurer product the request asks about (Insurers page); null for a route from the old contact list. */
+  product_id?: string | null; product_name?: string | null; is_default?: boolean
+}
 
-/** Everyone on file for a product line, one row per insurer and person. */
+/**
+ * Everyone on file for the product lines, one row per insurer product and person. A line with
+ * products on the Insurers page routes from them alone; a line with none still routes from the
+ * old per-line contact list, so nothing stops working before the directory is filled in.
+ */
 export async function insurerRoutes(productLines: string[]): Promise<InsurerRoute[]> {
+  const products = await listProducts({ productLines, activeOnly: true })
+  const covered = new Set(products.map(p => p.product_line))
+  const fromProducts: InsurerRoute[] = products.flatMap(p => p.contacts.map(c => ({
+    insurer_name: p.insurer_name, insurer_company_id: p.insurer_company_id, contact_id: c.contact_id, email: c.email, name: c.name,
+    product_line: p.product_line, product_id: p.id, product_name: p.name, is_default: c.is_default,
+  })))
+  const rest = productLines.filter(l => !covered.has(l))
+  return rest.length ? [...fromProducts, ...await legacyRoutes(rest)] : fromProducts
+}
+
+async function legacyRoutes(productLines: string[]): Promise<InsurerRoute[]> {
   type Row = { product_line: string; insurers: { name: string } | null; contacts: { id: string; email: string | null; first_name: string | null; last_name: string | null } | null }
   const rows = await sbTry<Row[]>(`insurer_contacts?product_line=in.(${productLines.map(enc).join(',')})&select=product_line,insurers(name),contacts(id,email,first_name,last_name)`, [])
   const companies = await sbTry<{ id: string; company_name: string }[]>(`companies?kind=eq.insurer&select=id,company_name`, [])

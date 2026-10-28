@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow } from '@/components/ui/register'
 import type { InsurerRoute } from '@/lib/placement/store'
+import type { Suggestion } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const COLS = 3
@@ -12,18 +13,22 @@ const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-[#202124]'
 /**
  * The insurer contacts on file for the product lines, grouped by insurer, each with a checkbox.
  * The broker picks who gets the request before anything is drafted. `value` null = not loaded
- * yet; on load the picker chooses one contact per insurer (the first by name), or `preferIds`
- * where they are on the list, and reports it through onChange.
+ * yet; on load the picker chooses `preferIds` where they are on the list, else the insurers the
+ * Insurers page ranks first for this client (up to five, with the reasons shown), else one
+ * contact per insurer, and reports it through onChange.
  */
-export function ContactPicker({ productLines, tier, value, onChange, preferIds }: {
+export function ContactPicker({ productLines, tier, value, onChange, preferIds, companyId }: {
   productLines: string[]
   tier?: 'c'
   value: Set<string> | null
   onChange: (next: Set<string>) => void
   /** Contacts to select first when they are on the list (the current round's recipients). */
   preferIds?: string[]
+  /** The client, so the suggestions can weigh its industry. */
+  companyId?: string
 }) {
   const [routes, setRoutes] = useState<InsurerRoute[] | null>(null)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const key = [...productLines].sort().join(',')
@@ -34,25 +39,32 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
     if (!key) { setRoutes([]); return }
     const q = new URLSearchParams({ product_lines: key })
     if (tier) q.set('tier', tier)
-    callApi<{ routes: InsurerRoute[] }>(`/api/placements/routes?${q}`)
-      .then(d => { if (live) setRoutes(d.routes) })
+    if (companyId) q.set('company_id', companyId)
+    callApi<{ routes: InsurerRoute[]; suggestions?: Record<string, Suggestion[]> }>(`/api/placements/routes?${q}`)
+      .then(d => { if (live) { setRoutes(d.routes); setSuggestions(Object.values(d.suggestions ?? {}).flat()) } })
       .catch(e => { if (live) setError(errText(e)) })
     return () => { live = false }
-  }, [key, tier, attempt])
+  }, [key, tier, companyId, attempt])
 
+  // Ranked first when the Insurers page has products for the line; alphabetical otherwise.
+  const rank = useMemo(() => new Map(suggestions.map((s, i) => [s.product.id, i])), [suggestions])
+  const why = useMemo(() => new Map(suggestions.map(s => [s.product.id, s])), [suggestions])
   const groups = useMemo(() => {
     const m = new Map<string, InsurerRoute[]>()
     for (const r of routes ?? []) m.set(r.insurer_name, [...(m.get(r.insurer_name) ?? []), r])
-    return [...m.entries()]
-  }, [routes])
+    const best = (rs: InsurerRoute[]) => Math.min(...rs.map(r => (r.product_id != null ? rank.get(r.product_id) : undefined) ?? Infinity))
+    return [...m.entries()].sort((a, b) => best(a[1]) - best(b[1]) || a[0].localeCompare(b[0]))
+  }, [routes, rank])
 
-  // Default pick once the list is in: the current recipients where present, else one per insurer.
+  // Default pick once the list is in: the current recipients where present, else the suggested
+  // insurers, else one per insurer.
   useEffect(() => {
     if (!routes || value !== null) return
     const onList = new Set(routes.map(r => r.contact_id))
     const kept = (preferIds ?? []).filter(id => onList.has(id))
-    onChange(new Set(kept.length ? kept : groups.map(([, rs]) => rs[0].contact_id)))
-  }, [routes, value, groups, preferIds, onChange])
+    const suggested = suggestions.filter(s => s.picked && s.contact && onList.has(s.contact.contact_id)).map(s => s.contact!.contact_id)
+    onChange(new Set(kept.length ? kept : suggested.length ? suggested : groups.map(([, rs]) => rs[0].contact_id)))
+  }, [routes, value, groups, preferIds, suggestions, onChange])
 
   if (error) {
     return (
@@ -81,6 +93,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
         <tbody>
           {groups.map(([insurer, rs]) => {
             const on = rs.filter(r => value.has(r.contact_id)).length
+            const products = [...new Set(rs.map(r => r.product_id).filter((x): x is string => !!x))].map(id => why.get(id)).filter((s): s is Suggestion => !!s)
             return [
               <RegisterGroupRow key={`g:${insurer}`} colSpan={COLS}>
                 <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -95,6 +108,11 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds }
                   {insurer}
                   <span className="font-normal" style={{ color: MUTED }}>{on} of {rs.length}</span>
                 </label>
+                {products.map(s => (
+                  <span key={s.product.id} className="ml-3 font-normal text-[12px]" style={{ color: s.excluded ? ERROR : MUTED }}>
+                    {s.product.name}{s.reasons.length ? ` · ${s.reasons.join(' · ')}` : ''}
+                  </span>
+                ))}
               </RegisterGroupRow>,
               ...rs.map(r => (
                 <RegisterRow key={r.contact_id}>

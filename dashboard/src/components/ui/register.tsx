@@ -59,7 +59,7 @@ function cellPad(dense: boolean, first: boolean | undefined, last: boolean | und
 }
 
 export function RegisterTh({ children, align = 'left', first, last, active, dir, onSort, hint, className, width }: {
-  children?: React.ReactNode; align?: 'left' | 'right'; first?: boolean; last?: boolean
+  children?: React.ReactNode; align?: 'left' | 'right' | 'center'; first?: boolean; last?: boolean
   active?: boolean; dir?: 'asc' | 'desc'; onSort?: () => void; hint?: string; className?: string; width?: number | string
 }) {
   const dense = useContext(DenseContext)
@@ -67,7 +67,7 @@ export function RegisterTh({ children, align = 'left', first, last, active, dir,
   const size = dense ? 'h-8 text-[12px]' : 'h-11 text-[13px]'
   return (
     <th scope="col" aria-sort={onSort ? (active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={width ? { width } : undefined}
-      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : 'text-left', first && 'z-30 bg-white', cellPad(dense, first, last), className)}>
+      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left', first && 'z-30 bg-white', cellPad(dense, first, last), className)}>
       {onSort ? (
         <button type="button" onClick={onSort} title={hint}
           className={cn('group inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer whitespace-nowrap', size, align === 'right' && 'flex-row-reverse', active && 'font-medium')} style={{ color: active ? INK : MUTED }}>
@@ -95,7 +95,7 @@ export function RegisterRow({ children, selected, onClick, className, style }: {
 
 /** A cell: `primary` over `secondary`, or free `children`. `first` freezes it as the row's identity column. */
 export function RegisterCell({ primary, secondary, children, align = 'left', first, last, selected, className, colSpan, title, nowrap = true, identityWidth }: {
-  primary?: React.ReactNode; secondary?: React.ReactNode; children?: React.ReactNode; align?: 'left' | 'right'
+  primary?: React.ReactNode; secondary?: React.ReactNode; children?: React.ReactNode; align?: 'left' | 'right' | 'center'
   first?: boolean; last?: boolean; selected?: boolean; className?: string; colSpan?: number; title?: string; nowrap?: boolean
   /** Width of the frozen identity block in px; wider when the table has few columns. 260 by default, 200 when dense. */
   identityWidth?: number
@@ -104,7 +104,7 @@ export function RegisterCell({ primary, secondary, children, align = 'left', fir
   const width = identityWidth ?? (dense ? 200 : 260)
   return (
     <td colSpan={colSpan} title={title}
-      className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', align === 'right' && 'text-right', nowrap && 'whitespace-nowrap',
+      className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', align === 'right' && 'text-right', align === 'center' && 'text-center', nowrap && 'whitespace-nowrap',
         first && cn('relative z-10', selected ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]'), cellPad(dense, first, last), className)}>
       {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
