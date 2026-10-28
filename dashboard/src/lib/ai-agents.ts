@@ -160,6 +160,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   placement_client_change:  'placement',
   placement_chase_draft:    'placement',
   placement_client_summary: 'placement',
+  placement_tier_ask:       'placement',
 
   // ── Benefits admin ────────────────────────────────────────────────────────
   policy_movement_classify: 'benefits_admin',

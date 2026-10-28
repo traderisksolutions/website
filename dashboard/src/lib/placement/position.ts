@@ -33,11 +33,18 @@ export function quoteExpired(q: PlacementQuote | null, now: Date): boolean {
 
 export const threadHref = (threadId: string | null) => threadId ? `/engagement?lead=${threadId}` : null
 
-/** The one current quote per dispatch: the latest that is not superseded. */
-export function currentQuote(dispatchId: string, quotes: PlacementQuote[]): PlacementQuote | null {
-  const own = quotes.filter(q => q.dispatch_id === dispatchId && q.status !== 'superseded')
+/** The current quotes of a dispatch, one per tier (null tier = the line's own spec): the latest not superseded. */
+export function currentQuotes(dispatchId: string, quotes: PlacementQuote[]): PlacementQuote[] {
+  const seen = new Set<string>()
+  return quotes.filter(q => q.dispatch_id === dispatchId && q.status !== 'superseded')
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
-  return own[0] ?? null
+    .filter(q => { const k = q.tier_id ?? ''; if (seen.has(k)) return false; seen.add(k); return true })
+}
+
+/** The one quote that stands for the dispatch: its price on the line's own spec, else its first tier priced. */
+export function currentQuote(dispatchId: string, quotes: PlacementQuote[]): PlacementQuote | null {
+  const own = currentQuotes(dispatchId, quotes)
+  return own.find(q => !q.tier_id) ?? own[own.length - 1] ?? null
 }
 
 /** Where every line stands, from the raw rows. Pure, so it is testable and the tab needs no second read. */
@@ -52,8 +59,10 @@ export function derivePositions(b: PlacementBundle, now = new Date()): LinePosit
       .sort((x, y) => x.insurer_name.localeCompare(y.insurer_name))
       .map(dispatch => {
         const quote = currentQuote(dispatch.id, b.quotes)
-        return { dispatch, quote, chaseDue: chaseDue(dispatch, now), expired: quoteExpired(quote, now), threadHref: threadHref(dispatch.thread_id) }
+        return { dispatch, quote, quotes: currentQuotes(dispatch.id, b.quotes), chaseDue: chaseDue(dispatch, now), expired: quoteExpired(quote, now), threadHref: threadHref(dispatch.thread_id) }
       })
+    const tiers = (b.tiers ?? []).filter(t => t.line_id === line.id && t.status !== 'dropped')
+      .sort((x, y) => x.sort - y.sort || x.created_at.localeCompare(y.created_at))
     const live = dispatches.filter(d => d.dispatch.status !== 'withdrawn')
     // Engine quotes: no dispatch behind them; one current quote per insurer.
     const seenInsurer = new Set<string>()
@@ -71,7 +80,7 @@ export function derivePositions(b: PlacementBundle, now = new Date()): LinePosit
       .filter(e => e.kind === 'change' && e.line_id === line.id && e.detail?.acted !== true && e.actor === 'agent')
       .sort((x, y) => y.created_at.localeCompare(x.created_at))[0] ?? null
     out.push({
-      line, round, roundNo: round?.round_no ?? 0, dispatches, engineQuotes, quotedCount, declinedCount, awaitingCount,
+      line, round, roundNo: round?.round_no ?? 0, tiers, dispatches, engineQuotes, quotedCount, declinedCount, awaitingCount,
       allAnswered: (live.length + engineQuotes.length) > 0 && awaitingCount === 0, best, pendingChange,
     })
   }

@@ -4,8 +4,9 @@
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import type {
   LogKind, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementLogEntry,
-  PlacementQuote, PlacementRound,
+  PlacementQuote, PlacementRound, PlacementTier,
 } from './types'
+import { domainOf, isOrgDomain, type OpenDispatch } from './match'
 
 const SEL = { prefer: { 'Prefer': 'return=representation' } }
 
@@ -13,15 +14,16 @@ export async function loadBundle(companyId: string): Promise<PlacementBundle> {
   const placements = await sbTry<Placement[]>(`placements?company_id=eq.${companyId}&order=created_at.desc`, [])
   const ids = placements.map(p => p.id)
   const log = await sbTry<PlacementLogEntry[]>(`placement_log?company_id=eq.${companyId}&order=created_at.desc&limit=400`, [])
-  if (ids.length === 0) return { placements, lines: [], rounds: [], dispatches: [], quotes: [], log }
+  if (ids.length === 0) return { placements, lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log }
   const f = `placement_id=in.(${ids.join(',')})`
-  const [lines, rounds, dispatches, quotes] = await Promise.all([
+  const [lines, rounds, dispatches, quotes, tiers] = await Promise.all([
     sbTry<PlacementLine[]>(`placement_lines?${f}&order=sort.asc,created_at.asc`, []),
     sbTry<PlacementRound[]>(`placement_rounds?${f}&order=round_no.asc`, []),
     sbTry<PlacementDispatch[]>(`placement_dispatches?${f}&order=created_at.asc`, []),
     sbTry<PlacementQuote[]>(`placement_quotes?${f}&order=created_at.asc`, []),
+    sbTry<PlacementTier[]>(`placement_tiers?${f}&order=sort.asc,created_at.asc`, []),
   ])
-  return { placements, lines, rounds, dispatches, quotes, log }
+  return { placements, lines, rounds, dispatches, quotes, tiers, log }
 }
 
 export async function loadPlacement(id: string): Promise<PlacementBundle | null> {
@@ -31,9 +33,12 @@ export async function loadPlacement(id: string): Promise<PlacementBundle | null>
   const keep = (x: { placement_id: string | null }) => x.placement_id === id
   return {
     placements: [p], lines: b.lines.filter(keep), rounds: b.rounds.filter(keep),
-    dispatches: b.dispatches.filter(keep), quotes: b.quotes.filter(keep), log: b.log.filter(e => keep(e) || e.placement_id == null),
+    dispatches: b.dispatches.filter(keep), quotes: b.quotes.filter(keep), tiers: b.tiers.filter(keep), log: b.log.filter(e => keep(e) || e.placement_id == null),
   }
 }
+
+/** A read that comes back empty rather than failing. */
+export const rows = <T>(path: string): Promise<T[]> => sbTry<T[]>(path, [])
 
 export async function insert<T>(table: string, row: Record<string, unknown> | Record<string, unknown>[]): Promise<T[]> {
   return sb<T[]>(table, { method: 'POST', headers: SEL.prefer, body: JSON.stringify(row) })
@@ -75,6 +80,54 @@ export async function dispatchForThread(threadId: string | null, gmailThreadId: 
   return rows[0] ?? null
 }
 
+/** The request whose Message-ID this is, or whose Message-ID a reply answers. */
+export async function dispatchesByRfc822(messageId: string): Promise<PlacementDispatch[]> {
+  const id = messageId.trim()
+  if (!id) return []
+  return sbTry<PlacementDispatch[]>(`placement_dispatches?rfc822_message_id=eq.${enc(id)}&order=created_at.desc`, [])
+}
+
+/** Requests still waiting on, or answered by, an insurer at this address or domain, with their placement's reference. */
+export async function openDispatchesFor(email: string): Promise<(OpenDispatch & { company_id: string })[]> {
+  const domain = domainOf(email)
+  const who = isOrgDomain(domain) ? `to_email=ilike.*${enc('@' + domain)}` : `to_email=ilike.${enc(email.trim().toLowerCase())}`
+  type Row = Pick<PlacementDispatch, 'id' | 'placement_id' | 'line_id' | 'round_id' | 'company_id' | 'to_email' | 'sent_subject' | 'rfc822_message_id'>
+    & { placements: { ref: string; status: string } | null; placement_lines: { current_round_id: string | null } | null }
+  const rows = await sbTry<Row[]>(`placement_dispatches?${who}&status=in.(sent,acknowledged,info_requested,quoted)&select=id,placement_id,line_id,round_id,company_id,to_email,sent_subject,rfc822_message_id,placements(ref,status),placement_lines(current_round_id)&order=created_at.desc&limit=200`, [])
+  return rows.filter(r => r.placements && r.placements.status !== 'closed').map(r => ({
+    id: r.id, placement_id: r.placement_id, placement_ref: r.placements!.ref, line_id: r.line_id, company_id: r.company_id,
+    to_email: r.to_email, sent_subject: r.sent_subject ?? null, rfc822_message_id: r.rfc822_message_id ?? null,
+    current: !r.placement_lines?.current_round_id || r.placement_lines.current_round_id === r.round_id,
+  }))
+}
+
+export async function dispatchesByIds(ids: string[]): Promise<PlacementDispatch[]> {
+  if (ids.length === 0) return []
+  return sbTry<PlacementDispatch[]>(`placement_dispatches?id=in.(${ids.join(',')})`, [])
+}
+
+/** Open placements named by reference, for a company. */
+export async function placementsByRefs(companyId: string, refs: string[]): Promise<Placement[]> {
+  if (refs.length === 0) return []
+  return sbTry<Placement[]>(`placements?company_id=eq.${companyId}&ref=in.(${refs.map(enc).join(',')})&status=neq.closed`, [])
+}
+
+/** The company a contact belongs to, by their email. */
+export async function companyForEmail(email: string): Promise<string | null> {
+  const rows = await sbTry<{ company_id: string | null }[]>(`contacts?email=ilike.${enc(email.trim().toLowerCase())}&select=company_id&limit=1`, [])
+  return rows[0]?.company_id ?? null
+}
+
+export type UnmatchedRow = {
+  id: string; message_id: string; thread_id: string | null; from_address: string | null; forwarded_by: string | null; subject: string | null
+  reason: string; candidate_dispatch_ids: string[]; company_id: string | null; status: 'open' | 'assigned' | 'ignored'
+  assigned_dispatch_ids: string[]; resolved_by: string | null; resolved_at: string | null; created_at: string
+}
+/** A reply the agent could not place, queued for a broker. Once per message. */
+export async function queueUnmatched(row: Omit<UnmatchedRow, 'id' | 'status' | 'assigned_dispatch_ids' | 'resolved_by' | 'resolved_at' | 'created_at'>): Promise<void> {
+  await sbTry('placement_unmatched?on_conflict=message_id', null, { method: 'POST', headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(row) })
+}
+
 export async function placementForClientThread(threadId: string): Promise<Placement | null> {
   const rows = await sbTry<Placement[]>(`placements?client_thread_id=eq.${threadId}&status=neq.closed&order=created_at.desc&limit=1`, [])
   return rows[0] ?? null
@@ -86,7 +139,7 @@ export async function dispatchesForDraft(draftId: string): Promise<PlacementDisp
 
 // ── Mail rows the agent reads ──────────────────────────────────────────────────────────────
 
-export type MailMessage = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; body_text: string | null; sent_at: string | null; has_attachments: boolean | null }
+export type MailMessage = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; body_text: string | null; sent_at: string | null; has_attachments: boolean | null; rfc822_message_id?: string | null; in_reply_to?: string | null }
 export type MailAttachment = { id: string; message_id: string; filename: string; mime_type: string | null; parsed_text: string | null }
 
 export async function threadMessages(threadId: string, limit = 30): Promise<MailMessage[]> {
@@ -95,7 +148,7 @@ export async function threadMessages(threadId: string, limit = 30): Promise<Mail
 }
 
 export async function message(id: string): Promise<MailMessage | null> {
-  const rows = await sbTry<MailMessage[]>(`email_messages?id=eq.${id}&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments&limit=1`, [])
+  const rows = await sbTry<MailMessage[]>(`email_messages?id=eq.${id}&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments,rfc822_message_id,in_reply_to&limit=1`, [])
   return rows[0] ?? null
 }
 

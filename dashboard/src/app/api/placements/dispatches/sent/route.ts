@@ -1,7 +1,8 @@
 /**
- * POST /api/placements/dispatches/sent { draft_id, gmail_thread_id, gmail_message_id } → { dispatches }
+ * POST /api/placements/dispatches/sent { draft_id, gmail_thread_id, gmail_message_id, rfc822_message_id?, from_email?, subject? } → { dispatches }
  * Called by the review screen right after /api/email/send succeeds for a PLACEMENT_REQUEST draft:
- * links the Gmail thread to every dispatch on that draft and starts the chase clock.
+ * links the Gmail thread to every dispatch on that draft, records who sent it from which mailbox
+ * and its Message-ID, and starts the chase clock.
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
@@ -10,7 +11,7 @@ import { errorResponse, fail, gate, isUuid, readBody } from '@/lib/placement/api
 
 export const dynamic = 'force-dynamic'
 
-type Body = { draft_id?: unknown; gmail_thread_id?: unknown; gmail_message_id?: unknown }
+type Body = { draft_id?: unknown; gmail_thread_id?: unknown; gmail_message_id?: unknown; rfc822_message_id?: unknown; from_email?: unknown; subject?: unknown }
 const optText = (v: unknown): string | null => typeof v === 'string' && v.trim() ? v.trim() : null
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,10 @@ export async function POST(req: NextRequest) {
   if (b.gmail_message_id != null && typeof b.gmail_message_id !== 'string') return fail('gmail_message_id must be text')
 
   try {
-    const dispatches = await markSent(b.draft_id, { gmailThreadId: optText(b.gmail_thread_id), gmailMessageId: optText(b.gmail_message_id), actor })
+    const dispatches = await markSent(b.draft_id, {
+      gmailThreadId: optText(b.gmail_thread_id), gmailMessageId: optText(b.gmail_message_id),
+      rfc822MessageId: optText(b.rfc822_message_id), fromEmail: optText(b.from_email), subject: optText(b.subject), actor,
+    })
     if (dispatches.length === 0) return fail('No dispatch is linked to that draft', 404)
     return NextResponse.json({ dispatches })
   } catch (e) {

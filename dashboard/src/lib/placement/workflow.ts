@@ -11,10 +11,13 @@ import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
-import type { Placement, PlacementDispatch, PlacementLine, PlacementRound, RoundReason, Spec } from './types'
+import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
+import type { Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementRound, PlacementTier, RoundReason, Spec } from './types'
 
 const now = () => new Date().toISOString()
-const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT' } as const
+const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT', tier: 'PLACEMENT_TIER' } as const
+const tierAsks = (tiers: PlacementTier[]): agent.TierAsk[] => tiers.map(t => ({ label: t.label, spec: t.spec ?? {}, target_premium: t.target_premium }))
+const liveTiers = (b: PlacementBundle | null, lineId: string): PlacementTier[] => (b?.tiers ?? []).filter(t => t.line_id === lineId && t.status !== 'dropped')
 const MAX_CHASES = 3
 
 // ── Create ──────────────────────────────────────────────────────────────────────────────────
@@ -146,16 +149,18 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
   let drafts = 0
   for (const { ask: a, recipients } of routed) {
     const round = roundOf.get(a.line.id)!
+    const tiers = liveTiers(bundle, a.line.id)
     const text = await agent.draftToInsurer({
       insurerName: null, contactName: null, clientName: company?.company_name ?? 'the client',
-      lines: [{ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec }],
+      lines: [{ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec, tiers: tierAsks(tiers) }],
       roundNo: round.round_no, changeSummary: a.change_summary, previousPremium: null, inceptionDate: placement.inception_date, memory,
     })
     let draftId: string | null = null
     if (text) {
       const body = opts.extraBody?.trim() ? `${text.body}\n\n${opts.extraBody.trim()}` : text.body
       // The shared draft is addressed to the first recipient; fanoutDraft re-addresses a clone per dispatch.
-      const draft = await store.createDraft({ contact_id: recipients[0].contact_id, to_email: recipients[0].email, subject: text.subject, body, email_type: DRAFT_TYPE.dispatch })
+      const draft = await store.createDraft({ contact_id: recipients[0].contact_id, to_email: recipients[0].email, subject: withRef(text.subject, placement.ref), body, email_type: DRAFT_TYPE.dispatch })
+      if (tiers.some(t => t.status === 'proposed')) await store.patchNoTs('placement_tiers', `line_id=eq.${a.line.id}&status=eq.proposed`, { status: 'asked', asked_at: now() })
       draftId = draft?.id ?? null
       if (draftId) drafts++
     }
@@ -175,23 +180,37 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
 
 // ── Sent ────────────────────────────────────────────────────────────────────────────────────
 
-/** After a person sends a dispatch draft: link the Gmail thread, start the chase clock, log it. */
-export async function markSent(draftId: string, sent: { gmailThreadId: string | null; gmailMessageId: string | null; actor: string }): Promise<PlacementDispatch[]> {
+export type SentFacts = {
+  gmailThreadId: string | null; gmailMessageId: string | null
+  /** The Message-ID header as sent: the same in every mailbox, so the reply matches wherever it lands. */
+  rfc822MessageId?: string | null
+  /** The mailbox it went out from. A personal mailbox's Gmail thread is not the one operations@ sees. */
+  fromEmail?: string | null
+  subject?: string | null
+  actor: string
+}
+
+/** After a person sends a dispatch draft: record who sent it and from where, start the chase clock, log it. */
+export async function markSent(draftId: string, sent: SentFacts): Promise<PlacementDispatch[]> {
   const ds = await store.dispatchesForDraft(draftId)
   if (ds.length === 0) return []
+  // Only a send from operations@ has a Gmail thread the ingest knows. A personal send's thread is
+  // linked when the operations@ copy (it is always CC'd) comes through the ingest.
   const t = sent.gmailThreadId ? await store.threadByGmailId(sent.gmailThreadId) : null
   const placement = (await store.loadPlacement(ds[0].placement_id))?.placements[0]
   // The thread the send route made carries no company; file it under the CLIENT so it shows on their Threads tab.
   if (t && !t.company_id && placement) await store.patchNoTs('email_threads', `id=eq.${t.id}`, { company_id: placement.company_id })
   const at = now()
+  const from = sent.fromEmail?.trim().toLowerCase() || null
   const updated = await store.patch<PlacementDispatch>('placement_dispatches', `ai_draft_id=eq.${draftId}`, {
     status: 'sent', sent_at: at, last_outbound_at: at, next_chase_at: nextChaseAt(new Date(), 0).toISOString(),
     gmail_thread_id: sent.gmailThreadId, thread_id: t?.id ?? null,
+    rfc822_message_id: sent.rfc822MessageId?.trim() || null, sent_from: from, sent_by: sent.actor, sent_subject: sent.subject?.trim() || null,
   })
   for (const d of updated) {
     await store.patch('placement_lines', `id=eq.${d.line_id}`, { next_step: 'Waiting for the insurers to quote' })
     await store.log({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, kind: 'sent', actor: sent.actor,
-      text: `Request sent to ${d.insurer_name} (${d.to_email})`, thread_id: t?.id ?? null })
+      text: `Request sent to ${d.insurer_name} (${d.to_email})${from ? ` from ${from}` : ''}`, thread_id: t?.id ?? null })
   }
   return updated
 }
@@ -226,69 +245,188 @@ export type InboundResult = { handled: 'insurer' | 'client' | 'none'; detail?: s
 
 /** Called by ingest for every newly stored message. Cheap when the thread is not ours. */
 export async function handleInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }): Promise<InboundResult> {
+  const msg = await store.message(input.message_id)
+
+  // 1. Our own request again: the operations@ copy of one a broker sent from their own mailbox.
+  if (input.direction === 'outbound' && msg?.rfc822_message_id) {
+    const own = await store.dispatchesByRfc822(msg.rfc822_message_id)
+    if (own.length) {
+      for (const d of own) if (!d.thread_id) await store.patch('placement_dispatches', `id=eq.${d.id}`, { thread_id: input.thread_id })
+      return { handled: 'insurer', detail: 'request copy linked' }
+    }
+  }
+
+  // 2. The thread a request went out on.
   const dispatch = await store.dispatchForThread(input.thread_id, input.gmail_thread_id)
   if (dispatch) {
     if (!dispatch.thread_id) await store.patch('placement_dispatches', `id=eq.${dispatch.id}`, { thread_id: input.thread_id })
-    if (input.direction === 'outbound') {
+    if (input.direction === 'outbound' && !(msg && isInternal(msg.from_address) && readForward(msg.subject, msg.body_text)?.from)) {
       await store.patch('placement_dispatches', `id=eq.${dispatch.id}`, { last_outbound_at: now() })
       return { handled: 'insurer', detail: 'outbound noted' }
     }
-    return handleInsurerReply(dispatch, input.message_id, input.thread_id)
+    // The same insurer asked about other lines of this placement may be answered in the same email.
+    const siblings = (await store.openDispatchesFor(dispatch.to_email)).filter(o => o.placement_id === dispatch.placement_id && o.line_id !== dispatch.line_id && o.current !== false)
+    return handleInsurerReply([dispatch, ...await store.dispatchesByIds(siblings.map(o => o.id))], input.message_id, input.thread_id)
   }
+
+  // 3. The client's thread of an open placement.
   const placement = await store.placementForClientThread(input.thread_id)
   if (placement && input.direction === 'inbound') return handleClientReply(placement, input.message_id, input.thread_id)
+
+  // 4. Anywhere else: an insurer starting a fresh thread, a reply to a personal mailbox's send, a broker's forward.
+  if (msg) {
+    const placed = await placeElsewhere(msg, input.thread_id, input.direction)
+    if (placed) return placed
+  }
   return handlePolicyInbound(input)
 }
 
-async function handleInsurerReply(d: PlacementDispatch, messageId: string, threadId: string): Promise<InboundResult> {
-  const msg = await store.message(messageId)
-  if (!msg) return { handled: 'insurer', detail: 'message missing' }
-  const bundle = await store.loadPlacement(d.placement_id)
-  const line = bundle?.lines.find(l => l.id === d.line_id)
-  const round = bundle?.rounds.find(r => r.id === d.round_id)
-  const atts = await store.attachmentsFor(messageId, !!msg.has_attachments)
-  const read = await agent.readInsurerReply(msg, atts, { insurerName: d.insurer_name, lineLabel: line?.label ?? d.insurer_name, spec: round?.spec ?? {}, roundNo: round?.round_no ?? 1 })
-  const at = now()
-  const base = { company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, thread_id: threadId, message_id: messageId }
-  if (!read) {
-    await store.patch('placement_dispatches', `id=eq.${d.id}`, { last_inbound_at: at })
-    await store.log({ ...base, kind: 'reply', actor: 'system', text: `${d.insurer_name} replied; the agent could not read it. Open the thread.` })
-    return { handled: 'insurer', detail: 'unread' }
+/**
+ * A message off the request threads: match it by Message-ID, reference or subject; queue it for
+ * a broker when only the insurer is known; hand a client's forwarded or referenced email to the
+ * client handler. Null = not placement mail, let the policy handler look.
+ */
+async function placeElsewhere(msg: store.MailMessage, threadId: string, direction: 'inbound' | 'outbound'): Promise<InboundResult | null> {
+  const fwd = isInternal(msg.from_address) ? readForward(msg.subject, msg.body_text) : null
+  if (direction === 'outbound' && !fwd?.from) return null
+  const party = (fwd?.from?.email ?? msg.from_address ?? '').toLowerCase()
+  if (!party || isInternal(party)) return null
+  const forwardedBy = fwd ? (msg.from_address ?? '').toLowerCase() : null
+
+  const open = await store.openDispatchesFor(party)
+  const m = matchDispatches({ party, subject: fwd?.subject ?? msg.subject, body: `${msg.subject ?? ''}\n${msg.body_text ?? ''}`, inReplyTo: fwd ? null : msg.in_reply_to ?? null }, open)
+  if (m.kind === 'matched') {
+    const ds = await store.dispatchesByIds(m.ids)
+    // The dispatch the match came from first: it gets the info-request and acknowledgement handling.
+    ds.sort((x, y) => m.ids.indexOf(x.id) - m.ids.indexOf(y.id))
+    return handleInsurerReply(ds, msg.id, threadId, forwardedBy)
   }
-  if (read.kind === 'quote' && read.quote) {
-    await store.patchNoTs('placement_quotes', `dispatch_id=eq.${d.id}&status=eq.received`, { status: 'superseded' })
-    const q = read.quote
-    const norm = agent.quoteFields(q)
-    await store.insert('placement_quotes', {
-      placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, insurer_name: d.insurer_name,
-      premium_text: q.premium, limit_text: q.limit, excess_text: q.excess, validity_text: q.validity, valid_until: q.valid_until,
-      key_terms: q.key_terms, exclusions: q.exclusions, subjectivities: q.subjectivities, summary: read.summary, evidence: q.evidence,
-      source_message_id: messageId, thread_id: threadId, extracted_by: 'placement', ...norm,
-    })
-    await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'quoted', last_inbound_at: at, next_chase_at: null })
-    await store.log({ ...base, kind: 'quote', text: `${d.insurer_name} quoted ${q.premium ?? 'a premium not stated'}${q.limit ? ` for ${q.limit}` : ''}${q.validity ? `, valid ${q.validity}` : ''}${norm.needs_review ? ' — check the figure against the source' : ''}` })
-  } else if (read.kind === 'decline') {
-    await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'declined', last_inbound_at: at, next_chase_at: null })
-    await store.log({ ...base, kind: 'declined', text: `${d.insurer_name} declined: ${read.summary}` })
-  } else if (read.kind === 'info_request') {
-    await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'info_requested', last_inbound_at: at, next_chase_at: null })
-    await store.patch('placement_lines', `id=eq.${d.line_id}`, { next_step: `${d.insurer_name} needs: ${read.questions.join('; ') || read.summary}` })
-    await store.log({ ...base, kind: 'ask', text: `${d.insurer_name} asked: ${read.questions.join('; ') || read.summary}`, detail: { questions: read.questions } })
-  } else {
-    const st = read.kind === 'acknowledgement' ? 'acknowledged' : d.status
-    await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: st, last_inbound_at: at, next_chase_at: nextChaseAt(new Date(), d.chase_count).toISOString() })
-    await store.log({ ...base, kind: 'reply', text: `${d.insurer_name}: ${read.summary}` })
+  if (m.kind === 'ambiguous') {
+    const companyId = open.find(o => m.ids.includes(o.id))?.company_id ?? null
+    await store.queueUnmatched({ message_id: msg.id, thread_id: threadId, from_address: party, forwarded_by: forwardedBy, subject: fwd?.subject ?? msg.subject, reason: m.reason, candidate_dispatch_ids: m.ids, company_id: companyId })
+    // A subject that names a request is quote mail: say so on the company and stop. A domain alone
+    // may be anything the insurer sends (a renewal notice, a debit note), so it waits in the queue
+    // quietly and the policy handler still reads it.
+    if (m.strength === 'domain') return null
+    if (companyId) await store.log({ company_id: companyId, kind: 'info', actor: 'system', thread_id: threadId, message_id: msg.id,
+      text: `Email from ${party}${forwardedBy ? ` (forwarded by ${forwardedBy})` : ''} answers a quote request but more than one fits — choose which under Unmatched replies`, detail: { candidate_dispatch_ids: m.ids } })
+    return { handled: 'insurer', detail: 'queued for a broker' }
   }
-  // Every line answered → the line is quoted and the next step is the client.
-  const fresh = await store.loadPlacement(d.placement_id)
-  if (fresh) {
-    const pos = derivePositions(fresh).find(p => p.line.id === d.line_id)
-    if (pos?.allAnswered) await store.patch('placement_lines', `id=eq.${d.line_id}`, { status: 'quoted', next_step: 'All insurers have answered — send the comparison to the client' })
+
+  // Not an insurer's answer. A client's email that names its placement, or that a broker forwarded.
+  const companyId = await store.companyForEmail(party)
+  if (!companyId) return null
+  const refs = parseRefs(msg.subject, msg.body_text)
+  let target = (await store.placementsByRefs(companyId, refs))[0] ?? null
+  if (!target && fwd) {
+    const openForCompany = (await store.loadBundle(companyId)).placements.filter(p => p.status !== 'closed')
+    if (openForCompany.length === 1) target = openForCompany[0]
   }
-  return { handled: 'insurer', detail: read.kind }
+  return target ? handleClientReply(target, msg.id, threadId, forwardedBy) : null
 }
 
-async function handleClientReply(p: Placement, messageId: string, threadId: string): Promise<InboundResult> {
+/** "500k: S$36,800 (S$800/head); 1M: S$46,920" — what came in, for the log. */
+const quoteSummary = (qs: agent.ReadQuote[]): string => qs.map(q => {
+  const price = [q.premium, q.per_head ? `${q.per_head} per head` : null].filter(Boolean).join(', ') || 'premium not stated'
+  return `${q.tier ? `${q.tier}: ` : ''}${price}${q.limit && !q.tier ? ` for ${q.limit}` : ''}`
+}).join('; ')
+
+/**
+ * Files an insurer's email against the requests it answers: one or more lines of one placement,
+ * every price as its own quote row. A revised price for the same tier supersedes the old row
+ * (kept, never deleted). The first dispatch is the one the email was matched through.
+ */
+async function handleInsurerReply(ds: PlacementDispatch[], messageId: string, threadId: string | null, forwardedBy: string | null = null): Promise<InboundResult> {
+  const msg = await store.message(messageId)
+  if (!msg || ds.length === 0) return { handled: 'insurer', detail: 'message missing' }
+  const atts = await store.attachmentsFor(messageId, !!msg.has_attachments)
+  const kinds: string[] = []
+  // A match never spans placements in practice, but each placement is read with its own lines.
+  for (const placementId of [...new Set(ds.map(d => d.placement_id))]) {
+    kinds.push(await fileReply(ds.filter(d => d.placement_id === placementId), msg, atts, threadId, forwardedBy))
+  }
+  return { handled: 'insurer', detail: kinds.join(',') }
+}
+
+async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, atts: store.MailAttachment[], threadId: string | null, forwardedBy: string | null): Promise<string> {
+  const bundle = await store.loadPlacement(group[0].placement_id)
+  const items = group.map((d, i) => {
+    const line = bundle?.lines.find(l => l.id === d.line_id) ?? null
+    const round = bundle?.rounds.find(r => r.id === d.round_id) ?? null
+    return { d, key: `L${i + 1}`, line, round, tiers: (bundle?.tiers ?? []).filter(t => t.line_id === d.line_id) }
+  })
+  const insurer = group[0].insurer_name
+  const read = await agent.readInsurerReply(msg, atts, {
+    insurerName: insurer, roundNo: Math.max(...items.map(x => x.round?.round_no ?? 1)),
+    lines: items.map(x => ({ key: x.key, label: x.line?.label ?? insurer, spec: x.round?.spec ?? x.line?.spec ?? {}, tiers: x.tiers.filter(t => t.status !== 'dropped').map(t => t.label) })),
+  })
+  const at = now()
+  const via = forwardedBy ? ` (forwarded by ${forwardedBy})` : ''
+  const baseOf = (d: PlacementDispatch) => ({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, thread_id: threadId, message_id: msg.id })
+  if (!read) {
+    for (const { d } of items) await store.patch('placement_dispatches', `id=eq.${d.id}`, { last_inbound_at: at })
+    await store.log({ ...baseOf(group[0]), kind: 'reply', actor: 'system', text: `${insurer} replied${via}; the agent could not read it. Open the thread.` })
+    return 'unread'
+  }
+
+  for (const [i, { d, key, line, tiers }] of items.entries()) {
+    const base = baseOf(d)
+    const label = line?.label ?? insurer
+    const qs = read.quotes.filter(q => q.line_key === key)
+    if (qs.length) {
+      for (const q of qs) {
+        let tier = q.tier ? findTier(q.tier, tiers) : null
+        if (q.tier && !tier) {
+          // A price for an option nobody asked for is kept as a tier of its own.
+          const [made] = await store.insert<PlacementTier>('placement_tiers', { placement_id: d.placement_id, line_id: d.line_id, label: q.tier.slice(0, 80), status: 'offered', source: 'insurer', source_message_id: msg.id, sort: tiers.length })
+            .catch(() => [] as PlacementTier[])
+          if (made) { tier = made; tiers.push(made) }
+        }
+        await store.patchNoTs('placement_quotes', `dispatch_id=eq.${d.id}&status=eq.received&tier_id=${tier ? `eq.${tier.id}` : 'is.null'}`, { status: 'superseded' })
+        await store.insert('placement_quotes', {
+          placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, insurer_name: d.insurer_name,
+          tier_id: tier?.id ?? null, tier_label: q.tier, premium_text: q.premium, premium_per_head_text: q.per_head,
+          limit_text: q.limit, excess_text: q.excess, validity_text: q.validity, valid_until: q.valid_until,
+          key_terms: q.key_terms, exclusions: q.exclusions, subjectivities: q.subjectivities, summary: read.summary, evidence: q.evidence,
+          source_message_id: msg.id, thread_id: threadId, extracted_by: 'placement', ...agent.quoteFields(q),
+        })
+      }
+      const review = qs.some(q => agent.quoteFields(q).needs_review)
+      await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'quoted', last_inbound_at: at, next_chase_at: null })
+      await store.log({ ...base, kind: 'quote', text: `${insurer} quoted ${label}${via}: ${quoteSummary(qs)}${review ? ' — check the figures against the source' : ''}` })
+    } else if ((read.kind === 'decline' && read.declined_lines.length === 0) || read.declined_lines.includes(key)) {
+      await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'declined', last_inbound_at: at, next_chase_at: null })
+      await store.log({ ...base, kind: 'declined', text: `${insurer} declined ${label}${via}: ${read.summary}` })
+    } else if (i === 0) {
+      // Not a price for this line: the email is about the request it was matched through.
+      if (read.kind === 'info_request') {
+        await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'info_requested', last_inbound_at: at, next_chase_at: null })
+        await store.patch('placement_lines', `id=eq.${d.line_id}`, { next_step: `${insurer} needs: ${read.questions.join('; ') || read.summary}` })
+        await store.log({ ...base, kind: 'ask', text: `${insurer} asked${via}: ${read.questions.join('; ') || read.summary}`, detail: { questions: read.questions } })
+      } else if (read.kind !== 'quote') {
+        const st = read.kind === 'acknowledgement' ? 'acknowledged' : d.status
+        await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: st, last_inbound_at: at, next_chase_at: nextChaseAt(new Date(), d.chase_count).toISOString() })
+        await store.log({ ...base, kind: 'reply', text: `${insurer}${via}: ${read.summary}` })
+      } else if (read.quotes.length === 0) {
+        await store.patch('placement_dispatches', `id=eq.${d.id}`, { last_inbound_at: at })
+        await store.log({ ...base, kind: 'reply', actor: 'system', text: `${insurer} sent a quote${via}, but the agent could not read the figures. Open the thread.` })
+      }
+    }
+  }
+
+  // Every insurer on a line answered → the line is quoted and the next step is the client.
+  const fresh = await store.loadPlacement(group[0].placement_id)
+  if (fresh) {
+    for (const pos of derivePositions(fresh).filter(p => items.some(x => x.d.line_id === p.line.id))) {
+      if (pos.allAnswered && !lineFinished(pos.line.status) && pos.line.status !== 'bound') {
+        await store.patch('placement_lines', `id=eq.${pos.line.id}`, { status: 'quoted', next_step: 'All insurers have answered — send the comparison to the client' })
+      }
+    }
+  }
+  return read.kind
+}
+
+async function handleClientReply(p: Placement, messageId: string, threadId: string, forwardedBy: string | null = null): Promise<InboundResult> {
   const msg = await store.message(messageId)
   const bundle = await store.loadPlacement(p.id)
   if (!msg || !bundle) return { handled: 'client', detail: 'missing' }
@@ -298,23 +436,177 @@ async function handleClientReply(p: Placement, messageId: string, threadId: stri
     lines: positions.map(x => ({ label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, bestPremium: x.best?.premium_text ?? null })),
     memory: agent.memoryLines(bundle.log),
   })
+  const via = forwardedBy ? ` (forwarded by ${forwardedBy})` : ''
   const base = { company_id: p.company_id, placement_id: p.id, thread_id: threadId, message_id: messageId }
-  if (!read) { await store.log({ ...base, kind: 'reply', actor: 'system', text: 'Client replied; the agent could not read it. Open the thread.' }); return { handled: 'client', detail: 'unread' } }
-  if (read.kind === 'change' && read.changes.length) {
+  if (!read) { await store.log({ ...base, kind: 'reply', actor: 'system', text: `Client replied${via}; the agent could not read it. Open the thread.` }); return { handled: 'client', detail: 'unread' } }
+  const lineFor = (label: string) => positions.find(x => (x.line.label ?? x.line.product_line).toLowerCase() === label.toLowerCase()) ?? (positions.length === 1 ? positions[0] : null)
+
+  // More options to compare: proposed tiers on each line, for a broker to ask the insurers.
+  if (read.tiers.length) {
+    for (const pos of positions) {
+      const asked = read.tiers.filter(t => lineFor(t.line_label)?.line.id === pos.line.id)
+      if (asked.length === 0) continue
+      const existing = bundle.tiers.filter(t => t.line_id === pos.line.id)
+      const added: PlacementTier[] = []
+      for (const t of asked) {
+        const known = findTier(t.label, existing)
+        if (known) {
+          if (known.status === 'dropped') await store.patchNoTs('placement_tiers', `id=eq.${known.id}`, { status: 'proposed' })
+          continue
+        }
+        const [row] = await store.insert<PlacementTier>('placement_tiers', {
+          placement_id: p.id, line_id: pos.line.id, label: t.label, spec: t.spec, target_premium: t.target_premium,
+          status: 'proposed', source: 'client', source_message_id: messageId, created_by: 'agent', sort: existing.length + added.length,
+        }).catch(() => [] as PlacementTier[])
+        if (row) { added.push(row); existing.push(row) }
+      }
+      const labels = asked.map(t => t.label).join(', ')
+      await store.patch('placement_lines', `id=eq.${pos.line.id}`, { next_step: `Client wants to compare ${labels} — ask the insurers` })
+      await store.log({ ...base, line_id: pos.line.id, kind: 'ask', text: `Client wants to compare ${labels} on ${pos.line.label}${via}`, detail: { acted: false, tier_ids: added.map(t => t.id), summary: read.summary } })
+    }
+  }
+  if (read.changes.length) {
     for (const c of read.changes) {
       const pos = positions.find(x => (x.line.label ?? x.line.product_line).toLowerCase() === c.line_label.toLowerCase())
       const prev = pos?.round?.spec ?? pos?.line.spec ?? {}
       const summary = pos ? describeChanges(specDiff(prev, c.spec)) : `New line asked for: ${c.line_label}`
-      await store.log({ ...base, line_id: pos?.line.id ?? null, kind: 'change', text: `Client asks for a change${pos ? ` on ${pos.line.label}` : ''}: ${summary || read.summary}`,
+      await store.log({ ...base, line_id: pos?.line.id ?? null, kind: 'change', text: `Client asks for a change${pos ? ` on ${pos.line.label}` : ''}${via}: ${summary || read.summary}`,
         detail: { acted: false, spec: c.spec, line_label: c.line_label, summary: read.summary } })
       if (pos) await store.patch('placement_lines', `id=eq.${pos.line.id}`, { next_step: `Client change to confirm: ${summary || read.summary}` })
     }
   } else if (read.kind === 'acceptance') {
-    await store.log({ ...base, kind: 'decision', text: `Client wants to proceed: ${read.summary}` })
-  } else {
-    await store.log({ ...base, kind: read.kind === 'question' ? 'ask' : 'reply', text: `Client: ${read.summary}` })
+    await store.log({ ...base, kind: 'decision', text: `Client wants to proceed${via}: ${read.summary}` })
+  } else if (read.kind !== 'tiers' && read.kind !== 'change') {
+    await store.log({ ...base, kind: read.kind === 'question' ? 'ask' : 'reply', text: `Client${via}: ${read.summary}` })
   }
   return { handled: 'client', detail: read.kind }
+}
+
+// ── Tiers ───────────────────────────────────────────────────────────────────────────────────
+
+/** Adds options to compare on a line. Labels already on the line are skipped (a dropped one comes back). */
+export async function addTiers(lineId: string, tiers: { label: string; spec?: Spec; target_premium?: string | null }[], actor: string): Promise<PlacementTier[]> {
+  const [line] = await sbLine(lineId)
+  if (!line) throw new Error('Placement line not found')
+  const bundle = await store.loadPlacement(line.placement_id)
+  const existing = (bundle?.tiers ?? []).filter(t => t.line_id === lineId)
+  const out: PlacementTier[] = []
+  for (const t of tiers) {
+    const label = t.label.trim().slice(0, 80)
+    if (!label) continue
+    const known = findTier(label, existing)
+    if (known) {
+      if (known.status === 'dropped') { await store.patchNoTs('placement_tiers', `id=eq.${known.id}`, { status: 'proposed' }); out.push({ ...known, status: 'proposed' }) }
+      continue
+    }
+    const [row] = await store.insert<PlacementTier>('placement_tiers', {
+      placement_id: line.placement_id, line_id: lineId, label, spec: normaliseSpec(t.spec), target_premium: t.target_premium?.trim() || null,
+      status: 'proposed', source: 'broker', created_by: actor, sort: existing.length + out.length,
+    })
+    if (row) { out.push(row); existing.push(row) }
+  }
+  const company = bundle?.placements[0]?.company_id
+  if (company && out.length) await store.log({ company_id: company, placement_id: line.placement_id, line_id: lineId, kind: 'note', actor, text: `Options to compare on ${line.label}: ${out.map(t => t.label).join(', ')}` })
+  return out
+}
+
+const sbLine = (id: string) => store.rows<PlacementLine>(`placement_lines?id=eq.${id}&limit=1`)
+
+/**
+ * Asks every insurer still on the line's current round to price the proposed tiers: one draft
+ * per insurer, as a reply on that insurer's thread, all with the same text. Nothing is sent.
+ */
+export async function askTiers(lineId: string, actor: string, tierIds?: string[]): Promise<{ drafts: number; tiers: PlacementTier[] }> {
+  const [line] = await sbLine(lineId)
+  if (!line) throw new Error('Placement line not found')
+  const bundle = await store.loadPlacement(line.placement_id)
+  const p = bundle?.placements[0]
+  if (!bundle || !p) throw new Error('Placement not found')
+  const tiers = liveTiers(bundle, lineId).filter(t => tierIds ? tierIds.includes(t.id) : t.status === 'proposed')
+  if (tiers.length === 0) throw new Error('No option is waiting to be asked on this line')
+  const round = bundle.rounds.find(r => r.id === line.current_round_id) ?? null
+  const live = bundle.dispatches.filter(d => d.round_id === line.current_round_id && ['sent', 'acknowledged', 'info_requested', 'quoted'].includes(d.status))
+  if (live.length === 0) throw new Error('No insurer has been sent this line yet — send the requests first, or open a round')
+  const company = await store.company(p.company_id)
+  const text = await agent.draftTierAsk({ clientName: company?.company_name ?? 'our client', lineLabel: line.label ?? productLineLabel(line.product_line), spec: round?.spec ?? line.spec, tiers: tierAsks(tiers), inceptionDate: p.inception_date })
+  if (!text) throw new Error('The agent could not draft the request — try again')
+  const ids: string[] = []
+  for (const d of live) {
+    if (!d.insurer_contact_id) continue
+    const draft = await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: withRef(text.subject, p.ref), body: text.body, thread_id: d.thread_id, email_type: DRAFT_TYPE.tier })
+    if (draft) ids.push(draft.id)
+  }
+  await store.patchNoTs('placement_tiers', `id=in.(${tiers.map(t => t.id).join(',')})`, { status: 'asked', asked_at: now() })
+  await store.patch('placement_lines', `id=eq.${lineId}`, { next_step: `Ask ${live.length} insurer${live.length === 1 ? '' : 's'} to price ${tiers.map(t => t.label).join(', ')} — approve the drafts` })
+  await store.log({ company_id: p.company_id, placement_id: p.id, line_id: lineId, round_id: round?.id ?? null, kind: 'ask', actor,
+    text: `Drafted to ${live.length} insurer${live.length === 1 ? '' : 's'}: price ${tiers.map(t => t.label).join(', ')} on ${line.label} — awaiting approval`, detail: { acted: true, ai_draft_ids: ids, tier_ids: tiers.map(t => t.id) } })
+  // The client's request that proposed them is now acted on.
+  for (const e of bundle.log.filter(e => e.kind === 'ask' && e.line_id === lineId && e.detail?.acted === false)) {
+    await store.patchNoTs('placement_log', `id=eq.${e.id}`, { detail: { ...e.detail, acted: true } })
+  }
+  return { drafts: ids.length, tiers }
+}
+
+/** Takes options off a line. Their quotes stay on record. */
+export async function dropTiers(lineId: string, tierIds: string[], actor: string): Promise<number> {
+  if (tierIds.length === 0) return 0
+  const dropped = await store.patchNoTs<PlacementTier>('placement_tiers', `line_id=eq.${lineId}&id=in.(${tierIds.join(',')})&status=neq.dropped`, { status: 'dropped' })
+  const t = dropped[0]
+  const [p] = t ? await store.rows<Placement>(`placements?id=eq.${t.placement_id}&limit=1`) : []
+  if (p) await store.log({ company_id: p.company_id, placement_id: p.id, line_id: lineId, kind: 'note', actor, text: `Options dropped: ${dropped.map(x => x.label).join(', ')}` })
+  return dropped.length
+}
+
+// ── Unmatched replies ───────────────────────────────────────────────────────────────────────
+
+/** A broker says which requests a queued reply answers (it is then read and filed), or that it answers none. */
+export async function resolveUnmatched(id: string, dispatchIds: string[] | null, actor: string): Promise<InboundResult> {
+  const [row] = await store.rows<store.UnmatchedRow>(`placement_unmatched?id=eq.${id}&limit=1`)
+  if (!row) throw new Error('Unmatched reply not found')
+  if (row.status !== 'open') throw new Error(`Already ${row.status}`)
+  const at = now()
+  if (!dispatchIds) {
+    await store.patchNoTs('placement_unmatched', `id=eq.${id}`, { status: 'ignored', resolved_by: actor, resolved_at: at })
+    return { handled: 'none', detail: 'ignored' }
+  }
+  const ds = await store.dispatchesByIds(dispatchIds)
+  if (ds.length === 0) throw new Error('None of those requests exist')
+  await store.patchNoTs('placement_unmatched', `id=eq.${id}`, { status: 'assigned', assigned_dispatch_ids: ds.map(d => d.id), resolved_by: actor, resolved_at: at })
+  for (const d of ds) if (!d.thread_id && row.thread_id) await store.patch('placement_dispatches', `id=eq.${d.id}`, { thread_id: row.thread_id })
+  return handleInsurerReply(ds, row.message_id, row.thread_id ?? ds[0].thread_id ?? null, row.forwarded_by)
+}
+
+// ── Done ────────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A debit note filed in Drive finishes the line that quoted its policy. Called after the note is
+ * archived; a note with no Drive folder leaves the line open with the step to file it.
+ */
+export async function closeLineForDebitNote(debitNoteId: string, actor: string): Promise<{ closed: boolean; detail: string }> {
+  type DN = { id: string; debit_note_no: string; policy_id: string; drive_folder_url: string | null }
+  const [dn] = await store.rows<DN>(`debit_notes?id=eq.${debitNoteId}&select=id,debit_note_no,policy_id,drive_folder_url&limit=1`)
+  if (!dn) return { closed: false, detail: 'debit note not found' }
+  const lines = await store.rows<PlacementLine>(`placement_lines?policy_id=eq.${dn.policy_id}&order=created_at.desc`)
+  const line = lines.find(l => !lineFinished(l.status)) ?? null
+  if (!line) return { closed: false, detail: 'no open line quotes this policy' }
+  const bundle = await store.loadPlacement(line.placement_id)
+  const p = bundle?.placements[0]
+  if (!p) return { closed: false, detail: 'placement not found' }
+  const base = { company_id: p.company_id, placement_id: p.id, line_id: line.id }
+  if (!dn.drive_folder_url) {
+    await store.patch('placement_lines', `id=eq.${line.id}`, { next_step: `${dn.debit_note_no} issued — file it in Drive to close the line` })
+    await store.log({ ...base, kind: 'info', actor, text: `${dn.debit_note_no} issued for ${line.label}; not yet filed in Drive, so the line stays open`, detail: { debit_note_id: dn.id } })
+    return { closed: false, detail: 'not filed in Drive' }
+  }
+  const at = now()
+  await store.patch('placement_lines', `id=eq.${line.id}`, { status: 'done', done_at: at, debit_note_id: dn.id, next_step: null })
+  await store.log({ ...base, kind: 'done', actor, text: `${line.label} done: ${dn.debit_note_no} issued and filed in Drive`, detail: { debit_note_id: dn.id, drive_folder_url: dn.drive_folder_url, policy_id: dn.policy_id } })
+  const statuses = (bundle?.lines ?? []).map(l => l.id === line.id ? 'done' : l.status)
+  if (placementFinished(statuses)) {
+    await store.patchNoTs('placements', `id=eq.${p.id}`, { status: 'closed', updated_at: at })
+    await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'closed', actor, text: `${p.ref} closed: every line is done or finished` })
+  }
+  return { closed: true, detail: 'done' }
 }
 
 // ── Chase ───────────────────────────────────────────────────────────────────────────────────
@@ -331,7 +623,7 @@ export async function runChases(nowDate = new Date()): Promise<{ drafted: number
     const body = await agent.draftChase({ insurerName: d.insurer_name, contactName: null, clientName: company?.company_name ?? 'our client', lineLabel: line?.label ?? d.insurer_name,
       sentOn: (d.sent_at ?? d.created_at).slice(0, 10), chaseNo: d.chase_count + 1, inceptionDate: bundle?.placements[0]?.inception_date ?? null })
     if (!body || !d.insurer_contact_id) { skipped++; continue }
-    const draft = await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: `Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
+    const draft = await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: withRef(`Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), bundle?.placements[0]?.ref), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
     if (!draft) { skipped++; continue }
     await store.patch('placement_dispatches', `id=eq.${d.id}`, { chase_count: d.chase_count + 1, next_chase_at: nextChaseAt(nowDate, d.chase_count + 1).toISOString() })
     await store.log({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, kind: 'chase',
@@ -354,7 +646,7 @@ export async function draftClientSummary(placementId: string, actor: string): Pr
     clientName: company?.company_name ?? 'the client', contactName: contact?.name ?? null, placementTitle: p.title,
     lines: positions.map(x => ({
       label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, roundNo: x.roundNo,
-      quotes: x.dispatches.filter(d => d.quote && !d.expired).map(d => ({ insurer: d.dispatch.insurer_name, premium: d.quote!.premium_text, limit: d.quote!.limit_text, excess: d.quote!.excess_text, validity: d.quote!.validity_text, subjectivities: d.quote!.subjectivities, exclusions: d.quote!.exclusions })),
+      quotes: x.dispatches.filter(d => !d.expired).flatMap(d => d.quotes.map(q => ({ insurer: d.dispatch.insurer_name, tier: q.tier_id ? (x.tiers.find(t => t.id === q.tier_id)?.label ?? q.tier_label ?? null) : null, premium: q.premium_text, perHead: q.premium_per_head_text ?? null, limit: q.limit_text, excess: q.excess_text, validity: q.validity_text, subjectivities: q.subjectivities, exclusions: q.exclusions }))),
       declined: x.dispatches.filter(d => d.dispatch.status === 'declined').map(d => d.dispatch.insurer_name),
       awaiting: x.dispatches.filter(d => !d.quote && d.dispatch.status !== 'declined' && d.dispatch.status !== 'withdrawn').map(d => d.dispatch.insurer_name),
     })),
@@ -366,7 +658,7 @@ export async function draftClientSummary(placementId: string, actor: string): Pr
     await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'info', actor: 'system', text: 'No client contact on the placement — set the client thread, then draft again.' })
     return null
   }
-  const draft = await store.createDraft({ contact_id: p.client_contact_id, to_email: to, subject: text.subject, body: text.body, thread_id: p.client_thread_id, email_type: DRAFT_TYPE.client })
+  const draft = await store.createDraft({ contact_id: p.client_contact_id, to_email: to, subject: withRef(text.subject, p.ref), body: text.body, thread_id: p.client_thread_id, email_type: DRAFT_TYPE.client })
   if (!draft) return null
   await store.patchNoTs('placements', `id=eq.${p.id}`, { status: 'presented', updated_at: now() })
   for (const x of positions) await store.patch('placement_lines', `id=eq.${x.line.id}`, { status: 'presented', next_step: 'Comparison drafted — approve and send to the client' })
@@ -379,12 +671,16 @@ export async function reviewQueue(placementId: string): Promise<{ draft: store.D
   const bundle = await store.loadPlacement(placementId)
   if (!bundle) return []
   const dispatchDraftIds = [...new Set(bundle.dispatches.filter(d => d.ai_draft_id && d.status === 'drafted').map(d => d.ai_draft_id!))]
-  const logDraftIds = bundle.log.filter(e => (e.kind === 'chase' || e.kind === 'decision') && typeof e.detail?.ai_draft_id === 'string').map(e => e.detail.ai_draft_id as string)
+  const logDraftIds = bundle.log.flatMap(e => {
+    if ((e.kind === 'chase' || e.kind === 'decision') && typeof e.detail?.ai_draft_id === 'string') return [e.detail.ai_draft_id as string]
+    if (e.kind === 'ask' && Array.isArray(e.detail?.ai_draft_ids)) return (e.detail.ai_draft_ids as unknown[]).filter((x): x is string => typeof x === 'string')
+    return []
+  })
   const drafts = (await store.pendingDrafts([...new Set([...dispatchDraftIds, ...logDraftIds])])).filter(d => d.status === 'pending')
   return drafts.map(draft => ({
     draft,
     dispatches: bundle.dispatches.filter(d => d.ai_draft_id === draft.id),
-    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.chase ? 'chase' : 'request',
+    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.chase || draft.email_type === DRAFT_TYPE.tier ? 'chase' : 'request',
   }))
 }
 

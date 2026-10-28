@@ -214,3 +214,35 @@ describe('derivePositions', () => {
     expect(B2.best?.id).toBe('q-b2')
   })
 })
+
+describe('tiers', () => {
+  const tier = (id: string, label: string, status: 'proposed' | 'asked' | 'dropped' = 'asked') => ({
+    id, placement_id: 'p1', line_id: 'T', label, spec: {}, target_premium: null, status, source: 'client' as const,
+    source_message_id: null, created_by: null, asked_at: null, sort: 0, created_at: iso(NOW),
+  })
+  const later = (min: number) => iso(new Date(NOW.getTime() + min * 60_000))
+  const b: PlacementBundle = {
+    placements: [], log: [],
+    lines: [line({ id: 'T', sort: 0, current_round_id: 'T1' })],
+    rounds: [round({ id: 'T1', line_id: 'T', round_no: 1 })],
+    dispatches: [dispatch({ id: 'd1', line_id: 'T', round_id: 'T1', insurer_name: 'Allianz', status: 'quoted' })],
+    tiers: [tier('t1', '1M'), tier('t2', '2M'), tier('t3', '5M', 'dropped')],
+    quotes: [
+      quote({ id: 'base-old', dispatch_id: 'd1', line_id: 'T', round_id: 'T1', premium_amount: 900, status: 'superseded' }),
+      quote({ id: 'base', dispatch_id: 'd1', line_id: 'T', round_id: 'T1', premium_amount: 845, created_at: later(1) }),
+      quote({ id: '1m-old', dispatch_id: 'd1', line_id: 'T', round_id: 'T1', tier_id: 't1', premium_amount: 1000, created_at: later(2) }),
+      quote({ id: '1m', dispatch_id: 'd1', line_id: 'T', round_id: 'T1', tier_id: 't1', premium_amount: 990, created_at: later(3) }),
+      quote({ id: '2m', dispatch_id: 'd1', line_id: 'T', round_id: 'T1', tier_id: 't2', premium_amount: 1290, created_at: later(4) }),
+    ],
+  }
+  it('keeps one current quote per tier and lets the base price stand for the insurer', () => {
+    const [pos] = derivePositions(b, NOW)
+    const d = pos.dispatches[0]
+    expect(d.quotes.map(q => q.id).sort()).toEqual(['1m', '2m', 'base'])
+    expect(d.quote?.id).toBe('base')
+    expect(currentQuote('d1', b.quotes)?.id).toBe('base')
+  })
+  it('lists the line tiers that are not dropped', () => {
+    expect(derivePositions(b, NOW)[0].tiers.map(t => t.label)).toEqual(['1M', '2M'])
+  })
+})

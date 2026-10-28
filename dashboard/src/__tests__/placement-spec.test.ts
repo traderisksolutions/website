@@ -105,12 +105,16 @@ describe('parseMoney', () => {
 
 describe('quoteFields', () => {
   const read = (over: Partial<Parameters<typeof quoteFields>[0]>): Parameters<typeof quoteFields>[0] => ({
-    premium: null, limit: null, excess: null, validity: null, valid_until: null,
+    line_key: 'L1', tier: null, premium: null, per_head: null, limit: null, excess: null, validity: null, valid_until: null,
     key_terms: [], exclusions: [], subjectivities: [], evidence: {}, primary_source: 'email body', ...over,
   })
   it('parses a premium backed by an excerpt and does not flag it', () => {
     const f = quoteFields(read({ premium: 'S$2,350.00 per annum', evidence: { premium: { excerpt: 'Premium: S$2,350.00 per annum', source: 'email body' } } }))
-    expect(f).toEqual({ premium_amount: 2350, currency: 'SGD', limit_amount: null, needs_review: false })
+    expect(f).toEqual({ premium_amount: 2350, currency: 'SGD', limit_amount: null, premium_per_head_amount: null, needs_review: false })
+  })
+  it('accepts a per-head rate with no total as a priced quote', () => {
+    const f = quoteFields(read({ per_head: 'S$800 per employee', evidence: { per_head: { excerpt: 'S$800 per employee', source: 'email body' } } }))
+    expect(f).toMatchObject({ premium_amount: null, premium_per_head_amount: 800, currency: 'SGD', needs_review: false })
   })
   it('flags a premium with no evidence excerpt', () => {
     const f = quoteFields(read({ premium: 'S$2,350.00' }))

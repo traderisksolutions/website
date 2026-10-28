@@ -15,6 +15,7 @@ import { commitDebitNote, attachDebitNoteArchival, type CompanyInput, type Conta
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { archiveDebitNoteToDrive } from '@/lib/gdrive-write'
+import { closeLineForDebitNote } from '@/lib/placement/workflow'
 import { logActivity } from '@/lib/log-activity'
 
 type Body = {
@@ -119,6 +120,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${result.debitNoteId}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ pdf_storage_url: pdfPath }) })
     await attachDebitNoteArchival(result.debitNoteId, { driveFolderUrl, attachmentFiles, bundleId: id })
+    try { await closeLineForDebitNote(result.debitNoteId, user.email ?? 'system') }
+    catch (e) { console.error('[debit-notes] closing the quote request line failed:', e) }
 
     await fetch(`${SB_URL}/rest/v1/debit_note_bundles?id=eq.${id}`, {
       method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'approved', resolved_debit_note_id: result.debitNoteId }),

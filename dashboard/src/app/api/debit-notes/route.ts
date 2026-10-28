@@ -4,14 +4,18 @@
  *                                         join so the table doesn't need N+1 lookups.
  * POST /api/debit-notes                → Generate Debit Note: commits company/contact/policy/
  *                                         debit-note rows via the shared commit path, renders
- *                                         the PDF, uploads it, and attaches it to the record.
+ *                                         the PDF, uploads it, attaches it to the record, files
+ *                                         it in the company's Drive folder, and closes the
+ *                                         quote request line it finishes.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
 import {
-  commitDebitNote, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
+  commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
 } from '@/lib/debit-note-commit'
+import { archiveDebitNoteToDrive } from '@/lib/gdrive-write'
+import { closeLineForDebitNote } from '@/lib/placement/workflow'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
@@ -71,6 +75,7 @@ export async function POST(req: NextRequest) {
     const contactName = contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') || null : null
 
     let pdfPath: string
+    let pdfForDrive: Buffer | null = null
     if (body.existingPdf) {
       // Historical backfill with a real document on hand — use it as-is, don't regenerate.
       pdfPath = body.existingPdf.storageUrl
@@ -100,6 +105,7 @@ export async function POST(req: NextRequest) {
       })
       pdfPath = `${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`
       await uploadPdf(pdfPath, pdfBuffer)
+      pdfForDrive = pdfBuffer
     }
 
     await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${result.debitNoteId}`, {
@@ -113,6 +119,19 @@ export async function POST(req: NextRequest) {
       }),
     })
     const downloadUrl = await signRead(pdfPath)
+
+    // File it in the company's Drive folder, as the import path does. Best-effort: a note with no
+    // Drive folder is still issued, and the quote request it finishes stays open until it is filed.
+    if (pdfForDrive) {
+      try {
+        const driveFolderUrl = await archiveDebitNoteToDrive(company?.name ?? 'Unknown company', [{ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfForDrive }])
+        await attachDebitNoteArchival(result.debitNoteId, { driveFolderUrl })
+      } catch (e) {
+        console.error('Drive archival failed (debit note still issued):', e)
+      }
+    }
+    try { await closeLineForDebitNote(result.debitNoteId, user.email ?? 'system') }
+    catch (e) { console.error('[debit-notes] closing the quote request line failed:', e) }
 
     void logActivity({ action: 'debit_note.pdf_generated', resource_type: 'debit_note', resource_id: result.debitNoteId, new_value: { debit_note_no: result.debitNoteNo } })
 

@@ -140,6 +140,7 @@ export type AiFeature =
   | 'placement_client_change'
   | 'placement_chase_draft'
   | 'placement_client_summary'
+  | 'placement_tier_ask'
   // The benefits admin agent (27 Oct 2026): movements and insurer notes on a live EB policy.
   | 'policy_movement_classify'
   | 'policy_movement_read'

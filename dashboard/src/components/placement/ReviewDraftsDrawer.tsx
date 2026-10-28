@@ -8,7 +8,8 @@ import type { PlacementBundle, PlacementDispatch } from '@/lib/placement/types'
 import type { PolicyMovement, PolicyView } from '@/components/policies/types'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
-const FROM_EMAIL = 'operations@trade-risksol.com'
+const OPS_EMAIL = 'operations@trade-risksol.com'
+type Sender = { email: string; label: string; type: 'shared' | 'personal' }
 const KIND_WORD = { request: 'Request', chase: 'Follow-up', client: 'Client', movement: 'Movement' } as const
 
 type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string }
@@ -47,6 +48,18 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
   const [items, setItems] = useState<Item[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [sendingAll, setSendingAll] = useState(false)
+  // Sent from the broker's own mailbox when they have connected it; the send route CCs operations@
+  // and sets Reply-To to it, so the reply still lands where the agent reads it.
+  const [senders, setSenders] = useState<Sender[]>([])
+  const [from, setFrom] = useState(OPS_EMAIL)
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
+      if (!Array.isArray(rows) || rows.length === 0) return
+      setSenders(rows)
+      setFrom(rows.find(r => r.type === 'personal')?.email ?? rows[0].email)
+    }).catch(() => {})
+  }, [open])
   // Mirror of `items` for the sequential send, which outlives any one render's closure.
   const itemsRef = useRef<Item[] | null>(null)
   useEffect(() => { itemsRef.current = items }, [items])
@@ -81,11 +94,14 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
   /** The three-step send for one draft id: approve, mail, then file the thread where the kind needs it. */
   async function sendDraft(draftId: string, item: Pick<Item, 'kind' | 'subject' | 'body'>, toEmail: string | null): Promise<void> {
     await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: item.body } })
-    const sent = await callApi<{ ok: boolean; gmailMessageId?: string | null; gmailThreadId?: string | null }>('/api/email/send', {
+    const sent = await callApi<{ ok: boolean; gmailMessageId?: string | null; gmailThreadId?: string | null; rfc822MessageId?: string | null; fromEmail?: string | null; subject?: string | null }>('/api/email/send', {
       method: 'POST',
-      body: { draftId, htmlBody: bodyToHtml(item.body), toEmail: toEmail ?? undefined, customSubject: item.subject, fromEmail: FROM_EMAIL },
+      body: { draftId, htmlBody: bodyToHtml(item.body), toEmail: toEmail ?? undefined, customSubject: item.subject, fromEmail: from },
     })
-    const ids = { draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null }
+    const ids = {
+      draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null,
+      rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? item.subject,
+    }
     if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
     if (item.kind === 'movement') await callApi('/api/policies/movements/sent', { method: 'POST', body: ids })
   }
@@ -182,6 +198,14 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
           <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Drafts to approve</h2>
           <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{items ? pending.length : ''}</span>
           <div className="ml-auto flex items-center gap-2">
+            {senders.length > 1 && (
+              <label className="flex items-center gap-1.5 text-[12px]" style={{ color: MUTED }}>
+                From
+                <select id="review-drafts-from" value={from} onChange={e => setFrom(e.target.value)} disabled={sendingAll} className="h-7 rounded-[6px] border px-1.5 text-[12px] bg-white" style={{ borderColor: '#dadce0', color: INK }}>
+                  {senders.map(s => <option key={s.email} value={s.email}>{s.email}</option>)}
+                </select>
+              </label>
+            )}
             <Btn level="primary" size="xs" onClick={sendAll} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>
             <button type="button" onClick={onClose} aria-label="Close" className="inline-flex items-center justify-center w-8 h-8 rounded-[8px] border-0 bg-transparent cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>
               <X size={16} />

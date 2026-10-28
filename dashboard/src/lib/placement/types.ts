@@ -8,11 +8,14 @@
  */
 
 export type PlacementStatus = 'open' | 'presented' | 'bound' | 'closed'
-export type LineStatus      = 'open' | 'quoting' | 'quoted' | 'presented' | 'bound' | 'declined' | 'closed'
+/** done = the debit note is issued and filed in Drive; dropped = the client did not go ahead; lost = placed elsewhere. */
+export type LineStatus      = 'open' | 'quoting' | 'quoted' | 'presented' | 'bound' | 'declined' | 'closed' | 'done' | 'dropped' | 'lost'
 export type RoundReason     = 'initial' | 'client_change' | 'insurer_query' | 'expiry' | 'broker'
 export type DispatchStatus  = 'drafted' | 'sent' | 'acknowledged' | 'info_requested' | 'quoted' | 'declined' | 'expired' | 'withdrawn'
 export type QuoteStatus     = 'received' | 'superseded' | 'shortlisted' | 'recommended' | 'selected' | 'not_chosen' | 'expired'
-export type LogKind         = 'note' | 'decision' | 'ask' | 'reply' | 'change' | 'chase' | 'quote' | 'sent' | 'declined' | 'info' | 'opened' | 'closed'
+export type LogKind         = 'note' | 'decision' | 'ask' | 'reply' | 'change' | 'chase' | 'quote' | 'sent' | 'declined' | 'info' | 'opened' | 'closed' | 'done'
+export type TierStatus      = 'proposed' | 'asked' | 'offered' | 'dropped'
+export type TierSource      = 'client' | 'broker' | 'insurer'
 
 /** What is asked of the insurers. Free text per field, so a "limit" can be "S$1M any one claim". */
 export type Spec = {
@@ -31,6 +34,8 @@ export const SPEC_LABEL: Record<keyof Spec, string> = {
 
 export interface Placement {
   id: string
+  /** "Q-0142": rides in the subject of every email about the placement as [TRS-Q-0142]. */
+  ref: string
   company_id: string
   title: string
   client_thread_id: string | null
@@ -57,8 +62,33 @@ export interface PlacementLine {
   policy_id?: string | null
   /** hr_submissions.id the line was priced on (employment benefits). */
   census_submission_id?: string | null
+  /** Set when the line's debit note is issued and filed in Drive. */
+  done_at?: string | null
+  debit_note_id?: string | null
   created_at: string
   updated_at: string
+}
+
+/**
+ * Something the client wants priced side by side on a line: a limit ("1M"), a budget ("S$1,300
+ * per head"), a plan, a deductible, or a mix. Tiers belong to the line, not the round, so a new
+ * round asks every tier again on the new basis. An insurer that prices a tier nobody asked for
+ * adds one with source 'insurer'.
+ */
+export interface PlacementTier {
+  id: string
+  placement_id: string
+  line_id: string
+  label: string
+  spec: Spec
+  target_premium: string | null
+  status: TierStatus
+  source: TierSource
+  source_message_id: string | null
+  created_by: string | null
+  asked_at: string | null
+  sort: number
+  created_at: string
 }
 
 export interface PlacementRound {
@@ -94,6 +124,11 @@ export interface PlacementDispatch {
   last_inbound_at: string | null
   next_chase_at: string | null
   chase_count: number
+  /** Message-ID header of the request as sent: the same in every mailbox, so a reply matches wherever it lands. */
+  rfc822_message_id?: string | null
+  sent_from?: string | null      // the mailbox it went out from
+  sent_by?: string | null        // the staff member who pressed Send
+  sent_subject?: string | null
   created_at: string
   updated_at: string
 }
@@ -112,6 +147,11 @@ export interface PlacementQuote {
   source?: 'insurer' | 'rate_table'
   engine_run_id?: string | null       // gb_quotations.id
   plan_label?: string | null
+  /** The tier this price is for; null = the line's own spec. tier_label is as the insurer wrote it. */
+  tier_id?: string | null
+  tier_label?: string | null
+  premium_per_head_text?: string | null
+  premium_per_head_amount?: number | null
   premium_text: string | null
   premium_amount: number | null
   currency: string | null
@@ -156,6 +196,7 @@ export interface PlacementBundle {
   rounds: PlacementRound[]
   dispatches: PlacementDispatch[]
   quotes: PlacementQuote[]
+  tiers: PlacementTier[]
   log: PlacementLogEntry[]
 }
 
@@ -163,7 +204,9 @@ export interface PlacementBundle {
 
 export interface DispatchPosition {
   dispatch: PlacementDispatch
-  quote: PlacementQuote | null       // the current (non-superseded) quote for this dispatch
+  quote: PlacementQuote | null       // the current quote on the line's own spec, else the first tier priced
+  /** Every current quote from this dispatch, one per tier (the line's own spec counts as one). */
+  quotes: PlacementQuote[]
   chaseDue: boolean
   expired: boolean
   threadHref: string | null
@@ -173,6 +216,7 @@ export interface LinePosition {
   line: PlacementLine
   round: PlacementRound | null
   roundNo: number
+  tiers: PlacementTier[]             // not dropped, in order
   dispatches: DispatchPosition[]
   /** Quotes priced by the rate engine on this line (no dispatch): latest per insurer, not superseded. */
   engineQuotes: PlacementQuote[]

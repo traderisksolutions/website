@@ -579,7 +579,8 @@ export async function POST(req: NextRequest) {
     // The post-send draft evaluation ran here. It scored the human's edits to teach the
     // learning loop, which was removed on 2 Oct 2026; nothing consumes the score now.
 
-    return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null, threadDbId })
+    // rfc822MessageId and fromEmail let a placement match the reply in whichever mailbox it lands.
+    return NextResponse.json({ ok: true, gmailMessageId: sent.id, gmailThreadId: sent.threadId ?? null, threadDbId, rfc822MessageId: storedMessageId, fromEmail: FROM_EMAIL, subject })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
