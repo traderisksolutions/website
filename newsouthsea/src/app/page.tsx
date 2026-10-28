@@ -16,12 +16,13 @@ const DIFFERENCE = [
   { k: "03 · Hard risks", t: "The accounts others cannot place.", pts: ["Cat-exposed property and typhoon-exposed single sites.", "Regulated financial firms. D&O with a going-concern note.", "Cyber after an incident, US products exposure, large contract works."] },
 ];
 // 02 How it works: flex.one/ai-inbox timeline on navy. Each stage shows the document it produces (illustrative sheet), a rule with a tick, then the stage.
-const DOCS = [
-  { t: "Renewal review", rows: [["Policies read", "All current"], ["Gaps and overlaps", "Listed"], ["Limits", "Tested"], ["Issued", "Day 120"]] },
-  { t: "Underwriting file", rows: [["Schedule of values", "Checked"], ["Loss history", "Five years"], ["Payroll", "Verified"], ["Files", "One per line"]] },
-  { t: "Terms compared", rows: [["Insurer A", "Terms in"], ["Insurer B", "Terms in"], ["Insurer C", "Declined"], ["Compared", "Line by line"]] },
-  { t: "Binder check", rows: [["Wording", "As quoted"], ["Subjectivities", "None open"], ["Endorsements", "Matched"], ["Certificates", "Issued"]] },
-  { t: "Claim file", rows: [["Notified", "Same day"], ["Coverage position", "In writing"], ["Adjuster", "Appointed"], ["Settlement", "Negotiated"]] },
+// Glass documents, one per stage (illustrative; qualitative values only).
+const SHEETS: ReactNode[] = [
+  <><div className="gl back"></div><div className="gl"><span className="gt">Renewal review</span><span className="gr">Property<b><span className="gchip">Tested</span></b></span><span className="gr">Liability<b><span className="gchip hi">Gap</span></b></span><span className="gr">Employees’ compensation<b><span className="gchip">Overlap</span></b></span><span className="gr">D&amp;O<b><span className="gchip">Current</span></b></span></div></>,
+  <><div className="gl"><span className="gt">Underwriting file</span><div className="tabs"><span className="on">Values</span><span>Losses</span><span>Payroll</span></div><span className="gr">Schedule of values<b>Checked</b></span><span className="gr">Loss history<b>Five years</b></span><span className="gr">Risk improvements<b>Documented</b></span><span className="slab"><span>File complete</span></span><span className="bar"><i style={{ width: "82%" }}></i></span></div></>,
+  <><div className="gl"><span className="gt">Terms compared</span><span className="brow">Insurer A<span className="bar"><i style={{ width: "72%" }}></i></span><b>Terms in</b></span><span className="brow">Insurer B<span className="bar"><i style={{ width: "88%" }}></i></span><b>Terms in</b></span><span className="brow">Insurer C<span className="bar"><i style={{ width: "26%", opacity: .4 }}></i></span><b>Declined</b></span><span className="gr">Compared<b>Line by line</b></span></div></>,
+  <><div className="gl"><span className="gt">Binder check</span><span className="tick">Wording as quoted</span><span className="tick">Subjectivities closed</span><span className="tick">Endorsements matched</span><span className="gr">Certificates<b>Issued</b></span><span><span className="gchip hi">Bound</span></span></div></>,
+  <><div className="gl"><span className="gt">Claim file</span><div className="steps"><span className="on"></span><i></i><span className="on"></span><i></i><span className="on"></span><i></i><span></span></div><span className="slab"><span>Notified</span><span>Assessed</span><span>Negotiated</span><span>Settled</span></span><span className="gr">Notified<b>Same day</b></span><span className="gr">Coverage position<b>In writing</b></span><span><span className="gchip">Interim payment requested</span></span></div></>,
 ];
 const STAGES = [
   { t: "Review", h: "Start with the exposures, not last year's schedule.", p: "We read the current policies against how the business operates today: sites, contracts, payroll, revenue by territory and the claims that have been paid.", tag: "~ 120 days out" },
@@ -89,7 +90,7 @@ export default function Home() {
         <div className="tl">
           {STAGES.map((s, i) => (
             <div key={s.t} className="tl-item">
-              <div className="doc"><div className="sheet"><span className="st">{DOCS[i].t}</span>{DOCS[i].rows.map(([k, v]) => <span key={k} className="sr">{k}<b>{v}</b></span>)}</div></div>
+              <div className="doc">{SHEETS[i]}</div>
               <div className="tl-mark" />
               <div><p className="tl-k">{String(i + 1).padStart(2, "0")} {s.t}</p><h3>{s.h}</h3><p>{s.p}</p><span className="tag">{s.tag}</span></div>
             </div>
