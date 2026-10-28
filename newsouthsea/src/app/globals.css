@@ -233,7 +233,7 @@ a:hover .arrow{transform:translate(2px,-2px)}
 .night{position:relative;isolation:isolate;background:#0f1e3a url("/images/night.jpg") center/cover no-repeat;color:#fff}
 .night::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(15,30,58,.55),rgba(15,30,58,.82))}
 .close{display:flex;flex-direction:column;gap:30px;align-items:center;text-align:center}
-.close .h2{max-width:20ch;color:inherit}
+.close .h2{max-width:26ch;color:inherit;text-wrap:balance;white-space:normal}
 .close .eb .l{color:rgba(255,255,255,.8)}
 .close .accent{color:#c9d4ea;font-style:normal}
 .close .btn{background:#fff;border-color:#fff;color:#1c3358}
