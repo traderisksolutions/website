@@ -346,7 +346,7 @@ a.card:hover .ct{color:var(--navy)}
 
 
 /* Inner pages: juliusbaer.com/sg/en/bespoke-lending-solutions — centred tracked title, one reading column, light sub-headings, three plain columns, centred "apart" trio, beige band close */
-.jb-head{padding:96px var(--gx) 40px;text-align:center;display:flex;flex-direction:column;gap:22px;align-items:center}
+.jb-head{padding:160px var(--gx) 40px;text-align:center;display:flex;flex-direction:column;gap:22px;align-items:center}
 .jb-h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,3.8vw,52px);letter-spacing:.14em;text-transform:uppercase;line-height:1.15;color:var(--ink);max-width:24ch}
 .jb-lede{font-size:19px;line-height:1.6;color:var(--ink-2);max-width:62ch;margin:0}
 .jb-col{max-width:1000px;margin-inline:auto;padding-left:var(--gx);padding-right:var(--gy);padding-block:40px 112px;display:flex;flex-direction:column;gap:40px}

@@ -11,7 +11,7 @@ const eb = EB_Garamond({ subsets: ["latin"], weight: ["400", "500", "600"], vari
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
-  title: { default: `${site.name} | A wholesale insurance brokerage for hard-to-place risks`, template: `%s | ${site.name}` },
+  title: { default: `${site.name} | A wholesale insurance brokerage for hard risks`, template: `%s | ${site.name}` },
   description: site.description,
   openGraph: { siteName: site.name, url: site.url, type: "website" },
 };

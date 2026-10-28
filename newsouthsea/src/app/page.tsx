@@ -67,7 +67,7 @@ export default function Home() {
         <Image src="/images/hero.jpg" alt="Victoria Harbour skyline" fill priority sizes="100vw" className="bg" />
         <div className="shade" aria-hidden />
         <div className="wrap inner">
-          <h1 className="caps-h1">A wholesale insurance brokerage for hard&#8209;to&#8209;place risks.</h1>
+          <h1 className="caps-h1">A wholesale insurance brokerage for hard risks.</h1>
           <div className="side">
             <p className="lede">{site.name} makes specialty coverage easier to place. Structured intake and named broker support help retail agents prepare difficult commercial risks for current market review.</p>
             <div className="btns"><Link href="/contact?purpose=review" className="btn">Request a programme review <span className="arrow">↗</span></Link><Link href="/coverage" className="btn ghost">Lines we place</Link></div>
