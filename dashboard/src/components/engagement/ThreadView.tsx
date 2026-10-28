@@ -315,7 +315,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
       summaries={summaries} summariesLoading={summariesLoading || analyzing} latestMessageId={latestMessageId} ragSources={ragDraft?.sources ?? []}
       onRefreshSummaries={() => void runAnalysis()} taskRefresh={taskRefresh} onClose={toggleContext} onAddTask={() => setTaskOpen(true)} />
   )
-  const measure = 'max-w-[min(1040px,100%)] mx-auto'
+  const measure = 'max-w-[min(760px,100%)] mx-auto'
   const latestMsg = messages.at(-1) ?? null
   const earlier = messages.slice(0, -1).reverse()
 
@@ -359,7 +359,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       {initialMsg && (
                         <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f3f4' }}>
                           <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Enquiry form message</p>
-                          <p className="m-0 text-[15px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
+                          <p className="m-0 text-[14.5px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
                         </div>
                       )}
                     </div>
@@ -402,7 +402,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       onHeightChange={syncScrollAffordances} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
-                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-12 px-4 rounded-[12px] flex items-center text-left text-[15px] bg-white cursor-text hover:border-[#9aa0a6] focus-visible:outline-none focus-visible:border-[#202124]')} style={{ border: '1px solid #dadce0', color: FAINT }}>
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-10 px-3.5 rounded-[8px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#9aa0a6] focus-visible:outline-none focus-visible:border-[#202124]')} style={{ border: '1px solid #dadce0', color: FAINT }}>
                         <span className="truncate">{replyLabel}</span>
                         <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #dadce0', color: '#9aa0a6' }} aria-hidden>r</kbd>
                       </button>

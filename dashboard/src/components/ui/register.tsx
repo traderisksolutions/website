@@ -13,9 +13,10 @@ import { cn } from '@/lib/utils'
  * hover #f8f9fa; the selected row on a soft blue with a 3px ink bar. Status is words, never colour.
  *
  * Since 28 Oct 2026 every register is dense (the Quotes grid Jarod signed off): 32px header at
- * 12px, 34px rows at 13px, 10px cell padding, the first column inset 16px, identity column 200px.
+ * 12px, 32px rows at 13.5px (the app zoom is 1 now, so these are real pixels), a faint rule
+ * between columns, a 10px card radius, 10px cell padding, the first column inset 16px, identity column 200px.
  * One line per row where it can be; a secondary line stays 12px under the primary. The global rule
- * `table.register td` in globals.css pins any 14/15px text a caller left inside a cell to 13px, so
+ * `table.register td` in globals.css pins any 13/14/15px text a caller left inside a cell to 13.5px, so
  * the grid reads at one size without touching 38 call sites. `dense={false}` restores the old
  * 16px-padded register for the rare editorial list.
  */
@@ -34,7 +35,7 @@ export function Register({ children, label, minWidth = 720, maxHeight, className
 }) {
   return (
     <DenseContext.Provider value={dense}>
-      <div className={cn('rounded-[16px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
+      <div className={cn('rounded-[10px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
         <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
           <table className={cn('w-full border-collapse', dense && 'register')} style={{ minWidth }} aria-label={label}>{children}</table>
         </div>
@@ -109,7 +110,7 @@ export function RegisterCell({ primary, secondary, children, align = 'left', fir
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
       <div className="min-w-0 max-w-full" style={first ? { width } : undefined}>
         {primary !== undefined && (
-          <span className={cn('block leading-tight', first ? cn(dense ? 'text-[13px]' : 'text-[15px]', 'font-medium truncate') : cn(dense ? 'text-[13px]' : 'text-[14px]', 'tabular-nums'))} style={{ color: INK }}>{primary}</span>
+          <span className={cn('block leading-tight', first ? cn(dense ? 'text-[13.5px]' : 'text-[15px]', 'font-medium truncate') : cn(dense ? 'text-[13.5px]' : 'text-[14px]', 'tabular-nums'))} style={{ color: INK }}>{primary}</span>
         )}
         {secondary !== undefined && <span className={cn('block truncate', dense ? 'text-[12px]' : 'text-[12.5px] mt-0.5')} style={{ color: MUTED }}>{secondary}</span>}
         {children}

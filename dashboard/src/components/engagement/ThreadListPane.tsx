@@ -82,11 +82,11 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
     const on = activeTab === s.key
     return (
       <button key={s.key} type="button" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={s.caption}
-        className={cn('relative flex items-center justify-between h-8 px-2.5 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]', on && 'font-medium')}
+        className={cn('relative flex items-center justify-between h-7 px-2.5 rounded-[6px] text-[13px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]', on && 'font-medium')}
         style={{ color: on ? INK : BODY }}>
-        {on && <span aria-hidden className="absolute left-0 top-2 bottom-2 w-[2px] rounded-[2px]" style={{ background: INK }} />}
+        {on && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-[2px]" style={{ background: INK }} />}
         <span className="truncate">{s.label}</span>
-        <span className="text-[12px] tabular-nums pl-2 flex-shrink-0" style={{ color: FAINT }}>{counts[s.key]}</span>
+        <span className="text-[11.5px] tabular-nums pl-2 flex-shrink-0" style={{ color: FAINT }}>{counts[s.key]}</span>
       </button>
     )
   }
@@ -94,32 +94,32 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: INK }}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 flex-shrink-0">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2.5 flex-shrink-0">
         <div className="min-w-0">
           <button type="button" onClick={() => setActiveTab('all')} aria-pressed={activeTab === 'all'} title="Show every conversation"
-            className="block m-0 p-0 bg-transparent border-0 cursor-pointer text-left text-[22px] font-medium leading-[1.1] tracking-[-0.02em] rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ color: INK }}>
+            className="block m-0 p-0 bg-transparent border-0 cursor-pointer text-left text-[17px] font-semibold leading-[1.2] tracking-[-0.01em] rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ color: INK }}>
             All Inbox
           </button>
-          <div className="mt-1 text-[13px] tabular-nums" style={{ color: MUTED }}>{counts.all} conversation{counts.all === 1 ? '' : 's'}</div>
+          <div className="mt-0.5 text-[12px] tabular-nums" style={{ color: MUTED }}>{counts.all} conversation{counts.all === 1 ? '' : 's'}</div>
         </div>
         <button type="button" onClick={() => onOpenDraft?.({ toEmail: '', cc: '', subject: '', body: '' })}
-          className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] text-[14px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ background: INK }}>
-          <PenLine size={15} />Compose
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ background: INK }}>
+          <PenLine size={14} />Compose
         </button>
       </div>
 
       {/* Search */}
-      <label role="search" className="relative flex items-center mx-5 mt-1 mb-3.5 h-11 rounded-[12px] border bg-white px-3.5 gap-2.5 focus-within:border-[#202124] transition-colors flex-shrink-0" style={{ borderColor: CTRL }}>
-        <Search size={15} style={{ color: FAINT }} className="flex-shrink-0" />
-        <input ref={searchRef} id={SEARCH_INPUT_ID} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search messages, people, companies or policies" aria-label="Search conversations"
-          className="flex-1 min-w-0 h-full bg-transparent border-0 outline-none text-[14px] placeholder:text-[#80868b]" style={{ color: INK }} />
+      <label role="search" className="relative flex items-center mx-4 mt-0.5 mb-2.5 h-8 rounded-[8px] border bg-white px-2.5 gap-2 focus-within:border-[#202124] transition-colors flex-shrink-0" style={{ borderColor: CTRL }}>
+        <Search size={14} style={{ color: FAINT }} className="flex-shrink-0" />
+        <input ref={searchRef} id={SEARCH_INPUT_ID} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search mail" aria-label="Search conversations"
+          className="flex-1 min-w-0 h-full bg-transparent border-0 outline-none text-[13px] placeholder:text-[#80868b]" style={{ color: INK }} />
         {search
           ? <button type="button" onClick={() => { setSearch(''); searchRef.current?.focus() }} aria-label="Clear search" title="Clear search" className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
           : <kbd aria-hidden className="text-[11px] leading-none rounded-[6px] border px-1.5 py-[3px] font-[inherit] flex-shrink-0" style={{ borderColor: CTRL, color: DOT }}>⌘K</kbd>}
       </label>
 
       {/* Quick views */}
-      <div className="grid grid-cols-2 gap-x-2 px-3 pb-1.5 flex-shrink-0" role="group" aria-label="Quick views">
+      <div className="grid grid-cols-2 gap-x-2 px-2.5 pb-2 flex-shrink-0" role="group" aria-label="Quick views">
         <div className="flex flex-col" role="group" aria-label="Work">{work.map(viewButton)}</div>
         <div className="flex flex-col" role="group" aria-label="Categories">{categories.map(viewButton)}</div>
       </div>

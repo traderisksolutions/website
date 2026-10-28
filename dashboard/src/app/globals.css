@@ -11,8 +11,9 @@
 
 @layer base {
   :root {
-    /* Global UI scale factor (see body { zoom }). Raise for larger UI. */
-    --ui-zoom: 1.15;
+    /* Global UI scale factor (see body { zoom }). 1.15 from Jul to Oct 2026; back to 1 on 28 Oct 2026
+       because tables and the inbox read oversized. Type sizes are set for 1.0 now. */
+    --ui-zoom: 1;
 
     /* ── shadcn/ui base tokens (HSL triplets, no hsl() wrapper) ── */
 
@@ -590,17 +591,17 @@ select:focus-visible {
 /* ── Email bodies: keep the sender's structure, use our typography ─────────────────────────
    A mail client renders every message in one face; we do the same. Inline fonts, sizes and
    colours from Outlook/Gmail are overridden; bold, italics, lists, tables, links and images
-   survive. Reading body 16px / 1.6 ink; quoted history 14.5px body colour; signature 13.5px
+   survive. Reading body 14.5px / 1.6 ink; earlier messages 14px body colour; signature 13.5px
    muted. Data tables are wrapped by MessageBlock (wrapTables) in .email-tbl. */
 .email-html-body, .email-html-body * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  font-size: 16px !important; line-height: 1.6 !important; color: #202124 !important;
+  font-size: 14.5px !important; line-height: 1.6 !important; color: #202124 !important;
   background: transparent !important; max-width: 100%;
 }
-.email-html-body.is-earlier, .email-html-body.is-earlier * { font-size: 15px !important; }
+.email-html-body.is-earlier, .email-html-body.is-earlier * { font-size: 14px !important; }
 .email-html-body b, .email-html-body strong { font-weight: 600 !important; }
-.email-html-body h1, .email-html-body h2, .email-html-body h3 { font-size: 17px !important; font-weight: 500 !important; margin: 0.8em 0 0.3em; }
-.email-html-body p, .email-html-body div { margin: 0 0 14px; }
+.email-html-body h1, .email-html-body h2, .email-html-body h3 { font-size: 15.5px !important; font-weight: 500 !important; margin: 0.8em 0 0.3em; }
+.email-html-body p, .email-html-body div { margin: 0 0 10px; }
 .email-html-body div:empty, .email-html-body p:empty { margin: 0; }
 .email-html-body ul, .email-html-body ol { margin: 0 0 14px; padding-left: 1.4em; }
 .email-html-body a { color: #202124 !important; text-decoration: underline; text-decoration-color: #9aa0a6; text-underline-offset: 3px; }
@@ -635,8 +636,10 @@ select:focus-visible {
 .email-original a { text-decoration: underline; }
 .email-original blockquote { border-left: 2px solid #e8eaed; padding-left: 0.75em; margin: 0.5em 0; }
 
-/* The dense register (src/components/ui/register.tsx): every cell reads at 13px, whatever size a
-   caller's inline span asks for. One line per 34px row. */
-table.register td :is(.text-\[14px\], .text-\[15px\], .text-\[13\.5px\]) { font-size: 13px; }
+/* The dense register (src/components/ui/register.tsx): every cell reads at 13.5px, whatever size a
+   caller's inline span asks for. One line per 32px row, a faint rule between columns so a wide
+   grid reads across like a spreadsheet. */
+table.register td :is(.text-\[13px\], .text-\[14px\], .text-\[15px\]) { font-size: 13.5px; }
+table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #f1f3f4; }
 table.register td :is(.text-\[12\.5px\]) { font-size: 12px; }
 table.register td .mt-0\.5 { margin-top: 0; }

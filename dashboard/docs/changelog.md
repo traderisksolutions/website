@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-10-28 (later) — App at true size; Notion-style inbox; slim away banner
+
+- **Global zoom off.** `--ui-zoom` goes from 1.15 to 1 (it had been 1.15 since July after "everything reads too small"). Every page renders at its stated pixel sizes. Companies shows 16 rows in a 900px window, up from 9.
+- **Registers.** Cells read at 13.5px on ~32px rows, a faint rule between columns, 10px card radius. The global pin in `globals.css` maps 13/14/15px cell text to 13.5px.
+- **Inbox.** Rows are two lines by default: sender with the triage type, time, then `Company · subject`. Compact is one line; comfortable keeps the state line. Navigator header, search and views are tighter. The reader measures 760px with a 14.5px body (was 1040 and 16px). Inbox shows 10 conversations in a 900px window, up from 5.
+- **Since you were away** is one 36px strip with Show/Hide, the triage link and dismiss (was a ~180px card on every page).
+
+---
+
 ## 2026-10-28 — Every table is the dense register
 
 The Quotes grid's spacing is now the house register everywhere (`src/components/ui/register.tsx`, `dense` defaults to true): 32px header at 12px, 34px rows at 13px, 10px cell padding, the first column inset 16px. A global rule (`table.register td` in `globals.css`) pins any 14/15px text a caller left inside a cell to 13px, so all 38 registers read at one size without a sweep. `TableShell` and the shadcn `Table` wrapper match.

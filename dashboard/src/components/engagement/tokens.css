@@ -17,7 +17,7 @@
   /* ── Pane layout ─────────────────────────────────────────────────────────── */
 
   /* Navigator (list) panel */
-  --ea-list-w:    380px;
+  --ea-list-w:    360px;
   /* Right context rail */
   --ea-context-w: 340px;
 
@@ -25,7 +25,7 @@
   /* ── Row & field sizing ──────────────────────────────────────────────────── */
 
   /* Conversation list row height */
-  --ea-row-h:   64px;
+  --ea-row-h:   52px;
   /* Compose header field rows (To, Cc, Subject) */
   --ea-field-h: 40px;
 
@@ -58,15 +58,15 @@
 
   /* ── Message body typography ─────────────────────────────────────────────── */
 
-  /* Reading body: 16px / 1.6 on a 1040 measure */
-  --ea-body-size:    16px;
+  /* Reading body: 14.5px / 1.6 on a 760 measure */
+  --ea-body-size:    14.5px;
   --ea-body-leading: 1.6;
 
 
   /* ── Thread header bar ───────────────────────────────────────────────────── */
 
-  --ea-header-title: 22px;
-  --ea-header-meta:  13.5px;
+  --ea-header-title: 19px;
+  --ea-header-meta:  13px;
 
 
   /* ── Conversation list row typography ────────────────────────────────────── */

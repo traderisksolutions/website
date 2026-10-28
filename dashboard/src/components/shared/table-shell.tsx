@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
  * TableShell: the register look (src/components/ui/register.tsx, the Companies table) for the
  * pages that compose their own thead/tbody. Same exported names as before so callers keep
  * working: one outlined 16px card, sticky white header with 12px muted labels, the first column
- * frozen, 34px hairline rows at 13px (the dense register), hover #f8f9fa. Pass `matrix` for wide grids (a wider
+ * frozen, 32px hairline rows at 13.5px (the dense register), hover #f8f9fa. Pass `matrix` for wide grids (a wider
  * minimum width, cells never wrap). Status is words, never colour.
  */
 export function TableShell({ matrix, className, children, label, minWidth, maxHeight }: {
@@ -64,7 +64,7 @@ export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCel
   return (
     <td
       className={cn(
-        'px-[10px] py-1.5 align-middle text-[13px] text-[#202124]',
+        'px-[10px] py-1.5 align-middle text-[13.5px] text-[#202124]',
         'first:sticky first:left-0 first:z-10 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e8eaed] group-hover:first:bg-[#f8f9fa] last:pr-4',
         '[.matrix_&]:whitespace-nowrap',
         className,

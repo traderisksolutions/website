@@ -313,10 +313,10 @@ function MessageBody({ msg, name, textBody, earlier }: { msg: RealMsg; name: str
     <>
       {html
         ? <div className={cn('email-html-body', sizeCls)} onClick={onBodyClick} dangerouslySetInnerHTML={{ __html: html.body }} />
-        : <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', earlier ? 'text-[15px]' : 'text-[16px]')} style={{ color: INK }}>{text?.body}</div>}
+        : <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', earlier ? 'text-[14px]' : 'text-[14.5px]')} style={{ color: INK }}>{text?.body}</div>}
 
       {(html?.signature || text?.signature) && (
-        <div className="mt-2.5 pt-2.5 text-[13.5px] leading-[1.5]" style={{ borderTop: `1px solid ${HAIR}`, color: MUTED }}>
+        <div className="mt-2.5 pt-2.5 text-[13px] leading-[1.5]" style={{ borderTop: `1px solid ${HAIR}`, color: MUTED }}>
           {html?.signature ? <div className="email-html-body email-sig" dangerouslySetInnerHTML={{ __html: html.signature }} /> : <div className="whitespace-pre-wrap">{text?.signature}</div>}
         </div>
       )}

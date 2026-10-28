@@ -132,7 +132,8 @@ describe('EngagementThreadRow', () => {
 })
 
 // ── ThreadRow — the Unified Mail Navigator row ──────────────────────────────────────────────
-// Grid row: ink dot only when a reply is needed, sender/time, `Company · subject`, one state line.
+// Standard: ink dot when a reply is needed, sender, triage type, time, then `Company · subject`.
+// Comfortable adds the state line; compact is one line.
 
 describe('ThreadRow (navigator)', () => {
   const dotOf = () => screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
@@ -151,23 +152,39 @@ describe('ThreadRow (navigator)', () => {
     expect(screen.getByText(/Acme — marine cargo quotation/)).toBeInTheDocument()
   })
 
-  it('shows an ink dot and "Needs your reply" when the last message is inbound', () => {
+  it('shows an ink dot and says "needs your reply" to a screen reader when the last message is inbound', () => {
     render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
     expect(dotOf().style.background).toBe('rgb(32, 33, 36)')
-    expect(screen.getByText('Needs your reply')).toBeInTheDocument()
+    expect(screen.queryByText('Needs your reply')).toBeNull()
     expect(screen.getByRole('button')).toHaveAttribute('aria-label', expect.stringContaining('needs your reply'))
+  })
+
+  it('writes "Needs your reply" on a state line in comfortable density', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} density="comfortable" />)
+    expect(screen.getByText('Needs your reply')).toBeInTheDocument()
   })
 
   it('keeps the dot transparent and shows "Awaiting client" after we wrote last', () => {
     const outbound: ThreadState = { ...inboundThread, messages: [{ ...inboundThread.messages[0], direction: 'outbound' }] }
-    render(<ThreadRow lead={baseLead} isActive={false} threadState={outbound} onClick={vi.fn()} />)
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={outbound} onClick={vi.fn()} density="comfortable" />)
     expect(dotOf().style.background).toBe('transparent')
     expect(screen.getByText('Awaiting client')).toBeInTheDocument()
   })
 
-  it('appends the triage type to the state line', () => {
+  it('shows the triage type beside the sender', () => {
     render(<ThreadRow lead={{ ...baseLead, category: 'renewal' }} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
+    expect(screen.getByText('Renewal')).toBeInTheDocument()
+  })
+
+  it('appends the triage type to the state line in comfortable density', () => {
+    render(<ThreadRow lead={{ ...baseLead, category: 'renewal' }} isActive={false} threadState={inboundThread} onClick={vi.fn()} density="comfortable" />)
     expect(screen.getByText('Needs your reply · Renewal')).toBeInTheDocument()
+  })
+
+  it('puts sender, subject and time on one line in compact density', () => {
+    render(<ThreadRow lead={baseLead} isActive={false} threadState={emptyThread} onClick={vi.fn()} density="compact" />)
+    expect(screen.getByText('Alice Tan')).toBeInTheDocument()
+    expect(screen.getByText(/Marine insurance quotation/)).toBeInTheDocument()
   })
 
   it('hides the state line in compact density', () => {
