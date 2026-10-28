@@ -592,3 +592,12 @@ a.bt:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(28,51,88,.08),0 
 .gl .steps i{flex:1;height:1px;background:rgba(255,255,255,.4)}
 .gl .slab{display:flex;justify-content:space-between;font-size:8px;letter-spacing:.03em;text-transform:uppercase;color:rgba(255,255,255,.6)}
 .hero{justify-content:safe center}
+
+/* Navbar audit (29 Oct): four-column Coverage panel with Appetite, footer row, no photo card; no hairline over the hero */
+.hdr.over{border-bottom-color:transparent}
+.panel .fam{display:flex;flex-direction:column;gap:22px}
+.panel .grp{gap:22px}
+.panel .foot{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:16px 56px;margin-top:4px}
+.panel .foot .pi{flex-direction:row;align-items:baseline;gap:10px}
+.panel .foot .pi .d{max-width:none}
+@media(min-width:1024px){.panel.cov .wrap{grid-template-columns:repeat(4,1fr)}}
