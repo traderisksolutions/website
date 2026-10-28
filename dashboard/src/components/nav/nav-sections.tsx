@@ -3,7 +3,7 @@ import {
   Inbox, Mail, AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
   Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
   Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
-  Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock, ShieldCheck } from 'lucide-react'
+  Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock, ShieldCheck, Table2 } from 'lucide-react'
 
 export type NavLink = {
   title: string
@@ -52,6 +52,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Product',
     icon: Wrench,
     items: [
+      { title: 'Requests for quotes', href: '/rfq',        icon: Table2,          description: 'Every policy a client asked us to quote, and where it stands' },
       { title: 'Insurers',       href: '/insurers',         icon: ShieldCheck,     description: 'Who to ask for what: products, appetite and contacts' },
       { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,      description: 'Raise and issue debit notes' },
       { title: 'Employment Benefits', href: '/pricing-matrix', icon: HeartPulse, description: 'Insurer calculators and quotes' },

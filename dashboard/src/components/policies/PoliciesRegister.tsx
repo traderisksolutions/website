@@ -10,7 +10,13 @@ import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
 import type { PlacementBundle, PlacementRound } from '@/lib/placement/types'
 import { callApi, errText, dialogCls, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { XlGrid, XlHead, XlHeadRow, XlTh, XlRow, XlCell } from '@/components/ui/xl-grid'
+import type { DerivedPaymentStatus, PaymentDerived } from '@/lib/crm/types'
+import { MembersPanel } from './MembersPanel'
 import { fmtAmount, lifecycleWord, type PolicyView, type SpineQuote } from './types'
+
+type Section = 'quotes' | 'employees' | 'dns'
+const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue' }
 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
 const COLS = 9
@@ -23,12 +29,17 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…'
  * The company's policies: one row per line of cover, from first quote to lapse. A row opens to
  * the quotes received for it; the chosen one is marked in words.
  */
-export function PoliciesRegister({ policies, bundle, onChanged }: {
+export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policies', payments, onOpenDrafts }: {
   policies: PolicyView[] | null
   bundle: PlacementBundle | null
   onChanged: () => void
+  title?: string
+  /** The company's debit notes; each opened policy lists its own. */
+  payments?: PaymentDerived[] | null
+  onOpenDrafts?: () => void
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({})
+  const [section, setSection] = useState<Record<string, Section>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [liveFor, setLiveFor] = useState<PolicyView | null>(null)
@@ -62,7 +73,7 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
 
   return (
     <>
-      <SectionCard title="Policies">
+      <SectionCard title={title}>
         {!policies && <Spinner label="Loading policies…" />}
         {policies && policies.length === 0 && <Empty compact>No policies on file.</Empty>}
         {policies && policies.length > 0 && (
@@ -88,6 +99,13 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                 // Class and product line sit behind the Line cell's title; the policy number has its own column.
                 const under = [line, p.class_of_insurance && p.class_of_insurance !== line ? p.class_of_insurance : null, p.product_line ? productLineLabel(p.product_line) : null].filter(Boolean).join(' · ')
                 const canClose = !['closed', 'declined', 'lapsed'].includes(p.lifecycle)
+                const dns = (payments ?? []).filter(d => d.policy_id === p.id || (!!p.policy_number && d.policyNumber === p.policy_number))
+                const sec: Section = section[p.id] ?? (quotes.length === 0 && p.is_eb ? 'employees' : quotes.length === 0 && dns.length ? 'dns' : 'quotes')
+                const sections: { key: Section; label: string }[] = [
+                  { key: 'quotes', label: `Quotes · ${quotes.length}` },
+                  ...(p.is_eb ? [{ key: 'employees' as const, label: `Employees${p.membersActive != null ? ` · ${p.membersActive}` : ''}` }] : []),
+                  { key: 'dns', label: `Debit notes & payments · ${dns.length}` },
+                ]
                 return (
                   <PolicyRows key={p.id} expanded={expanded} onToggle={() => setOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
                     row={
@@ -106,7 +124,16 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                     detail={
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center gap-2 flex-wrap min-h-6">
-                          <span className="text-[12.5px]" style={{ color: MUTED }}>{quotes.length === 0 ? 'No quotes yet' : `${quotes.length} quote${quotes.length === 1 ? '' : 's'}`}</span>
+                          <span className="flex items-center gap-1" role="tablist">
+                            {sections.map(x => (
+                              <button key={x.key} type="button" role="tab" aria-selected={sec === x.key}
+                                onClick={e => { e.stopPropagation(); setSection(o => ({ ...o, [p.id]: x.key })) }}
+                                className="h-6 px-2 rounded-[6px] border-0 cursor-pointer text-[12.5px]"
+                                style={{ background: sec === x.key ? '#e8eaed' : 'transparent', color: sec === x.key ? INK : MUTED, fontWeight: sec === x.key ? 500 : 400 }}>
+                                {x.label}
+                              </button>
+                            ))}
+                          </span>
                           <span className="ml-auto flex items-center gap-1.5 flex-wrap">
                             {p.lifecycle === 'bound' && <Btn size="xs" level="secondary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); setLiveFor(p) }}>Mark live</Btn>}
                             {canClose && p.lifecycle !== 'bound' && p.lifecycle !== 'live' && p.lifecycle !== 'renewal_due' && (
@@ -116,7 +143,10 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
                           </span>
                         </div>
                         {errors[p.id] && <p className="text-[12.5px] m-0" style={{ color: ERROR }}>{errors[p.id]}</p>}
-                        {quotes.length > 0 && (
+                        {sec === 'employees' && <MembersPanel policies={[p]} bundle={bundle} onChanged={onChanged} onOpenDrafts={onOpenDrafts ?? (() => {})} />}
+                        {sec === 'dns' && <PolicyDebitNotes notes={dns} />}
+                        {sec === 'quotes' && quotes.length === 0 && <span className="text-[12.5px]" style={{ color: MUTED }}>No quotes on file for this policy.</span>}
+                        {sec === 'quotes' && quotes.length > 0 && (
                           <Register label={`${line} quotes`} minWidth={960} dense>
                             <RegisterHead>
                               <RegisterTh first>Insurer</RegisterTh>
@@ -169,6 +199,38 @@ export function PoliciesRegister({ policies, bundle, onChanged }: {
 
       <MarkLiveDialog policy={liveFor} onClose={() => setLiveFor(null)} onDone={onChanged} />
     </>
+  )
+}
+
+/** The debit notes billed under one policy, newest first. */
+function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
+  if (notes.length === 0) return <span className="text-[12.5px]" style={{ color: MUTED }}>No debit notes on this policy yet. Raise one from Debit Notes.</span>
+  const sorted = [...notes].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
+  return (
+    <XlGrid label="Debit notes" minWidth={860}>
+      <XlHead>
+        <XlHeadRow>
+          <XlTh sticky align="left" width={120}>DN no.</XlTh>
+          <XlTh>Issued</XlTh><XlTh>For</XlTh><XlTh>Insurer</XlTh><XlTh>Amount</XlTh><XlTh>Paid</XlTh><XlTh>Outstanding</XlTh><XlTh>Due</XlTh><XlTh>Status</XlTh><XlTh>Drive</XlTh>
+        </XlHeadRow>
+      </XlHead>
+      <tbody>
+        {sorted.map(d => (
+          <XlRow key={d.id}>
+            <XlCell label align="left" strong>{d.debit_note_no}</XlCell>
+            <XlCell>{fmtDate(d.issue_date)}</XlCell>
+            <XlCell>{d.event_type ? d.event_type.replace(/_/g, ' ') : ''}</XlCell>
+            <XlCell>{d.insurer ?? ''}</XlCell>
+            <XlCell>{fmtAmount(d.gross_amount, d.currency)}</XlCell>
+            <XlCell>{d.paid_amount ? fmtAmount(d.paid_amount, d.currency) : ''}</XlCell>
+            <XlCell>{d.outstanding > 0 ? fmtAmount(d.outstanding, d.currency) : ''}</XlCell>
+            <XlCell>{d.payment_due_date ? fmtDate(d.payment_due_date) : ''}</XlCell>
+            <XlCell fill={d.derived === 'paid' ? 'good' : d.derived === 'overdue' ? 'bad' : d.derived === 'partial' ? 'warn' : null}>{PAY_WORD[d.derived]}</XlCell>
+            <XlCell>{d.drive_folder_url ? <a href={d.drive_folder_url} target="_blank" rel="noreferrer" className="no-underline hover:underline" style={{ color: INK }}>Filed ↗</a> : ''}</XlCell>
+          </XlRow>
+        ))}
+      </tbody>
+    </XlGrid>
   )
 }
 

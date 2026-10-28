@@ -24,7 +24,40 @@ export async function loadBundle(companyId: string): Promise<PlacementBundle> {
     sbTry<PlacementQuote[]>(`placement_quotes?${f}&order=created_at.asc`, []),
     sbTry<PlacementTier[]>(`placement_tiers?${f}&order=sort.asc,created_at.asc`, []),
   ])
-  return { placements, lines, rounds, dispatches, quotes, tiers, log }
+  return { placements, lines, rounds, dispatches: await withProductNames(dispatches), quotes, tiers, log }
+}
+
+/**
+ * Every placement still in play, across all clients, for the RFQ register: open, with the client
+ * or bound and waiting on its debit note. The log is only the unacted client changes the
+ * register flags; company names come back keyed by id.
+ */
+export async function loadOpenBundle(): Promise<{ bundle: PlacementBundle; companyNames: Map<string, string>; doneThisMonth: number }> {
+  const placements = await sbTry<Placement[]>('placements?status=in.(open,presented,bound)&order=created_at.desc&limit=500', [])
+  const monthStart = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 8) + '01T00:00:00+08:00'
+  const done = await sbTry<{ id: string }[]>(`placement_lines?done_at=gte.${enc(monthStart)}&select=id`, [])
+  const companyIds = [...new Set(placements.map(p => p.company_id))]
+  const companies = companyIds.length ? await sbTry<{ id: string; company_name: string }[]>(`companies?id=in.(${companyIds.join(',')})&select=id,company_name`, []) : []
+  const companyNames = new Map(companies.map(c => [c.id, c.company_name]))
+  if (placements.length === 0) return { bundle: { placements, lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log: [] }, companyNames, doneThisMonth: done.length }
+  const f = `placement_id=in.(${placements.map(p => p.id).join(',')})`
+  const [lines, rounds, dispatches, quotes, tiers, log] = await Promise.all([
+    sbTry<PlacementLine[]>(`placement_lines?${f}&order=sort.asc,created_at.asc`, []),
+    sbTry<PlacementRound[]>(`placement_rounds?${f}&order=round_no.asc`, []),
+    sbTry<PlacementDispatch[]>(`placement_dispatches?${f}&order=created_at.asc`, []),
+    sbTry<PlacementQuote[]>(`placement_quotes?${f}&status=neq.superseded&order=created_at.asc`, []),
+    sbTry<PlacementTier[]>(`placement_tiers?${f}&order=sort.asc,created_at.asc`, []),
+    sbTry<PlacementLogEntry[]>(`placement_log?${f}&kind=eq.change&order=created_at.desc&limit=500`, []),
+  ])
+  return { bundle: { placements, lines, rounds, dispatches, quotes, tiers, log }, companyNames, doneThisMonth: done.length }
+}
+
+/** The insurer's product name on each dispatch that names one, so the grid reads "MSIG · WICA Plus". */
+async function withProductNames(ds: PlacementDispatch[]): Promise<PlacementDispatch[]> {
+  const ids = [...new Set(ds.map(d => d.insurer_product_id).filter((x): x is string => !!x))]
+  if (ids.length === 0) return ds
+  const names = new Map((await sbTry<{ id: string; name: string }[]>(`insurer_products?id=in.(${ids.join(',')})&select=id,name`, [])).map(p => [p.id, p.name]))
+  return ds.map(d => d.insurer_product_id ? { ...d, insurer_product_name: names.get(d.insurer_product_id) ?? null } : d)
 }
 
 export async function loadPlacement(id: string): Promise<PlacementBundle | null> {

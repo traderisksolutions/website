@@ -48,19 +48,29 @@ type Detail = {
   value?: CompanyValue
 }
 
-const TABS = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'policies', label: 'Policies' },
-  { key: 'quotes',   label: 'Quotes'   },
-  { key: 'members',  label: 'Employees' },
-  { key: 'payments', label: 'Finance'  },
-  { key: 'threads',  label: 'Threads'  },
-  { key: 'log',      label: 'Log'      },
-  { key: 'nexus',    label: 'Nexus'    },
+/**
+ * Two tabs carry the work: what the client has asked us to quote, and what they already pay for.
+ * Employees and debit notes open under each policy row; everything else sits under More.
+ */
+const MAIN_TABS = [
+  { key: 'quotes',   label: 'Prospective requested quotes' },
+  { key: 'policies', label: 'Existing paying policies' },
 ] as const
+const MORE_TABS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'members',  label: 'All employees' },
+  { key: 'payments', label: 'Finance' },
+  { key: 'threads',  label: 'Threads' },
+  { key: 'log',      label: 'Log' },
+  { key: 'nexus',    label: 'Nexus' },
+] as const
+const TABS = [...MAIN_TABS, ...MORE_TABS]
 type Tab = typeof TABS[number]['key']
+const DEFAULT_TAB: Tab = 'quotes'
 /** Older links still name the tabs that were folded or renamed. */
 const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies', employees: 'members' }
+/** A policy still being quoted belongs with the requests; the rest are on the books. */
+const QUOTING = new Set(['quoting', 'presented'])
 const EMPTY_BUNDLE: PlacementData = { bundle: { placements: [], lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log: [] }, positions: [] }
 const EMPTY_DETAIL: Detail = { contactList: [], policies: [], payments: [], paymentSummary: { byCurrency: [], overdueCount: 0, openCount: 0, nextDue: null } }
 
@@ -73,8 +83,9 @@ function CompanyWorkspace() {
   const router = useRouter()
   const search = useSearchParams()
   const asked = search.get('tab') ?? ''
-  const tab: Tab = TABS.some(t => t.key === asked) ? asked as Tab : TAB_ALIAS[asked] ?? 'overview'
-  const setTab = (t: Tab) => router.replace(`/companies/${id}${t === 'overview' ? '' : `?tab=${t}`}`, { scroll: false })
+  const tab: Tab = TABS.some(t => t.key === asked) ? asked as Tab : TAB_ALIAS[asked] ?? DEFAULT_TAB
+  const setTab = (t: Tab) => { setMoreOpen(false); router.replace(`/companies/${id}${t === DEFAULT_TAB ? '' : `?tab=${t}`}`, { scroll: false }) }
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const [ov, setOv] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -163,13 +174,17 @@ function CompanyWorkspace() {
   if (!ov) return <Spinner label="Loading company…" />
 
   const { company } = ov
+  const existing = policies?.filter(p => !QUOTING.has(p.lifecycle)) ?? null
+  // Policies being quoted that no request on this page covers (an employment-benefits rate run, say).
+  const lineIds = new Set((placementData?.bundle.lines ?? []).map(l => l.id))
+  const quotingLoose = policies?.filter(p => QUOTING.has(p.lifecycle) && !(p.placement_line_id && lineIds.has(p.placement_line_id))) ?? []
 
   // A plain count per tab, as on Companies. Never an urgency figure.
   const countFor = (t: Tab): number | null => {
     switch (t) {
-      case 'policies': return policies?.length ?? null
-      case 'quotes': return quotes === null && placementData === null ? null
-        : (placementData?.bundle.placements.filter(p => p.status === 'open' || p.status === 'presented').length ?? 0) + (quotes?.length ?? 0)
+      case 'policies': return existing?.length ?? null
+      case 'quotes': return placementData === null ? null
+        : placementData.bundle.placements.filter(p => p.status === 'open' || p.status === 'presented' || p.status === 'bound').length + quotingLoose.length
       case 'members': return policies ? policies.filter(p => p.is_eb).length : null
       case 'payments': return detail?.paymentSummary.openCount ?? null
       case 'threads': return threads?.length ?? null
@@ -199,7 +214,7 @@ function CompanyWorkspace() {
         <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e8eaed' }}>
           <button
             type="button"
-            onClick={() => setTab('overview')}
+            onClick={() => setTab(DEFAULT_TAB)}
             className="inline-flex items-center gap-1 text-[14px] bg-transparent border-0 p-0 cursor-pointer flex-shrink-0 no-underline hover:underline"
             style={{ color: MUTED }}
           >
@@ -249,32 +264,66 @@ function CompanyWorkspace() {
           onDrafts={() => setDraftsOpen(true)}
         />
 
-        {/* Eight tabs on one line from laptop width up; only a phone ever scrolls them. */}
-        <div className="flex items-center gap-6 mb-8 overflow-x-auto lg:overflow-visible -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e8eaed' }} role="tablist">
-          {TABS.map(t => {
-            const on = tab === t.key
-            const n = countFor(t.key)
-            return (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setTab(t.key)}
-                className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
-                style={{ color: on ? INK : MUTED }}
-              >
-                {t.label}
-                {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#80868b' }}>{n}</span>}
-                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
-              </button>
-            )
-          })}
+        {ov.alerts.length > 0 && <AlertsPanel alerts={ov.alerts} />}
+
+        {/* Two working tabs; the rest under More. Only a phone ever scrolls them. */}
+        <div className="flex items-center gap-6 mb-8 -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="flex items-center gap-6 overflow-x-auto min-w-0" role="tablist">
+            {MAIN_TABS.map(t => {
+              const on = tab === t.key
+              const n = countFor(t.key)
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setTab(t.key)}
+                  className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                  style={{ color: on ? INK : MUTED }}
+                >
+                  {t.label}
+                  {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#80868b' }}>{n}</span>}
+                  <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+                </button>
+              )
+            })}
+          </div>
+          <div className="relative ml-auto flex-shrink-0 pb-3">
+            {(() => {
+              const inMore = MORE_TABS.find(t => t.key === tab)
+              return (
+                <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}
+                  className={cn('bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', inMore ? 'font-medium' : 'hover:text-[#202124]')}
+                  style={{ color: inMore ? INK : MUTED }}>
+                  {inMore ? `More: ${inMore.label}` : 'More'} ▾
+                </button>
+              )
+            })()}
+            {moreOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} aria-hidden />
+                <div role="menu" className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-[10px] bg-white py-1 shadow-[0_4px_16px_rgba(60,64,67,0.18)]" style={{ border: '1px solid #e8eaed' }}>
+                  {MORE_TABS.map(t => {
+                    const n = countFor(t.key)
+                    return (
+                      <button key={t.key} type="button" role="menuitem" onClick={() => setTab(t.key)}
+                        className="flex w-full items-center justify-between gap-4 h-9 px-3 bg-transparent border-0 cursor-pointer text-[14px] text-left hover:bg-[#f1f3f4]"
+                        style={{ color: tab === t.key ? INK : '#3c4043', fontWeight: tab === t.key ? 500 : 400 }}>
+                        {t.label}
+                        {n !== null && n > 0 && <span className="tabular-nums text-[12.5px]" style={{ color: '#80868b' }}>{n}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {tab === 'overview' && (
           <>
-            <AlertsPanel alerts={ov.alerts} />
+            {ov.alerts.length === 0 && <AlertsPanel alerts={ov.alerts} />}
             <LeftOffPanel leftOff={ov.leftOff} />
             <AccountNotesPanel notes={company.notes} onSave={notes => patchCompany({ notes })} />
             {people ? (
@@ -288,10 +337,19 @@ function CompanyWorkspace() {
           </>
         )}
 
-        {tab === 'policies' && <PoliciesRegister policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} />}
+        {tab === 'policies' && (
+          <PoliciesRegister title="Existing paying policies" policies={existing} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
+            onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+        )}
 
         {tab === 'quotes' && (quotes && threads ? (
-          <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+          <>
+            <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+            {quotingLoose.length > 0 && (
+              <PoliciesRegister title="Being quoted outside a request" policies={quotingLoose} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
+                onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+            )}
+          </>
         ) : <Spinner />)}
 
         {tab === 'members' && <MembersPanel policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />}

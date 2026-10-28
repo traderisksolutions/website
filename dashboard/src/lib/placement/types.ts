@@ -129,6 +129,9 @@ export interface PlacementDispatch {
   sent_from?: string | null      // the mailbox it went out from
   sent_by?: string | null        // the staff member who pressed Send
   sent_subject?: string | null
+  /** The insurer product asked (20261028_insurer_products.sql); the name is joined on read. */
+  insurer_product_id?: string | null
+  insurer_product_name?: string | null
   created_at: string
   updated_at: string
 }
