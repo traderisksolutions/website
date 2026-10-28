@@ -545,3 +545,18 @@ a.bt:hover{transform:translateY(-3px);box-shadow:0 2px 4px rgba(28,51,88,.08),0 
 .bt .prog span{font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:7px 10px;background:rgba(255,255,255,.12);color:#fff}
 @media (min-width:768px){.bento{grid-template-columns:repeat(2,1fr)}.bt.feat{grid-column:span 2}}
 @media (min-width:1024px){.bento{grid-template-columns:repeat(3,1fr)}.bt.feat{grid-column:1;grid-row:1/3}.bt.wide{grid-column:span 3}.bt.wide p{max-width:70ch}}
+
+/* Timeline on navy (flex.one/ai-inbox): dark frame, white sheet centred, rule crossing each tick, centred text at desktop */
+.navy .doc{background:rgba(255,255,255,.07);justify-content:center;padding:28px 24px 0}
+.navy .sheet{background:#fff;max-width:230px;box-shadow:0 18px 40px -20px rgba(0,0,0,.6)}
+.navy .tl-mark::before{border-top-color:rgba(255,255,255,.35)}
+.navy .tl-mark::after{border-left-color:rgba(255,255,255,.35);top:16px;height:30px}
+.navy .tl-item:first-child .tl-mark::before{left:-40px}
+.navy .tl-item:last-child .tl-mark::before{right:-40px}
+.navy .tl-k{color:#b9c8e0}
+.navy .tl h3{color:#fff}
+.navy .tl p{color:rgba(255,255,255,.8)}
+.navy .tl .tag{color:rgba(255,255,255,.55)}
+.navy .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.6)}
+.navy .btn.ghost:hover{background:rgba(255,255,255,.12)}
+@media (min-width:1024px){.navy .tl{text-align:center}.navy .tl-mark::after{left:50%}.navy .tl .tl-k,.navy .tl h3,.navy .tl p{margin-left:auto;margin-right:auto}}

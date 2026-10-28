@@ -6,16 +6,16 @@ import { LINES, lineBySlug } from "@/content/coverage";
 import { INDUSTRIES } from "@/content/industries";
 import { site } from "@/site";
 
-// Home: Hedge's story, 01 and 02 swapped on Jarod's call (29 Oct). Hero = gic.com.sg navy panel on the harbour. Each section = statement, bold heading,
-// 01 = flex.one timeline (documents above a rule), 02 = split (heading + ticks beside prose), 03 = navy band trio, 05 = global-payments bento.
+// Home: Hedge's story order. Hero = gic.com.sg navy panel on the harbour. Each section = statement, bold heading,
+// 01 = three NSS tiles, 02 = flex.one/ai-inbox timeline on navy (documents above a rule), 03 = open icon trio, 05 = global-payments bento.
 // Bands alternate white / grey. Coverage = harvey.ai bento tiles. Close = night harbour.
 
-const TICKS = [
-  "One broker, one account handler and one claims contact per client, from inception through claim.",
-  "First read within [x] working days of a complete file. Firm terms once subjectivities are known.",
-  "Cat-exposed property, regulated financial firms, D&O with a going-concern note, cyber after an incident.",
+const DIFFERENCE = [
+  { k: "01 · Dedicated", t: "The team moves like your own.", pts: ["A broker, an account handler and a claims contact per client.", "The same three people at inception, mid-term and renewal.", "No rotating inboxes. The person you started with closes the file."] },
+  { k: "02 · Fast", t: "First read in [x] days. Firm terms when the file is ready.", pts: ["An indication on appetite and structure within [x] working days of a complete file.", "Intake, triage and market selection run in parallel, not in sequence.", "Firm terms once subjectivities are known, not before."] },
+  { k: "03 · Hard risks", t: "The accounts others cannot place.", pts: ["Cat-exposed property and typhoon-exposed single sites.", "Regulated financial firms. D&O with a going-concern note.", "Cyber after an incident, US products exposure, large contract works."] },
 ];
-// 01 How it works: flex.one/ai-inbox timeline. Each stage shows the document it produces (illustrative sheet), a rule with a tick, then the stage.
+// 02 How it works: flex.one/ai-inbox timeline on navy. Each stage shows the document it produces (illustrative sheet), a rule with a tick, then the stage.
 const DOCS = [
   { t: "Renewal review", rows: [["Policies read", "All current"], ["Gaps and overlaps", "Listed"], ["Limits", "Tested"], ["Issued", "Day 120"]] },
   { t: "Underwriting file", rows: [["Schedule of values", "Checked"], ["Loss history", "Five years"], ["Payroll", "Verified"], ["Files", "One per line"]] },
@@ -35,7 +35,7 @@ const ICO = {
   shared: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20v-1.5a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5V20" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18.5 13.6a5 5 0 0 1 3 4.6V20" /></svg>,
   closed: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v12H3z" /><polyline points="8.5 14 11 16.5 15.5 12" /></svg>,
 };
-// 03 The file: flex.one open trio (icon chip, serif heading, one paragraph) on a navy band.
+// 03 The file: flex.one open trio (icon chip, serif heading, one paragraph).
 const FILE = [
   { icon: ICO.live, t: "Live, not a status email.", p: "Market responses, open subjectivities and quotes land in one record as they arrive. The named people on the account, on the client side and ours, read the same file. No checking-in emails and no PDF ping-pong." },
   { icon: ICO.shared, t: "Everyone, same file.", p: "Finance, legal, the board pack and the insurer read from the file the broker works. When a subjectivity closes or an adjuster responds, the file updates and the people on it see it. Permissions by person, by line." },
@@ -52,6 +52,9 @@ const IND_ICON: Record<string, ReactNode> = {
 };
 const WIDE = new Set(["property-business-interruption", "directors-officers"]);
 
+function Card({ k, t, pts }: { k: string; t: string; pts: string[] }) {
+  return <div className="card"><p className="ct"><span className="k">{k}</span>{t}</p><ul>{pts.map(x => <li key={x}>{x}</li>)}</ul></div>;
+}
 function Head({ n, label, title, accent }: { n: string; label: string; title: string; accent: string }) {
   return <div className="head"><p className="eb"><span className="n">{n} {label}</span></p><h2 className="h2">{title} <span className="accent">{accent}</span></h2></div>;
 }
@@ -72,7 +75,17 @@ export default function Home() {
       </section>
 
       <section className="plain"><div className="wrap sec stack">
-        <Head n="01" label="How it works" title="From the renewal file" accent="to the right market." />
+        <Head n="01" label="The difference" title="Named brokers on" accent="the hard files." />
+        <div className="prose">
+          <h3>Named brokers on the hard files</h3>
+          <p>Most commercial programmes are renewed on last year&apos;s schedule by whoever picks up the file that month. The wording is rarely read against the contracts it is meant to answer. The gap shows at the claim, when the insurer reads it first.</p>
+          <p>{site.name} works the other way round. A broker, an account handler and a claims contact are named at the first meeting and stay with the account through renewal and claim. Submissions are built as underwriting files, not forms. Markets are selected for the risk rather than circulated, and terms are compared clause by clause before any recommendation is made.</p>
+        </div>
+        <div className="cards c3">{DIFFERENCE.map(c => <Card key={c.k} {...c} />)}</div>
+      </div></section>
+
+      <section className="navy"><div className="wrap sec stack">
+        <Head n="02" label="How it works" title="From the renewal file" accent="to the right market." />
         <div className="tl">
           {STAGES.map((s, i) => (
             <div key={s.t} className="tl-item">
@@ -86,20 +99,6 @@ export default function Home() {
       </div></section>
 
       <section className="band"><div className="wrap sec stack">
-        <div className="head"><p className="eb"><span className="n">02 The difference</span></p></div>
-        <div className="split">
-          <div>
-            <h2 className="sh">Named brokers on <span className="accent">the hard files.</span></h2>
-            <ul className="ticks">{TICKS.map(t => <li key={t}>{t}</li>)}</ul>
-          </div>
-          <div className="sp">
-            <p>Most commercial programmes are renewed on last year&apos;s schedule by whoever picks up the file that month. The wording is rarely read against the contracts it is meant to answer. The gap shows at the claim, when the insurer reads it first.</p>
-            <p>{site.name} works the other way round. A broker, an account handler and a claims contact are named at the first meeting and stay with the account through renewal and claim. Submissions are built as underwriting files, not forms. Markets are selected for the risk rather than circulated, and terms are compared clause by clause before any recommendation is made.</p>
-          </div>
-        </div>
-      </div></section>
-
-      <section className="navy"><div className="wrap sec stack">
         <Head n="03" label="The file" title="One file per line," accent="from review through claim." />
         <div className="trio">
           {FILE.map(f => <div key={f.t}><span className="ico">{f.icon}</span><h3>{f.t}</h3><p>{f.p}</p></div>)}
