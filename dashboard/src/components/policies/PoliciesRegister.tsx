@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { SectionCard, Empty, Spinner, Btn, Field, inputCls } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { statusWord } from '@/components/documents/DataRoom'
+import type { DataRoomStatus } from '@/lib/documents/taxonomy'
 import { fmtDate } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
@@ -19,7 +21,7 @@ type Section = 'quotes' | 'employees' | 'dns'
 const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue' }
 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
-const COLS = 9
+const COLS = 10
 /** A button inside the dense grid: 22px tall so the row stays 34px. */
 const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
 const PLAN_MAX = 36
@@ -29,8 +31,10 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…'
  * The company's policies: one row per line of cover, from first quote to lapse. A row opens to
  * the quotes received for it; the chosen one is marked in words.
  */
-export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policies', payments, onOpenDrafts }: {
+export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policies', payments, onOpenDrafts, docStatus }: {
   policies: PolicyView[] | null
+  /** Data-room status per policy id: what is on file against what the policy needs. */
+  docStatus?: Record<string, DataRoomStatus> | null
   bundle: PlacementBundle | null
   onChanged: () => void
   title?: string
@@ -85,6 +89,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
               <RegisterTh align="right">Premium</RegisterTh>
               <RegisterTh>Period</RegisterTh>
               <RegisterTh>Status</RegisterTh>
+              <RegisterTh>Documents</RegisterTh>
               <RegisterTh align="right">Notes</RegisterTh>
               <RegisterTh align="right">Members</RegisterTh>
               <RegisterTh last align="right">Net</RegisterTh>
@@ -116,6 +121,8 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                         <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
+                        <RegisterCell primary={docStatus?.[p.id] ? statusWord(docStatus[p.id]) : '—'}
+                          title={docStatus?.[p.id]?.missing.length ? `Missing: ${docStatus[p.id].missing.map(m => m.label).join(', ')}` : undefined} />
                         <RegisterCell align="right" primary={p.debitNoteCount} />
                         <RegisterCell align="right" primary={p.is_eb && p.membersActive != null ? p.membersActive : '—'} />
                         <RegisterCell last align="right" primary={p.is_eb && p.netToDate != null ? fmtAmount(p.netToDate, p.currency ?? 'SGD') : '—'} />

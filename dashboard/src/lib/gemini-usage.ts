@@ -127,6 +127,7 @@ export type AiFeature =
   | 'email_classify'
   // The short thread title the housekeeping agent writes to email_threads.display_subject (27 Oct 2026).
   | 'thread_title'
+  | 'document_classify'
   | 'company_retrieval_query'
   | 'company_retrieval_embed'
   | 'ask_ai'

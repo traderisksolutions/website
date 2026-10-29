@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/thread-titles",
       "schedule": "15 2 * * *"
+    },
+    {
+      "path": "/api/cron/data-room",
+      "schedule": "45 2 * * *"
     }
   ]
 }

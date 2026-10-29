@@ -97,6 +97,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   summarize:         'housekeeping',
   email_classify:    'housekeeping',
   thread_title:      'housekeeping',
+  document_classify: 'housekeeping',
   outbound_search:   'housekeeping',
   email_analysis:    'housekeeping',
   // Record-keeping: reading debit notes and the insurer documents behind them.

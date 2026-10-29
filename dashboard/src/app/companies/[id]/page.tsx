@@ -17,6 +17,9 @@ import { CompanyMail } from '@/components/crm/CompanyMail'
 import { CompanyLog } from '@/components/crm/CompanyLog'
 import { Spinner } from '@/components/crm/primitives'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
+import { DataRoom } from '@/components/documents/DataRoom'
+import { portfolio } from '@/lib/companies/portfolio'
+import type { DataRoomStatus } from '@/lib/documents/taxonomy'
 import { MembersPanel } from '@/components/policies/MembersPanel'
 import { ReviewDraftsDrawer, type QueueItem } from '@/components/placement/ReviewDraftsDrawer'
 import type { PolicyView } from '@/components/policies/types'
@@ -55,6 +58,7 @@ type Detail = {
 const MAIN_TABS = [
   { key: 'quotes',   label: 'Prospective requested quotes' },
   { key: 'policies', label: 'Existing paying policies' },
+  { key: 'documents', label: 'Data room' },
 ] as const
 const MORE_TABS = [
   { key: 'overview', label: 'Overview' },
@@ -121,6 +125,10 @@ function CompanyWorkspace() {
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)), [id, j])
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
   const loadPlacements = useCallback(() => j<PlacementData>(`/api/companies/${id}/placements`, EMPTY_BUNDLE).then(setPlacementData), [id, j])
+  const [docStatus, setDocStatus] = useState<Record<string, DataRoomStatus> | null>(null)
+  const loadDocStatus = useCallback(() => j<{ rooms: { policy: { id: string }; status: DataRoomStatus }[] }>(`/api/companies/${id}/data-room`, { rooms: [] })
+    .then(r => setDocStatus(Object.fromEntries(r.rooms.map(x => [x.policy.id, x.status])))), [id, j])
+  useEffect(() => { void loadDocStatus() }, [loadDocStatus])
   const loadPolicies = useCallback(() => j<{ policies: PolicyView[] }>(`/api/companies/${id}/policies`, { policies: [] }).then(r => setPolicies(r.policies)), [id, j])
   const loadActivity = useCallback(() => j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)), [id, j])
   const loadDrafts = useCallback(() => j<{ queue: QueueItem[] }>(`/api/companies/${id}/drafts`, { queue: [] }).then(r => setDraftsCount(r.queue.length)), [id, j])
@@ -258,6 +266,7 @@ function CompanyWorkspace() {
         <CompanyHeader
           company={company}
           statusLine={ov.statusLine}
+          portfolio={policies ? portfolio(policies) : null}
           draftsCount={draftsCount}
           onCompany={c => setOv(prev => prev ? { ...prev, company: c } : prev)}
           onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
@@ -337,8 +346,10 @@ function CompanyWorkspace() {
           </>
         )}
 
+        {tab === 'documents' && <DataRoom companyId={id} />}
+
         {tab === 'policies' && (
-          <PoliciesRegister title="Existing paying policies" policies={existing} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
+          <PoliciesRegister title="Existing paying policies" policies={existing} docStatus={docStatus} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
             onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
         )}
 

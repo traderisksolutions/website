@@ -18,6 +18,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { waitUntil } from '@vercel/functions'
+import { ingestAttachment } from '@/lib/documents/ingest'
 import { parseEmlSmart }             from '@/lib/parse-eml'
 import { logError }                  from '@/lib/error-log'
 import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
@@ -450,7 +452,7 @@ async function processAttachment(
     return
   }
 
-  await upsertAttachmentRow({
+  const attachmentRowId = await upsertAttachmentRow({
     message_id:          messageId,
     thread_id:           threadId,
     gmail_attachment_id: attachmentId,
@@ -461,18 +463,24 @@ async function processAttachment(
     storage_url:         storageUrl,
     parsed_at:           new Date().toISOString(),
   })
+  // Into the data room: classified, matched to a policy, filed in the company's Drive folder.
+  // After the response, never failing the extraction; the daily catch-up retries a failure.
+  if (attachmentRowId) waitUntil(ingestAttachment(attachmentRowId, { bytes: data }).then(() => undefined).catch(e =>
+    console.error('[nexus/extract] data room:', e instanceof Error ? e.message : e)))
 }
 
-async function upsertAttachmentRow(row: Record<string, unknown>): Promise<void> {
+async function upsertAttachmentRow(row: Record<string, unknown>): Promise<string | null> {
   const res = await fetch(
-    `${SB_URL}/rest/v1/email_attachments?on_conflict=message_id,filename`,
+    `${SB_URL}/rest/v1/email_attachments?on_conflict=message_id,filename&select=id`,
     {
       method:  'POST',
-      headers: sbHeaders('return=minimal,resolution=merge-duplicates'),
+      headers: sbHeaders('return=representation,resolution=merge-duplicates'),
       body:    JSON.stringify(row),
     }
   )
-  if (!res.ok) console.error('[nexus/extract] DB upsert failed:', await res.text().catch(() => ''))
+  if (!res.ok) { console.error('[nexus/extract] DB upsert failed:', await res.text().catch(() => '')); return null }
+  const rows = await res.json().catch(() => []) as { id?: string }[]
+  return rows[0]?.id ?? null
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────

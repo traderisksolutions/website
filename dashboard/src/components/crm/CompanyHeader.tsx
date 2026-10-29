@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { dialogCls } from '@/components/placement/shared'
 import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
+import type { PortfolioCount } from '@/lib/companies/portfolio'
 
 const INK = '#202124'
 const MUTED = '#5f6368'
@@ -24,7 +25,9 @@ const ACTION_BTN = 'h-9 px-4 rounded-[10px] text-[14px]'
 const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#202124] focus:bg-[#f8f9fa] data-[highlighted]:bg-[#f8f9fa]'
 
 /** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
-export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onStage, onDrafts }: {
+export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onCompany, onStage, onDrafts }: {
+  /** Every state the company's policies are in at once: "2 in force · 1 quoting". Null while loading. */
+  portfolio?: PortfolioCount[] | null
   company: Company
   statusLine: string
   /** Drafts waiting for approval across the company's placements and policies; null while unknown. */
@@ -111,12 +114,18 @@ export function CompanyHeader({ company, statusLine, draftsCount, onCompany, onS
               value={company.stage}
               disabled={changing}
               onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
-              aria-label="Stage"
+              aria-label="Relationship"
+              title="Relationship with the company, set by hand"
               className="h-8 rounded-[8px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#202124] disabled:opacity-50"
               style={{ borderColor: '#dadce0', color: INK }}
             >
               {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
             </select>
+            {portfolio && portfolio.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 flex-wrap" aria-label="Policies by state">
+                {portfolio.map(c => <Chip key={c.key} tone={c.tone === 'neutral' ? 'neutral' : c.tone}>{c.count} {c.label}</Chip>)}
+              </span>
+            )}
             {/* Owners are chosen per company: one or many. Nobody is an owner by default. */}
             <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="md" />
             {company.domains.length > 0 && <span>{company.domains[0]}</span>}
