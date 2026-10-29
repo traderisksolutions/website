@@ -149,7 +149,7 @@ function Dropdown({ section, pathname, onNavigate, alignRight }: { section: NavS
   return (
     <div
       role="menu"
-      className={cn('absolute top-[calc(100%+10px)] z-50 rounded-[14px] bg-white p-2', alignRight ? 'right-0' : 'left-0')}
+      className={cn('z-50 rounded-[14px] bg-white p-2', cols >= 4 ? 'fixed left-1/2 -translate-x-1/2 top-[66px] max-w-[calc(100vw-32px)]' : cn('absolute top-[calc(100%+10px)]', alignRight ? 'right-0' : 'left-0'))}
       style={{ minWidth: cols === 1 ? 300 : cols === 2 ? 540 : cols === 3 ? 760 : 940, border: '1px solid rgba(200,200,204,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)' }}
     >
       <div className="grid gap-x-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
