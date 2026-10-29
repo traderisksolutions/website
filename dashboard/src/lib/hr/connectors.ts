@@ -84,13 +84,13 @@ export function isPastOrToday(iso: string | null, today: CalendarDate = todaySGT
 
 /**
  * Fields HR Connect never keeps: identity numbers, pay, bank, contact details. Matched on the key
- * with underscores, dots and dashes read as spaces, so `nric_number`, `Bank Account` and
- * `salary.basic` all match and `Basic` or `Final` do not.
+ * with underscores, dots, dashes and camelCase read as spaces, so `nric_number`, `Bank Account`,
+ * `nationalId` and `salary.basic` all match and `Basic` or `Final` do not.
  */
-const SENSITIVE_KEY = /\b(nric|fin|passport|ic|identity|identification|national id|salary|salaries|pay|wage|wages|bank|iban|swift|address|addr|postal|phone|tel|mobile|hp|email|e mail|mail)\b/i
+const SENSITIVE_KEY = /\b(nric|fin|passport|ic|ssn|sin|identity|identification|national id|salary|salaries|pay|wage|wages|bank|iban|swift|address|addr|postal|phone|tel|mobile|hp|email|e mail|mail)\b/i
 
 export function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEY.test(String(key).replace(/[_.\-/()]+/g, ' ').replace(/\s+/g, ' ').trim())
+  return SENSITIVE_KEY.test(String(key).replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_.\-/()]+/g, ' ').replace(/\s+/g, ' ').trim())
 }
 
 /** A copy of a record without any sensitive key, one level deep. Nested objects are kept as-is unless their key is sensitive. */

@@ -50,6 +50,18 @@ export default function LandingPage() {
               <Link href={`/connect/${token}/simplepay`} className="hrc-btn">Connect SimplePay</Link>
             </div>
             <div className="hrc-opt">
+              <div><b>Connect HiBob</b><span>Your Bob administrator creates a service user. Its token is used once to read the employee list and is not stored.</span></div>
+              <Link href={`/connect/${token}/hibob`} className="hrc-btn">Connect HiBob</Link>
+            </div>
+            <div className="hrc-opt">
+              <div><b>Connect Deel</b><span>Paste an API token from Deel with read access to people. It is used once and is not stored.</span></div>
+              <Link href={`/connect/${token}/deel`} className="hrc-btn">Connect Deel</Link>
+            </div>
+            <div className="hrc-opt">
+              <div><b>Connect BambooHR</b><span>Enter your company name and an API key. It is used once to read the employee list, with spouse and children where your login can see them, and is not stored.</span></div>
+              <Link href={`/connect/${token}/bamboohr`} className="hrc-btn">Connect BambooHR</Link>
+            </div>
+            <div className="hrc-opt">
               <div><b>Connect Workday</b><span>Your Workday administrator creates an integration user with read access to worker data. The password is used once and is not stored.</span></div>
               <Link href={`/connect/${token}/workday`} className="hrc-btn">Connect Workday</Link>
             </div>

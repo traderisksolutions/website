@@ -51,7 +51,7 @@ export function defaultMessage(input: { recipient_name: string; company_name: st
   return [
     `Dear ${input.recipient_name.trim()},`,
     `Trade Risk Solutions is preparing group employee benefits quotations for ${input.company_name.trim()}${eff}${req}.`,
-    'To price the cover we need the current employee list. The secure page below lets you upload your own Excel or CSV, or connect Talenox, SimplePay or Workday. It takes about ten minutes.',
+    'To price the cover we need the current employee list. The secure page below lets you upload your own Excel or CSV, or connect Talenox, SimplePay, HiBob, Deel, BambooHR or Workday. It takes about ten minutes.',
   ].join('\n\n')
 }
 

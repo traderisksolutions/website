@@ -3,7 +3,7 @@
 // An employee list arrives one of four ways (CSV/XLSX upload, Talenox API, SimplePay API key,
 // Workday integration user) and is normalised to the same two records so the quote engine never knows the source.
 
-export type HrSource = 'csv' | 'talenox' | 'simplepay' | 'workday' | 'manual'
+export type HrSource = 'csv' | 'talenox' | 'simplepay' | 'workday' | 'hibob' | 'deel' | 'bamboohr' | 'manual'
 
 export type HrEmployee = {
   /** Stable within a submission: row number for a file, the vendor id otherwise. */

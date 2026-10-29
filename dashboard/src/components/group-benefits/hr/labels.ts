@@ -35,7 +35,7 @@ export const EVENT_LABEL: Record<string, string> = {
   submitted: 'Submitted', expired: 'Expired', closed: 'Closed', error: 'Error',
 }
 
-export const SOURCE_LABEL: Record<string, string> = { csv: 'Upload', talenox: 'Talenox', simplepay: 'SimplePay', workday: 'Workday', manual: 'Entered by HR' }
+export const SOURCE_LABEL: Record<string, string> = { csv: 'Upload', talenox: 'Talenox', simplepay: 'SimplePay', workday: 'Workday', hibob: 'HiBob', deel: 'Deel', bamboohr: 'BambooHR', manual: 'Entered by HR' }
 
 export const RELATIONSHIP_LABEL: Record<string, string> = { self: 'Employee', spouse: 'Spouse', child: 'Child' }
 
