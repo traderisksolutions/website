@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const all = q.get('all') === '1'
     const batch = Math.min(Math.max(Number(q.get('batch')) || 120, 1), 400)
     const since = all ? undefined : new Date(Date.now() - 3 * 86_400_000).toISOString()
-    const r = await catchUp({ attachments: batch, retries: 40, since })
+    const r = await catchUp({ attachments: batch, retries: 1000, since, budgetMs: 240_000 })
     console.log(`[data-room] ingested ${r.ingested}, filed ${r.filed}, failed ${r.failed}`)
     return NextResponse.json({ ok: true, ...r })
   } catch (e) {

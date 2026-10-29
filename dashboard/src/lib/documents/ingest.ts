@@ -112,7 +112,7 @@ export async function updateDocument(id: string, patch: { doc_type?: string; pol
 }
 
 /** The catch-up: unseen attachments in, failed files retried. Bounded per run. */
-export async function catchUp(opts: { attachments: number; retries: number; since?: string }): Promise<{ ingested: number; filed: number; failed: number }> {
+export async function catchUp(opts: { attachments: number; retries: number; since?: string; budgetMs?: number }): Promise<{ ingested: number; filed: number; failed: number }> {
   let ingested = 0, filed = 0, failed = 0
   for (const a of await store.unseenAttachments(opts.attachments, opts.since)) {
     const d = await ingestAttachment(a.id).catch(e => { void logError({ source: 'gemini', feature: 'data_room_ingest', message: String(e), metadata: { attachment_id: a.id } }); return null })
@@ -129,11 +129,20 @@ export async function catchUp(opts: { attachments: number; retries: number; sinc
     const policyId = matchPolicy(doc, policies)
     await store.patchDocument(o.id, { company_id: o.company_id, policy_id: policyId, needs_review: !policyId || doc.needs_review })
   }
-  for (const d of await store.unfiledDocuments(opts.retries)) {
-    const r = await fileDocument(d)
-    if (r.status === 'filed') filed++
-    else failed++
-  }
+  // File what is waiting, four at a time, until the run's time budget is spent. A backfill of a
+  // few thousand documents finishes over a handful of daily runs.
+  const deadline = Date.now() + (opts.budgetMs ?? 60_000)
+  const queue = await store.unfiledDocuments(opts.retries)
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    for (;;) {
+      if (Date.now() > deadline) return
+      const d = queue.shift()
+      if (!d) return
+      const r = await fileDocument(d)
+      if (r.status === 'filed') filed++
+      else failed++
+    }
+  }))
   return { ingested, filed, failed }
 }
 

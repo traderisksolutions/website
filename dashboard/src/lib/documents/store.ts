@@ -121,7 +121,7 @@ export async function unseenAttachments(limit: number, since?: string): Promise<
 }
 
 export const unfiledDocuments = (limit: number) =>
-  sbTry<PolicyDocument[]>(`policy_documents?status=in.(unfiled,failed)&company_id=not.is.null&select=${DOC_COLS}&order=created_at.asc&limit=${limit}`, [])
+  sbTry<PolicyDocument[]>(`policy_documents?status=in.(unfiled,failed)&company_id=not.is.null&or=(error.is.null,error.not.ilike.*no%20longer%20on%20the%20Gmail*)&select=${DOC_COLS}&order=status.desc,created_at.desc&limit=${limit}`, [])
 
 /** A filed document of the same company with the same bytes, if any. */
 export const sameBytes = async (companyId: string, sha: string, exceptId: string) =>
