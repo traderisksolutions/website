@@ -258,6 +258,8 @@ export default function QuoteDetailPage() {
                     <span className="inline-flex gap-2">
                       <a href={`/api/group-benefits/quote/${id}/export?format=xlsx&insurer=${encodeURIComponent(r.insurer_name)}`} className={BTN2}><Download size={13} /> XLSX</a>
                       <a href={`/api/group-benefits/quote/${id}/export?format=csv&insurer=${encodeURIComponent(r.insurer_name)}`} className={BTN2}><Download size={13} /> CSV</a>
+                      {/income/i.test(r.insurer_name) && <a href={`/api/group-benefits/quote/${id}/insurer-form?insurer=income`} className={BTN2}><Download size={13} /> Income upload file</a>}
+                      {/raffles|rcc/i.test(r.insurer_name) && <a href={`/api/group-benefits/quote/${id}/insurer-form?insurer=rcc`} className={BTN2}><Download size={13} /> RCC enrolment</a>}
                     </span>
                   </RegisterCell>
                 </RegisterRow>

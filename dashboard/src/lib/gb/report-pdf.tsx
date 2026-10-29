@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet, Image, Font, renderToBuffer } from '@react-pdf/renderer'
 import { longDate, sgd, type ReportModel } from './report-model'
+import { registerPdfFonts } from '../pdf-fonts'
 
 // Whole words only. The default hyphenator split "Insurance" and "Policy" mid-word.
 Font.registerHyphenationCallback(word => [word])
@@ -18,22 +19,22 @@ Font.registerHyphenationCallback(word => [word])
 const INK = '#202124', MUTED = '#5f6368', FAINT = '#80868b', RULE = '#dadce0', HAIR = '#ececec'
 
 const s = StyleSheet.create({
-  page: { paddingTop: 36, paddingBottom: 64, paddingHorizontal: 36, fontSize: 8.5, fontFamily: 'Helvetica', color: INK, lineHeight: 1.35 },
+  page: { paddingTop: 36, paddingBottom: 64, paddingHorizontal: 36, fontSize: 8.5, fontFamily: 'Geist', color: INK, lineHeight: 1.35 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  eyebrow: { fontSize: 7.5, letterSpacing: 1, color: MUTED, fontFamily: 'Helvetica-Bold' },
-  title: { fontSize: 20, fontFamily: 'Helvetica-Bold', marginBottom: 16, lineHeight: 1.2 },
+  eyebrow: { fontSize: 7.5, letterSpacing: 1, color: MUTED, fontFamily: 'Geist', fontWeight: 600 },
+  title: { fontSize: 24, fontFamily: 'EB Garamond', fontWeight: 500, marginBottom: 16, lineHeight: 1.2 },
   meta: { flexDirection: 'row', borderTopWidth: 1.5, borderTopColor: INK, borderBottomWidth: 0.5, borderBottomColor: RULE, paddingVertical: 8, marginBottom: 18 },
   metaCell: { flex: 1 },
   metaLabel: { fontSize: 7, color: FAINT, marginBottom: 2 },
   metaValue: { fontSize: 9 },
-  h2: { fontSize: 11, fontFamily: 'Helvetica-Bold', marginBottom: 6, marginTop: 4 },
+  h2: { fontSize: 11, fontFamily: 'Geist', fontWeight: 600, marginBottom: 6, marginTop: 4 },
   table: { marginBottom: 16 },
   tr: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: HAIR, paddingVertical: 5 },
   thRow: { flexDirection: 'row', borderBottomWidth: 0.75, borderBottomColor: RULE, paddingBottom: 4 },
-  th: { fontSize: 6.8, color: MUTED, fontFamily: 'Helvetica-Bold', letterSpacing: 0.4, paddingRight: 6 },
+  th: { fontSize: 6.8, color: MUTED, fontFamily: 'Geist', fontWeight: 600, letterSpacing: 0.4, paddingRight: 6 },
   td: { paddingRight: 6 },
   num: { textAlign: 'right' },
-  bold: { fontFamily: 'Helvetica-Bold' },
+  bold: { fontFamily: 'Geist', fontWeight: 600 },
   sub: { fontSize: 6.8, color: FAINT, marginTop: 1 },
   small: { fontSize: 7.3 },
   censusRow: { flexDirection: 'row', gap: 24, marginBottom: 14 },
@@ -57,7 +58,12 @@ function ReportDocument({ m, logo }: { m: ReportModel; logo: string | null }) {
         {/* Static text: in this document a fixed Text with a render prop (page numbers) was dropped. */}
         <Text fixed style={s.footLine}>Estimates only. Final premiums are subject to insurer underwriting and acceptance. {m.gstNote} Prepared by Trade Risk Solutions Pte Ltd.</Text>
         <View style={s.top}>
-          {logo ? <Image src={logo} style={{ height: 24 }} /> : <Text style={s.bold}>Trade Risk Solutions</Text>}
+          {/* The TRS mark, as on the debit note: TRS over 保风. */}
+          <View>
+            <Text style={{ fontFamily: 'TRS Mark', fontSize: 15, letterSpacing: 2.4, color: '#132c1c', lineHeight: 1 }}>TRS</Text>
+            <View style={{ height: 4 }} />
+            <Text style={{ fontFamily: 'TRS Brush', fontSize: 11, color: '#132c1c', lineHeight: 1 }}>保风</Text>
+          </View>
           <Text style={s.eyebrow}>GROUP BENEFITS COMPARISON</Text>
         </View>
         <Text style={s.title}>{m.company}</Text>
@@ -66,6 +72,22 @@ function ReportDocument({ m, logo }: { m: ReportModel; logo: string | null }) {
             <View key={l} style={s.metaCell}><Text style={s.metaLabel}>{l}</Text><Text style={s.metaValue}>{v}</Text></View>
           ))}
         </View>
+
+        {m.requested && (
+          <View wrap={false} style={s.table}>
+            <Text style={s.h2}>Cover requested</Text>
+            <View style={s.thRow}>
+              <Text style={[s.th, { width: '28%' }]}>COVER</Text>
+              {m.requested.categories.map(c => <Text key={c} style={[s.th, { width: `${72 / m.requested!.categories.length}%` }]}>{c.toUpperCase()}</Text>)}
+            </View>
+            {m.requested.rows.map(r => (
+              <View key={r.cover} style={s.tr}>
+                <Text style={[s.td, s.bold, { width: '28%' }]}>{r.cover}</Text>
+                {r.values.map((v, i) => <Text key={i} style={[s.td, { width: `${72 / r.values.length}%`, color: v === 'Not required' ? FAINT : INK }]}>{v}</Text>)}
+              </View>
+            ))}
+          </View>
+        )}
 
         <Text style={s.h2}>Annual premium by insurer</Text>
         <View style={s.table}>
@@ -160,6 +182,7 @@ function ReportDocument({ m, logo }: { m: ReportModel; logo: string | null }) {
 }
 
 export async function renderReportPdf(m: ReportModel): Promise<Buffer> {
+  registerPdfFonts(join(process.cwd(), 'public', 'fonts'))
   const p = join(process.cwd(), 'public', 'debit-note', 'trs-logo.png')
   return renderToBuffer(<ReportDocument m={m} logo={existsSync(p) ? p : null} />)
 }

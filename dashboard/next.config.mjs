@@ -7,10 +7,12 @@ const nextConfig = {
   // Marking these external makes Next.js `require()` them directly from node_modules
   // at runtime instead, matching how they resolve outside of webpack.
   // isomorphic-dompurify pulls in jsdom, which reads its stylesheet from disk and breaks when bundled.
-  serverExternalPackages: ['pdf-parse', '@napi-rs/canvas', 'isomorphic-dompurify'],
-  // Next 15 externalises @react-pdf/renderer by default, which fails on its ESM build when a
-  // client component imports it. Bundling it instead keeps 14.x behaviour.
-  transpilePackages: ['@react-pdf/renderer'],
+  // @react-pdf/renderer is required from node_modules on the server: bundled into a route handler
+  // it is resolved against React's server build, whose internals its reconciler cannot read, and
+  // every PDF render failed with "Cannot read properties of undefined (reading 'S')" (debit notes,
+  // appointment letters, the group benefits client report). The browser preview imports it in a
+  // client component, which is bundled for the browser as usual.
+  serverExternalPackages: ['pdf-parse', '@napi-rs/canvas', 'isomorphic-dompurify', '@react-pdf/renderer'],
   // The PDF documents (debit notes, appointment letters) read the brand fonts and the PayNow QR
   // from public/ at render time; ship them with every server route so Vercel functions find them.
   outputFileTracingIncludes: {

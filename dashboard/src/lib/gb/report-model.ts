@@ -10,6 +10,7 @@ import { resolveProduct } from './resolve'
 import { censusProfile, type CensusProfile } from './score'
 import { gstApplies } from '../gb-quote'
 import type { CoverNames } from './cover-names'
+import { insurerKey, requirementRows, type CategoryInput } from './ladder'
 
 export type ReportQuotation = {
   id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number
@@ -17,6 +18,8 @@ export type ReportQuotation = {
   results: { rate_table_id: string; insurer_name: string; by_product: Record<string, number>; gst: number; total: number; missing: number }[]
   category_map: Record<string, Record<string, Record<string, string>>> | null
   benefits_analysis: Comparison | null; notes: string | null; created_at: string; priorities: string | null
+  /** The plan builder's requirement, when the quotation was built there. */
+  requirement?: { categories?: CategoryInput[] } | null
 }
 
 export type ReportCover = { code: string; abbrev: string; name: string }
@@ -32,6 +35,8 @@ export type ReportBenefitTable = {
   rows: { name: string; values: (string | null)[] }[]
 }
 export type ReportModel = {
+  /** What the client asked for, cover by cover, one column per employee category. */
+  requested: { categories: string[]; rows: { cover: string; values: string[] }[] } | null
   company: string; effectiveDate: string | null; basis: string; prepared: string
   profile: CensusProfile; employees: number
   covers: ReportCover[]; rows: ReportRow[]; benefits: ReportBenefitTable[]
@@ -48,10 +53,22 @@ const cellText = (c: Cell | undefined): string | null => {
 export function buildReportModel(q: ReportQuotation, names: CoverNames = {}): ReportModel {
   const profile = censusProfile(q.census ?? [], q.effective_date)
   const employees = profile.employees || q.member_count || 1
-  const codesOf = (t: string) => resolveProduct(t).codes
+  // AIA files personal accident as GADD; on the client report it is personal accident.
+  const codesOf = (t: string) => resolveProduct(t).codes.map(c => (c === 'GADD' ? 'GPA' : c))
   let asked: string[] = []
-  try { asked = (JSON.parse(q.priorities ?? '{}')?.score?.filters?.requiredProducts ?? []) as string[] } catch { /* none */ }
-  const coverCodes = (asked.length ? asked : Array.from(new Set(Object.values(q.category_map ?? {}).flatMap(m => Object.keys(m).flatMap(codesOf)))))
+  // A plan-builder quotation states its covers in its category map; the older score setting only
+  // applies to quotations built before it.
+  if (!q.requirement?.categories?.length) {
+    try { asked = (JSON.parse(q.priorities ?? '{}')?.score?.filters?.requiredProducts ?? []) as string[] } catch { /* none */ }
+  }
+  // Covers the client asked for: the plan builder's requirement first, then the older settings.
+  const reqs = (q.requirement?.categories ?? []).map(c => c.requirement)
+  const fromRequirement = reqs.length ? [
+    ...(reqs.some(r => r.ward) ? ['GHS'] : []), ...(reqs.some(r => r.ward && r.gmm) ? ['EMM'] : []), ...(reqs.some(r => r.gp) ? ['GOPC'] : []),
+    ...(reqs.some(r => r.sp) ? ['GOSC'] : []), ...(reqs.some(r => r.dental) ? ['GD'] : []), ...(reqs.some(r => r.pa) ? ['GPA'] : []),
+    ...(reqs.some(r => r.gtl) ? ['GTL'] : []), ...(reqs.some(r => r.gci) ? ['GCI'] : []),
+  ] : []
+  const coverCodes = (fromRequirement.length ? fromRequirement : asked.length ? asked : Array.from(new Set(Object.values(q.category_map ?? {}).flatMap(m => Object.keys(m).flatMap(codesOf)))))
     .filter(c => PRODUCT_BY_CODE[c])
     .sort((a, b) => PRODUCT_BY_CODE[a].sortOrder - PRODUCT_BY_CODE[b].sortOrder)
   const covers = coverCodes.map(c => ({ code: c, abbrev: PRODUCT_BY_CODE[c].abbrev, name: names[c] || PRODUCT_BY_CODE[c].name }))
@@ -66,6 +83,8 @@ export function buildReportModel(q: ReportQuotation, names: CoverNames = {}): Re
       cells[mine[0]] = { amount: r.by_product[title] ?? null, inside: null, extra: all.filter(c => !coverCodes.includes(c)).map(c => PRODUCT_BY_CODE[c]?.abbrev ?? c), plan }
       for (const c of mine.slice(1)) cells[c] = { amount: null, inside: PRODUCT_BY_CODE[mine[0]].abbrev, extra: [], plan }
     }
+    // Singlife's specialist plans carry the GP benefit ("GP, SP & DXL", brochure p7): GP is inside it.
+    if (insurerKey(r.insurer_name) === 'singlife' && cells.GOSC && !cells.GOPC && coverCodes.includes('GOPC')) cells.GOPC = { amount: null, inside: PRODUCT_BY_CODE.GOSC.abbrev, extra: [], plan: `In ${PRODUCT_BY_CODE.GOSC.abbrev}` }
     for (const c of coverCodes) if (!(c in cells)) cells[c] = null
     return {
       insurer: r.insurer_name, tableId: r.rate_table_id, total: r.total, gst: r.gst, pepm: r.total / 12 / employees,
@@ -94,8 +113,12 @@ export function buildReportModel(q: ReportQuotation, names: CoverNames = {}): Re
     })
     .filter(t => t.rows.length)
 
-  const exempt = coverCodes.filter(c => !gstApplies(c)).map(c => (names[c] || PRODUCT_BY_CODE[c].name).toLowerCase())
+  const exempt = coverCodes.filter(c => !gstApplies(c)).map(c => (names[c] || PRODUCT_BY_CODE[c].name).replace(/\s*\([^)]*\)/g, '').toLowerCase())
+  const cats = q.requirement?.categories ?? []
+  const grids = cats.map(c => requirementRows(c.requirement))
+  const requested = cats.length ? { categories: cats.map(c => c.name), rows: grids[0].map((r, i) => ({ cover: r[0], values: grids.map(g => g[i]?.[1] ?? '') })) } : null
   return {
+    requested,
     company: q.company_name || 'Untitled', effectiveDate: q.effective_date,
     basis: q.basis === 'renewal' ? 'Renewal' : 'New business', prepared: q.created_at.slice(0, 10),
     profile, employees, covers, rows, benefits,

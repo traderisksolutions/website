@@ -13,6 +13,7 @@ import { computeQuote, memberAge, type Member, type QuoteBasis, type QuoteResult
 import { fetchAllRows } from '../postgrest-all'
 import { buildCategoryMap, DEFAULT_REQUIREMENT, engineCategory, insurerKey, TIER_A, type CategoryInput, type GridCell, type InsurerKey, type TableShape } from './ladder'
 import { loadRateTables } from './quotation'
+import { compareQuotation } from './compare-quotation'
 import { underwriting, type UwResult } from './underwriting'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -137,6 +138,9 @@ export async function saveBuilder(input: SaveInput): Promise<BuilderResult> {
     const ins = await fetch(`${SB_URL}/rest/v1/gb_quote_lines`, { method: 'POST', headers: sbH(), body: JSON.stringify(lines.slice(i, i + 500)) })
     if (!ins.ok) throw new Error(`Member lines not saved: ${ins.status} ${(await ins.text()).slice(0, 200)}`)
   }
+  // The benefit comparison (brochure schedules for the plans now priced) for the quote page and
+  // the client report. A failure leaves it empty; the quote page offers to compare again.
+  try { await compareQuotation(input.quotation_id) } catch (e) { console.error('[gb/builder] compare failed', e instanceof Error ? e.message : e) }
   const { result: _r, categoryMap: _c, ...out } = priced
   return out
 }

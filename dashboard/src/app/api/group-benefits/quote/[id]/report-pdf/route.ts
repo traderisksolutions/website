@@ -25,7 +25,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const h = { apikey: k, Authorization: `Bearer ${k}` }
   try {
     const [qRes, nRes] = await Promise.all([
-      fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${encodeURIComponent(id)}&select=id,company_name,effective_date,basis,member_count,census,results,category_map,benefits_analysis,notes,created_at,priorities&limit=1`, { headers: h, cache: 'no-store' }),
+      fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${encodeURIComponent(id)}&select=id,company_name,effective_date,basis,member_count,census,results,category_map,benefits_analysis,notes,created_at,priorities,requirement&limit=1`, { headers: h, cache: 'no-store' }),
       fetch(`${SB_URL}/rest/v1/app_settings?key=eq.${COVER_NAMES_KEY}&select=value&limit=1`, { headers: h, cache: 'no-store' }),
     ])
     const q = qRes.ok ? ((await qRes.json()) as ReportQuotation[])[0] : null
@@ -43,6 +43,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       },
     })
   } catch (e) {
+    console.error('[gb/report-pdf]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not render the report' }, { status: 500 })
   }
 }
