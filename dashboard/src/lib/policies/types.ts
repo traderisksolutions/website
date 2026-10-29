@@ -96,7 +96,7 @@ export type MemberRelationship = 'employee' | 'spouse' | 'child' | 'other'
 export type MemberStatus       = 'active' | 'left'
 export type MemberSource       = 'census' | 'movement' | 'manual'
 export type MovementKind       = 'join' | 'leave' | 'change'
-export type MovementStatus     = 'reported' | 'sent' | 'noted' | 'settled' | 'cancelled'
+export type MovementStatus     = 'reported' | 'sent' | 'noted' | 'billed' | 'settled' | 'cancelled'
 export type TransactionKind    = 'debit' | 'credit'
 
 export const MEMBER_RELATIONSHIPS: MemberRelationship[] = ['employee', 'spouse', 'child', 'other']
@@ -144,6 +144,21 @@ export interface PolicyMovement {
   status: MovementStatus
   created_at: string
   updated_at: string
+  // Added 30 Oct 2026 (migration 20261030_movement_tracking): typed facts and step times.
+  last_day?: string | null
+  employment_date?: string | null
+  category?: string | null
+  plan_code?: string | null
+  annual_rate?: number | null
+  rate_source?: 'insurer_note' | 'rate_table' | 'premium_per_head' | null
+  estimate_amount?: number | null
+  estimate_basis?: string | null
+  noted_at?: string | null
+  billed_at?: string | null
+  settled_at?: string | null
+  chase_count?: number
+  last_chase_at?: string | null
+  next_chase_at?: string | null
 }
 
 /** Evidence per figure: the words it was read from and where. */
@@ -172,6 +187,9 @@ export interface PolicyTransaction {
   evidence: TransactionEvidence
   needs_review: boolean
   created_at: string
+  estimate_amount?: number | null
+  variance_amount?: number | null
+  bundle_id?: string | null
 }
 
 /** The computed week: what weekSnapshot returns and policy_position_weekly stores. */

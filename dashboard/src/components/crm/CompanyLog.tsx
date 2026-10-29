@@ -18,7 +18,7 @@ const ACTIVITY_WORD: Record<ActivityKind, string> = {
 }
 const LOG_WORD: Record<LogKind, string> = {
   note: 'Note', decision: 'Decision', ask: 'Request', reply: 'Reply', change: 'Change', chase: 'Follow-up',
-  quote: 'Quote', sent: 'Sent', declined: 'Declined', info: 'Info request', opened: 'Opened', closed: 'Closed', done: 'Done',
+  quote: 'Quote', sent: 'Sent', declined: 'Declined', info: 'Info', opened: 'Opened', closed: 'Closed', done: 'Done', billing: 'Billing', movement: 'Member movement',
 }
 
 type Entry = { id: string; at: string; kind: string; text: string; detail: string | null; href: string | null }

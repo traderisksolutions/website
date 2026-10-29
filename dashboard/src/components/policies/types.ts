@@ -28,7 +28,7 @@ export interface MembersPayload {
 }
 
 export const MOVEMENT_WORD: Record<MovementKind, string> = { join: 'Joiner', leave: 'Leaver', change: 'Change' }
-export const MOVEMENT_STATUS_WORD: Record<MovementStatus, string> = { reported: 'Reported', sent: 'Sent to insurer', noted: 'Noted by insurer', settled: 'Settled', cancelled: 'Cancelled' }
+export const MOVEMENT_STATUS_WORD: Record<MovementStatus, string> = { reported: 'Reported', sent: 'Sent to insurer', noted: 'Insurer billed', billed: 'TRS note issued', settled: 'Settled', cancelled: 'Cancelled' }
 export const RELATION_WORD: Record<string, string> = { employee: 'Employee', spouse: 'Spouse', child: 'Child', other: 'Other' }
 
 /** `S$1,234.56`; a credit reads `-S$1,234.56`. Other currencies keep their code. */

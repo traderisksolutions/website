@@ -13,7 +13,7 @@ export type LineStatus      = 'open' | 'quoting' | 'quoted' | 'presented' | 'bou
 export type RoundReason     = 'initial' | 'client_change' | 'insurer_query' | 'expiry' | 'broker'
 export type DispatchStatus  = 'drafted' | 'sent' | 'acknowledged' | 'info_requested' | 'quoted' | 'declined' | 'expired' | 'withdrawn'
 export type QuoteStatus     = 'received' | 'superseded' | 'shortlisted' | 'recommended' | 'selected' | 'not_chosen' | 'expired'
-export type LogKind         = 'note' | 'decision' | 'ask' | 'reply' | 'change' | 'chase' | 'quote' | 'sent' | 'declined' | 'info' | 'opened' | 'closed' | 'done'
+export type LogKind         = 'note' | 'decision' | 'ask' | 'reply' | 'change' | 'chase' | 'quote' | 'sent' | 'declined' | 'info' | 'opened' | 'closed' | 'done' | 'billing' | 'movement'
 export type TierStatus      = 'proposed' | 'asked' | 'offered' | 'dropped'
 export type TierSource      = 'client' | 'broker' | 'insurer'
 

@@ -17,7 +17,7 @@ import { InsurerOptions, INSURER_OPTIONS_ID } from '@/components/insurers/Insure
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: DocType | null; status: string; error_message: string | null }
 type Bundle = {
   id: string; status: 'pending' | 'extracting' | 'needs_review' | 'error' | 'approved' | 'rejected'
-  source: 'manual_upload' | 'onedrive'; merged: ExtractedDebitNote | null; consistency_warning: string | null
+  source: 'manual_upload' | 'onedrive' | 'policy_movement'; merged: ExtractedDebitNote | null; consistency_warning: string | null
   suggested_company_id: string | null; match_confidence: number | null
   companies: { id: string; name: string } | null
   pdf_import_items: MemberFile[]
@@ -215,8 +215,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [paymentDueDate, setPaymentDueDate] = useState(m?.payment_due_date ?? '')
   const [debitNoteNo, setDebitNoteNo] = useState('')
   const [debitNoteNoTouched, setDebitNoteNoTouched] = useState(false)
-  const [eventType, setEventType] = useState<EventType>('new_business')
-  const [eventTypeTouched, setEventTypeTouched] = useState(false)
+  // An insurer's member-movement note (raised from Member movements) is an endorsement, not new business.
+  const fromMovement = bundle.source === 'policy_movement'
+  const [eventType, setEventType] = useState<EventType>(fromMovement ? 'endorsement' : 'new_business')
+  const [eventTypeTouched, setEventTypeTouched] = useState(fromMovement)
   const [endorsementEffectiveDate, setEndorsementEffectiveDate] = useState('')
   /** Every policy this company could be tagged to, for the picker below. */
   const [policyOptions, setPolicyOptions] = useState<PolicyOption[]>([])

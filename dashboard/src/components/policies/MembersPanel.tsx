@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { SectionCard, Empty, Spinner, Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
@@ -43,7 +43,9 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
   const [data, setData] = useState<MembersPayload | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'upload' | 'hr' | 'tierc' | 'movement' | 'note' | null>(null)
-  const [busy, setBusy] = useState<'request' | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const listRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [census, setCensus] = useState<{ count: number; quotes: number } | null>(null)
 
@@ -73,6 +75,31 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
 
+  /** A member list for a live policy: adds who is not on file, removes nobody. */
+  async function uploadMemberList(files: FileList | null) {
+    const f = files?.[0]
+    if (!f) return
+    setBusy('list'); setError(null); setNotice(null)
+    try {
+      const fd = new FormData(); fd.append('file', f)
+      const res = await fetch(`/api/policies/${policy.id}/members`, { method: 'POST', body: fd })
+      const d = await res.json().catch(() => ({})) as { added?: number; already?: number; error?: string }
+      if (!res.ok) throw new Error(d.error ?? `Upload failed (${res.status})`)
+      setNotice(`${d.added ?? 0} added, ${d.already ?? 0} already on file`)
+      refresh()
+    } catch (e) { setError(errText(e)) } finally { setBusy(null); if (listRef.current) listRef.current.value = '' }
+  }
+
+  /** The insurer's note into the debit-note review queue, to raise the TRS debit or credit note. */
+  async function raiseNote(transactionId: string) {
+    setBusy(`bill:${transactionId}`); setError(null); setNotice(null)
+    try {
+      await callApi<{ bundle_id: string }>(`/api/policies/transactions/${transactionId}/bill`, { method: 'POST', body: {} })
+      setNotice('The insurer note is in Debit notes for review. Approving it there links the TRS note here.')
+      refresh()
+    } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+  }
+
   const members = data?.members ?? []
   const movements = [...(data?.movements ?? [])].sort((a, b) => (b.effective_on ?? b.created_at).localeCompare(a.effective_on ?? a.created_at))
   const transactions = [...(data?.transactions ?? [])].sort((a, b) => (b.issued_on ?? b.created_at).localeCompare(a.issued_on ?? a.created_at))
@@ -81,6 +108,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
   return (
     <SectionCard title={title}>
       {error && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{error}</p>}
+      {notice && <p className="text-[13px] m-0 mb-3" style={{ color: INK }}>{notice}</p>}
       {loadError && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{loadError}</p>}
 
       {/* 1. Employee list */}
@@ -92,7 +120,12 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
             <Btn size="xs" level="secondary" disabled={!lineId} onClick={() => setDialog('hr')}>Send HR a link</Btn>
             <Btn size="xs" level="tertiary" disabled={!lineId || busy !== null} onClick={() => setDialog('tierc')}>Ask Tier C insurers</Btn>
           </>
-        ) : undefined}
+        ) : (
+          <>
+            <input ref={listRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => void uploadMemberList(e.target.files)} />
+            <Btn size="xs" level="secondary" loading={busy === 'list'} disabled={busy !== null} onClick={() => listRef.current?.click()}>Upload member list</Btn>
+          </>
+        )}
       >
         {quoting ? (
           <p className="m-0 text-[14px]" style={{ color: INK }}>
@@ -152,6 +185,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
               <RegisterTh align="right">Pax</RegisterTh>
               <RegisterTh>Status</RegisterTh>
               <RegisterTh>Insurer note</RegisterTh>
+              <RegisterTh align="right">Expected</RegisterTh>
               <RegisterTh last align="right">Amount</RegisterTh>
             </RegisterHead>
             <tbody>
@@ -163,8 +197,9 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                     <RegisterCell primary={MOVEMENT_WORD[m.kind] ?? m.kind} />
                     <RegisterCell primary={m.member_name} secondary={m.relationship ? RELATION_WORD[m.relationship] ?? m.relationship : undefined} />
                     <RegisterCell align="right" primary={m.pax} />
-                    <RegisterCell primary={MOVEMENT_STATUS_WORD[m.status] ?? m.status} secondary={m.sent_at ? `sent ${fmtDate(m.sent_at)}` : undefined} />
+                    <RegisterCell primary={MOVEMENT_STATUS_WORD[m.status] ?? m.status} secondary={[m.sent_at ? `sent ${fmtDate(m.sent_at)}` : null, m.chase_count ? `${m.chase_count} chaser${m.chase_count === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || undefined} />
                     <RegisterCell primary={tx ? (tx.note_no ?? (tx.kind === 'credit' ? 'Credit note' : 'Debit note')) : '—'} />
+                    <RegisterCell align="right" primary={m.estimate_amount != null ? fmtAmount(Number(m.estimate_amount), policy.currency ?? 'SGD') : '—'} secondary={m.estimate_basis ?? undefined} />
                     <RegisterCell last align="right" primary={tx ? fmtAmount(tx.amount, tx.currency) : '—'} />
                   </RegisterRow>
                 )
@@ -184,8 +219,10 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
               <RegisterTh>Note no</RegisterTh>
               <RegisterTh align="right">Pax</RegisterTh>
               <RegisterTh align="right">Amount</RegisterTh>
+              <RegisterTh align="right">Expected</RegisterTh>
               <RegisterTh>Description</RegisterTh>
-              <RegisterTh last>Thread</RegisterTh>
+              <RegisterTh>Thread</RegisterTh>
+              <RegisterTh last>TRS note</RegisterTh>
             </RegisterHead>
             <tbody>
               {transactions.map(t => (
@@ -195,11 +232,19 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                   <RegisterCell primary={t.note_no ?? '—'} />
                   <RegisterCell align="right" primary={t.pax ?? '—'} />
                   <RegisterCell align="right" primary={fmtAmount(t.amount, t.currency)} />
+                  <RegisterCell align="right" primary={t.estimate_amount != null ? fmtAmount(Number(t.estimate_amount), t.currency) : '—'} secondary={t.variance_amount != null && Math.abs(Number(t.variance_amount)) > 1 ? `${Number(t.variance_amount) > 0 ? '+' : ''}${fmtAmount(Number(t.variance_amount), t.currency)} vs expected` : undefined} />
                   <RegisterCell nowrap={false}><span className="block text-[14px] max-w-[360px]" style={{ color: INK }}>{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
-                  <RegisterCell last>
+                  <RegisterCell>
                     {t.source_thread_id
                       ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
                       : <span className="text-[14px]" style={{ color: MUTED }}>—</span>}
+                  </RegisterCell>
+                  <RegisterCell last>
+                    {t.debit_note_id
+                      ? <Link href="/debit-notes" className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Issued</Link>
+                      : t.bundle_id
+                        ? <Link href="/debit-notes/new" className="text-[14px] no-underline hover:underline" style={{ color: INK }}>In review</Link>
+                        : <Btn size="xs" level="tertiary" loading={busy === `bill:${t.id}`} disabled={busy !== null || !t.source_attachment_id} title={t.source_attachment_id ? undefined : 'No insurer document on file; raise it from Debit notes'} onClick={() => void raiseNote(t.id)}>Raise TRS note</Btn>}
                   </RegisterCell>
                 </RegisterRow>
               ))}

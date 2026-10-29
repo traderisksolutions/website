@@ -75,8 +75,8 @@ export async function readMovementMail(msg: MailMessage, atts: MailAttachment[],
   const system = `You read an email in which a client (${ctx.companyName}) reports staff movements on its employee benefits policy ("${ctx.policyLabel}") to its broker, and list each movement.
 kind: join (a person to be added), leave (a person to be removed), change (same person, different plan / category / details).
 member_name: the person's name as written. For a leaver or a change, use the EXACT spelling from the current member list below when the name is clearly the same person, so the record matches.
-relationship: employee, spouse, child or other. effective_on: YYYY-MM-DD if a date is given or can be read from the email date (${msg.sent_at?.slice(0, 10) ?? 'unknown'}); otherwise null. Never invent a date.
-detail: anything else reported for that person as keys: dob (YYYY-MM-DD), category, plan, employee_ref, gender, nric_last4, note.
+relationship: employee, spouse, child or other. effective_on: YYYY-MM-DD if a date is given or can be read from the email date (${msg.sent_at?.slice(0, 10) ?? 'unknown'}); otherwise null. Never invent a date. For a joiner it is the first day of cover. For a leaver it is the first day WITHOUT cover: when only the last day of service is given ("last day 31 May"), effective_on is the next day and detail.last_day is the last day.
+detail: anything else reported for that person as keys: dob (YYYY-MM-DD), last_day (YYYY-MM-DD, leavers), employment_date (YYYY-MM-DD), category, plan, employee_ref, gender, nric_last4, note. Never copy a full NRIC, FIN or passport number.
 One entry per person. A dependant added with an employee is its own entry with relationship spouse or child.
 
 Current members on the policy:

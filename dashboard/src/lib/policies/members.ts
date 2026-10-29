@@ -138,6 +138,10 @@ export async function recordMovement(policyId: string, companyId: string, m: New
     relationship: m.relationship?.trim() || matched?.relationship || null, effective_on: effective,
     pax: Math.max(1, Math.round(Number(m.pax ?? 1) || 1)), detail: matched ? detail : { ...detail, ...(m.kind !== 'join' ? { unmatched: true } : {}) },
     reported_thread_id: m.reported_thread_id ?? null, reported_message_id: m.reported_message_id ?? null, status: 'reported',
+    // Typed copies of what the client reported, for the insurer's sheet and for analytics.
+    last_day: isDate(detail.last_day) ? detail.last_day : null, employment_date: isDate(detail.employment_date) ? detail.employment_date : null,
+    category: typeof detail.category === 'string' ? detail.category.slice(0, 80) : matched?.category ?? null,
+    plan_code: typeof detail.plan === 'string' ? detail.plan.slice(0, 80) : matched?.plan_code ?? null,
   })
   return row
 }
@@ -154,6 +158,7 @@ export async function movementsForDraft(draftId: string): Promise<PolicyMovement
 /** The movements a sent draft covered: status 'sent', stamped with the time. */
 export async function markMovementsSent(draftId: string, at = new Date().toISOString()): Promise<PolicyMovement[]> {
   return sb<PolicyMovement[]>(`policy_movements?sent_draft_id=eq.${enc(draftId)}&status=eq.reported`, {
-    method: 'PATCH', headers: SEL, body: JSON.stringify({ status: 'sent', sent_at: at, updated_at: at }),
+    // The insurer is chased if no note has come back a week after the request went.
+    method: 'PATCH', headers: SEL, body: JSON.stringify({ status: 'sent', sent_at: at, updated_at: at, next_chase_at: new Date(Date.parse(at) + 7 * 86_400_000).toISOString() }),
   })
 }

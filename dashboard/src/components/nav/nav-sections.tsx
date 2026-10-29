@@ -48,6 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Finance',
     icon: Landmark,
     items: [
+      { title: 'Member movements',            href: '/movements',          icon: UsersRound, description: 'Joiners and leavers, client to insurer to billing' },
       { title: 'Debit notes',                 href: '/debit-notes',        icon: Receipt,    description: 'Raise, issue and send debit notes' },
       { title: 'Receipts and reconciliation', href: '/finance',            icon: Landmark,   description: 'Payments received, matched to debit notes' },
       { title: 'Earnings',                    href: '/analytics/earnings', icon: TrendingUp, description: 'Commission earned by month' },

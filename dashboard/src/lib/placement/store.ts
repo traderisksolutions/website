@@ -276,10 +276,11 @@ export async function contactIdFor(email: string, name?: string | null): Promise
 }
 
 export type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] | null }
-export async function createDraft(d: { contact_id: string; to_email: string; subject: string; body: string; thread_id?: string | null; email_type: string; cc?: string[] }): Promise<DraftRow | null> {
+export async function createDraft(d: { contact_id: string; to_email: string; subject: string; body: string; thread_id?: string | null; email_type: string; cc?: string[]; attachments?: { filename: string; mime_type?: string; storage_url: string }[] }): Promise<DraftRow | null> {
   const rows = await insert<DraftRow>('ai_drafts', {
     contact_id: d.contact_id, thread_id: d.thread_id ?? null, channel: 'email', to_email: d.to_email, subject: d.subject, body: d.body,
     status: 'pending', generated_by: 'placement', email_type: d.email_type, cc: d.cc ?? [],
+    ...(d.attachments?.length ? { attachments: d.attachments } : {}),
   })
   return rows[0] ?? null
 }
