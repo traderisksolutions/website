@@ -51,3 +51,21 @@ The weight set and the gates used are stored on the quotation (`gb_quotations.pr
 2. Write the rules: `age_basis`, `gst_treatment`, `renewal_only_bands`, `group_size_discount` (tiers by employees, `exclude_products`), `eligibility`. Approve the table.
 3. Add the plans to `gb_plans` with ward, hospital type, co-payment, and benefit lines to `gb_benefits` with canonical codes.
 4. Run the reproduction tests. If the insurer has a worked example from a real quotation, add it as a fixture next to Gembridge.
+
+## 30 Oct 2026 — requirement → plan, audited rates, Gembridge by hand
+
+**Formula.** Annual premium = Σ lives Σ covers rate(insurer, cover, plan, age band, member type, occupation class) × group factor (RCC, medical covers only) × days ÷ 365; plus 9% GST on medical and accident covers. Term life and critical illness are GST-exempt. Income and AIA publish GST-inclusive rates; the engine nets them at ÷ 1.09, rounded to cents.
+
+**Ages.** RCC prices on age next birthday; Income, QBE, Singlife, AIA on age last birthday, at the policy start date.
+
+**Gembridge, one line worked through.** Life 1 (employee, born 24 Dec 1971), start 24 Oct 2026: age last birthday 54, next birthday 55. RCC hospital Plan 1 (private 1-bed), band 51–55, S$2,302.14; 6 employees → group factor ×0.95 → S$2,187.03. The same life's RCC accident cover (Plan 2, S$250k, class 1) is S$92.22, no group factor. The spouse (also 55 next birthday) pays the same hospital rate; dependants take no accident cover. Summing every line for the 15 lives gives the workbook's five totals to the cent: RCC 37,799.61 · Income 28,549.90 · QBE 46,224.85 · Singlife 27,702.00 · AIA 38,868.66 (net of GST).
+
+**Corrections found.** AIA dental covers children from age 3 (brochure p17): the workbook priced the 1-year-old, so AIA is S$453.71 lower (38,414.95). The 4 Aug comparison sheet labels AIA's accident plan "$50k"; the premium it shows (S$755.58 = 6 × S$125.93) is the S$250k plan.
+
+**Audit.** All 1,549 V1.2 rates equal the insurers' brochures and calculators (RCC Sep 2025, Income Feb 2026, QBE 20 May 2026, Singlife Jun 2022, AIA May 2025). Every live gb_rates price equals V1.2 at every age 0–85 (35,088 points), after removing QBE plans the brochure says are not sold (Plan 5 government 1-bed; co-insurance on government plans) and marking AIA renewal-only bands (70+, CI 65+).
+
+**Requirement → plan** (src/lib/gb/ladder.ts). One requirement per employee category picks a plan at every insurer; nearest plan flagged; the broker can change any cell. Rules held there: riders need hospital cover (Income, RCC) and RCC specialist needs GP; AIA and Singlife price GP inside their specialist rider; Income critical illness takes the term-life plan number; AIA critical illness is GTL + GACI on the same plan; foreign workers take Income Plan 7 / AIA GHS-FW; dependants take medical covers only.
+
+**Underwriting** (src/lib/gb/underwriting.ts). Health declaration: RCC term life > S$150k, CI > S$75k, age ≥ 66 with life cover; Income > S$150k / > S$100k, age ≥ 65 with life cover; AIA > S$180k / > S$90k, age ≥ 64; QBE age ≥ 70; Singlife term life > S$150k. Group: Income, QBE, Singlife, AIA need 2 employees; AIA package to 50 lives; RCC loads one employee by 50%.
+
+**Tiers.** Tier A (Income, AIA, RCC, QBE, Singlife) is priced for every request. Tier B (Cigna 1.0 priced when included; Cigna 2.0 and April on request) and Tier C (every other insurer with an employee-benefits product) only when the broker selects them on the plan builder; the request goes through the client's Employment Benefits placement line.
