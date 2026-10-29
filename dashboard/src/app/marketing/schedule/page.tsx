@@ -143,7 +143,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
   const Term = ({ part, children, title }: { part: Part; children: React.ReactNode; title?: string }) => (
     <button type="button" className={partCls} style={{ color: INK, borderBottom: `2px solid ${INK}`, font: 'inherit', fontWeight: 500 }} title={title ?? 'Change'} disabled={busy} onClick={() => setEditing(part)}>{children}</button>
   )
-  const controlCls = 'inline-block align-baseline h-10 rounded-[10px] border border-[#0f1412] bg-white px-2.5 text-[20px] font-medium outline-none'
+  const controlCls = 'inline-block align-baseline h-9 rounded-[7px] border border-[#0f1412] bg-white px-2.5 text-[20px] font-medium outline-none'
 
   function commitCount() {
     const v = Math.max(0, Math.min(12, Math.floor(Number(count)) || 0))

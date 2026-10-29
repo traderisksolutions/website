@@ -187,7 +187,7 @@ export default function AISpendPage() {
             </SectionCard>
 
             <SectionCard title="By agent">
-              <div className="overflow-x-auto"><table className="w-full min-w-[560px]">
+              <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
                 <thead>
                   <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                     <th className={th}>Agent</th>
@@ -232,7 +232,7 @@ export default function AISpendPage() {
             </SectionCard>
 
             <SectionCard title="By model">
-              <div className="overflow-x-auto"><table className="w-full min-w-[560px]">
+              <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
                 <thead>
                   <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                     <th className={th}>Model</th>
@@ -260,7 +260,7 @@ export default function AISpendPage() {
 
             <SectionCard title="By feature">
               {d.features.length === 0 ? <Empty compact>Nothing recorded.</Empty> : (
-                <div className="overflow-x-auto"><table className="w-full min-w-[560px]">
+                <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
                   <thead>
                     <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                       <th className={th}>Feature</th>

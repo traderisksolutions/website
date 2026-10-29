@@ -179,7 +179,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
               </div>
             )}
             <div className="relative overflow-x-auto max-h-[260px] overflow-y-auto">
-              <table className="w-full border-collapse text-[12.5px]" style={{ minWidth: 520 }}>
+              <table className="trs-table w-full border-collapse text-[12.5px]" style={{ minWidth: 520 }}>
                 <thead className="sticky top-0 bg-white">
                   <tr style={{ color: '#4a5550' }}>
                     {['Name', 'Relationship', 'Category', 'Date of birth', 'Age'].map(h =>

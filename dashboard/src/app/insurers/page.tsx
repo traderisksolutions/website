@@ -13,7 +13,7 @@ import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shar
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
 const COLS = 13
-const cell = 'h-8 rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
+const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const dash = <span style={{ color: '#8c958f' }}>—</span>
 const money = (n: number | null) => n == null ? dash : n.toLocaleString('en-SG', { maximumFractionDigits: 0 })
 const short = (xs: string[]) => xs.length === 0 ? dash : <span title={xs.join(', ')}>{xs.slice(0, 2).join(', ')}{xs.length > 2 ? ` +${xs.length - 2}` : ''}</span>
@@ -67,10 +67,10 @@ export default function InsurersPage() {
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
               <input id="insurers-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search insurers, products, people" aria-label="Search insurers"
-                className="h-12 w-[260px] sm:w-[320px] rounded-[12px] border bg-white pl-11 pr-9 text-[15px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4' }} />
+                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4' }} />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>}
             </label>
-            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-12 rounded-[12px] border bg-white px-3 text-[15px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
+            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-[7px] border bg-white px-3 text-[14px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
               <option value="">All lines</option>
               {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
             </select>

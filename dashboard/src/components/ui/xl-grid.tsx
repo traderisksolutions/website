@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils'
  * cells are the point (prices side by side, counts, dates).
  */
 
-const LINE = '#e2e3e5'
+const LINE = '#e6e8e4'
 const HEAD = '#faf9f6'
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -33,9 +33,9 @@ export function XlGrid({ children, label, minWidth, maxHeight, className }: {
   children: React.ReactNode; label: string; minWidth?: number; maxHeight?: string; className?: string
 }) {
   return (
-    <div className={cn('rounded-[8px] bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
+    <div className={cn('rounded-[10px] bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
       <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-        <table className="xl-grid w-full border-collapse text-[12.5px] tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
+        <table className="xl-grid w-full border-collapse text-[13px] tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
       </div>
     </div>
   )
@@ -59,7 +59,7 @@ export function XlTh({ children, colSpan, rowSpan, align = 'center', sticky, wid
 }) {
   return (
     <th scope="col" colSpan={colSpan} rowSpan={rowSpan} title={title}
-      className={cn('h-6 px-2 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center', sticky && 'sticky left-0 z-30', className)}
+      className={cn('h-8 px-2.5 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center', sticky && 'sticky left-0 z-30', className)}
       style={{ ...edge, background: HEAD, color: strong ? INK : MUTED, width, minWidth: width }}>
       {children}
     </th>
@@ -99,7 +99,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
   const bg = fill ? XL_FILL[fill] : label ? '#fff' : undefined
   return (
     <td colSpan={colSpan} title={title}
-      className={cn('h-6 px-2 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center',
+      className={cn('h-8 px-2.5 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center',
         label && 'sticky left-0 z-10 group-hover:bg-[#faf9f6]', strong && 'font-medium', className)}
       style={{ ...edge, background: bg, color: muted ? MUTED : INK, width, minWidth: width, maxWidth: width }}>
       {isBlank(children) ? <span style={{ color: '#c4c7c5' }}>–</span> : children}
@@ -111,7 +111,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="h-6 px-2 text-left font-medium text-[12px]" style={{ ...edge, background: '#fafafa', color: '#2a332f' }}>{children}</td>
+      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-[12.5px]" style={{ ...edge, background: '#fafafa', color: '#2a332f' }}>{children}</td>
     </tr>
   )
 }

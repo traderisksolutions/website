@@ -202,10 +202,10 @@ function download(filename: string, body: string) {
 }
 
 // ── Shared control classes (tokens) ───────────────────────────────────────
-const inputCls = 'h-10 w-full sm:w-[340px] rounded-[10px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
+const inputCls = 'h-9 w-full sm:w-[340px] rounded-[7px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
 const inputStyle = { border: '1px solid #d5d9d4', color: INK } as const
-const primaryCls = 'h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-const secondaryCls = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const primaryCls = 'h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryCls = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 const secondaryStyle = { border: '1px solid #d5d9d4', color: INK } as const
 const tertiaryCls = 'text-[14px] bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
 const MONO = 'ui-monospace, monospace'

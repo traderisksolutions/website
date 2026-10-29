@@ -209,7 +209,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
       {/* The ranking. `relative` keeps the visually hidden header inside the scroll frame; without
           it the label positions against the page and widens it on a phone. */}
       <div className="relative overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 560 + dims.length * 96 }}>
+        <table className="trs-table w-full border-collapse" style={{ minWidth: 560 + dims.length * 96 }}>
           <thead>
             <tr className="bg-[#faf9f6]" style={{ color: '#4a5550' }}>
               <th className={cn(th, 'text-right w-10')}>#</th>

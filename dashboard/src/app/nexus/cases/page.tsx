@@ -396,7 +396,7 @@ export default function NexusPage() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90"
+          className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90"
           style={{ background: INK }}
         >
           New case
@@ -1295,7 +1295,7 @@ function PreAnalysisState({
           <button
             type="button"
             onClick={onRunAnalysis}
-            className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90"
+            className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90"
             style={{ background: INK }}
           >
             Run analysis
@@ -1603,7 +1603,7 @@ function StakeholderMapSection({
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
       <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[14px]">
+          <table className="trs-table w-full text-left border-collapse text-[14px]">
             <thead>
               <tr style={{ color: MUTED, borderBottom: `1px solid ${HAIR}` }}>
                 <th className="w-8"></th>
@@ -1800,7 +1800,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
       <SectionLabel title="Scenarios" count={scenarios.length} />
       <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left min-w-[720px]">
+          <table className="trs-table w-full border-collapse text-left min-w-[720px]">
             <thead>
               <tr style={{ color: MUTED, borderBottom: `1px solid ${HAIR}` }}>
                 <th className={cn(th, 'w-[22%]')}>Scenario</th>
@@ -2894,7 +2894,7 @@ function LinkedThreadCard({
           onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
           onClick={e => e.stopPropagation()}
           aria-label="Party type"
-          className="h-8 rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+          className="h-[30px] rounded-[6px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
           style={{ border: `1px solid ${CTRL}`, color: INK }}
         >
           {PARTY_TYPES.map(t => (
@@ -3195,7 +3195,7 @@ function NexusStepCompose({
   }
 
   const rowLabel = 'text-[12.5px] w-14 flex-shrink-0'
-  const rowInput = 'flex-1 min-w-0 h-9 rounded-[8px] px-3 text-[14px] bg-white outline-none focus:border-[#0f1412]'
+  const rowInput = 'flex-1 min-w-0 h-9 rounded-[7px] px-3 text-[14px] bg-white outline-none focus:border-[#0f1412]'
 
   return (
     <div style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -3260,7 +3260,7 @@ function NexusStepCompose({
             type="button"
             onClick={handleSend}
             disabled={sending || !toList.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
             style={{ background: NAVY }}
           >
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} strokeWidth={2} />}
@@ -3438,7 +3438,7 @@ function NexusComposeWindow({
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
               aria-label="Signature"
-              className="h-8 max-w-[200px] rounded-[8px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee]"
+              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee]"
               style={{ color: MUTED }}
             >
               <option value="">No signature</option>
@@ -3455,7 +3455,7 @@ function NexusComposeWindow({
             type="button"
             onClick={handleSend}
             disabled={sending || sent || !to.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
             style={{ background: sent ? INK : NAVY }}
           >
             {sent ? 'Sent' : sending ? <><Loader2 size={12} className="animate-spin" /> Sending…</> : <><Send size={12} /> Send</>}
@@ -3612,7 +3612,7 @@ function ThreadLinkerModal({
                 value={pty}
                 onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 aria-label="Party type"
-                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+                className="h-[30px] w-full rounded-[6px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               >
                 {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -3622,7 +3622,7 @@ function ThreadLinkerModal({
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 placeholder="Label, e.g. QBE Marine"
                 aria-label="Party label"
-                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
+                className="h-[30px] w-full rounded-[6px] px-2 text-[13px] bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               />
             </div>
@@ -3673,7 +3673,7 @@ function ThreadLinkerModal({
             type="button"
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap"
             style={{ background: INK }}
           >
             {linking && <Loader2 size={13} className="animate-spin" />}
@@ -3687,7 +3687,7 @@ function ThreadLinkerModal({
             <Spinner label="Loading conversations…" />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[640px]">
+              <table className="trs-table w-full border-collapse min-w-[640px]">
                 <thead className="sticky top-0 bg-white" style={{ boxShadow: `inset 0 -1px 0 ${HAIR}` }}>
                   <tr style={{ color: MUTED }}>
                     <th className="px-4 py-2.5 text-left w-10"></th>

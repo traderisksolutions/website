@@ -19,7 +19,7 @@ export function ColumnsFound({ meta }: { meta: Record<string, unknown> }) {
     <>
       <h2>Columns found</h2>
       <div className="hrc-scroll">
-        <table>
+        <table className="trs-table">
           <thead><tr><th>Your column</th><th>Read as</th><th></th></tr></thead>
           <tbody>
             {columns && Object.entries(columns).map(([field, header]) => (
@@ -43,7 +43,7 @@ export function PeopleFound({ read, token, source }: { read: HrRead; token: stri
       <h2>People found: {plural(read.employees.length, 'employee')}{read.dependants.length ? `, ${plural(read.dependants.length, 'dependant')}` : ''}</h2>
       {inactive > 0 && <p className="hrc-sub" style={{ marginBottom: 12 }}>{plural(inactive, 'person is', 'people are')} not active and will be excluded from the quotation. They stay on the list so the rule is visible.</p>}
       <div className="hrc-scroll">
-        <table>
+        <table className="trs-table">
           <thead><tr><th>Name</th><th>Date of birth</th><th>Gender</th><th>Category</th><th>Work pass</th><th>Status</th></tr></thead>
           <tbody>
             {read.employees.map(e => (
@@ -63,7 +63,7 @@ export function PeopleFound({ read, token, source }: { read: HrRead; token: stri
         <>
           <h2>Rows not read: {read.skipped.length}</h2>
           <div className="hrc-scroll">
-            <table>
+            <table className="trs-table">
               <thead><tr><th>Row</th><th>Reason</th></tr></thead>
               <tbody>{read.skipped.map(s => <tr key={s.key}><td>{s.key}</td><td>{s.reason}</td></tr>)}</tbody>
             </table>

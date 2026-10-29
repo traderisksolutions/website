@@ -24,7 +24,7 @@ const HOW: Record<string, string> = {
   'policy no. in subject': 'Policy no. in subject', 'only policy with this insurer': 'Only policy with this insurer',
   'cover named in subject': 'Cover named in subject', agent: 'Agent', broker: 'Broker',
 }
-const selCls = 'h-8 rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] outline-none focus:border-[#132c1c] max-w-[340px]'
+const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] outline-none focus:border-[#132c1c] max-w-[340px]'
 
 export default function InsurerThreadsPage() {
   const { id } = useParams<{ id: string }>()

@@ -220,7 +220,7 @@ function EmailPreview({ company, recipientName, recipientEmail, cc, message, eff
         <li>Each dependant to be covered: name, relationship, date of birth.</li>
       </ul>
       <p className="m-0 mb-3"><span className="font-medium" style={{ color: '#0f1412' }}>What we do not ask for:</span> salaries, NRIC or passport numbers, home addresses, or any medical information.</p>
-      <div className="inline-flex items-center h-10 px-5 rounded-[10px] text-white text-[14px] font-medium mb-3" style={{ background: '#132c1c' }}>Open the secure page</div>
+      <div className="inline-flex items-center h-9 px-5 rounded-[7px] text-white text-[14px] font-medium mb-3" style={{ background: '#132c1c' }}>Open the secure page</div>
       <p className="m-0 mb-3">The link is personal to you and expires on {expiresWord}. If the button does not work, copy the address in the email into your browser.</p>
       <p className="m-0 mb-3">The information is used only to obtain quotations from insurers for this policy{effectiveDate ? ` starting ${fmtLongDate(effectiveDate)}` : ''}, is held under our personal data protection policy, and is deleted on request. If you were not expecting this email, reply to this address or call us and we will stop.</p>
       <p className="m-0" style={{ color: MUTED }}>Signature and footer are added on send.</p>

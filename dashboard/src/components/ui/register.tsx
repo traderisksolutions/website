@@ -37,7 +37,7 @@ export function Register({ children, label, minWidth = 720, maxHeight, className
     <DenseContext.Provider value={dense}>
       <div className={cn('rounded-[10px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
         <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-          <table className={cn('w-full border-collapse', dense && 'register')} style={{ minWidth }} aria-label={label}>{children}</table>
+          <table className={cn('w-full border-collapse trs-table', dense && 'register')} style={{ minWidth }} aria-label={label}>{children}</table>
         </div>
       </div>
     </DenseContext.Provider>
@@ -46,7 +46,7 @@ export function Register({ children, label, minWidth = 720, maxHeight, className
 
 export function RegisterHead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="sticky top-0 z-20 bg-white">
+    <thead className="sticky top-0 z-20 bg-[#faf9f6]">
       <tr style={{ borderBottom: `1px solid ${RULE}` }}>{children}</tr>
     </thead>
   )
@@ -67,7 +67,7 @@ export function RegisterTh({ children, align = 'left', first, last, active, dir,
   const size = dense ? 'h-8 text-[12px]' : 'h-11 text-[13px]'
   return (
     <th scope="col" aria-sort={onSort ? (active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={width ? { width } : undefined}
-      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left', first && 'z-30 bg-white', cellPad(dense, first, last), className)}>
+      className={cn('py-0 font-normal whitespace-nowrap', align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left', first && 'z-30 bg-[#faf9f6]', cellPad(dense, first, last), className)}>
       {onSort ? (
         <button type="button" onClick={onSort} title={hint}
           className={cn('group inline-flex items-center gap-1.5 bg-transparent border-0 cursor-pointer whitespace-nowrap', size, align === 'right' && 'flex-row-reverse', active && 'font-medium')} style={{ color: active ? INK : MUTED }}>

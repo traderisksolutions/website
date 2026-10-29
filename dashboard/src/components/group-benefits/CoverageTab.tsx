@@ -106,7 +106,7 @@ export function CoverageTab() {
       )}
 
       <div className="relative overflow-x-auto border rounded-lg" style={{ borderColor: RULE }}>
-        <table className="w-full border-collapse" style={{ minWidth: 270 + d.insurers.length * 150 }}>
+        <table className="trs-table w-full border-collapse" style={{ minWidth: 270 + d.insurers.length * 150 }}>
           <thead>
             <tr className="bg-[#faf9f6]" style={{ color: MUTED }}>
               <th className={cn(th, 'sticky left-0 bg-[#faf9f6] z-10 w-[270px] min-w-[270px]')}>{view === 'covers' ? 'Cover' : 'Benefit line'} · TRS name</th>

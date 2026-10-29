@@ -146,7 +146,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     onChange(null); setContacts([]); setAddingContact(false); setNotice(null)
   }
 
-  const inp = 'w-full h-10 rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]'
+  const inp = 'w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]'
   const row = 'w-full text-left px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] flex items-center gap-2.5 text-[14px] disabled:opacity-60'
 
   return (
@@ -162,7 +162,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
               onFocus={() => setOpen(true)}
               placeholder="Search company name"
               aria-label="Company"
-              className="w-full h-12 rounded-[12px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[15px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
+              className="w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[14px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
               style={{ color: INK }}
             />
           </div>
@@ -218,7 +218,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
                 </div>
               )}
               {!addingContact ? (
-                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>
+                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>
                   <Plus size={12} /> Add email
                 </button>
               ) : (

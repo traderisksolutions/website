@@ -170,7 +170,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
 
       <DetailSection label={`Cover requested · ${it.product_requests?.length ?? 0}`}>
         {(it.product_requests ?? []).length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>None chosen yet.</p> : (
-          <table className="w-full border-collapse text-[13.5px]">
+          <table className="trs-table w-full border-collapse text-[13.5px]">
             <thead><tr style={{ color: MUTED }}><th className="text-left font-normal py-1.5 pr-3">Cover</th><th className="text-left font-normal py-1.5 pr-3">Chubb form</th><th className="text-right font-normal py-1.5">Chubb table</th></tr></thead>
             <tbody>{it.product_requests.map(p => (
               <tr key={p.product} style={{ borderTop: `1px solid ${RULE}` }}>
@@ -185,7 +185,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
 
       {groups.map(g => (
         <DetailSection key={g.sec} label={g.sec}>
-          <table className="w-full border-collapse text-[13.5px]">
+          <table className="trs-table w-full border-collapse text-[13.5px]">
             <tbody>{g.items.map(a => (
               <tr key={a.id} style={{ borderTop: `1px solid ${RULE}` }}>
                 <td className="py-2 pr-4 align-top w-[55%]" style={{ color: MUTED }}>{a.title}</td>
@@ -198,7 +198,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
       {formKeys.length > 0 && (
         <DetailSection label="Proposal fields">
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[13px]">
+            <table className="trs-table w-full border-collapse text-[13px]">
               <thead><tr style={{ color: MUTED }}><th className="text-left font-normal py-1.5 pr-3">Form</th>{SOURCE_COLUMNS.map(([, l]) => <th key={l} className="text-right font-normal py-1.5 px-1.5">{l}</th>)}</tr></thead>
               <tbody>{formKeys.map(k => (
                 <tr key={k} style={{ borderTop: `1px solid ${RULE}` }}>

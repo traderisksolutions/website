@@ -417,7 +417,7 @@ export default function GbReviewPage() {
                   <div key={mt} className="mb-5">
                     {mtLabel(mt || null) && <p className="text-[12.5px] text-[#4a5550] mb-2">{mtLabel(mt || null)}</p>}
                     <div className="rounded-lg border border-border overflow-x-auto">
-                      <table className="data-table matrix-table w-full border-collapse text-[12.5px]">
+                      <table className="trs-table data-table matrix-table w-full border-collapse text-[12.5px]">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
                           <tr>
                             <th className="text-left pl-4">Age band</th>
@@ -486,7 +486,7 @@ export default function GbReviewPage() {
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
               <div className="rounded-lg border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
-                <table className="data-table w-full border-collapse text-[12.5px]">
+                <table className="trs-table data-table w-full border-collapse text-[12.5px]">
                   <thead><tr>
                     <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
@@ -521,7 +521,7 @@ export default function GbReviewPage() {
             <section className="mb-8">
               <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
               <div className="rounded-lg border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
-                <table className="data-table w-full border-collapse text-[12px]">
+                <table className="trs-table data-table w-full border-collapse text-[12px]">
                   <thead><tr>
                     <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>

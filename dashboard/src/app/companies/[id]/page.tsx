@@ -242,7 +242,7 @@ function CompanyWorkspace() {
                 type="button"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-8 px-2.5 rounded-[8px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f2ee]"
+                className="h-[30px] px-2.5 rounded-[6px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f2ee]"
                 style={{ color: MUTED }}
               >
                 {t.label}

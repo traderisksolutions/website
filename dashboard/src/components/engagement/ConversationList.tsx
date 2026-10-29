@@ -105,7 +105,7 @@ export function ConversationList({
       <p className="m-0 text-[14px]" style={{ color: MUTED }}>{text}</p>
       {action && (
         <button type="button" onClick={action.onClick}
-          className="h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: INK }}>
+          className="h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: INK }}>
           {action.label}
         </button>
       )}

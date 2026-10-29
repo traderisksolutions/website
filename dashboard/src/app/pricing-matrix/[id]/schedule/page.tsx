@@ -159,7 +159,7 @@ export default function SchedulePage() {
               {g.product}
             </h2>
             <div className="border border-[#e6e8e4] rounded-lg overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 260 + g.plans.length * 150 }}>
+              <table className="trs-table w-full border-collapse" style={{ minWidth: 260 + g.plans.length * 150 }}>
                 <thead>
                   <tr className="bg-[#faf9f6]">
                     <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide sticky left-0 bg-[#faf9f6] z-10"

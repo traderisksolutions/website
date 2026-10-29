@@ -58,7 +58,7 @@ export default function RfqRegisterPage() {
     return (rows ?? [])
       .filter(r => filter === 'all' || filter === 'unmatched' || r.waiting_on === filter)
       .filter(r => !needle || [r.ref, r.company_name, r.line_label, ...r.options, r.next_step ?? '', r.last_by ?? ''].join(' ').toLowerCase().includes(needle))
-      .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || a.received.localeCompare(b.received) || a.ref.localeCompare(b.ref))
+      .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage) || (a.received ?? '').localeCompare(b.received ?? '') || (a.ref ?? '').localeCompare(b.ref ?? ''))
   }, [rows, filter, q])
 
   const chips: { key: Filter; label: string; n: number | undefined }[] = [
@@ -83,7 +83,7 @@ export default function RfqRegisterPage() {
           <label className="relative flex items-center">
             <Search size={14} className="absolute left-2.5" style={{ color: MUTED }} aria-hidden />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
-              className="h-8 w-[260px] rounded-[8px] border border-[#d5d9d4] bg-white pl-8 pr-7 text-[13px] outline-none focus:border-[#0f1412]" />
+              className="h-[30px] w-[260px] rounded-[6px] border border-[#d5d9d4] bg-white pl-8 pr-7 text-[13px] outline-none focus:border-[#0f1412]" />
             {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1.5 bg-transparent border-0 p-1 cursor-pointer" style={{ color: MUTED }}><X size={13} /></button>}
           </label>
         </div>
@@ -91,7 +91,7 @@ export default function RfqRegisterPage() {
         <div className="flex items-center gap-1.5 flex-wrap mt-6 mb-3" role="tablist">
           {chips.map(c => (
             <button key={c.key} type="button" role="tab" aria-selected={filter === c.key} onClick={() => setFilter(c.key)}
-              className="h-7 px-2.5 rounded-[7px] border cursor-pointer text-[13px] whitespace-nowrap"
+              className="h-[30px] px-2.5 rounded-[7px] border cursor-pointer text-[13px] whitespace-nowrap"
               style={{ borderColor: filter === c.key ? INK : '#d5d9d4', background: filter === c.key ? '#f1f2ee' : '#fff', color: filter === c.key ? INK : '#2a332f', fontWeight: filter === c.key ? 500 : 400 }}>
               {c.label}{c.n !== undefined && <span className="ml-1.5 tabular-nums" style={{ color: MUTED }}>{c.n}</span>}
             </button>

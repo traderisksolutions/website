@@ -67,7 +67,7 @@ function SettingsInner() {
                     return (
                       <li key={s.key} className="flex-shrink-0">
                         <button type="button" onClick={() => setSection(s.key)} aria-current={on ? 'page' : undefined}
-                          className={cn('relative w-full text-left h-9 px-3 rounded-[8px] border-0 cursor-pointer text-[14px]', on ? 'font-medium' : 'hover:bg-[#f1f2ee]')} style={{ color: on ? INK : MUTED, background: on ? '#f1f2ee' : undefined }}>
+                          className={cn('relative w-full text-left h-9 px-3 rounded-[7px] border-0 cursor-pointer text-[14px]', on ? 'font-medium' : 'hover:bg-[#f1f2ee]')} style={{ color: on ? INK : MUTED, background: on ? '#f1f2ee' : undefined }}>
                           {on && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ background: INK }} aria-hidden />}
                           {s.label}
                         </button>
@@ -115,12 +115,12 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
         {!profile ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> : profile.gmail_email ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="m-0 text-[14px]" style={{ color: INK }}>Connected · {profile.gmail_email}</p>
-            <button type="button" onClick={() => void disconnect()} disabled={disconnecting} className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>{disconnecting ? 'Removing…' : 'Disconnect'}</button>
+            <button type="button" onClick={() => void disconnect()} disabled={disconnecting} className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>{disconnecting ? 'Removing…' : 'Disconnect'}</button>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not connected. Replies send from the shared address.</p>
-            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium no-underline inline-flex items-center" style={{ background: '#132c1c' }}>Connect Gmail</a>
+            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium no-underline inline-flex items-center" style={{ background: '#132c1c' }}>Connect Gmail</a>
           </div>
         )}
         <p className="m-0 mt-3 text-[12.5px]" style={{ color: MUTED }}>A separate Google grant with the send scope only. Message content is never stored — only a token for sending.</p>

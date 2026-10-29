@@ -46,7 +46,7 @@ const NavigationMenuItem = NavigationMenuPrimitive.Item
 // "highlighted" (isActive, applied by the caller). A quiet hover tint gives pointer
 // feedback without the trigger opening on hover (see suppressHover in top-navbar.tsx).
 const navigationMenuTriggerStyle = cva(
-  "group inline-flex h-9 w-max items-center justify-center rounded-md bg-transparent px-3 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+  "group inline-flex h-9 w-max items-center justify-center rounded-[7px] bg-transparent px-3 py-2 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 )
 
 const NavigationMenuTrigger = React.forwardRef<

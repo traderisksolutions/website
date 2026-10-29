@@ -662,7 +662,7 @@ select:focus-visible {
    caller's inline span asks for. One line per 32px row, a faint rule between columns so a wide
    grid reads across like a spreadsheet. */
 table.register td :is(.text-\[13px\], .text-\[14px\], .text-\[15px\]) { font-size: 13.5px; }
-table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #f1f2ee; }
+table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #e6e8e4; }
 table.register td :is(.text-\[12\.5px\]) { font-size: 12px; }
 table.register td .mt-0\.5 { margin-top: 0; }
 
@@ -673,3 +673,13 @@ table.register td .mt-0\.5 { margin-top: 0; }
 .trs-tab:hover, .trs-tab.is-open { color: #0f1412; }
 .trs-tab.is-active { color: #0f1412; font-weight: 500; }
 .trs-tab.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #132c1c; }
+
+/* ── One table look for the whole app (29 Oct 2026): the comparison-grid style. Tinted header,
+   full hairline gridlines, 32px rows, 13px cells. Applied by Register, XlGrid and every hand-built
+   table through .trs-table; email bodies and client-facing pages keep their own. ── */
+table.trs-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.trs-table thead th { background: #faf9f6; color: #4a5550; font-weight: 500; font-size: 12.5px; height: 32px; padding-top: 0; padding-bottom: 0; border-bottom: 1px solid #e6e8e4; white-space: nowrap; }
+table.trs-table th + th, table.trs-table td + td { box-shadow: inset 1px 0 0 #e6e8e4; }
+table.trs-table tbody td { height: 32px; padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #e6e8e4; }
+table.trs-table tbody tr:last-child td { border-bottom: 0; }
+table.trs-table tbody tr:hover > td { background-color: #faf9f6; }

@@ -76,7 +76,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
     return () => document.removeEventListener('mousedown', h)
   }, [statusMenu])
 
-  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border bg-white text-[13.5px] font-medium no-underline hover:bg-[#faf9f6]'
+  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[7px] border bg-white text-[13.5px] font-medium no-underline hover:bg-[#faf9f6]'
 
   return (
     <div className="rounded-[16px] border border-[#e6e8e4] bg-white">
@@ -234,7 +234,7 @@ export default function ClaimsPage() {
             <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
           </div>
           <div className="flex gap-2">
-            <a href="/claims/second-opinion" className="inline-flex h-12 items-center rounded-[12px] border border-[#d5d9d4] px-5 text-[15px] no-underline hover:bg-[#faf9f6]" style={{ color: INK }}>Second opinion reports</a>
+            <a href="/claims/second-opinion" className="inline-flex h-9 items-center rounded-[7px] border border-[#d5d9d4] px-5 text-[14px] no-underline hover:bg-[#faf9f6]" style={{ color: INK }}>Second opinion reports</a>
             <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => load(true)} loading={refreshing}>
               {!refreshing && <RefreshCw size={14} />} Refresh
             </Btn>

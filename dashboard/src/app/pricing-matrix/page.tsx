@@ -144,14 +144,14 @@ function PricingMatrix() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {driveUrl && (
-            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-[12px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[15px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]">
+            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]">
               <FolderOpen size={16} /> Drive
             </a>
           )}
-          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
+          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
           </button>
-          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#132c1c] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
+          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-9 px-5 rounded-[7px] bg-[#132c1c] text-white text-[14px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
             <Plus size={16} /> Quotes
           </button>
         </div>

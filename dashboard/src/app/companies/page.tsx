@@ -126,18 +126,18 @@ function CompaniesInner() {
             {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
-              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-12 w-[260px] sm:w-[340px] rounded-[12px] border bg-white pl-11 pr-9 text-[15px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
+              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-9 w-[260px] sm:w-[340px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
               {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
                  : <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] border rounded px-1.5 leading-[18px] hidden sm:block" style={{ color: '#8c958f', borderColor: '#d5d9d4' }}>/</kbd>}
             </label>
             <div className="relative">
               <button type="button" onClick={() => setFilterOpen(v => !v)} aria-expanded={filterOpen} aria-haspopup="dialog"
-                className={cn('h-12 px-4 rounded-[12px] border bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]', activeCount ? 'font-medium' : '')} style={{ borderColor: activeCount ? INK : '#d5d9d4', color: INK }}>
+                className={cn('h-9 px-4 rounded-[7px] border bg-white text-[14px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]', activeCount ? 'font-medium' : '')} style={{ borderColor: activeCount ? INK : '#d5d9d4', color: INK }}>
                 <SlidersHorizontal size={15} /> Filter{activeCount ? ` · ${activeCount}` : ''}
               </button>
               {filterOpen && <FilterPopover f={f} onChange={next => setF(v => ({ ...v, ...next }))} staff={staffList} me={me} onClose={() => setFilterOpen(false)} onClear={() => setF(EMPTY)} />}
             </div>
-            <button type="button" onClick={() => setCreating(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add company</button>
+            <button type="button" onClick={() => setCreating(true)} className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add company</button>
           </div>
         </div>
 
@@ -173,7 +173,7 @@ function CompaniesInner() {
   )
 }
 
-const sel = 'h-9 max-w-[180px] appearance-none rounded-[8px] bg-transparent pl-2.5 pr-7 text-[14px] text-right cursor-pointer border-0 outline-none hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]'
+const sel = 'h-9 max-w-[180px] appearance-none rounded-[7px] bg-transparent pl-2.5 pr-7 text-[14px] text-right cursor-pointer border-0 outline-none hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]'
 
 /** The Filter panel: a short settings list, one parameter per row, its value on the right. */
 function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
@@ -215,7 +215,7 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
       </ul>
       <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #f1f2ee' }}>
         <span className="text-[12px]" style={{ color: '#6f7a74' }}>Renewal periods count from today.</span>
-        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: '#132c1c' }}>Done</button>
+        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: '#132c1c' }}>Done</button>
       </div>
     </div>
   )

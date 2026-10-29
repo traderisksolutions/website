@@ -46,7 +46,7 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
 
   if (picked && !open) {
     return (
-      <span className={cn('inline-flex items-center gap-1.5 h-10 rounded-[10px] border bg-white pl-3 pr-1.5 text-[14px] max-w-[260px]', className)} style={{ borderColor: '#d5d9d4', color: '#0f1412' }}>
+      <span className={cn('inline-flex items-center gap-1.5 h-9 rounded-[7px] border bg-white pl-3 pr-1.5 text-[14px] max-w-[260px]', className)} style={{ borderColor: '#d5d9d4', color: '#0f1412' }}>
         <span className="truncate">{picked.name}</span>
         <button type="button" disabled={disabled} onClick={() => { onChange(''); setOpen(true) }} aria-label="Clear company"
           className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: '#4a5550' }}><X size={12} /></button>
@@ -67,7 +67,7 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
             else if (e.key === 'Escape') { setOpen(false) }
           }}
           placeholder={placeholder} aria-label="Search companies" role="combobox" aria-expanded={open} aria-controls="company-options"
-          className="h-10 w-full min-w-[200px] rounded-[10px] border bg-white pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#0f1412] disabled:opacity-50"
+          className="h-9 w-full min-w-[200px] rounded-[7px] border bg-white pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#0f1412] disabled:opacity-50"
           style={{ borderColor: '#d5d9d4', color: '#0f1412' }} />
       </span>
       {open && (

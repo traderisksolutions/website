@@ -116,7 +116,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
               onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
               aria-label="Relationship"
               title="Relationship with the company, set by hand"
-              className="h-8 rounded-[8px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50"
+              className="h-9 rounded-[7px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50"
               style={{ borderColor: '#d5d9d4', color: INK }}
             >
               {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}

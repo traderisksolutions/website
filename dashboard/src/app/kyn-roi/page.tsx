@@ -104,7 +104,7 @@ function WorkflowTableRow({
       {expanded && (
         <tr style={{ borderBottom: `1px solid ${RULE}` }}>
           <td colSpan={WORKFLOW_COLS} className="px-6 pb-5 pt-2">
-            <table className="w-full text-[13.5px] border-collapse">
+            <table className="trs-table w-full text-[13.5px] border-collapse">
               <thead>
                 <tr className="text-left">
                   <th className="pb-2 pr-4 text-[12.5px] font-normal" style={{ color: MUTED }}>Action</th>

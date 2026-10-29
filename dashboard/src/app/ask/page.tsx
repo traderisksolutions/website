@@ -147,7 +147,7 @@ export default function AskPage() {
               id="ask-company"
               value={companyId}
               onChange={e => setCompanyId(e.target.value)}
-              className="h-10 w-full sm:w-auto sm:max-w-[260px] min-w-0 truncate rounded-[10px] border px-3 text-[13px] bg-white"
+              className="h-9 w-full sm:w-auto sm:max-w-[260px] min-w-0 truncate rounded-[7px] border px-3 text-[13px] bg-white"
               style={{ borderColor: '#d5d9d4', color: companyId ? INK : FAINT }}
             >
               <option value="">No client named</option>

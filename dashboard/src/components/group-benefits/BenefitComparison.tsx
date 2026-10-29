@@ -85,7 +85,7 @@ export function BenefitComparison({ comparison, onRecompute, busy }: {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 220 + cols.length * 150 }}>
+        <table className="trs-table w-full border-collapse" style={{ minWidth: 220 + cols.length * 150 }}>
           <thead>
             <tr className="bg-[#faf9f6]">
               <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide sticky left-0 bg-[#faf9f6] z-10"

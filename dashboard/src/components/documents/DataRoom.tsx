@@ -22,7 +22,7 @@ type Data = { rooms: Room[]; unsorted: PolicyDocument[]; total: number }
 const LIFECYCLE_WORD: Record<string, string> = { quoting: 'Quoting', presented: 'Presented', bound: 'Bound', live: 'In force', renewal_due: 'Renewal due', lapsed: 'Lapsed' }
 const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
 const period = (a: string | null, b: string | null) => a || b ? `${fmtDate(a)} – ${fmtDate(b)}` : null
-const selCls = 'h-7 rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-[12.5px] outline-none focus:border-[#0f1412] max-w-[190px]'
+const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-[12.5px] outline-none focus:border-[#0f1412] max-w-[190px]'
 
 export function statusWord(s: DataRoomStatus): string {
   if (s.state === 'none') return 'Nothing required'

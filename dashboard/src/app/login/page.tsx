@@ -51,7 +51,7 @@ function LoginCard() {
         <button
           type="button"
           onClick={signInWithGoogle}
-          className="w-full h-12 inline-flex items-center justify-center gap-2.5 px-5 rounded-[12px] bg-white text-[15px] font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
+          className="w-full h-9 inline-flex items-center justify-center gap-2.5 px-5 rounded-[7px] bg-white text-[14px] font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
           style={{ border: '1px solid #d5d9d4', color: INK }}
         >
           {/* Google logo: the brand mark, not UI state colour */}

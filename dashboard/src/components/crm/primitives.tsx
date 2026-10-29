@@ -67,7 +67,7 @@ export function Spinner({ label }: { label?: string }) {
 }
 
 const BTN_BASE = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap transition-[background-color,opacity] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-const BTN_SIZE = { sm: 'h-9 px-3.5 text-[13.5px] rounded-[7px]', xs: 'h-8 px-3 text-[12.5px] rounded-[6px]' } as const
+const BTN_SIZE = { sm: 'h-9 px-3.5 text-[13.5px] rounded-[7px]', xs: 'h-[30px] px-3 text-[13px] rounded-[6px]' } as const
 // The website's buttons (traderisksolutions.com.sg .s-btn): deep green fill, 1.5px green outline.
 const BTN_LEVEL = {
   primary:   'bg-[#132c1c] text-white border-0 hover:bg-[#1f4e3a]',
@@ -97,7 +97,7 @@ export function LinkBtn({ href, level = 'secondary', size = 'sm', className, chi
  *  option lifted to white. Single-select, never clears. */
 export function Segmented<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: { value: T; label: string; count?: number }[]; className?: string }) {
   return (
-    <div role="radiogroup" className={cn('inline-flex flex-wrap gap-0.5 rounded-[12px] p-1', className)} style={{ background: FIELD }}>
+    <div role="radiogroup" className={cn('inline-flex flex-wrap gap-0.5 rounded-[8px] p-[3px]', className)} style={{ background: FIELD }}>
       {options.map(o => {
         const on = o.value === value
         return (
@@ -107,7 +107,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             role="radio"
             aria-checked={on}
             onClick={() => onChange(o.value)}
-            className={cn('inline-flex items-center gap-1.5 h-8 px-3.5 rounded-[9px] text-[13.5px] transition-colors cursor-pointer border-0', on ? 'bg-white font-medium' : 'bg-transparent hover:bg-[#e6e8e4]')}
+            className={cn('inline-flex items-center gap-1.5 h-[30px] px-3 rounded-[6px] text-[13.5px] transition-colors cursor-pointer border-0', on ? 'bg-white font-medium' : 'bg-transparent hover:bg-[#e6e8e4]')}
             style={{ color: on ? INK : MUTED }}
           >
             {o.label}
@@ -129,8 +129,8 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   )
 }
 
-export const inputCls = 'w-full h-10 rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] placeholder:text-[#6f7a74]'
-export const textareaCls = 'w-full rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 py-2.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] resize-y placeholder:text-[#6f7a74]'
+export const inputCls = 'w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] placeholder:text-[#6f7a74]'
+export const textareaCls = 'w-full rounded-[7px] border border-[#d5d9d4] bg-white px-3.5 py-2.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] resize-y placeholder:text-[#6f7a74]'
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
   const parts = name.replace(/[^a-zA-Z ]/g, '').trim().split(/\s+/).filter(Boolean)

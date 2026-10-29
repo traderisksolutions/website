@@ -117,7 +117,7 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
     <>
       <div className="hidden md:block rounded-[16px] overflow-hidden bg-white" style={{ border: `1px solid ${RULE}` }}>
         <div className="overflow-auto max-h-[calc(100vh-260px)]">
-          <table className="register w-full border-collapse min-w-[960px]" aria-label="Client companies">
+          <table className="trs-table register w-full border-collapse min-w-[960px]" aria-label="Client companies">
             <thead className="sticky top-0 z-20 bg-white">
               <tr style={{ borderBottom: `1px solid ${RULE}` }}>
                 {COLUMNS.map((col, i) => (

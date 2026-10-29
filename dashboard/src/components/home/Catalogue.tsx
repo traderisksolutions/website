@@ -65,7 +65,7 @@ export function Catalogue() {
           <label className="relative w-full max-w-[520px]">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search all companies" aria-label="Search all clients"
-              className="h-12 w-full rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
+              className="h-9 w-full rounded-[7px] border bg-white pl-11 pr-4 text-[14px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
           </label>
           {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
         </div>
@@ -97,7 +97,7 @@ export function Catalogue() {
 
               {visible.length > limit && (
                 <div className="mt-10 text-center">
-                  <button type="button" onClick={() => setLimit(n => n + PAGE)} className="h-11 px-6 rounded-[12px] border bg-white text-[15px] font-medium cursor-pointer hover:bg-[#faf9f6]" style={{ borderColor: '#d5d9d4', color: INK }}>Show {Math.min(PAGE, visible.length - limit)} more</button>
+                  <button type="button" onClick={() => setLimit(n => n + PAGE)} className="h-9 px-6 rounded-[7px] border bg-white text-[14px] font-medium cursor-pointer hover:bg-[#faf9f6]" style={{ borderColor: '#d5d9d4', color: INK }}>Show {Math.min(PAGE, visible.length - limit)} more</button>
                 </div>
               )}
             </>

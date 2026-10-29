@@ -70,12 +70,12 @@ export function SourceFilesTab() {
         <div className="flex items-center gap-2">
           {d.folderId && (
             <a href={`https://drive.google.com/drive/folders/${d.folderId}`} target="_blank" rel="noopener noreferrer"
-               className="h-10 px-4 rounded-[10px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]" style={{ color: '#0f1412' }}>
+               className="h-9 px-4 rounded-[7px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]" style={{ color: '#0f1412' }}>
               <ExternalLink size={14} /> Open folder
             </a>
           )}
           <button type="button" onClick={load} disabled={busy}
-                  className="h-10 px-4 rounded-[10px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50" style={{ color: '#0f1412' }}>
+                  className="h-9 px-4 rounded-[7px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50" style={{ color: '#0f1412' }}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
           </button>
         </div>

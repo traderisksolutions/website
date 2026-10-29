@@ -103,7 +103,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
           <div className="mt-0.5 text-[12px] tabular-nums" style={{ color: MUTED }}>{counts.all} conversation{counts.all === 1 ? '' : 's'}</div>
         </div>
         <button type="button" onClick={() => onOpenDraft?.({ toEmail: '', cc: '', subject: '', body: '' })}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: '#132c1c' }}>
+          className="inline-flex items-center gap-1.5 h-[30px] px-3 rounded-[6px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: '#132c1c' }}>
           <PenLine size={14} />Compose
         </button>
       </div>

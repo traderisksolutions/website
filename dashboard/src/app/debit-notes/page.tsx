@@ -77,7 +77,7 @@ function FilterInput({ label, value, onChange, autoFocus }: { label: string; val
         onChange={e => onChange?.(e.target.value)}
         placeholder={`Filter ${label.toLowerCase()}`}
         aria-label={`Filter ${label.toLowerCase()}`}
-        className="flex-1 min-w-0 h-9 rounded-[8px] border bg-white px-2.5 text-[13px] outline-none focus:border-[#0f1412]"
+        className="flex-1 min-w-0 h-9 rounded-[7px] border bg-white px-2.5 text-[13px] outline-none focus:border-[#0f1412]"
         style={{ borderColor: '#d5d9d4', color: INK }}
       />
       {value && (
@@ -239,8 +239,8 @@ function DebitNotesContent() {
               <p className="m-0 mt-2 text-[15px] text-[#4a5550]">{loading ? 'Loading…' : `${rows.length} debit note${rows.length === 1 ? '' : 's'}`}{companyId ? ' for this company' : ''}</p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
-              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className="h-12 px-5 rounded-[12px] bg-white text-[15px] border no-underline inline-flex items-center gap-2 hover:bg-[#faf9f6] text-[#0f1412]" style={{ borderColor: '#d5d9d4' }}><FolderOpen size={15} /> Drive folder</a>
-              <Link href="/debit-notes/new" className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium no-underline inline-flex items-center gap-2 hover:opacity-90" style={{ background: '#0f1412' }}><Plus size={15} /> New debit note</Link>
+              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className="h-9 px-5 rounded-[7px] bg-white text-[14px] border no-underline inline-flex items-center gap-2 hover:bg-[#faf9f6] text-[#0f1412]" style={{ borderColor: '#d5d9d4' }}><FolderOpen size={15} /> Drive folder</a>
+              <Link href="/debit-notes/new" className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium no-underline inline-flex items-center gap-2 hover:opacity-90" style={{ background: '#0f1412' }}><Plus size={15} /> New debit note</Link>
             </div>
           </div>
         </div>

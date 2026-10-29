@@ -411,7 +411,7 @@ export function EngagementComposePanel({
                 onClick={onToggleReplyAll}
                 aria-pressed={replyAll}
                 title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
-                className={cn('h-7 px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
+                className={cn('h-[30px] px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
                 style={{ color: replyAll ? INK : FAINT }}
               >
                 Reply all

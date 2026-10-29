@@ -175,7 +175,7 @@ export default function NewDebitNotePage() {
 }
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
-const inp = 'h-10 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[10px] px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
+const inp = 'h-9 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
 
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
@@ -617,7 +617,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
           <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
           <Field label="Premium Total" className="flex-1 min-w-[160px]">
-            <div className="h-10 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[10px] px-3 bg-[#F5F5F3] font-medium flex items-center">
+            <div className="h-9 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-[#F5F5F3] font-medium flex items-center">
               {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
             </div>
           </Field>

@@ -119,7 +119,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center h-8 px-3 rounded-[8px] text-[12.5px] font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
+            className="mt-1 inline-flex items-center h-[30px] px-3 rounded-[6px] text-[12.5px] font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             Open in WhatsApp

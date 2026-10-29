@@ -135,7 +135,7 @@ function InboundLeadsPage() {
             type="button"
             onClick={() => load(true)}
             aria-label="Refresh leads"
-            className="h-12 px-5 rounded-[12px] bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
+            className="h-9 px-5 rounded-[7px] bg-white text-[14px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
@@ -192,7 +192,7 @@ function InboundLeadsPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, email, phone, topic"
               aria-label="Search leads"
-              className="h-10 w-full rounded-[10px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
+              className="h-9 w-full rounded-[7px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
               style={{ border: '1px solid #d5d9d4', color: INK }}
             />
             {search && (

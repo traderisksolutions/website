@@ -39,7 +39,7 @@ export function DataTableSearch({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 h-10 px-3.5 rounded-[10px] border border-[#d5d9d4] bg-white',
+        'flex items-center gap-2 h-9 px-3.5 rounded-[7px] border border-[#d5d9d4] bg-white',
         'transition-colors focus-within:border-[#0f1412]',
         'min-w-[220px] max-w-[320px]',
         className,

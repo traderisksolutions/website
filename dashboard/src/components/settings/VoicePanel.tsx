@@ -79,21 +79,21 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
                 <>
                   <span className="text-[13px]" style={{ color: MUTED }}>Replace with the default?</span>
                   <button type="button" onClick={() => setConfirmRestore(false)}
-                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>Cancel</button>
+                          className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>Cancel</button>
                   <button type="button" onClick={() => void restore()} disabled={!!busy}
-                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: '#a1242f' }}>
+                          className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: '#a1242f' }}>
                     {busy === 'restore' ? 'Restoring…' : 'Restore default'}
                   </button>
                 </>
               ) : (
                 <button type="button" onClick={() => setConfirmRestore(true)} disabled={!!busy}
-                        className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>
+                        className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>
                   Restore default
                 </button>
               )
             )}
             <button type="button" onClick={() => void save()} disabled={!dirty || !!busy}
-                    className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: '#132c1c' }}>
+                    className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: '#132c1c' }}>
               {busy === 'save' ? 'Saving…' : 'Save'}
             </button>
           </div>

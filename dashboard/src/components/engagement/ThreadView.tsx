@@ -402,7 +402,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       onHeightChange={syncScrollAffordances} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
-                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-10 px-3.5 rounded-[8px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded-[7px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
                         <span className="truncate">{replyLabel}</span>
                         <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #d5d9d4', color: '#8c958f' }} aria-hidden>r</kbd>
                       </button>
@@ -454,7 +454,7 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
-  const inp = 'h-10 w-full rounded-[10px] bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]'
+  const inp = 'h-9 w-full rounded-[7px] bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]'
   const lbl = 'flex flex-col gap-1 text-[12.5px]'
   async function go() {
     if (!lead.companyId) { setErr('Link this thread to a company first.'); return }
@@ -485,8 +485,8 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
         </div>
         {err && <p className="m-0 mt-3 text-[13px]" style={{ color: BODY }} role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-10 px-4 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
-          <button type="button" onClick={() => void go()} disabled={busy} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
+          <button type="button" onClick={() => void go()} disabled={busy} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
         </div>
       </div>
     </div>

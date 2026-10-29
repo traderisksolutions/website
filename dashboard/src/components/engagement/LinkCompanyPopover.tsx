@@ -63,7 +63,7 @@ export function LinkCompanyPopover({ threadId, className }: { threadId: string; 
           onChange={e => setQuery(e.target.value)}
           placeholder="Search companies"
           aria-label="Search companies"
-          className="w-full h-9 text-[13.5px] rounded-[8px] px-3 outline-none bg-white mb-1.5 focus:border-[#0f1412]"
+          className="w-full h-9 text-[13.5px] rounded-[7px] px-3 outline-none bg-white mb-1.5 focus:border-[#0f1412]"
           style={{ border: '1px solid #d5d9d4', color: '#0f1412' }}
         />
         {(searching || linking) && (

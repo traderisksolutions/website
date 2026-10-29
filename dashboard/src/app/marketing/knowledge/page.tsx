@@ -21,7 +21,7 @@ const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const PLACEHOLDER = '# Business\nOne fact per line. The writer states only what is written here.\n# Approved claims\n# Do not write'
 const MONO = '14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
 const BOX = 'block w-full m-0 rounded-[14px] border px-5 py-[18px] min-h-[520px] text-[#2a332f]'
-const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-[13.5px] rounded-[10px] bg-white text-[#0f1412] border border-[#d5d9d4] hover:bg-[#faf9f6] no-underline'
+const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-[13.5px] rounded-[7px] bg-white text-[#0f1412] border border-[#d5d9d4] hover:bg-[#faf9f6] no-underline'
 
 const author = (email: string | null | undefined) => (email ? email.split('@')[0] : 'unknown')
 

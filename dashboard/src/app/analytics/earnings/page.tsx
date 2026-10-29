@@ -38,7 +38,7 @@ function rangeDates(r: Range, custom: { from: string; to: string }): { from: str
   return { from: custom.from || null, to: custom.to || null }
 }
 
-const SELECT = 'h-10 rounded-[12px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f2ee] text-[#0f1412] focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15'
+const SELECT = 'h-9 rounded-[7px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f2ee] text-[#0f1412] focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15'
 const tooltipStyle = { fontSize: 12, borderRadius: 10, border: '1px solid #d5d9d4', boxShadow: 'none', color: INK }
 const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2 pr-3 whitespace-nowrap'
 const td = 'py-2.5 pr-3 text-[13px] align-top'
@@ -228,7 +228,7 @@ export default function EarningsPage() {
                   <p className="m-0 py-6 text-[13.5px]" style={{ color: MUTED }}>No policy on file ends in the next 90 days.</p>
                 ) : (
                   <div className="overflow-auto max-h-[480px]">
-                    <table className="w-full min-w-[440px]">
+                    <table className="trs-table w-full min-w-[440px]">
                       <thead className="sticky top-0 bg-white">
                         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                           {rTh('client', 'Company', false)}
@@ -267,7 +267,7 @@ export default function EarningsPage() {
               </div>
             }>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[980px]">
+                <table className="trs-table w-full min-w-[980px]">
                   <thead>
                     <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                       <th className={th}>#</th>
@@ -312,7 +312,7 @@ export default function EarningsPage() {
               {[{ title: 'By insurer', rows: v.byInsurer }, { title: 'By class of insurance', rows: v.byClass }].map(g => (
                 <div key={g.title} className="min-w-0"><SectionCard title={g.title}>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[460px]">
+                    <table className="trs-table w-full min-w-[460px]">
                       <thead>
                         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                           <th className={th}>{g.title === 'By insurer' ? 'Insurer' : 'Class'}</th>
