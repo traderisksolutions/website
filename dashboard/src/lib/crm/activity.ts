@@ -71,7 +71,7 @@ export async function buildActivity(companyId: string, input: ActivityInputs, li
   }
 
   for (const c of input.cases) {
-    events.push({ id: `case-${c.id}`, kind: 'case', at: c.created_at, title: `Case opened: ${c.name}`, detail: c.description, href: `/nexus?case=${c.id}` })
+    events.push({ id: `case-${c.id}`, kind: 'case', at: c.created_at, title: `Case opened: ${c.name}`, detail: c.description, href: `/nexus/cases?case=${c.id}` })
   }
 
   for (const r of audit) {

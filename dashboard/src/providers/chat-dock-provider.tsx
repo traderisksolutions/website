@@ -40,7 +40,7 @@ export function useChatDock(): ChatDockContextValue {
   return ctx
 }
 
-// What is in view, read from the URL: a Nexus case (/nexus?case=) or a company workspace
+// What is in view, read from the URL: a Nexus case (/nexus/cases?case=) or a company workspace
 // (/companies/<uuid>). The page then keeps it current via the 'nexus:active-case' and
 // 'crm:active-company' events (the company one also carries the name for the dock title).
 function scopeFromLocation(): ChatScope {

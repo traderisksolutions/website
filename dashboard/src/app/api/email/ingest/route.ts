@@ -3,6 +3,7 @@ import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
+import { readMessage as readFollowUps } from '@/lib/nexus/reader'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
 
@@ -797,6 +798,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string):
         }).catch(() => {})
       )
     }
+  }
+
+  // ── NEXUS: follow-ups ─────────────────────────────────────────────────────
+  // Reads the message for who owes what, after the response. The hourly /api/cron/nexus reads
+  // anything this misses; follow_up_reads keeps each message to one model call either way.
+  if (dbMsg?.id) {
+    const messageId = dbMsg.id
+    waitUntil(readFollowUps(messageId).catch(e => console.warn('[ingest] follow-up read (non-fatal):', e instanceof Error ? e.message : e)))
   }
 
   // ── NEXUS: Siloed attachment extraction ───────────────────────────────────

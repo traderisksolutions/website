@@ -104,6 +104,8 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   // Record-keeping: reading debit notes and the insurer documents behind them.
   debit_note_extract:    'housekeeping',
   dn_commission_extract: 'housekeeping',
+  // Nexus follow-ups: reading each email for who owes what.
+  nexus_followup_read:   'housekeeping',
 
   // ── Client relationships ──────────────────────────────────────────────────
   draft_reply:              'crm',
@@ -121,6 +123,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   rag_index:                'crm',
   nexus_synthesis:          'crm',
   nexus_strategy:           'crm',
+  nexus_chase_draft:        'crm',
   chat_consultant:          'crm',
   rfq_recommend:            'crm',
   rfq_quote_decision:       'crm',

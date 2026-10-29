@@ -130,7 +130,7 @@ function ConversationsSection({
         body: JSON.stringify({ thread_id: anchorThreadId }),
       })
       const d = res.ok ? await res.json() : null
-      if (d?.case_id) { window.location.href = `/nexus?case=${d.case_id}` }
+      if (d?.case_id) { window.location.href = `/nexus/cases?case=${d.case_id}` }
       else setPromoting(false)
     } catch { setPromoting(false) }
   }

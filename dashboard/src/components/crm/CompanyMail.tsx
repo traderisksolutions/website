@@ -177,7 +177,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
                     <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-snug" style={{ color: INK }} title={current.subject ?? undefined}>{threadTitle(current)}</p>
                     <p className="text-[13px] m-0 mt-0.5" style={{ color: MUTED }}>
                       {current.contact?.name ?? current.contact?.email ?? 'Unknown contact'} · {messages?.length ?? 0} message{(messages?.length ?? 0) === 1 ? '' : 's'}
-                      {current.caseIds.length > 0 && <> · <Link href={`/nexus?case=${current.caseIds[0]}`} className="underline underline-offset-4" style={{ color: INK }}>in a case</Link></>}
+                      {current.caseIds.length > 0 && <> · <Link href={`/nexus/cases?case=${current.caseIds[0]}`} className="underline underline-offset-4" style={{ color: INK }}>in a case</Link></>}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
