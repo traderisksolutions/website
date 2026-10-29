@@ -109,7 +109,7 @@ const TEXT_QUOTE_MARKERS: RegExp[] = [
   /^_{5,}\s*$/m,
 ]
 
-function stripEmbeddedTextQuote(text: string): string {
+export function stripEmbeddedTextQuote(text: string): string {
   const normalised = text.replace(/\r\n/g, '\n')
   let cut = normalised.length
   for (const re of TEXT_QUOTE_MARKERS) {

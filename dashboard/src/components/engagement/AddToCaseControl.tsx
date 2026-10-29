@@ -57,7 +57,7 @@ export function AddToCaseControl({ threadId }: { threadId: string | null }) {
     <div ref={ref} className="relative text-[13px]" style={{ color: MUTED }}>
       {linked ? (
         <span>
-          Added to {linked.name} · <a href={`/nexus?case=${linked.id}`} className="underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]" style={{ color: INK }}>Open in Nexus</a>
+          Added to {linked.name} · <a href={`/nexus/cases?case=${linked.id}`} className="underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]" style={{ color: INK }}>Open in Nexus</a>
         </span>
       ) : (
         <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="listbox" className={LINK} style={{ color: INK }}>Add to Nexus case</button>

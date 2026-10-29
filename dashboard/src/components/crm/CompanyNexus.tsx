@@ -121,7 +121,7 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
                     <Btn size="xs" level="secondary" onClick={() => setAnalysing({ caseId: c.id, threadIds: [] })}>
                       <Sparkles size={11} /> {sa ? 'Re-analyse' : 'Analyse'}
                     </Btn>
-                    <Link href={`/nexus?case=${c.id}`} className="text-[13px] no-underline hover:underline whitespace-nowrap" style={{ color: MUTED }}>Open</Link>
+                    <Link href={`/nexus/cases?case=${c.id}`} className="text-[13px] no-underline hover:underline whitespace-nowrap" style={{ color: MUTED }}>Open</Link>
                   </span>
                 </div>
 
@@ -154,7 +154,7 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
                         )}
                         <p className="text-[12.5px] m-0" style={{ color: MUTED }}>
                           {a?.created_at ? `Analysed ${fmtDate(a.created_at)}` : ''}{a?.strategy_model ? ` · ${a.strategy_model}` : ''}
-                          {' · '}<Link href={`/nexus?case=${c.id}`} className="underline underline-offset-4" style={{ color: INK }}>Open the full analysis</Link>
+                          {' · '}<Link href={`/nexus/cases?case=${c.id}`} className="underline underline-offset-4" style={{ color: INK }}>Open the full analysis</Link>
                         </p>
                       </div>
                     )}

@@ -149,6 +149,10 @@ export type AiFeature =
   | 'policy_movement_read'
   | 'policy_note_read'
   | 'policy_movement_draft'
+  // Nexus follow-ups (29 Oct 2026): the reader that opens and settles rows from each email, and
+  // the chase drafted for an overdue row.
+  | 'nexus_followup_read'
+  | 'nexus_chase_draft'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

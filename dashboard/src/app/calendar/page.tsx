@@ -370,7 +370,7 @@ function CaseStepCard({ e }: { e: Extract<CalendarEvent, { type: 'case_step' }> 
     ]}>
       <p className="text-[14px] m-0" style={{ color: INK }}>{e.action}</p>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
-        <LinkBtn size="xs" level="secondary" href={`/nexus?case=${e.caseId}`}>Open the case</LinkBtn>
+        <LinkBtn size="xs" level="secondary" href={`/nexus/cases?case=${e.caseId}`}>Open the case</LinkBtn>
       </div>
     </EventCard>
   )

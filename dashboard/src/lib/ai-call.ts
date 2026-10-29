@@ -37,6 +37,8 @@ export type CallOptions = {
   thinkingShare?: number
   temperature?: number
   metadata?: Record<string, unknown>
+  /** Called with the billed token counts (thinking counted as output), for callers that report cost. */
+  onUsage?: (u: { input: number; output: number }) => void
 }
 
 export type CallResult = { text: string | null; error?: string }
@@ -68,6 +70,8 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
       return { text: null, error: `Gemini ${res.status}: ${body.slice(0, 200)}` }
     }
     const j = await res.json()
+    opts.onUsage?.({ input: j.usageMetadata?.promptTokenCount ?? 0,
+                     output: (j.usageMetadata?.candidatesTokenCount ?? 0) + (j.usageMetadata?.thoughtsTokenCount ?? 0) })
     void logAiUsage({ provider: 'gemini', model: opts.model, feature: opts.feature,
                       inputTokens: j.usageMetadata?.promptTokenCount ?? 0,
                       // Thinking is billed as output. Counting only the answer understated every
