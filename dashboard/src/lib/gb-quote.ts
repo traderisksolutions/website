@@ -8,7 +8,7 @@ import { parseCalendarDate, ageLastBirthday } from '@/lib/dates/dob'
 import { resolveProduct } from '@/lib/gb/resolve'
 
 export type Relationship = 'self' | 'spouse' | 'child' | string
-export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null }
+export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null; work_pass?: string | null }
 
 export type RateRow = {
   product_code: string; member_type?: string | null; plan_code: string; band_label: string

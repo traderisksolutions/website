@@ -99,13 +99,13 @@ export type HrSubmission = {
 }
 
 /** The quote engine's census row, built from a submission. */
-export type CensusMember = { name: string; category: string; relationship: 'self' | 'spouse' | 'child'; dob: string | null; occupation_class: string | null }
+export type CensusMember = { name: string; category: string; relationship: 'self' | 'spouse' | 'child'; dob: string | null; occupation_class: string | null; work_pass?: string | null }
 
 export function toCensus(list: HrList, defaultCategory = 'Staff'): CensusMember[] {
   const out: CensusMember[] = []
   for (const e of list.employees) {
     if (e.status === 'inactive') continue
-    out.push({ name: e.name, category: e.category || defaultCategory, relationship: 'self', dob: e.dob, occupation_class: e.occupationClass ?? '1' })
+    out.push({ name: e.name, category: e.category || defaultCategory, relationship: 'self', dob: e.dob, occupation_class: e.occupationClass ?? '1', work_pass: e.workPass ?? null })
     for (const d of list.dependants.filter(d => d.employeeKey === e.key)) {
       out.push({ name: d.name, category: e.category || defaultCategory, relationship: d.relationship, dob: d.dob, occupation_class: null })
     }

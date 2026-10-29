@@ -126,6 +126,7 @@ export default function QuoteDetailPage() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{company || 'Untitled quote'}</h1>
           <div className="flex flex-wrap items-center gap-2">
+            {q.member_count > 0 && <a href={`/pricing-matrix/quote/${id}/plans`} className={BTN1}>Choose plans</a>}
             {company && <button onClick={() => openFolder(company)} className={BTN2}><FolderOpen size={14} /> Drive</button>}
             <button onClick={() => setEmailInsurer({ insurer: null })} className={BTN2}><Mail size={14} /> Email insurer</button>
             {priced && <a href={`/api/group-benefits/quote/${id}/report-pdf?download=1`} className={BTN2}>Download PDF</a>}
