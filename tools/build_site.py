@@ -715,6 +715,13 @@ print('share image and home description set')
 # Product pages get their own title and description (the archived heads had none), every page
 # gets structured data, and legacy pages link to canonical (trailing-slash) URLs.
 from seo_meta import PRODUCT_META, INSIGHT_TITLES, SOLUTION_META, ABOUT_META
+# Depth content carries its own search title and description; they win over seo_meta.
+for _k, _c in DEPTH.items():
+    if _k in PRODUCT_META and _c.get('title') and _c.get('description'):
+        PRODUCT_META[_k] = (_c['title'], _c['description'])
+for _k, _c in SDEPTH.items():
+    if _k in SOLUTION_META and _c.get('title') and _c.get('description'):
+        SOLUTION_META[_k] = (_c['title'], _c['description'])
 ORG = {'@type': 'InsuranceAgency', '@id': WWW + '#org', 'name': 'Trade Risk Solutions', 'alternateName': 'TRS', 'legalName': 'Trade Risk Solutions Pte Ltd',
        'identifier': {'@type': 'PropertyValue', 'propertyID': 'UEN', 'value': '202022795H'},
        'url': WWW, 'logo': WWW + 'favicon-192.png', 'image': WWW + 'og-image-2026.png',
