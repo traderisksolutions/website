@@ -26,8 +26,8 @@ export default function PolicyReview() {
     <main className="flex-1">
       <Terrain shade="moss">
       <section className="wrap pb-[clamp(72px,9vw,128px)] pt-[clamp(72px,10vw,144px)]">
-        <h1 className="t-h1">Policy review</h1>
-        <p className="mt-7 t-lede">Most business owners renew without reading the wording, then find out what is missing when they claim. Know what you actually bought before that happens.</p>
+        <h1 className="t-h1">Get your policy reviewed</h1>
+        <p className="mt-7 t-lede">An adviser reads your schedule and wording, then checks each cover against your contracts, lease and premises.</p>
         <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
           { icon: "doc", title: "Know what you bought", text: "What each policy covers, what it leaves out, and where it falls short of your contracts and lease." },
           { icon: "shield", title: "No commitment", text: "A review is not a quote. Keep your insurer and your cover if they are right for you." },

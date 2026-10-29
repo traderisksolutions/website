@@ -13,8 +13,8 @@ export function HomeHero({ m }: { m: MarketKey }) {
   return (
     <Terrain shade="evergreen">
     <section className="fh" aria-labelledby="hero-h">
-      <h1 id="hero-h" className="fh-h1">Get the right insurance coverage</h1>
-      <p className="fh-lede">Corp Cover is where businesses come for insurance advice and plain guides to what their policies cover.</p>
+      <h1 id="hero-h" className="fh-h1">Get your policy reviewed</h1>
+      <p className="fh-lede">Advisers read your policy against your contracts and lease, then explain the gaps, the overlaps and the price.</p>
       <ul className="fh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
       <div className="fh-ctas">
         <Link href={mpath(m, SERVICES.review.path)} className="btn btn-ghost">{SERVICES.review.name}</Link>
@@ -41,7 +41,7 @@ export function Numbers() {
   return (
     <section className="nb" aria-labelledby="nb-h">
       <div className="wrap nb-grid">
-        <h2 id="nb-h" className="nb-label">CorpCover by the numbers</h2>
+        <h2 id="nb-h" className="nb-label">Corp Cover in numbers</h2>
         {stats.map(([n, l]) => <p key={l} className="nb-stat"><b>{n}</b><span>{l}</span></p>)}
       </div>
     </section>
@@ -55,14 +55,14 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
       <div className="cf-panel">
         <div className="cf-copy">
           <p className="cf-eyebrow">50+ years of combined experience</p>
-          <h2 id="claim-h" className="cf-h2">Unsure about your claim?</h2>
-          <p className="cf-lede">Send your policy, supporting documents, and any legal documents or email threads with the insurer. We analyse what your policy entitles you to receive and advise you on the next step.</p>
+          <h2 id="claim-h" className="cf-h2">Get your claim reviewed</h2>
+          <p className="cf-lede">Send the policy, the insurer&apos;s letters and your supporting documents. We set each reason the insurer gave against the clause it relies on, then advise on the next step.</p>
           <p className="cf-get">What you get</p>
           <ul className="cf-ticks">
-            <li><b>Detailed PDF report</b><span>An analysis of your claim: each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
-            <li><b>30-minute call with an experienced broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
+            <li><b>PDF report</b><span>Each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
+            <li><b>30-minute call with a broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
           </ul>
-          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Check my claim</Link>
+          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Send my claim for review</Link>
         </div>
         <Link href={mpath(m, "/claims")} className="cf-art grain grain-evergreen" aria-label="Example claim second opinion report">
           <span className="cf-sheet" aria-hidden><ClaimReportMock currency={MARKETS[m].currency} body={MARKETS[m].disputeBody} /></span>
@@ -75,7 +75,7 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
 const CARDS = [
   { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
   { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
-  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
+  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Request quotes", path: "/get-covered" },
 ] as const;
 
 /** Three services (Harvey "One Platform" cards): the hovered card widens, the others fade. */
@@ -84,7 +84,7 @@ export function ServiceCards({ m }: { m: MarketKey }) {
   return (
     <section className="hp-sec" aria-labelledby="svc-h">
       <div className="wrap text-center">
-        <h2 id="svc-h" className="hp-h2">Business insurance, start to finish</h2>
+        <h2 id="svc-h" className="hp-h2">Services</h2>
         <p className="hp-sub">Review the cover you hold, ask about a clause, or get quotes for new cover. Insurers pay the advisers; your business pays no fee.</p>
       </div>
       <div className="wrap">
