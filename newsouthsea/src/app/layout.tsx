@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EB_Garamond } from "next/font/google";
+import { Newsreader, Noto_Serif_TC } from "next/font/google";
 import Script from "next/script";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
@@ -7,8 +7,10 @@ import { SiteHeader } from "@/components/site-header";
 import { site } from "@/site";
 import "./globals.css";
 
-// Serif for the mark, headings and statements. Body is Helvetica Neue from the system stack.
-const eb = EB_Garamond({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-eb" });
+// NSS brand (locked 30 Oct 2026): Newsreader for the mark, headings and statements (italic only in NSS itself),
+// Noto Serif TC for 新南海. Body stays Helvetica Neue from the system stack.
+const news = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-news" });
+const tc = Noto_Serif_TC({ weight: "400", preload: false, variable: "--font-tc" });
 
 // GA4 loads only when NEXT_PUBLIC_GA_ID is set (G-XXXXXXXXXX). Nothing renders otherwise.
 const GA = process.env.NEXT_PUBLIC_GA_ID;
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${eb.variable} antialiased`}>
+    <html lang="en" className={`${news.variable} ${tc.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }} />
         <SiteHeader />

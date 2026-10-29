@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CloseBand } from "@/components/close-band";
+import { Contours } from "@/components/contours";
 import { LINES, lineBySlug } from "@/content/coverage";
 import { INDUSTRIES } from "@/content/industries";
 import { site } from "@/site";
@@ -67,6 +68,7 @@ export default function Home() {
         <Image src="/images/hero.jpg" alt="Victoria Harbour skyline" fill priority sizes="100vw" className="bg" />
         <div className="shade" aria-hidden />
         <div className="wrap inner">
+          <Contours at="corner" tone="dark" />
           <h1 className="caps-h1">A wholesale insurance brokerage for hard risks.</h1>
           <div className="side">
             <p className="lede">{site.name} makes specialty coverage easier to place. Structured intake and named broker support help retail agents prepare difficult commercial risks for current market review.</p>
@@ -85,7 +87,7 @@ export default function Home() {
         <div className="cards c3">{DIFFERENCE.map(c => <Card key={c.k} {...c} />)}</div>
       </div></section>
 
-      <section className="navy"><div className="wrap sec stack">
+      <section className="navy"><Contours at="corner" tone="navy" /><div className="wrap sec stack">
         <Head n="02" label="How it works" title="From the renewal file" accent="to the right market." />
         <div className="tl">
           {STAGES.map((s, i) => (

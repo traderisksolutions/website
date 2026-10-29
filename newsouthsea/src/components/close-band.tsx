@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Contours } from "@/components/contours";
 import { site } from "@/site";
 
-/** Closing band on the night harbour: label chip, statement, Request a programme review, direct line. */
+/** Closing band on Abyss with depth contours on both sides: label chip, statement, Request a programme review, direct line. */
 export function CloseBand({ label = "Ready when you are", title, email }: { label?: string; title?: ReactNode; email?: string }) {
   return (
     <section className="night">
+      <Contours at="sides" tone="dark" />
       <div className="wrap sec close">
         <p className="eb"><span className="l">{label}</span></p>
         <h2 className="h2">{title ?? <>Send us the account everyone else <span className="accent">said no to.</span></>}</h2>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LINES } from "@/content/coverage";
 import { INDUSTRIES } from "@/content/industries";
+import { Mark } from "@/components/wordmark";
 import { site } from "@/site";
 
 type Menu = "ind" | "cov" | null;
@@ -68,7 +69,7 @@ export function SiteHeader() {
           <button type="button" className="burger" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}>
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M3 6h14M3 10h14M3 14h14" /></svg>
           </button>
-          <Link href="/" className="mark" aria-label={`${site.name} home`}>NSS<small>{site.name}</small></Link>
+          <Link href="/" className="mark" aria-label={`${site.name} home`}><Mark /></Link>
           <nav className="nav" aria-label="Primary">
             {trigger("cov", "Coverage")}
             {trigger("ind", "Industries")}
@@ -112,7 +113,7 @@ export function SiteHeader() {
       </header>
 
       <div className="drawer" hidden={!drawer}>
-        <div className="top"><Link href="/" className="mark">NSS</Link><button type="button" className="burger" aria-label="Close menu" onClick={() => setDrawer(false)}><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg></button></div>
+        <div className="top"><Link href="/" className="mark" aria-label={`${site.name} home`}><Mark /></Link><button type="button" className="burger" aria-label="Close menu" onClick={() => setDrawer(false)}><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg></button></div>
         <div className="grp plain"><ul>
           <li><Link href="/coverage">Coverage</Link></li><li><Link href="/industries">Industries</Link></li><li><Link href="/how-we-work">How it works</Link></li><li><Link href="/about">Company</Link></li><li><Link href="/contact">Contact</Link></li>
         </ul></div>

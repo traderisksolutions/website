@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { LINES } from "@/content/coverage";
 import { INDUSTRIES } from "@/content/industries";
+import { Lockup } from "@/components/wordmark";
 import { site } from "@/site";
 
-/** Lockup, three link columns (Coverage, Industries, Company), legal line. */
+/** Lockup 3 with registered names, three link columns (Coverage, Industries, Company), legal line. */
 export function SiteFooter() {
   const year = new Date().getFullYear();
   return (
@@ -11,10 +12,8 @@ export function SiteFooter() {
       <div className="wrap">
         <div className="grid">
           <div className="fcol">
-            <Link href="/" className="lockup" aria-label={`${site.name} home`}>
-              <span className="block">NSS</span>
-              <span className="names"><span className="en">{site.name}</span><span className="zh">{site.nameZh}</span><span className="reg">{site.entity}</span></span>
-            </Link>
+            <Link href="/" className="brand" aria-label={`${site.name} home`}><Lockup /></Link>
+            <p className="reg"><span lang="zh-Hant">{site.nameZh}</span><span>{site.entity}</span></p>
             <p className="small">Specialty and commercial lines placement, wording negotiation and claims advocacy for corporates.</p>
             <p className="small" style={{ color: "var(--ink)" }}>{site.email}<br />{site.claimsEmail}<br />{site.phone}</p>
           </div>

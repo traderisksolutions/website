@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Contours } from "@/components/contours";
 import { site } from "@/site";
 
 /* Inner-page blocks on the juliusbaer.com bespoke-lending layout: centred tracked title and lede, one reading column,
@@ -8,6 +9,7 @@ import { site } from "@/site";
 export function JbHead({ crumbs, title, lede }: { crumbs: { label: string; href?: string }[]; title: string; lede: ReactNode }) {
   return (
     <div className="jb-head">
+      <Contours at="sides" tone="paper" />
       <p className="crumb">{crumbs.map((c, i) => <span key={c.label}>{i > 0 && " · "}{c.href ? <Link href={c.href}>{c.label}</Link> : c.label}</span>)}</p>
       <h1 className="jb-h1">{title}</h1>
       <p className="jb-lede">{lede}</p>
@@ -57,6 +59,7 @@ export function JbApart({ label, items, id }: { label: string; items: { title: s
 export function JbCta({ title, line }: { title: ReactNode; line?: string }) {
   return (
     <section className="jb-cta">
+      <Contours at="low" tone="paper" />
       <h2 className="jb-cta-h">{title}</h2>
       <Link href="/contact?purpose=review" className="btn">Request a programme review</Link>
       {line !== undefined && <p className="jb-line">{line || `${site.email} · ${site.hours}`}</p>}
