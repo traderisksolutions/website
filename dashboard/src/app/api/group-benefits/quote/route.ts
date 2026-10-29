@@ -26,7 +26,7 @@ async function requireUser() {
 export async function GET() {
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const res = await fetch(`${SB_URL}/rest/v1/gb_quotations?select=id,company_name,effective_date,product_codes,member_count,results,source,created_at&order=created_at.desc&limit=100`, { headers: sbH(), cache: 'no-store' })
+    const res = await fetch(`${SB_URL}/rest/v1/gb_quotations?superseded_by=is.null&select=id,company_name,effective_date,product_codes,member_count,results,source,created_at&order=created_at.desc&limit=100`, { headers: sbH(), cache: 'no-store' })
     return NextResponse.json(res.ok ? await res.json() : [])
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

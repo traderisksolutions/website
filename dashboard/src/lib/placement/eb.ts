@@ -275,14 +275,15 @@ export async function priceLine(lineId: string, input: PriceInput): Promise<Pric
  * spec. Opens the next round on this one line through openRounds (the usual drafts, one per
  * underwriter, for a person to approve). `contactIds` narrows the ask to the broker's pick.
  */
-export async function openTierC(lineId: string, actor: string, contactIds?: string[]): Promise<{ dispatches: PlacementDispatch[]; drafts: number; unrouted: string[]; lives: number }> {
+export async function openTierC(lineId: string, actor: string, contactIds?: string[], requirement?: string): Promise<{ dispatches: PlacementDispatch[]; drafts: number; unrouted: string[]; lives: number }> {
   const line = await loadLine(lineId)
   if (!line) throw new Error('Line not found')
   const bundle = await store.loadPlacement(line.placement_id)
   const placement = bundle?.placements[0]
   if (!bundle || !placement) throw new Error('Placement not found')
   const approved = await approvedInsurerNames()
-  const routes = (await store.insurerRoutes([line.product_line])).filter(r => tierOf(r.insurer_name, approved) === 'C')
+  // Tier B plans quoted on request (Cigna Care Connect 2.0, April) are asked the same way as Tier C.
+  const routes = (await store.insurerRoutes([line.product_line])).filter(r => tierOf(r.insurer_name, approved) !== 'A')
   if (routes.length === 0) {
     await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, kind: 'info', actor: 'system',
       text: `No Tier C insurer contact on file for ${line.label ?? line.product_line}. Add one on the Insurers page.` })
@@ -293,7 +294,40 @@ export async function openTierC(lineId: string, actor: string, contactIds?: stri
   const r = await openRounds(placement, [{ line, spec: line.spec, reason: 'broker', change_summary: `Tier C insurers asked: ${[...new Set(routes.map(x => x.insurer_name))].join(', ')}` }], actor, {
     filterRoute: x => tierC.has(x.email),
     contactIds,
-    extraBody: census.length ? censusSummary(census) : undefined,
+    extraBody: [requirement, census.length ? censusSummary(census) : null].filter(Boolean).join('\n\n') || undefined,
   })
   return { dispatches: r.dispatches, drafts: r.drafts, unrouted: r.unrouted, lives: census.length }
+}
+
+/**
+ * Files a plan-builder quotation's Tier A prices on a placement line, as priceLine does for an
+ * engine run, so the line shows them beside the Tier B and C replies and reads its employee list
+ * from the quotation. Earlier engine prices from the same insurer are superseded.
+ */
+export async function attachQuotation(lineId: string, quotationId: string, actor: string): Promise<number> {
+  const line = await loadLine(lineId)
+  if (!line) throw new Error('Line not found')
+  const bundle = await store.loadPlacement(line.placement_id)
+  const placement = bundle?.placements[0]
+  if (!bundle || !placement) throw new Error('Placement not found')
+  const [q] = await sbTry<{ results: { rate_table_id: string; insurer_name: string; total: number; missing?: number; by_product: Record<string, number> }[] | null; member_count: number }[]>(
+    `gb_quotations?id=eq.${quotationId}&select=results,member_count&limit=1`, [])
+  if (!q) throw new Error('Quotation not found')
+  const round = await currentRound(line, bundle.rounds, actor)
+  let filed = 0
+  for (const r of (q.results ?? []).filter(x => !x.missing)) {
+    await store.patchNoTs('placement_quotes', `line_id=eq.${line.id}&source=eq.rate_table&insurer_name=eq.${enc(r.insurer_name)}&status=eq.received`, { status: 'superseded' })
+    await store.insert<PlacementQuote>('placement_quotes', {
+      placement_id: line.placement_id, line_id: line.id, round_id: round.id, dispatch_id: null,
+      insurer_name: r.insurer_name, source: 'rate_table', engine_run_id: quotationId,
+      premium_text: `S$${r.total.toFixed(2)} per annum incl. GST`, premium_amount: r.total, currency: 'SGD',
+      plan_label: Object.keys(r.by_product).join(' + ') || null, summary: `${q.member_count} lives, plan builder`,
+      evidence: { premium: { excerpt: `rate table ${r.rate_table_id}`, source: 'engine' } },
+      key_terms: [], exclusions: [], subjectivities: [], extracted_by: 'engine', status: 'received', needs_review: false,
+    })
+    filed++
+  }
+  await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, round_id: round.id, kind: 'quote', actor,
+    text: `Plan builder prices filed: ${filed} Tier A insurer${filed === 1 ? '' : 's'}`, detail: { quotation_id: quotationId } })
+  return filed
 }

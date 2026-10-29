@@ -11,6 +11,7 @@ import { errorMessage, openLink, pjson } from '@/lib/hr/public'
 import { CONSENT_TEXT, toCensus, type HrLink, type HrSubmission } from '@/lib/hr/types'
 import { sbTry } from '@/lib/crm/db'
 import { coversFromSpec, priceLine } from '@/lib/placement/eb'
+import { fillQuotationFromList } from '@/lib/gb/builder'
 import type { PlacementLine } from '@/lib/placement/types'
 
 export const dynamic = 'force-dynamic'
@@ -18,8 +19,13 @@ export const maxDuration = 60
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-/** Prices the submitted list on the policy's latest placement line. Never throws. */
+/** Prices the submitted list: on the quotation the link was sent from, and on the policy's latest
+ *  placement line. Never throws. */
 async function priceSubmission(link: HrLink, submission: HrSubmission): Promise<void> {
+  if (link.quotation_id) {
+    try { await fillQuotationFromList(link.quotation_id, toCensus(submission)) }
+    catch (e) { console.error('[hr/submit] quotation pricing failed', link.reference, e instanceof Error ? e.message : e) }
+  }
   if (!link.policy_id) return
   try {
     const [line] = await sbTry<PlacementLine[]>(`placement_lines?policy_id=eq.${link.policy_id}&order=created_at.desc&limit=1`, [])

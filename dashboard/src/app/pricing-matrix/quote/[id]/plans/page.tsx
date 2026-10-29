@@ -13,6 +13,7 @@ import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh } from '@/components/ui/register'
 import { COVER_LABEL, DEFAULT_REQUIREMENT, type CategoryInput, type CoverKey, type GridCell, type Requirement } from '@/lib/gb/ladder'
 import type { BuilderInsurer, BuilderTable } from '@/lib/gb/builder'
+import type { OutreachInsurer } from '@/lib/gb/outreach'
 
 type CensusMember = { name: string; category: string; relationship: string; dob: string | null; occupation_class: string | null; work_pass?: string | null }
 type Quotation = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; census: CensusMember[]; requirement: { categories?: CategoryInput[]; employee_categories?: Record<string, string>; budget?: number | null; tier_b?: boolean } | null }
@@ -93,6 +94,26 @@ export default function PlanBuilderPage() {
   const [pricing, setPricing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [others, setOthers] = useState<OutreachInsurer[] | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [asking, setAsking] = useState(false)
+  const [asked, setAsked] = useState<{ drafts: number; company_id: string | null; placement_opened: boolean } | null>(null)
+  useEffect(() => {
+    fetch(`/api/group-benefits/quote/${id}/ask-insurers`, { cache: 'no-store' }).then(r => r.json()).then((d: { insurers?: OutreachInsurer[] }) => setOthers(d.insurers ?? [])).catch(() => setOthers([]))
+  }, [id])
+
+  async function askOthers() {
+    setAsking(true); setError(null)
+    try {
+      // Save first, so the insurers are asked for what the page shows.
+      const saved = await fetch('/api/group-benefits/builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body('save') })
+      if (!saved.ok) { setError((await saved.json().catch(() => ({}))).error ?? `Save failed (${saved.status})`); return }
+      const res = await fetch(`/api/group-benefits/quote/${id}/ask-insurers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contact_ids: [...picked] }) })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(d.error ?? `Request failed (${res.status})`); return }
+      setAsked({ drafts: d.drafts ?? 0, company_id: d.company_id ?? null, placement_opened: !!d.placement_opened }); setPicked(new Set())
+    } finally { setAsking(false) }
+  }
 
   useEffect(() => {
     fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' }).then(r => r.json()).then((d: { quotation?: Quotation; error?: string }) => {
@@ -362,6 +383,41 @@ export default function PlanBuilderPage() {
                     </tr>
                   )
                 })}
+              </tbody>
+            </Register>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+              <h2 className="m-0 text-[15px] font-medium">Ask other insurers</h2>
+              <Btn level="secondary" onClick={() => void askOthers()} loading={asking} disabled={asking || picked.size === 0}>Draft requests{picked.size ? ` (${picked.size})` : ''}</Btn>
+            </div>
+            {asked && (
+              <p className="m-0 mb-2 text-[13px]" style={{ color: GREEN }}>
+                {asked.drafts} request{asked.drafts === 1 ? '' : 's'} drafted{asked.placement_opened ? ' on a new Employment Benefits placement' : ' on the Employment Benefits placement'}. Send them from Drafts to approve; chasers follow.
+                {asked.company_id && <> <Link href={`/companies/${asked.company_id}`} className="underline" style={{ color: INK }}>Open placement</Link></>}
+              </p>
+            )}
+            <Register label="Tier B and C insurers" minWidth={640}>
+              <RegisterHead><RegisterTh first>Insurer</RegisterTh><RegisterTh>Tier</RegisterTh><RegisterTh last>Underwriters</RegisterTh></RegisterHead>
+              <tbody>
+                {others === null && <tr><td colSpan={3} className="px-4 py-3 text-[13px]" style={{ color: MUTED }}>Loading…</td></tr>}
+                {others?.map(o => (
+                  <tr key={o.insurer_company_id} style={{ borderTop: '1px solid #e6e8e4' }} className="align-top">
+                    <td className="sticky left-0 bg-white pl-4 pr-[10px] py-2 text-[13.5px] whitespace-nowrap">{o.insurer}</td>
+                    <td className="px-[10px] py-2"><Chip tone={o.tier === 'B' ? 'amber' : 'neutral'}>Tier {o.tier}</Chip></td>
+                    <td className="px-[10px] pr-4 py-2 text-[13px]">
+                      {o.contacts.length === 0
+                        ? <span style={{ color: SOFT }}>No underwriter on file. <Link href="/insurers" className="underline" style={{ color: MUTED }}>Add one</Link></span>
+                        : o.contacts.map(c => (
+                          <label key={c.contact_id} className="flex items-center gap-2 py-0.5 cursor-pointer">
+                            <input type="checkbox" checked={picked.has(c.contact_id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(c.contact_id); else n.delete(c.contact_id); return n })} />
+                            <span>{c.name ? `${c.name} · ` : ''}<span style={{ color: MUTED }}>{c.email}</span></span>
+                          </label>
+                        ))}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </Register>
           </div>

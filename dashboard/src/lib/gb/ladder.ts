@@ -42,6 +42,28 @@ export type Requirement = {
 
 export const DEFAULT_REQUIREMENT: Requirement = { ward: 'P1', wardLevel: 'entry', gmm: false, gp: 'nil', sp: 'entry', dental: null, pa: null, gtl: null, gci: null, deps: 'medical' }
 
+/**
+ * The requirement an email asks for, from the covers the intake agent read (plan-rules CoverSpec).
+ * Unstated facts take the defaults: private 1-bed, entry plans, S$100k life and accident, S$50k
+ * critical illness. The broker sees and changes all of it in the plan builder.
+ */
+export function coversToRequirement(covers: { code: string; hospital?: string | null; ward?: number | null; coPay?: boolean | null; sumAssured?: number | null; tier?: string | null }[]): Requirement {
+  const by = new Map(covers.map(c => [c.code, c]))
+  const ghs = by.get('GHS') ?? by.get('GHS_FW')
+  const level = (c?: { tier?: string | null }) => (c?.tier === 'top' ? 'top' : 'entry') as Level
+  const ward = ghs ? (`${ghs.hospital === 'government' ? 'G' : 'P'}${ghs.ward === 4 ? '4' : ghs.ward === 2 && ghs.hospital !== 'government' ? '2' : '1'}` as Ward) : null
+  return {
+    ward, wardLevel: level(ghs), gmm: by.has('EMM'),
+    gp: by.has('GOPC') ? (by.get('GOPC')!.coPay ? 'copay' : 'nil') : null,
+    sp: by.has('GOSC') ? level(by.get('GOSC')) : null,
+    dental: by.has('GD') ? level(by.get('GD')) : null,
+    pa: by.has('GPA') || by.has('GADD') ? (by.get('GPA') ?? by.get('GADD'))!.sumAssured ?? 100_000 : null,
+    gtl: by.has('GTL') ? by.get('GTL')!.sumAssured ?? 100_000 : null,
+    gci: by.has('GCI') ? by.get('GCI')!.sumAssured ?? 50_000 : null,
+    deps: 'medical',
+  }
+}
+
 export type InsurerKey = 'rcc' | 'income' | 'qbe' | 'singlife' | 'aia' | 'cigna'
 export const TIER_A: InsurerKey[] = ['income', 'aia', 'rcc', 'qbe', 'singlife']
 
@@ -343,4 +365,33 @@ export function buildCategoryMap(categories: CategoryInput[], tables: TableShape
     }
   }
   return { map, products: [...products], grids }
+}
+
+const WARD_WORD: Record<Ward, string> = { G4: 'Government 4-bed', G1: 'Government 1-bed', P4: 'Private 4-bed', P2: 'Private 2-bed', P1: 'Private 1-bed' }
+const k = (n: number) => `S$${(n / 1000).toLocaleString('en-SG')}k`
+
+/** One category's requirement in words, cover by cover. */
+export function requirementRows(r: Requirement): [string, string][] {
+  const rows: [string, string][] = []
+  rows.push(['Hospital & surgical', r.ward ? `${WARD_WORD[r.ward]}, ${r.wardLevel === 'top' ? 'higher limits' : 'standard limits'}` : 'Not required'])
+  if (r.ward && r.gmm) rows.push(['Major medical', 'Required'])
+  rows.push(['GP', r.gp ? (r.gp === 'nil' ? 'Panel, no co-pay' : 'Panel, with co-pay') : 'Not required'])
+  rows.push(['Specialist', r.sp ? (r.sp === 'top' ? 'About S$2,000 a year' : 'About S$1,000 a year') : 'Not required'])
+  rows.push(['Dental', r.dental ? (r.dental === 'top' ? 'About S$800 a year' : 'About S$300 a year') : 'Not required'])
+  rows.push(['Personal accident', r.pa ? `${k(r.pa)}, employees only` : 'Not required'])
+  rows.push(['Term life', r.gtl ? `${k(r.gtl)}, employees only` : 'Not required'])
+  rows.push(['Critical illness', r.gci ? `${k(r.gci)}, employees only` : 'Not required'])
+  rows.push(['Dependants', r.deps === 'medical' ? 'Spouse and children on the medical covers' : 'Not covered'])
+  return rows
+}
+
+/** The requirement grid as plain text for an insurer email: covers down, categories across. */
+export function requirementText(categories: CategoryInput[]): string {
+  if (!categories.length) return ''
+  const grids = categories.map(c => requirementRows(c.requirement))
+  const head = ['Cover', ...categories.map(c => c.name)]
+  const rows = grids[0].map((row, i) => [row[0], ...grids.map(g => g[i]?.[1] ?? '')])
+  const widths = head.map((h, i) => Math.max(h.length, ...rows.map(r => r[i].length)))
+  const line = (r: string[]) => r.map((c, i) => c.padEnd(widths[i])).join('  ').trimEnd()
+  return ['Cover requested', '', line(head), line(widths.map(w => '-'.repeat(w))), ...rows.map(line)].join('\n')
 }

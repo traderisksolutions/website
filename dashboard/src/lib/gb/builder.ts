@@ -11,7 +11,7 @@
  */
 import { computeQuote, memberAge, type Member, type QuoteBasis, type QuoteResult } from '../gb-quote'
 import { fetchAllRows } from '../postgrest-all'
-import { buildCategoryMap, engineCategory, insurerKey, TIER_A, type CategoryInput, type GridCell, type InsurerKey, type TableShape } from './ladder'
+import { buildCategoryMap, DEFAULT_REQUIREMENT, engineCategory, insurerKey, TIER_A, type CategoryInput, type GridCell, type InsurerKey, type TableShape } from './ladder'
 import { loadRateTables } from './quotation'
 import { underwriting, type UwResult } from './underwriting'
 
@@ -139,4 +139,23 @@ export async function saveBuilder(input: SaveInput): Promise<BuilderResult> {
   }
   const { result: _r, categoryMap: _c, ...out } = priced
   return out
+}
+
+/**
+ * An employee list arrived for a quotation that was waiting for one (an HR link sent from it):
+ * price it on the quotation's saved requirement, or the default, and write it onto the same row.
+ */
+export async function fillQuotationFromList(quotationId: string, members: Member[]): Promise<BuilderResult | null> {
+  if (!members.length) return null
+  const res = await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${encodeURIComponent(quotationId)}&select=effective_date,basis,requirement&limit=1`, { headers: sbH(), cache: 'no-store' })
+  const q = res.ok ? (await res.json() as { effective_date: string | null; basis: string | null; requirement: { categories?: CategoryInput[]; budget?: number | null; tier_b?: boolean } | null }[])[0] : null
+  if (!q) return null
+  const categories = q.requirement?.categories?.length ? q.requirement.categories : [{ name: 'All employees', requirement: { ...DEFAULT_REQUIREMENT }, overrides: {} }]
+  const names = new Set(categories.map(c => c.name))
+  const census = members.map(m => ({ ...m, category: names.has(m.category) ? m.category : categories[0].name }))
+  return saveBuilder({
+    quotation_id: quotationId, members: census, categories,
+    effective_date: q.effective_date ?? new Date().toISOString().slice(0, 10), basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
+    tier_b: !!q.requirement?.tier_b, budget: q.requirement?.budget ?? null,
+  })
 }

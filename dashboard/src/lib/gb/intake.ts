@@ -25,6 +25,8 @@ import { parseBirthDate, parseDocumentDate, todaySGT } from '../dates/dob'
 import { recordHousekeeping } from '../agent-activity'
 import { PRODUCT_BY_CODE } from './canon'
 import { draftQuotation, DraftError } from './draft'
+import { coversToRequirement } from './ladder'
+import { saveBuilder } from './builder'
 import type { CoverSpec, Hospital, Tier } from './plan-rules'
 import type { Member } from '../gb-quote'
 
@@ -47,6 +49,14 @@ export type IntakeRead = {
   companyName: string | null
   basis: 'new_business' | 'renewal'
   currentInsurer: string | null
+  /** The client's budget as an annual total in S$, when the email states one. */
+  budget: number | null
+  /** The budget as written, kept for the broker. */
+  budgetText: string | null
+  /** When the current policy renews, as YYYY-MM-DD. */
+  renewalDate: string | null
+  /** ISO country of the company to be insured; Tier A schemes insure Singapore companies only. */
+  country: string | null
   effectiveDate: string | null
   covers: CoverSpec[]
   members: Member[]
@@ -57,6 +67,8 @@ export type IntakeResult =
   | { status: 'skipped'; reason: string; quotationId?: string }
   | { status: 'not_a_request' }
   | { status: 'awaiting_census'; quotationId: string }
+  | { status: 'joined'; quotationId: string }
+  | { status: 'tier_c'; quotationId: string; country: string }
   | { status: 'drafted'; quotationId: string; insurers: number; complete: number; cheapest: number | null; dearest: number | null }
   | { status: 'failed'; reason: string }
 
@@ -68,6 +80,9 @@ Return ONLY JSON:
   "company_name": string | null,
   "basis": "new_business" | "renewal",
   "current_insurer": string | null,
+  "renewal_date": string | null,
+  "company_country": string | null,
+  "budget": { "amount": number, "per": "year_total" | "employee_year" | "employee_month", "as_written": string } | null,
   "effective_date": string | null,
   "products": [{
     "code": "GHS"|"EMM"|"GHS_FW"|"GTL"|"GCI"|"GPA"|"GADD"|"GOPC"|"GOSC"|"GD",
@@ -90,6 +105,9 @@ Rules:
 - current_plan: when the client asks for the same cover as an existing plan, its plan name as written ("Plan 1"). The insurer goes in current_insurer.
 - basis: "renewal" when the client has the cover today and wants it renewed or re-marketed; else "new_business".
 - effective_date: copy exactly as written. null when not stated.
+- renewal_date: when the current policy renews or expires, copied exactly as written. null when not stated.
+- company_country: ISO 3166 two-letter code of the country the company to be insured is registered in ("SG", "MY", "ID"). Read it from the name ("Sdn Bhd" = MY, "Pte Ltd" = SG, "PT" = ID), the address or the email. null when unclear.
+- budget: only when the email states a budget or a premium ceiling. amount in SGD as a number; per = whether it is the total a year, per employee a year, or per employee a month; as_written = the words used. null when no budget is stated. Never infer one from a current premium.
 - company_name: the company to be insured, as the request or census names it — which may differ from the sender's employer.
 - members: one row per person in the census, dependants included. relationship: employee/staff/principal = "self". category = the grade/category column, else "Default". dob: copy EXACTLY as written, character for character; never reorder day and month. age: copy an age column if there is one, else null — never work an age out from a date of birth.
 - Ignore header, total and blank rows. Never invent a member.`
@@ -97,6 +115,8 @@ Rules:
 type RawRead = {
   is_group_benefits_request?: boolean; company_name?: string | null; basis?: string
   current_insurer?: string | null; effective_date?: string | null
+  renewal_date?: string | null; company_country?: string | null
+  budget?: { amount?: number; per?: string; as_written?: string } | null
   products?: { code?: string; requirement?: string | null; hospital?: string | null; ward?: number | null
                 co_payment?: boolean | null; sum_assured?: number | null; tier?: string | null; current_plan?: string | null }[]
   members?: { name?: string; category?: string; relationship?: string; dob?: string | null; age?: number | null; occupation_class?: string | null }[]
@@ -137,12 +157,27 @@ export function normaliseRead(raw: RawRead): IntakeRead {
       note: p.requirement?.trim() || null,
     }))
   const eff = parseDocumentDate(raw.effective_date ?? null)
+  const ren = parseDocumentDate(raw.renewal_date ?? null)
+  const iso = (d: { y: number; m: number; d: number } | null) => d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null
+  const employees = members.filter(m => m.relationship === 'self').length
+  const b = raw.budget
+  const amount = b && typeof b.amount === 'number' && b.amount > 0 && b.amount < 50_000_000 ? b.amount : null
+  // Per-employee budgets become an annual total when the census says how many employees there are.
+  const budget = amount == null ? null
+    : b!.per === 'employee_month' ? (employees ? amount * 12 * employees : null)
+    : b!.per === 'employee_year' ? (employees ? amount * employees : null)
+    : amount
+  const country = typeof raw.company_country === 'string' && /^[A-Za-z]{2}$/.test(raw.company_country.trim()) ? raw.company_country.trim().toUpperCase() : null
   return {
     isRequest: !!raw.is_group_benefits_request,
     companyName: raw.company_name?.trim() || null,
     basis: raw.basis === 'renewal' ? 'renewal' : 'new_business',
     currentInsurer,
-    effectiveDate: eff ? `${eff.y}-${String(eff.m).padStart(2, '0')}-${String(eff.d).padStart(2, '0')}` : null,
+    budget: budget == null ? null : Math.round(budget),
+    budgetText: amount == null ? null : (b!.as_written?.trim() || `S$${amount.toLocaleString('en-SG')}`).slice(0, 200),
+    renewalDate: iso(ren),
+    country,
+    effectiveDate: iso(eff),
     covers: covers.length ? covers : [{ code: 'GHS' }],
     members,
     unreadDates,
@@ -217,13 +252,49 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
   // which for a group or an outsourced HR desk is not the policyholder.
   const companyName = read.companyName ?? company ?? thread.subject ?? 'Group benefits request'
   const effectiveDate = read.effectiveDate ?? defaultEffectiveDate()
+  const requirement = {
+    categories: [{ name: 'All employees', requirement: coversToRequirement(read.covers), overrides: {} }],
+    employee_categories: {}, budget: read.budget, tier_b: false,
+    budget_text: read.budgetText, current_insurer: read.currentInsurer, renewal_date: read.renewalDate, country: read.country,
+  }
+  const open = await openRequestFor(companyName)
   const notesHead = [
     `Drafted by the group benefits agent from an email. ${tag}`,
     read.basis === 'renewal' ? `Renewal${read.currentInsurer ? `; current insurer ${read.currentInsurer}` : ''}.` : 'New business.',
     read.effectiveDate ? null : `Start date not stated; priced from ${effectiveDate}.`,
     company && company !== companyName ? `Thread filed under ${company}.` : null,
     read.unreadDates.length ? `Dates of birth not read, ages used where given: ${read.unreadDates.join('; ')}.` : null,
+    read.budgetText ? `Budget: ${read.budgetText}.` : 'No budget stated.',
+    read.renewalDate ? `Current policy renews ${read.renewalDate}.` : null,
   ].filter(Boolean) as string[]
+
+  // ── The same company already has an open request: a second email joins it. ──
+  if (open && !read.members.length) {
+    await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${open.id}`, {
+      method: 'PATCH', headers: sbH(),
+      body: JSON.stringify({ notes: `${open.notes ?? ''}\nAnother email on the same request. ${tag}`.trim(), ...(read.budget && !open.requirement?.budget ? { requirement: { ...(open.requirement ?? requirement), budget: read.budget, budget_text: read.budgetText } } : {}) }),
+    })
+    recordHousekeeping({ action: 'gb.request_routed', subject: companyName, resourceType: 'gb_quotation', resourceId: open.id, basis: 'same company already has an open request — joined it', metadata: { thread_id: threadId } })
+    return { status: 'joined', quotationId: open.id }
+  }
+
+  // ── Not a Singapore company: the five local schemes cannot insure it. Open the row for Tier C. ──
+  if (read.country && read.country !== 'SG') {
+    const res = await fetch(`${SB_URL}/rest/v1/gb_quotations`, {
+      method: 'POST', headers: sbH('return=representation'),
+      body: JSON.stringify({
+        company_name: companyName, effective_date: effectiveDate, gst_rate: 0.09, basis: read.basis,
+        product_codes: read.covers.map(p => PRODUCT_BY_CODE[p.code]?.name ?? p.code), rate_table_ids: [], category_map: {},
+        census: read.members, results: [], member_count: read.members.length, source: 'email', created_by: null, requirement,
+        notes: [...notesHead, `Company registered in ${read.country}: the Singapore Tier A schemes do not apply. Ask Tier C insurers.`].join('\n'),
+      }),
+    })
+    if (!res.ok) throw new Error(`Draft not saved: ${res.status} ${(await res.text()).slice(0, 200)}`)
+    const id = ((await res.json()) as { id: string }[])[0].id
+    if (open) await supersede(open.id, id)
+    recordHousekeeping({ action: 'gb.request_routed', subject: companyName, resourceType: 'gb_quotation', resourceId: id, basis: `company in ${read.country} — Tier C`, metadata: { thread_id: threadId } })
+    return { status: 'tier_c', quotationId: id, country: read.country }
+  }
 
   // ── No census: open the row anyway, so the request is on the board to chase. ──
   if (!read.members.length) {
@@ -232,7 +303,7 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
       body: JSON.stringify({
         company_name: companyName, effective_date: effectiveDate, gst_rate: 0.09, basis: read.basis,
         product_codes: read.covers.map(p => PRODUCT_BY_CODE[p.code]?.name ?? p.code), rate_table_ids: [],
-        category_map: {}, census: [], results: [], member_count: 0, source: 'email', created_by: null,
+        category_map: {}, census: [], results: [], member_count: 0, source: 'email', created_by: null, requirement,
         notes: [...notesHead, 'Awaiting census: no member list in the email or its attachments.',
                 ...read.covers.map(p => `${p.code}: ${p.note ?? 'no requirement stated'}`)].join('\n'),
       }),
@@ -255,7 +326,19 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
     if (e instanceof DraftError) return { status: 'failed', reason: e.message }
     throw e
   }
-  const { quotationId, result, complete, partial } = draft
+  const { quotationId, complete: draftComplete, partial } = draft
+  if (open) await supersede(open.id, quotationId)
+  // Price the draft on the requirement, as the plan builder does, so the broker opens the same
+  // numbers the builder shows. The plan-rules draft stays if this fails.
+  let result = draft.result, complete = draftComplete
+  try {
+    const built = await saveBuilder({ quotation_id: quotationId, members: read.members, categories: requirement.categories, effective_date: effectiveDate, basis: read.basis, tier_b: false, budget: read.budget, employee_categories: {} })
+    await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${quotationId}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ requirement }) })
+    complete = built.insurers.filter(i => i.missing === 0).map(i => ({ ...i, insurer_name: i.insurer_name, total: i.total })) as unknown as typeof complete
+    result = { ...result, per_insurer: built.insurers.map(i => ({ rate_table_id: i.rate_table_id, insurer_id: null, insurer_name: i.insurer_name, by_product: i.by_product, subtotal: i.net, gst: i.gst, total: i.total, missing: i.missing })) }
+  } catch (e) {
+    console.error('[gb/intake] builder pricing failed; keeping the draft', e instanceof Error ? e.message : e)
+  }
   const totals = complete.map(r => r.total)
   const cheapest = totals.length ? Math.min(...totals) : null
   const dearest = totals.length ? Math.max(...totals) : null
@@ -269,4 +352,28 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
     metadata: { thread_id: threadId },
   })
   return { status: 'drafted', quotationId, insurers: result.per_insurer.length, complete: complete.length, cheapest, dearest }
+}
+
+/** "Talent Trader Group Pte Ltd" and "TALENT TRADERS GROUP PTE. LTD" are one company. */
+export function normCompany(name: string | null | undefined): string {
+  return String(name ?? '').toLowerCase()
+    .replace(/\b(pte|ltd|limited|private|sdn|bhd|berhad|llp|inc|co|company|the|group|holdings?|singapore|sg)\b\.?/g, ' ')
+    .replace(/s\b/g, '').replace(/[^a-z0-9]+/g, '')
+}
+
+type OpenRow = { id: string; company_name: string | null; member_count: number; notes: string | null; requirement: Record<string, unknown> | null; created_at: string }
+
+/** The newest request for this company in the last 90 days that nothing has superseded. */
+async function openRequestFor(companyName: string): Promise<OpenRow | null> {
+  const key = normCompany(companyName)
+  if (key.length < 3) return null
+  const since = new Date(Date.now() - 90 * 86_400_000).toISOString()
+  const rows = await get<OpenRow>(`gb_quotations?superseded_by=is.null&created_at=gte.${since}&select=id,company_name,member_count,notes,requirement,created_at&order=created_at.desc&limit=300`)
+  return rows.find(r => normCompany(r.company_name) === key) ?? null
+}
+
+async function supersede(oldId: string, newId: string): Promise<void> {
+  if (oldId === newId) return
+  const res = await fetch(`${SB_URL}/rest/v1/gb_quotations?id=eq.${oldId}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ superseded_by: newId }) })
+  if (!res.ok) console.error('[gb/intake] supersede failed', oldId, res.status)
 }
