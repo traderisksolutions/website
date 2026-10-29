@@ -1,7 +1,7 @@
 /* TRS site behaviour (24 Oct 2026): nav menus and drawer, rotating headline verb, industries carousel.
    Loaded on every page after nav.js. Each block checks for its elements first. */
 (function () {
-  var REV = '.s-sec > .s-w > .s-h2, .s-sec > .s-w > .s-sub, .s-sec > .s-w > .s-eb, .s-vn > div, .s-logos img, .s-wwd-pic, .s-wwd-l > div, .s-outs > *, .s-north > *, .s-cov > div, .s-ic > *, .s-steps > *, .s-rel > a, .s-ab > p, .s-cpl, .s-ablk, .s-cr-vp, .s-close > *';
+  var REV = '.s-sec > .s-w > .s-h2, .s-sec > .s-w > .s-sub, .s-sec > .s-w > .s-eb, .s-sec > .s-w > .s-pill, .s-vn > div, .s-logos img, .s-wd-r > *, .s-pf-row, .s-pt-l > *, .s-lw, .s-bs-st, .s-bs-pic, .s-bs-l > div, .s-fit-c, .s-bl > p, .s-fqh, .s-qa, .s-outs > *, .s-north > *, .s-cov > div, .s-ic > *, .s-steps > *, .s-rel > a, .s-ab > p, .s-cpl, .s-ablk, .s-cr-vp, .s-close > *';
   if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     var els = Array.prototype.slice.call(document.querySelectorAll(REV));
     var io = new IntersectionObserver(function (es) {
@@ -31,6 +31,7 @@
     document.addEventListener('click', function (e) {
       if (!e.target.closest('.tn-dd')) document.querySelectorAll('.tn-dd.open').forEach(function (x) { x.classList.remove('open'); x.querySelector('.tn-trig').setAttribute('aria-expanded', 'false'); });
     });
+    document.querySelectorAll('.tn-a').forEach(function (a) { if (a.getAttribute('href') === location.pathname) a.setAttribute('aria-current', 'page'); });
     var burger = document.querySelector('.tn-burger');
     if (burger) burger.addEventListener('click', function () {
       var open = !document.body.classList.contains('tn-open');
@@ -79,4 +80,5 @@
     window.addEventListener('resize', function () { go(cur); });
     go(cur);
   }
+
 })();

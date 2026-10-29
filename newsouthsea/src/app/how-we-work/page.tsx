@@ -1,38 +1,24 @@
 import type { Metadata } from "next";
-import { CloseBand } from "@/components/close-band";
-import { StageTimeline } from "@/components/stage-timeline";
-import { Eyebrow, RuleList, SplitHead } from "@/components/ui";
+import { JbApart, JbCol, JbCta, JbHead, JbP, JbStages } from "@/components/jb";
 import { PLACEMENT } from "@/content/process";
 
-export const metadata: Metadata = { title: "How we work", description: "How New South Sea reviews, prepares, markets, binds and services corporate insurance programmes." };
-
-const TERMS = [
-  { title: "We act for you", body: "As a licensed broker our duty is to the policyholder. Advice is given on suitability, not on which insurer pays more." },
-  { title: "Remuneration disclosed", body: "Brokerage and fees are stated in writing before cover is placed, by line and by insurer." },
-  { title: "One named team", body: "A broker, an account handler and a claims contact are named for every client. The names do not change at renewal." },
-  { title: "Written advice", body: "Every renewal closes with a written summary of what was placed, what was declined and why." },
-];
+export const metadata: Metadata = { title: "How it works", description: "Five stages on every renewal, handled by the same broker from review to claim." };
 
 export default function HowWeWork() {
   return (
     <>
-      <section className="wrap pt-14 lg:pt-24">
-        <div className="reveal grid gap-6 lg:grid-cols-12 lg:gap-12">
-          <Eyebrow className="pt-3 lg:col-span-4">How we work</Eyebrow>
-          <div className="flex flex-col gap-6 lg:col-span-8">
-            <h1 className="display h1 text-ink">How we work</h1>
-            <p className="lede">Five stages on every renewal, handled by the same broker from review to claim.</p>
-          </div>
-        </div>
-      </section>
-      <section className="wrap section"><StageTimeline stages={PLACEMENT} /></section>
-      <section className="bg-stone">
-        <div className="wrap section flex flex-col gap-12">
-          <SplitHead label="Terms of engagement" title="What you can expect from us" />
-          <RuleList items={TERMS} numbered />
-        </div>
-      </section>
-      <CloseBand />
+      <JbHead crumbs={[{ label: "Home", href: "/" }, { label: "How it works" }]} title="How it works" lede="Five stages on every renewal, handled by the same broker from review to claim." />
+      <JbCol>
+        <JbP>Start with the renewal file, 120 days before inception for property and casualty and 150 for financial lines. No portal and no form to fill: send the current policies, the schedules and the loss runs you already hold. The named broker reads them against how the business operates today and tells you what the market will ask for before it asks.</JbP>
+        <JbP>Every stage produces a document the client sees.</JbP>
+        <JbStages stages={PLACEMENT} />
+      </JbCol>
+      <JbApart id="terms" label="Terms of engagement" items={[
+        { title: "We act for you", body: "As a licensed broker our duty is to the policyholder. Advice is given on suitability, not on which insurer pays more." },
+        { title: "Remuneration disclosed", body: "Brokerage and fees are stated in writing before cover is placed, by line and by insurer." },
+        { title: "Written advice", body: "Every renewal closes with a written summary of what was placed, what was declined and why." },
+      ]} />
+      <JbCta title={<>Send us the account everyone else said no to.</>} />
     </>
   );
 }

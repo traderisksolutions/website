@@ -4,7 +4,7 @@ export const site = {
   name: "New South Sea",
   nameZh: "新南海（香港）有限公司",
   domain: "newsouthsea.com",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://newsouthsea.com",
+  url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.newsouthsea.com",
   description: "Complex business risks, placed and claimed. Property, liability, D&O, cyber and marine programmes, handled by the same broker through to claim.",
   email: "[enquiries email]",
   claimsEmail: "[claims email]",

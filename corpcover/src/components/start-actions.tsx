@@ -9,6 +9,7 @@ import { faqAnswer } from "@/lib/chat-local";
 import { sendEnquiry, type SendResult } from "@/lib/enquiry";
 import { site } from "@/site";
 import { MARKETS, marketOf, mpath } from "@/lib/market";
+import { REVIEW_EMAIL_KEY } from "@/lib/cover-tags";
 
 export type Flow = "choose" | "chat" | "review" | "finder" | "callback";
 
@@ -180,6 +181,15 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+  // The home hero leaves the work email here: fill it in, then bring the form into view.
+  useEffect(() => {
+    if (!inline) return;
+    let email: string | null = null;
+    try { email = sessionStorage.getItem(REVIEW_EMAIL_KEY); sessionStorage.removeItem(REVIEW_EMAIL_KEY); } catch { /* storage blocked */ }
+    const field = form.current?.elements.namedItem("email");
+    if (email && field instanceof HTMLInputElement) { field.value = email; form.current?.scrollIntoView({ block: "center" }); }
+  }, [inline]);
   const { busy, error, result, onSubmit } = useSubmit("Policy review request", fd => {
     fd.set("kind", "policy-review");
     if (file) fd.set("file", file);
@@ -189,7 +199,7 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
 
   const pick = (f: File | undefined) => f && setFile(f);
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
+    <form ref={form} id={inline ? "send" : undefined} onSubmit={onSubmit} className="scroll-mt-28 space-y-5">
       <h2 className={`${inline ? "" : "text-center "}text-2xl font-semibold tracking-[-0.02em]`}>Send my policy for review</h2>
       <button
         type="button"
@@ -209,7 +219,7 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
       <ContactFields />
       <label className="field">Anything to check in particular<textarea name="details" rows={2} /></label>
       {error && <p role="alert" className="text-sm font-medium text-[#b42318]">{error}</p>}
-      <button type="submit" disabled={busy || !file} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Send for review"}</button>
+      <button type="submit" disabled={busy || !file} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Send my policy for review"}</button>
     </form>
   );
 }

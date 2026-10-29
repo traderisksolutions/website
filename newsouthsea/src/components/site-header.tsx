@@ -1,129 +1,126 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { COVERAGE_MENU, INDUSTRY_MENU, PLAIN_LINKS } from "@/content/nav";
+import { LINES } from "@/content/coverage";
+import { INDUSTRIES } from "@/content/industries";
 import { site } from "@/site";
-import { Mark } from "./wordmark";
 
-type Menu = "coverage" | "industries" | null;
+type Menu = "ind" | "cov" | null;
 
-/** Sticky white bar with a hairline. Coverage and Industries open panels on hover or click;
- *  at 1024px and below the links move into a drawer. */
+/** harvey.ai navbar in buyer order (29 Oct audit): Coverage ▾ · Industries ▾ · How it works · Company · Contact us.
+ *  Appetite lives inside the Coverage panel; Claims, Complaints, Privacy and Terms stay in the footer.
+ *  Transparent over the home hero until 48px of scroll, then solid with a hairline. Panels open on hover or click. */
+const APPETITE = [
+  { t: "Core appetite", d: "Property and construction, casualty, financial lines, marine and trade. First read within [x] working days." },
+  { t: "Case by case", d: "US products exposure, cyber after an incident, D&O with a going-concern note, typhoon-exposed sites, large contract works." },
+  { t: "Not written", d: "Personal lines, life and medical, employee benefits, aviation and energy hull." },
+];
+
 export function SiteHeader() {
   const path = usePathname();
   const [menu, setMenu] = useState<Menu>(null);
   const [drawer, setDrawer] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [over, setOver] = useState(path === "/");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Close menus on navigation: reset during render when the path changes.
-  const [seenPath, setSeenPath] = useState(path);
-  if (seenPath !== path) { setSeenPath(path); setMenu(null); setDrawer(false); }
+  const [seen, setSeen] = useState(path);
+  if (seen !== path) { setSeen(path); setMenu(null); setDrawer(false); }
 
   useEffect(() => {
+    const onScroll = () => setOver(path === "/" && window.scrollY < 48);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { setMenu(null); setDrawer(false); } };
+    const onClick = (e: MouseEvent) => { if (!(e.target as Element).closest?.(".hdr")) setMenu(null); };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    document.addEventListener("click", onClick);
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("keydown", onKey); document.removeEventListener("click", onClick); };
+  }, [path]);
 
   useEffect(() => { document.body.style.overflow = drawer ? "hidden" : ""; }, [drawer]);
 
-  const open = (m: Menu) => { if (closeTimer.current) clearTimeout(closeTimer.current); setMenu(m); };
-  const closeSoon = () => { closeTimer.current = setTimeout(() => setMenu(null), 120); };
+  const open = (m: Menu) => { if (timer.current) clearTimeout(timer.current); setMenu(m); };
+  const closeSoon = () => { timer.current = setTimeout(() => setMenu(null), 140); };
   const current = (href: string) => (path === href || path.startsWith(`${href}/`) ? "page" : undefined);
-
-  const trigger = (m: Exclude<Menu, null>, label: string, href: string) => (
-    <div className="relative" onMouseEnter={() => open(m)} onMouseLeave={closeSoon}>
-      <button type="button" aria-expanded={menu === m} aria-controls={`menu-${m}`} onClick={() => setMenu(menu === m ? null : m)}
-        className={`inline-flex h-10 items-center gap-1 rounded-md px-3 text-[15px] hover:text-ink ${path.startsWith(href) ? "text-ink" : "text-ink-2"}`}>
-        {label}
-        <svg viewBox="0 0 12 12" className={`size-3 transition-transform ${menu === m ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.5"><path d="m3 4.5 3 3 3-3" /></svg>
-      </button>
+  const chevron = <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden><path d="m3 4.5 3 3 3-3" /></svg>;
+  const trigger = (m: Exclude<Menu, null>, label: string) => (
+    <div onMouseEnter={() => open(m)} onMouseLeave={closeSoon}>
+      <button type="button" aria-expanded={menu === m} aria-controls={`panel-${m}`} onClick={e => { e.stopPropagation(); open(m); }}>{label} {chevron}</button>
     </div>
   );
+  const families = [...new Set(LINES.map(l => l.family))];
+  const col = (fs: string[]) => fs.map((f, i) => (
+    <div key={f} style={i ? { marginTop: 8 } : undefined} className="fam">
+      <span className="mono">{f}</span>
+      {LINES.filter(l => l.family === f).map(l => (
+        <Link key={l.slug} className="pi" href={`/coverage/${l.slug}`}><span className="t">{l.name}</span><span className="d">{l.summary}</span></Link>
+      ))}
+    </div>
+  ));
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-rule bg-white/95 backdrop-blur" onMouseLeave={closeSoon}>
-        <div className="wrap flex h-[68px] items-center gap-6">
-          <Link href="/" aria-label={`${site.name} home`} className="shrink-0"><Mark descriptor /></Link>
-
-          <nav aria-label="Primary" className="ml-4 hidden items-center lg:flex">
-            {trigger("coverage", "Coverage", "/coverage")}
-            {trigger("industries", "Industries", "/industries")}
-            {PLAIN_LINKS.map(l => (
-              <Link key={l.href} href={l.href} aria-current={current(l.href)}
-                className="inline-flex h-10 items-center rounded-md px-3 text-[15px] text-ink-2 hover:text-ink aria-[current=page]:text-ink">{l.label}</Link>
-            ))}
-          </nav>
-
-          <div className="ml-auto hidden items-center gap-3 lg:flex">
-            <Link href="/contact" className="btn btn-ghost">Contact</Link>
-            <Link href="/contact#review" className="btn btn-primary">Request a programme review</Link>
-          </div>
-
-          <button type="button" className="ml-auto grid size-10 place-items-center rounded-md lg:hidden" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}>
-            <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M3 6h14M3 10h14M3 14h14" /></svg>
+      <header className={`hdr ${over ? "over" : ""}`} onMouseLeave={closeSoon}>
+        <div className="wrap bar">
+          <button type="button" className="burger" aria-label="Open menu" aria-expanded={drawer} onClick={() => setDrawer(true)}>
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M3 6h14M3 10h14M3 14h14" /></svg>
           </button>
+          <Link href="/" className="mark" aria-label={`${site.name} home`}>NSS<small>{site.name}</small></Link>
+          <nav className="nav" aria-label="Primary">
+            {trigger("cov", "Coverage")}
+            {trigger("ind", "Industries")}
+            <Link href="/how-we-work" aria-current={current("/how-we-work")}>How it works</Link>
+            <Link href="/about" aria-current={current("/about")}>Company</Link>
+          </nav>
+          <div className="right"><Link href="/contact" className="btn sm">Contact us</Link></div>
         </div>
 
-        {/* Desktop panels */}
-        <div id="menu-coverage" hidden={menu !== "coverage"} onMouseEnter={() => open("coverage")} onMouseLeave={closeSoon}
-          className="absolute inset-x-0 top-full hidden border-b border-rule bg-surface lg:block">
-          <div className="wrap grid grid-cols-5 gap-8 py-10">
-            {COVERAGE_MENU.map(g => (
-              <div key={g.family} className="min-w-0">
-                <p className="eyebrow mb-4">{g.family}</p>
-                <ul className="grid gap-2.5">
-                  {g.lines.map(l => <li key={l.href}><Link href={l.href} className="text-[15px] text-ink hover:text-umber">{l.label}</Link></li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-          <div className="border-t border-rule">
-            <div className="wrap flex h-12 items-center">
-              <Link href="/coverage" className="text-[14px] text-ultra">All coverage</Link>
+        <div className="panel cov" id="panel-cov" hidden={menu !== "cov"} onMouseEnter={() => open("cov")} onMouseLeave={closeSoon}>
+          <div className="wrap">
+            <div className="grp">{col(families.slice(0, 2))}</div>
+            <div className="grp">{col(families.slice(2, 3))}</div>
+            <div className="grp">{col(families.slice(3))}</div>
+            <div className="grp"><div className="fam"><span className="mono">Appetite</span>
+              {APPETITE.map(a => <Link key={a.t} className="pi" href="/appetite"><span className="t">{a.t}</span><span className="d">{a.d}</span></Link>)}
+            </div></div>
+            <div className="foot">
+              <Link className="pi" href="/coverage"><span className="t">All coverage →</span><span className="d">Ten lines, four families.</span></Link>
+              <Link className="pi" href="/appetite"><span className="t">Check appetite by class →</span><span className="d">Core, case by case, not written.</span></Link>
+              <Link className="pi" href="/claims"><span className="t">Notify a claim →</span><span className="d">{site.claimsEmail}</span></Link>
             </div>
           </div>
         </div>
-        <div id="menu-industries" hidden={menu !== "industries"} onMouseEnter={() => open("industries")} onMouseLeave={closeSoon}
-          className="absolute inset-x-0 top-full hidden border-b border-rule bg-surface lg:block">
-          <div className="wrap grid grid-cols-3 gap-x-8 gap-y-3 py-10">
-            {INDUSTRY_MENU.map(l => <Link key={l.href} href={l.href} className="display text-[24px] text-ink hover:text-umber">{l.label}</Link>)}
+
+        <div className="panel ind" id="panel-ind" hidden={menu !== "ind"} onMouseEnter={() => open("ind")} onMouseLeave={closeSoon}>
+          <div className="wrap">
+            <div className="grp"><span className="mono">Sectors</span>
+              {INDUSTRIES.slice(0, 3).map(i => <Link key={i.slug} className="pi" href={`/industries/${i.slug}`}><span className="t">{i.name}</span><span className="d">{i.summary}</span></Link>)}
+            </div>
+            <div className="grp"><span className="mono">&nbsp;</span>
+              {INDUSTRIES.slice(3).map(i => <Link key={i.slug} className="pi" href={`/industries/${i.slug}`}><span className="t">{i.name}</span><span className="d">{i.summary}</span></Link>)}
+              <Link className="pi" href="/industries"><span className="t">All industries →</span><span className="d">Six sectors, named risks, the lines that make up each programme.</span></Link>
+            </div>
+            <Link className="feat" href="/industries">
+              <Image src="/images/port.jpg" alt="" width={600} height={375} />
+              <span className="pi"><span className="t">Named risks per sector</span><span className="d">The exposure, what it costs when it happens, and the cover that answers it.</span></span>
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Mobile and tablet drawer */}
-      <div className="backdrop lg:hidden" data-open={drawer} aria-hidden onClick={() => setDrawer(false)} />
-      <aside className="sheet inset-y-0 right-0 flex w-[min(92vw,400px)] flex-col overflow-y-auto bg-surface lg:hidden" data-open={drawer} aria-label="Menu" aria-hidden={!drawer} inert={!drawer}>
-        <div className="flex h-[68px] items-center justify-between border-b border-rule px-5">
-          <Mark />
-          <button type="button" className="grid size-10 place-items-center rounded-md" aria-label="Close menu" onClick={() => setDrawer(false)}>
-            <svg viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M5 5l10 10M15 5 5 15" /></svg>
-          </button>
-        </div>
-        <nav aria-label="Mobile" className="flex-1 px-5 py-4">
-          <details className="border-b border-rule py-3" open>
-            <summary className="cursor-pointer list-none text-[17px] font-medium">Coverage</summary>
-            {COVERAGE_MENU.map(g => (
-              <div key={g.family} className="mt-4">
-                <p className="eyebrow mb-2">{g.family}</p>
-                {g.lines.map(l => <Link key={l.href} href={l.href} className="block py-1.5 text-[15px] text-ink-2">{l.label}</Link>)}
-              </div>
-            ))}
-          </details>
-          <details className="border-b border-rule py-3">
-            <summary className="cursor-pointer list-none text-[17px] font-medium">Industries</summary>
-            <div className="mt-2">{INDUSTRY_MENU.map(l => <Link key={l.href} href={l.href} className="block py-1.5 text-[15px] text-ink-2">{l.label}</Link>)}</div>
-          </details>
-          {[...PLAIN_LINKS, { href: "/contact", label: "Contact" }].map(l => (
-            <Link key={l.href} href={l.href} className="block border-b border-rule py-3 text-[17px] font-medium">{l.label}</Link>
-          ))}
-        </nav>
-        <div className="p-5"><Link href="/contact#review" className="btn btn-primary w-full">Request a programme review</Link></div>
-      </aside>
+      <div className="drawer" hidden={!drawer}>
+        <div className="top"><Link href="/" className="mark">NSS</Link><button type="button" className="burger" aria-label="Close menu" onClick={() => setDrawer(false)}><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg></button></div>
+        <div className="grp plain"><ul>
+          <li><Link href="/coverage">Coverage</Link></li><li><Link href="/industries">Industries</Link></li><li><Link href="/how-we-work">How it works</Link></li><li><Link href="/about">Company</Link></li><li><Link href="/contact">Contact</Link></li>
+        </ul></div>
+        <div className="grp"><span className="mono">Coverage</span><ul>{LINES.map(l => <li key={l.slug}><Link href={`/coverage/${l.slug}`}>{l.name}</Link></li>)}<li><Link href="/appetite">Appetite</Link></li></ul></div>
+        <div className="grp"><span className="mono">Industries</span><ul>{INDUSTRIES.map(i => <li key={i.slug}><Link href={`/industries/${i.slug}`}>{i.name}</Link></li>)}</ul></div>
+        <div className="grp"><span className="mono">Clients</span><ul><li><Link href="/claims">Notify a claim</Link></li><li><Link href="/complaints">Complaints</Link></li></ul></div>
+        <Link href="/contact" className="btn">Contact us</Link>
+      </div>
     </>
   );
 }

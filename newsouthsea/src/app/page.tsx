@@ -1,172 +1,152 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { CloseBand } from "@/components/close-band";
-import { FileSection } from "@/components/file-section";
-import { Accent, Arrow, ButtonLink, Eyebrow, Faq, NumberCells, SplitHead } from "@/components/ui";
-import { FAMILIES, LINES } from "@/content/coverage";
+import { LINES, lineBySlug } from "@/content/coverage";
 import { INDUSTRIES } from "@/content/industries";
-import { PLACEMENT } from "@/content/process";
 import { site } from "@/site";
 
-// Design (24 Oct 2026): privatebank.jpmorgan.com/apac for the hero and type (serif headings, sans body);
-// hedgespecialty.com for the cell grids, ticker and off-white bands.
-// Story order: rillet.com (promise, proof, product, operating model, objections, voice, close).
+// Home: Hedge's story order. Hero = gic.com.sg navy panel on the harbour. Each section = statement, bold heading,
+// 01 = three NSS tiles, 02 = flex.one/ai-inbox timeline on navy (documents above a rule), 03 = open icon trio, 05 = global-payments bento.
+// Bands alternate white / grey. Coverage = harvey.ai bento tiles. Close = night harbour.
 
 const DIFFERENCE = [
-  { title: "Named brokers on every file.", body: "A broker, an account handler and a claims contact per client. The same three people at inception, mid-term and renewal.", tag: "Dedicated" },
-  { title: "First read in [x] days. Firm terms when the file is ready.", body: "An indication on appetite and structure within [x] working days of a complete file. Firm terms once subjectivities are known.", tag: "Fast" },
-  { title: "The risks others decline.", body: "Cat-exposed property, regulated financial firms, cyber after an incident, US products exposure, large contract works.", tag: "Hard risks" },
+  { k: "01 · Dedicated", t: "The team moves like your own.", pts: ["A broker, an account handler and a claims contact per client.", "The same three people at inception, mid-term and renewal.", "No rotating inboxes. The person you started with closes the file."] },
+  { k: "02 · Fast", t: "First read in [x] days. Firm terms when the file is ready.", pts: ["An indication on appetite and structure within [x] working days of a complete file.", "Intake, triage and market selection run in parallel, not in sequence.", "Firm terms once subjectivities are known, not before."] },
+  { k: "03 · Hard risks", t: "The accounts others cannot place.", pts: ["Cat-exposed property and typhoon-exposed single sites.", "Regulated financial firms. D&O with a going-concern note.", "Cyber after an incident, US products exposure, large contract works."] },
 ];
+// 02 How it works: flex.one/ai-inbox timeline on navy. Each stage shows the document it produces (illustrative sheet), a rule with a tick, then the stage.
+// Glass documents, one per stage (illustrative; qualitative values only).
+const SHEETS: ReactNode[] = [
+  <><div className="gl back"></div><div className="gl"><span className="gt">Renewal review</span><span className="gr">Property<b><span className="gchip">Tested</span></b></span><span className="gr">Liability<b><span className="gchip hi">Gap</span></b></span><span className="gr">Employees’ compensation<b><span className="gchip">Overlap</span></b></span><span className="gr">D&amp;O<b><span className="gchip">Current</span></b></span></div></>,
+  <><div className="gl"><span className="gt">Underwriting file</span><div className="tabs"><span className="on">Values</span><span>Losses</span><span>Payroll</span></div><span className="gr">Schedule of values<b>Checked</b></span><span className="gr">Loss history<b>Five years</b></span><span className="gr">Risk improvements<b>Documented</b></span><span className="slab"><span>File complete</span></span><span className="bar"><i style={{ width: "82%" }}></i></span></div></>,
+  <><div className="gl"><span className="gt">Terms compared</span><span className="brow">Insurer A<span className="bar"><i style={{ width: "72%" }}></i></span><b>Terms in</b></span><span className="brow">Insurer B<span className="bar"><i style={{ width: "88%" }}></i></span><b>Terms in</b></span><span className="brow">Insurer C<span className="bar"><i style={{ width: "26%", opacity: .4 }}></i></span><b>Declined</b></span><span className="gr">Compared<b>Line by line</b></span></div></>,
+  <><div className="gl"><span className="gt">Binder check</span><span className="tick">Wording as quoted</span><span className="tick">Subjectivities closed</span><span className="tick">Endorsements matched</span><span className="gr">Certificates<b>Issued</b></span><span><span className="gchip hi">Bound</span></span></div></>,
+  <><div className="gl"><span className="gt">Claim file</span><div className="steps"><span className="on"></span><i></i><span className="on"></span><i></i><span className="on"></span><i></i><span></span></div><span className="slab"><span>Notified</span><span>Assessed</span><span>Negotiated</span><span>Settled</span></span><span className="gr">Notified<b>Same day</b></span><span className="gr">Coverage position<b>In writing</b></span><span><span className="gchip">Interim payment requested</span></span></div></>,
+];
+const STAGES = [
+  { t: "Review", h: "Start with the exposures, not last year's schedule.", p: "We read the current policies against how the business operates today: sites, contracts, payroll, revenue by territory and the claims that have been paid.", tag: "~ 120 days out" },
+  { t: "Prepare", h: "The underwriting file is the submission.", p: "One file per line with the facts that move price and terms, presented before the market asks for them.", tag: "~ one file per line" },
+  { t: "Market", h: "Selected markets, not a circulated list.", p: "Each risk goes to the insurers with genuine appetite for it. Fewer, better approaches return firmer terms.", tag: "~ timing by file" },
+  { t: "Bind", h: "The policy is checked against the quote.", p: "Wording, subjectivities and endorsements are confirmed against what was agreed before cover incepts.", tag: "~ before inception" },
+  { t: "Claims", h: "A named claims contact from the first notice.", p: "Notification, the coverage position, quantum and settlement, argued on the wording by the broker who placed it.", tag: "~ same working day" },
+];
+const ICO = {
+  live: <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 12 7 12 10 5 14 19 17 12 21 12" /></svg>,
+  shared: <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20v-1.5a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5V20" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18.5 13.6a5 5 0 0 1 3 4.6V20" /></svg>,
+  closed: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h6l2 2h10v12H3z" /><polyline points="8.5 14 11 16.5 15.5 12" /></svg>,
+};
+// 03 The file: flex.one open trio (icon chip, serif heading, one paragraph).
+const FILE = [
+  { icon: ICO.live, t: "Live, not a status email.", p: "Market responses, open subjectivities and quotes land in one record as they arrive. The named people on the account, on the client side and ours, read the same file. No checking-in emails and no PDF ping-pong." },
+  { icon: ICO.shared, t: "Everyone, same file.", p: "Finance, legal, the board pack and the insurer read from the file the broker works. When a subjectivity closes or an adjuster responds, the file updates and the people on it see it. Permissions by person, by line." },
+  { icon: ICO.closed, t: "Clean binders, delivered.", p: "At bind the policy is checked against the quote and subjectivities are tracked through delivery. The file history stays with the account from one renewal to the next, so nothing is rebuilt from scratch." },
+];
+// 05 Industries: flex.one/global-payments bento. First sector is the navy feature tile and carries its programme lines.
+const IND_ICON: Record<string, ReactNode> = {
+  "trading-logistics": <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18l-2 4H5z" /><path d="M5 17V9h5V5h6v4h3v8" /></svg>,
+  "financial-services": <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 10h16M6 10v8M10 10v8M14 10v8M18 10v8M12 3 3 8h18z" /></svg>,
+  "technology": <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" /><path d="M10 7V4M14 7V4M10 20v-3M14 20v-3M7 10H4M7 14H4M20 10h-3M20 14h-3" /></svg>,
+  "construction-property": <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16M8 21V8l8-5v18M11 10h2M11 14h2" /></svg>,
+  "retail-hospitality": <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9l1.5-5h15L21 9M3 9v2a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0V9M5 13v8h14v-8M10 21v-5h4v5" /></svg>,
+  "professional-services": <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" /><path d="M9 7V4h6v3M3 12h18" /></svg>,
+};
+const WIDE = new Set(["property-business-interruption", "directors-officers"]);
 
-const FAQS = [
-  { q: "How is remuneration disclosed?", a: "Brokerage by line and by insurer, and any fee, in writing before binding. Contingent commissions, if any, are disclosed in the client agreement." },
-  { q: "Can you act mid-term under a broker of record letter?", a: "Yes. A broker of record letter moves servicing and open claims to us mid-term, subject to the insurer's acceptance. Cover and premium are unchanged until renewal." },
-  { q: "Do you take over open claims?", a: "Yes, under the same letter. We review the notification, the coverage position and the quantum to date, then take over correspondence with the insurer and the adjuster." },
-  { q: "How early should the renewal start?", a: "120 days for property and casualty, 150 for D&O and other financial lines. Late files reach fewer markets and leave subjectivities open at inception." },
-];
+function Card({ k, t, pts }: { k: string; t: string; pts: string[] }) {
+  return <div className="card"><p className="ct"><span className="k">{k}</span>{t}</p><ul>{pts.map(x => <li key={x}>{x}</li>)}</ul></div>;
+}
+function Head({ n, label, title, accent }: { n: string; label: string; title: string; accent: string }) {
+  return <div className="head"><p className="eb"><span className="n">{n} {label}</span></p><h2 className="h2">{title} <span className="accent">{accent}</span></h2></div>;
+}
 
 export default function Home() {
-  const lines = FAMILIES.flatMap(f => LINES.filter(l => l.family === f));
   return (
     <>
-      {/* Hero: serif headline in white over the photograph, lede and actions at the foot (privatebank.jpmorgan.com). */}
-      <section className="hero relative isolate flex min-h-[680px] flex-col justify-between text-white md:min-h-[800px] xl:min-h-[880px]">
-        <Image src="/images/hero.jpg" alt="Victoria Harbour skyline" fill priority sizes="100vw" className="-z-20 object-cover" />
-        <div className="hero-shade absolute inset-0 -z-10" aria-hidden />
-        <div className="wrap reveal pt-14 lg:pt-20">
-          <p className="eyebrow !text-white/75">{site.name} · Specialty and commercial lines</p>
-          <h1 className="display h1 mt-6 max-w-[14ch] text-white">Hard-to-place risks, <em className="font-normal italic text-white/90">placed on the wording.</em></h1>
-        </div>
-        <div className="wrap pb-14 lg:pb-20">
-          <div className="flex flex-col gap-8 border-t border-white/25 pt-8 lg:flex-row lg:items-end lg:justify-between">
-            <div className="flex max-w-2xl flex-col gap-7">
-              <p className="text-[17px] leading-relaxed text-white/85">Curated market approaches, manuscript wordings where the standard form falls short, and claims advocacy from first notice. One named team from submission to settlement.</p>
-              <div className="flex flex-wrap gap-3">
-                <ButtonLink href="/contact#review" variant="on-dark">Request a programme review</ButtonLink>
-                <ButtonLink href="/coverage" variant="ghost-dark">Lines we place</ButtonLink>
-              </div>
-            </div>
-            <p className="text-[12px] uppercase tracking-[0.12em] text-white/70">Insurance Authority · {site.licence}</p>
+      <section className="hero">
+        <Image src="/images/hero.jpg" alt="Victoria Harbour skyline" fill priority sizes="100vw" className="bg" />
+        <div className="shade" aria-hidden />
+        <div className="wrap inner">
+          <h1 className="caps-h1">A wholesale insurance brokerage for hard risks.</h1>
+          <div className="side">
+            <p className="lede">{site.name} makes specialty coverage easier to place. Structured intake and named broker support help retail agents prepare difficult commercial risks for current market review.</p>
+            <div className="btns"><Link href="/contact?purpose=review" className="btn">Request a programme review <span className="arrow">↗</span></Link><Link href="/coverage" className="btn ghost">Lines we place</Link></div>
           </div>
         </div>
       </section>
 
-      {/* 01 The difference */}
-      <section className="wrap section flex flex-col gap-14">
-        <SplitHead num="01" label="The difference" title={<>Named brokers on <Accent>the hard files.</Accent></>} lede="Three commitments, for the companies we act for and the insurers we place with." />
-        <NumberCells items={DIFFERENCE} />
-      </section>
-
-      {/* 02 How it works */}
-      <section className="wrap section !pt-0 flex flex-col gap-14">
-        <SplitHead num="02" label="How it works" title={<>From the renewal file <Accent>to the right market.</Accent></>} lede="Five stages on every renewal. The same named team stays with the account from review to claim." />
-        <ol className="cells grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
-          {PLACEMENT.map((s, i) => (
-            <li key={s.title} className="flex flex-col pt-6">
-              <p className="font-mono text-[12px] uppercase tracking-[0.04em] text-muted"><span className="text-ultra">{String(i + 1).padStart(2, "0")}</span> / {s.title}</p>
-              <h3 className="display mt-6 text-[24px] text-ink">{s.headline}</h3>
-              <p className="mt-3 text-[15px] leading-relaxed text-muted">{s.points[0]}.</p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* 03 The file (Rillet Aura layout) */}
-      <FileSection />
-
-      {/* 04 Coverage: Hedge cell grid */}
-      <section className="bg-stone">
-        <div className="wrap section flex flex-col gap-14">
-          <div className="flex flex-col gap-6">
-            <Eyebrow num="04">Coverage</Eyebrow>
-            <h2 className="display h2 max-w-[22ch] text-ink">Placement knowledge <Accent>for difficult commercial risks.</Accent></h2>
-            <p className="lede">Start with the line. Each guide sets out what the policy may cover, what moves price and terms, and the underwriting file we build.</p>
-          </div>
-          <div className="cells grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-            {lines.map(l => (
-              <Link key={l.slug} href={`/coverage/${l.slug}`} className="group flex min-h-[200px] flex-col pt-6 transition-colors">
-                <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-muted">{l.family}</span>
-                <span className="display mt-3 text-[26px] text-ink">{l.name}</span>
-                <span className="mt-auto flex items-center justify-between pt-10 text-[14px] text-muted group-hover:text-ultra">Coverage and preparation guide <Arrow /></span>
-              </Link>
-            ))}
-            <Link href="/contact#review" className="group flex min-h-[220px] flex-col !bg-ultra p-7 text-white">
-              <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-white/70">Programme review</span>
-              <span className="display mt-3 text-[26px]">Send the renewal 120 days out.</span>
-              <span className="mt-auto flex items-center justify-between pt-10 text-[14px] text-white/80">Request a review <Arrow /></span>
-            </Link>
-            <Link href="/coverage" className="group flex min-h-[220px] flex-col !bg-night p-7 text-white">
-              <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-white/60">Coverage library</span>
-              <span className="display mt-3 text-[26px]">Browse all lines.</span>
-              <span className="mt-auto flex items-center justify-between pt-10 text-[14px] text-white/70">Coverage, wordings and preparation <span aria-hidden>→</span></span>
-            </Link>
-          </div>
+      <section className="plain"><div className="wrap sec stack">
+        <Head n="01" label="The difference" title="Named brokers on" accent="the hard files." />
+        <div className="prose">
+          <h3>Named brokers on the hard files</h3>
+          <p>Most commercial programmes are renewed on last year&apos;s schedule by whoever picks up the file that month. The wording is rarely read against the contracts it is meant to answer. The gap shows at the claim, when the insurer reads it first.</p>
+          <p>{site.name} works the other way round. A broker, an account handler and a claims contact are named at the first meeting and stay with the account through renewal and claim. Submissions are built as underwriting files, not forms. Markets are selected for the risk rather than circulated, and terms are compared clause by clause before any recommendation is made.</p>
         </div>
-      </section>
+        <div className="cards c3">{DIFFERENCE.map(c => <Card key={c.k} {...c} />)}</div>
+      </div></section>
 
-      {/* 05 Industries */}
-      <section className="wrap section flex flex-col gap-14">
-        <SplitHead num="05" label="Industries" title={<>Sectors where loss runs <Accent>understate the exposure.</Accent></>} />
-        <div className="cells grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {INDUSTRIES.map(ind => (
-            <Link key={ind.slug} href={`/industries/${ind.slug}`} className="group flex min-h-[180px] flex-col pt-6 transition-colors">
-              <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-muted">{ind.exposures.length} named risks · {ind.programme.length} lines</span>
-              <span className="display mt-3 text-[26px] text-ink">{ind.name}</span>
-              <span className="mt-2 text-[15px] leading-relaxed text-muted">{ind.summary}</span>
-              <span className="mt-auto flex items-center justify-between pt-8 text-[14px] text-muted group-hover:text-ultra">Sector programme <Arrow /></span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 06 Claims and licence */}
-      <section className="wrap section !pt-0 flex flex-col gap-14">
-        <SplitHead num="06" label="Claims and licence" title={<>The claim is where <Accent>the placement is tested.</Accent></>} lede="The broker who placed the risk stays on the claim: notification, coverage position, quantum and settlement, argued on the wording." />
-        <div className="cells grid-cols-1 md:grid-cols-3">
-          {[["Claims handled in [year]", "[—]"], ["Median days, notification to settlement", "[—]"], ["Settled as a share of amount claimed", "[—]"]].map(([l, v]) => (
-            <div key={l} className="flex flex-col gap-6 pt-6">
-              <span className="font-mono text-[12px] uppercase tracking-[0.06em] text-muted">{l}</span>
-              <span className="display text-[64px] leading-none text-ink">{v}</span>
+      <section className="navy"><div className="wrap sec stack">
+        <Head n="02" label="How it works" title="From the renewal file" accent="to the right market." />
+        <div className="tl">
+          {STAGES.map((s, i) => (
+            <div key={s.t} className="tl-item">
+              <div className="doc">{SHEETS[i]}</div>
+              <div className="tl-mark" />
+              <div><p className="tl-k">{String(i + 1).padStart(2, "0")} {s.t}</p><h3>{s.h}</h3><p>{s.p}</p><span className="tag">{s.tag}</span></div>
             </div>
           ))}
         </div>
-        <div className="cells grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          {[["Insurance Authority", `Licensed broker company · ${site.licence}`], ["Client monies", "Segregated client account under Cap. 41"], ["Professional indemnity", "[Insurer and limit]"], ["Membership", "[HKCIB or PIBA]"]].map(([t, d]) => (
-            <div key={t} className="flex flex-col gap-2 pt-5">
-              <span className="display text-[20px] text-ink">{t}</span>
-              <span className="font-mono text-[12.5px] text-muted">{d}</span>
-            </div>
+        <div className="btns" style={{ justifyContent: "flex-start" }}><Link href="/how-we-work" className="btn ghost">How it works, stage by stage</Link></div>
+      </div></section>
+
+      <section className="band"><div className="wrap sec stack">
+        <Head n="03" label="The file" title="One file per line," accent="from review through claim." />
+        <div className="trio">
+          {FILE.map(f => <div key={f.t}><span className="ico">{f.icon}</span><h3>{f.t}</h3><p>{f.p}</p></div>)}
+        </div>
+      </div></section>
+
+      <section className="plain"><div className="wrap sec stack">
+        <Head n="04" label="Coverage" title="Placement knowledge" accent="for difficult commercial risks." />
+        <div className="prose">
+          <h3>Ten lines, four families, one preparation standard</h3>
+          <p>Start with the line. Each coverage guide sets out what the policy may cover, what moves price and terms, the underwriting file we build before going to market, and the three mistakes we see most often at renewal. The guides are written for the reader who buys insurance for a living: the CFO, the risk manager, the general counsel.</p>
+          <p>Where the standard form falls short, the wording is negotiated. A dedicated Side A limit on D&amp;O, an insured-versus-insured carve-back, contingency cargo cover where the buyer insures, an indemnity period sized to refit time rather than to the policy default. <Link href="/appetite" style={{ color: "var(--navy)" }}>Check appetite by class →</Link></p>
+        </div>
+        <div className="hgrid">
+          {LINES.map(l => (
+            <Link key={l.slug} href={`/coverage/${l.slug}`} className={`ht ${WIDE.has(l.slug) ? "wide" : ""}`}>
+              <span className="chip">{l.family}</span><span className="htt">{l.name}</span><span className="hts">{l.summary}</span><span className="htq">{l.thesis}</span>
+            </Link>
           ))}
         </div>
-        <div><ButtonLink href="/claims" variant="ghost">How claims are run</ButtonLink></div>
-      </section>
+        <div className="btns" style={{ justifyContent: "flex-start" }}><Link href="/coverage" className="btn ghost">All coverage guides</Link></div>
+      </div></section>
 
-      {/* 07 In their words */}
-      <section className="bg-stone">
-        <div className="wrap section grid gap-12 lg:grid-cols-12 lg:gap-0">
-          <div className="flex flex-col gap-6 lg:col-span-3 lg:pr-10">
-            <Eyebrow num="07">In their words</Eyebrow>
-            <ol className="border-t border-ink">
-              {[1, 2, 3].map(n => (
-                <li key={n} className="flex items-center gap-5 border-b border-rule py-4">
-                  <span className={`text-[22px] font-light ${n === 1 ? "text-ultra" : "text-muted"}`}>{String(n).padStart(2, "0")}</span>
-                  <span className="flex flex-col"><span className="text-[14px] text-ink">[Title]</span><span className="font-mono text-[12px] text-muted">[Company type · sector]</span></span>
-                </li>
-              ))}
-            </ol>
-          </div>
-          <figure className="flex flex-col gap-8 lg:col-span-9">
-            <blockquote className="display text-[30px] leading-[1.12] text-ink md:text-[48px]">“[Client quote on a placement or claim.] <Accent tone="muted">[Second sentence with the outcome.]</Accent>”</blockquote>
-            <figcaption className="flex flex-col text-[15px]"><span className="text-ink">[Title]</span><span className="text-muted">[Company type · size]</span></figcaption>
-          </figure>
+      <section className="band"><div className="wrap sec stack">
+        <Head n="05" label="Industries" title="Sectors where loss runs" accent="understate the exposure." />
+        <div className="prose">
+          <h3>Named risks per sector: the exposure, what it costs, the cover that answers it</h3>
+          <p>A clean loss run is not evidence of a well-insured business. It is evidence that the large loss has not happened yet. Each sector page names the exposures that produce the large loss in that industry, states what it costs when it happens, and sets out the line and the wording that respond to it.</p>
+          <p>The programme for each sector is built from the ten lines above, with the limits, extensions and carve-backs that sector needs: North American liability priced for a trading house, investigation costs on D&amp;O for a licensed firm, subcontracted labour under employees&apos; compensation for a contractor.</p>
         </div>
-      </section>
+        <div className="bento">
+          {INDUSTRIES.map((ind, i) => (
+            <Link key={ind.slug} href={`/industries/${ind.slug}`} className={`bt ${i === 0 ? "feat" : i === INDUSTRIES.length - 1 ? "wide" : ""}`}>
+              <span className="ico">{IND_ICON[ind.slug]}</span>
+              <h3>{ind.name}</h3>
+              <p>{ind.headline} {ind.summary}</p>
+              {i === 0 && <div className="prog">{ind.programme.map(s => <span key={s}>{lineBySlug(s)?.name ?? s}</span>)}</div>}
+              <span className="more">Sector programme →</span>
+            </Link>
+          ))}
+        </div>
+      </div></section>
 
-      {/* 08 Questions */}
-      <section className="wrap section grid gap-10 lg:grid-cols-12 lg:gap-0">
-        <Eyebrow num="08" className="pt-2 lg:col-span-3">Questions</Eyebrow>
-        <div className="lg:col-span-9"><Faq items={FAQS} /></div>
-      </section>
+      <section className="plain"><div className="wrap sec stack">
+        <div className="head" style={{ alignItems: "center" }}><p className="eb" style={{ justifyContent: "center" }}><span className="n">06 In their words</span></p></div>
+        <figure className="quote"><blockquote>&ldquo;[Client quote on a placement or claim.] <span className="accent">[Second sentence with the outcome.]</span>&rdquo;</blockquote><figcaption><span>[Title]</span><span>[Company type · sector · size]</span></figcaption></figure>
+      </div></section>
 
       <CloseBand />
     </>

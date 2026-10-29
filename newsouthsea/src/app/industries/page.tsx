@@ -1,35 +1,24 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { CloseBand } from "@/components/close-band";
-import { Eyebrow, Photo } from "@/components/ui";
+import { JbApart, JbCol, JbCta, JbH2, JbHead, JbLinks, JbP } from "@/components/jb";
 import { INDUSTRIES } from "@/content/industries";
 
-export const metadata: Metadata = { title: "Industries", description: "Insurance programmes by industry." };
+export const metadata: Metadata = { title: "Industries", description: "Six sectors. Named risks, what they cost when they happen, and the lines that make up the programme." };
 
 export default function IndustriesPage() {
   return (
     <>
-      <section className="border-b border-rule">
-        <div className="wrap grid gap-8 py-16 lg:grid-cols-[3fr_9fr] lg:gap-0 lg:py-24">
-          <Eyebrow className="pt-3">Industries</Eyebrow>
-          <div className="reveal flex flex-col gap-6">
-            <h1 className="display h1 text-ink">Industries</h1>
-            <p className="lede">Six sectors with specific insurance needs.</p>
-          </div>
-        </div>
-      </section>
-      <section className="wrap section grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {INDUSTRIES.map(ind => (
-          <Link key={ind.slug} href={`/industries/${ind.slug}`} className="group flex flex-col overflow-hidden border border-rule transition-colors hover:border-bronze">
-            <Photo src={ind.image} alt={ind.name} className="aspect-[16/10] !rounded-none" />
-            <div className="flex flex-col gap-2 p-6">
-              <span className="display text-[24px] text-ink group-hover:text-umber">{ind.name}</span>
-              <span className="body !text-[15px]">{ind.headline}</span>
-            </div>
-          </Link>
-        ))}
-      </section>
-      <CloseBand />
+      <JbHead crumbs={[{ label: "Home", href: "/" }, { label: "Industries" }]} title="Industries" lede="Six sectors. Each page names the risks, what they cost when they happen, and the lines that make up the programme." />
+      <JbCol>
+        <JbP>A clean loss run is not evidence of a well-insured business. It is evidence that the large loss has not happened yet. Each sector page names the exposures that produce the large loss in that industry and sets out the line and the wording that respond to it.</JbP>
+        <JbH2>Sectors</JbH2>
+        <JbLinks rows={INDUSTRIES.map(i => ({ title: i.name, sub: i.headline, href: `/industries/${i.slug}` }))} />
+      </JbCol>
+      <JbApart label="What sets us apart" items={[
+        { title: "Named risks, not a brochure", body: "Each exposure is stated with what it costs when it happens and the cover that answers it." },
+        { title: "One programme per sector", body: "Limits, extensions and carve-backs chosen for the industry, built from the ten lines we place." },
+        { title: "The same team at claim", body: "The broker who placed the programme argues the wording when the sector risk materialises." },
+      ]} />
+      <JbCta title={<>Send us the account everyone else said no to.</>} />
     </>
   );
 }

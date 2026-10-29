@@ -5,23 +5,22 @@ import { SERVICES } from "@/lib/services";
 import { CoverArt } from "@/components/cover-art";
 import { Terrain } from "@/components/terrain";
 import { ChatMock, ClaimReportMock, CoverListMock, ReportMock, UploadMock } from "./ui-mocks";
+import { CoverChecker, HeroEmail } from "./home-client";
+import { COVER_GROUPS } from "@/lib/quote";
+import { COVER_GUIDES, DISCLOSURE } from "@/lib/cover-tags";
 
-/** Hero (Fernstone): centred headline, one line on what Corp Cover is, three ticks, two actions, the report window below. */
+/** Hero (Fernstone layout, flex.one email form): headline, one line, three ticks, work email → policy review, the report window below. */
 export function HomeHero({ m }: { m: MarketKey }) {
   const M = MARKETS[m];
   const points = ["Policy review against your contracts", "Cover quotes from several insurers", "Adviser chat on any clause"];
   return (
     <Terrain shade="evergreen">
     <section className="fh" aria-labelledby="hero-h">
-      <h1 id="hero-h" className="fh-h1">Get the right insurance coverage</h1>
-      <p className="fh-lede">Corp Cover is where businesses come for insurance advice and plain guides to what their policies cover.</p>
+      <h1 id="hero-h" className="fh-h1">Get your policy reviewed</h1>
+      <p className="fh-lede">Advisers read your policy against your contracts and lease, then explain the gaps, the overlaps and the price.</p>
       <ul className="fh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
-      <div className="fh-ctas">
-        <Link href={mpath(m, SERVICES.review.path)} className="btn btn-ghost">{SERVICES.review.name}</Link>
-        <Link href={mpath(m, SERVICES.quotes.path)} className="btn btn-primary">{SERVICES.quotes.name}
-          <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 12 12 4M5.5 4H12v6.5" /></svg>
-        </Link>
-      </div>
+      <HeroEmail m={m} />
+      <p className="fh-alt">or <Link href={mpath(m, SERVICES.quotes.path)}>{SERVICES.quotes.cta.toLowerCase()}</Link></p>
       <div className="fh-win" aria-hidden>
         <div className="fh-bar"><b><i>GP</i>GreenPoint Pte Ltd</b><span>Policy review · {M.name}</span></div>
         <ReportMock currency={M.currency} />
@@ -41,7 +40,7 @@ export function Numbers() {
   return (
     <section className="nb" aria-labelledby="nb-h">
       <div className="wrap nb-grid">
-        <h2 id="nb-h" className="nb-label">CorpCover by the numbers</h2>
+        <h2 id="nb-h" className="nb-label">Corp Cover in numbers</h2>
         {stats.map(([n, l]) => <p key={l} className="nb-stat"><b>{n}</b><span>{l}</span></p>)}
       </div>
     </section>
@@ -55,16 +54,16 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
       <div className="cf-panel">
         <div className="cf-copy">
           <p className="cf-eyebrow">50+ years of combined experience</p>
-          <h2 id="claim-h" className="cf-h2">Unsure about your claim?</h2>
-          <p className="cf-lede">Send your policy, supporting documents, and any legal documents or email threads with the insurer. We analyse what your policy entitles you to receive and advise you on the next step.</p>
+          <h2 id="claim-h" className="cf-h2">Get your claim reviewed</h2>
+          <p className="cf-lede">Send the policy, the insurer&apos;s letters and your supporting documents. We set each reason the insurer gave against the clause it relies on, then advise on the next step.</p>
           <p className="cf-get">What you get</p>
           <ul className="cf-ticks">
-            <li><b>Detailed PDF report</b><span>An analysis of your claim: each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
-            <li><b>30-minute call with an experienced broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
+            <li><b>PDF report</b><span>Each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
+            <li><b>30-minute call with a broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
           </ul>
-          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Check my claim</Link>
+          <Link href={mpath(m, SERVICES.claim.path)} className="btn btn-primary mt-8 self-center">{SERVICES.claim.cta}</Link>
         </div>
-        <Link href={mpath(m, "/claims")} className="cf-art grain grain-evergreen" aria-label="Example claim second opinion report">
+        <Link href={mpath(m, SERVICES.claim.path)} className="cf-art grain grain-evergreen" aria-label="Example claim second opinion report">
           <span className="cf-sheet" aria-hidden><ClaimReportMock currency={MARKETS[m].currency} body={MARKETS[m].disputeBody} /></span>
         </Link>
       </div>
@@ -73,9 +72,9 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
 }
 
 const CARDS = [
-  { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
-  { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
-  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Find my cover", path: "/get-covered" },
+  { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: SERVICES.chat.cta, path: SERVICES.chat.path },
+  { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: SERVICES.review.cta, path: SERVICES.review.path },
+  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: SERVICES.quotes.cta, path: SERVICES.quotes.path },
 ] as const;
 
 /** Three services (Harvey "One Platform" cards): the hovered card widens, the others fade. */
@@ -84,8 +83,7 @@ export function ServiceCards({ m }: { m: MarketKey }) {
   return (
     <section className="hp-sec" aria-labelledby="svc-h">
       <div className="wrap text-center">
-        <h2 id="svc-h" className="hp-h2">Business insurance, start to finish</h2>
-        <p className="hp-sub">Review the cover you hold, ask about a clause, or get quotes for new cover. Insurers pay the advisers; your business pays no fee.</p>
+        <h2 id="svc-h" className="hp-h2">Services</h2>
       </div>
       <div className="wrap">
         <div className="pc-row">
@@ -100,6 +98,92 @@ export function ServiceCards({ m }: { m: MarketKey }) {
             </Link>
           ))}
         </div>
+        <Disclosure />
+      </div>
+    </section>
+  );
+}
+
+/** One line, beside the services it qualifies (flex.one "not a bank" line). */
+export function Disclosure() {
+  return <p className="disc">{DISCLOSURE}</p>;
+}
+
+/** How Corp Cover is paid (flex.one statement band): one sentence, one paragraph. */
+export function Statement() {
+  return (
+    <section className="st grain grain-evergreen" aria-labelledby="st-h">
+      <div className="wrap st-in">
+        <h2 id="st-h" className="st-h2">Insurers pay the broker. A review or a quote costs your business nothing.</h2>
+        <p className="st-p">Corp Cover reads the policy, explains the wording and passes your request to a licensed broker. The broker compares insurers, places the cover and is paid commission by the insurer. The claim review is the one paid service: a flat fee, never a share of the payout.</p>
+      </div>
+    </section>
+  );
+}
+
+/** Cover checker section (flex.one availability selector). */
+export function CoverCheck({ m }: { m: MarketKey }) {
+  return (
+    <section className="wrap hp-sec" aria-labelledby="ck-h">
+      <h2 id="ck-h" className="hp-h2 !text-left">Cover by business type</h2>
+      <CoverChecker m={m} />
+    </section>
+  );
+}
+
+/** Liability and asset cover (flex.one product list): the hovered row sharpens, the rest fade. */
+export function CoverLines({ m, slugs }: { m: MarketKey; slugs: string[] }) {
+  return (
+    <section className="cl grain grain-moss" aria-labelledby="cl-h">
+      <div className="wrap cl-in">
+        <h2 id="cl-h" className="cl-h2">Liability and asset cover</h2>
+        <div className="cl-cols">
+          {COVER_GROUPS.filter(g => g.name !== "Other").map(g => (
+            <div key={g.name}>
+              <p className="cl-g">{g.name}</p>
+              <ul className="cl-list">
+                {g.items.map(c => {
+                  const slug = COVER_GUIDES[c], guide = slug && slugs.includes(slug);
+                  return (
+                    <li key={c}>
+                      <Link href={guide ? mpath(m, `/articles/${slug}`) : mpath(m, SERVICES.quotes.path)}>
+                        <span>{c}</span><em>{guide ? "Guide" : SERVICES.quotes.cta}</em>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Situations (flex.one audience blocks): the trigger a business arrives with, routed to one service. */
+export function Situations({ m, slugs }: { m: MarketKey; slugs: string[] }) {
+  const fw = m === "sg" && slugs.includes("foreign-worker-insurance");
+  const rows: { title: string; text: string; cta: string; href: string; tone: string }[] = [
+    { title: "Signing a lease", text: "Leases name the cover and limits a tenant must hold. Send the lease clause with your policy. An adviser checks they match.", cta: SERVICES.review.cta, href: mpath(m, SERVICES.review.path), tone: "grain-evergreen" },
+    { title: "Tendering for a contract", text: "Tenders list the cover required before award. Send the tender clause. A broker quotes against it.", cta: SERVICES.quotes.cta, href: mpath(m, SERVICES.quotes.path), tone: "grain-moss" },
+    fw
+      ? { title: "Hiring foreign workers", text: "Most work permit holders need medical insurance, a security bond and work injury cover before they start.", cta: "Read the guide", href: mpath(m, "/articles/foreign-worker-insurance"), tone: "grain-pine" }
+      : { title: "Hiring staff", text: "Most employers must insure staff for work injury. A broker quotes for your headcount.", cta: SERVICES.quotes.cta, href: mpath(m, SERVICES.quotes.path), tone: "grain-pine" },
+    { title: "Renewal due", text: "Send the renewal notice before you pay. An adviser compares it with last year's schedule.", cta: SERVICES.review.cta, href: mpath(m, SERVICES.review.path), tone: "grain-moss" },
+    { title: "Claim rejected", text: "Send the insurer's letter and the policy. Each reason is set against the clause it relies on.", cta: SERVICES.claim.cta, href: mpath(m, SERVICES.claim.path), tone: "grain-evergreen" },
+  ];
+  return (
+    <section className="wrap hp-sec" aria-labelledby="si-h">
+      <h2 id="si-h" className="hp-h2 !text-left">By situation</h2>
+      <div className="si-grid">
+        {rows.map(r => (
+          <Link key={r.title} href={r.href} className={`si-card grain ${r.tone}`}>
+            <span className="si-h3">{r.title}</span>
+            <span className="si-text">{r.text}</span>
+            <span className="pc-btn si-btn">{r.cta}</span>
+          </Link>
+        ))}
       </div>
     </section>
   );

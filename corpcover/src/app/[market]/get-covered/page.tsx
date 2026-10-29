@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { GetCovered } from "@/components/get-covered";
 import { MARKETS, alternates, marketParam } from "@/lib/market";
-import { SERVICES } from "@/lib/services";
 
 export async function generateMetadata({ params }: { params: Promise<{ market: string }> }): Promise<Metadata> {
   const m = await marketParam(params), M = MARKETS[m];
@@ -18,7 +17,7 @@ export default async function GetCoveredPage({ params, searchParams }: { params:
   return (
     <main className="gc-page terrain terrain-dark grain grain-pine flex-1">
       <div className="mx-auto w-full max-w-[680px] px-4 pb-[clamp(96px,12vw,176px)] pt-[clamp(56px,8vw,112px)]">
-        <h1 className="t-h1 mb-[clamp(36px,5vw,56px)] text-center">{SERVICES.quotes.name}</h1>
+        <h1 className="t-h1 mb-[clamp(36px,5vw,56px)] text-center">Get cover quotes</h1>
         <div className="frost"><GetCovered initialBiz={biz} market={m} /></div>
       </div>
     </main>

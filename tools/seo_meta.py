@@ -1,8 +1,12 @@
 """Search titles and meta descriptions for product pages, and short title tags for Insights posts.
 
+GA4_ID: set to the GA4 measurement id (G-XXXXXXXXXX) and rebuild; every page then carries the tag. Empty = no tag.
+
 Titles stay under 60 characters and descriptions under 155, so Google shows them whole.
 No prices, no promised outcomes.
 """
+
+GA4_ID = ''
 
 PRODUCT_META = {
     'commercial/property': ('Commercial Property Insurance Singapore | TRS',
@@ -19,13 +23,13 @@ PRODUCT_META = {
                                'Insurance in Singapore for specialised vehicles, construction plant and high-value assets outside standard policies. Placed by TRS.'),
     'commercial/motor': ('Commercial Vehicle & Fleet Insurance Singapore | TRS',
                          'Commercial vehicle and fleet insurance in Singapore for vans, lorries and company cars: own damage, theft and third party. Placed by TRS.'),
-    'commercial/inventory': ('Marine Cargo Insurance Singapore | TRS',
+    'commercial/marine-cargo': ('Marine Cargo Insurance Singapore | TRS',
                              'Marine cargo insurance in Singapore for goods moved by sea, air and road, on Institute Cargo Clauses. Single shipment or open cover.'),
     'commercial/stock-throughput': ('Stock Throughput Insurance Singapore | TRS',
                                     'Stock throughput insurance in Singapore: one policy for goods in transit and in storage, from supplier to customer. Placed by TRS.'),
     'commercial/inland-transit': ('Inland Transit Insurance Singapore | TRS',
                                   'Inland transit insurance in Singapore for goods moved by road, rail or courier within the country. Placed by TRS.'),
-    'commercial/financial-assets': ('Trade Credit Insurance Singapore | TRS',
+    'commercial/trade-credit': ('Trade Credit Insurance Singapore | TRS',
                                     'Trade credit insurance in Singapore against buyer insolvency and protracted non-payment on B2B receivables. Placed by TRS.'),
     'commercial/surety-bonds': ('Surety Bonds Singapore: Performance & Tender | TRS',
                                 'Surety bonds in Singapore issued by insurers: performance, tender, advance payment and foreign worker bonds. Placed by TRS.'),
@@ -65,7 +69,7 @@ PRODUCT_META = {
                       'Maid insurance in Singapore meeting MOM requirements: medical, personal accident and the security bond. Placed by TRS.'),
     'personal/personal-accident': ('Personal Accident Insurance Singapore | TRS',
                                    'Personal accident insurance in Singapore: lump sum and medical expenses after accidental injury or disability. Placed by TRS.'),
-    'consumers/motor': ('Car Insurance Singapore | TRS',
+    'consumers/motor': ('Car Insurance Singapore: Compare Insurers | TRS',
                         'Car insurance in Singapore: comprehensive, third party fire and theft, or third party only, compared across insurers by TRS.'),
     'consumers/travel': ('Travel Insurance Singapore | TRS',
                          'Travel insurance in Singapore for medical emergencies, trip cancellation and baggage loss, single trip or annual. Placed by TRS.'),
@@ -97,7 +101,7 @@ SOLUTION_META = {
     'wholesale': ('Wholesale & Distribution Insurance Singapore | TRS',
                   'Insurance for wholesalers and distributors in Singapore: stock throughput, trade credit, marine cargo and liability.'),
     'financial-services': ('Financial Services Insurance Singapore | TRS',
-                           'Insurance for fund managers and financial firms in Singapore: professional indemnity, D&O, crime and cyber.'),
+                           'Insurance for fund managers, brokers and fintech firms in Singapore: professional indemnity, D&O, crime, cyber and the cover MAS licence conditions expect.'),
     'built-environment': ('Construction Insurance Singapore | TRS',
                           "Insurance for contractors and developers in Singapore: contractors' all risks, surety bonds, WICA and foreign worker cover."),
     'healthcare': ('Healthcare & Clinic Insurance Singapore | TRS',

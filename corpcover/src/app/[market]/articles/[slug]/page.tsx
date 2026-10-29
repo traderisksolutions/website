@@ -113,7 +113,7 @@ export default async function ArticlePage(props: P) {
           <p className="-mt-2 max-w-[44ch] text-ink-2">Insurers pay the advisers commission. Your business pays no fee, and a review is not a quote.</p>
           <div className="flex flex-wrap justify-center gap-3">
             <StartButton flow="review" className="glass-primary px-6 py-2.5 text-sm font-semibold">Send my policy for review</StartButton>
-            {m === "sg" ? <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a> : <Link href={mpath(m, "/get-covered")} className="glass px-6 py-2.5 text-sm font-medium">Get covered</Link>}
+            {m === "sg" ? <a href={`tel:+65${site.phone.replace(/\s/g, "")}`} className="glass px-6 py-2.5 text-sm font-medium">Call {site.phone}</a> : <Link href={mpath(m, "/get-covered")} className="glass px-6 py-2.5 text-sm font-medium">Request quotes</Link>}
           </div>
         </div>
         <div className="mt-12 flex flex-col items-center text-center">

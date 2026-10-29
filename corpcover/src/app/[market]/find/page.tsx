@@ -31,7 +31,7 @@ export default async function Find({ params }: { params: Promise<{ market: strin
         ]} />
         <div className="mt-8 flex flex-wrap gap-2.5">
           <FindStart />
-          <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Use the short form</Link>
+          <Link href={mpath(m, "/get-covered")} className="btn btn-ghost">Request quotes</Link>
         </div>
       </section>
     </main>
