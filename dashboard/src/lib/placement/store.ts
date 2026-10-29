@@ -275,7 +275,7 @@ export async function contactIdFor(email: string, name?: string | null): Promise
   return made[0]?.id ?? null
 }
 
-export type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string }
+export type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] | null }
 export async function createDraft(d: { contact_id: string; to_email: string; subject: string; body: string; thread_id?: string | null; email_type: string; cc?: string[] }): Promise<DraftRow | null> {
   const rows = await insert<DraftRow>('ai_drafts', {
     contact_id: d.contact_id, thread_id: d.thread_id ?? null, channel: 'email', to_email: d.to_email, subject: d.subject, body: d.body,
@@ -290,7 +290,7 @@ export async function draftById(id: string): Promise<(DraftRow & { cc: string[] 
 }
 export async function pendingDrafts(ids: string[]): Promise<DraftRow[]> {
   if (ids.length === 0) return []
-  return sbTry<DraftRow[]>(`ai_drafts?id=in.(${ids.join(',')})&select=id,to_email,subject,body,status,thread_id,contact_id,email_type,created_at&order=created_at.asc`, [])
+  return sbTry<DraftRow[]>(`ai_drafts?id=in.(${ids.join(',')})&select=id,to_email,subject,body,status,thread_id,contact_id,email_type,created_at,attachments&order=created_at.asc`, [])
 }
 
 /** Dispatches whose chase date has passed and that are still waiting. */

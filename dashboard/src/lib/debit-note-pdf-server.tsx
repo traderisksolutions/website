@@ -8,6 +8,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { DebitNotePdfDocument, type DebitNotePdfData } from '@/lib/debit-note-pdf'
+import { registerPdfFonts } from '@/lib/pdf-fonts'
 
 function assetPath(name: string): string | null {
   const p = join(process.cwd(), 'public', 'debit-note', name)
@@ -22,6 +23,7 @@ export function debitNoteAssetsPresent(): { hasLogo: boolean; hasQr: boolean } {
 }
 
 export async function renderDebitNotePdf(data: DebitNotePdfData): Promise<Buffer> {
+  registerPdfFonts(join(process.cwd(), 'public', 'fonts'))
   const logoSrc = assetPath('trs-logo.png')
   const qrSrc   = assetPath('paynow-qr.png')
   return renderToBuffer(<DebitNotePdfDocument data={data} logoSrc={logoSrc} qrSrc={qrSrc} />)

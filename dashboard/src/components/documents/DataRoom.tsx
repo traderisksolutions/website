@@ -17,7 +17,7 @@ type Room = {
   status: DataRoomStatus
   documents: PolicyDocument[]
 }
-type Data = { rooms: Room[]; unsorted: PolicyDocument[]; total: number }
+type Data = { rooms: Room[]; unsorted: PolicyDocument[]; letters?: PolicyDocument[]; total: number }
 
 const LIFECYCLE_WORD: Record<string, string> = { quoting: 'Quoting', presented: 'Presented', bound: 'Bound', live: 'In force', renewal_due: 'Renewal due', lapsed: 'Lapsed' }
 const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
@@ -143,7 +143,7 @@ export function DataRoom({ companyId }: { companyId: string }) {
         </>}
       >
         {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
-        {data.rooms.length === 0 && data.unsorted.length === 0 && <Empty>No documents yet. Upload one, or they arrive here from email.</Empty>}
+        {data.rooms.length === 0 && data.unsorted.length === 0 && !data.letters?.length && <Empty>No documents yet. Upload one, or they arrive here from email.</Empty>}
 
         {data.rooms.map(r => (
           <div key={r.policy.id} className="mb-6">
@@ -167,6 +167,21 @@ export function DataRoom({ companyId }: { companyId: string }) {
             </Register>
           </div>
         ))}
+
+        {!!data.letters?.length && (
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-2 text-[13.5px]">
+              <b className="font-medium text-[14.5px]" style={{ color: INK }}>Letters</b>
+              <span style={{ color: MUTED }}>{data.letters.length}</span>
+            </div>
+            <Register label="Letters" minWidth={980}>
+              {head}
+              <tbody>
+                {data.letters.map(d => docRow(d, false))}
+              </tbody>
+            </Register>
+          </div>
+        )}
 
         {data.unsorted.length > 0 && (
           <div className="mt-2">

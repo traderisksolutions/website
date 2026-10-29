@@ -7,9 +7,10 @@ import * as store from '@/lib/placement/store'
 import { reviewQueue } from '@/lib/placement/workflow'
 import type { Placement, PlacementDispatch } from '@/lib/placement/types'
 import { MOVEMENT_DRAFT_TYPE } from './inbound'
+import { LETTER_DRAFT_TYPE } from '@/lib/letters/appointment'
 import type { PolicyMovement } from './types'
 
-export type QueueKind = 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement'
+export type QueueKind = 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement' | 'letter'
 export type QueueItem = {
   draft: store.DraftRow
   kind: QueueKind
@@ -32,5 +33,11 @@ export async function companyReviewQueue(companyId: string): Promise<QueueItem[]
     return { draft, kind: 'movement', dispatches: [], movements: mine, policyId: mine[0]?.policy_id }
   })
 
-  return [...fromPlacements, ...fromPolicies].sort((a, b) => a.draft.created_at.localeCompare(b.draft.created_at))
+  // Appointment letters drafted from the company (no placement), tagged with the company id.
+  const seen = new Set(fromPlacements.map(x => x.draft.id))
+  const letterDrafts = (await sbTry<store.DraftRow[]>(`ai_drafts?email_type=eq.${LETTER_DRAFT_TYPE}&status=eq.pending&context_used->>company_id=eq.${companyId}&select=id,to_email,subject,body,status,thread_id,contact_id,email_type,created_at,attachments&order=created_at.asc`, []))
+    .filter(d => !seen.has(d.id))
+  const fromLetters: QueueItem[] = letterDrafts.map(draft => ({ draft, kind: 'letter', dispatches: [], movements: [] }))
+
+  return [...fromPlacements, ...fromPolicies, ...fromLetters].sort((a, b) => a.draft.created_at.localeCompare(b.draft.created_at))
 }

@@ -18,11 +18,11 @@ const OPS_EMAIL = 'operations@trade-risksol.com'
 const LAYOUT_KEY = 'trs.drafts.layout'
 type Sender = { email: string; label: string; type: 'shared' | 'personal' }
 type Layout = 'modal' | 'dock'
-const KIND_WORD = { request: 'Request', chase: 'Follow-up', tier: 'Option ask', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
+const KIND_WORD = { request: 'Request', chase: 'Follow-up', tier: 'Option ask', letter: 'Appointment letter', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
 
-type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string }
+type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] | null }
 /** GET /api/companies/[id]/drafts → { queue: QueueItem[] } */
-export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
+export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement' | 'letter'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
 type SendState = { phase: 'idle' } | { phase: 'sending' } | { phase: 'sent' } | { phase: 'error'; message: string }
 /** One recipient of a request item while its fan-out runs: the dispatch id keys the line. */
 type RecipientState = { phase: 'queued' | 'sending' | 'sent' | 'error'; message?: string }
@@ -120,7 +120,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
         const kept = prev.get(q.draft.id)
         return kept && kept.state.phase !== 'sent'
           ? { ...q, subject: kept.subject, html: kept.html, cc: kept.cc, attachments: kept.attachments, state: kept.state, recipients: kept.recipients }
-          : { ...q, subject: q.draft.subject ?? '', html: draftBodyToHtml(q.draft.body ?? ''), cc: '', attachments: [], state: { phase: 'idle' }, recipients: {} }
+          : { ...q, subject: q.draft.subject ?? '', html: draftBodyToHtml(q.draft.body ?? ''), cc: '', attachments: (q.draft.attachments ?? []) as Att[], state: { phase: 'idle' }, recipients: {} }
       })
       setItems(next)
       setSelectedId(cur => cur && next.some(x => x.draft.id === cur) ? cur : next[0]?.draft.id ?? null)

@@ -11,6 +11,11 @@ const nextConfig = {
   // Next 15 externalises @react-pdf/renderer by default, which fails on its ESM build when a
   // client component imports it. Bundling it instead keeps 14.x behaviour.
   transpilePackages: ['@react-pdf/renderer'],
+  // The PDF documents (debit notes, appointment letters) read the brand fonts and the PayNow QR
+  // from public/ at render time; ship them with every server route so Vercel functions find them.
+  outputFileTracingIncludes: {
+    '/api/**/*': ['./public/fonts/**', './public/debit-note/**'],
+  },
   // Vercel sets VERCEL_GIT_COMMIT_SHA at build time but doesn't expose it to the client bundle
   // on its own — this re-exposes it under NEXT_PUBLIC_ so any page can render "which build is
   // this" directly, instead of having to curl-probe routes to tell whether a deploy actually

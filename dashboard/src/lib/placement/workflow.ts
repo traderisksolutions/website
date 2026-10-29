@@ -9,6 +9,7 @@ import { handlePolicyInbound } from '@/lib/policies/inbound'
 import { describeChanges, normaliseSpec, specDiff } from './spec'
 import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
+import { isBrokerBlock } from '@/lib/letters/appointment'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
 import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
@@ -405,7 +406,14 @@ async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, att
       await store.log({ ...base, kind: 'quote', text: `${insurer} quoted ${label}${via}: ${quoteSummary(qs)}${review ? ' — check the figures against the source' : ''}` })
     } else if ((read.kind === 'decline' && read.declined_lines.length === 0) || read.declined_lines.includes(key)) {
       await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'declined', last_inbound_at: at, next_chase_at: null })
-      await store.log({ ...base, kind: 'declined', text: `${insurer} declined ${label}${via}: ${read.summary}` })
+      // "Already quoted through another broker": the market is blocked until the client signs the
+      // appointment letter. The line says so, and the broker gets the letter from the placement.
+      if (isBrokerBlock(`${read.summary} ${msg.body_text ?? ''}`.slice(0, 4000))) {
+        await store.patch('placement_lines', `id=eq.${d.line_id}`, { next_step: `Blocked: ${insurer} already quoted through another broker. Get the signed appointment letter.` })
+        await store.log({ ...base, kind: 'declined', text: `${insurer} is blocked on ${label}${via}: already quoted through another broker. The signed appointment letter releases it.`, detail: { blocked: 'broker_of_record' } })
+      } else {
+        await store.log({ ...base, kind: 'declined', text: `${insurer} declined ${label}${via}: ${read.summary}` })
+      }
     } else if (i === 0) {
       // Not a price for this line: the email is about the request it was matched through.
       if (read.kind === 'info_request') {
@@ -811,7 +819,7 @@ async function confirmFromInsurer(line: PlacementLine, d: PlacementDispatch, pol
 }
 
 /** The drafts waiting on a person for this placement: requests, chases and the client email. */
-export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' }[]> {
+export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'letter' }[]> {
   const bundle = await store.loadPlacement(placementId)
   if (!bundle) return []
   const dispatchDraftIds = [...new Set(bundle.dispatches.filter(d => d.ai_draft_id && d.status === 'drafted').map(d => d.ai_draft_id!))]
@@ -824,7 +832,7 @@ export async function reviewQueue(placementId: string): Promise<{ draft: store.D
   return drafts.map(draft => ({
     draft,
     dispatches: bundle.dispatches.filter(d => d.ai_draft_id === draft.id),
-    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.confirm ? 'confirm' : draft.email_type === DRAFT_TYPE.chase ? 'chase' : draft.email_type === DRAFT_TYPE.tier ? 'tier' : 'request',
+    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.confirm ? 'confirm' : draft.email_type === DRAFT_TYPE.chase ? 'chase' : draft.email_type === DRAFT_TYPE.tier ? 'tier' : draft.email_type === 'APPOINTMENT_LETTER' ? 'letter' : 'request',
   }))
 }
 

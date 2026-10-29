@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
-import { FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
+import { FileText, FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
+import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -38,6 +39,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
 }) {
   const [editing, setEditing] = useState(false)
   const [addingTodo, setAddingTodo] = useState(false)
+  const [letterOpen, setLetterOpen] = useState(false)
   const [changing, setChanging] = useState(false)
   const [opening, setOpening] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
@@ -167,13 +169,14 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
                   aria-label="More actions"
                   title="More actions"
                   disabled={opening}
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: INK }}
                 >
                   {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
+                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setLetterOpen(true)}><FileText size={14} /> Appointment letter</DropdownMenuItem>
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -187,6 +190,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
 
       <NewTodoDialog open={addingTodo} onClose={() => setAddingTodo(false)} companyId={company.id} staff={team} />
       <EditCompanyDialog open={editing} onClose={() => setEditing(false)} company={company} onSaved={onCompany} />
+      <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={company.id} />
     </div>
   )
 }

@@ -58,7 +58,7 @@ export async function fileToDrive(t: FileTarget, bytes: Buffer): Promise<{ fileI
     }
     parent = await findOrCreateFolder(docGroup(t.doc.doc_type), policyFolder, token)
   } else {
-    parent = await findOrCreateFolder('To sort', companyId, token)
+    parent = await findOrCreateFolder(t.doc.doc_type === 'broker_appointment' ? 'Letters' : 'To sort', companyId, token)
   }
   const fileId = await uploadFileToDrive(documentFileName(t.doc), t.doc.mime_type || 'application/octet-stream', bytes, parent, token)
   return { fileId, url: `https://drive.google.com/file/d/${fileId}/view`, policyFolderUrl }

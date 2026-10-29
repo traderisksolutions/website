@@ -1,6 +1,10 @@
 /**
- * Renders a TRS-branded debit note PDF — a 1:1 layout match of the real paper template
- * (verified against TRS DN260607, Propelo Aviation) — logo/letterhead, client + policy details,
+ * Renders a TRS-branded debit note PDF — the 29 Oct 2026 design Jarod signed off (artifact
+ * 61HXAuwpZJbygUbcLkuS5A): the TRS 保风 wordmark stacked at the top left beside "Debit note"
+ * and its number, client and dates, then ONE plain table (policy details, premium lines, the
+ * total as its last row), bank details with the PayNow QR on SGD notes, company details in the
+ * footer. Fonts are the brand faces (pdf-fonts.ts); callers register them first. Earlier: a
+ * 1:1 match of the paper template (DN260607) — client + policy details,
  * an itemized premium table (an optional negative "Fee rebate" line, never GST — GST is tracked
  * internally only, per the client not being GST-registered), and a bank/PayNow details block
  * pinned to a fixed position at the bottom of every page (react-pdf `fixed`) so it stays
@@ -18,7 +22,8 @@
  * only caller that can resolve a real file path; the live preview always passes null for both
  * (falls back to text-only), same as production renders today since neither asset exists yet.
  */
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
+import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer'
+import { PDF_GREEN, PDF_HAIR, PDF_INK, PDF_MUT, PDF_SUB } from '@/lib/pdf-fonts'
 
 export type DebitNotePdfLineItem = { description: string; amount: number }
 
@@ -73,183 +78,143 @@ export interface DebitNotePdfData {
 // Not currency-dependent — bank/PayNow/wire details now come from data.bankProfile
 // (getBankProfileForCurrency()) instead, so USD debit notes can show a different block.
 export const TRS_LETTERHEAD = {
-  companyName: 'Trade Risk Solutions Pte Ltd',
+  companyName: 'Trade Risk Solutions Pte. Ltd.',
   coRegNo:     '202022795H',
   remittanceEmail:     'admin@trade-risksol.com',
   phone:               '6238 0888',
-  footerAddress:       '9 Temasek Boulevard, Suntec Tower 2 #32-01, Singapore 038989',
+  footerAddress:       '9 Temasek Boulevard, #32-01 Suntec Tower 2, Singapore 038989',
 }
 
 const styles = StyleSheet.create({
-  // paddingBottom is deliberately much larger than the other sides — it reserves room for the
-  // `fixed` footer block (sized for its tallest variant: the SGD PayNow QR), so normal-flow
-  // content (the line-items table) page-breaks before it ever reaches that zone instead of
-  // rendering underneath the footer that's absolutely positioned on top of it.
-  page:     { padding: 32, paddingBottom: 260, fontSize: 9, fontFamily: 'Helvetica', color: '#111' },
-  headerRow:  { alignItems: 'center', marginBottom: 4 },
-  logo:       { width: 90, height: 90, objectFit: 'contain' },
-  logoText:   { fontSize: 13, fontWeight: 700, textAlign: 'center' },
-  coReg:      { textAlign: 'center', fontSize: 8, borderBottom: '1pt solid #111', paddingBottom: 6, marginBottom: 10 },
-  title:      { fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 14 },
-  topGrid:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  addrBlock:  { width: '50%' },
-  attn:       { marginTop: 6 },
-  metaBlock:  { width: '46%' },
-  metaRow:    { flexDirection: 'row', marginBottom: 2 },
-  metaLabel:  { width: 90, color: '#444' },
-  metaValue:  { flex: 1, fontWeight: 700 },
-  section:    { flexDirection: 'row', marginBottom: 5 },
-  sectionLabel: { width: 130, color: '#444' },
-  sectionValue: { flex: 1 },
-  endorsementBanner: { backgroundColor: '#fff7ed', border: '0.75pt solid #fdba74', borderRadius: 3, padding: 6, marginBottom: 10 },
-  endorsementLabel:  { fontSize: 8, fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  endorsementText:   { fontSize: 9, color: '#7c2d12' },
-  table:      { marginTop: 10, borderTop: '1pt solid #111' },
-  tableRow:   { flexDirection: 'row', paddingVertical: 4, borderBottom: '0.5pt solid #ccc' },
-  tableDesc:  { flex: 1 },
-  tableAmt:   { width: 90, textAlign: 'right' },
-  totalRow:   { flexDirection: 'row', paddingVertical: 6, borderTop: '1pt solid #111', marginTop: 2 },
-  totalLabel: { flex: 1, fontWeight: 700, fontSize: 11 },
-  totalAmt:   { width: 90, textAlign: 'right', fontWeight: 700, fontSize: 11 },
-  // Pinned to the same position on every page (react-pdf `fixed`) so payment terms/bank details
-  // never drift with how many line items are in the table above — independent of normal flow.
-  footerFixed: { position: 'absolute', bottom: 30, left: 32, right: 32 },
-  noteBlock:  { fontSize: 8, color: '#333', lineHeight: 1.5 },
-  paymentByRow: { flexDirection: 'row', marginTop: 4 },
-  paymentByLabel: { width: 130 },
-  paymentByValue: { fontWeight: 700 },
-  bankBlock:  { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
-  bankRows:   { flex: 1 },
-  bankRow:    { flexDirection: 'row', marginBottom: 2 },
-  bankLabel:  { width: 130, color: '#444' },
-  bankValue:  { flex: 1, fontWeight: 700 },
-  qr:         { width: 90, height: 90 },
-  footer:     { marginTop: 20, textAlign: 'center', fontSize: 7.5, color: '#666', borderTop: '0.5pt solid #ccc', paddingTop: 8 },
+  // paddingBottom reserves room for the `fixed` payment block at the foot of every page, so the
+  // table page-breaks before it rather than running underneath it.
+  page:      { paddingTop: 40, paddingHorizontal: 44, paddingBottom: 250, fontSize: 9, fontFamily: 'Geist', color: PDF_INK, lineHeight: 1.4 },
+  head:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: `1.2pt solid ${PDF_GREEN}` },
+  mark:      { alignItems: 'center' },
+  markT:     { fontFamily: 'TRS Mark', fontSize: 21, lineHeight: 1, letterSpacing: 4.2, color: PDF_GREEN, paddingLeft: 4.2 },
+  markC:     { fontFamily: 'TRS Brush', fontSize: 15, lineHeight: 1, letterSpacing: 5, color: PDF_GREEN, paddingLeft: 5 },
+  markGap:   { height: 6 },
+  titleBox:  { alignItems: 'flex-end' },
+  title:     { fontFamily: 'EB Garamond', fontWeight: 500, fontSize: 26, lineHeight: 1 },
+  number:    { fontFamily: 'Geist Mono', fontWeight: 500, fontSize: 11.5, color: PDF_GREEN, marginTop: 4 },
+  parties:   { flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 },
+  billTo:    { width: '52%' },
+  label:     { fontSize: 7, color: PDF_MUT, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 },
+  client:    { fontWeight: 600 },
+  meta:      { width: '40%' },
+  metaRow:   { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+  metaKey:   { color: PDF_SUB },
+  metaVal:   { textAlign: 'right' },
+  metaStrong:{ textAlign: 'right', fontWeight: 600 },
+  table:     { marginTop: 18 },
+  th:        { flexDirection: 'row', paddingBottom: 4, borderBottom: `1pt solid ${PDF_INK}` },
+  thDesc:    { flex: 1, fontSize: 7.5, color: PDF_SUB, fontWeight: 500 },
+  thAmt:     { width: 110, fontSize: 7.5, color: PDF_SUB, fontWeight: 500, textAlign: 'right' },
+  tr:        { flexDirection: 'row', paddingVertical: 5, borderBottom: `0.5pt solid ${PDF_HAIR}` },
+  tdKey:     { width: '34%', color: PDF_SUB },
+  tdVal:     { flex: 1 },
+  tdAmt:     { width: 110, textAlign: 'right' },
+  sum:       { flexDirection: 'row', paddingVertical: 6, borderTop: `1pt solid ${PDF_INK}`, borderBottom: `1.6pt solid ${PDF_INK}`, marginTop: -0.5 },
+  sumLabel:  { flex: 1, fontWeight: 600 },
+  sumAmt:    { width: 110, textAlign: 'right', fontWeight: 600 },
+  // The payment block sits at the same place on every page (react-pdf `fixed`).
+  foot:      { position: 'absolute', bottom: 32, left: 44, right: 44 },
+  pay:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  bank:      { flex: 1 },
+  bankRow:   { flexDirection: 'row', marginBottom: 2 },
+  bankKey:   { width: 112, color: PDF_SUB },
+  bankVal:   { flex: 1, fontWeight: 500 },
+  qrBox:     { width: 96, alignItems: 'center' },
+  qr:        { width: 92, height: 92, border: `0.5pt solid ${PDF_HAIR}` },
+  qrCap:     { fontSize: 7, color: PDF_SUB, textAlign: 'center', marginTop: 3 },
+  notes:     { marginTop: 12, paddingTop: 8, borderTop: `0.5pt solid ${PDF_HAIR}`, fontSize: 7.5, color: PDF_SUB, lineHeight: 1.45 },
+  company:   { marginTop: 8, paddingTop: 7, borderTop: `1.2pt solid ${PDF_GREEN}`, fontSize: 7.5, color: PDF_SUB },
 })
 
-const fmt = (n: number, currency: string) => `${currency} ${n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const fmtDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'
-const fmtSlashDate = (iso?: string | null) => {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
-}
+const money = (n: number) => n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmtDate = (iso?: string | null) => iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '–'
 
 export function DebitNotePdfDocument({ data, logoSrc = null, qrSrc = null }: {
   data: DebitNotePdfData
-  /** Resolved server-side (debit-note-pdf-server.tsx) or omitted for the client-side preview. */
+  /** Unused since the wordmark is set in the brand fonts; kept so existing callers compile. */
   logoSrc?: string | null
+  /** The PayNow QR (server: file path; preview: URL). Shown on notes whose bank profile has a PayNow UEN. */
   qrSrc?:   string | null
 }) {
+  void logoSrc
+  const cur = data.currency
   const lineItemsTotal = data.lineItems.reduce((s, l) => s + l.amount, 0)
+  const b = data.bankProfile
+  const usd = !b.payNowUen && !!b.agentBankSwiftBic
+  const period = data.periodStart || data.periodEnd ? `${fmtDate(data.periodStart)} to ${fmtDate(data.periodEnd)}` : '–'
+  const detail = (k: string, v?: string | null) => (
+    <View style={styles.tr} wrap={false}><Text style={styles.tdKey}>{k}</Text><Text style={styles.tdVal}>{v || '–'}</Text><Text style={styles.tdAmt}> </Text></View>
+  )
 
   return (
-    <Document>
+    <Document title={`Debit note ${data.debitNoteNo}`} author={TRS_LETTERHEAD.companyName}>
       <Page size="A4" style={styles.page}>
-        <View style={styles.headerRow}>
-          {logoSrc ? <Image src={logoSrc} style={styles.logo} /> : <Text style={styles.logoText}>TRADE RISK{'\n'}SOLUTIONS</Text>}
+        <View style={styles.head}>
+          <View style={styles.mark}><View><Text style={styles.markT}>TRS</Text></View><View style={styles.markGap} /><View><Text style={styles.markC}>保风</Text></View></View>
+          <View style={styles.titleBox}><Text style={styles.title}>Debit note</Text><Text style={styles.number}>{data.debitNoteNo}</Text></View>
         </View>
-        <Text style={styles.coReg}>Co Reg No {TRS_LETTERHEAD.coRegNo}</Text>
-        <Text style={styles.title}>DEBIT NOTE</Text>
 
-        <View style={styles.topGrid}>
-          <View style={styles.addrBlock}>
-            <Text style={{ fontWeight: 700 }}>{data.clientName}</Text>
+        <View style={styles.parties}>
+          <View style={styles.billTo}>
+            <Text style={styles.label}>Bill to</Text>
+            <Text style={styles.client}>{data.clientName}</Text>
             {(data.clientAddress ?? '').split('\n').filter(Boolean).map((l, i) => <Text key={i}>{l}</Text>)}
-            {data.clientContactName && <Text style={styles.attn}>ATTN: {data.clientContactName}</Text>}
+            {data.clientContactName ? <Text style={{ marginTop: 3, color: PDF_SUB }}>Attn: {data.clientContactName}</Text> : null}
           </View>
-          <View style={styles.metaBlock}>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Date:</Text><Text style={styles.metaValue}>{fmtDate(data.issueDate)}</Text></View>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Debit Note No:</Text><Text style={styles.metaValue}>{data.debitNoteNo}</Text></View>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Cover Note No:</Text><Text style={styles.metaValue}>{data.coverNoteNo || ''}</Text></View>
-            <View style={styles.metaRow}><Text style={styles.metaLabel}>Policy No:</Text><Text style={styles.metaValue}>{data.policyNumber || '—'}</Text></View>
+          <View style={styles.meta}>
+            <View style={styles.metaRow}><Text style={styles.metaKey}>Date</Text><Text style={styles.metaVal}>{fmtDate(data.issueDate)}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaKey}>Policy no.</Text><Text style={styles.metaVal}>{data.policyNumber || '–'}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaKey}>Cover note no.</Text><Text style={styles.metaVal}>{data.coverNoteNo || '–'}</Text></View>
+            <View style={styles.metaRow}><Text style={styles.metaKey}>Payment due</Text><Text style={styles.metaStrong}>{fmtDate(data.paymentDueDate)}</Text></View>
           </View>
         </View>
-
-        <View style={styles.section}><Text style={styles.sectionLabel}>Class of Insurance</Text><Text style={styles.sectionValue}>{data.classOfInsurance || ''}</Text></View>
-        <View style={styles.section}><Text style={styles.sectionLabel}>Period of Insurance</Text><Text style={styles.sectionValue}>{fmtSlashDate(data.periodStart)} to {fmtSlashDate(data.periodEnd)}</Text></View>
-        <View style={styles.section}><Text style={styles.sectionLabel}>Insurance Company</Text><Text style={styles.sectionValue}>{data.insurer || ''}</Text></View>
-
-        {data.eventType === 'endorsement' ? (
-          <View style={styles.endorsementBanner}>
-            <Text style={styles.endorsementLabel}>Mid-Term Endorsement — Effective {fmtSlashDate(data.endorsementEffectiveDate)}</Text>
-            <Text style={styles.endorsementText}>{data.description || ''}</Text>
-          </View>
-        ) : (
-          <View style={styles.section}><Text style={styles.sectionLabel}>Description</Text><Text style={styles.sectionValue}>{data.description || ''}</Text></View>
-        )}
 
         <View style={styles.table}>
+          <View style={styles.th} fixed><Text style={styles.thDesc}>Description</Text><Text style={styles.thAmt}>Amount ({cur})</Text></View>
+          {detail('Class of insurance', data.classOfInsurance)}
+          {detail('Period of insurance', period)}
+          {detail('Insurance company', data.insurer)}
+          {data.eventType === 'endorsement' && detail('Endorsement effective', fmtDate(data.endorsementEffectiveDate))}
+          {detail('Description', data.description)}
           {data.lineItems.map((li, i) => (
-            <View key={i} style={styles.tableRow}>
-              <Text style={styles.tableDesc}>{li.description}</Text>
-              <Text style={styles.tableAmt}>{fmt(li.amount, data.currency)}</Text>
-            </View>
+            <View key={i} style={styles.tr} wrap={false}><Text style={{ flex: 1 }}>{li.description}</Text><Text style={styles.tdAmt}>{money(li.amount)}</Text></View>
           ))}
-          {!!data.feeRebate && (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableDesc}>Fee rebate</Text>
-              <Text style={styles.tableAmt}>{`-${fmt(data.feeRebate, data.currency)}`}</Text>
-            </View>
-          )}
           {data.lineItems.length === 0 && (
-            <View style={styles.tableRow}>
-              <Text style={styles.tableDesc}>Gross Premium collected on behalf of Insurance Company</Text>
-              <Text style={styles.tableAmt}>{fmt(lineItemsTotal, data.currency)}</Text>
-            </View>
+            <View style={styles.tr}><Text style={{ flex: 1 }}>Gross premium collected on behalf of the insurance company</Text><Text style={styles.tdAmt}>{money(lineItemsTotal || data.total)}</Text></View>
           )}
+          {!!data.feeRebate && (
+            <View style={styles.tr}><Text style={{ flex: 1 }}>Fee rebate</Text><Text style={styles.tdAmt}>-{money(data.feeRebate)}</Text></View>
+          )}
+          <View style={styles.sum} wrap={false}><Text style={styles.sumLabel}>Total ({cur})</Text><Text style={styles.sumAmt}>{money(data.total)}</Text></View>
         </View>
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Premium Total</Text>
-          <Text style={styles.totalAmt}>{fmt(data.total, data.currency)}</Text>
-        </View>
 
-        {/* Pinned to a fixed bottom position on every page — see styles.footerFixed — so it
-            stays consistent regardless of how many line items pushed the table above it, and
-            still repeats if the table spills onto a second page. */}
-        <View style={styles.footerFixed} fixed>
-          {/* Matches the real template's exact wording, including the two separate
-              "please make payment by" mentions — the first trails off the Warranty sentence,
-              the second is its own labelled row with the actual date. */}
-          <View style={styles.noteBlock}>
-            <Text>Note:    This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will be sent to you shortly.</Text>
-            <Text>              Premium Payment Warranty is imposed by the insurer. To avoid automatic termination of policy,</Text>
-            <Text>                 please make payment by</Text>
-            <View style={styles.paymentByRow}>
-              <Text style={styles.paymentByLabel}>Please make payment by</Text>
-              <Text style={styles.paymentByValue}>{fmtSlashDate(data.paymentDueDate)}</Text>
+        <View style={styles.foot} fixed>
+          <View style={styles.pay}>
+            <View style={styles.bank}>
+              <Text style={styles.label}>{usd ? `Telegraphic transfer in ${cur}` : 'Bank transfer'}</Text>
+              <View style={styles.bankRow}><Text style={styles.bankKey}>Bank</Text><Text style={styles.bankVal}>{b.bankName}</Text></View>
+              <View style={styles.bankRow}><Text style={styles.bankKey}>Account name</Text><Text style={styles.bankVal}>{b.bankAccountName}</Text></View>
+              <View style={styles.bankRow}><Text style={styles.bankKey}>Account no.</Text><Text style={styles.bankVal}>{b.bankAccountNumber}</Text></View>
+              {(b.bankCode || b.branchCode) ? <View style={styles.bankRow}><Text style={styles.bankKey}>Bank / branch code</Text><Text style={styles.bankVal}>{[b.bankCode, b.branchCode].filter(Boolean).join(' / ')}</Text></View> : null}
+              {b.swiftCode ? <View style={styles.bankRow}><Text style={styles.bankKey}>SWIFT</Text><Text style={styles.bankVal}>{b.swiftCode}</Text></View> : null}
+              {b.agentBankName ? <View style={styles.bankRow}><Text style={styles.bankKey}>Correspondent bank</Text><Text style={styles.bankVal}>{b.agentBankName}</Text></View> : null}
+              {b.agentBankSwiftBic ? <View style={styles.bankRow}><Text style={styles.bankKey}>Correspondent SWIFT</Text><Text style={styles.bankVal}>{b.agentBankSwiftBic}</Text></View> : null}
+              {b.payNowUen ? <View style={styles.bankRow}><Text style={styles.bankKey}>PayNow UEN</Text><Text style={styles.bankVal}>{b.payNowUen}</Text></View> : null}
             </View>
-            <Text style={{ marginTop: 4 }}>Quote debit note no. on the remittance advice and email document to {TRS_LETTERHEAD.remittanceEmail}</Text>
+            {qrSrc && b.payNowUen ? (
+              <View style={styles.qrBox}><Image src={qrSrc} style={styles.qr} /><Text style={styles.qrCap}>Scan to pay by PayNow{'\n'}Reference: {data.debitNoteNo}</Text></View>
+            ) : null}
           </View>
-
-          <View style={styles.bankBlock}>
-            <View style={styles.bankRows}>
-              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Name:</Text><Text style={styles.bankValue}>{data.bankProfile.bankName}</Text></View>
-              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Name:</Text><Text style={styles.bankValue}>{data.bankProfile.bankAccountName}</Text></View>
-              <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Account Number:</Text><Text style={styles.bankValue}>{data.bankProfile.bankAccountNumber}</Text></View>
-              {data.bankProfile.bankCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>Bank Code:</Text><Text style={styles.bankValue}>{data.bankProfile.bankCode}</Text></View>}
-              {data.bankProfile.branchCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>Branch Code:</Text><Text style={styles.bankValue}>{data.bankProfile.branchCode}</Text></View>}
-              {data.bankProfile.swiftCode && <View style={styles.bankRow}><Text style={styles.bankLabel}>SWIFT Code:</Text><Text style={styles.bankValue}>{data.bankProfile.swiftCode}</Text></View>}
-              {data.bankProfile.agentBankSwiftBic && (
-                <>
-                  <View style={{ height: 6 }} />
-                  <View style={styles.bankRow}><Text style={styles.bankLabel}>Agent Bank Name:</Text><Text style={styles.bankValue}>{data.bankProfile.agentBankName}</Text></View>
-                  <View style={styles.bankRow}><Text style={styles.bankLabel}>Agent Bank SWIFT Code BIC:</Text><Text style={styles.bankValue}>{data.bankProfile.agentBankSwiftBic}</Text></View>
-                </>
-              )}
-              {data.bankProfile.payNowUen && (
-                <>
-                  <View style={{ height: 6 }} />
-                  <View style={styles.bankRow}><Text style={styles.bankLabel}>PayNow UEN No:</Text><Text style={styles.bankValue}>{data.bankProfile.payNowUen}</Text></View>
-                </>
-              )}
-            </View>
-            {qrSrc && data.bankProfile.payNowUen && <Image src={qrSrc} style={styles.qr} />}
+          <View style={styles.notes}>
+            <Text>Quote the debit note number on the remittance advice and email it to {TRS_LETTERHEAD.remittanceEmail}.</Text>
+            <Text>This is not a tax invoice. The insurance company&apos;s tax invoice is attached or will follow. A premium payment warranty is imposed by the insurer: the policy ends automatically if payment is not made by the due date.</Text>
           </View>
-
-          <Text style={{ marginTop: 10, fontSize: 8 }}>Please call us at {TRS_LETTERHEAD.phone} should you require further clarification.</Text>
-
-          <Text style={styles.footer}>{TRS_LETTERHEAD.footerAddress}</Text>
+          <Text style={styles.company}>{TRS_LETTERHEAD.companyName} · Co. Reg. No. {TRS_LETTERHEAD.coRegNo} · {TRS_LETTERHEAD.footerAddress} · +65 {TRS_LETTERHEAD.phone}</Text>
         </View>
       </Page>
     </Document>

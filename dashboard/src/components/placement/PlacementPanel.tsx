@@ -1,9 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { FilePlus } from 'lucide-react'
-import { SectionCard, Empty, Spinner, Btn } from '@/components/crm/primitives'
+import { FilePlus, FileText } from 'lucide-react'
+import { SectionCard, Empty, Spinner, Btn, Chip } from '@/components/crm/primitives'
+import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
+import type { LetterStatus } from '@/lib/letters/appointment'
 import { fmtDate } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
@@ -42,6 +44,25 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   onOpenDrafts: () => void
 }) {
   const [newOpen, setNewOpen] = useState(false)
+  // Appointment letter: one status per company; the button sits on every placement header.
+  const [letter, setLetter] = useState<LetterStatus | null>(null)
+  const [letterFor, setLetterFor] = useState<string | null | undefined>(undefined)
+  const [uploading, setUploading] = useState<string | null>(null)
+  const loadLetter = useCallback(() => callApi<{ status: LetterStatus }>(`/api/letters/appointment?company_id=${companyId}`).then(r => setLetter(r.status)).catch(() => setLetter(null)), [companyId])
+  useEffect(() => { void loadLetter() }, [loadLetter])
+  async function uploadSigned(placementId: string, files: FileList | null) {
+    const file = files?.[0]
+    if (!file) return
+    setUploading(placementId)
+    try {
+      const form = new FormData()
+      form.set('file', file); form.set('doc_type', 'broker_appointment')
+      const res = await fetch(`/api/companies/${companyId}/data-room`, { method: 'POST', body: form })
+      if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `Upload failed (${res.status}).`)
+      await loadLetter()
+    } catch (e) { setErrors(x => ({ ...x, [placementId]: errText(e) })) }
+    finally { setUploading(null) }
+  }
   const [round, setRound] = useState<RoundTarget | null>(null)
   const [busyFor, setBusyFor] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -121,7 +142,22 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                 {p.inception_date && <span>· Inception {fmtDate(p.inception_date)}</span>}
                 {p.client_thread_id && <span>· <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline" style={{ color: INK }}>Client thread</Link></span>}
                 {byAgent && <span>· Proposed by the agent</span>}
+                {letter && letter.state !== 'none' && (
+                  <Chip tone={letter.state === 'signed' ? 'green' : letter.state === 'sent' ? 'amber' : 'neutral'}>
+                    Appointment letter: {letter.state === 'signed' ? `signed ${fmtDate(letter.at)}` : letter.state === 'sent' ? `sent ${fmtDate(letter.at)}, not signed` : 'needed'}
+                  </Chip>
+                )}
                 <span className="ml-auto flex items-center gap-1 shrink-0">
+                  {letter && letter.url && <a href={letter.url} target="_blank" rel="noreferrer"><Btn size="xs" level="tertiary" className={ROW_BTN}>Open letter</Btn></a>}
+                  {letter && letter.state === 'sent' && (
+                    <label className="inline-flex">
+                      <input type="file" className="hidden" onChange={e => void uploadSigned(p.id, e.target.files)} />
+                      <span className="inline-flex items-center h-[30px] px-3 rounded-[6px] text-[13px] font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
+                    </label>
+                  )}
+                  {letter && letter.state !== 'signed' && (
+                    <Btn size="xs" level={letter.state === 'needed' ? 'primary' : 'tertiary'} className={ROW_BTN} onClick={() => setLetterFor(p.id)}><FileText size={12} /> Create appointment letter</Btn>
+                  )}
                   {p.status !== 'closed' && (() => {
                     const all = emailable(positions)
                     const n = all.filter(q => !leftOut.has(q.id)).length
@@ -150,6 +186,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
       </SectionCard>
 
       <IssueDebitNoteDialog target={dnFor} onClose={() => setDnFor(null)} onDone={onChanged} />
+      <AppointmentLetterDialog open={letterFor !== undefined} onClose={() => setLetterFor(undefined)} companyId={companyId} placementId={letterFor ?? null} onDone={() => { void loadLetter(); onChanged() }} />
       <NewPlacementDialog open={newOpen} onClose={() => setNewOpen(false)} companyId={companyId} companyName={companyName} threads={threads} onDone={onChanged} />
       {round && (
         <NewRoundDialog

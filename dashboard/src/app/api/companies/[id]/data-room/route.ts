@@ -35,8 +35,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
           documents: held,
         }
       })
-    const unsorted = docs.filter(d => !d.policy_id)
-    return NextResponse.json({ rooms, unsorted, total: docs.length })
+    const letters = docs.filter(d => !d.policy_id && d.doc_type === 'broker_appointment')
+    const unsorted = docs.filter(d => !d.policy_id && d.doc_type !== 'broker_appointment')
+    return NextResponse.json({ rooms, unsorted, letters, total: docs.length })
   } catch (e) {
     return errorResponse(e)
   }

@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import { FileText, Loader2 } from 'lucide-react'
 import { DebitNotePdfDocument, type DebitNotePdfData } from '@/lib/debit-note-pdf'
+import { registerPdfFonts } from '@/lib/pdf-fonts'
 
 // @react-pdf/renderer's PDFViewer renders into an <iframe> and touches browser-only APIs —
 // must load client-side only, or Next's SSR pass throws. DebitNotePdfDocument itself doesn't
@@ -43,6 +44,8 @@ export function DebitNotePreviewPanel({ data, logoSrc, qrSrc }: {
     )
   }
 
+  // The browser loads the same brand fonts the server embeds, from public/fonts.
+  registerPdfFonts('/fonts')
   return (
     <PDFViewer width="100%" height="100%" showToolbar={false} className="rounded-lg">
       <DebitNotePdfDocument data={data} logoSrc={logoSrc} qrSrc={qrSrc} />
