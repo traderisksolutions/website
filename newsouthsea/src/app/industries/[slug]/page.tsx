@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Faq, JbCol, JbCta, JbH2, JbHead, JbLinks, JbP, JbTrio } from "@/components/jb";
+import { Faq, JbCta, JbH2, JbHead, JbLinks, JbP, JbSplit, JbStack } from "@/components/jb";
 import { lineBySlug } from "@/content/coverage";
 import { INDUSTRIES, industryBySlug } from "@/content/industries";
 
@@ -21,16 +21,16 @@ export default async function IndustryPage({ params }: PageProps<"/industries/[s
   return (
     <>
       <JbHead crumbs={[{ label: "Home", href: "/" }, { label: "Industries", href: "/industries" }, { label: ind.name }]} title={ind.name} lede={ind.headline} />
-      <JbCol>
+      <JbSplit image={ind.image} alt={ind.name}>
         <JbP>{ind.summary}</JbP>
         <JbP>{ind.exposures.length} exposures produce most of the claims in this sector. Each has a response in the programme.</JbP>
         <JbH2>Named risks</JbH2>
-        <JbTrio cols={2} items={ind.exposures.map(e => ({ title: e.title, body: e.body, response: e.response }))} />
+        <JbStack items={ind.exposures} />
         <JbH2>The programme</JbH2>
         <JbLinks rows={programme.map(l => ({ title: l.name, sub: l.thesis, href: `/coverage/${l.slug}` }))} />
         <JbH2>Questions</JbH2>
         <Faq items={ind.faqs} />
-      </JbCol>
+      </JbSplit>
       <JbCta title={`Send the ${ind.name.toLowerCase()} programme ${days} days out.`} />
     </>
   );

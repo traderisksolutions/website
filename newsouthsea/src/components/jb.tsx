@@ -67,3 +67,37 @@ export function JbCta({ title, line }: { title: ReactNode; line?: string }) {
 export function Faq({ items }: { items: { q: string; a: string }[] }) {
   return <div className="faq">{items.map(f => <details key={f.q}><summary>{f.q}</summary><p className="body">{f.a}</p></details>)}</div>;
 }
+
+/* flex.one/global-banking section shape: content left, one sticky photo right (desktop only). */
+export function JbSplit({ image, alt, children }: { image: string; alt: string; children: ReactNode }) {
+  return (
+    <div className="jb-split">
+      <div className="jb-split-main">{children}</div>
+      <div className="jb-split-media" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={`/images/${image}.jpg`} alt={alt} loading="lazy" decoding="async" />
+      </div>
+    </div>
+  );
+}
+
+export function JbTicks({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="jb-ticks">
+      {items.map((it, i) => (
+        <li key={i}>
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" strokeWidth="1.4" /></svg>
+          <span>{it}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function JbStack({ items }: { items: { title: ReactNode; body: ReactNode; response?: ReactNode }[] }) {
+  return (
+    <div className="jb-stack">
+      {items.map((it, i) => <div key={i} className="jb-stack-item"><h3>{it.title}</h3><p>{it.body}</p>{it.response && <p className="jb-resp">{it.response}</p>}</div>)}
+    </div>
+  );
+}

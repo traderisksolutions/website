@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { JbCol, JbCta, JbH2, JbHead, JbNote, JbP, JbTrio } from "@/components/jb";
+import { JbCta, JbH2, JbHead, JbNote, JbP, JbSplit, JbStack, JbTicks } from "@/components/jb";
 import { LINES, lineBySlug } from "@/content/coverage";
 
 export const dynamicParams = false;
@@ -21,18 +21,18 @@ export default async function LinePage({ params }: PageProps<"/coverage/[slug]">
   return (
     <>
       <JbHead crumbs={[{ label: "Home", href: "/" }, { label: "Coverage", href: "/coverage" }, { label: line.family }]} title={line.name} lede={line.thesis} />
-      <JbCol>
+      <JbSplit image={line.image} alt={line.name}>
         <JbP>{line.summary}</JbP>
         <JbH2>What the policy may cover</JbH2>
-        <JbTrio items={line.scope.map((s, i) => ({ title: String(i + 1).padStart(2, "0"), body: s }))} />
+        <JbTicks items={line.scope} />
         <JbH2>What moves price and terms</JbH2>
-        <JbP>Underwriters price what they can see. {line.factors.join(" ")}</JbP>
+        <JbTicks items={line.factors} />
         <JbH2>The file we build</JbH2>
-        <JbTrio cols={2} items={line.file.map((f, i) => ({ title: String(i + 1).padStart(2, "0"), body: f }))} />
+        <JbTicks items={line.file} />
         <JbH2>Three pitfalls at renewal</JbH2>
-        <JbTrio items={line.pitfalls.map(p => ({ title: p.title, body: p.body }))} />
+        <JbStack items={line.pitfalls} />
         <JbNote>Related lines: {related.map((r, i) => <span key={r.slug}>{i > 0 && ", "}<Link href={`/coverage/${r.slug}`}>{r.name}</Link></span>)}. Renewal should start {days} days before inception.</JbNote>
-      </JbCol>
+      </JbSplit>
       <JbCta title={`Send the ${line.name.toLowerCase()} renewal ${days} days out.`} />
     </>
   );
