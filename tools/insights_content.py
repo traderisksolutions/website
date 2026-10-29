@@ -189,7 +189,7 @@ dict(slug='business-interruption-indemnity-period', cat='Property and projects',
 
 dict(slug='marine-cargo-institute-cargo-clauses', cat='Property and projects', minutes=5, date=D,
  title='Marine cargo insurance: Institute Cargo Clauses A, B and C compared',
- desc='The difference between ICC A, B and C cargo cover, and how Incoterms decide who insures goods in transit.',
+ desc='The difference between ICC A, B and C cargo cover, how Incoterms decide who insures goods in transit, and which clause fits each trade.',
  answer='Institute Cargo Clauses A cover all risks of loss or damage to goods in transit, subject to listed exclusions. Clauses B and C cover only named events, with C the narrowest. The Incoterm in the sale contract decides whether the buyer or seller should insure.',
  sections=[
   ('How do A, B and C differ?', ['All three exclude things like poor packing, delay and inherent vice.'],
@@ -198,7 +198,7 @@ dict(slug='marine-cargo-institute-cargo-clauses', cat='Property and projects', m
   ('Single shipment or open cover?', ['Regular shippers usually take an open policy that covers every shipment automatically within agreed limits, instead of insuring each one.']),
  ],
  faq=[('Does cargo insurance cover delay?', 'No. Loss caused by delay is excluded under all three sets of clauses.')],
- links=['commercial/inventory', 'commercial/inland-transit', 'commercial/stock-throughput'], sources=[]),
+ links=['commercial/marine-cargo', 'commercial/inland-transit', 'commercial/stock-throughput'], sources=[]),
 
 dict(slug='insurance-claim-rejected-fidrec', cat='Claims', minutes=6, date=D,
  title='Business insurance claim rejected in Singapore: next steps and FIDReC',

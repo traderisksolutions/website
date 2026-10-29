@@ -379,3 +379,14 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 .s-src a { color: var(--s-g2); text-decoration: underline; text-underline-offset: 3px; }
 .s-disc { margin-top: 32px; font-size: 13px; color: var(--s-sub); }
 @media (prefers-reduced-motion: reduce) { .s-cr-tr, .s-cr-img, .s-cr-t, .s-rot, .tn-panel, .tn-drawer, .s-im img { transition: none; } }
+
+/* Depth sections on product and solution pages (29 Oct 2026): two columns, bullet lists, factor rows */
+.s-two { display: grid; gap: 40px; }
+@media (min-width: 800px) { .s-two { grid-template-columns: 1fr 1fr; } }
+.s-ul { margin: 16px 0 0; padding-left: 20px; display: grid; gap: 10px; font-size: 17px; line-height: 1.5; color: var(--s-sub); }
+.s-facts { margin: 28px 0 0; display: grid; border-top: 1px solid var(--s-hair); }
+.s-facts > div { display: grid; gap: 6px 32px; padding: 18px 0; border-bottom: 1px solid var(--s-hair); }
+@media (min-width: 800px) { .s-facts > div { grid-template-columns: 260px 1fr; } .s-facts > div > dd + dd { grid-column: 2; } }
+.s-facts dt { font-weight: 500; font-size: 17px; margin: 0; }
+.s-facts dd { margin: 0; font-size: 16px; line-height: 1.6; color: var(--s-sub); }
+.s-facts dd + dd { font-weight: 500; color: inherit; }

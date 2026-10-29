@@ -42,8 +42,17 @@ def head_of(path, extra=''):
     return '<head>' + h + extra + '\n</head>'
 
 
+def arch_path(path):
+    d = os.path.dirname(path)
+    return ARCH.get(d, d) + '/' + os.path.basename(path) if d else path
+
+
 def page(path, body):
-    return ('<!DOCTYPE html>\n<html lang="en">\n' + head_of(path) + '\n<body class="s-site">\n  <div id="nav-root"></div>\n'
+    h = head_of(arch_path(path))
+    d = os.path.dirname(path)
+    if d in ARCH:  # renamed page: canonical and og:url move with it
+        h = h.replace('/' + ARCH[d] + '/', '/' + d + '/')
+    return ('<!DOCTYPE html>\n<html lang="en">\n' + h + '\n<body class="s-site">\n  <div id="nav-root"></div>\n'
             + body + '\n  <div id="footer-root"></div>\n'
             '  <script src="/scripts/product-taxonomy.js"></script>\n'
             '  <script src="/scripts/nav.js"></script>\n'
@@ -87,10 +96,10 @@ GROUP = {
     'commercial/electronic-equipment': ('Business cover', 'Engineering and construction', 'Electronic equipment insurance'),
     'commercial/specialized': ('Business cover', 'Engineering and construction', 'Specialised asset insurance'),
     'commercial/motor': ('Business cover', 'Motor, marine and logistics', 'Commercial fleet and motor insurance'),
-    'commercial/inventory': ('Business cover', 'Motor, marine and logistics', 'Marine cargo insurance'),
+    'commercial/marine-cargo': ('Business cover', 'Motor, marine and logistics', 'Marine cargo insurance'),
     'commercial/stock-throughput': ('Business cover', 'Motor, marine and logistics', 'Stock throughput insurance'),
     'commercial/inland-transit': ('Business cover', 'Motor, marine and logistics', 'Inland transit insurance'),
-    'commercial/financial-assets': ('Business cover', 'Trade credit and bonds', 'Trade credit insurance'),
+    'commercial/trade-credit': ('Business cover', 'Trade credit and bonds', 'Trade credit insurance'),
     'commercial/surety-bonds': ('Business cover', 'Trade credit and bonds', 'Surety bonds'),
     'commercial/core-liability': ('Business cover', 'Liability', 'Public and products liability insurance'),
     'commercial/professional': ('Business cover', 'Liability', 'Professional indemnity insurance'),
@@ -121,10 +130,10 @@ FOR = {
     'commercial/electronic-equipment': ['manufacturing', 'tech-media-startups', 'healthcare'],
     'commercial/specialized': ['energy', 'manufacturing'],
     'commercial/motor': ['logistics', 'built-environment', 'wholesale'],
-    'commercial/inventory': ['logistics', 'wholesale', 'manufacturing'],
+    'commercial/marine-cargo': ['logistics', 'wholesale', 'manufacturing'],
     'commercial/stock-throughput': ['wholesale', 'logistics', 'manufacturing'],
     'commercial/inland-transit': ['logistics', 'wholesale'],
-    'commercial/financial-assets': ['wholesale', 'manufacturing', 'logistics'],
+    'commercial/trade-credit': ['wholesale', 'manufacturing', 'logistics'],
     'commercial/surety-bonds': ['built-environment', 'energy'],
     'commercial/core-liability': ['manufacturing', 'wholesale', 'energy', 'built-environment', 'logistics'],
     'commercial/professional': ['professional-services', 'tech-media-startups', 'financial-services', 'built-environment'],
@@ -151,7 +160,17 @@ def extract(path):
     return dict(lede=clean(h1.group(1)) if h1 else '', desc=d[0] if d else '', items=list(zip(g('ph-card-title'), g('ph-card-body'))))
 
 
-PROD = {k: dict(extract(k + '/index.html'), path=k) for k in GROUP}
+# Pages that moved to keyword slugs on 29 Oct 2026; their copy still lives at the old path in the archive.
+ARCH = {'commercial/trade-credit': 'commercial/financial-assets', 'commercial/marine-cargo': 'commercial/inventory'}
+PROD = {k: dict(extract(ARCH.get(k, k) + '/index.html'), path=k) for k in GROUP}
+
+# Depth content (intro, buyers, price factors, file, pitfalls, FAQs) written 29 Oct 2026; see tools/product_content.py.
+try:
+    from product_content import PRODUCTS as DEPTH, SOLUTIONS as SDEPTH
+except ImportError:
+    DEPTH, SDEPTH = {}, {}
+ARCH_INV = {v: k for k, v in ARCH.items()}
+DEPTH = {ARCH_INV.get(k, k): v for k, v in DEPTH.items()}  # content files may still use the old keys
 SOLD = {k: extract('solutions/%s/index.html' % k) for k in SOL}
 
 
@@ -184,11 +203,50 @@ def rows(paths):
         f'<a href="/{p}/"><span><b>{e(GROUP[p][2])}</b><span>{e(PROD[p]["lede"])}</span></span>{ARROW}</a>' for p in paths) + '</div>'
 
 
+def facts(rows):
+    return '<dl class="s-facts">' + ''.join(f'<div><dt>{e(r[0])}</dt>' + ''.join(f'<dd>{e(x)}</dd>' for x in r[1:]) + '</div>' for r in rows) + '</dl>'
+
+
+def faq_html(faqs):
+    return '<div class="s-faq">' + ''.join(f'<details><summary>{e(q)}</summary><p>{e(a)}</p></details>' for q, a in faqs) + '</div>'
+
+
+def sources_html(src):
+    return '<p class="s-src">Sources: ' + ', '.join(f'<a href="{html.escape(u)}" target="_blank" rel="noopener">{e(l)}</a>' for l, u in src) + '</p>' if src else ''
+
+
+def depth(c, name):
+    """Product depth sections: the cover, who buys it and what the insurer needs, price factors, pitfalls, questions."""
+    b = (f'<section class="s-sec"><div class="s-w"><p class="s-pill">The cover</p><h2 class="s-h2">{e(name)} in Singapore</h2><div class="s-prose">'
+         + ''.join(f'<p>{e(x)}</p>' for x in c['intro']) + '</div></div></section>')
+    b += ('<section class="s-sec s-tint"><div class="s-w"><div class="s-two"><div><p class="s-pill">Who buys it</p><ul class="s-ul">'
+          + ''.join(f'<li>{e(x)}</li>' for x in c['who']) + '</ul></div><div><p class="s-pill">What the insurer needs to quote</p><ul class="s-ul">'
+          + ''.join(f'<li>{e(x)}</li>' for x in c['file']) + '</ul></div></div></div></section>')
+    b += f'<section class="s-sec"><div class="s-w"><p class="s-pill">Price and terms</p><h2 class="s-h2">What moves the premium</h2>{facts(c["price"])}</div></section>'
+    b += f'<section class="s-sec s-tint"><div class="s-w"><p class="s-pill">At renewal</p><h2 class="s-h2">Three mistakes we see most often</h2>{facts(c["pitfalls"])}</div></section>'
+    b += f'<section class="s-sec"><div class="s-w"><p class="s-pill">Questions</p><h2 class="s-h2">Questions buyers ask</h2>{faq_html(c["faqs"])}{sources_html(c.get("sources"))}</div></section>'
+    return b
+
+
+def sdepth(c, n):
+    """Solution depth sections: how the sector buys, named risks, the programme, questions."""
+    b = (f'<section class="s-sec"><div class="s-w"><p class="s-pill">The sector</p><h2 class="s-h2">How {e(n.lower())} businesses buy insurance</h2><div class="s-prose">'
+         + ''.join(f'<p>{e(x)}</p>' for x in c['intro']) + '</div></div></section>')
+    b += f'<section class="s-sec s-tint"><div class="s-w"><p class="s-pill">Named risks</p><h2 class="s-h2">The exposure, what it costs, the cover that answers it</h2>{facts(c["risks"])}</div></section>'
+    prog = [(ARCH_INV.get(k, k), why) for k, why in c['programme'] if ARCH_INV.get(k, k) in GROUP]
+    b += ('<section class="s-sec"><div class="s-w"><p class="s-pill">The programme</p><h2 class="s-h2">The lines, and why each is in</h2><div class="s-rel">'
+          + ''.join(f'<a href="/{k}/"><span><b>{e(GROUP[k][2])}</b><span>{e(why)}</span></span>{ARROW}</a>' for k, why in prog) + '</div></div></section>')
+    b += f'<section class="s-sec s-tint"><div class="s-w"><p class="s-pill">Questions</p><h2 class="s-h2">Questions {e(n.lower())} buyers ask</h2>{faq_html(c["faqs"])}{sources_html(c.get("sources"))}</div></section>'
+    return b
+
+
 def product(p):
     g, sub, name = GROUP[p]
     d = PROD[p]
     b = hero(crumb([f'<a href="/#services">Products</a>', e(g), e(sub)]), name, d['lede'], d['desc'])
     b += cov(d['items'], 'Coverage', f'What {lc(name)} covers')
+    if p in DEPTH:
+        b += depth(DEPTH[p], name)
     if sub != 'Personal' and FOR.get(p):
         b += ('<section class="s-sec"><div class="s-w"><p class="s-pill">Deep domain expertise</p><h2 class="s-h2">Placed for the businesses that carry this risk</h2>'
               '<div class="s-ic">' + ''.join(card(s) for s in FOR[p]) + '</div></div></section>')
@@ -208,6 +266,8 @@ def solution(slug):
     b = hero(crumb(['<a href="/#solutions">Solutions</a>', e(n)]), n, d['lede'], d['desc'])
     b += f'<div class="s-w"><div class="s-wide"><img src="/images/industries/{img}" alt="{e(n)}"></div></div>'
     b += '<div style="height:104px"></div>' + cov(d['items'], 'Key exposures', line)
+    if slug in SDEPTH:
+        b += sdepth(SDEPTH[slug], n)
     uses = [p for p in GROUP if slug in FOR.get(p, [])]
     if uses:
         b += f'<section class="s-sec"><div class="s-w"><p class="s-pill">Products</p><h2 class="s-h2">The cover {e(n.lower())} businesses buy</h2>{rows(uses)}</div></section>'
@@ -228,8 +288,8 @@ LOGOS = [('zijin', 'Zijin Mining', 40), ('nintendo', 'Nintendo', 38), ('cccc', '
 SERVICES = [
     ('Property and business', 'commercial/property', 'Physical assets against damage, loss and business interruption. Industrial all risk, fire, BI.', 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6'),
     ('Engineering and construction', 'commercial/car', 'Projects, machinery and sensitive equipment during and after construction.', 'M4 20h16M6 20V9l4-3 4 3v11M14 20v-7h4v7'),
-    ('Motor, marine and logistics', 'commercial/inventory', 'Goods in transit and the vehicles that move them.', 'M3 17h13l3-5h3M3 17V7h10v10'),
-    ('Trade credit and bonds', 'commercial/financial-assets', 'Non-payment by buyers and performance obligations to counterparties.', 'M4 6h16v12H4zM4 10h16M8 15h4'),
+    ('Motor, marine and logistics', 'commercial/marine-cargo', 'Goods in transit and the vehicles that move them.', 'M3 17h13l3-5h3M3 17V7h10v10'),
+    ('Trade credit and bonds', 'commercial/trade-credit', 'Non-payment by buyers and performance obligations to counterparties.', 'M4 6h16v12H4zM4 10h16M8 15h4'),
     ('Liability', 'commercial/core-liability', 'What the business owes if it is sued. General, professional indemnity, D&O, IMI.', 'M12 3v18M5 8h14M7 8l-3 7h6zM17 8l-3 7h6z'),
     ('Cyber', 'commercial/cyber', 'Breach response, business interruption and liability after an incident.', 'M4 5h16v14H4zM8 12h8M8 9h5'),
     ('Workforce', 'commercial/workmen', 'WICA, foreign worker medical and bond, group health, benefits, keyman.', 'M9 4.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM2 20c0-4 3-6 7-6M15 11l2 2 4-4'),
@@ -381,7 +441,7 @@ def ins_head(title, desc, url, jsonld):
             '  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />\n'
             f'  <title>{t}</title>\n  <meta name="description" content="{html.escape(desc)}" />\n  <link rel="canonical" href="{url}" />\n'
             f'  <meta property="og:type" content="article" />\n  <meta property="og:url" content="{url}" />\n  <meta property="og:title" content="{t}" />\n'
-            f'  <meta property="og:description" content="{html.escape(desc)}" />\n  <meta property="og:image" content="https://traderisksolutions.com.sg/og-image-2026.png" />\n'
+            f'  <meta property="og:description" content="{html.escape(desc)}" />\n  <meta property="og:image" content="https://www.traderisksolutions.com.sg/og-image-2026.png" />\n'
             '  <meta property="og:site_name" content="Trade Risk Solutions" />\n  <meta name="twitter:card" content="summary_large_image" />\n'
             '  ' + FONTS + '\n  <link rel="stylesheet" href="/styles/main.css" />\n  <link rel="stylesheet" href="/styles/site.css" />\n'
             '  <script defer src="/_vercel/insights/script.js"></script>\n'
@@ -434,7 +494,7 @@ for po in POSTS:
             + '<p class="s-disc">General information only, not advice on any particular policy. Cover depends on the policy wording and the insurer\'s terms.</p>'
             + (f'<h2 class="s-art-sub">More in {e(po["cat"].lower())}</h2><div class="s-list">{morel}</div>' if morel else '') + '</article>' + close_band())
     ld = [{'@context': 'https://schema.org', '@type': 'Article', 'headline': po['title'], 'description': po['desc'], 'datePublished': iso(po['date']),
-           'dateModified': iso(po['date']), 'mainEntityOfPage': url, 'image': 'https://traderisksolutions.com.sg/og-image-2026.png',
+           'dateModified': iso(po['date']), 'mainEntityOfPage': url, 'image': 'https://www.traderisksolutions.com.sg/og-image-2026.png',
            'author': {'@type': 'Organization', 'name': 'Trade Risk Solutions'}, 'publisher': {'@type': 'Organization', 'name': 'Trade Risk Solutions', 'logo': {'@type': 'ImageObject', 'url': 'https://traderisksolutions.com.sg/favicon-192.png'}}},
           {'@context': 'https://schema.org', '@type': 'BreadcrumbList', 'itemListElement': [
               {'@type': 'ListItem', 'position': 1, 'name': 'Insights', 'item': SITE + '/insights/'},
@@ -549,7 +609,8 @@ work = ('<section class="s-w"><div class="s-hero2 s-hero-home"><div><p class="s-
         + close_custom('Ready to work together?', 'Tell us about your business.', 'Let’s find the right coverage.', ctas().replace('class="s-acts"', 'class="s-acts" style="justify-content:center"')))
 os.makedirs('working-with-trs', exist_ok=True)
 open('working-with-trs/index.html', 'w').write(ins_page(plain_head(
-    'Working with TRS | How we collaborate', 'We partner with you to lower your insurance costs, improve your coverage, and make the quoting process as clear as possible.',
+    'Working with TRS | Singapore Insurance Broker Process',
+    'How TRS works with a Singapore business: what the broker does, what we ask of you, who the process suits and who it does not suit.',
     SITE + '/working-with-trs/', {'@context': 'https://schema.org', '@type': 'WebPage', 'name': 'Working with TRS', 'url': SITE + '/working-with-trs/'}), work))
 
 FAQ_GROUPS = [
@@ -607,7 +668,7 @@ for f in glob.glob('**/*.html', recursive=True) + ['sitemap.xml', 'robots.txt']:
     if f.startswith(('dashboard/', 'corpcover/', 'newsouthsea/', 'benefixe/', 'ai-inbound/', 'tools/', 'supabase/', 'roadplus/', 'node_modules/')):
         continue
     s0 = open(f).read()
-    t = re.sub(r'(<link rel="canonical" href="|<meta property="og:url" content="|<loc>|Sitemap: )https://traderisksolutions\.com\.sg/', lambda m: m.group(1) + WWW, s0)
+    t = re.sub(r'(<link rel="canonical" href="|<meta property="og:url" content="|<meta property="og:image" content="|<loc>|Sitemap: )https://traderisksolutions\.com\.sg/', lambda m: m.group(1) + WWW, s0)
     t = t.replace('"item": "' + APEX, '"item": "' + WWW)
     if t != s0:
         open(f, 'w').write(t)
@@ -654,10 +715,11 @@ print('share image and home description set')
 # Product pages get their own title and description (the archived heads had none), every page
 # gets structured data, and legacy pages link to canonical (trailing-slash) URLs.
 from seo_meta import PRODUCT_META, INSIGHT_TITLES, SOLUTION_META, ABOUT_META
-ORG = {'@type': 'InsuranceAgency', '@id': WWW + '#org', 'name': 'Trade Risk Solutions', 'alternateName': 'TRS',
+ORG = {'@type': 'InsuranceAgency', '@id': WWW + '#org', 'name': 'Trade Risk Solutions', 'alternateName': 'TRS', 'legalName': 'Trade Risk Solutions Pte Ltd',
+       'identifier': {'@type': 'PropertyValue', 'propertyID': 'UEN', 'value': '202022795H'},
        'url': WWW, 'logo': WWW + 'favicon-192.png', 'image': WWW + 'og-image-2026.png',
        'description': HOME_DESC, 'telephone': '+65 6238 0888', 'email': 'enquiry@trade-risksol.com',
-       'address': {'@type': 'PostalAddress', 'streetAddress': 'Suntec Tower 2, 9 Temasek Boulevard',
+       'address': {'@type': 'PostalAddress', 'streetAddress': '9 Temasek Boulevard #32-01, Suntec Tower Two',
                    'addressLocality': 'Singapore', 'postalCode': '038989', 'addressCountry': 'SG'},
        'areaServed': {'@type': 'Country', 'name': 'Singapore'}}
 
@@ -683,6 +745,12 @@ def crumbs_ld(items):
     return {'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': n, 'item': WWW + u} for i, (n, u) in enumerate(items)]}
 
 
+def faq_ld(c):
+    if not c or not c.get('faqs'):
+        return []
+    return [{'@type': 'FAQPage', 'mainEntity': [{'@type': 'Question', 'name': q, 'acceptedAnswer': {'@type': 'Answer', 'text': a}} for q, a in c['faqs']]}]
+
+
 def edit(f, fn):
     s = open(f).read(); t = fn(s)
     if t != s:
@@ -698,10 +766,10 @@ for p, (title, desc) in PRODUCT_META.items():
     edit(p + '/index.html', lambda s: set_ld(set_meta(s, title, desc), {'@context': 'https://schema.org', '@graph': [
         {'@type': 'Service', 'name': name, 'serviceType': name, 'description': desc, 'url': WWW + p + '/',
          'provider': ORG, 'areaServed': {'@type': 'Country', 'name': 'Singapore'}},
-        crumbs_ld([('Home', ''), (name, p + '/')])]}))
+        crumbs_ld([('Home', ''), (name, p + '/')])] + faq_ld(DEPTH.get(p))}))
 for slug in SOL:
     edit('solutions/%s/index.html' % slug, lambda s: set_ld(set_meta(s, *SOLUTION_META[slug]), {'@context': 'https://schema.org', '@graph': [
-        crumbs_ld([('Home', ''), (SOL[slug][0], 'solutions/%s/' % slug)])]}))
+        crumbs_ld([('Home', ''), (SOL[slug][0], 'solutions/%s/' % slug)])] + faq_ld(SDEPTH.get(slug))}))
 for po in POSTS:
     edit('insights/%s/index.html' % po['slug'], lambda s: set_meta(s, INSIGHT_TITLES[po['slug']]).replace(
         'content="https://traderisksolutions.com.sg/og-image-2026.png"', 'content="' + WWW + 'og-image-2026.png"'))
@@ -714,4 +782,32 @@ for f in ('business/index.html', 'workforce/index.html'):
 edit('workforce/index.html', lambda s: set_meta(s, 'Workforce Insurance & Employee Benefits Singapore | TRS',
     'Workforce insurance in Singapore: WICA, foreign worker medical and bond, group medical, employee benefits and keyman.'))
 edit('business/index.html', lambda s: set_meta(s, desc='Business insurance in Singapore: property, liability, cyber, marine, construction, trade credit and bonds, placed by TRS.'))
+for hub, nm in (('business', 'Business insurance'), ('workforce', 'Workforce insurance and employee benefits')):
+    edit(hub + '/index.html', lambda s, hub=hub, nm=nm: set_ld(s, {'@context': 'https://schema.org', '@graph': [ORG,
+        {'@type': 'CollectionPage', 'url': WWW + hub + '/', 'name': nm, 'about': {'@id': WWW + '#org'}}, crumbs_ld([('Home', ''), (nm, hub + '/')])]})
+        if '/scripts/analytics.js' in s else set_ld(s.replace('</body>', '  <script src="/scripts/analytics.js" defer></script>\n</body>', 1), {'@context': 'https://schema.org', '@graph': [ORG,
+        {'@type': 'CollectionPage', 'url': WWW + hub + '/', 'name': nm, 'about': {'@id': WWW + '#org'}}, crumbs_ld([('Home', ''), (nm, hub + '/')])]}))
 print('search metadata set on', len(PRODUCT_META), 'product pages')
+
+
+
+# ---------------------------------------------------------------- GA4 (every page) and sitemap lastmod
+from seo_meta import GA4_ID
+GA_TAG = ('  <script async src="https://www.googletagmanager.com/gtag/js?id=%s"></script>\n  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag(\'js\',new Date());gtag(\'config\',\'%s\');</script>\n' % (GA4_ID, GA4_ID)) if GA4_ID else ''
+n = 0
+for f in glob.glob('**/*.html', recursive=True):
+    if f.startswith(SKIP) or f.startswith('googled'):
+        continue
+    s0 = open(f).read()
+    t = re.sub(r'\s*<script async src="https://www\.googletagmanager\.com/gtag/js\?id=[^"]*"></script>\s*<script>window\.dataLayer[^<]*</script>\n?', '\n', s0)
+    if GA_TAG and 'name="robots" content="noindex' not in t:
+        t = t.replace('</head>', GA_TAG + '</head>', 1)
+    if t != s0:
+        open(f, 'w').write(t); n += 1
+print('GA4 tag', 'set on' if GA_TAG else 'not set (GA4_ID empty);', n, 'pages touched')
+
+TODAY = datetime.date.today().isoformat()
+sm = open('sitemap.xml').read()
+sm = re.sub(r'<url><loc>([^<]*)</loc>(?!<lastmod>)', lambda m: f'<url><loc>{m.group(1)}</loc><lastmod>{TODAY}</lastmod>', sm)
+open('sitemap.xml', 'w').write(sm)
+print('sitemap lastmod on', sm.count('<lastmod>'), 'of', sm.count('<loc>'), 'urls')

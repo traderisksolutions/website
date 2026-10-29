@@ -65,14 +65,6 @@
       "destination": "/about.html"
     },
     {
-      "source": "/solutions",
-      "destination": "/solutions.html"
-    },
-    {
-      "source": "/pricing",
-      "destination": "/pricing.html"
-    },
-    {
       "source": "/api",
       "destination": "/api.html"
     },
@@ -82,6 +74,56 @@
     }
   ],
   "redirects": [
+    {
+      "source": "/pricing",
+      "destination": "/working-with-trs/",
+      "permanent": true
+    },
+    {
+      "source": "/pricing.html",
+      "destination": "/working-with-trs/",
+      "permanent": true
+    },
+    {
+      "source": "/commercial/financial-assets",
+      "destination": "/commercial/trade-credit/",
+      "permanent": true
+    },
+    {
+      "source": "/commercial/financial-assets/",
+      "destination": "/commercial/trade-credit/",
+      "permanent": true
+    },
+    {
+      "source": "/commercial/inventory",
+      "destination": "/commercial/marine-cargo/",
+      "permanent": true
+    },
+    {
+      "source": "/commercial/inventory/",
+      "destination": "/commercial/marine-cargo/",
+      "permanent": true
+    },
+    {
+      "source": "/solutions",
+      "destination": "/business/",
+      "permanent": true
+    },
+    {
+      "source": "/solutions.html",
+      "destination": "/business/",
+      "permanent": true
+    },
+    {
+      "source": "/about.html",
+      "destination": "/about",
+      "permanent": true
+    },
+    {
+      "source": "/:group(commercial|employees|personal|consumers|solutions)/:slug",
+      "destination": "/:group/:slug/",
+      "permanent": true
+    },
     {
       "source": "/claims",
       "destination": "/",
