@@ -98,7 +98,8 @@ function CompanyWorkspace() {
   const [cases, setCases] = useState<CaseRow[] | null>(null)
   const [activity, setActivity] = useState<ActivityEvent[] | null>(null)
   const [draftsCount, setDraftsCount] = useState<number | null>(null)
-  const [draftsOpen, setDraftsOpen] = useState(false)
+  // ?drafts=1 (the Home board's "Drafts to approve" link) opens the drafts workspace on arrival.
+  const [draftsOpen, setDraftsOpen] = useState(() => search.get('drafts') === '1')
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {

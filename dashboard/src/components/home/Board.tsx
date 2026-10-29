@@ -148,7 +148,7 @@ function Card({ card, staff, busy, onUnpin }: { card: BoardCard; staff: Map<stri
 
       {card.drafts > 0 && (
         <div className="-ml-3">
-          <LinkBtn href={card.href} level="tertiary" size="xs">Drafts to approve ({card.drafts})</LinkBtn>
+          <LinkBtn href={`${card.href}?drafts=1`} level="tertiary" size="xs">Drafts to approve ({card.drafts})</LinkBtn>
         </div>
       )}
 
