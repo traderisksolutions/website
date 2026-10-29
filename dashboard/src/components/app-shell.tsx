@@ -34,16 +34,16 @@ export function AppPageHeader({ title, description, actions, className }: AppPag
     <div
       className={cn(
         'flex items-start justify-between gap-4 px-6 sm:px-10 py-6 flex-shrink-0',
-        'border-b border-[#e8eaed] bg-white',
+        'border-b border-[#e6e8e4] bg-white',
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15]" style={{ color: '#202124' }}>
+        <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15]" style={{ color: '#0f1412' }}>
           {title}
         </h1>
         {description && (
-          <p className="m-0 mt-1 text-[14.5px] leading-snug" style={{ color: '#5f6368' }}>
+          <p className="m-0 mt-1 text-[14.5px] leading-snug" style={{ color: '#4a5550' }}>
             {description}
           </p>
         )}

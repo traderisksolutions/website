@@ -18,7 +18,7 @@ import {
 } from '@/lib/analytics/earnings'
 import { displayName } from '@/lib/insurers'
 
-const INK = '#202124', MUTED = '#5f6368', FAINT = '#80868b', RULE = '#e8eaed', LIGHT = '#bdc1c6'
+const INK = '#0f1412', MUTED = '#4a5550', FAINT = '#6f7a74', RULE = '#e6e8e4', LIGHT = '#bfc5bf'
 
 type Range = '12m' | 'ytd' | 'all' | 'custom'
 type SortKey = 'lifetimeValue' | 'periodValue' | 'lifetimeCommission' | 'lifetimePremium' | 'tenureMonths' | 'lastIssue' | 'name'
@@ -38,8 +38,8 @@ function rangeDates(r: Range, custom: { from: string; to: string }): { from: str
   return { from: custom.from || null, to: custom.to || null }
 }
 
-const SELECT = 'h-10 rounded-[12px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f3f4] text-[#202124] focus:outline-none focus:ring-2 focus:ring-[#202124]/15'
-const tooltipStyle = { fontSize: 12, borderRadius: 10, border: '1px solid #dadce0', boxShadow: 'none', color: INK }
+const SELECT = 'h-10 rounded-[12px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f2ee] text-[#0f1412] focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15'
+const tooltipStyle = { fontSize: 12, borderRadius: 10, border: '1px solid #d5d9d4', boxShadow: 'none', color: INK }
 const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2 pr-3 whitespace-nowrap'
 const td = 'py-2.5 pr-3 text-[13px] align-top'
 const num = 'py-2.5 pr-3 text-[13px] text-right tabular-nums align-top whitespace-nowrap'
@@ -168,7 +168,7 @@ export default function EarningsPage() {
           )}
         </div>
 
-        {err && <p className="mt-5 text-[13px]" style={{ color: '#c5221f' }}>{err}</p>}
+        {err && <p className="mt-5 text-[13px]" style={{ color: '#a1242f' }}>{err}</p>}
         {!v && !err && <div className="py-16"><Spinner label="Loading earnings" /></div>}
 
         {v && (
@@ -200,7 +200,7 @@ export default function EarningsPage() {
                   {v.rows.slice(0, 10).map(r => {
                     const max = Math.max(1, v.rows[0]?.lifetimeValue ?? 1)
                     return (
-                      <li key={r.key} className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-x-3 py-2" style={{ borderBottom: '1px solid #f1f3f4' }}>
+                      <li key={r.key} className="grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-x-3 py-2" style={{ borderBottom: '1px solid #f1f2ee' }}>
                         <span className="text-[12px] tabular-nums text-right" style={{ color: FAINT }}>{r.rank}</span>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 min-w-0">
@@ -209,7 +209,7 @@ export default function EarningsPage() {
                               : <span className="truncate text-[13.5px]" title={r.name}>{displayName(r.name)}</span>}
                             {r.vip && <span className="flex-shrink-0 text-[10px] font-semibold tracking-wide px-1.5 rounded" style={{ border: `1px solid ${INK}`, color: INK }}>VIP</span>}
                           </div>
-                          <div className="mt-1.5 h-1.5 rounded-full" style={{ background: '#f1f3f4' }}>
+                          <div className="mt-1.5 h-1.5 rounded-full" style={{ background: '#f1f2ee' }}>
                             <div className="h-1.5 rounded-full" style={{ width: `${Math.max(2, (r.lifetimeValue / max) * 100)}%`, background: INK }} />
                           </div>
                         </div>
@@ -239,7 +239,7 @@ export default function EarningsPage() {
                       </thead>
                       <tbody>
                         {renewals.map(x => (
-                          <tr key={x.policyId} style={{ borderBottom: '1px solid #f1f3f4' }}>
+                          <tr key={x.policyId} style={{ borderBottom: '1px solid #f1f2ee' }}>
                             <td className={`${td} max-w-[260px]`}>
                               {x.companyId
                                 ? <Link href={`/companies/${x.companyId}`} className="block truncate hover:underline" style={{ color: INK }} title={`${x.client} · ${x.className ?? ''} · ${x.insurer}`}>{displayName(x.client)}</Link>
@@ -283,7 +283,7 @@ export default function EarningsPage() {
                   </thead>
                   <tbody>
                     {table.map((r: ClientRow) => (
-                      <tr key={r.key} style={{ borderBottom: `1px solid #f1f3f4` }}>
+                      <tr key={r.key} style={{ borderBottom: `1px solid #f1f2ee` }}>
                         <td className={`${num} text-left`} style={{ color: FAINT }}>{r.rank}</td>
                         <td className={td}>
                           <div className="flex items-center gap-2">
@@ -324,7 +324,7 @@ export default function EarningsPage() {
                       </thead>
                       <tbody>
                         {g.rows.map(r => (
-                          <tr key={r.name} style={{ borderBottom: `1px solid #f1f3f4` }}>
+                          <tr key={r.name} style={{ borderBottom: `1px solid #f1f2ee` }}>
                             <td className={td}>{r.name}</td>
                             <td className={num}>{money(r.premium)}</td>
                             <td className={num}>{money(r.commission)}</td>

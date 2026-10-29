@@ -20,7 +20,7 @@ export function StatusPill<K extends string>({ status, config, className }: {
 }) {
   const cfg = (config as Record<string, { label: string; className: string } | undefined>)[status]
   return (
-    <span className={cn('st-badge', cfg?.className ?? 'bg-[#f1f3f4] text-[#3c4043]', className)}>
+    <span className={cn('st-badge', cfg?.className ?? 'bg-[#f1f2ee] text-[#2a332f]', className)}>
       {cfg?.label ?? status}
     </span>
   )
@@ -28,28 +28,28 @@ export function StatusPill<K extends string>({ status, config, className }: {
 
 // Shared vocab for pm_calculators.status — used by the calculator list and the review page.
 export const CALCULATOR_STATUS: StatusPillConfig<'draft' | 'extracting' | 'mapping' | 'in_review' | 'approved' | 'archived'> = {
-  draft:      { label: 'Draft',      className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  extracting: { label: 'Extracting…', className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  mapping:    { label: 'Extracting…', className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  in_review:  { label: 'In review',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  approved:   { label: 'Approved',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  archived:   { label: 'Archived',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  draft:      { label: 'Draft',      className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  extracting: { label: 'Extracting…', className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  mapping:    { label: 'Extracting…', className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  in_review:  { label: 'In review',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  approved:   { label: 'Approved',   className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  archived:   { label: 'Archived',   className: 'bg-[#f1f2ee] text-[#2a332f]' },
 }
 
 // pm_reconciliation_issues.status and pm_taxonomy_synonyms.status share the same three-state shape.
 export const REVIEW_STATUS: StatusPillConfig<'open' | 'pending' | 'resolved' | 'approved' | 'dismissed' | 'rejected'> = {
-  open:      { label: 'Open',      className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  pending:   { label: 'Pending',   className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  resolved:  { label: 'Resolved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  approved:  { label: 'Approved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  dismissed: { label: 'Dismissed', className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  rejected:  { label: 'Rejected',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  open:      { label: 'Open',      className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  pending:   { label: 'Pending',   className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  resolved:  { label: 'Resolved',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  approved:  { label: 'Approved',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  dismissed: { label: 'Dismissed', className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  rejected:  { label: 'Rejected',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
 }
 
 // pm_computation_rules.status — its own independent approval lifecycle (see plan §Decisions).
 export const RULES_STATUS: StatusPillConfig<'draft' | 'in_review' | 'approved' | 'archived'> = {
-  draft:     { label: 'Draft',     className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  in_review: { label: 'In review', className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  approved:  { label: 'Approved',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
-  archived:  { label: 'Archived',  className: 'bg-[#f1f3f4] text-[#3c4043]' },
+  draft:     { label: 'Draft',     className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  in_review: { label: 'In review', className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  approved:  { label: 'Approved',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
+  archived:  { label: 'Archived',  className: 'bg-[#f1f2ee] text-[#2a332f]' },
 }

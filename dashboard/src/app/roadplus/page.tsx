@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils'
 import { Tip } from '@/components/Tip'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const HAIR = '1px solid #e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const HAIR = '1px solid #e6e8e4'
 
 /** How often the open Purchases tab re-queries for new transactions. */
 const POLL_MS = 20_000
@@ -34,7 +34,7 @@ const STEP_LABEL: Record<string, string> = {
 // Grey stat tile: label, then the number. The label carries the meaning; no state colour.
 function Tile({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+    <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f2ee' }}>
       <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{label}</p>
       <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{value}</p>
     </div>
@@ -53,8 +53,8 @@ function Split({ title, data }: { title: string; data: Record<string, number> })
         <div className="space-y-2">
           {entries.map(([k, v]) => (
             <div key={k} className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-[13px] capitalize" style={{ color: '#3c4043' }}>{k}</div>
-              <div className="h-5 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f3f4' }}><div className="h-full rounded-[4px]" style={{ width: `${(v / total) * 100}%`, background: '#80868b' }} /></div>
+              <div className="w-28 shrink-0 text-[13px] capitalize" style={{ color: '#2a332f' }}>{k}</div>
+              <div className="h-5 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f2ee' }}><div className="h-full rounded-[4px]" style={{ width: `${(v / total) * 100}%`, background: '#6f7a74' }} /></div>
               <div className="w-20 text-right text-[12.5px] tabular-nums" style={{ color: MUTED }}>{v} ({((v / total) * 100).toFixed(0)}%)</div>
             </div>
           ))}
@@ -116,7 +116,7 @@ const RECON_LABEL: Record<Recon, string> = {
 
 // One neutral chip, used only to mark a row that arrived since the last poll. State is words.
 const CHIP = 'inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4'
-const CHIP_STYLE = { background: '#f1f3f4', color: '#3c4043' } as const
+const CHIP_STYLE = { background: '#f1f2ee', color: '#2a332f' } as const
 
 type JourneyEvent = {
   id: string
@@ -202,11 +202,11 @@ function download(filename: string, body: string) {
 }
 
 // ── Shared control classes (tokens) ───────────────────────────────────────
-const inputCls = 'h-10 w-full sm:w-[340px] rounded-[10px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#202124] transition-colors placeholder:text-[#80868b]'
-const inputStyle = { border: '1px solid #dadce0', color: INK } as const
+const inputCls = 'h-10 w-full sm:w-[340px] rounded-[10px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
+const inputStyle = { border: '1px solid #d5d9d4', color: INK } as const
 const primaryCls = 'h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-const secondaryCls = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#f8f9fa] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-const secondaryStyle = { border: '1px solid #dadce0', color: INK } as const
+const secondaryCls = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryStyle = { border: '1px solid #d5d9d4', color: INK } as const
 const tertiaryCls = 'text-[14px] bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
 const MONO = 'ui-monospace, monospace'
 
@@ -215,9 +215,9 @@ function LoadingRows() {
     <div aria-busy="true" className="mt-2">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="h-12 flex items-center gap-8" style={{ borderBottom: HAIR }}>
-          <span className="h-3.5 w-32 rounded bg-[#f1f3f4] animate-pulse" />
-          <span className="h-3.5 w-24 rounded bg-[#f1f3f4] animate-pulse" />
-          <span className="h-3.5 w-40 rounded bg-[#f1f3f4] animate-pulse ml-auto" />
+          <span className="h-3.5 w-32 rounded bg-[#f1f2ee] animate-pulse" />
+          <span className="h-3.5 w-24 rounded bg-[#f1f2ee] animate-pulse" />
+          <span className="h-3.5 w-40 rounded bg-[#f1f2ee] animate-pulse ml-auto" />
         </div>
       ))}
     </div>
@@ -377,7 +377,7 @@ export default function RoadplusReconPage() {
         </div>
 
         {!configured && (
-          <p className="m-0 mt-6 text-[14px] leading-relaxed" style={{ color: '#3c4043' }}>
+          <p className="m-0 mt-6 text-[14px] leading-relaxed" style={{ color: '#2a332f' }}>
             The roadplus database is not connected. Set <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_URL</code> and{' '}
             <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_SERVICE_KEY</code> on this dashboard&rsquo;s Vercel project
             (the roadplus project&rsquo;s URL and service-role key), then redeploy.
@@ -395,7 +395,7 @@ export default function RoadplusReconPage() {
                 role="tab"
                 aria-selected={on}
                 onClick={() => setTab(t.key)}
-                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
                 style={{ color: on ? INK : MUTED }}
               >
                 {t.label}
@@ -414,7 +414,7 @@ export default function RoadplusReconPage() {
                 className="flex items-center gap-2 flex-wrap"
               >
                 <label className="relative block w-full sm:w-auto">
-                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} aria-hidden />
                   <input
                     value={pQuery}
                     onChange={(e) => setPQuery(e.target.value)}
@@ -439,7 +439,7 @@ export default function RoadplusReconPage() {
                   className="inline-flex items-center gap-2 h-10 px-2 text-[13px] bg-transparent border-0 cursor-pointer hover:underline underline-offset-4"
                   style={{ color: MUTED }}
                 >
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: live ? '#9aa0a6' : '#dadce0' }} aria-hidden />
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ background: live ? '#8c958f' : '#d5d9d4' }} aria-hidden />
                   {live ? 'Live' : 'Paused'}
                 </button>
                 <button
@@ -484,7 +484,7 @@ export default function RoadplusReconPage() {
               <>
                 <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
                   <label className="inline-flex items-center gap-2 text-[14px] cursor-pointer" style={{ color: INK }}>
-                    <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} className="w-4 h-4 accent-[#202124]" />
+                    <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} className="w-4 h-4 accent-[#0f1412]" />
                     To check only
                     <Tip text="Payments the reconcile could not settle. Run reconcile first. If a row stays, email ECICS with its policy id." />
                   </label>
@@ -520,7 +520,7 @@ export default function RoadplusReconPage() {
                       </RegisterEmpty>
                     ) : (
                       visible.map((p) => (
-                        <RegisterRow key={p.id} className="hover:bg-[#f8f9fa]">
+                        <RegisterRow key={p.id} className="hover:bg-[#faf9f6]">
                           <RegisterCell first className="min-w-[240px]"
                             primary={<>{newIds.indexOf(p.id) !== -1 && <span className={cn(CHIP, 'mr-2 align-middle')} style={CHIP_STYLE}>New</span>}{fmtDate(p.received_at)}</>}
                             secondary={RECON_LABEL[p.recon]} />
@@ -528,7 +528,7 @@ export default function RoadplusReconPage() {
                           <RegisterCell align="right" primary={p.age ?? '—'} />
                           <RegisterCell title="Full value is in the CSV export"><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{maskNric(p.nric)}</span></RegisterCell>
                           <RegisterCell primary={p.coverage ?? '—'} secondary={p.max_rental_period ? `max ${p.max_rental_period}` : undefined} />
-                          <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}</span></RegisterCell>
+                          <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}</span></RegisterCell>
                           <RegisterCell align="right" primary={p.cover_days ?? '—'} />
                           <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: MUTED }}>{fmtMoney(p.quoted_premium, p.currency)}</span></RegisterCell>
                           <RegisterCell align="right"><span className="text-[14px] tabular-nums font-medium" style={{ color: INK }}>{fmtMoney(p.amount, p.currency)}</span></RegisterCell>
@@ -553,7 +553,7 @@ export default function RoadplusReconPage() {
               className="mb-5 flex items-center gap-2 flex-wrap"
             >
               <label className="relative block w-full sm:w-auto">
-                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} aria-hidden />
                 <input
                   value={jQuery}
                   onChange={(e) => setJQuery(e.target.value)}
@@ -584,12 +584,12 @@ export default function RoadplusReconPage() {
                 </RegisterHead>
                 <tbody>
                   {journey.map((e) => (
-                    <RegisterRow key={e.id} className="hover:bg-[#f8f9fa]">
+                    <RegisterRow key={e.id} className="hover:bg-[#faf9f6]">
                       <RegisterCell first primary={e.step} secondary={<span style={{ fontFamily: MONO }}>{e.journey_id}</span>} title={e.journey_id} />
                       <RegisterCell primary={fmtDate(e.created_at)} />
                       <RegisterCell><span className="text-[14px]" style={{ color: INK }}>{STEP_STATUS_LABEL[e.status] ?? e.status}</span></RegisterCell>
                       <RegisterCell nowrap={false}>
-                        <span className="block max-w-[420px] text-[14px] break-words" style={{ color: '#3c4043' }}>
+                        <span className="block max-w-[420px] text-[14px] break-words" style={{ color: '#2a332f' }}>
                           {e.error ? e.error : e.meta ? <span className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{JSON.stringify(e.meta)}</span> : '—'}
                         </span>
                       </RegisterCell>
@@ -623,7 +623,7 @@ export default function RoadplusReconPage() {
 
             {aLoading && !analytics ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true">
-                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-[16px] bg-[#f1f3f4] animate-pulse" />)}
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-[16px] bg-[#f1f2ee] animate-pulse" />)}
               </div>
             ) : !analytics || analytics.configured === false ? (
               <p className="m-0 py-16 text-center text-[16px]" style={{ color: MUTED }}>Not connected. Set the roadplus database env vars.</p>
@@ -660,8 +660,8 @@ export default function RoadplusReconPage() {
                         const drop = prev > 0 ? 1 - f.journeys / prev : 0
                         return (
                           <div key={f.step} className="flex items-center gap-3">
-                            <div className="w-40 shrink-0 text-[13px]" style={{ color: '#3c4043' }}>{STEP_LABEL[f.step] ?? f.step}</div>
-                            <div className="h-6 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f3f4' }}>
+                            <div className="w-40 shrink-0 text-[13px]" style={{ color: '#2a332f' }}>{STEP_LABEL[f.step] ?? f.step}</div>
+                            <div className="h-6 flex-1 overflow-hidden rounded-[4px]" style={{ background: '#f1f2ee' }}>
                               <div
                                 className="flex h-full items-center rounded-[4px] px-2 text-[11.5px] font-medium text-white tabular-nums"
                                 style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%`, background: INK }}

@@ -18,8 +18,8 @@ import {
 } from '@/components/ui/dialog'
 import { CompaniesTab } from '@/components/contacts/CompaniesTab'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 interface Contact {
   id: string; first_name: string | null; last_name: string | null
@@ -91,10 +91,10 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
+        <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}>
           {[60, 30, 25, 40].map((w, j) => (
             <td key={j} className={cn('px-4 h-14', j === 0 && 'pl-6', j === 3 && 'pr-6')}>
-              <div className={cn('h-3.5 rounded bg-[#f1f3f4] animate-pulse', j === 3 && 'ml-auto')} style={{ width: `${w}%` }} />
+              <div className={cn('h-3.5 rounded bg-[#f1f2ee] animate-pulse', j === 3 && 'ml-auto')} style={{ width: `${w}%` }} />
             </td>
           ))}
         </tr>
@@ -188,7 +188,7 @@ function ContactsViewTabs({ view, onChange }: { view: 'contacts' | 'companies'; 
         const on = view === k
         return (
           <button key={k} type="button" role="tab" aria-selected={on} onClick={() => onChange(k)}
-            className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+            className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
             style={{ color: on ? INK : MUTED }}>
             {k === 'contacts' ? 'Contacts' : 'Companies'}
             <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
@@ -286,7 +286,7 @@ export default function ContactsPage() {
           </div>
 
           {/* Filter row: status pills left, search right */}
-          <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <div className="flex flex-wrap gap-1.5 min-w-0" role="group" aria-label="Filter by status">
               {STATUS_OPTIONS.map(s => (
                 <button key={s} type="button" onClick={() => setFilter(s)}
@@ -337,12 +337,12 @@ export default function ContactsPage() {
                       {/* Company group header */}
                       <RegisterGroupRow colSpan={4} onClick={() => toggleCollapse(key)} open={!isCollapsed}>
                         <span className="flex items-center gap-2 select-none">
-                          <span className="flex-shrink-0" style={{ color: '#9aa0a6' }} aria-hidden>
+                          <span className="flex-shrink-0" style={{ color: '#8c958f' }} aria-hidden>
                             {isCollapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
                           </span>
-                          <span style={{ color: group.company ? '#3c4043' : MUTED }}>{group.company ?? 'No company'}</span>
-                          <span className="font-normal tabular-nums" style={{ color: '#80868b' }}>{group.contacts.length}</span>
-                          {ccInGroup > 0 && <span className="font-normal" style={{ color: '#80868b' }}>{ccInGroup} cc</span>}
+                          <span style={{ color: group.company ? '#2a332f' : MUTED }}>{group.company ?? 'No company'}</span>
+                          <span className="font-normal tabular-nums" style={{ color: '#6f7a74' }}>{group.contacts.length}</span>
+                          {ccInGroup > 0 && <span className="font-normal" style={{ color: '#6f7a74' }}>{ccInGroup} cc</span>}
                         </span>
                       </RegisterGroupRow>
 
@@ -379,16 +379,16 @@ export default function ContactsPage() {
       {/* ── Detail panel: overlay under 768px, side pane above ── */}
       {selected && (
         <div className="fixed inset-0 z-40 md:static md:inset-auto md:z-auto md:w-[320px] md:flex-shrink-0 bg-white overflow-y-auto flex flex-col"
-          style={{ color: INK, borderLeft: '1px solid #e8eaed' }}>
+          style={{ color: INK, borderLeft: '1px solid #e6e8e4' }}>
 
           {/* Panel header */}
-          <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <span className="text-[16px] font-medium tracking-[-0.01em]">Contact</span>
             <button
               type="button"
               onClick={() => setSelected(null)}
               aria-label="Close"
-              className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f3f4] transition-colors bg-transparent border-0 cursor-pointer"
+              className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors bg-transparent border-0 cursor-pointer"
               style={{ color: MUTED }}>
               <X size={14} />
             </button>
@@ -425,7 +425,7 @@ export default function ContactsPage() {
                   </span>
                   {copied === 'email'
                     ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
-                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />}
+                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#8c958f' }} />}
                 </button>
               </DetailField>
             )}
@@ -439,7 +439,7 @@ export default function ContactsPage() {
                   <span style={{ color: INK }}>{selected.phone}</span>
                   {copied === 'phone'
                     ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
-                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />}
+                    : <Copy size={12} className="flex-shrink-0" style={{ color: '#8c958f' }} />}
                 </button>
               </DetailField>
             )}

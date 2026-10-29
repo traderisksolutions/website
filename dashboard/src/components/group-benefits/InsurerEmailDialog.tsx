@@ -16,7 +16,7 @@ import { normInsurer } from '@/lib/insurers'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 export type InsurerOption = { id: string; name: string }
@@ -35,12 +35,12 @@ export const contactsFor = (insurer: string, contacts: InsurerContact[]) =>
 
 /** Every contact as name and email, one per line. */
 export function ContactLines({ people }: { people: InsurerContact[] }) {
-  if (people.length === 0) return <span className="text-[14px]" style={{ color: '#9aa0a6' }}>None on file</span>
+  if (people.length === 0) return <span className="text-[14px]" style={{ color: '#8c958f' }}>None on file</span>
   return (
     <span className="flex flex-col gap-0.5">
       {people.map(p => (
-        <span key={p.contact_id} className="text-[14px] leading-snug" style={{ color: '#202124' }}>
-          {p.name ?? p.email}{p.name && <span className="ml-2 text-[13px]" style={{ color: '#5f6368' }}>{p.email}</span>}
+        <span key={p.contact_id} className="text-[14px] leading-snug" style={{ color: '#0f1412' }}>
+          {p.name ?? p.email}{p.name && <span className="ml-2 text-[13px]" style={{ color: '#4a5550' }}>{p.email}</span>}
         </span>
       ))}
     </span>
@@ -156,7 +156,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
   return (
     <HrModal open={open} onClose={onClose} title={initialPlan ? `Email ${initialPlan}` : 'Email insurer'} width={600}>
       <div className="flex flex-col gap-4">
-        {loadError && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{loadError}</p>}
+        {loadError && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{loadError}</p>}
 
         <Field label="Insurer">
           <select className={inputCls} value={insurerId} onChange={e => { setInsurerId(e.target.value); setAdding(false); setError(null) }}>
@@ -176,7 +176,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
             )}
             {people.map(p => (
               <label key={p.email} className="flex items-center gap-2.5 text-[14px] cursor-pointer">
-                <input type="checkbox" className="accent-[#202124]" checked={picked.has(p.email)}
+                <input type="checkbox" className="accent-[#0f1412]" checked={picked.has(p.email)}
                   onChange={() => setPicked(s => { const n = new Set(s); if (n.has(p.email)) n.delete(p.email); else n.add(p.email); return n })} />
                 <span>{p.name ?? p.email}</span>
                 {p.name && <span className="text-[13px]" style={{ color: MUTED }}>{p.email}</span>}
@@ -192,7 +192,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setAdding(true)} className="self-start text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#202124' }}>
+              <button type="button" onClick={() => setAdding(true)} className="self-start text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#0f1412' }}>
                 + Add contact
               </button>
             )}
@@ -205,7 +205,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
           <Field label="Lives"><input className={inputCls} value={lives} onChange={e => setLives(e.target.value)} placeholder="6 employees, 9 dependants" autoComplete="off" /></Field>
         </div>
 
-        {error && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>

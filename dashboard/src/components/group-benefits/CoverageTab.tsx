@@ -21,13 +21,13 @@ type ProductRow = { code: string; canonName: string; abbrev: string; cells: Reco
 type BenefitRow = { code: string; productCode: string; canonName: string; headline: boolean; cells: Record<string, { printed: string[]; plans: number } | null> }
 type Payload = { insurers: Insurer[]; products: ProductRow[]; benefits: BenefitRow[]; names: Record<string, string>; error?: string }
 
-const INK = '#202124', MUTED = '#5f6368', FAINT = '#9aa0a6', RULE = '#e8eaed'
+const INK = '#0f1412', MUTED = '#4a5550', FAINT = '#8c958f', RULE = '#e6e8e4'
 
 /** A read-only mark, not a checkbox: a check where offered, a dash where not. Nothing here is ticked by hand. */
 function Tick({ on }: { on: boolean }) {
   return on
     ? <Check size={14} strokeWidth={2.5} aria-label="Offered" role="img" className="flex-shrink-0 mt-[2px]" style={{ color: INK }} />
-    : <span aria-label="Not offered" role="img" className="text-[13px] leading-[18px]" style={{ color: '#bdc1c6' }}>—</span>
+    : <span aria-label="Not offered" role="img" className="text-[13px] leading-[18px]" style={{ color: '#bfc5bf' }}>—</span>
 }
 
 export function CoverageTab() {
@@ -63,7 +63,7 @@ export function CoverageTab() {
       .filter(b => !gapsOnly || d.insurers.some(i => !b.cells[i.tableId]))
   }, [d, product, gapsOnly])
 
-  if (err) return <p className="text-[13px]" style={{ color: '#c5221f' }}>{err}</p>
+  if (err) return <p className="text-[13px]" style={{ color: '#a1242f' }}>{err}</p>
   if (!d) return <div className="py-10"><Loader2 className="animate-spin" size={18} style={{ color: MUTED }} /></div>
 
   const offered = (p: ProductRow) => d.insurers.filter(i => p.cells[i.tableId]).length
@@ -72,7 +72,7 @@ export function CoverageTab() {
   const nameInput = (code: string, canon: string) => (
     <input aria-label={`TRS name for ${canon}`} value={names[code] ?? ''} placeholder={canon}
            onChange={e => setNames(n => ({ ...n, [code]: e.target.value }))}
-           className="w-full min-w-[240px] px-2 py-1 text-[13px] border border-transparent hover:border-[#dadce0] focus:border-[#202124] rounded-md bg-transparent focus:outline-none placeholder:text-[#3c4043]" />
+           className="w-full min-w-[240px] px-2 py-1 text-[13px] border border-transparent hover:border-[#d5d9d4] focus:border-[#0f1412] rounded-md bg-transparent focus:outline-none placeholder:text-[#2a332f]" />
   )
 
   const everyLine = d.benefits.filter(b => b.productCode === product)
@@ -86,7 +86,7 @@ export function CoverageTab() {
           <Tip text="Reference only; nothing here needs ticking. A check means the insurer's current rate table prices the cover, or its schedule prints the benefit line; the wording under it is the insurer's own. Type TRS's name in the first column to standardise it; a blank keeps the canonical name." />
         </div>
         <button onClick={save} disabled={!dirty || saving}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
           {saving && <Loader2 size={13} className="animate-spin" />}{saving ? 'Saving…' : dirty ? 'Save names' : 'Names saved'}
         </button>
       </div>
@@ -95,11 +95,11 @@ export function CoverageTab() {
         <div className="flex flex-wrap items-center gap-3">
           <label htmlFor="cov-product" className="text-[12.5px]" style={{ color: MUTED }}>Cover</label>
           <select id="cov-product" value={product} onChange={e => setProduct(e.target.value)}
-                  className="text-[13px] border border-[#dadce0] rounded-md px-2 py-1 bg-white">
+                  className="text-[13px] border border-[#d5d9d4] rounded-md px-2 py-1 bg-white">
             {d.products.map(p => <option key={p.code} value={p.code}>{names[p.code] || p.canonName}</option>)}
           </select>
           <label className="flex items-center gap-1.5 text-[12.5px] cursor-pointer" style={{ color: MUTED }}>
-            <input type="checkbox" checked={gapsOnly} onChange={e => setGapsOnly(e.target.checked)} className="accent-[#202124]" />
+            <input type="checkbox" checked={gapsOnly} onChange={e => setGapsOnly(e.target.checked)} className="accent-[#0f1412]" />
             Only lines missing at one or more insurers
           </label>
         </div>
@@ -108,8 +108,8 @@ export function CoverageTab() {
       <div className="relative overflow-x-auto border rounded-lg" style={{ borderColor: RULE }}>
         <table className="w-full border-collapse" style={{ minWidth: 270 + d.insurers.length * 150 }}>
           <thead>
-            <tr className="bg-[#f8f9fa]" style={{ color: MUTED }}>
-              <th className={cn(th, 'sticky left-0 bg-[#f8f9fa] z-10 w-[270px] min-w-[270px]')}>{view === 'covers' ? 'Cover' : 'Benefit line'} · TRS name</th>
+            <tr className="bg-[#faf9f6]" style={{ color: MUTED }}>
+              <th className={cn(th, 'sticky left-0 bg-[#faf9f6] z-10 w-[270px] min-w-[270px]')}>{view === 'covers' ? 'Cover' : 'Benefit line'} · TRS name</th>
               {d.insurers.map(i => (
                 <th key={i.tableId} className={cn(th, 'border-l')} style={{ borderColor: RULE }}>
                   <div className="normal-case tracking-normal text-[12.5px]" style={{ color: INK }} title={i.name ?? undefined}>{shortInsurer(i.name)}</div>
@@ -133,7 +133,7 @@ export function CoverageTab() {
                         <Tick on={!!c} />
                         {c && (
                           <div className="min-w-0">
-                            <div className="text-[12.5px] break-words" style={{ color: '#3c4043' }}>{c.labels.join(' · ')}</div>
+                            <div className="text-[12.5px] break-words" style={{ color: '#2a332f' }}>{c.labels.join(' · ')}</div>
                             <div className="text-[11.5px] tabular-nums" style={{ color: FAINT }}>{c.plans} plan{c.plans === 1 ? '' : 's'}</div>
                           </div>
                         )}
@@ -152,7 +152,7 @@ export function CoverageTab() {
                     <td key={i.tableId} className="px-3 py-2 align-top border-l" style={{ borderColor: RULE }}>
                       <div className="flex items-start gap-2">
                         <Tick on={!!c} />
-                        {c && <div className="text-[12px] break-words min-w-0" style={{ color: '#3c4043' }} title={c.printed.join('\n')}>{c.printed[0]}{c.printed.length > 1 ? ` +${c.printed.length - 1}` : ''}</div>}
+                        {c && <div className="text-[12px] break-words min-w-0" style={{ color: '#2a332f' }} title={c.printed.join('\n')}>{c.printed[0]}{c.printed.length > 1 ? ` +${c.printed.length - 1}` : ''}</div>}
                       </div>
                     </td>
                   )

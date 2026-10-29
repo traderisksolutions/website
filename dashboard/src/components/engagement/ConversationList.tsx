@@ -39,11 +39,11 @@ interface ConversationListProps {
   iconOnly?:      boolean
 }
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIRLINE = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIRLINE = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 const PAD: Record<Density, string> = { comfortable: 'py-4', standard: 'py-3', compact: 'py-2' }
 
@@ -105,7 +105,7 @@ export function ConversationList({
       <p className="m-0 text-[14px]" style={{ color: MUTED }}>{text}</p>
       {action && (
         <button type="button" onClick={action.onClick}
-          className="h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]" style={{ color: INK }}>
+          className="h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: INK }}>
           {action.label}
         </button>
       )}
@@ -125,7 +125,7 @@ export function ConversationList({
             )}
           </div>
           <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Sync mail" title={refreshing ? 'Syncing…' : 'Sync mail'}
-            className="w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 flex-shrink-0" style={{ color: MUTED }}>
+            className="w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 flex-shrink-0" style={{ color: MUTED }}>
             <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
           </button>
         </div>
@@ -146,13 +146,13 @@ export function ConversationList({
             ) : (
               <div key={d.id} role="listitem" className="relative">
                 <button type="button" onClick={() => onOpenDraft(draftOf(d))} aria-label={`Draft, ${d.subject || 'no subject'}, to ${d.to_email || 'nobody yet'}`}
-                  className={cn('w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-12 bg-white border-0 cursor-pointer transition-colors hover:bg-[#f8f9fa]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', PAD[density])}
+                  className={cn('w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-12 bg-white border-0 cursor-pointer transition-colors hover:bg-[#faf9f6]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', PAD[density])}
                   style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
                   <span className="mt-[7px] w-2 h-2 rounded-full" aria-hidden />
                   <span className="min-w-0 text-[14px] font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
                   <span className="text-[12px] tabular-nums pt-0.5 whitespace-nowrap" style={{ color: FAINT }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                  <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: '#3c4043' }}>
+                  <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: '#2a332f' }}>
                     <b className="font-medium" style={{ color: INK }}>Draft</b> · to {d.to_email || '—'}
                   </span>
                   {density !== 'compact' && (
@@ -160,7 +160,7 @@ export function ConversationList({
                   )}
                 </button>
                 <button type="button" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
-                  className="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] hover:text-[#c5221f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]" style={{ color: FAINT }}>
+                  className="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: FAINT }}>
                   <X size={13} />
                 </button>
               </div>

@@ -10,10 +10,10 @@ import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { fmtDay, n } from '@/lib/marketing/labels'
 import type { Competitor, GeoAnalysis, GeoPrompt, GeoPromptResult, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#202124'
-const INK2 = '#3c4043'
-const RULE = '#e8eaed'
-const FAINT = '#9aa0a6'
+const INK = '#0f1412'
+const INK2 = '#2a332f'
+const RULE = '#e6e8e4'
+const FAINT = '#8c958f'
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const TONE_LABEL: Record<string, string> = { positive: 'Positive', neutral: 'Neutral', negative: 'Negative', not_mentioned: 'Not mentioned' }
 

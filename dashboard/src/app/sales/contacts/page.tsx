@@ -14,8 +14,8 @@ import type { AudienceRow, AudienceSummary } from '@/lib/sales/audience'
 import { RELATIONSHIP_LABEL, RELATIONSHIP_WORD, SOURCE_LABEL, n } from '@/lib/sales/labels'
 import { locationLabel } from '@/lib/sales/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type Filters = { relationship: string; location: string; verifiedOnly: boolean; q: string; page: number }
 type Payload = { filters: Filters; rows: AudienceRow[]; total: number; summary: AudienceSummary }
@@ -98,9 +98,9 @@ function Contacts() {
               options={[{ value: 'all', label: 'All', count: s?.total }, ...['prospect', 'client', 'enquiry', 'other'].filter(r => s?.byRelationship[r]).map(r => ({ value: r, label: RELATIONSHIP_LABEL[r], count: s?.byRelationship[r] }))]} />
             {locs.length > 1 && <Segmented value={filters.location} onChange={v => go({ location: v })} options={[{ value: 'all', label: 'All markets' }, ...locs.map(l => ({ value: l, label: locationLabel(l), count: s?.byLocation[l] }))]} />}
           </div>
-          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <label className="flex items-center gap-2 text-[14px]" style={{ color: INK }}>
-              <input type="checkbox" checked={filters.verifiedOnly} onChange={e => go({ verifiedOnly: e.target.checked })} className="size-4 accent-[#202124]" /> Verified only
+              <input type="checkbox" checked={filters.verifiedOnly} onChange={e => go({ verifiedOnly: e.target.checked })} className="size-4 accent-[#0f1412]" /> Verified only
             </label>
             <DataTableSearch value={q} onChange={setQ} placeholder="Search email, name or company" className="flex-shrink-0" />
           </div>

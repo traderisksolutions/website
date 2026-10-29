@@ -34,13 +34,13 @@ export function loadBoard(): Promise<BoardPayload> {
 
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const HAIR = '#e8eaed'
-const FIELD = { company: '#EAF2FF', work: '#FFF6D8', policy: '#F1EEFF', calendar: '#EAF6EC', finance: '#FFF0E7', grey: '#f1f3f4' }
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const HAIR = '#e6e8e4'
+const FIELD = { company: '#EAF2FF', work: '#fff4dc', policy: '#F1EEFF', calendar: '#EAF6EC', finance: '#FFF0E7', grey: '#f1f2ee' }
 const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Partner', other: 'Company' }
-const CARD_LINK = 'inline-block mt-2.5 text-[13px] no-underline underline-offset-[3px] hover:underline decoration-[#9aa0a6] bg-transparent border-0 p-0 cursor-pointer'
+const CARD_LINK = 'inline-block mt-2.5 text-[13px] no-underline underline-offset-[3px] hover:underline decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer'
 
 export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask }: {
   lead: Lead
@@ -95,7 +95,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     <aside className="h-full flex flex-col min-h-0 bg-white" aria-label="Context" style={{ borderLeft: onClose ? `1px solid ${HAIR}` : undefined }}>
       <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-2 text-[13px]" style={{ color: MUTED }}>
         <span>Context</span>
-        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-8 w-8 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f3f4]" style={{ color: BODY }}><X size={15} /></button>}
+        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-8 w-8 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-5 flex flex-col gap-2.5">
@@ -228,13 +228,13 @@ function Card({ field, label, children }: { field: string; label: string; childr
   )
 }
 
-function Dot() { return <span aria-hidden style={{ color: '#9aa0a6' }}>·</span> }
+function Dot() { return <span aria-hidden style={{ color: '#8c958f' }}>·</span> }
 
 function AssistLink({ children, onClick, disabled, title, ...rest }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; title?: string; 'aria-expanded'?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} title={title} {...rest}
-      className="bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124] disabled:cursor-default disabled:no-underline"
-      style={{ color: disabled ? '#80868b' : INK }}>{children}</button>
+      className="bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] disabled:cursor-default disabled:no-underline"
+      style={{ color: disabled ? '#6f7a74' : INK }}>{children}</button>
   )
 }
 

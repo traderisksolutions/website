@@ -5,7 +5,7 @@ import React from 'react'
 const T = {
   activeBg:      '#111',
   activeColor:   '#fff',
-  hoverBg:       '#f4f4f5',
+  hoverBg:       '#f1f2ee',
   disabledColor: '#d1d5db',
   border:        '#e5e5e5',
   text:          '#555',

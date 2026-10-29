@@ -57,10 +57,10 @@ function actionCfg(action: string) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 type Period = '7' | '30' | '90' | '0'
 const PERIODS: { value: Period; label: string }[] = [
@@ -295,7 +295,7 @@ export default function ActivityLogPage() {
                         type="button"
                         onClick={() => hasDetail ? setExpanded(isExp ? null : row.id) : undefined}
                         aria-expanded={hasDetail ? isExp : undefined}
-                        className={`w-full flex items-start gap-3 py-3 bg-transparent border-0 text-left ${hasDetail ? 'cursor-pointer hover:bg-[#f8f9fa]' : 'cursor-default'}`}
+                        className={`w-full flex items-start gap-3 py-3 bg-transparent border-0 text-left ${hasDetail ? 'cursor-pointer hover:bg-[#faf9f6]' : 'cursor-default'}`}
                       >
                         {/* Employee */}
                         <div className="w-[128px] flex-shrink-0 pt-px hidden sm:block">
@@ -322,8 +322,8 @@ export default function ActivityLogPage() {
                           </span>
                           {hasDetail
                             ? (isExp
-                              ? <ChevronDown size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />
-                              : <ChevronRight size={14} strokeWidth={2} style={{ color: '#9aa0a6' }} />)
+                              ? <ChevronDown size={14} strokeWidth={2} style={{ color: '#8c958f' }} />
+                              : <ChevronRight size={14} strokeWidth={2} style={{ color: '#8c958f' }} />)
                             : <span className="w-[14px]" />}
                         </div>
                       </button>

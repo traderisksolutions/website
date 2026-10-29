@@ -7,9 +7,9 @@ import { CompanySearchSelect } from '@/components/crm/CompanySearchSelect'
 import { fmtRelative } from '@/lib/crm/format'
 import { COMPANY_KINDS, type CompanyKind, type LinkSuggestion } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const CARD = 'rounded-[16px] border border-[#e8eaed] bg-white p-5'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const CARD = 'rounded-[16px] border border-[#e6e8e4] bg-white p-5'
 
 type CompanyOpt = { id: string; name: string; domains: string[] }
 type DomainRow = {
@@ -139,7 +139,7 @@ export default function TriagePage() {
         </div>
 
         {notice && <p className="mt-6 mb-0 text-[14px]" role="status" style={{ color: MUTED }}>{notice}</p>}
-        {error && <p className="mt-6 mb-0 text-[14px]" role="alert" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="mt-6 mb-0 text-[14px]" role="alert" style={{ color: '#a1242f' }}>{error}</p>}
 
         <div className="mt-8">
           <Segmented value={tab} onChange={setTab} options={[
@@ -204,7 +204,7 @@ export default function TriagePage() {
                     {[p.a, p.b].map((c, i) => {
                       const other = i === 0 ? p.b : p.a
                       return (
-                        <div key={c.id} className="rounded-[12px] px-4 py-3" style={{ background: '#f1f3f4' }}>
+                        <div key={c.id} className="rounded-[12px] px-4 py-3" style={{ background: '#f1f2ee' }}>
                           <p className="text-[14px] font-medium m-0 truncate" style={{ color: INK }}>{c.name}</p>
                           <p className="text-[13px] m-0 mt-0.5" style={{ color: MUTED }}>{c.kind} · {c.domains.join(', ') || 'no domain'}</p>
                           <Btn size="sm" level="secondary" className="mt-3" loading={running === other.id} onClick={() => merge(other.id, c.id)}>
@@ -241,7 +241,7 @@ function DomainCard({ row, companies, busy, onDecide }: {
           {row.domain}
           <Chip>{row.threads} thread{row.threads === 1 ? '' : 's'}</Chip>
         </p>
-        <p className="text-[13px] m-0 mt-1" style={{ color: '#80868b' }}>
+        <p className="text-[13px] m-0 mt-1" style={{ color: '#6f7a74' }}>
           {[row.inbound ? `${row.inbound} in` : null, row.outbound ? `${row.outbound} out` : null].filter(Boolean).join(' · ') || 'no messages recorded'}
         </p>
       </div>
@@ -267,7 +267,7 @@ function DomainCard({ row, companies, busy, onDecide }: {
       {row.previews.length > 0 && (
         <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-2">
           {row.previews.slice(0, showAll ? 8 : 2).map((pv, i) => (
-            <li key={i} className="rounded-[10px] px-3 py-2" style={{ background: '#f8f9fa' }}>
+            <li key={i} className="rounded-[10px] px-3 py-2" style={{ background: '#faf9f6' }}>
               <span className="block text-[13.5px] truncate" style={{ color: INK }}>{pv.subject ?? '(no subject)'}</span>
               {pv.snippet && <span className="block text-[13px] mt-0.5 line-clamp-2" style={{ color: MUTED }}>{pv.snippet}</span>}
             </li>
@@ -279,14 +279,14 @@ function DomainCard({ row, companies, busy, onDecide }: {
       )}
 
       {s && (
-        <div className="mt-3 rounded-[10px] px-3 py-2.5" style={{ background: '#f1f3f4' }}>
+        <div className="mt-3 rounded-[10px] px-3 py-2.5" style={{ background: '#f1f2ee' }}>
           <p className="text-[13.5px] m-0 flex items-center gap-1.5 flex-wrap" style={{ color: INK }}>
             <span style={{ color: MUTED }}>Reads as</span>
             <span className="font-medium">{s.name}</span>
             <Chip>{s.kind}</Chip>
             <span style={{ color: MUTED }}>· {Math.round(s.confidence * 100)}% sure</span>
           </p>
-          <p className="text-[13.5px] m-0 mt-1" style={{ color: '#3c4043' }}>{s.reason}</p>
+          <p className="text-[13.5px] m-0 mt-1" style={{ color: '#2a332f' }}>{s.reason}</p>
           {s.evidence && <p className="text-[13px] m-0 mt-1" style={{ color: MUTED }}>On the strength of: {s.evidence}</p>}
           {s.alternative && <p className="text-[13px] m-0 mt-1" style={{ color: MUTED }}>Could also be a {s.alternative.kind}: {s.alternative.why}</p>}
         </div>
@@ -307,7 +307,7 @@ function DomainCard({ row, companies, busy, onDecide }: {
         </p>
       )}
 
-      <div className="mt-4 pt-4 border-t border-[#e8eaed] flex flex-wrap items-end gap-x-6 gap-y-3">
+      <div className="mt-4 pt-4 border-t border-[#e6e8e4] flex flex-wrap items-end gap-x-6 gap-y-3">
         <label className="flex flex-col gap-1.5 min-w-0">
           <span className="text-[12.5px]" style={{ color: MUTED }}>Existing company</span>
           <span className="flex gap-2">
@@ -366,8 +366,8 @@ function MisfiledCard({ group, companies, onDone }: { group: MisfiledGroup; comp
       <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5">
         {visible.map(t => (
           <li key={t.id} className="flex items-baseline justify-between gap-3 text-[13.5px]">
-            <Link href={`/engagement?lead=${t.id}`} className="truncate no-underline hover:underline" style={{ color: '#3c4043' }}>{t.subject ?? '(no subject)'}</Link>
-            <span className="flex-shrink-0 tabular-nums" style={{ color: '#80868b' }}>{fmtRelative(t.lastMessageAt)}</span>
+            <Link href={`/engagement?lead=${t.id}`} className="truncate no-underline hover:underline" style={{ color: '#2a332f' }}>{t.subject ?? '(no subject)'}</Link>
+            <span className="flex-shrink-0 tabular-nums" style={{ color: '#6f7a74' }}>{fmtRelative(t.lastMessageAt)}</span>
           </li>
         ))}
         {n > 2 && (
@@ -375,13 +375,13 @@ function MisfiledCard({ group, companies, onDone }: { group: MisfiledGroup; comp
         )}
       </ul>
 
-      <div className="mt-4 pt-4 border-t border-[#e8eaed] flex items-center gap-2 flex-wrap">
+      <div className="mt-4 pt-4 border-t border-[#e6e8e4] flex items-center gap-2 flex-wrap">
         <CompanySearchSelect options={companies} value={pick} onChange={setPick} className="max-w-[240px]" />
         <Btn size="sm" level={group.match ? 'primary' : 'secondary'} className="h-10" disabled={!pick || busy} loading={busy && !!pick}
           onClick={() => decideAll({ decision: 'link', companyId: pick })}>
           Move {n === 1 ? 'it' : `all ${n}`}
         </Btn>
-        <span className="text-[13px]" style={{ color: '#9aa0a6' }}>or</span>
+        <span className="text-[13px]" style={{ color: '#8c958f' }}>or</span>
         <input value={name} onChange={e => setName(e.target.value)} className={`${inputCls} w-auto max-w-[220px]`} aria-label="New company name" placeholder="Company name" />
         <Btn size="sm" level="secondary" className="h-10" disabled={!name.trim() || busy} onClick={() => decideAll({ decision: 'create', name: name.trim() })}>Create and move</Btn>
         <Btn size="sm" level="tertiary" className="h-10" disabled={busy} onClick={() => decideAll({ decision: 'not_client' })}>Keep under the insurer</Btn>
@@ -417,7 +417,7 @@ function ThreadCard({ row, companies, onDone }: { row: ThreadRow; companies: Com
         </div>
         <Link href={`/engagement?lead=${row.id}`} className="text-[13.5px] no-underline hover:underline flex-shrink-0" style={{ color: MUTED }}>Open</Link>
       </div>
-      <div className="mt-4 pt-4 border-t border-[#e8eaed] flex items-center gap-2 flex-wrap">
+      <div className="mt-4 pt-4 border-t border-[#e6e8e4] flex items-center gap-2 flex-wrap">
         <CompanySearchSelect options={companies} value={pick} onChange={setPick} className="max-w-[260px]" />
         <Btn size="sm" level="secondary" className="h-10" disabled={!pick || busy} onClick={() => decide({ decision: 'link', companyId: pick })}>Link</Btn>
         <Btn size="sm" level="tertiary" className="h-10" disabled={busy} onClick={() => decide({ decision: 'not_client' })}>Not a client</Btn>

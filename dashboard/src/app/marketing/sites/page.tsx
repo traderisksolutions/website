@@ -7,7 +7,7 @@ import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { marketLabel } from '@/lib/marketing/knowledge-schema'
 import type { Site } from '@/lib/marketing/types'
 
-const INK = '#202124'
+const INK = '#0f1412'
 const ALL_MARKETS = ['SG', 'HK', 'MY', 'ID']
 
 export default function SitesPage() {

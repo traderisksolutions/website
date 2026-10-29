@@ -500,7 +500,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
           {!sent && (
             <>
               <Btn level="tertiary" size="xs" disabled={busy} onClick={() => void discard(item)}>Discard</Btn>
-              <Btn level="secondary" size="xs" disabled={busy || uploading} loading={item.state.phase === 'sending'} onClick={() => void sendSelected(item)}>{sendLabel}</Btn>
+              <Btn level="primary" size="sm" disabled={busy || uploading} loading={item.state.phase === 'sending'} onClick={() => void sendSelected(item)}>{sendLabel}</Btn>
             </>
           )}
         </div>
@@ -514,7 +514,7 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
       <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] text-foreground">Drafts to approve</h2>
       <span className="text-[13px] tabular-nums text-muted-foreground">{items ? pending.length : ''}</span>
       <div className="ml-auto flex items-center gap-1.5">
-        <Btn level="primary" size="xs" onClick={() => void sendAll()} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>
+        <Btn level="secondary" size="xs" onClick={() => void sendAll()} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>
         {!phone && (docked
           ? <Btn level="tertiary" size="xs" onClick={() => switchLayout('modal')}><Maximize2 size={13} /> Expand</Btn>
           : <Btn level="tertiary" size="xs" onClick={() => switchLayout('dock')}><PanelRight size={13} /> Dock to side</Btn>)}

@@ -10,10 +10,9 @@ import { cn } from '@/lib/utils'
 import { NAV_SECTIONS, type NavLink, type NavGroup, type NavSection } from './nav-sections'
 
 /**
- * The dashboard's top bar, in the marketing site's visual language: a 56px white bar with a
- * soft blur, Inter at 14/500 in muted ink that darkens on hover, the current section in a
- * quiet dark tint, and dropdowns as white rounded cards with a title and a one-line sub for
- * each entry. The sections and their contents are the dashboard's own (nav-sections.tsx);
+ * The dashboard's top bar, in traderisksolutions.com.sg's language: the TRS 保风 wordmark,
+ * plain-text tabs in muted ink that darken on hover, the current section underlined in deep
+ * green, and dropdowns as white rounded cards with a title and a one-line sub for each entry. The sections and their contents are the dashboard's own (nav-sections.tsx);
  * only the look comes from the website.
  */
 
@@ -33,8 +32,8 @@ function sectionActive(pathname: string, section: NavSection) {
 
 // Marketing-site tokens, inlined so this bar matches the website exactly and does not drift
 // with the dashboard's own theme.
-const INK = '#18181b'
-const MUTED = '#4b4b4b'
+const INK = '#0f1412'
+const MUTED = 'rgba(15,20,18,0.62)'
 const SUBTLE = '#9ca3af'
 
 export function TopNavbar() {
@@ -71,7 +70,7 @@ export function TopNavbar() {
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
       }}
     >
-      <div className="flex h-14 items-center gap-6 px-4 md:px-7">
+      <div className="flex h-14 items-center gap-9 px-4 md:px-7">
         {/* Mobile drawer trigger */}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -93,12 +92,12 @@ export function TopNavbar() {
         </Sheet>
 
         {/* Wordmark, as on the website */}
-        <Link href="/" className="flex items-center flex-shrink-0 no-underline hover:opacity-75 transition-opacity" aria-label="Home">
-          <span className="text-[15px] font-bold tracking-[-0.02em] whitespace-nowrap" style={{ color: INK }}>Trade Risk Solutions</span>
+        <Link href="/" className="flex items-baseline gap-2 flex-shrink-0 no-underline hover:opacity-80 transition-opacity" aria-label="Trade Risk Solutions home">
+          <span className="trs-mark-t">TRS</span><span className="trs-mark-c" lang="zh-Hans">保风</span>
         </Link>
 
         {/* Desktop links */}
-        <nav className="hidden xl:flex items-center gap-0.5 flex-1 min-w-0" aria-label="Primary">
+        <nav className="hidden xl:flex items-stretch self-stretch gap-[22px] flex-1 min-w-0" aria-label="Primary">
           {NAV_SECTIONS.filter(s => s.placement !== 'account').map(section => {
             const isActive = sectionActive(pathname, section)
             const items = sectionItems(section)
@@ -109,10 +108,7 @@ export function TopNavbar() {
                   key={section.label}
                   href={section.href!}
                   aria-current={isActive ? 'page' : undefined}
-                  className="px-2.5 py-1.5 rounded-md text-[14px] font-medium no-underline whitespace-nowrap transition-colors"
-                  style={{ color: isActive ? INK : MUTED, background: isActive ? 'rgba(12,51,138,0.08)' : 'transparent' }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f4f4f5' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  className={cn('trs-tab no-underline whitespace-nowrap', isActive && 'is-active')}
                 >
                   {section.label}
                 </Link>
@@ -120,14 +116,13 @@ export function TopNavbar() {
             }
             const isOpen = open === section.label
             return (
-              <div key={section.label} className="relative">
+              <div key={section.label} className="relative flex">
                 <button
                   type="button"
                   onClick={() => setOpen(v => v === section.label ? null : section.label)}
                   aria-expanded={isOpen}
                   aria-haspopup="true"
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[14px] font-medium bg-transparent border-0 cursor-pointer whitespace-nowrap transition-colors"
-                  style={{ color: isActive || isOpen ? INK : MUTED, background: isActive ? 'rgba(12,51,138,0.08)' : isOpen ? 'rgba(0,0,0,0.06)' : 'transparent' }}
+                  className={cn('trs-tab inline-flex items-center gap-1 bg-transparent border-0 cursor-pointer whitespace-nowrap', isActive && 'is-active', isOpen && 'is-open')}
                 >
                   {section.label}
                   <ChevronDown size={12} strokeWidth={2.5} className={cn('transition-transform', isOpen && 'rotate-180')} style={{ color: MUTED }} />
@@ -159,7 +154,7 @@ function Dropdown({ section, pathname, onNavigate }: { section: NavSection; path
     >
       <div className="grid gap-x-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {groups.map((g, i) => (
-          <div key={g.heading || i} className={cn(i > 0 && 'pl-2', i < groups.length - 1 && 'pr-2')} style={i < groups.length - 1 ? { borderRight: '1px solid #f3f4f6' } : undefined}>
+          <div key={g.heading || i} className={cn(i > 0 && 'pl-2', i < groups.length - 1 && 'pr-2')} style={i < groups.length - 1 ? { borderRight: '1px solid #f1f2ee' } : undefined}>
             {g.heading && <div className="px-3 pt-2 pb-1 text-[11px] font-medium" style={{ color: SUBTLE }}>{g.heading}</div>}
             {g.items.map(item => {
               const isActive = active(pathname, item.href)
@@ -168,7 +163,7 @@ function Dropdown({ section, pathname, onNavigate }: { section: NavSection; path
                 return (
                   <span key={item.href} className="flex flex-col gap-0.5 px-3 py-2.5 rounded-[10px] opacity-40">
                     <span className="text-[14px] font-semibold" style={{ color: INK }}>{item.title} <span className="text-[9px] font-semibold uppercase tracking-wide ml-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">Soon</span></span>
-                    <span className="text-[12.5px]" style={{ color: '#6b7280' }}>{item.description}</span>
+                    <span className="text-[12.5px]" style={{ color: '#4a5550' }}>{item.description}</span>
                   </span>
                 )
               }
@@ -178,13 +173,13 @@ function Dropdown({ section, pathname, onNavigate }: { section: NavSection; path
                   href={item.href}
                   onClick={onNavigate}
                   aria-current={isActive ? 'page' : undefined}
-                  className="flex items-start gap-3 px-3 py-2.5 rounded-[10px] no-underline transition-colors hover:bg-[#f9fafb]"
-                  style={isActive ? { background: 'rgba(12,51,138,0.06)' } : undefined}
+                  className="flex items-start gap-3 px-3 py-2.5 rounded-[10px] no-underline transition-colors hover:bg-[#faf9f6]"
+                  style={isActive ? { background: 'rgba(19,44,28,0.06)' } : undefined}
                 >
-                  <span className="mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-md flex-shrink-0" style={{ background: '#f4f4f5', color: INK }}><Icon className="h-3.5 w-3.5" /></span>
+                  <span className="mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-md flex-shrink-0" style={{ background: '#f1f2ee', color: INK }}><Icon className="h-3.5 w-3.5" /></span>
                   <span className="flex flex-col gap-0.5 min-w-0">
                     <span className="text-[14px] font-semibold leading-[1.3]" style={{ color: INK }}>{item.title}</span>
-                    <span className="text-[12.5px] leading-[1.4]" style={{ color: '#6b7280' }}>{item.description}</span>
+                    <span className="text-[12.5px] leading-[1.4]" style={{ color: '#4a5550' }}>{item.description}</span>
                   </span>
                 </Link>
               )
@@ -212,27 +207,27 @@ function AccountMenu({ email, pathname, onSignOut }: { email: string | null; pat
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)} aria-label="Account menu" aria-expanded={open}
-        className="flex items-center gap-2 rounded-full p-0.5 pr-2 border-0 cursor-pointer transition-colors hover:bg-[#f4f4f5]"
-        style={{ background: onAccountPage ? 'rgba(12,51,138,0.08)' : 'transparent' }}>
-        <span className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[12px] font-bold text-white" style={{ background: '#0C338A' }}>{email ? email[0].toUpperCase() : '?'}</span>
+        className="flex items-center gap-2 rounded-full p-0.5 pr-2 border-0 cursor-pointer transition-colors hover:bg-[#f1f2ee]"
+        style={{ background: onAccountPage ? 'rgba(19,44,28,0.08)' : 'transparent' }}>
+        <span className="w-8 h-8 rounded-full inline-flex items-center justify-center text-[12px] font-bold text-white" style={{ background: '#132c1c' }}>{email ? email[0].toUpperCase() : '?'}</span>
         <span className="hidden md:block text-[13px] max-w-[160px] truncate" style={{ color: MUTED }}>{email ?? '—'}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-[14px] bg-white p-1.5" style={{ border: '1px solid rgba(200,200,204,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.10)' }}>
-          <div className="px-3 py-2 text-[12.5px] truncate" style={{ color: '#6b7280' }}>{email ?? 'Account'}</div>
+          <div className="px-3 py-2 text-[12.5px] truncate" style={{ color: '#4a5550' }}>{email ?? 'Account'}</div>
           {accountLinks.map(s => {
             const Icon = s.icon
             const isActive = active(pathname, s.href!)
             return (
               <Link key={s.href} href={s.href!} aria-current={isActive ? 'page' : undefined}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13.5px] no-underline hover:bg-[#f9fafb]"
-                style={{ color: INK, background: isActive ? 'rgba(12,51,138,0.06)' : undefined }}>
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13.5px] no-underline hover:bg-[#faf9f6]"
+                style={{ color: INK, background: isActive ? 'rgba(19,44,28,0.06)' : undefined }}>
                 <Icon className="h-4 w-4" style={{ color: MUTED }} /> {s.label}
               </Link>
             )
           })}
-          <div className="my-1 mx-2" style={{ borderTop: '1px solid #f3f4f6' }} />
-          <button type="button" onClick={onSignOut} className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13.5px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#f9fafb]" style={{ color: INK }}>
+          <div className="my-1 mx-2" style={{ borderTop: '1px solid #f1f2ee' }} />
+          <button type="button" onClick={onSignOut} className="w-full flex items-center gap-2 px-3 py-2 rounded-[10px] text-[13.5px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#faf9f6]" style={{ color: INK }}>
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>

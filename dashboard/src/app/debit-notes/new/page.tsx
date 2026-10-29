@@ -121,10 +121,10 @@ export default function NewDebitNotePage() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#202124' }}>
-      <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[13.5px] text-[#5f6368] hover:text-[#202124] no-underline mb-4"><ArrowLeft size={14} /> Debit Notes</Link>
-      <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#202124] mb-2">Generate a new debit note</h1>
-      <p className="m-0 text-[15px] text-[#5f6368] mb-6 max-w-[72ch]">
+    <div className="max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#0f1412' }}>
+      <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[13.5px] text-[#4a5550] hover:text-[#0f1412] no-underline mb-4"><ArrowLeft size={14} /> Debit Notes</Link>
+      <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#0f1412] mb-2">Generate a new debit note</h1>
+      <p className="m-0 text-[15px] text-[#4a5550] mb-6 max-w-[72ch]">
         A new renewal or new-business event is 2 files from the insurer: the tax invoice
         addressed to the client, and the commission statement addressed to TRS. Upload both — AI
         reads them, you confirm, and we generate the TRS-branded debit note.
@@ -145,7 +145,7 @@ export default function NewDebitNotePage() {
           <Loader2 size={13} className="animate-spin" /> Uploading {progress.done}/{progress.total}…
         </div>
       )}
-      {error && <p className="mb-6 text-[11.5px] text-[#3c4043] whitespace-pre-wrap">{error}</p>}
+      {error && <p className="mb-6 text-[11.5px] text-[#2a332f] whitespace-pre-wrap">{error}</p>}
       {inFlight.length > 0 && (
         <div className="mb-4 flex flex-col gap-1.5">
           {inFlight.map(b => (
@@ -157,7 +157,7 @@ export default function NewDebitNotePage() {
               <button
                 onClick={() => cancelBundle(b.id)}
                 disabled={cancelling === b.id}
-                className="flex-shrink-0 text-[11px] text-[#3c4043] hover:underline disabled:opacity-50"
+                className="flex-shrink-0 text-[11px] text-[#2a332f] hover:underline disabled:opacity-50"
               >
                 {cancelling === b.id ? 'Cancelling…' : 'Cancel'}
               </button>
@@ -170,7 +170,7 @@ export default function NewDebitNotePage() {
       {loadingBundles ? (
         <p className="text-[12.5px] text-muted-foreground">Loading…</p>
       ) : needsReview.length === 0 ? (
-        <p className="text-[14px] text-[#5f6368] py-10 text-center rounded-[16px]" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
+        <p className="text-[14px] text-[#4a5550] py-10 text-center rounded-[16px]" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {needsReview.map(b => <BundleReviewCard key={b.id} bundle={b} onResolved={loadBundles} />)}
@@ -181,7 +181,7 @@ export default function NewDebitNotePage() {
 }
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
-const inp = 'h-10 text-[14px] text-[#202124] border border-[#dadce0] rounded-[10px] px-3 bg-white focus:outline-none focus:border-[#202124] w-full'
+const inp = 'h-10 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[10px] px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
 
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
@@ -457,9 +457,9 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   if (approved) {
     return (
       <div className="rounded-[16px] p-6 flex flex-col items-center gap-3 text-center" style={{ background: '#EAF6EC' }}>
-        <div className="w-10 h-10 rounded-full bg-[#f1f3f4] flex items-center justify-center"><CheckCircle2 size={20} className="text-[#202124]" /></div>
+        <div className="w-10 h-10 rounded-full bg-[#f1f2ee] flex items-center justify-center"><CheckCircle2 size={20} className="text-[#0f1412]" /></div>
         <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
-        <p className="text-[11.5px] text-[#202124] -mt-1.5">
+        <p className="text-[11.5px] text-[#0f1412] -mt-1.5">
           This debit note and its documents are now saved in your Debit Notes records
           {approved.driveFolderUrl ? (
             <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
@@ -470,7 +470,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
         </div>
-        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-[11.5px] text-[#202124] hover:underline">
+        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-[11.5px] text-[#0f1412] hover:underline">
           View {approved.debitNoteNo} in Debit Notes →
         </Link>
         <Link href="/debit-notes" className="text-[11px] text-muted-foreground hover:text-foreground">Done</Link>
@@ -480,28 +480,28 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   }
 
   return (
-    <div className="rounded-[16px] p-5 flex flex-col gap-4" style={{ border: '1px solid #e8eaed' }}>
+    <div className="rounded-[16px] p-5 flex flex-col gap-4" style={{ border: '1px solid #e6e8e4' }}>
       <div className="flex flex-wrap items-center gap-2">
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
             title={it.error_message ?? undefined}
-            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#202124] hover:bg-[#e8eaed]" style={{ background: '#F1F3F4' }}>
+            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#0f1412] hover:bg-[#e6e8e4]" style={{ background: '#f1f2ee' }}>
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
-            {it.doc_type && <span className="text-[12px] text-[#5f6368]">{DOC_TYPE_LABEL[it.doc_type]}</span>}
-            {it.status === 'error' && <AlertTriangle size={11} className="text-[#3c4043]" />}
+            {it.doc_type && <span className="text-[12px] text-[#4a5550]">{DOC_TYPE_LABEL[it.doc_type]}</span>}
+            {it.status === 'error' && <AlertTriangle size={11} className="text-[#2a332f]" />}
           </a>
         ))}
         {bundle.match_confidence != null && (
-          <span className="text-[12.5px] text-[#5f6368] ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
+          <span className="text-[12.5px] text-[#4a5550] ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
         )}
       </div>
 
-      <div className="rounded-[10px] p-3 flex flex-col gap-1 font-mono text-[11.5px] text-[#5f6368]" style={{ background: '#F5F5F3' }}>
+      <div className="rounded-[10px] p-3 flex flex-col gap-1 font-mono text-[11.5px] text-[#4a5550]" style={{ background: '#F5F5F3' }}>
         <span>bundle status: <b>{bundle.status}</b>{bundle.consistency_warning ? ` · warning: ${bundle.consistency_warning}` : ''}</span>
         {bundle.pdf_import_items.map(it => (
           <span key={it.id}>
-            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-[#3c4043]' : ''}>{it.error_message ?? 'null'}</b>
+            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-[#2a332f]' : ''}>{it.error_message ?? 'null'}</b>
           </span>
         ))}
       </div>
@@ -509,7 +509,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       {bundle.pdf_import_items.some(it => it.error_message) && (
         <div className="flex flex-col gap-1">
           {bundle.pdf_import_items.filter(it => it.error_message).map(it => (
-            <p key={it.id} className="text-[13px] text-[#3c4043] rounded-[10px] px-3 py-2" style={{ background: '#FFF0E7' }}>
+            <p key={it.id} className="text-[13px] text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#FFF0E7' }}>
               <b>{it.original_filename ?? 'document.pdf'}</b>: {it.error_message}
             </p>
           ))}
@@ -523,14 +523,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       )}
 
       {bundle.consistency_warning && (
-        <div className="flex items-start gap-1.5 text-[13px] text-[#3c4043] rounded-[10px] px-3 py-2" style={{ background: '#FFF6D8' }}>
+        <div className="flex items-start gap-1.5 text-[13px] text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#fff4dc' }}>
           <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" /> {bundle.consistency_warning}
         </div>
       )}
 
       <CompanyContactPicker value={recipient} onChange={setRecipient} initialQuery={!recipient ? (m?.client_name ?? undefined) : undefined} />
 
-      <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#FFF6D8' : '#F5F5F3' }}>
+      <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#fff4dc' : '#F5F5F3' }}>
         <div className="flex items-center gap-2">
           <Field label="Debit note type" className="flex-1">
             <select
@@ -564,7 +564,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           </Field>
         )}
         {eventType === 'endorsement' && (
-          <p className="text-[13px] text-[#3c4043]">
+          <p className="text-[13px] text-[#2a332f]">
             {masterPolicyId
               ? <>Billed as a mid-term change against that policy: it keeps the master&apos;s term and renewal date, so the cover isn&apos;t counted twice on Calendar and Companies. The PDF calls out the effective date separately from the period of insurance.</>
               : <>Left open-ended — approving creates a policy from the fields below, same as new business.{policyOptions.length > 0 ? <> Pick one above to attach it to an existing cover instead.</> : null}</>}
@@ -623,7 +623,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
           <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
           <Field label="Premium Total" className="flex-1 min-w-[160px]">
-            <div className="h-10 text-[14px] text-[#202124] border border-[#dadce0] rounded-[10px] px-3 bg-[#F5F5F3] font-medium flex items-center">
+            <div className="h-10 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[10px] px-3 bg-[#F5F5F3] font-medium flex items-center">
               {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
             </div>
           </Field>
@@ -647,7 +647,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           data shape), so this never drifts from the real output. Updates on any field change,
           including currency (the bank/PayNow-vs-wire block at the bottom changes with it). */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[12px] font-medium tracking-[0.08em] text-[#5f6368]">Preview</span>
+        <span className="text-[12px] font-medium tracking-[0.08em] text-[#4a5550]">Preview</span>
         <div className="h-[600px] rounded-lg border border-[--border-subtle] overflow-hidden bg-muted/20">
           <DebitNotePreviewPanel
             data={previewData}
@@ -657,10 +657,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         </div>
       </div>
 
-      {err && <p className="text-[11.5px] text-[#3c4043]">{err}</p>}
+      {err && <p className="text-[11.5px] text-[#2a332f]">{err}</p>}
 
       <div className="flex items-center justify-end gap-2">
-        {saved && <span className="text-[11.5px] text-[#202124] mr-auto">Draft saved</span>}
+        {saved && <span className="text-[11.5px] text-[#0f1412] mr-auto">Draft saved</span>}
         <Button variant="ghost" size="sm" onClick={reject} disabled={busy || saving}><XCircle size={13} className="mr-1.5" /> Reject</Button>
         <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy || saving}>
           {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />} Save draft

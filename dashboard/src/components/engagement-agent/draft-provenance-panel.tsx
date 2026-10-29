@@ -8,11 +8,11 @@ import { RetrievalSourcesPanel } from './retrieval-sources-panel'
 import { ApprovedExamplesPanel } from './approved-examples-panel'
 import { AntiPatternPanel } from './anti-pattern-panel'
 
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIR = '#e8eaed'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIR = '#e6e8e4'
 
 interface Example {
   id:              string

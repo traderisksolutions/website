@@ -20,8 +20,8 @@ export default function CompaniesPage() {
   return <Suspense fallback={null}><CompaniesInner /></Suspense>
 }
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type View = 'all' | 'attention' | 'renewals' | 'awaiting' | 'mine' | 'unassigned'
 const VIEWS: { key: View; label: string }[] = [
@@ -118,21 +118,21 @@ function CompaniesInner() {
               {(['client', 'insurer'] as const).map(k => {
                 const on = kind === k
                 const n = rows.filter(r => r.company.kind === k).length
-                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#80868b' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
+                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
               })}
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#80868b' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
+            {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
             <label className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
-              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-12 w-[260px] sm:w-[340px] rounded-[12px] border bg-white pl-11 pr-9 text-[15px] outline-none focus:border-[#202124] transition-colors" style={{ borderColor: '#dadce0' }} />
-              {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
-                 : <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] border rounded px-1.5 leading-[18px] hidden sm:block" style={{ color: '#9aa0a6', borderColor: '#dadce0' }}>/</kbd>}
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
+              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-12 w-[260px] sm:w-[340px] rounded-[12px] border bg-white pl-11 pr-9 text-[15px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
+              {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+                 : <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] border rounded px-1.5 leading-[18px] hidden sm:block" style={{ color: '#8c958f', borderColor: '#d5d9d4' }}>/</kbd>}
             </label>
             <div className="relative">
               <button type="button" onClick={() => setFilterOpen(v => !v)} aria-expanded={filterOpen} aria-haspopup="dialog"
-                className={cn('h-12 px-4 rounded-[12px] border bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]', activeCount ? 'font-medium' : '')} style={{ borderColor: activeCount ? INK : '#dadce0', color: INK }}>
+                className={cn('h-12 px-4 rounded-[12px] border bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]', activeCount ? 'font-medium' : '')} style={{ borderColor: activeCount ? INK : '#d5d9d4', color: INK }}>
                 <SlidersHorizontal size={15} /> Filter{activeCount ? ` · ${activeCount}` : ''}
               </button>
               {filterOpen && <FilterPopover f={f} onChange={next => setF(v => ({ ...v, ...next }))} staff={staffList} me={me} onClose={() => setFilterOpen(false)} onClear={() => setF(EMPTY)} />}
@@ -144,9 +144,9 @@ function CompaniesInner() {
         {error && <p className="mt-8 text-[14px]" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
 
         {!data && !error && (
-          <div className="mt-6 rounded-[16px] overflow-hidden bg-white" style={{ border: '1px solid #e8eaed' }} aria-busy="true">
-            <div className="h-11" style={{ borderBottom: '1px solid #e8eaed' }} />
-            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[66px] px-6 flex items-center gap-8" style={{ borderBottom: '1px solid #e8eaed' }}><span className="h-3.5 w-44 rounded bg-[#f1f3f4] animate-pulse" /><span className="h-3.5 w-16 rounded bg-[#f1f3f4] animate-pulse" /><span className="h-3.5 w-28 rounded bg-[#f1f3f4] animate-pulse ml-auto" /></div>)}
+          <div className="mt-6 rounded-[16px] overflow-hidden bg-white" style={{ border: '1px solid #e6e8e4' }} aria-busy="true">
+            <div className="h-11" style={{ borderBottom: '1px solid #e6e8e4' }} />
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[66px] px-6 flex items-center gap-8" style={{ borderBottom: '1px solid #e6e8e4' }}><span className="h-3.5 w-44 rounded bg-[#f1f2ee] animate-pulse" /><span className="h-3.5 w-16 rounded bg-[#f1f2ee] animate-pulse" /><span className="h-3.5 w-28 rounded bg-[#f1f2ee] animate-pulse ml-auto" /></div>)}
           </div>
         )}
 
@@ -173,7 +173,7 @@ function CompaniesInner() {
   )
 }
 
-const sel = 'h-9 max-w-[180px] appearance-none rounded-[8px] bg-transparent pl-2.5 pr-7 text-[14px] text-right cursor-pointer border-0 outline-none hover:bg-[#f1f3f4] focus-visible:ring-2 focus-visible:ring-[#202124]'
+const sel = 'h-9 max-w-[180px] appearance-none rounded-[8px] bg-transparent pl-2.5 pr-7 text-[14px] text-right cursor-pointer border-0 outline-none hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]'
 
 /** The Filter panel: a short settings list, one parameter per row, its value on the right. */
 function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
@@ -195,14 +195,14 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
     { label: 'Threads', value: f.threads, onChange: v => onChange({ threads: v as Filters['threads'] }), options: [{ value: '', label: 'Either' }, { value: 'open', label: 'Has open threads' }, { value: 'none', label: 'No open threads' }] },
   ]
   return (
-    <div ref={ref} role="dialog" aria-label="Filter companies" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[360px] rounded-[16px] bg-white overflow-hidden" style={{ border: '1px solid #e8eaed', boxShadow: '0 16px 48px rgba(32,33,36,0.14)' }}>
+    <div ref={ref} role="dialog" aria-label="Filter companies" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[360px] rounded-[16px] bg-white overflow-hidden" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <span className="text-[15px] font-medium" style={{ color: INK }}>Filters{active ? <span className="ml-1.5 text-[13px] font-normal" style={{ color: '#80868b' }}>{active} on</span> : null}</span>
+        <span className="text-[15px] font-medium" style={{ color: INK }}>Filters{active ? <span className="ml-1.5 text-[13px] font-normal" style={{ color: '#6f7a74' }}>{active} on</span> : null}</span>
         <button type="button" onClick={onClear} disabled={!active} className="text-[13px] bg-transparent border-0 cursor-pointer disabled:cursor-default disabled:opacity-40 hover:underline underline-offset-4" style={{ color: INK }}>Reset</button>
       </div>
       <ul className="m-0 p-0 list-none">
         {rowsDef.map(row => (
-          <li key={row.label} className="flex items-center justify-between gap-4 px-5 h-12" style={{ borderTop: '1px solid #f1f3f4' }}>
+          <li key={row.label} className="flex items-center justify-between gap-4 px-5 h-12" style={{ borderTop: '1px solid #f1f2ee' }}>
             <span className="text-[14px]" style={{ color: INK }}>{row.label}</span>
             <span className="relative">
               <select value={row.value} onChange={e => row.onChange(e.target.value)} aria-label={row.label} className={cn(sel, row.value ? 'font-medium' : '')} style={{ direction: 'rtl', color: row.value ? INK : MUTED }}>
@@ -213,8 +213,8 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
           </li>
         ))}
       </ul>
-      <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #f1f3f4' }}>
-        <span className="text-[12px]" style={{ color: '#80868b' }}>Renewal periods count from today.</span>
+      <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #f1f2ee' }}>
+        <span className="text-[12px]" style={{ color: '#6f7a74' }}>Renewal periods count from today.</span>
         <button type="button" onClick={onClose} className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: INK }}>Done</button>
       </div>
     </div>

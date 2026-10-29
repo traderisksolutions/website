@@ -10,9 +10,9 @@ import { toEvidence, mobileForWhatsApp, whatsappLink } from '@/lib/sales/evidenc
 import { locationLabel, type LeadContact, type LeadDetail } from '@/lib/sales/types'
 import { fmtDate } from '@/lib/sales/labels'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 type Loaded = { id: string } & ({ status: 'missing' | 'error' } | { status: 'ready'; lead: LeadDetail })
 
@@ -60,7 +60,7 @@ export function LeadDrawer({ id, lookupOn, onClose, onPrev, onNext, onChanged }:
   return (
     <aside ref={panel} tabIndex={-1} role="dialog" aria-label={lead?.company ?? 'Lead'}
       className="fixed right-0 z-40 w-full sm:w-[480px] bg-white flex flex-col outline-none"
-      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(32,33,36,0.25)', color: INK }}>
+      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(15,20,18,0.25)', color: INK }}>
       <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -75,9 +75,9 @@ export function LeadDrawer({ id, lookupOn, onClose, onPrev, onNext, onChanged }:
             )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 -mr-2 -mt-1">
-            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous lead" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronUp size={18} /></button>
-            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next lead" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronDown size={18} /></button>
-            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={18} /></button>
+            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous lead" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronUp size={18} /></button>
+            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next lead" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronDown size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={18} /></button>
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@ function ContactItem({ c, primary, location }: { c: LeadContact; primary: boolea
     <li className="py-3 first:pt-0 last:pb-0" style={{ borderBottom: `1px solid ${RULE}` }}>
       <div className="flex flex-wrap items-baseline gap-x-2">
         <p className="m-0 text-[14.5px] font-medium">{c.name ?? 'Unnamed'}</p>
-        {primary && <span className="text-[12px]" style={{ color: '#9aa0a6' }}>Primary</span>}
+        {primary && <span className="text-[12px]" style={{ color: '#8c958f' }}>Primary</span>}
       </div>
       {c.title && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{c.title}</p>}
       <div className="mt-2 flex flex-wrap items-center gap-2 text-[13.5px]">
@@ -255,7 +255,7 @@ function DraftSection({ lead, onChanged }: { lead: LeadDetail; onChanged: () => 
       </div>
       <ol className="m-0 mt-3 grid list-none grid-cols-3 gap-2 p-0 text-[12px]">
         {[['Drafted', lead.drafted_at, '–'], ['Approved', lead.approved_at, 'Not approved'], ['Sent', lead.sent_at, 'Not sent']].map(([label, at, empty]) => (
-          <li key={label} className="rounded-[10px] p-2.5" style={{ border: `1px solid ${RULE}`, color: at ? INK : '#9aa0a6' }}>
+          <li key={label} className="rounded-[10px] p-2.5" style={{ border: `1px solid ${RULE}`, color: at ? INK : '#8c958f' }}>
             <p className="m-0 font-medium">{label}</p><p className="m-0 mt-0.5">{fmtDate(at as string | null) ?? empty}</p>
           </li>
         ))}

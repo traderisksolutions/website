@@ -54,23 +54,23 @@ export function HousekeepingBanner() {
   const period = d.firstRun ? 'last 7 days' : `since ${when(d.since)}`
 
   return (
-    <div data-housekeeping-banner role="status" aria-live="polite" className="border-b border-[#e8eaed] bg-[#f8fafd] text-[13px]" style={{ color: '#3c4043' }}>
+    <div data-housekeeping-banner role="status" aria-live="polite" className="border-b border-[#e6e8e4] bg-[#f8fafd] text-[13px]" style={{ color: '#2a332f' }}>
       <div className="flex items-center gap-2.5 h-9 px-4 sm:px-6 min-w-0">
-        <Info size={14} className="flex-shrink-0" style={{ color: '#1a73e8' }} aria-hidden />
-        <span className="font-medium flex-shrink-0" style={{ color: '#202124' }}>Since you were away</span>
-        <span className="truncate tabular-nums" style={{ color: '#5f6368' }}>{summary}, {period}</span>
+        <Info size={14} className="flex-shrink-0" style={{ color: '#1f4e3a' }} aria-hidden />
+        <span className="font-medium flex-shrink-0" style={{ color: '#0f1412' }}>Since you were away</span>
+        <span className="truncate tabular-nums" style={{ color: '#4a5550' }}>{summary}, {period}</span>
         <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open}
-          className="inline-flex items-center gap-1 flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer text-[13px] hover:underline underline-offset-[3px]" style={{ color: '#202124' }}>
+          className="inline-flex items-center gap-1 flex-shrink-0 bg-transparent border-0 p-0 cursor-pointer text-[13px] hover:underline underline-offset-[3px]" style={{ color: '#0f1412' }}>
           {open ? 'Hide' : 'Show'}<ChevronDown size={13} className={open ? 'rotate-180' : ''} aria-hidden />
         </button>
         <span className="flex-1" />
         {d.pending > 0 && (
-          <Link href="/companies/triage" className="hidden sm:inline flex-shrink-0 tabular-nums underline underline-offset-[3px] decoration-[#9aa0a6]" style={{ color: '#202124' }}>
+          <Link href="/companies/triage" className="hidden sm:inline flex-shrink-0 tabular-nums underline underline-offset-[3px] decoration-[#8c958f]" style={{ color: '#0f1412' }}>
             Choose a client for {d.pending} conversation{d.pending === 1 ? '' : 's'}
           </Link>
         )}
         <button type="button" onClick={dismiss} aria-label="Dismiss" title="Dismiss"
-          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer flex-shrink-0 hover:bg-[#eef1f5]" style={{ color: '#5f6368' }}>
+          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer flex-shrink-0 hover:bg-[#eef1f5]" style={{ color: '#4a5550' }}>
           <X size={14} />
         </button>
       </div>
@@ -78,16 +78,16 @@ export function HousekeepingBanner() {
         <ul className="m-0 list-none px-4 sm:px-6 pb-3 pl-[42px] sm:pl-[50px] flex flex-col gap-2">
           {d.items.map((i, k) => (
             <li key={k} className="min-w-0">
-              <div style={{ color: '#202124' }}>{i.text}</div>
+              <div style={{ color: '#0f1412' }}>{i.text}</div>
               {i.detail.length > 0 && (
-                <ul className="m-0 mt-1 pl-4 list-disc text-[12.5px] flex flex-col gap-0.5" style={{ color: '#5f6368' }}>
+                <ul className="m-0 mt-1 pl-4 list-disc text-[12.5px] flex flex-col gap-0.5" style={{ color: '#4a5550' }}>
                   {i.detail.map((t, j) => <li key={j}>{t}</li>)}
                 </ul>
               )}
             </li>
           ))}
           {d.pending > 0 && (
-            <li className="sm:hidden"><Link href="/companies/triage" className="underline underline-offset-[3px]" style={{ color: '#202124' }}>Choose a client for {d.pending} conversation{d.pending === 1 ? '' : 's'}</Link></li>
+            <li className="sm:hidden"><Link href="/companies/triage" className="underline underline-offset-[3px]" style={{ color: '#0f1412' }}>Choose a client for {d.pending} conversation{d.pending === 1 ? '' : 's'}</Link></li>
           )}
         </ul>
       )}

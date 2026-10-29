@@ -17,8 +17,8 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
  * or match rows here via /api/companies, so this is where "merged into Contacts" surfaces.
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type CompanyRow = { id: string; name: string; address: string | null; type: string | null; domain: string | null }
 type CompanyContact = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null }
@@ -61,7 +61,7 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
                   const on = k === 'companies'
                   return (
                     <button key={k} type="button" role="tab" aria-selected={on} onClick={on ? undefined : onSwitchToContacts}
-                      className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                      className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
                       style={{ color: on ? INK : MUTED }}>
                       {k === 'contacts' ? 'Contacts' : 'Companies'}
                       <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
@@ -74,7 +74,7 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
               <DataTableSearch value={q} onChange={setQ} placeholder="Search companies" />
             </div>
           </div>
-          <div className="mt-5" style={{ borderBottom: '1px solid #e8eaed' }} />
+          <div className="mt-5" style={{ borderBottom: '1px solid #e6e8e4' }} />
         </div>
 
         {/* Table */}
@@ -87,8 +87,8 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
             </RegisterHead>
             <tbody>
               {loading && Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
-                  <td colSpan={3} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[60%] rounded bg-[#f1f3f4] animate-pulse" /></td>
+                <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}>
+                  <td colSpan={3} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[60%] rounded bg-[#f1f2ee] animate-pulse" /></td>
                 </tr>
               ))}
               {!loading && companies.length === 0 && (
@@ -101,8 +101,8 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
                 return (
                   <RegisterRow key={c.id} selected={on} onClick={() => setSelectedId(c.id)}>
                     <RegisterCell first selected={on} title={c.name} primary={c.name} secondary={c.domain ?? 'No domain on file'} />
-                    <RegisterCell className="max-w-[360px]"><span className="block truncate text-[14px]" style={{ color: '#3c4043' }}>{c.address ?? '—'}</span></RegisterCell>
-                    <RegisterCell last><span className="text-[14px]" style={{ color: '#3c4043' }}>{c.type ?? '—'}</span></RegisterCell>
+                    <RegisterCell className="max-w-[360px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{c.address ?? '—'}</span></RegisterCell>
+                    <RegisterCell last><span className="text-[14px]" style={{ color: '#2a332f' }}>{c.type ?? '—'}</span></RegisterCell>
                   </RegisterRow>
                 )
               })}
@@ -128,11 +128,11 @@ function CompanyDetailPanel({ id, onClose }: { id: string; onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-40 md:static md:inset-auto md:z-auto md:w-[340px] md:flex-shrink-0 bg-white overflow-y-auto flex flex-col"
-      style={{ color: INK, borderLeft: '1px solid #e8eaed' }}>
-      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+      style={{ color: INK, borderLeft: '1px solid #e6e8e4' }}>
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
         <span className="text-[16px] font-medium tracking-[-0.01em]">Company</span>
         <button type="button" onClick={onClose} aria-label="Close"
-          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f3f4] bg-transparent border-0 cursor-pointer"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer"
           style={{ color: MUTED }}>
           <X size={14} />
         </button>

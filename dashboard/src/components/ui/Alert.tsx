@@ -33,7 +33,7 @@ interface Tokens {
 
 const TOKENS: Record<AlertVariant, Tokens> = {
   info: {
-    accent: '#1a73e8', tint: '#f1f6fe', title: '#174ea6',
+    accent: '#1f4e3a', tint: '#f1f6fe', title: '#174ea6',
     role: 'status', live: 'polite', label: 'Information',
     glyph: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -53,7 +53,7 @@ const TOKENS: Record<AlertVariant, Tokens> = {
     ),
   },
   warning: {
-    accent: '#b06000', tint: '#fef7e8', title: '#8a4b00',
+    accent: '#8a5a00', tint: '#fef7e8', title: '#8a4b00',
     role: 'alert', live: 'assertive', label: 'Warning',
     glyph: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -63,7 +63,7 @@ const TOKENS: Record<AlertVariant, Tokens> = {
     ),
   },
   error: {
-    accent: '#c5221f', tint: '#fdf1f0', title: '#a50e0e',
+    accent: '#a1242f', tint: '#fdf1f0', title: '#a50e0e',
     role: 'alert', live: 'assertive', label: 'Error',
     glyph: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -103,7 +103,7 @@ export function Alert({
       role={t.role}
       aria-live={t.live}
       className="flex overflow-hidden rounded-[10px] bg-white"
-      style={{ border: '1px solid #dadce0', borderLeft: `3px solid ${t.accent}` }}
+      style={{ border: '1px solid #d5d9d4', borderLeft: `3px solid ${t.accent}` }}
       {...(dataAttr ? { [dataAttr]: '' } : {})}
     >
       <div className="flex w-11 flex-shrink-0 justify-center pt-[15px]" style={{ background: t.tint, color: t.accent }}>
@@ -118,13 +118,13 @@ export function Alert({
                 <span className="sr-only">{t.label}: </span>{title}
               </h2>
             )}
-            {children && <div className="mt-[3px] text-[13px] leading-[1.5]" style={{ color: '#3c4043' }}>{children}</div>}
+            {children && <div className="mt-[3px] text-[13px] leading-[1.5]" style={{ color: '#2a332f' }}>{children}</div>}
           </div>
           {onDismiss && (
             <button
               type="button" onClick={onDismiss} aria-label="Dismiss this alert"
-              className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[#f1f3f4]"
-              style={{ color: '#80868b' }}
+              className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[#f1f2ee]"
+              style={{ color: '#6f7a74' }}
             >
               ×
             </button>
@@ -153,17 +153,17 @@ export function Alert({
                         className="mt-[5px] flex-shrink-0 transition-transform duration-150"
                         style={{ transform: isOpen ? 'rotate(90deg)' : 'none' }}
                       >
-                        <path d="M3 1l4 4-4 4" stroke="#80868b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M3 1l4 4-4 4" stroke="#6f7a74" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     ) : (
-                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: '#80868b' }} />
+                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: '#6f7a74' }} />
                     )}
-                    <span className="text-[13px] leading-[1.5]" style={{ color: '#3c4043' }}>{r.summary}</span>
+                    <span className="text-[13px] leading-[1.5]" style={{ color: '#2a332f' }}>{r.summary}</span>
                   </button>
                   {expandable && isOpen && (
                     <div id={id} className="pb-2 pl-5 pt-[2px]">
                       {r.detail.map((d, n) => (
-                        <div key={n} className="text-[12px] leading-[1.6]" style={{ color: '#5f6368' }}>{d}</div>
+                        <div key={n} className="text-[12px] leading-[1.6]" style={{ color: '#4a5550' }}>{d}</div>
                       ))}
                     </div>
                   )}
@@ -177,8 +177,8 @@ export function Alert({
           <div className="mt-[9px]">
             <a
               href={actionHref}
-              className="text-[13px] underline decoration-[#dadce0] underline-offset-[3px] hover:decoration-[#202124]"
-              style={{ color: '#202124' }}
+              className="text-[13px] underline decoration-[#d5d9d4] underline-offset-[3px] hover:decoration-[#0f1412]"
+              style={{ color: '#0f1412' }}
             >
               {actionLabel}
             </a>

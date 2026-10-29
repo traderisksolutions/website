@@ -26,7 +26,7 @@ export function EmailTypeBadge({ type, size = 'sm', className }: EmailTypeBadgeP
         size === 'md' && 'text-[13px] px-3 h-[26px]',
         className,
       )}
-      style={{ background: '#f1f3f4', color: '#3c4043' }}
+      style={{ background: '#f1f2ee', color: '#2a332f' }}
     >
       {et.label}
     </span>

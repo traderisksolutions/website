@@ -15,7 +15,7 @@ export function DataTableToolbar({ children, className }: DataTableToolbarProps)
   return (
     <div
       className={cn(
-        'flex items-center gap-2.5 px-6 sm:px-10 py-3 border-b border-[#e8eaed] bg-white flex-shrink-0 flex-wrap',
+        'flex items-center gap-2.5 px-6 sm:px-10 py-3 border-b border-[#e6e8e4] bg-white flex-shrink-0 flex-wrap',
         className,
       )}
     >
@@ -39,20 +39,20 @@ export function DataTableSearch({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 h-10 px-3.5 rounded-[10px] border border-[#dadce0] bg-white',
-        'transition-colors focus-within:border-[#202124]',
+        'flex items-center gap-2 h-10 px-3.5 rounded-[10px] border border-[#d5d9d4] bg-white',
+        'transition-colors focus-within:border-[#0f1412]',
         'min-w-[220px] max-w-[320px]',
         className,
       )}
     >
-      <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#80868b' }} />
+      <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#6f7a74' }} />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] text-[#202124] placeholder:text-[#80868b]"
+        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] text-[#0f1412] placeholder:text-[#6f7a74]"
       />
       {value && (
         <button
@@ -88,7 +88,7 @@ export function DataTableFilter({
       onClick={onClick}
       className={cn(
         'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-[13px]',
-        active && 'bg-[#202124] text-white border-[#202124] hover:bg-[#202124] hover:opacity-90',
+        active && 'bg-[#0f1412] text-white border-[#0f1412] hover:bg-[#0f1412] hover:opacity-90',
         className,
       )}
     >
@@ -99,7 +99,7 @@ export function DataTableFilter({
             'text-[11px] tabular-nums px-1.5 py-px rounded',
             active
               ? 'bg-white/20 text-white'
-              : 'bg-[#f1f3f4] text-[#5f6368]',
+              : 'bg-[#f1f2ee] text-[#4a5550]',
           )}
         >
           {count}

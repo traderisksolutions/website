@@ -15,8 +15,8 @@ import type { Lead, Filter } from '@/components/inbound/types'
 import { WA_SOURCES, EMAIL_SOURCES, ALL_SOURCES } from '@/components/inbound/constants'
 import { channelOf, messagePreview, timeAgo } from '@/components/inbound/helpers'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** The channel as a word, for the identity cell's second line when the lead has no company. */
 function channelLabel(source: string): string {
@@ -135,8 +135,8 @@ function InboundLeadsPage() {
             type="button"
             onClick={() => load(true)}
             aria-label="Refresh leads"
-            className="h-12 px-5 rounded-[12px] bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa] transition-colors"
-            style={{ border: '1px solid #dadce0', color: INK }}
+            className="h-12 px-5 rounded-[12px] bg-white text-[15px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
+            style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
             Refresh
@@ -146,7 +146,7 @@ function InboundLeadsPage() {
         {/* ── Metric tiles: each one filters the list; the active filter gets an ink border ── */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
           {loading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[92px] rounded-[16px] bg-[#f1f3f4] animate-pulse" aria-hidden />)
+            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[92px] rounded-[16px] bg-[#f1f2ee] animate-pulse" aria-hidden />)
             : (
               [
                 { key: 'all' as Filter,      label: 'Total leads',  value: leads.length, sub: undefined },
@@ -157,8 +157,8 @@ function InboundLeadsPage() {
                 const on = filter === t.key
                 return (
                   <button key={t.key} type="button" onClick={() => setFilter(t.key)} aria-pressed={on}
-                    className="text-left rounded-[16px] px-5 py-4 cursor-pointer transition-colors hover:bg-[#e8eaed]"
-                    style={{ background: '#f1f3f4', border: `1px solid ${on ? INK : '#f1f3f4'}` }}>
+                    className="text-left rounded-[16px] px-5 py-4 cursor-pointer transition-colors hover:bg-[#e6e8e4]"
+                    style={{ background: '#f1f2ee', border: `1px solid ${on ? INK : '#f1f2ee'}` }}>
                     <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{t.label}</p>
                     <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{t.value}</p>
                     <p className="m-0 mt-1.5 text-[12.5px] min-h-[16px]" style={{ color: MUTED }}>{t.sub ?? ''}</p>
@@ -169,7 +169,7 @@ function InboundLeadsPage() {
         </div>
 
         {/* ── Filter + search row ─────────────────────────────────────────── */}
-        <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter leads">
             {FILTERS.map(f => (
               <button
@@ -186,21 +186,21 @@ function InboundLeadsPage() {
           </div>
 
           <label className="relative flex-shrink-0 w-full sm:w-[300px]">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} aria-hidden />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} aria-hidden />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, email, phone, topic"
               aria-label="Search leads"
-              className="h-10 w-full rounded-[10px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#202124] transition-colors placeholder:text-[#80868b]"
-              style={{ border: '1px solid #dadce0', color: INK }}
+              className="h-10 w-full rounded-[10px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
+              style={{ border: '1px solid #d5d9d4', color: INK }}
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
                 aria-label="Clear search"
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
                 style={{ color: MUTED }}
               >
                 <X size={12} />
@@ -223,10 +223,10 @@ function InboundLeadsPage() {
           {loading ? (
             <div aria-busy="true">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-12 flex items-center gap-8" style={{ borderBottom: '1px solid #e8eaed' }}>
-                  <span className="h-3.5 w-20 rounded bg-[#f1f3f4] animate-pulse" />
-                  <span className="h-3.5 w-40 rounded bg-[#f1f3f4] animate-pulse" />
-                  <span className="h-3.5 w-24 rounded bg-[#f1f3f4] animate-pulse ml-auto" />
+                <div key={i} className="h-12 flex items-center gap-8" style={{ borderBottom: '1px solid #e6e8e4' }}>
+                  <span className="h-3.5 w-20 rounded bg-[#f1f2ee] animate-pulse" />
+                  <span className="h-3.5 w-40 rounded bg-[#f1f2ee] animate-pulse" />
+                  <span className="h-3.5 w-24 rounded bg-[#f1f2ee] animate-pulse ml-auto" />
                 </div>
               ))}
             </div>
@@ -269,12 +269,12 @@ function InboundLeadsPage() {
                           <RegisterRow
                             selected={isActive}
                             onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                            className={cn(!isActive && isExpanded && 'bg-[#f8f9fa]')}
+                            className={cn(!isActive && isExpanded && 'bg-[#faf9f6]')}
                           >
-                            <RegisterCell first selected={isActive} title={lead.email ?? name} className={cn(!isActive && isExpanded && 'bg-[#f8f9fa]')}
+                            <RegisterCell first selected={isActive} title={lead.email ?? name} className={cn(!isActive && isExpanded && 'bg-[#faf9f6]')}
                               primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{name}</span>{lead.ai_draft_id && <Chip title="AI draft ready">AI draft</Chip>}</span>}
                               secondary={lead.company || channelLabel(lead.source)} />
-                            <RegisterCell className="max-w-[200px]"><span className="block truncate text-[14px]" style={{ color: '#3c4043' }}>{lead.topic || lead.department || '—'}</span></RegisterCell>
+                            <RegisterCell className="max-w-[200px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{lead.topic || lead.department || '—'}</span></RegisterCell>
                             <RegisterCell className="max-w-[320px]"><span className="block truncate text-[13.5px]" style={{ color: MUTED }}>{msg || '—'}</span></RegisterCell>
                             <RegisterCell><span onClick={e => e.stopPropagation()}><StatusDropdown lead={lead} onChange={handleStatus} /></span></RegisterCell>
                             <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: INK }}>{timeAgo(lead.created_at)}</span></RegisterCell>
@@ -313,8 +313,8 @@ function InboundLeadsPage() {
                     <div
                       key={lead.id}
                       onClick={() => setSelectedId(lead.id === selectedId ? null : lead.id)}
-                      className={cn('px-1 py-3 cursor-pointer', isActive ? 'bg-[#f1f3f4]' : '')}
-                      style={{ borderBottom: '1px solid #e8eaed' }}
+                      className={cn('px-1 py-3 cursor-pointer', isActive ? 'bg-[#f1f2ee]' : '')}
+                      style={{ borderBottom: '1px solid #e6e8e4' }}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <ChannelBadge source={lead.source} />
@@ -326,7 +326,7 @@ function InboundLeadsPage() {
                         </span>
                       </div>
                       {(lead.company || lead.topic || lead.department) && (
-                        <p className="text-[13px] truncate m-0 mb-1" style={{ color: '#3c4043' }}>
+                        <p className="text-[13px] truncate m-0 mb-1" style={{ color: '#2a332f' }}>
                           {[lead.company, lead.topic ?? lead.department].filter(Boolean).join(' · ')}
                         </p>
                       )}
@@ -350,7 +350,7 @@ function InboundLeadsPage() {
 
         {/* ── Detail panel ───────────────────────────────────────────────────── */}
         {selectedLead && (
-          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-white rounded-[16px] overflow-y-auto" style={{ border: '1px solid #e8eaed' }}>
+          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-white rounded-[16px] overflow-y-auto" style={{ border: '1px solid #e6e8e4' }}>
             <button
               type="button"
               onClick={() => setSelectedId(null)}

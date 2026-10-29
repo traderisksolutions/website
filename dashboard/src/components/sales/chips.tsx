@@ -16,7 +16,7 @@ export function EmailChip({ status, hasEmail = true }: { status: string | null |
 }
 
 export function ActionChip({ action }: { action: RecommendedAction | null | undefined }) {
-  if (!action || !(action in ACTION_LABEL)) return <span style={{ color: '#9aa0a6' }}>–</span>
+  if (!action || !(action in ACTION_LABEL)) return <span style={{ color: '#8c958f' }}>–</span>
   return <Chip>{ACTION_LABEL[action]}</Chip>
 }
 

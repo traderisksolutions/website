@@ -29,8 +29,8 @@ import type {
 } from '@/lib/crm/types'
 import type { LinePosition, PlacementBundle } from '@/lib/placement/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type Overview = {
   company: Company
@@ -220,7 +220,7 @@ function CompanyWorkspace() {
   if (tab === 'threads') {
     return (
       <div className="flex flex-col bg-white" style={{ height: 'calc(100vh - 56px)', color: INK }}>
-        <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <button
             type="button"
             onClick={() => setTab(DEFAULT_TAB)}
@@ -242,7 +242,7 @@ function CompanyWorkspace() {
                 type="button"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-8 px-2.5 rounded-[8px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f3f4]"
+                className="h-8 px-2.5 rounded-[8px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f2ee]"
                 style={{ color: MUTED }}
               >
                 {t.label}
@@ -277,7 +277,7 @@ function CompanyWorkspace() {
         {ov.alerts.length > 0 && <AlertsPanel alerts={ov.alerts} />}
 
         {/* Two working tabs; the rest under More. Only a phone ever scrolls them. */}
-        <div className="flex items-center gap-6 mb-8 -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <div className="flex items-center gap-6 mb-8 -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <div className="flex items-center gap-6 overflow-x-auto min-w-0" role="tablist">
             {MAIN_TABS.map(t => {
               const on = tab === t.key
@@ -289,11 +289,11 @@ function CompanyWorkspace() {
                   role="tab"
                   aria-selected={on}
                   onClick={() => setTab(t.key)}
-                  className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#202124]')}
+                  className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
                   style={{ color: on ? INK : MUTED }}
                 >
                   {t.label}
-                  {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#80868b' }}>{n}</span>}
+                  {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#6f7a74' }}>{n}</span>}
                   <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
                 </button>
               )
@@ -304,7 +304,7 @@ function CompanyWorkspace() {
               const inMore = MORE_TABS.find(t => t.key === tab)
               return (
                 <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}
-                  className={cn('bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', inMore ? 'font-medium' : 'hover:text-[#202124]')}
+                  className={cn('bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', inMore ? 'font-medium' : 'hover:text-[#0f1412]')}
                   style={{ color: inMore ? INK : MUTED }}>
                   {inMore ? `More: ${inMore.label}` : 'More'} ▾
                 </button>
@@ -313,15 +313,15 @@ function CompanyWorkspace() {
             {moreOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} aria-hidden />
-                <div role="menu" className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-[10px] bg-white py-1 shadow-[0_4px_16px_rgba(60,64,67,0.18)]" style={{ border: '1px solid #e8eaed' }}>
+                <div role="menu" className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-[10px] bg-white py-1 shadow-[0_4px_16px_rgba(42,51,47,0.18)]" style={{ border: '1px solid #e6e8e4' }}>
                   {MORE_TABS.map(t => {
                     const n = countFor(t.key)
                     return (
                       <button key={t.key} type="button" role="menuitem" onClick={() => setTab(t.key)}
-                        className="flex w-full items-center justify-between gap-4 h-9 px-3 bg-transparent border-0 cursor-pointer text-[14px] text-left hover:bg-[#f1f3f4]"
-                        style={{ color: tab === t.key ? INK : '#3c4043', fontWeight: tab === t.key ? 500 : 400 }}>
+                        className="flex w-full items-center justify-between gap-4 h-9 px-3 bg-transparent border-0 cursor-pointer text-[14px] text-left hover:bg-[#f1f2ee]"
+                        style={{ color: tab === t.key ? INK : '#2a332f', fontWeight: tab === t.key ? 500 : 400 }}>
                         {t.label}
-                        {n !== null && n > 0 && <span className="tabular-nums text-[12.5px]" style={{ color: '#80868b' }}>{n}</span>}
+                        {n !== null && n > 0 && <span className="tabular-nums text-[12.5px]" style={{ color: '#6f7a74' }}>{n}</span>}
                       </button>
                     )
                   })}

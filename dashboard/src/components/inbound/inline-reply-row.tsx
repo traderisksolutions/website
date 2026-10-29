@@ -11,8 +11,8 @@ import { cn } from '@/lib/utils'
 import { displayName, messagePreview } from './helpers'
 import type { Lead } from './types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 // ── Types local to the reply workflow ─────────────────────────────────────────
 
@@ -30,11 +30,11 @@ type InboundSigOption = {
 function buildSigHtml(sig: InboundSigOption): string {
   return [
     '<br>',
-    '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
+    '<hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">',
     `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
     sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
     sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-    sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a></p>` : '',
+    sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1f4e3a;text-decoration:none">${sig.email}</a></p>` : '',
     sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
   ].filter(Boolean).join('\n')
 }
@@ -163,11 +163,11 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
   if (sent) {
     return (
       <tr>
-        <td colSpan={6} className="px-4 py-3" style={{ background: '#f8f9fa', borderBottom: '1px solid #e8eaed' }}>
+        <td colSpan={6} className="px-4 py-3" style={{ background: '#faf9f6', borderBottom: '1px solid #e6e8e4' }}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
               <Check size={14} className="flex-shrink-0" style={{ color: INK }} />
-              <span className="text-[13.5px]" style={{ color: '#3c4043' }}>Reply sent to {lead.email}</span>
+              <span className="text-[13.5px]" style={{ color: '#2a332f' }}>Reply sent to {lead.email}</span>
               <a
                 href={`/engagement?lead=${lead.id}`}
                 className="text-[13.5px] no-underline hover:underline underline-offset-4"
@@ -193,7 +193,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
 
   return (
     <tr>
-      <td colSpan={6} className="px-4 py-4" style={{ background: '#f8f9fa', borderBottom: '1px solid #e8eaed' }}>
+      <td colSpan={6} className="px-4 py-4" style={{ background: '#faf9f6', borderBottom: '1px solid #e6e8e4' }}>
         <div className="flex flex-col gap-3">
 
           {/* Header */}
@@ -236,7 +236,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
           ) : (
             <>
               {/* Rich editor */}
-              <div className="overflow-hidden rounded-[10px] bg-white" style={{ border: '1px solid #dadce0' }}>
+              <div className="overflow-hidden rounded-[10px] bg-white" style={{ border: '1px solid #d5d9d4' }}>
                 <RichEditor
                   key={draftEditorKey}
                   initialHtml={draftHtml}
@@ -275,7 +275,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                           type="button"
                           onClick={() => setSelectedSigId('')}
                           aria-label="Remove signature"
-                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f3f4] bg-transparent border-0 cursor-pointer p-0"
+                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer p-0"
                           style={{ color: MUTED }}
                         >
                           <X size={12} />
@@ -340,9 +340,9 @@ export function ReplyExpandButton({
       aria-label={isExpanded ? 'Collapse reply panel' : 'Draft and send reply'}
       className={cn(
         'inline-flex items-center justify-center w-8 h-8 rounded-[8px] cursor-pointer transition-colors',
-        isExpanded ? 'bg-[#f1f3f4] hover:bg-[#e8eaed]' : 'bg-white hover:bg-[#f8f9fa]',
+        isExpanded ? 'bg-[#f1f2ee] hover:bg-[#e6e8e4]' : 'bg-white hover:bg-[#faf9f6]',
       )}
-      style={{ border: '1px solid #dadce0', color: INK }}
+      style={{ border: '1px solid #d5d9d4', color: INK }}
       title={isExpanded ? 'Collapse' : 'Draft and send reply'}
     >
       {isExpanded ? <ChevronDown size={14} /> : <Send size={14} />}

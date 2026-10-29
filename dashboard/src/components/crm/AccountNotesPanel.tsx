@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { SectionCard, Empty, Btn, textareaCls } from './primitives'
 
-const BODY = '#3c4043'
+const BODY = '#2a332f'
 
 /** The company's account notes, as written. The agent reads the same text when it drafts replies and briefs. */
 export function AccountNotesPanel({ notes, onSave }: { notes: string | null; onSave: (notes: string) => Promise<unknown> }) {
@@ -31,7 +31,7 @@ export function AccountNotesPanel({ notes, onSave }: { notes: string | null; onS
       {editing ? (
         <>
           <textarea className={textareaCls} rows={18} value={draft} onChange={e => setDraft(e.target.value)} />
-          {error && <p className="m-0 mt-2 text-[14px]" style={{ color: '#c5221f' }}>{error}</p>}
+          {error && <p className="m-0 mt-2 text-[14px]" style={{ color: '#a1242f' }}>{error}</p>}
         </>
       ) : notes?.trim() ? (
         <div className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words" style={{ color: BODY }}>{notes}</div>

@@ -258,7 +258,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
 /** A sub-section inside the policy card: a 14px heading, its actions on the right, then content. */
 function Sub({ title, actions, children }: { title: string; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="py-4 first:pt-0 border-t first:border-t-0" style={{ borderColor: '#e8eaed' }}>
+    <div className="py-4 first:pt-0 border-t first:border-t-0" style={{ borderColor: '#e6e8e4' }}>
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <h3 className="m-0 text-[14px] font-medium" style={{ color: INK }}>{title}</h3>
         {actions && <div className="flex items-center gap-1.5 flex-wrap">{actions}</div>}

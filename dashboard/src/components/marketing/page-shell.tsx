@@ -6,9 +6,9 @@ import { AppSplitLayout, AppMainPanel } from '@/components/app-shell'
 import { SiteSelect } from './site-switch'
 import type { Site } from '@/lib/marketing/types'
 
-export const INK = '#202124'
-export const MUTED = '#5f6368'
-export const RULE = '#e8eaed'
+export const INK = '#0f1412'
+export const MUTED = '#4a5550'
+export const RULE = '#e6e8e4'
 
 export function MarketingPage({ title, line, line2, actions, sites, siteKey, onSite, back, children, filters }: {
   title: React.ReactNode

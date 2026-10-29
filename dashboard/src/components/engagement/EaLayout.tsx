@@ -200,7 +200,7 @@ export function EaWorkspaceEmptyState({
         'bg-white',
       )}
     >
-      <p className="m-0 px-8 text-center text-[16px]" style={{ color: '#5f6368' }}>{body || title}</p>
+      <p className="m-0 px-8 text-center text-[16px]" style={{ color: '#4a5550' }}>{body || title}</p>
     </div>
   )
 }

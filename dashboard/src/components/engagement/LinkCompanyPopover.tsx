@@ -50,29 +50,29 @@ export function LinkCompanyPopover({ threadId, className }: { threadId: string; 
           onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true) } }}
           title="Link to company"
           aria-label="Link company"
-          className={cn('flex-shrink-0 inline-flex items-center text-[inherit] font-normal underline underline-offset-[3px] decoration-[#9aa0a6] cursor-pointer hover:decoration-[#202124]', className)}
-          style={{ color: '#202124' }}
+          className={cn('flex-shrink-0 inline-flex items-center text-[inherit] font-normal underline underline-offset-[3px] decoration-[#8c958f] cursor-pointer hover:decoration-[#0f1412]', className)}
+          style={{ color: '#0f1412' }}
         >
           Link company
         </span>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-2 rounded-[12px]" style={{ border: '1px solid #e8eaed' }} onClick={e => e.stopPropagation()}>
+      <PopoverContent className="w-72 p-2 rounded-[12px]" style={{ border: '1px solid #e6e8e4' }} onClick={e => e.stopPropagation()}>
         <input
           autoFocus
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search companies"
           aria-label="Search companies"
-          className="w-full h-9 text-[13.5px] rounded-[8px] px-3 outline-none bg-white mb-1.5 focus:border-[#202124]"
-          style={{ border: '1px solid #dadce0', color: '#202124' }}
+          className="w-full h-9 text-[13.5px] rounded-[8px] px-3 outline-none bg-white mb-1.5 focus:border-[#0f1412]"
+          style={{ border: '1px solid #d5d9d4', color: '#0f1412' }}
         />
         {(searching || linking) && (
-          <div className="px-2 py-2 text-[12.5px] flex items-center gap-1.5" style={{ color: '#5f6368' }}>
+          <div className="px-2 py-2 text-[12.5px] flex items-center gap-1.5" style={{ color: '#4a5550' }}>
             <Loader2 size={11} className="animate-spin" /> {linking ? 'Linking…' : 'Searching…'}
           </div>
         )}
         {!searching && !linking && results.length === 0 && (
-          <div className="px-2 py-2 text-[12.5px]" style={{ color: '#5f6368' }}>
+          <div className="px-2 py-2 text-[12.5px]" style={{ color: '#4a5550' }}>
             {query.trim() ? 'No matches.' : 'Type to search companies.'}
           </div>
         )}
@@ -83,10 +83,10 @@ export function LinkCompanyPopover({ threadId, className }: { threadId: string; 
                 <button
                   type="button"
                   onClick={() => select(c)}
-                  className="w-full text-left px-2 py-1.5 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]"
-                  style={{ color: '#202124' }}
+                  className="w-full text-left px-2 py-1.5 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]"
+                  style={{ color: '#0f1412' }}
                 >
-                  {c.name}{c.domain && <span className="ml-1.5 text-[12.5px]" style={{ color: '#80868b' }}>{c.domain}</span>}
+                  {c.name}{c.domain && <span className="ml-1.5 text-[12.5px]" style={{ color: '#6f7a74' }}>{c.domain}</span>}
                 </button>
               </li>
             ))}

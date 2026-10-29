@@ -12,9 +12,9 @@ import { VoicePanel } from '@/components/settings/VoicePanel'
  * each section a flat block on the right. Team lives here now (the old Team page redirects).
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 // Insurers, RFQ, Email templates and How it works were removed on 2 Oct 2026. Insurers now live
 // under Companies → Insurers, where every distinct insurer already had a company record; the RFQ
@@ -60,14 +60,14 @@ function SettingsInner() {
           <nav aria-label="Settings sections" className="md:sticky md:top-20 self-start">
             {(['you', 'team', 'agents'] as const).map(g => (
               <div key={g} className="mb-5">
-                <p className="m-0 mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#9aa0a6' }}>{GROUP_LABEL[g]}</p>
+                <p className="m-0 mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8c958f' }}>{GROUP_LABEL[g]}</p>
                 <ul className="m-0 p-0 list-none flex md:flex-col gap-0.5 overflow-x-auto">
                   {SECTIONS.filter(s => s.group === g).map(s => {
                     const on = section === s.key
                     return (
                       <li key={s.key} className="flex-shrink-0">
                         <button type="button" onClick={() => setSection(s.key)} aria-current={on ? 'page' : undefined}
-                          className={cn('relative w-full text-left h-9 px-3 rounded-[8px] border-0 cursor-pointer text-[14px]', on ? 'font-medium' : 'hover:bg-[#f1f3f4]')} style={{ color: on ? INK : MUTED, background: on ? '#f1f3f4' : undefined }}>
+                          className={cn('relative w-full text-left h-9 px-3 rounded-[8px] border-0 cursor-pointer text-[14px]', on ? 'font-medium' : 'hover:bg-[#f1f2ee]')} style={{ color: on ? INK : MUTED, background: on ? '#f1f2ee' : undefined }}>
                           {on && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ background: INK }} aria-hidden />}
                           {s.label}
                         </button>
@@ -110,12 +110,12 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
         )}
       </Block>
       <Block title="Gmail for sending">
-        {gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#3c4043' }}>{ERROR_MSGS[gmailError] ?? 'Connection failed. Please try again.'}</p>}
-        {gmailConnected && !gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#3c4043' }}>Gmail connected. Add your signature under Signatures.</p>}
+        {gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#2a332f' }}>{ERROR_MSGS[gmailError] ?? 'Connection failed. Please try again.'}</p>}
+        {gmailConnected && !gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#2a332f' }}>Gmail connected. Add your signature under Signatures.</p>}
         {!profile ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> : profile.gmail_email ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="m-0 text-[14px]" style={{ color: INK }}>Connected · {profile.gmail_email}</p>
-            <button type="button" onClick={() => void disconnect()} disabled={disconnecting} className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#dadce0', color: INK }}>{disconnecting ? 'Removing…' : 'Disconnect'}</button>
+            <button type="button" onClick={() => void disconnect()} disabled={disconnecting} className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>{disconnecting ? 'Removing…' : 'Disconnect'}</button>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 flex-wrap">

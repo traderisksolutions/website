@@ -14,14 +14,14 @@ import type { Lead, RealMsg, DraftHistoryItem } from '@/components/engagement/ty
 import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement/types'
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIR = '#e8eaed'
-const FIELD = '#f1f3f4'
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124]'
-const INPUT = 'w-full h-9 rounded-[8px] bg-white px-3 text-[13px] outline-none focus:border-[#202124]'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIR = '#e6e8e4'
+const FIELD = '#f1f2ee'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]'
+const INPUT = 'w-full h-9 rounded-[8px] bg-white px-3 text-[13px] outline-none focus:border-[#0f1412]'
 
 interface EngagementContextPanelProps {
   lead:                 Lead
@@ -149,7 +149,7 @@ function ConversationsSection({
                 type="button"
                 onClick={() => onSelect?.(t.id)}
                 aria-current={active ? 'true' : undefined}
-                className="w-full text-left rounded-[10px] px-3 py-2 cursor-pointer hover:bg-[#f8f9fa]"
+                className="w-full text-left rounded-[10px] px-3 py-2 cursor-pointer hover:bg-[#faf9f6]"
                 style={{ border: `1px solid ${active ? INK : HAIR}`, background: active ? FIELD : '#fff' }}
               >
                 <span className="flex items-center gap-1.5">
@@ -204,14 +204,14 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
             onClick={() => setDropdownOpen(v => !v)}
             aria-haspopup="listbox"
             aria-expanded={dropdownOpen}
-            className="w-full flex items-center justify-between px-3 h-9 rounded-[8px] text-[13px] cursor-pointer bg-white hover:bg-[#f8f9fa]"
-            style={{ border: '1px solid #dadce0', color: INK }}
+            className="w-full flex items-center justify-between px-3 h-9 rounded-[8px] text-[13px] cursor-pointer bg-white hover:bg-[#faf9f6]"
+            style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             {st.label}
-            <ChevronDown size={13} className={cn('transition-transform', dropdownOpen && 'rotate-180')} style={{ color: '#9aa0a6' }} />
+            <ChevronDown size={13} className={cn('transition-transform', dropdownOpen && 'rotate-180')} style={{ color: '#8c958f' }} />
           </button>
           {dropdownOpen && (
-            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-[12px] z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
+            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-[12px] z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
               {ALL_STATUSES.map(s => {
                 const sc = STATUS_MAP[s]
                 const on = lead.status === s
@@ -222,7 +222,7 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
                     role="option"
                     aria-selected={on}
                     onClick={() => { onStatus(lead.id, s); setDropdownOpen(false) }}
-                    className={cn('w-full text-left px-2.5 py-1.5 rounded-[8px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]', on && 'font-medium')}
+                    className={cn('w-full text-left px-2.5 py-1.5 rounded-[8px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'font-medium')}
                     style={{ color: on ? INK : BODY, background: on ? FIELD : undefined }}
                   >
                     {sc.label}
@@ -283,14 +283,14 @@ function TransferSection({
               }}
               placeholder="Existing marine policy"
               className={cn(INPUT, 'mt-1')}
-              style={{ border: '1px solid #dadce0', color: INK }}
+              style={{ border: '1px solid #d5d9d4', color: INK }}
             />
           </label>
           <div className="flex items-center gap-3">
             <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-[10px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: INK }}>
               {saving ? 'Moving…' : 'Confirm'}
             </button>
-            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-[10px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>
+            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-[10px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>
               Cancel
             </button>
           </div>
@@ -322,7 +322,7 @@ function ContactSection({ lead }: { lead: Lead }) {
             <dd className="m-0">
               <button type="button" onClick={() => copy(lead.email!, 'email')} title="Copy email" aria-label={copied === 'email' ? 'Copied' : 'Copy email'} className="flex items-start gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
                 <span className="text-[13px] break-all leading-snug" style={{ color: INK }}>{lead.email}</span>
-                <span className="flex-shrink-0 mt-[2px]" style={{ color: '#9aa0a6' }}>{copied === 'email' ? <Check size={11} /> : <Copy size={11} />}</span>
+                <span className="flex-shrink-0 mt-[2px]" style={{ color: '#8c958f' }}>{copied === 'email' ? <Check size={11} /> : <Copy size={11} />}</span>
               </button>
             </dd>
           </div>
@@ -334,7 +334,7 @@ function ContactSection({ lead }: { lead: Lead }) {
             <dd className="m-0">
               <button type="button" onClick={() => copy(lead.phone!, 'phone')} title="Copy phone" aria-label={copied === 'phone' ? 'Copied' : 'Copy phone'} className="flex items-center gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
                 <span className="text-[13px]" style={{ color: INK }}>{lead.phone}</span>
-                <span className="flex-shrink-0" style={{ color: '#9aa0a6' }}>{copied === 'phone' ? <Check size={11} /> : <Copy size={11} />}</span>
+                <span className="flex-shrink-0" style={{ color: '#8c958f' }}>{copied === 'phone' ? <Check size={11} /> : <Copy size={11} />}</span>
               </button>
             </dd>
           </div>
@@ -405,8 +405,8 @@ function NotesSection({ lead }: { lead: Lead }) {
           aria-label="Internal notes"
           placeholder="Internal notes. Saved when you leave the field."
           rows={4}
-          className="w-full text-[13px] leading-[1.6] resize-y rounded-[8px] px-3 py-2 bg-white outline-none focus:border-[#202124] placeholder:text-[#9aa0a6]"
-          style={{ border: '1px solid #dadce0', color: INK }}
+          className="w-full text-[13px] leading-[1.6] resize-y rounded-[8px] px-3 py-2 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]"
+          style={{ border: '1px solid #d5d9d4', color: INK }}
         />
         <p className="m-0 mt-1 text-[12px] min-h-[16px]" style={{ color: MUTED }} aria-live="polite">
           {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Not saved yet' : ''}
@@ -451,9 +451,9 @@ function DraftHistorySection({
 
   return (
     <div style={{ borderBottom: `1px solid ${HAIR}` }}>
-      <button type="button" onClick={toggle} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] text-left">
+      <button type="button" onClick={toggle} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-left">
         <span className="text-[13px] font-medium" style={{ color: INK }}>Draft history</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#9aa0a6' }} />
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#8c958f' }} />
       </button>
 
       {open && (
@@ -470,7 +470,7 @@ function DraftHistorySection({
             const snippet   = item.body.replace(/\s+/g, ' ').slice(0, 90)
 
             return (
-              <div key={item.id} className="mx-3 mb-2 rounded-[10px] px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#f8f9fa' }}>
+              <div key={item.id} className="mx-3 mb-2 rounded-[10px] px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#faf9f6' }}>
                 <p className="m-0 mb-1 flex items-center gap-2 text-[12px]" style={{ color: MUTED }}>
                   <span style={{ color: INK }}>v{vNum}</span>
                   <span>{typeLabel}</span>
@@ -508,9 +508,9 @@ function AccordionSection({
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div style={{ borderBottom: `1px solid ${HAIR}` }}>
-      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] text-left">
+      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-left">
         <span className="text-[13px] font-medium" style={{ color: INK }}>{title}</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#9aa0a6' }} />
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#8c958f' }} />
       </button>
       {open && children}
     </div>

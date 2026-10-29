@@ -3,8 +3,8 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 function UnsubscribedCard() {
   const params = useSearchParams()
@@ -15,7 +15,7 @@ function UnsubscribedCard() {
       className="flex items-center justify-center px-4 bg-white"
       style={{ minHeight: 'calc(100vh / var(--ui-zoom))', color: INK }}
     >
-      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10 text-center" style={{ border: '1px solid #e8eaed' }}>
+      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10 text-center" style={{ border: '1px solid #e6e8e4' }}>
         <div className="inline-flex items-center justify-center rounded-[12px] mb-5 w-12 h-12" style={{ background: INK }}>
           <span className="text-white text-[16px] font-medium tracking-[-0.01em]">TRS</span>
         </div>

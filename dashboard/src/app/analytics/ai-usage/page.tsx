@@ -15,15 +15,15 @@ import { RefreshCw } from 'lucide-react'
 import { Btn, Segmented, SectionCard, Empty, Spinner } from '@/components/crm/primitives'
 import { AGENTS, agentLabel, agentOfFeature, type AgentId } from '@/lib/ai-agents'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const RULE = '#e6e8e4'
 
 // One ink ramp, in the order agents are listed. Categories are read from the row label, not a hue.
 const AGENT_ORDER: AgentId[] = ['placement', 'benefits_admin', 'crm', 'askai', 'group_benefit', 'pricingmatrix', 'housekeeping', 'unattributed']
 const AGENT_INK: Record<AgentId, string> = {
-  placement: '#0C338A', benefits_admin: '#5f6368', crm: '#202124', askai: '#5f6368', group_benefit: '#3c4043', pricingmatrix: '#80868b', housekeeping: '#9aa0a6', unattributed: '#dadce0',
+  placement: '#132c1c', benefits_admin: '#4a5550', crm: '#0f1412', askai: '#4a5550', group_benefit: '#2a332f', pricingmatrix: '#6f7a74', housekeeping: '#8c958f', unattributed: '#d5d9d4',
 }
 
 type Bucket = { key: string; calls: number; input: number; output: number; cost: number; failures: number }
@@ -138,7 +138,7 @@ export default function AISpendPage() {
         </p>
 
         {err && (
-          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: `1px solid #dadce0`, color: INK }}>
+          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: `1px solid #d5d9d4`, color: INK }}>
             {err}
           </div>
         )}
@@ -174,7 +174,7 @@ export default function AISpendPage() {
                     <YAxis tickFormatter={(v: number) => usd(v)} tick={{ fontSize: 11, fill: FAINT }}
                            axisLine={false} tickLine={false} width={78} />
                     <Tooltip
-                      contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid #dadce0`, boxShadow: 'none', color: INK }}
+                      contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid #d5d9d4`, boxShadow: 'none', color: INK }}
                       labelFormatter={(l) => (typeof l === 'string' ? day(l) : String(l ?? ''))}
                       formatter={(v, n) => [usd(Number(v) || 0), agentLabel(String(n) as AgentId)]}
                     />

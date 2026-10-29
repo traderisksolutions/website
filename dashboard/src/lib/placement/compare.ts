@@ -133,10 +133,10 @@ const isPipeRow = (l: string) => /^\s*\|.*\|\s*$/.test(l)
 function tableHtml(rows: string[]): string {
   const cells = rows.map(r => r.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim()))
     .filter(r => !r.every(c => /^:?-{2,}:?$/.test(c)))   // a markdown separator row, if a broker typed one
-  const td = 'border:1px solid #dadce0;padding:4px 8px;text-align:center;font-size:13px;white-space:nowrap'
+  const td = 'border:1px solid #d5d9d4;padding:4px 8px;text-align:center;font-size:13px;white-space:nowrap'
   const [head, ...body] = cells
   return `<table cellspacing="0" cellpadding="0" style="border-collapse:collapse;margin:4px 0">`
-    + `<thead><tr>${head.map(c => `<th style="${td};background:#f1f3f4;font-weight:600">${escapeHtml(c)}</th>`).join('')}</tr></thead>`
+    + `<thead><tr>${head.map(c => `<th style="${td};background:#f1f2ee;font-weight:600">${escapeHtml(c)}</th>`).join('')}</tr></thead>`
     + `<tbody>${body.map(r => `<tr>${r.map(c => `<td style="${td}">${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
 }
 

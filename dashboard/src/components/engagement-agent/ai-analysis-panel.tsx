@@ -14,14 +14,14 @@ import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineP
 /** Summary, next action and draft provenance for the open thread. Quiet AI: ink text on white,
  *  one field-grey block for the next action, text links for the actions. */
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIR = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIR = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#9aa0a6] hover:decoration-[#202124] disabled:cursor-default disabled:no-underline disabled:opacity-50'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] disabled:cursor-default disabled:no-underline disabled:opacity-50'
 
 interface DraftMeta {
   emailType:   string | null

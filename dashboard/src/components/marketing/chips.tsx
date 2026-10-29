@@ -10,4 +10,4 @@ export const RunStatusChip = ({ status }: { status: string }) => <Chip>{RUN_STAT
 export const NodeStatusChip = ({ status }: { status: string }) => <Chip>{NODE_STATUS_LABEL[status] ?? status}</Chip>
 export const GscStatusChip = ({ status }: { status: string }) => <Chip>{GSC_STATUS_LABEL[status] ?? status}</Chip>
 export const KnowledgeStatusChip = ({ status }: { status: string }) => <Chip>{status === 'verified' ? 'Verified' : status === 'archived' ? 'Archived' : 'Draft'}</Chip>
-export const GateChip = ({ passed }: { passed: boolean | null | undefined }) => (passed == null ? <span style={{ color: '#9aa0a6' }}>–</span> : <Chip>{passed ? 'Gate passed' : 'Held by gate'}</Chip>)
+export const GateChip = ({ passed }: { passed: boolean | null | undefined }) => (passed == null ? <span style={{ color: '#8c958f' }}>–</span> : <Chip>{passed ? 'Gate passed' : 'Held by gate'}</Chip>)

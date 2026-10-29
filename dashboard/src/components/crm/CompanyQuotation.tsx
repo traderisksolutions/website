@@ -7,8 +7,8 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { fmtDate } from '@/lib/crm/format'
 import type { QuoteRow, QuoteKind } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 const KIND_LABEL: Record<QuoteKind, string> = { pricing_matrix: 'Employment benefits' }
 
 /**
@@ -60,8 +60,8 @@ export function CompanyQuotation({ companyId, companyName, quotes }: {
                   </span>
                 </RegisterCell>
                 <RegisterCell><Chip>{KIND_LABEL[q.kind]}</Chip></RegisterCell>
-                <RegisterCell><span className="text-[13.5px]" style={{ color: '#3c4043' }}>{q.status}</span></RegisterCell>
-                <RegisterCell align="right" primary={q.memberCount ?? <span style={{ color: '#9aa0a6' }}>—</span>} />
+                <RegisterCell><span className="text-[13.5px]" style={{ color: '#2a332f' }}>{q.status}</span></RegisterCell>
+                <RegisterCell align="right" primary={q.memberCount ?? <span style={{ color: '#8c958f' }}>—</span>} />
                 <RegisterCell last align="right">
                   <LinkBtn size="xs" level="secondary" href={q.href}>Open</LinkBtn>
                 </RegisterCell>

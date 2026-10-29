@@ -7,8 +7,8 @@ import { Chip, Segmented, inputCls } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 import { UploadCloud } from 'lucide-react'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type Existing = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null; company: string | null }
 type Status = 'new' | 'duplicate' | 'invalid'
@@ -148,9 +148,9 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
         {step === 'upload' && (
           <div className="flex flex-col gap-4 py-1">
             {/* Explicit header spec — strict: exactly these columns, nothing else. */}
-            <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+            <div className="rounded-[16px] px-5 py-4" style={{ background: '#f1f2ee' }}>
               <p className="m-0 text-[14px] font-medium mb-2.5" style={{ color: INK }}>Accepted columns</p>
-              <ul className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]" style={{ color: '#3c4043' }}>
+              <ul className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]" style={{ color: '#2a332f' }}>
                 {HEADER_SPEC.map(h => (
                   <li key={h.key} className="flex items-baseline gap-3">
                     <code className="font-mono text-[12.5px] w-[84px] flex-shrink-0" style={{ color: INK }}>{h.key}</code>
@@ -163,8 +163,8 @@ export default function BulkImportContacts({ open, onOpenChange, onImported }: {
               </p>
             </div>
 
-            <label className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-10 cursor-pointer hover:bg-[#f8f9fa] transition-colors" style={{ border: '1px dashed #dadce0' }}>
-              <UploadCloud size={22} style={{ color: '#9aa0a6' }} />
+            <label className="flex flex-col items-center justify-center gap-1.5 rounded-[16px] py-10 cursor-pointer hover:bg-[#faf9f6] transition-colors" style={{ border: '1px dashed #d5d9d4' }}>
+              <UploadCloud size={22} style={{ color: '#8c958f' }} />
               <span className="text-[14px] font-medium" style={{ color: INK }}>Choose a CSV file</span>
               <span className="text-[12.5px]" style={{ color: MUTED }}>or drop it here</span>
               <input type="file" accept=".csv,text/csv" className="hidden"
@@ -217,7 +217,7 @@ function RowCard({ r, onEdit, onAction }: { r: Row; onEdit: (f: typeof FIELDS[nu
   const inp = cn(inputCls, 'h-9 text-[13px] px-3')
   const label = r.status === 'invalid' ? 'Needs email or phone' : r.status === 'duplicate' ? 'Already exists' : 'New'
   return (
-    <div className={cn('rounded-[12px] p-3 flex flex-col gap-2.5 bg-white', r.action === 'skip' && 'opacity-60')} style={{ border: '1px solid #e8eaed' }}>
+    <div className={cn('rounded-[12px] p-3 flex flex-col gap-2.5 bg-white', r.action === 'skip' && 'opacity-60')} style={{ border: '1px solid #e6e8e4' }}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Chip>{label}</Chip>
         <div className="flex items-center gap-1">
@@ -239,7 +239,7 @@ function RowCard({ r, onEdit, onAction }: { r: Row; onEdit: (f: typeof FIELDS[nu
 
       {r.status === 'duplicate' && r.existing && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-[12.5px] px-1" style={{ color: MUTED }}>
-          <span className="col-span-2 sm:col-span-5 text-[12px]" style={{ color: '#80868b' }}>Existing contact</span>
+          <span className="col-span-2 sm:col-span-5 text-[12px]" style={{ color: '#6f7a74' }}>Existing contact</span>
           <span className="truncate">{r.existing.first_name || '—'}</span>
           <span className="truncate">{r.existing.last_name || '—'}</span>
           <span className="truncate">{r.existing.email || '—'}</span>

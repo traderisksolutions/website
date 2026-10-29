@@ -40,7 +40,7 @@ type Activity = { id: string; created_at: string; user_name: string | null; acti
 
 // Every status is the same neutral chip; the label carries the meaning.
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
-const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f3f4] text-[#3c4043] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
+const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
 type Tab = 'quotes' | 'hrlinks' | 'tables' | 'coverage' | 'activity'
@@ -136,7 +136,7 @@ function PricingMatrix() {
   }, [hrLinkId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[640px]">
@@ -144,14 +144,14 @@ function PricingMatrix() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {driveUrl && (
-            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-[12px] border border-[#dadce0] bg-white text-[#202124] text-[15px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#f8f9fa]">
+            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-11 px-4 rounded-[12px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[15px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]">
               <FolderOpen size={16} /> Drive
             </a>
           )}
-          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#dadce0] bg-white text-[#202124] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#f8f9fa]">
+          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
           </button>
-          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#202124] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
+          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#0f1412] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
             <Plus size={16} /> Quotes
           </button>
         </div>
@@ -159,12 +159,12 @@ function PricingMatrix() {
 
       {/* On a phone the bar scrolls sideways on its own instead of widening the page. The underline
           sits inside the bar and the scrollbar is hidden, so a desktop never shows a scroll handle. */}
-      <div className="mt-8 mb-6 flex items-end gap-7 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid #e8eaed' }}>
+      <div className="mt-8 mb-6 flex items-end gap-7 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid #e6e8e4' }}>
         {TABS.map(t => (
           <button key={t} onClick={() => { setTab(t); if (t === 'quotes') setNewQuote(false) }}
-            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
+            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
             {TAB_LABEL[t]}
-            {tab === t && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full bg-[#202124]" aria-hidden />}
+            {tab === t && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full bg-[#0f1412]" aria-hidden />}
           </button>
         ))}
       </div>
@@ -173,13 +173,13 @@ function PricingMatrix() {
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
       {tab === 'quotes' && newQuote && (
-        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← All quotes</button>
+        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← All quotes</button>
       )}
       {tab === 'quotes' && newQuote && !byHand && hrReadState === 'loading' && (
-        <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading the employee list…</p>
+        <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading the employee list…</p>
       )}
       {tab === 'quotes' && newQuote && !byHand && hrReadState === 'failed' && (
-        <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#c5221f' }}>{hrReadError}</p>
+        <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
       )}
       {tab === 'quotes' && newQuote && !byHand && hrReadState !== 'loading' && (
         <div className="flex flex-col gap-10">
@@ -192,7 +192,7 @@ function PricingMatrix() {
       )}
       {tab === 'quotes' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
-          <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>← Quick quote</button>
+          <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← Quick quote</button>
           <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
         </div>
       )}
@@ -243,13 +243,13 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
       <section>
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <h2 className={h2}>Priced here · {tables.length}</h2>
-          <button onClick={onUpload} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] bg-white hover:bg-[#f8f9fa]">
+          <button onClick={onUpload} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] text-[#0f1412] bg-white hover:bg-[#faf9f6]">
             <UploadCloud size={14} /> Upload rate PDF
           </button>
         </div>
-        {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
+        {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading…</p>
         : tables.length === 0 ? (
-          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
+          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
         ) : (
           <Register label="Insurers priced here" minWidth={980}>
             <RegisterHead>
@@ -263,11 +263,11 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
               {tables.map(t => (
                 <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
                   <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
-                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#202124' : '#9aa0a6' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
                   <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</span> })()}</RegisterCell>
                   <RegisterCell nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
                   <RegisterCell last align="right">
-                    <button className={LINK} style={{ color: '#202124' }} onClick={e => { e.stopPropagation(); setEditing(t.insurer_name ?? '') }}>Edit contacts</button>
+                    <button className={LINK} style={{ color: '#0f1412' }} onClick={e => { e.stopPropagation(); setEditing(t.insurer_name ?? '') }}>Edit contacts</button>
                   </RegisterCell>
                 </RegisterRow>
               ))}
@@ -278,7 +278,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
 
       <section>
         <h2 className={cn(h2, 'mb-3')}>Quote on request · {onRequest.length}</h2>
-        {contactsError && <p className="m-0 mb-3 text-[13px]" style={{ color: '#c5221f' }}>{contactsError}</p>}
+        {contactsError && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{contactsError}</p>}
         <Register label="Quoted on request" minWidth={860}>
           <RegisterHead>
             <RegisterTh first width={220}>Plan</RegisterTh>
@@ -290,12 +290,12 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
             {onRequest.map(r => (
               <RegisterRow key={r.key}>
                 <RegisterCell first primary={r.label} secondary={r.plan ? r.insurer : undefined} />
-                <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{r.rates}</span></RegisterCell>
+                <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.rates}</span></RegisterCell>
                 <RegisterCell nowrap={false}><ContactLines people={who(r.insurer)} /></RegisterCell>
                 <RegisterCell last align="right">
                   <span className="inline-flex items-center gap-4">
-                    <button className={LINK} style={{ color: '#5f6368' }} onClick={() => setEditing(r.insurer)}>Edit contacts</button>
-                    <button className={LINK} style={{ color: '#202124' }} onClick={() => onEmail(r.insurer, r.plan)}><Mail size={14} /> Email</button>
+                    <button className={LINK} style={{ color: '#4a5550' }} onClick={() => setEditing(r.insurer)}>Edit contacts</button>
+                    <button className={LINK} style={{ color: '#0f1412' }} onClick={() => onEmail(r.insurer, r.plan)}><Mail size={14} /> Email</button>
                   </span>
                 </RegisterCell>
               </RegisterRow>
@@ -352,10 +352,10 @@ function QuotesTab({ onNew }: { onNew: () => void }) {
   const waiting = companies.filter(c => !c.priced).length
   const shown = companies.filter(c => filter === 'all' || (filter === 'waiting' ? !c.priced : c.priced))
 
-  if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#5f6368' }}>Loading…</p>
+  if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading…</p>
   if (rows.length === 0) return (
-    <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#5f6368' }}>
-      No quotes yet. <button onClick={onNew} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#202124' }}>Start one</button>.
+    <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>
+      No quotes yet. <button onClick={onNew} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#0f1412' }}>Start one</button>.
     </p>
   )
   return (
@@ -375,18 +375,18 @@ function QuotesTab({ onNew }: { onNew: () => void }) {
           <RegisterTh last align="right">Updated</RegisterTh>
         </RegisterHead>
         <tbody>
-          {shown.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-[14px]" style={{ color: '#5f6368' }}>None.</td></tr>}
+          {shown.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-[14px]" style={{ color: '#4a5550' }}>None.</td></tr>}
           {shown.map(({ latest, shown: q, count, priced }) => {
             const best = priced ? lowest(q) : undefined
             return (
               <RegisterRow key={q.id} onClick={() => router.push(`/pricing-matrix/quote/${q.id}`)}>
                 <RegisterCell first primary={q.company_name || 'Untitled'}
                   secondary={[q.effective_date ? `starts ${fmtDay(q.effective_date)}` : null, count > 1 ? `${count} quotes` : null].filter(Boolean).join(' · ') || undefined} />
-                <RegisterCell><span className={CHIP} style={priced ? undefined : { background: '#fef7e0', color: '#b06000' }}>{priced ? 'Priced' : 'Waiting for employee list'}</span></RegisterCell>
-                <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{SOURCE_LABEL[q.source ?? ''] ?? q.source ?? '—'}</span></RegisterCell>
-                <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: q.member_count ? '#202124' : '#9aa0a6' }}>{q.member_count || '—'}</span></RegisterCell>
-                {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#9aa0a6' }}>—</span></RegisterCell>}
-                <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#5f6368' }}>{fmtDay(latest.created_at)}</span></RegisterCell>
+                <RegisterCell><span className={CHIP} style={priced ? undefined : { background: '#fff4dc', color: '#8a5a00' }}>{priced ? 'Priced' : 'Waiting for employee list'}</span></RegisterCell>
+                <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{SOURCE_LABEL[q.source ?? ''] ?? q.source ?? '—'}</span></RegisterCell>
+                <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: q.member_count ? '#0f1412' : '#8c958f' }}>{q.member_count || '—'}</span></RegisterCell>
+                {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#8c958f' }}>—</span></RegisterCell>}
+                <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#4a5550' }}>{fmtDay(latest.created_at)}</span></RegisterCell>
               </RegisterRow>
             )
           })}
@@ -406,7 +406,7 @@ function ActivityTab() {
   return (
     <div className="flex flex-col gap-1.5">
       {rows.map(r => (
-        <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 text-[13.5px]" style={{ borderBottom: '1px solid #e8eaed' }}>
+        <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 text-[13.5px]" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <Clock size={12} className="text-muted-foreground/40 flex-shrink-0" />
           <span className="font-medium text-foreground/80">{r.action.replace('gb.', '').replace(/_/g, ' ')}</span>
           <span className="text-muted-foreground/60 truncate flex-1">{r.new_value ? JSON.stringify(r.new_value) : ''}</span>
@@ -451,20 +451,20 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-[16px] bg-white p-6 flex flex-col gap-3" style={{ boxShadow: '0 24px 64px rgba(32,33,36,0.2)' }} onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-[16px] bg-white p-6 flex flex-col gap-3" style={{ boxShadow: '0 24px 64px rgba(15,20,18,0.2)' }} onClick={e => e.stopPropagation()}>
         <div>
           <h3 className="m-0 text-[20px] font-medium tracking-[-0.01em] text-foreground">Upload insurer rate PDF</h3>
           <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">Insurer, product, age basis, plan year and effective date are read from the PDF — you can correct them during review.</p>
         </div>
-        <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f3f4] hover:bg-[#e8eaed]">
+        <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
           <UploadCloud size={24} className="text-muted-foreground/50" />
           <span className="text-[12.5px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
           <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
         </label>
-        {error && <p className="text-[12px] text-[#c5221f]">{error}</p>}
+        {error && <p className="text-[12px] text-[#a1242f]">{error}</p>}
         <div className="flex justify-end gap-2 mt-1">
-          <button onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f3f4]">Cancel</button>
-          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#202124] text-white hover:opacity-90 disabled:opacity-50">
+          <button onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f2ee]">Cancel</button>
+          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-50">
             {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload and extract'}
           </button>
         </div>

@@ -39,15 +39,15 @@ const DENSITIES: { key: Density; label: string; icon: typeof Menu }[] = [
 ]
 const VIEW_ICON: Partial<Record<EngagementTab, typeof Menu>> = { all: Inbox, needs_reply: MessageSquare, awaiting_client: Clock, unlinked: Unlink, drafts: FileEdit }
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIRLINE = '#e8eaed'
-const CTRL = '#dadce0'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIRLINE = '#e6e8e4'
+const CTRL = '#d5d9d4'
 
-const ICO_BTN = 'w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]'
+const ICO_BTN = 'w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]'
 
 function useDensity() {
   const [density, setDensity] = useState<Density>('standard')
@@ -82,7 +82,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
     const on = activeTab === s.key
     return (
       <button key={s.key} type="button" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={s.caption}
-        className={cn('relative flex items-center justify-between h-7 px-2.5 rounded-[6px] text-[13px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]', on && 'font-medium')}
+        className={cn('relative flex items-center justify-between h-7 px-2.5 rounded-[6px] text-[13px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', on && 'font-medium')}
         style={{ color: on ? INK : BODY }}>
         {on && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-[2px]" style={{ background: INK }} />}
         <span className="truncate">{s.label}</span>
@@ -97,24 +97,24 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
       <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-2.5 flex-shrink-0">
         <div className="min-w-0">
           <button type="button" onClick={() => setActiveTab('all')} aria-pressed={activeTab === 'all'} title="Show every conversation"
-            className="block m-0 p-0 bg-transparent border-0 cursor-pointer text-left text-[17px] font-semibold leading-[1.2] tracking-[-0.01em] rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ color: INK }}>
+            className="block m-0 p-0 bg-transparent border-0 cursor-pointer text-left text-[17px] font-semibold leading-[1.2] tracking-[-0.01em] rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ color: INK }}>
             All Inbox
           </button>
           <div className="mt-0.5 text-[12px] tabular-nums" style={{ color: MUTED }}>{counts.all} conversation{counts.all === 1 ? '' : 's'}</div>
         </div>
         <button type="button" onClick={() => onOpenDraft?.({ toEmail: '', cc: '', subject: '', body: '' })}
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ background: INK }}>
+          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[8px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: INK }}>
           <PenLine size={14} />Compose
         </button>
       </div>
 
       {/* Search */}
-      <label role="search" className="relative flex items-center mx-4 mt-0.5 mb-2.5 h-8 rounded-[8px] border bg-white px-2.5 gap-2 focus-within:border-[#202124] transition-colors flex-shrink-0" style={{ borderColor: CTRL }}>
+      <label role="search" className="relative flex items-center mx-4 mt-0.5 mb-2.5 h-8 rounded-[8px] border bg-white px-2.5 gap-2 focus-within:border-[#0f1412] transition-colors flex-shrink-0" style={{ borderColor: CTRL }}>
         <Search size={14} style={{ color: FAINT }} className="flex-shrink-0" />
         <input ref={searchRef} id={SEARCH_INPUT_ID} value={search} onChange={e => setSearch(e.target.value)} placeholder="Search mail" aria-label="Search conversations"
-          className="flex-1 min-w-0 h-full bg-transparent border-0 outline-none text-[13px] placeholder:text-[#80868b]" style={{ color: INK }} />
+          className="flex-1 min-w-0 h-full bg-transparent border-0 outline-none text-[13px] placeholder:text-[#6f7a74]" style={{ color: INK }} />
         {search
-          ? <button type="button" onClick={() => { setSearch(''); searchRef.current?.focus() }} aria-label="Clear search" title="Clear search" className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
+          ? <button type="button" onClick={() => { setSearch(''); searchRef.current?.focus() }} aria-label="Clear search" title="Clear search" className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
           : <kbd aria-hidden className="text-[11px] leading-none rounded-[6px] border px-1.5 py-[3px] font-[inherit] flex-shrink-0" style={{ borderColor: CTRL, color: DOT }}>⌘K</kbd>}
       </label>
 
@@ -139,7 +139,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
           <div className="flex items-center gap-0.5 mr-1" role="group" aria-label="Row density">
             {DENSITIES.map(d => { const Icon = d.icon; return (
               <button key={d.key} type="button" onClick={() => pick(d.key)} aria-pressed={density === d.key} title={d.label} aria-label={d.label}
-                className={cn('w-7 h-7 inline-flex items-center justify-center rounded-[6px] border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]', density === d.key ? 'bg-[#f1f3f4]' : 'bg-transparent hover:bg-[#f8f9fa]')}
+                className={cn('w-7 h-7 inline-flex items-center justify-center rounded-[6px] border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', density === d.key ? 'bg-[#f1f2ee]' : 'bg-transparent hover:bg-[#faf9f6]')}
                 style={{ color: density === d.key ? INK : DOT }}><Icon size={14} /></button>
             ) })}
           </div>
@@ -181,7 +181,7 @@ export function CollapsedNavRail() {
           const on = activeTab === s.key
           return (
             <button key={s.key} type="button" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={`${s.label} · ${count}`} aria-label={`${s.label}, ${count}`}
-              className={cn(ICO_BTN, 'relative', on && 'bg-[#f1f3f4]')} style={{ color: on ? INK : BODY }}>
+              className={cn(ICO_BTN, 'relative', on && 'bg-[#f1f2ee]')} style={{ color: on ? INK : BODY }}>
               <Icon size={16} />
               {count > 0 && s.key !== 'all' && (
                 <i aria-hidden className="absolute top-0.5 right-0.5 not-italic text-[10px] leading-[14px] rounded-full px-1 text-white tabular-nums" style={{ background: INK }}>{count > 99 ? '99+' : count}</i>

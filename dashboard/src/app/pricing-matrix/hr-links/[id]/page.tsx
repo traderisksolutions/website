@@ -11,7 +11,7 @@ import {
   eventSentence, fmtDate, fmtDateTime, fmtDob, linkIsOpen, linkStatusWord, type HrLinkDetailResponse,
 } from '@/components/group-benefits/hr/labels'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 
 type ListRow = {
   key: string; name: string; relationship: 'self' | 'spouse' | 'child'; parent: string | null
@@ -97,13 +97,13 @@ export default function HrLinkPage() {
   const sourceFile = typeof submission?.source_meta?.filename === 'string' ? submission.source_meta.filename as string : null
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
       <button onClick={() => router.push('/pricing-matrix?tab=hrlinks')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: MUTED }}>← Employee lists</button>
 
       {pending && <p className="m-0 py-10 text-[15px]" style={{ color: MUTED }}>{MIGRATION_PENDING_LINE}</p>}
       {loading && !pending && <p className="m-0 py-10 text-center text-[15px]" style={{ color: MUTED }}>Loading…</p>}
-      {!loading && !pending && error && !link && <p className="m-0 py-10 text-[15px]" style={{ color: '#c5221f' }}>{error}</p>}
+      {!loading && !pending && error && !link && <p className="m-0 py-10 text-[15px]" style={{ color: '#a1242f' }}>{error}</p>}
 
       {link && (
         <>
@@ -117,7 +117,7 @@ export default function HrLinkPage() {
               </div>
             </div>
             <p className="m-0 mt-2 text-[13.5px] tabular-nums flex flex-wrap items-center gap-x-2 gap-y-1" style={{ color: MUTED }}>
-              <span className="font-medium" style={{ color: '#202124' }}>{link.reference}</span>
+              <span className="font-medium" style={{ color: '#0f1412' }}>{link.reference}</span>
               <span className={CHIP}>{linkStatusWord(link)}</span>
               <span>· to {link.recipient_name}, {link.recipient_email}</span>
               {link.cc_email && <span>· copy {link.cc_email}</span>}
@@ -125,8 +125,8 @@ export default function HrLinkPage() {
               <span>· {link.effective_date ? `effective ${fmtDate(link.effective_date)}` : 'no policy start'}</span>
               <span>· valid to {fmtDate(link.expires_at)}</span>
             </p>
-            {notice && <p className="m-0 mt-2 text-[13.5px]" style={{ color: '#3c4043' }}>{notice}</p>}
-            {error && <p className="m-0 mt-2 text-[13.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+            {notice && <p className="m-0 mt-2 text-[13.5px]" style={{ color: '#2a332f' }}>{notice}</p>}
+            {error && <p className="m-0 mt-2 text-[13.5px]" style={{ color: '#a1242f' }}>{error}</p>}
           </div>
 
           <section className="mb-10">
@@ -160,11 +160,11 @@ export default function HrLinkPage() {
                       <RegisterCell first identityWidth={240}
                         primary={<span className={r.inactive ? 'font-normal' : undefined} style={r.inactive ? { color: MUTED } : undefined}>{r.name}</span>}
                         secondary={r.parent ? `dependant of ${r.parent}` : r.inactive ? 'inactive' : r.issues.length ? r.issues.join(' · ') : undefined} />
-                      <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{RELATIONSHIP_LABEL[r.relationship] ?? r.relationship}</span></RegisterCell>
-                      <RegisterCell><span className="text-[14px]" style={{ color: r.category ? '#3c4043' : '#9aa0a6' }}>{r.category ?? '—'}</span></RegisterCell>
-                      <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r.dob ? '#3c4043' : MUTED }}>{fmtDob(r.dob)}</span></RegisterCell>
-                      <RegisterCell><span className="text-[14px]" style={{ color: r.workPass ? '#3c4043' : '#9aa0a6' }}>{r.workPass ?? '—'}</span></RegisterCell>
-                      <RegisterCell last><span className="text-[14px]" style={{ color: '#3c4043' }}>{r.relationship === 'self' ? (sourceWord ?? '—') : 'Entered by HR'}</span></RegisterCell>
+                      <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{RELATIONSHIP_LABEL[r.relationship] ?? r.relationship}</span></RegisterCell>
+                      <RegisterCell><span className="text-[14px]" style={{ color: r.category ? '#2a332f' : '#8c958f' }}>{r.category ?? '—'}</span></RegisterCell>
+                      <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r.dob ? '#2a332f' : MUTED }}>{fmtDob(r.dob)}</span></RegisterCell>
+                      <RegisterCell><span className="text-[14px]" style={{ color: r.workPass ? '#2a332f' : '#8c958f' }}>{r.workPass ?? '—'}</span></RegisterCell>
+                      <RegisterCell last><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.relationship === 'self' ? (sourceWord ?? '—') : 'Entered by HR'}</span></RegisterCell>
                     </RegisterRow>
                   ))}
                 </tbody>
@@ -189,8 +189,8 @@ export default function HrLinkPage() {
                 {events.map(ev => {
                   const rest = eventSentence(ev, link)
                   return (
-                    <li key={ev.id} className="text-[14px] leading-[1.5]" style={{ color: '#3c4043' }}>
-                      <span className="font-medium" style={{ color: '#202124' }}>{EVENT_LABEL[ev.kind] ?? ev.kind}</span>
+                    <li key={ev.id} className="text-[14px] leading-[1.5]" style={{ color: '#2a332f' }}>
+                      <span className="font-medium" style={{ color: '#0f1412' }}>{EVENT_LABEL[ev.kind] ?? ev.kind}</span>
                       {' '}<span className="tabular-nums">{fmtDateTime(ev.created_at)}</span>
                       {rest ? `, ${rest}.` : '.'}
                     </li>
@@ -201,7 +201,7 @@ export default function HrLinkPage() {
           </section>
 
           <HrModal open={confirmClose} onClose={() => setConfirmClose(false)} title="Close link" width={440}>
-            <p className="m-0 text-[14px] leading-[1.5]" style={{ color: '#3c4043' }}>
+            <p className="m-0 text-[14px] leading-[1.5]" style={{ color: '#2a332f' }}>
               {link.reference} stops opening for {link.recipient_name}. Anything HR saved as a draft stays on this page. A new link needs Resend.
             </p>
             <div className="flex justify-end gap-2 mt-5">

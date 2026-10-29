@@ -17,10 +17,10 @@
 import { useState } from 'react'
 import { Sparkles, Search, Paperclip, ExternalLink, X } from 'lucide-react'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIR = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIR = '#e6e8e4'
 
 type Citation = { n: number; source: 'message' | 'attachment'; fileName: string | null; sentAt: string | null }
 type NextReply = {
@@ -35,7 +35,7 @@ type Answer = {
   queries: string[]; grounded: boolean; warning: string | null; error?: string
 }
 
-const btn = 'inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[13px] transition-colors hover:border-[#202124] disabled:opacity-50'
+const btn = 'inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[13px] transition-colors hover:border-[#0f1412] disabled:opacity-50'
 
 export function ThreadAgentBar({
   threadId, onDraft,
@@ -90,13 +90,13 @@ export function ThreadAgentBar({
   return (
     <div className="px-5 sm:px-10 py-2.5" style={{ borderTop: `1px solid ${HAIR}` }}>
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={generate} disabled={!!busy} className={btn} style={{ borderColor: '#dadce0', color: INK }}>
+        <button type="button" onClick={generate} disabled={!!busy} className={btn} style={{ borderColor: '#d5d9d4', color: INK }}>
           <Sparkles size={13} className={busy === 'gen' ? 'animate-pulse' : ''} />
           {busy === 'gen' ? 'Reading the client’s file…' : 'Generate response'}
         </button>
 
         <button type="button" onClick={() => { setAsking(a => !a); setErr(null) }} disabled={!!busy} className={btn}
-          style={{ borderColor: asking ? INK : '#dadce0', color: INK }}>
+          style={{ borderColor: asking ? INK : '#d5d9d4', color: INK }}>
           <Search size={13} /> Ask AI
         </button>
 
@@ -121,10 +121,10 @@ export function ThreadAgentBar({
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void ask() } }}
             placeholder="Ask about this thread or its attachments…"
             className="h-9 flex-1 min-w-0 rounded-[9px] border px-3 text-[13px]"
-            style={{ borderColor: '#dadce0', color: INK }}
+            style={{ borderColor: '#d5d9d4', color: INK }}
           />
           <button type="button" onClick={ask} disabled={!!busy || !question.trim()} className={btn}
-            style={{ borderColor: '#dadce0', color: INK }}>
+            style={{ borderColor: '#d5d9d4', color: INK }}>
             {busy === 'ask' ? 'Reading…' : 'Ask'}
           </button>
           <button type="button" onClick={() => { setAsking(false); setAnswer(null); setQuestion('') }}
@@ -180,7 +180,7 @@ export function ThreadAgentBar({
                 <li key={s.n} className="flex gap-2 text-[12px]">
                   <span className="tabular-nums shrink-0" style={{ color: FAINT }}>[{s.n}]</span>
                   <a href={s.uri} target="_blank" rel="noreferrer"
-                     className="inline-flex items-center gap-1 underline decoration-[#dadce0] hover:decoration-[#202124]"
+                     className="inline-flex items-center gap-1 underline decoration-[#d5d9d4] hover:decoration-[#0f1412]"
                      style={{ color: INK }}>
                     {s.title || s.uri}<ExternalLink size={11} style={{ color: FAINT }} />
                   </a>

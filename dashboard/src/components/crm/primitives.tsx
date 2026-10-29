@@ -3,35 +3,37 @@
 import Link from 'next/link'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { STAGE_LABEL, type Stage, type StageTone } from '@/lib/crm/types'
+import { STAGE_LABEL, STAGE_TONE, type Stage, type StageTone } from '@/lib/crm/types'
 
 /** Small building blocks shared by every CRM screen, on the Home design system: Inter, ink
- *  #202124, muted #5f6368, hairline #e8eaed, 10–12px controls, one filled ink primary per view.
+ *  #0f1412, muted #4a5550, hairline #e6e8e4, 10–12px controls, one filled ink primary per view.
  *  State is never colour-coded — every chip is the same neutral fill with ink text. */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FIELD = '#f1f2ee'
 
-export const TONE_STYLE: Record<StageTone, { bg: string; color: string }> = {
-  neutral: { bg: FIELD, color: '#3c4043' },
-  blue:    { bg: FIELD, color: '#3c4043' },
-  amber:   { bg: FIELD, color: '#3c4043' },
-  green:   { bg: FIELD, color: '#3c4043' },
-  red:     { bg: FIELD, color: '#3c4043' },
+/** The website's badge (.s-pill): soft tint, hairline border, a 6px dot, 12px medium. One tone per meaning. */
+export const TONE_STYLE: Record<StageTone, { bg: string; color: string; border: string }> = {
+  neutral: { bg: '#f3f3f1', color: '#4a5550', border: 'rgba(15,20,18,.12)' },
+  blue:    { bg: '#eaf1f7', color: '#1f4566', border: 'rgba(31,69,102,.2)' },
+  amber:   { bg: '#fff4dc', color: '#8a5a00', border: 'rgba(138,90,0,.24)' },
+  green:   { bg: '#edf7e8', color: '#132c1c', border: 'rgba(19,44,28,.2)' },
+  red:     { bg: '#fdecec', color: '#a1242f', border: 'rgba(161,36,47,.22)' },
 }
 
 export function Chip({ tone = 'neutral', children, className, title }: { tone?: StageTone; children: React.ReactNode; className?: string; title?: string }) {
   const s = TONE_STYLE[tone]
   return (
-    <span title={title} className={cn('inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4', className)} style={{ background: s.bg, color: s.color }}>
+    <span title={title} className={cn('inline-flex items-center gap-1.5 rounded-[4px] pl-1.5 pr-2 py-px text-[12px] font-medium whitespace-nowrap leading-[18px] border', className)} style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+      <span aria-hidden className="inline-block w-1.5 h-1.5 rounded-full flex-none" style={{ background: 'currentColor' }} />
       {children}
     </span>
   )
 }
 
 export function StageBadge({ stage, className }: { stage: Stage; className?: string }) {
-  return <Chip className={className}>{STAGE_LABEL[stage]}</Chip>
+  return <Chip tone={STAGE_TONE[stage]} className={className}>{STAGE_LABEL[stage]}</Chip>
 }
 
 /** A flat section: a 16px medium heading, optional actions on the right, then content.
@@ -40,7 +42,7 @@ export function SectionCard({ title, actions, children, className, padded = true
   title?: string; actions?: React.ReactNode; children: React.ReactNode; className?: string; padded?: boolean
 }) {
   return (
-    <section className={cn('min-w-0 py-6 border-t first:border-t-0 first:pt-0', className)} style={{ borderColor: '#e8eaed' }}>
+    <section className={cn('min-w-0 py-6 border-t first:border-t-0 first:pt-0', className)} style={{ borderColor: '#e6e8e4' }}>
       {(title || actions) && (
         <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           {title && <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: INK }}>{title}</h2>}
@@ -65,14 +67,15 @@ export function Spinner({ label }: { label?: string }) {
 }
 
 const BTN_BASE = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap transition-[background-color,opacity] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-const BTN_SIZE = { sm: 'h-9 px-3.5 text-[13.5px] rounded-[10px]', xs: 'h-8 px-3 text-[12.5px] rounded-[8px]' } as const
+const BTN_SIZE = { sm: 'h-9 px-3.5 text-[13.5px] rounded-[7px]', xs: 'h-8 px-3 text-[12.5px] rounded-[6px]' } as const
+// The website's buttons (traderisksolutions.com.sg .s-btn): deep green fill, 1.5px green outline.
 const BTN_LEVEL = {
-  primary:   'bg-[#202124] text-white border-0 hover:opacity-90',
-  secondary: 'bg-white text-[#202124] border border-[#dadce0] hover:bg-[#f8f9fa]',
-  tertiary:  'bg-transparent text-[#202124] border-0 hover:bg-[#f1f3f4]',
+  primary:   'bg-[#132c1c] text-white border-0 hover:bg-[#1f4e3a]',
+  secondary: 'bg-white text-[#132c1c] border-0 shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]',
+  tertiary:  'bg-transparent text-[#4a5550] border-0 hover:bg-[#faf9f6] hover:text-[#0f1412]',
 } as const
 
-/** The three-level button ladder: one filled ink primary per view, outlined secondary, quiet tertiary. */
+/** The three-level button ladder: one deep-green primary per view, green-outlined secondary, quiet tertiary. */
 export function Btn({ level = 'secondary', size = 'sm', className, children, loading, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { level?: 'primary' | 'secondary' | 'tertiary'; size?: 'sm' | 'xs'; loading?: boolean }) {
   return (
     <button {...rest} disabled={rest.disabled || loading} className={cn(BTN_BASE, BTN_SIZE[size], BTN_LEVEL[level], className)}>
@@ -104,7 +107,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             role="radio"
             aria-checked={on}
             onClick={() => onChange(o.value)}
-            className={cn('inline-flex items-center gap-1.5 h-8 px-3.5 rounded-[9px] text-[13.5px] transition-colors cursor-pointer border-0', on ? 'bg-white font-medium' : 'bg-transparent hover:bg-[#e8eaed]')}
+            className={cn('inline-flex items-center gap-1.5 h-8 px-3.5 rounded-[9px] text-[13.5px] transition-colors cursor-pointer border-0', on ? 'bg-white font-medium' : 'bg-transparent hover:bg-[#e6e8e4]')}
             style={{ color: on ? INK : MUTED }}
           >
             {o.label}
@@ -126,8 +129,8 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   )
 }
 
-export const inputCls = 'w-full h-10 rounded-[10px] border border-[#dadce0] bg-white px-3.5 text-[14px] text-[#202124] outline-none transition-colors focus:border-[#202124] placeholder:text-[#80868b]'
-export const textareaCls = 'w-full rounded-[10px] border border-[#dadce0] bg-white px-3.5 py-2.5 text-[14px] text-[#202124] outline-none transition-colors focus:border-[#202124] resize-y placeholder:text-[#80868b]'
+export const inputCls = 'w-full h-10 rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] placeholder:text-[#6f7a74]'
+export const textareaCls = 'w-full rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 py-2.5 text-[14px] text-[#0f1412] outline-none transition-colors focus:border-[#0f1412] resize-y placeholder:text-[#6f7a74]'
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
   const parts = name.replace(/[^a-zA-Z ]/g, '').trim().split(/\s+/).filter(Boolean)

@@ -11,7 +11,7 @@ import { shortInsurer } from '@/lib/gb/insurer-names'
 import type { PolicyLifecycle } from '@/lib/policies/types'
 import type { EbPolicyRow } from '@/app/api/eb/policies/route'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 const fmtDay = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 const money = (n: number, ccy: string) => n.toLocaleString('en-SG', { style: 'currency', currency: ccy || 'SGD', maximumFractionDigits: 0 })
 
@@ -64,7 +64,7 @@ export function EbPoliciesTab({ onByHand }: { onByHand: () => void }) {
           <Btn level="primary" onClick={() => setDialog(true)}>New quotation</Btn>
         </div>
       </div>
-      {error && <p className="m-0 text-[13.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+      {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }}>{error}</p>}
       {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: MUTED }}>Loading…</p> : (
         <Register label="Employment benefits policies" minWidth={960}>
           <RegisterHead>
@@ -83,17 +83,17 @@ export function EbPoliciesTab({ onByHand }: { onByHand: () => void }) {
               return (
                 <RegisterRow key={r.id} onClick={h ? () => router.push(h) : undefined}>
                   <RegisterCell first identityWidth={240} primary={h
-                    ? <Link href={h} onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: '#202124' }}>{r.company_name}</Link>
+                    ? <Link href={h} onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name}</Link>
                     : r.company_name} secondary={r.start_date ? `starts ${fmtDay(r.start_date)}` : undefined} />
-                  <RegisterCell><span className="text-[14px]" style={{ color: '#202124' }}>{r.label}</span></RegisterCell>
-                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{r.lifecycle_label}</span></RegisterCell>
-                  <RegisterCell><span className="text-[14px]" style={{ color: r.insurer ? '#202124' : '#9aa0a6' }}>{r.insurer ? shortInsurer(r.insurer) : '—'}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#0f1412' }}>{r.label}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.lifecycle_label}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: r.insurer ? '#0f1412' : '#8c958f' }}>{r.insurer ? shortInsurer(r.insurer) : '—'}</span></RegisterCell>
                   <RegisterCell align="right">
                     {r.premium != null
-                      ? <span className="text-[14px] tabular-nums" style={{ color: '#202124' }}>{money(r.premium, r.currency)}</span>
-                      : <span className="text-[13px] tabular-nums" style={{ color: r.engine_quotes + r.insurer_quotes ? '#3c4043' : '#9aa0a6' }}>{r.engine_quotes + r.insurer_quotes ? `${r.engine_quotes + r.insurer_quotes} priced` : '—'}</span>}
+                      ? <span className="text-[14px] tabular-nums" style={{ color: '#0f1412' }}>{money(r.premium, r.currency)}</span>
+                      : <span className="text-[13px] tabular-nums" style={{ color: r.engine_quotes + r.insurer_quotes ? '#2a332f' : '#8c958f' }}>{r.engine_quotes + r.insurer_quotes ? `${r.engine_quotes + r.insurer_quotes} priced` : '—'}</span>}
                   </RegisterCell>
-                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: r.members_active != null ? '#202124' : '#9aa0a6' }}>{r.members_active ?? '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: r.members_active != null ? '#0f1412' : '#8c958f' }}>{r.members_active ?? '—'}</span></RegisterCell>
                   <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: MUTED }}>{fmtDay(r.updated_at)}</span></RegisterCell>
                 </RegisterRow>
               )
@@ -156,14 +156,14 @@ function NewQuotationDialog({ open, onClose }: { open: boolean; onClose: () => v
       <div className="flex flex-col gap-4">
         <Field label="Company" hint={company ? 'Matched to a company record.' : undefined}>
           <span className="relative block">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#80868b' }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6f7a74' }} />
             <input value={company ? company.name : query} onChange={e => search(e.target.value)} className={`${inputCls} pl-9`} placeholder="Company name" autoComplete="off" aria-label="Company" />
           </span>
           {!company && hits.length > 0 && (
-            <ul className="m-0 mt-1 list-none p-1 rounded-[10px] border border-[#dadce0] bg-white max-h-56 overflow-y-auto">
+            <ul className="m-0 mt-1 list-none p-1 rounded-[10px] border border-[#d5d9d4] bg-white max-h-56 overflow-y-auto">
               {hits.map(h => (
                 <li key={h.id}>
-                  <button type="button" onClick={() => { setCompany(h); setHits([]) }} className="w-full text-left bg-transparent border-0 px-3 py-2 rounded-[8px] cursor-pointer hover:bg-[#f1f3f4] text-[14px]" style={{ color: '#202124' }}>
+                  <button type="button" onClick={() => { setCompany(h); setHits([]) }} className="w-full text-left bg-transparent border-0 px-3 py-2 rounded-[8px] cursor-pointer hover:bg-[#f1f2ee] text-[14px]" style={{ color: '#0f1412' }}>
                     {h.name}{h.domain ? <span className="ml-2 text-[12.5px]" style={{ color: MUTED }}>{h.domain}</span> : null}
                   </button>
                 </li>
@@ -172,7 +172,7 @@ function NewQuotationDialog({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </Field>
         <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>One line, Employment benefits. Employee list and pricing follow on the company's Members tab.</p>
-        {error && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
         <div className="flex items-center justify-end gap-2 pt-1">
           <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
           <Btn type="button" level="primary" onClick={create} loading={busy} disabled={!company}>Open quotation</Btn>

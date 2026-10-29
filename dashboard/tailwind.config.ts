@@ -6,7 +6,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['var(--font-geist)', 'Geist', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        serif: ['var(--font-serif)', 'EB Garamond', 'Georgia', 'serif'],
+        mono: ['var(--font-mono)', 'Geist Mono', 'ui-monospace', 'Menlo', 'monospace'],
       },
       colors: {
         border:     'hsl(var(--border))',

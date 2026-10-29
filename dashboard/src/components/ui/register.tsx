@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
  * One outlined 16px card; a sticky white header with 13px muted labels (sortable when asked);
  * rows 16px tall-padded on a hairline; the first column frozen with an inset hairline; a cell is a
  * 15px medium primary line over a 12.5px muted secondary line; numbers right-aligned and tabular;
- * hover #f8f9fa; the selected row on a soft blue with a 3px ink bar. Status is words, never colour.
+ * hover #faf9f6; the selected row on a soft blue with a 3px ink bar. Status is words, never colour.
  *
  * Since 28 Oct 2026 every register is dense (the Quotes grid Jarod signed off): 32px header at
  * 12px, 32px rows at 13.5px (the app zoom is 1 now, so these are real pixels), a faint rule
@@ -21,10 +21,10 @@ import { cn } from '@/lib/utils'
  * 16px-padded register for the rare editorial list.
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
-const SELECTED = '#eef3fc'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
+const SELECTED = '#edf7e8'
 
 const DenseContext = createContext(false)
 
@@ -54,8 +54,8 @@ export function RegisterHead({ children }: { children: React.ReactNode }) {
 
 /** Horizontal padding of a cell: 10px in a dense register, the card inset otherwise. */
 function cellPad(dense: boolean, first: boolean | undefined, last: boolean | undefined) {
-  if (dense) return cn(first ? 'sticky left-0 pl-4 pr-[10px] shadow-[inset_-1px_0_0_#e8eaed]' : 'px-[10px]', last && 'pr-4')
-  return cn(first ? 'sticky left-0 pl-6 pr-3 shadow-[inset_-1px_0_0_#e8eaed]' : 'px-3', last && 'pr-5')
+  if (dense) return cn(first ? 'sticky left-0 pl-4 pr-[10px] shadow-[inset_-1px_0_0_#e6e8e4]' : 'px-[10px]', last && 'pr-4')
+  return cn(first ? 'sticky left-0 pl-6 pr-3 shadow-[inset_-1px_0_0_#e6e8e4]' : 'px-3', last && 'pr-5')
 }
 
 export function RegisterTh({ children, align = 'left', first, last, active, dir, onSort, hint, className, width }: {
@@ -86,7 +86,7 @@ export function RegisterRow({ children, selected, onClick, className, style }: {
   return (
     <tr tabIndex={onClick ? 0 : undefined} aria-selected={onClick ? !!selected : undefined} onClick={onClick}
       onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={cn('group transition-colors', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', selected ? 'bg-[#eef3fc]' : onClick && 'hover:bg-[#f8f9fa]', className)}
+      className={cn('group transition-colors', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', selected ? 'bg-[#edf7e8]' : onClick && 'hover:bg-[#faf9f6]', className)}
       style={{ borderBottom: `1px solid ${RULE}`, ...style }}>
       {children}
     </tr>
@@ -105,7 +105,7 @@ export function RegisterCell({ primary, secondary, children, align = 'left', fir
   return (
     <td colSpan={colSpan} title={title}
       className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', align === 'right' && 'text-right', align === 'center' && 'text-center', nowrap && 'whitespace-nowrap',
-        first && cn('relative z-10', selected ? 'bg-[#eef3fc]' : 'bg-white group-hover:bg-[#f8f9fa]'), cellPad(dense, first, last), className)}>
+        first && cn('relative z-10', selected ? 'bg-[#edf7e8]' : 'bg-white group-hover:bg-[#faf9f6]'), cellPad(dense, first, last), className)}>
       {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
       <div className="min-w-0 max-w-full" style={first ? { width } : undefined}>
@@ -123,8 +123,8 @@ export function RegisterCell({ primary, secondary, children, align = 'left', fir
 export function RegisterGroupRow({ children, colSpan, onClick, open }: { children: React.ReactNode; colSpan: number; onClick?: () => void; open?: boolean }) {
   const dense = useContext(DenseContext)
   return (
-    <tr onClick={onClick} aria-expanded={onClick ? open : undefined} className={cn(onClick && 'cursor-pointer hover:bg-[#f8f9fa]')} style={{ borderBottom: `1px solid ${RULE}`, background: '#fafafa' }}>
-      <td colSpan={colSpan} className={cn('font-medium', dense ? 'pl-4 pr-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: '#3c4043' }}>{children}</td>
+    <tr onClick={onClick} aria-expanded={onClick ? open : undefined} className={cn(onClick && 'cursor-pointer hover:bg-[#faf9f6]')} style={{ borderBottom: `1px solid ${RULE}`, background: '#fafafa' }}>
+      <td colSpan={colSpan} className={cn('font-medium', dense ? 'pl-4 pr-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: '#2a332f' }}>{children}</td>
     </tr>
   )
 }

@@ -4,7 +4,7 @@
 export function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
   return (
     <label className={`flex flex-col gap-1 ${className ?? ''}`}>
-      <span className="text-[12.5px] text-[#5f6368]">{label}</span>
+      <span className="text-[12.5px] text-[#4a5550]">{label}</span>
       {children}
     </label>
   )

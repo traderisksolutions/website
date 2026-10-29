@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
  * TableShell: the register look (src/components/ui/register.tsx, the Companies table) for the
  * pages that compose their own thead/tbody. Same exported names as before so callers keep
  * working: one outlined 16px card, sticky white header with 12px muted labels, the first column
- * frozen, 32px hairline rows at 13.5px (the dense register), hover #f8f9fa. Pass `matrix` for wide grids (a wider
+ * frozen, 32px hairline rows at 13.5px (the dense register), hover #faf9f6. Pass `matrix` for wide grids (a wider
  * minimum width, cells never wrap). Status is words, never colour.
  */
 export function TableShell({ matrix, className, children, label, minWidth, maxHeight }: {
@@ -37,8 +37,8 @@ export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSecti
 export function TableRow({ className, style, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={cn('group transition-colors [tbody>&]:hover:bg-[#f8f9fa]', className)}
-      style={{ borderBottom: '1px solid #e8eaed', ...style }}
+      className={cn('group transition-colors [tbody>&]:hover:bg-[#faf9f6]', className)}
+      style={{ borderBottom: '1px solid #e6e8e4', ...style }}
       {...props}
     />
   )
@@ -49,8 +49,8 @@ export function TableHead({ className, children, ...props }: ThHTMLAttributes<HT
     <th
       scope="col"
       className={cn(
-        'h-8 px-[10px] py-0 text-left align-middle text-[12px] font-normal whitespace-nowrap text-[#5f6368]',
-        'first:sticky first:left-0 first:z-30 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e8eaed] last:pr-4',
+        'h-8 px-[10px] py-0 text-left align-middle text-[12px] font-normal whitespace-nowrap text-[#4a5550]',
+        'first:sticky first:left-0 first:z-30 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e6e8e4] last:pr-4',
         className,
       )}
       {...props}
@@ -64,8 +64,8 @@ export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCel
   return (
     <td
       className={cn(
-        'px-[10px] py-1.5 align-middle text-[13.5px] text-[#202124]',
-        'first:sticky first:left-0 first:z-10 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e8eaed] group-hover:first:bg-[#f8f9fa] last:pr-4',
+        'px-[10px] py-1.5 align-middle text-[13.5px] text-[#0f1412]',
+        'first:sticky first:left-0 first:z-10 first:bg-white first:pl-4 first:shadow-[inset_-1px_0_0_#e6e8e4] group-hover:first:bg-[#faf9f6] last:pr-4',
         '[.matrix_&]:whitespace-nowrap',
         className,
       )}

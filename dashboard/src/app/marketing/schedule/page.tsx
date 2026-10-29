@@ -9,10 +9,10 @@ import { useSiteKey, useSites, withSite } from '@/components/marketing/site-swit
 import { fmtDate, n } from '@/lib/marketing/labels'
 import type { Cadence, NightGroup, SiteSummary, TonightPlan } from '@/lib/marketing/types'
 
-const INK = '#202124'
-const INK2 = '#3c4043'
-const RULE = '#e8eaed'
-const FAINT = '#9aa0a6'
+const INK = '#0f1412'
+const INK2 = '#2a332f'
+const RULE = '#e6e8e4'
+const FAINT = '#8c958f'
 const SOFT_LINE = '#c4c7cb'
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const HOUR = 3_600_000
@@ -143,7 +143,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
   const Term = ({ part, children, title }: { part: Part; children: React.ReactNode; title?: string }) => (
     <button type="button" className={partCls} style={{ color: INK, borderBottom: `2px solid ${INK}`, font: 'inherit', fontWeight: 500 }} title={title ?? 'Change'} disabled={busy} onClick={() => setEditing(part)}>{children}</button>
   )
-  const controlCls = 'inline-block align-baseline h-10 rounded-[10px] border border-[#202124] bg-white px-2.5 text-[20px] font-medium outline-none'
+  const controlCls = 'inline-block align-baseline h-10 rounded-[10px] border border-[#0f1412] bg-white px-2.5 text-[20px] font-medium outline-none'
 
   function commitCount() {
     const v = Math.max(0, Math.min(12, Math.floor(Number(count)) || 0))
@@ -185,7 +185,7 @@ function Step({ done, title, children, last }: { done: boolean; title: React.Rea
   return (
     <li className="flex gap-4">
       <span className="flex flex-col items-center w-[18px] flex-shrink-0">
-        <span className="block rounded-full mt-[7px]" style={done ? { width: 9, height: 9, background: INK } : { width: 9, height: 9, background: '#fff', border: '2px solid #bdc1c6' }} aria-hidden />
+        <span className="block rounded-full mt-[7px]" style={done ? { width: 9, height: 9, background: INK } : { width: 9, height: 9, background: '#fff', border: '2px solid #bfc5bf' }} aria-hidden />
         {!last && <span className="block flex-1 w-px mt-1.5" style={{ background: RULE }} aria-hidden />}
       </span>
       <div className={cn('min-w-0 flex-1', last ? 'pb-0' : 'pb-[26px]')}>

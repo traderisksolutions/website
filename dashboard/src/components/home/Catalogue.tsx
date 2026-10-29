@@ -16,9 +16,9 @@ import { PersonTag, dueLabel } from '@/components/board/TodoEditor'
  * client, and a result can be pinned from there. Companies are added on the Companies page.
  */
 
-const FIELD = '#F1F3F4'
-const INK = '#202124'
-const MUTED = '#5f6368'
+const FIELD = '#f1f2ee'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 const PAGE = 30
 
 function longDate(d: Date): string {
@@ -58,16 +58,16 @@ export function Catalogue() {
 
         <header className="text-center max-w-[720px] mx-auto">
           <h1 className="m-0 text-[36px] sm:text-[44px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>Companies to work on</h1>
-          <p className="m-0 mt-3 text-[14px]" style={{ color: '#80868b' }}>{longDate(new Date())}</p>
+          <p className="m-0 mt-3 text-[14px]" style={{ color: '#6f7a74' }}>{longDate(new Date())}</p>
         </header>
 
         <div className="mt-8 flex items-center justify-center gap-3 flex-wrap">
           <label className="relative w-full max-w-[520px]">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search all companies" aria-label="Search all clients"
-              className="h-12 w-full rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#202124] transition-colors" style={{ borderColor: '#dadce0' }} />
+              className="h-12 w-full rounded-[12px] border bg-white pl-11 pr-4 text-[15px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
           </label>
-          {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#80868b' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
+          {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
         </div>
 
         {error && <p className="mt-10 text-[14px] text-center" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
@@ -81,7 +81,7 @@ export function Catalogue() {
 
           {data && (
             <>
-              <p className="m-0 mb-4 text-[13px] tabular-nums" style={{ color: '#80868b' }} aria-live="polite">
+              <p className="m-0 mb-4 text-[13px] tabular-nums" style={{ color: '#6f7a74' }} aria-live="polite">
                 {needle ? `${visible.length} of ${rows.length} companies match “${q.trim()}”` : pinsAvailable ? `${visible.length} pinned ${visible.length === 1 ? 'company' : 'companies'}` : `${visible.length} companies with open to-dos · pinning starts once the board migration is applied`}
               </p>
 
@@ -97,7 +97,7 @@ export function Catalogue() {
 
               {visible.length > limit && (
                 <div className="mt-10 text-center">
-                  <button type="button" onClick={() => setLimit(n => n + PAGE)} className="h-11 px-6 rounded-[12px] border bg-white text-[15px] font-medium cursor-pointer hover:bg-[#f8f9fa]" style={{ borderColor: '#dadce0', color: INK }}>Show {Math.min(PAGE, visible.length - limit)} more</button>
+                  <button type="button" onClick={() => setLimit(n => n + PAGE)} className="h-11 px-6 rounded-[12px] border bg-white text-[15px] font-medium cursor-pointer hover:bg-[#faf9f6]" style={{ borderColor: '#d5d9d4', color: INK }}>Show {Math.min(PAGE, visible.length - limit)} more</button>
                 </div>
               )}
             </>
@@ -118,11 +118,11 @@ function ClientCard({ r, today, staff, onOpen, highlight, searching, pinsAvailab
   const mark = (text: string) => {
     const i = highlight ? text.toLowerCase().indexOf(highlight) : -1
     if (i < 0) return text
-    return <>{text.slice(0, i)}<mark style={{ background: 'transparent', color: 'inherit', textDecoration: 'underline', textDecorationColor: '#9aa0a6', textUnderlineOffset: 3 }}>{text.slice(i, i + highlight.length)}</mark>{text.slice(i + highlight.length)}</>
+    return <>{text.slice(0, i)}<mark style={{ background: 'transparent', color: 'inherit', textDecoration: 'underline', textDecorationColor: '#8c958f', textUnderlineOffset: 3 }}>{text.slice(i, i + highlight.length)}</mark>{text.slice(i + highlight.length)}</>
   }
   return (
     <li>
-      <article className="group relative h-[220px] rounded-[16px] px-4 pt-4 pb-3 flex flex-col cursor-pointer transition-[background-color,transform] motion-safe:hover:-translate-y-0.5 hover:bg-[#e8eaed] focus-within:ring-2 focus-within:ring-[#202124]"
+      <article className="group relative h-[220px] rounded-[16px] px-4 pt-4 pb-3 flex flex-col cursor-pointer transition-[background-color,transform] motion-safe:hover:-translate-y-0.5 hover:bg-[#e6e8e4] focus-within:ring-2 focus-within:ring-[#0f1412]"
         style={{ background: FIELD, color: INK }} onClick={onOpen}>
         <h3 className="m-0 text-[14px] font-medium leading-[1.3] line-clamp-2" title={c.name}>{mark(c.name)}</h3>
 

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { AppSplitLayout, AppMainPanel } from '@/components/app-shell'
 import { CampaignEditor, type CampaignData } from '@/components/sales/CampaignEditor'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 
 export default function CampaignPage() {
   const { id } = useParams<{ id: string }>()

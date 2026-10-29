@@ -243,23 +243,23 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       <div className="flex items-center gap-2 text-[11.5px]">
         {stepTitles.map((s, i) => (
           <React.Fragment key={s}>
-            <span className={cn('text-[13.5px]', i === step ? 'font-medium text-[#202124]' : 'text-[#5f6368]')}>{i + 1}. {s}</span>
+            <span className={cn('text-[13.5px]', i === step ? 'font-medium text-[#0f1412]' : 'text-[#4a5550]')}>{i + 1}. {s}</span>
             {i < stepTitles.length - 1 && <span className="text-muted-foreground/30">›</span>}
           </React.Fragment>
         ))}
       </div>
-      {error && <p className="text-[12.5px] text-[#c5221f]">{error}</p>}
+      {error && <p className="text-[12.5px] text-[#a1242f]">{error}</p>}
 
       {/* Step 0 — census */}
       {step === 0 && (
         <div className="flex flex-col gap-3">
-          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-8 cursor-pointer hover:border-[#9aa0a6]">
+          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl py-8 cursor-pointer hover:border-[#8c958f]">
             <UploadCloud size={22} className="text-muted-foreground/50" />
             <span className="text-[12.5px] font-medium">Upload census CSV</span>
             <input type="file" accept=".csv,text/csv" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (f) setMembers(parseCensus(await f.text())) }} />
           </label>
           <div className="flex items-center justify-between">
-            <button onClick={downloadTemplate} className="flex items-center gap-1.5 text-[11.5px] font-semibold text-[#202124] hover:underline"><Download size={12} /> Download template</button>
+            <button onClick={downloadTemplate} className="flex items-center gap-1.5 text-[11.5px] font-semibold text-[#0f1412] hover:underline"><Download size={12} /> Download template</button>
           </div>
           {members.length > 0 && (
             <div className="border border-border rounded-lg overflow-hidden text-[11.5px]">
@@ -273,30 +273,30 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               <div className="divide-y divide-border/60 max-h-72 overflow-y-auto">
                 {members.map((m, i) => (
                   <div key={i} className="grid grid-cols-[1.4fr_1fr_0.8fr_1fr_0.6fr_24px] gap-1 px-2 py-1 items-center">
-                    <input value={m.name} onChange={e => editMember(i, { name: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent" />
-                    <input value={m.category} onChange={e => editMember(i, { category: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent" />
-                    <select value={m.relationship} onChange={e => editMember(i, { relationship: e.target.value })} className="text-[11px] px-1 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent">
+                    <input value={m.name} onChange={e => editMember(i, { name: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-transparent" />
+                    <input value={m.category} onChange={e => editMember(i, { category: e.target.value })} className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-transparent" />
+                    <select value={m.relationship} onChange={e => editMember(i, { relationship: e.target.value })} className="text-[11px] px-1 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-transparent">
                       <option value="self">self</option><option value="spouse">spouse</option><option value="child">child</option>
                     </select>
                     <input value={m.dob ?? (m.age != null ? String(m.age) : '')} placeholder="DD/MM/YYYY or age"
                       onChange={e => { const v = e.target.value.trim(); editMember(i, /^\d{1,3}$/.test(v) && Number(v) <= 120 ? { dob: null, age: Number(v) } : { dob: v || null, age: null }) }}
-                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent" />
+                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-transparent" />
                     <input value={m.occupation_class ?? ''} placeholder="—" title="Occupation class (1–4)"
                       onChange={e => editMember(i, { occupation_class: e.target.value.trim() || null })}
-                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-transparent" />
-                    <button onClick={() => setMembers(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button>
+                      className="text-[11.5px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-transparent" />
+                    <button onClick={() => setMembers(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button>
                   </div>
                 ))}
               </div>
               <button onClick={() => setMembers(prev => [...prev, { name: '', category: categories[0] ?? 'Default', relationship: 'self', dob: null, age: null, occupation_class: null }])}
-                className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-[#202124] hover:bg-[#f1f3f4] border-t border-border/60"><Plus size={12} /> Add member</button>
+                className="w-full flex items-center justify-center gap-1 px-3 py-1.5 text-[11px] text-[#0f1412] hover:bg-[#f1f2ee] border-t border-border/60"><Plus size={12} /> Add member</button>
             </div>
           )}
           <Nav next={() => setStep(1)} nextLabel="Setup" nextDisabled={members.filter(m => m.name.trim()).length === 0} />
 
           {/* Expected CSV format — shown as a mock table so the headers are unambiguous. */}
           <div className="mt-6">
-            <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: '#202124' }}>Expected CSV format</h3>
+            <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: '#0f1412' }}>Expected CSV format</h3>
             <Register label="Expected CSV format" minWidth={640}>
               <RegisterHead>
                 <RegisterTh first width={200}>name</RegisterTh>
@@ -314,11 +314,11 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                 ] as (string | null)[][]).map((r, i) => (
                   <RegisterRow key={i}>
                     <RegisterCell first primary={r[0]} className="min-w-[160px]" />
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{r[1]}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{r[2]}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r[3] ? '#3c4043' : '#9aa0a6' }}>{r[3] ?? '—'}</span></RegisterCell>
-                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: r[4] ? '#3c4043' : '#9aa0a6' }}>{r[4] ?? '—'}</span></RegisterCell>
-                    <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: r[5] ? '#3c4043' : '#9aa0a6' }}>{r[5] ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r[1]}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r[2]}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r[3] ? '#2a332f' : '#8c958f' }}>{r[3] ?? '—'}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: r[4] ? '#2a332f' : '#8c958f' }}>{r[4] ?? '—'}</span></RegisterCell>
+                    <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: r[5] ? '#2a332f' : '#8c958f' }}>{r[5] ?? '—'}</span></RegisterCell>
                   </RegisterRow>
                 ))}
               </tbody>
@@ -346,7 +346,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <div className="inline-flex rounded-lg border border-border overflow-hidden w-fit text-[12.5px]">
               {(['new_business', 'renewal'] as const).map(b => (
                 <button key={b} onClick={() => setBasis(b)}
-                  className={cn('px-4 py-1.5 font-medium', basis === b ? 'bg-[#202124] text-white' : 'text-muted-foreground hover:bg-muted/50')}>
+                  className={cn('px-4 py-1.5 font-medium', basis === b ? 'bg-[#0f1412] text-white' : 'text-muted-foreground hover:bg-muted/50')}>
                   {b === 'new_business' ? 'New Business' : 'Renewal'}
                 </button>
               ))}
@@ -367,7 +367,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               const on = selectedKeys.has(entryKey(t))
               return (
                 <button key={entryKey(t)} onClick={() => toggleEntry(t)}
-                  className={cn('flex items-center justify-between px-3 py-2 rounded-lg border text-left text-[12.5px]', on ? 'border-[#202124] bg-white' : 'border-border hover:border-[#9aa0a6]')}>
+                  className={cn('flex items-center justify-between px-3 py-2 rounded-lg border text-left text-[12.5px]', on ? 'border-[#0f1412] bg-white' : 'border-border hover:border-[#8c958f]')}>
                   <span><span className="font-semibold">{t.insurer_name}</span> · {t.product_title}{t.plan_year ? ` · ${t.plan_year}` : ''} <span className="text-muted-foreground/50">{t.plans.length} plans{t.member_types.length ? ` · ${t.member_types.map(m => m === 'employee' ? 'Emp' : 'Dep').join('/')}` : ''}</span></span>
                   <input type="checkbox" readOnly checked={on} />
                 </button>
@@ -382,7 +382,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
       {step === 3 && (
         <div className="flex flex-col gap-4">
           <p className="text-[12px] text-muted-foreground">Map each employee category to a plan for every insurer product — or state what the client wants per product and let Opus suggest the closest match at each insurer. Dependants are priced automatically from the dependant table.</p>
-          {matchError && <p className="text-[11.5px] text-[#c5221f]">{matchError}</p>}
+          {matchError && <p className="text-[11.5px] text-[#a1242f]">{matchError}</p>}
           {Array.from(new Set(avail.filter(t => selectedKeys.has(entryKey(t))).map(t => t.product_title))).map(title => (
             <div key={title} className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -393,7 +393,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                   className={cn(inp, 'flex-1')}
                 />
                 <button onClick={() => suggestPlans(title)} disabled={matchingProduct === title || !targets[title]?.trim()}
-                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50 whitespace-nowrap">
+                  className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#d5d9d4] text-[#0f1412] hover:bg-[#faf9f6] disabled:opacity-50 whitespace-nowrap">
                   {matchingProduct === title ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Suggest plans
                 </button>
               </div>
@@ -424,24 +424,24 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
         <div className="flex flex-col gap-5">
           <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.min(byInsurer.length, 4)}, minmax(0,1fr))` }}>
             {byInsurer.map((r, i) => (
-              <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#202124] bg-white' : 'border-border bg-card')}>
+              <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#0f1412] bg-white' : 'border-border bg-card')}>
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] font-bold text-foreground">{r.insurer_name}</span>
-                  {i === 0 && <span className="text-[11.5px] font-medium bg-[#f1f3f4] text-[#3c4043] px-2 py-0.5 rounded-[6px]">Lowest premium</span>}
+                  {i === 0 && <span className="text-[11.5px] font-medium bg-[#f1f2ee] text-[#2a332f] px-2 py-0.5 rounded-[6px]">Lowest premium</span>}
                 </div>
                 <p className="text-[22px] font-bold text-foreground mt-1">{money(r.total)}</p>
                 <p className="text-[10.5px] text-muted-foreground/70">incl. {money(r.gst)} GST · ex-GST {money(r.subtotal)}</p>
                 <div className="mt-2 flex flex-col gap-0.5 text-[11px] text-muted-foreground">
                   {Object.entries(r.by_product).map(([p, v]) => <div key={p} className="flex justify-between"><span>{p}</span><span>{money(v)}</span></div>)}
                 </div>
-                {r.missing > 0 && <p className="text-[10.5px] text-[#3c4043] mt-1.5">{r.missing} line(s) unpriced — check mapping/ages</p>}
+                {r.missing > 0 && <p className="text-[10.5px] text-[#2a332f] mt-1.5">{r.missing} line(s) unpriced — check mapping/ages</p>}
               </div>
             ))}
           </div>
 
           {/* Per-member breakdown */}
           <div>
-            <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: '#202124' }}>Per-member breakdown</h3>
+            <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: '#0f1412' }}>Per-member breakdown</h3>
             <Register label="Per-member breakdown" minWidth={760} maxHeight="24rem">
               <RegisterHead>
                 <RegisterTh first width={260}>Member</RegisterTh>
@@ -455,12 +455,12 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
                 {result.lines.map((l, i) => (
                   <RegisterRow key={i}>
                     <RegisterCell first primary={l.member_name} secondary={l.relationship} />
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{l.insurer_name}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{l.product_code}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px]" style={{ color: l.plan_code ? '#3c4043' : '#9aa0a6' }}>{l.plan_code ?? '—'}</span></RegisterCell>
-                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: l.age != null ? '#3c4043' : '#9aa0a6' }}>{l.age ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{l.insurer_name}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{l.product_code}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: l.plan_code ? '#2a332f' : '#8c958f' }}>{l.plan_code ?? '—'}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: l.age != null ? '#2a332f' : '#8c958f' }}>{l.age ?? '—'}</span></RegisterCell>
                     <RegisterCell last align="right" nowrap={false}>
-                      {l.premium != null ? <span className="text-[14px] font-medium tabular-nums" style={{ color: '#202124' }}>{money(l.premium)}</span> : <span className="block text-[13px] leading-snug" style={{ color: '#5f6368' }}>{l.note}</span>}
+                      {l.premium != null ? <span className="text-[14px] font-medium tabular-nums" style={{ color: '#0f1412' }}>{money(l.premium)}</span> : <span className="block text-[13px] leading-snug" style={{ color: '#4a5550' }}>{l.note}</span>}
                     </RegisterCell>
                   </RegisterRow>
                 ))}
@@ -475,13 +475,13 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
               <div className="flex items-center justify-between gap-3">
                 <h3 className="m-0 text-[13px] font-bold text-foreground">Benefit comparison</h3>
                 <button onClick={compareBenefits} disabled={analyzing || !quotationId}
-                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] text-[#202124] hover:bg-[#f8f9fa] disabled:opacity-50">
+                        className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#d5d9d4] text-[#0f1412] hover:bg-[#faf9f6] disabled:opacity-50">
                   {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                   {analyzing ? 'Comparing…' : 'Compare benefits'}
                 </button>
               </div>
               {analysis && !isComparison(analysis) && (
-                <p className="text-[12px] mt-2" style={{ color: '#3c4043' }}>
+                <p className="text-[12px] mt-2" style={{ color: '#2a332f' }}>
                   This quote holds a written comparison from before 2 Oct 2026. Recompare it for the side-by-side table.
                 </p>
               )}
@@ -490,12 +490,12 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
 
           <div className="flex items-center gap-2">
             {onDraftReply && (
-              <button onClick={() => onDraftReply(plainToHtml(buildReplySummary(byInsurer)))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90">
+              <button onClick={() => onDraftReply(plainToHtml(buildReplySummary(byInsurer)))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90">
                 <Reply size={13} /> Draft reply with this quote{analysis ? ' + recommendation' : ''}
               </button>
             )}
             <button onClick={() => { setStep(initialMembers?.length ? 1 : 0); setResult(null); if (!initialMembers?.length) setMembers([]); setSelectedKeys(new Set()) }} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-border hover:bg-muted">New quote</button>
-            <span className="text-[11.5px] text-[#3c4043]">Saved to history ✓</span>
+            <span className="text-[11.5px] text-[#2a332f]">Saved to history ✓</span>
           </div>
         </div>
       )}
@@ -507,7 +507,7 @@ function Nav({ back, next, nextLabel, nextDisabled, busy }: { back?: () => void;
   return (
     <div className="flex items-center justify-between pt-1">
       {back ? <button onClick={back} className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"><ArrowLeft size={13} /> Back</button> : <span />}
-      <button onClick={next} disabled={nextDisabled} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
+      <button onClick={next} disabled={nextDisabled} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
         {busy ? <Loader2 size={13} className="animate-spin" /> : null}{nextLabel} {!busy && <ArrowRight size={13} />}
       </button>
     </div>

@@ -10,8 +10,8 @@ import { fmtMoney, fmtDate } from '@/lib/crm/format'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** Status in words only. A note past its due date is still awaiting payment. */
 const STATUS_LABEL: Record<DerivedPaymentStatus, string> = { paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Awaiting payment' }
@@ -70,7 +70,7 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
         </>
       }
     >
-      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#c5221f' }}>{error}</p>}
+      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#a1242f' }}>{error}</p>}
 
       {notes.length > 0 && (
         <div className="mb-5">
@@ -88,7 +88,7 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
             ))}
             {summary.nextDue && <><span style={{ color: MUTED }}> · Next due </span>{fmtDate(summary.nextDue)}</>}
           </p>
-          <div className="mt-2.5 h-1 rounded-full overflow-hidden" style={{ background: '#dadce0' }} aria-hidden>
+          <div className="mt-2.5 h-1 rounded-full overflow-hidden" style={{ background: '#d5d9d4' }} aria-hidden>
             <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
           </div>
         </div>

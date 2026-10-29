@@ -48,12 +48,13 @@ export const NAV_SECTIONS: NavSection[] = [
       { title: 'Nexus',     href: '/nexus',      icon: Network, description: 'Case analysis across a client\'s threads and files' },
     ],
   },
+  // The placement work every broker does daily sits on the bar itself (29 Oct 2026 redesign).
+  { label: 'Requests for quotes', href: '/rfq',      icon: Table2 },
+  { label: 'Insurers',            href: '/insurers', icon: ShieldCheck },
   {
     label: 'Product',
     icon: Wrench,
     items: [
-      { title: 'Requests for quotes', href: '/rfq',        icon: Table2,          description: 'Every policy a client asked us to quote, and where it stands' },
-      { title: 'Insurers',       href: '/insurers',         icon: ShieldCheck,     description: 'Who to ask for what: products, appetite and contacts' },
       { title: 'Debit Notes',    href: '/debit-notes',      icon: Receipt,      description: 'Raise and issue debit notes' },
       { title: 'Employment Benefits', href: '/pricing-matrix', icon: HeartPulse, description: 'Insurer calculators and quotes' },
       { title: 'Match Threads',  href: '/companies/triage', icon: Link2,        description: 'Decide which company unmatched email belongs to' },

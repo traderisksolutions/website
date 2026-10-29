@@ -14,7 +14,7 @@ import { fmtDuration } from '@/lib/marketing/engine'
 import { TRIGGER_LABEL, fmtDate } from '@/lib/marketing/labels'
 import type { MarketingStatus, RunListRow, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#202124'
+const INK = '#0f1412'
 type Option = { id: string; label: string }
 type Payload = { site: SiteSummary; runs: RunListRow[]; options: { products: Option[]; caseStudies: Option[] }; entries: Pick<KnowledgeEntry, 'section' | 'status' | 'markets'>[]; status: MarketingStatus }
 type FocusType = 'product' | 'case_study' | 'market' | 'topic' | 'question'

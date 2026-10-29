@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Field, inputCls, textareaCls } from '@/components/crm/primitives'
 import { SECTIONS, marketLabel, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** Paste markdown or plain text. Each "# Heading" becomes its own entry; none means one entry. All land as drafts. */
 export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, markets, onDone }: { open: boolean; onOpenChange: (v: boolean) => void; siteKey: string | null; defaultSection: KnowledgeSection; markets: string[]; onDone: (inserted: number) => void }) {

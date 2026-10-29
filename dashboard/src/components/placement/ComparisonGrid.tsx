@@ -93,16 +93,16 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
         <span>Options</span>
         {pos.tiers.length === 0 && <span>none yet · the line as asked</span>}
         {pos.tiers.map(t => (
-          <span key={t.id} className="inline-flex items-center gap-1 h-5 pl-1.5 pr-0.5 rounded-[5px]" style={{ background: t.status === 'proposed' ? '#f1f3f4' : '#e8f0fe', color: INK }}
+          <span key={t.id} className="inline-flex items-center gap-1 h-5 pl-1.5 pr-0.5 rounded-[5px]" style={{ background: t.status === 'proposed' ? '#f1f2ee' : '#eaf1f7', color: INK }}
             title={`${t.status === 'proposed' ? 'Not asked yet' : t.status === 'offered' ? 'Offered by an insurer' : `Asked ${fmtDate(t.asked_at)}`} · from ${t.source}`}>
             {t.label}{t.status === 'proposed' && <span style={{ color: MUTED }}> · new</span>}
             <button type="button" aria-label={`Drop ${t.label}`} disabled={busy !== null} onClick={() => drop(t.id)}
-              className="bg-transparent border-0 p-0.5 cursor-pointer rounded hover:bg-[#dadce0] leading-none" style={{ color: MUTED }}><X size={11} /></button>
+              className="bg-transparent border-0 p-0.5 cursor-pointer rounded hover:bg-[#d5d9d4] leading-none" style={{ color: MUTED }}><X size={11} /></button>
           </span>
         ))}
         <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addOptions() }}
           placeholder="Add option: 1M, 2M, S$1,300/head" aria-label="Add options to compare"
-          className="h-5 w-[210px] rounded-[5px] border border-[#dadce0] bg-white px-1.5 text-[12px] outline-none focus:border-[#202124]" style={{ color: INK }} />
+          className="h-5 w-[210px] rounded-[5px] border border-[#d5d9d4] bg-white px-1.5 text-[12px] outline-none focus:border-[#0f1412]" style={{ color: INK }} />
         <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null || !draft.trim()} loading={busy === 'add'} onClick={addOptions}>Add</Btn>
         {proposed.length > 0 && (
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} loading={busy === 'ask'} onClick={ask}

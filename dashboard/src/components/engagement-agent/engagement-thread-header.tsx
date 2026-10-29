@@ -15,14 +15,14 @@ import type { CustomerProfile } from '@/lib/customer-profile'
  * icon buttons. No state colour, no shadow: a hairline under it is enough. Props unchanged.
  */
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIR = '#e8eaed'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIR = '#e6e8e4'
 
-const ICON_BTN = 'h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]'
+const ICON_BTN = 'h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]'
 
 /** The zero-click "before you even open the thread" snapshot — see EngagementProfileTab for the
  *  full detail view. Fetches once per contact; a genuinely cheap read (no AI calls, pure
@@ -121,7 +121,7 @@ export function EngagementThreadHeader({
                   onClick={onDelete}
                   disabled={deleting}
                   className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50 underline underline-offset-[3px]"
-                  style={{ color: '#c5221f' }}
+                  style={{ color: '#a1242f' }}
                 >
                   {deleting ? 'Deleting…' : 'Delete'}
                 </button>

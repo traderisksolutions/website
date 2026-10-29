@@ -3,8 +3,8 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense }        from 'react'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 const ERROR_MESSAGES: Record<string, string> = {
   domain:    'Only @trade-risksol.com accounts can sign in. Check which Google account the browser used.',
@@ -30,7 +30,7 @@ function LoginCard() {
       className="flex items-center justify-center px-4 bg-white"
       style={{ minHeight: 'calc(100vh / var(--ui-zoom))', color: INK }}
     >
-      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10" style={{ border: '1px solid #e8eaed' }}>
+      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10" style={{ border: '1px solid #e6e8e4' }}>
         {/* Wordmark */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center rounded-[12px] mb-4 w-12 h-12" style={{ background: INK }}>
@@ -44,15 +44,15 @@ function LoginCard() {
 
         {/* Error */}
         {error && (
-          <p role="alert" className="m-0 mb-5 text-[13.5px] text-center leading-relaxed" style={{ color: '#3c4043' }}>{error}</p>
+          <p role="alert" className="m-0 mb-5 text-[13.5px] text-center leading-relaxed" style={{ color: '#2a332f' }}>{error}</p>
         )}
 
         {/* Sign in button */}
         <button
           type="button"
           onClick={signInWithGoogle}
-          className="w-full h-12 inline-flex items-center justify-center gap-2.5 px-5 rounded-[12px] bg-white text-[15px] font-medium cursor-pointer hover:bg-[#f8f9fa] transition-colors"
-          style={{ border: '1px solid #dadce0', color: INK }}
+          className="w-full h-12 inline-flex items-center justify-center gap-2.5 px-5 rounded-[12px] bg-white text-[15px] font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
+          style={{ border: '1px solid #d5d9d4', color: INK }}
         >
           {/* Google logo: the brand mark, not UI state colour */}
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>

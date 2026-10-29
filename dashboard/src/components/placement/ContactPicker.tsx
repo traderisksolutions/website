@@ -8,7 +8,7 @@ import type { Suggestion } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const COLS = 3
-const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-[#202124]'
+const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-[#0f1412]'
 
 /**
  * The insurer contacts on file for the product lines, grouped by insurer, each with a checkbox.

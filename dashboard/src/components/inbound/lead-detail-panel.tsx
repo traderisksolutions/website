@@ -19,8 +19,8 @@ interface LeadDetailPanelProps {
   onNotesSave: (id: string, notes: string) => void
 }
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDetailPanelProps) {
   const [copied,    setCopied]    = useState<string | null>(null)
@@ -40,13 +40,13 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
 
   const copyIcon = (key: string) => copied === key
     ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
-    : <Copy size={12} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />
+    : <Copy size={12} className="flex-shrink-0" style={{ color: '#8c958f' }} />
 
   return (
     <div className="flex flex-col h-full" style={{ color: INK }}>
 
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2 flex-shrink-0" style={{ borderBottom: '1px solid #e8eaed' }}>
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2 flex-shrink-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             <ChannelBadge source={lead.source} />
@@ -63,7 +63,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           type="button"
           onClick={onClose}
           aria-label="Close detail panel"
-          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f3f4] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer"
+          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer"
           style={{ color: MUTED }}
         >
           <X size={14} />
@@ -119,8 +119,8 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center h-8 px-3 rounded-[8px] text-[12.5px] font-medium no-underline bg-white hover:bg-[#f8f9fa] w-fit"
-            style={{ border: '1px solid #dadce0', color: INK }}
+            className="mt-1 inline-flex items-center h-8 px-3 rounded-[8px] text-[12.5px] font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
+            style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             Open in WhatsApp
           </a>
@@ -140,7 +140,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
       {/* Message */}
       {msg && (
         <DetailSection label="Message">
-          <p className="text-[13.5px] whitespace-pre-wrap leading-[1.6] rounded-[12px] px-3.5 py-3 m-0" style={{ background: '#f1f3f4', color: '#3c4043' }}>
+          <p className="text-[13.5px] whitespace-pre-wrap leading-[1.6] rounded-[12px] px-3.5 py-3 m-0" style={{ background: '#f1f2ee', color: '#2a332f' }}>
             {msg}
           </p>
         </DetailSection>
@@ -157,7 +157,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           aria-label="Internal notes for this lead"
           className={textareaCls}
         />
-        <p className="m-0 mt-1.5 text-[12px]" style={{ color: '#80868b' }}>Team only. Saved when the field loses focus.</p>
+        <p className="m-0 mt-1.5 text-[12px]" style={{ color: '#6f7a74' }}>Team only. Saved when the field loses focus.</p>
       </DetailSection>
     </div>
   )

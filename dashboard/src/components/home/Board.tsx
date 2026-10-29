@@ -15,9 +15,9 @@ import { LinkBtn } from '@/components/crm/primitives'
  * on the company page; a card can be unpinned here.
  */
 
-const FIELD = '#F1F3F4'
-const INK = '#202124'
-const MUTED = '#5f6368'
+const FIELD = '#f1f2ee'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 const POLL_MS = 60_000
 
 function longDate(d: Date): string {
@@ -65,7 +65,7 @@ export function Board() {
 
         <header className="text-center max-w-[720px] mx-auto">
           <h1 className="m-0 text-[36px] sm:text-[44px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>Companies to work on</h1>
-          <p className="m-0 mt-3 text-[14px]" style={{ color: '#80868b' }}>{longDate(new Date())}</p>
+          <p className="m-0 mt-3 text-[14px]" style={{ color: '#6f7a74' }}>{longDate(new Date())}</p>
         </header>
 
         {error && <p className="mt-10 text-[14px] text-center" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void load()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
@@ -73,13 +73,13 @@ export function Board() {
         <div className="mt-12">
           {!data && !error && (
             <div className="flex flex-col gap-6 sm:flex-row sm:gap-4 lg:grid lg:grid-cols-5" aria-busy="true">
-              {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[220px] rounded-[16px] animate-pulse sm:min-w-[280px] sm:w-[280px] sm:shrink-0 lg:w-auto lg:min-w-0" style={{ background: FIELD }} />)}
+              {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[220px] rounded-[10px] animate-pulse sm:min-w-[280px] sm:w-[280px] sm:shrink-0 lg:w-auto lg:min-w-0" style={{ background: FIELD }} />)}
             </div>
           )}
 
           {data && (
             <>
-              <p className="m-0 mb-4 text-[13px] tabular-nums" style={{ color: '#80868b' }} aria-live="polite">
+              <p className="m-0 mb-4 text-[13px] tabular-nums" style={{ color: '#6f7a74' }} aria-live="polite">
                 {total} pinned {total === 1 ? 'company' : 'companies'}
               </p>
               {total === 0 ? (
@@ -119,7 +119,7 @@ function Card({ card, staff, busy, onUnpin }: { card: BoardCard; staff: Map<stri
   const c = card.company
   const t = card.threads
   return (
-    <article className="group rounded-[16px] px-4 pt-4 pb-3 flex flex-col gap-2.5" style={{ background: FIELD, color: INK }}>
+    <article className="group rounded-[10px] px-4 pt-4 pb-3 flex flex-col gap-2.5 bg-white border border-[#e6e8e4] transition-shadow hover:shadow-[0_6px_18px_-8px_rgba(19,44,28,0.25)]" style={{ color: INK }}>
       <h3 className="m-0 text-[14px] font-medium leading-[1.3]">
         <Link href={card.href} className="no-underline hover:underline underline-offset-4" style={{ color: INK }}>{c.name}</Link>
       </h3>

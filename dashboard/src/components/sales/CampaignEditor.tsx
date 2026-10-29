@@ -9,8 +9,8 @@ import type { CampaignContact, CampaignCounts, CampaignRow, StepRow } from '@/li
 import type { WorkflowStatus } from '@/lib/sales/config'
 import { CAMPAIGN_STATUS_LABEL, n } from '@/lib/sales/labels'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 export type CampaignData = { campaign: CampaignRow; steps: StepRow[]; contacts: CampaignContact[]; counts: CampaignCounts; workflow: WorkflowStatus }
 type StepState = { subject: string; body: string; delayDays: number }
@@ -145,12 +145,12 @@ export function CampaignEditor({ data, onChanged }: { data: CampaignData; onChan
                     {LOCATIONS.map(l => <button key={l} type="button" aria-pressed={locations.includes(l)} onClick={() => setLocations(toggle(locations, l))} className={`filter-pill ${locations.includes(l) ? 'active' : ''}`}>{l}</button>)}
                   </div>
                 </Field>
-                <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)} className="size-4 accent-[#202124]" /> Verified emails only (otherwise verified or published on the company&apos;s site)</label>
-                <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={namedOnly} onChange={e => setNamedOnly(e.target.checked)} className="size-4 accent-[#202124]" /> Named people only (no info@, sales@, enquiries@)</label>
-                <div className="flex flex-col gap-2 pt-3" style={{ borderTop: '1px solid #e8eaed' }}>
-                  <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={autoEnrol} onChange={e => setAutoEnrol(e.target.checked)} className="size-4 accent-[#202124]" /> Add new matching businesses every weekday at 08:00 SGT</label>
-                  <label className="flex flex-wrap items-center gap-2 text-[14px]" style={{ color: autoEnrol ? INK : '#9aa0a6' }}>
-                    <input type="checkbox" checked={autoApprove} disabled={!autoEnrol} onChange={e => setAutoApprove(e.target.checked)} className="size-4 accent-[#202124]" /> Approve them automatically, up to
+                <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={verifiedOnly} onChange={e => setVerifiedOnly(e.target.checked)} className="size-4 accent-[#0f1412]" /> Verified emails only (otherwise verified or published on the company&apos;s site)</label>
+                <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={namedOnly} onChange={e => setNamedOnly(e.target.checked)} className="size-4 accent-[#0f1412]" /> Named people only (no info@, sales@, enquiries@)</label>
+                <div className="flex flex-col gap-2 pt-3" style={{ borderTop: '1px solid #e6e8e4' }}>
+                  <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" checked={autoEnrol} onChange={e => setAutoEnrol(e.target.checked)} className="size-4 accent-[#0f1412]" /> Add new matching businesses every weekday at 08:00 SGT</label>
+                  <label className="flex flex-wrap items-center gap-2 text-[14px]" style={{ color: autoEnrol ? INK : '#8c958f' }}>
+                    <input type="checkbox" checked={autoApprove} disabled={!autoEnrol} onChange={e => setAutoApprove(e.target.checked)} className="size-4 accent-[#0f1412]" /> Approve them automatically, up to
                     <input type="number" min={0} max={100} value={dailyNew} disabled={!autoEnrol || !autoApprove} onChange={e => setDailyNew(Number(e.target.value) || 0)} className={`${inputCls} h-8 w-16 px-2 text-[13px]`} aria-label="New businesses per day" /> a day
                   </label>
                 </div>
@@ -166,7 +166,7 @@ export function CampaignEditor({ data, onChanged }: { data: CampaignData; onChan
         <SectionCard title="Emails" actions={<span className="text-[12.5px]" style={{ color: MUTED }} title={MERGE_HELP}>Merge fields (?)</span>}>
           <div className="flex flex-col gap-5">
             {steps.map((s, i) => (
-              <div key={i} className={i ? 'pt-5' : ''} style={i ? { borderTop: '1px solid #e8eaed' } : undefined}>
+              <div key={i} className={i ? 'pt-5' : ''} style={i ? { borderTop: '1px solid #e6e8e4' } : undefined}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="m-0 text-[14px] font-medium">Email {i + 1}</h3>
                   {i > 0 && (

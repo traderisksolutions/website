@@ -18,15 +18,15 @@ import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
  * that open in place.
  */
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIR = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIR = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
-const LINK = 'underline decoration-[#9aa0a6] underline-offset-[3px] cursor-pointer bg-transparent border-0 p-0 font-[inherit]'
+const LINK = 'underline decoration-[#8c958f] underline-offset-[3px] cursor-pointer bg-transparent border-0 p-0 font-[inherit]'
 
 // ── Quoted history ─────────────────────────────────────────────────────────────────────────
 
@@ -235,7 +235,7 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
   return (
     <div style={{ borderBottom: `1px solid ${HAIR}` }}>
       <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} message from ${name}`}
-        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124] text-[13.5px]"
+        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412] text-[13.5px]"
         style={{ color: MUTED }}>
         <ChevronRight size={14} className={cn('flex-shrink-0 transition-transform', open && 'rotate-90')} style={{ color: DOT }} aria-hidden />
         <span className="font-medium flex-shrink-0 w-[120px] sm:w-[160px] truncate" style={{ color: INK }}>{name}</span>
@@ -398,8 +398,8 @@ function OriginalDialog({ open, onClose, msg, name }: { open: boolean; onClose: 
           <p className="m-0 text-[13px]" style={{ color: MUTED }}>{name} · {fmtWhen(msg.sent_at)}</p>
           {msg.body_html && msg.body_text && (
             <div className="mt-2 flex items-center gap-3 text-[13px]">
-              <button type="button" onClick={() => setMode('html')} aria-pressed={mode === 'html'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'html' ? 'font-medium underline underline-offset-[3px] decoration-[#202124]' : '')} style={{ color: mode === 'html' ? INK : MUTED }}>As sent</button>
-              <button type="button" onClick={() => setMode('text')} aria-pressed={mode === 'text'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'text' ? 'font-medium underline underline-offset-[3px] decoration-[#202124]' : '')} style={{ color: mode === 'text' ? INK : MUTED }}>Plain text</button>
+              <button type="button" onClick={() => setMode('html')} aria-pressed={mode === 'html'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'html' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'html' ? INK : MUTED }}>As sent</button>
+              <button type="button" onClick={() => setMode('text')} aria-pressed={mode === 'text'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'text' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'text' ? INK : MUTED }}>Plain text</button>
             </div>
           )}
         </DialogHeader>

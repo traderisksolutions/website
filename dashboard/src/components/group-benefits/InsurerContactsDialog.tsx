@@ -12,7 +12,7 @@ import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
 import { contactsFor, loadInsurerContacts, type InsurerContact, type InsurerOption } from './InsurerEmailDialog'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 type Draft = { name: string; email: string }
@@ -94,13 +94,13 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
           )
         })}
 
-        <div className="pt-3 grid grid-cols-1 sm:grid-cols-[1fr_1.7fr_auto] gap-2 items-end" style={{ borderTop: '1px solid #e8eaed' }}>
+        <div className="pt-3 grid grid-cols-1 sm:grid-cols-[1fr_1.7fr_auto] gap-2 items-end" style={{ borderTop: '1px solid #e6e8e4' }}>
           <Field label="New contact"><input className={inputCls} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name" autoComplete="off" /></Field>
           <Field label="Email"><input className={inputCls} type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="name@insurer.com" autoComplete="off" /></Field>
           <Btn type="button" level="secondary" loading={busy === 'new'} disabled={!newEmail.trim()} onClick={() => void add()}>Add</Btn>
         </div>
 
-        {error && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
         <div className="flex justify-end"><Btn type="button" level="tertiary" onClick={onClose}>Done</Btn></div>
       </div>
     </HrModal>

@@ -16,8 +16,8 @@ import { ACTIONS, ACTION_LABEL, EMAIL_LABEL, EMAIL_STATUSES, OUTREACH_LABEL, OUT
 import { fmtDate, fmtDay, n } from '@/lib/sales/labels'
 import type { WorkflowStatus } from '@/lib/sales/config'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 const LOCATION_ORDER = ['SG', 'MY', 'ID', 'HK']
 
 type Payload = { filters: LeadFilters; rows: LeadRow[]; total: number; kpis: KpiSet; workflow: WorkflowStatus }
@@ -123,7 +123,7 @@ function Leads() {
               options={[{ value: 'all', label: 'All', count: kpis?.byLocation.all.accounts }, ...locations.map(l => ({ value: l, label: locationLabel(l), count: kpis?.byLocation[l].accounts }))]} />
           </div>
 
-          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <div className="flex flex-wrap gap-2 min-w-0" role="group" aria-label="Filters">
               <FilterSelect label="Draft" value={filters.outreach} onChange={v => go({ outreach: v as LeadFilters['outreach'] })}
                 options={[['any', 'Any draft'], ['none', OUTREACH_LABEL.none], ...OUTREACH_STATUSES.map(s => [s, OUTREACH_LABEL[s]] as [string, string])]} />
@@ -215,7 +215,7 @@ function FilterSelect({ label, value, options, onChange }: { label: string; valu
   return (
     <label className="inline-flex">
       <span className="sr-only">{label}</span>
-      <select value={value} onChange={e => onChange(e.target.value)} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', active && 'border-[#202124] font-medium')}>
+      <select value={value} onChange={e => onChange(e.target.value)} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', active && 'border-[#0f1412] font-medium')}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </label>
@@ -226,10 +226,10 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
+        <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}>
           {[60, 20, 20, 20, 50, 40, 30, 40].map((w, j) => (
             <td key={j} className={cn('px-3 h-14', j === 0 && 'pl-6', j === 7 && 'pr-5')}>
-              <div className="h-3.5 rounded bg-[#f1f3f4] animate-pulse" style={{ width: `${w}%` }} />
+              <div className="h-3.5 rounded bg-[#f1f2ee] animate-pulse" style={{ width: `${w}%` }} />
             </td>
           ))}
         </tr>

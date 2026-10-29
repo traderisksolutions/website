@@ -9,12 +9,12 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[#f1f3f4] text-[#3c4043]",
+          "bg-[#f1f2ee] text-[#2a332f]",
         secondary:
-          "bg-[#f1f3f4] text-[#3c4043]",
+          "bg-[#f1f2ee] text-[#2a332f]",
         destructive:
-          "bg-[#f1f3f4] text-[#3c4043]",
-        outline: "ring-1 ring-[#dadce0] text-[#3c4043] bg-white",
+          "bg-[#f1f2ee] text-[#2a332f]",
+        outline: "ring-1 ring-[#d5d9d4] text-[#2a332f] bg-white",
       },
     },
     defaultVariants: {

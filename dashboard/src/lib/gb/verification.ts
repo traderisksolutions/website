@@ -12,8 +12,8 @@ export type VerificationStatus = 'calculator' | 'brochure' | 'unverified'
 
 export const VERIFICATION: Record<VerificationStatus, { label: string; color: string }> = {
   calculator: { label: 'Checked against calculator', color: '#137333' },
-  brochure:   { label: 'Checked against brochure',   color: '#5f6368' },
-  unverified: { label: 'Unverified',                 color: '#b06000' },
+  brochure:   { label: 'Checked against brochure',   color: '#4a5550' },
+  unverified: { label: 'Unverified',                 color: '#8a5a00' },
 }
 
 /** Tables loaded before verification was recorded have none; treat that as unverified, not as checked. */

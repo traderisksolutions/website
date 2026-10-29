@@ -7,9 +7,9 @@
    Even if this CSS is bundled into the shared chunk by Next.js, it has zero
    effect on any other page because no other page renders [data-ea].
 
-   Palette (the mail workspace): ink #202124 · body #3c4043 · muted #5f6368 ·
-   faint #80868b · dot #9aa0a6 · hairline #e8eaed · control #dadce0 · field #f1f3f4 ·
-   hover #f8f9fa. No navy, no tinted state.
+   Palette (the mail workspace): ink #0f1412 · body #2a332f · muted #4a5550 ·
+   faint #6f7a74 · dot #8c958f · hairline #e6e8e4 · control #d5d9d4 · field #f1f2ee ·
+   hover #faf9f6. No navy, no tinted state.
    ─────────────────────────────────────────────────────────────────────────── */
 
 [data-ea] {
@@ -48,12 +48,12 @@
 
   /* Inbound card (received email) — white on a hairline, no shadow */
   --ea-shadow-card-in:  none;
-  --ea-border-card-in:  #e8eaed;
+  --ea-border-card-in:  #e6e8e4;
 
   /* Outbound card (sent email) — the same hairline; the "Sent" label carries the meaning */
   --ea-shadow-card-out: none;
-  --ea-border-card-out: #e8eaed;
-  --ea-bg-card-out:     #f1f3f4;
+  --ea-border-card-out: #e6e8e4;
+  --ea-bg-card-out:     #f1f2ee;
 
 
   /* ── Message body typography ─────────────────────────────────────────────── */
@@ -79,7 +79,7 @@
   /* ── Compose panel ───────────────────────────────────────────────────────── */
 
   /* Hairline that separates the composer from the message area */
-  --ea-compose-accent-border: 1px solid #e8eaed;
+  --ea-compose-accent-border: 1px solid #e6e8e4;
   /* Field label (To / Subject / Cc) */
   --ea-compose-label: 13px;
 
@@ -98,8 +98,8 @@
 
   --ea-ai-body: 13.5px;
   /* "Next action" callout — a grey field on a hairline, not a tinted alert box */
-  --ea-ai-next-bg:     #f1f3f4;
-  --ea-ai-next-border: #e8eaed;
+  --ea-ai-next-bg:     #f1f2ee;
+  --ea-ai-next-border: #e6e8e4;
 
 
   /* ── Pill / source chip ──────────────────────────────────────────────────── */
@@ -122,9 +122,9 @@
   /* ── Interaction states ──────────────────────────────────────────────────── */
 
   /* Selected conversation row: field with a 3px ink bar */
-  --ea-row-active-bg:  #f1f3f4;
-  --ea-row-active-bar: #202124;
+  --ea-row-active-bg:  #f1f2ee;
+  --ea-row-active-bar: #0f1412;
   /* Needs-reply indicator: the ink dot */
-  --ea-needs-reply-color: #202124;
-  --ea-needs-reply-bg:    #f1f3f4;
+  --ea-needs-reply-color: #0f1412;
+  --ea-needs-reply-bg:    #f1f2ee;
 }

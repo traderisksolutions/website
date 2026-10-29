@@ -11,9 +11,9 @@ import { fmtMoney, fmtDate } from '@/lib/crm/format'
 import { CHANNEL_LABEL, type Receipt } from '@/lib/crm/receipts'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const BODY = '#3c4043'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const BODY = '#2a332f'
 const COLS = 6
 
 type Note = PaymentDerived & { companyName: string | null; receipts: Receipt[] }
@@ -95,7 +95,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {error && <p className="mt-6 mb-0 text-[14px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="mt-6 mb-0 text-[14px]" style={{ color: '#a1242f' }}>{error}</p>}
         {!data && !error && <Spinner label="Loading the reconciliation…" />}
 
         {data && (
@@ -111,15 +111,15 @@ export default function FinancePage() {
             {/* Two figures: what has come in, what is still to come. */}
             {sgd && (
               <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+                <div className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
                   <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Collected</p>
                   <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.collected, 'SGD')}</p>
                   <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>of {fmtMoney(sgd.billed, 'SGD')} billed · {data.counts.settled} of {data.counts.total} settled</p>
-                  <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: '#dadce0' }} aria-hidden>
+                  <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: '#d5d9d4' }} aria-hidden>
                     <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
                   </div>
                 </div>
-                <div className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+                <div className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
                   <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Still to collect</p>
                   <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.billed - sgd.collected, 'SGD')}</p>
                   <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>across {data.counts.open} debit note{data.counts.open === 1 ? '' : 's'}</p>
@@ -137,7 +137,7 @@ export default function FinancePage() {
                 ]}
               />
               <label className="relative flex-1 min-w-[220px] max-w-[360px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
                 <input
                   className={cn(inputCls, 'pl-9')}
                   placeholder="Search client, debit note or insurer"
@@ -200,13 +200,13 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
   const client = note.companyName ?? 'Unnamed client'
   return (
     <>
-      <RegisterRow onClick={onToggle} className={cn(open && 'bg-[#f8f9fa]')}>
+      <RegisterRow onClick={onToggle} className={cn(open && 'bg-[#faf9f6]')}>
         <RegisterCell first title={client}
           primary={note.company_id
             ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: INK }}>{client}</Link>
             : client}
           secondary={<span className="tabular-nums">{note.debit_note_no}</span>}
-          className={cn(open && 'bg-[#f8f9fa]')}
+          className={cn(open && 'bg-[#faf9f6]')}
         />
         <RegisterCell primary={note.classOfInsurance ?? note.event_type ?? '—'} secondary={note.insurer ?? 'No insurer on file'} className="max-w-[230px]" nowrap={false} />
         <RegisterCell primary={fmtDate(note.payment_due_date)} />
@@ -224,7 +224,7 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
       </RegisterRow>
 
       {open && (
-        <RegisterRow style={{ background: '#f8f9fa' }}>
+        <RegisterRow style={{ background: '#faf9f6' }}>
           <RegisterCell colSpan={COLS} nowrap={false} className="px-6">
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="min-w-[260px]">
@@ -247,7 +247,7 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
                         onClick={() => onUndo(r.id)}
                         disabled={undoing === r.id}
                         className="text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50"
-                        style={{ color: '#c5221f' }}
+                        style={{ color: '#a1242f' }}
                         title="Undo this payment and put the balance back"
                       >
                         Undo

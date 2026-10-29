@@ -4,9 +4,9 @@ import { Field, inputCls } from '@/components/crm/primitives'
 import { groupedProductLines } from '@/lib/product-lines'
 import { SPEC_KEYS, SPEC_LABEL, type Spec } from '@/lib/placement/types'
 
-export const INK = '#202124'
-export const MUTED = '#5f6368'
-export const ERROR = '#c5221f'
+export const INK = '#0f1412'
+export const MUTED = '#4a5550'
+export const ERROR = '#a1242f'
 
 export const selectCls = `${inputCls} appearance-none`
 

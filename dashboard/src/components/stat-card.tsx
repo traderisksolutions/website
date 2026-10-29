@@ -19,38 +19,38 @@ interface StatCardProps {
 
 // State is not colour-coded: every accent resolves to the same grey field and ink number.
 const ACCENT: Record<AccentColor, { bg: string; valueColor: string }> = {
-  blue:  { bg: '#f1f3f4', valueColor: '#202124' },
-  green: { bg: '#f1f3f4', valueColor: '#202124' },
-  amber: { bg: '#f1f3f4', valueColor: '#202124' },
-  red:   { bg: '#f1f3f4', valueColor: '#202124' },
+  blue:  { bg: '#f1f2ee', valueColor: '#0f1412' },
+  green: { bg: '#f1f2ee', valueColor: '#0f1412' },
+  amber: { bg: '#f1f2ee', valueColor: '#0f1412' },
+  red:   { bg: '#f1f2ee', valueColor: '#0f1412' },
 }
 
 export function StatCard({
   label, value, sublabel, href, urgent, loading, accent, icon: Icon, tooltip, className,
 }: StatCardProps) {
   const ac = accent ? ACCENT[accent] : null
-  const valueColor = '#202124'; void ac; void urgent
+  const valueColor = '#0f1412'; void ac; void urgent
 
   const card = (
     <div
       className={cn(
         'relative rounded-[16px] px-5 py-4 transition-colors',
-        href && 'hover:bg-[#e8eaed]',
+        href && 'hover:bg-[#e6e8e4]',
         className,
       )}
-      style={{ background: '#f1f3f4' }}
+      style={{ background: '#f1f2ee' }}
     >
       {/* Label + icon */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1">
-          <p className="m-0 text-[12.5px]" style={{ color: '#5f6368' }}>
+          <p className="m-0 text-[12.5px]" style={{ color: '#4a5550' }}>
             {label}
           </p>
           {tooltip && <Tip text={tooltip} />}
         </div>
         {Icon && (
           <Icon
-            className="h-4 w-4 flex-shrink-0" style={{ color: '#9aa0a6' }}
+            className="h-4 w-4 flex-shrink-0" style={{ color: '#8c958f' }}
             strokeWidth={1.8}
           />
         )}
@@ -73,7 +73,7 @@ export function StatCard({
 
       {/* Sub-label */}
       {sublabel && (
-        <p className="m-0 text-[12.5px] leading-tight" style={{ color: '#5f6368' }}>{sublabel}</p>
+        <p className="m-0 text-[12.5px] leading-tight" style={{ color: '#4a5550' }}>{sublabel}</p>
       )}
     </div>
   )

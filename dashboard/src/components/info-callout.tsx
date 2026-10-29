@@ -15,7 +15,7 @@ const STYLES: Record<CalloutVariant, {
   info: {
     bg:          'rgba(15,61,145,0.05)',
     borderLeft:  'rgba(15,61,145,0.40)',
-    titleColor:  '#202124',
+    titleColor:  '#0f1412',
     bodyColor:   'rgba(16,24,40,0.75)',
   },
   warning: {

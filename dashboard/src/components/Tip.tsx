@@ -14,7 +14,7 @@ export function Tip({ text, placement = 'top' }: {
     >
       <span style={{
         display: 'inline-flex', alignItems: 'center', cursor: 'help',
-        color: '#9aa0a6', marginLeft: 4, verticalAlign: 'middle', lineHeight: 1,
+        color: '#8c958f', marginLeft: 4, verticalAlign: 'middle', lineHeight: 1,
       }}>
         <HelpCircle size={12} />
       </span>

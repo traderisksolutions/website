@@ -15,15 +15,15 @@ import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
  * Same props as before; the tint and the SENT/RECV chips are gone, the words carry the state.
  */
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIR = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIR = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
-const LINK = 'underline decoration-[#9aa0a6] underline-offset-[3px] cursor-pointer bg-transparent border-0 p-0 font-[inherit]'
+const LINK = 'underline decoration-[#8c958f] underline-offset-[3px] cursor-pointer bg-transparent border-0 p-0 font-[inherit]'
 
 interface EngagementMessageCardProps {
   msg:         RealMsg
@@ -118,7 +118,7 @@ export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: En
         onClick={() => { if (open) { onOpen?.(msg.id); setOpen(false) } else expand() }}
         aria-expanded={open}
         aria-label={`${open ? 'Collapse' : 'Expand'} message from ${name}`}
-        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124] text-[13.5px]"
+        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412] text-[13.5px]"
         style={{ color: MUTED }}
       >
         <ChevronRight size={14} className={cn('flex-shrink-0 transition-transform', open && 'rotate-90')} style={{ color: DOT }} aria-hidden />

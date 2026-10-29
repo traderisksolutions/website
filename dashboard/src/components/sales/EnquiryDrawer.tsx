@@ -7,9 +7,9 @@ import { DetailSection, DetailField } from '@/components/detail-section'
 import { FIND_QUESTIONS, FLAG_LABEL, FORM_TITLE, PRODUCT_LABEL, SOURCE_COLUMNS, answerLabel } from '@/lib/intake/labels'
 import { bookingLabel, fmtWhen, whatsappHref } from '@/lib/intake/format'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 const STATUSES: [string, string][] = [['submitted', 'New'], ['contacted', 'Contacted'], ['met', 'Met'], ['quoted', 'Quoted'], ['won', 'Won'], ['lost', 'Lost']]
 
@@ -68,7 +68,7 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
   return (
     <aside ref={panel} tabIndex={-1} role="dialog" aria-label={it?.company_name ?? 'Enquiry'}
       className="fixed right-0 z-40 w-full sm:w-[560px] bg-white flex flex-col outline-none"
-      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(32,33,36,0.25)', color: INK }}>
+      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(15,20,18,0.25)', color: INK }}>
       <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -78,9 +78,9 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
             </p>}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 -mr-2 -mt-1">
-            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous enquiry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronUp size={18} /></button>
-            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next enquiry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronDown size={18} /></button>
-            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={18} /></button>
+            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous enquiry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronUp size={18} /></button>
+            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next enquiry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronDown size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={18} /></button>
           </div>
         </div>
       </div>

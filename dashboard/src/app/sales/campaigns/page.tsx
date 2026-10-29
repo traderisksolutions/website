@@ -10,8 +10,8 @@ import type { CampaignRow, CampaignCounts } from '@/lib/sales/campaigns'
 import type { WorkflowStatus } from '@/lib/sales/config'
 import { CAMPAIGN_STATUS_LABEL, FIRST_TOUCH_LABEL, audienceSummary, n } from '@/lib/sales/labels'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type Payload = { campaigns: (CampaignRow & { counts: CampaignCounts })[]; workflow: WorkflowStatus; alias: { mailbox: string | null; verified: boolean } | null }
 
@@ -62,7 +62,7 @@ export default function CampaignsPage() {
               }}>{creating ? 'Creating…' : 'New campaign'}</Button>
             </div>
           </div>
-          <div className="mt-5 pb-4" style={{ borderBottom: '1px solid #e8eaed' }} />
+          <div className="mt-5 pb-4" style={{ borderBottom: '1px solid #e6e8e4' }} />
         </div>
 
         <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16" style={{ color: INK }}>

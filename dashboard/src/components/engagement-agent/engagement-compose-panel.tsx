@@ -153,11 +153,11 @@ export function EngagementComposePanel({
   function buildSigHtml(sig: SigOption): string {
     return [
       '<br>',
-      '<hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
+      '<hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">',
       `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
       sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
       sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-      sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1d4ed8;text-decoration:none">${sig.email}</a></p>` : '',
+      sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1f4e3a;text-decoration:none">${sig.email}</a></p>` : '',
       sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
     ].filter(Boolean).join('\n')
   }
@@ -411,15 +411,15 @@ export function EngagementComposePanel({
                 onClick={onToggleReplyAll}
                 aria-pressed={replyAll}
                 title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
-                className={cn('h-7 px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]', replyAll && 'bg-[#f1f3f4] font-medium')}
+                className={cn('h-7 px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
                 style={{ color: replyAll ? INK : FAINT }}
               >
                 Reply all
               </button>
             )}
-            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Cc</button>}
+            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
             {!showCc && !showBcc && <span aria-hidden>·</span>}
-            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Bcc</button>}
+            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
           </>
         }>
           {headerExpanded || !toAddress ? (
@@ -433,14 +433,14 @@ export function EngagementComposePanel({
         {/* ── Cc / Bcc — revealed from the To row ── */}
         {showCc && (
           <FieldRow label="Cc" tall right={
-            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
           }>
             <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
           </FieldRow>
         )}
         {showBcc && (
           <FieldRow label="Bcc" tall right={
-            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
           }>
             <ChipInput chips={bccList} onChange={setBccList} placeholder="Add Bcc…" />
           </FieldRow>
@@ -477,7 +477,7 @@ export function EngagementComposePanel({
             onChange={e => setCustomSubject(e.target.value)}
             aria-label="Email subject"
             placeholder="Subject"
-            className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#80868b]"
+            className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
             style={{ color: INK }}
           />
         </FieldRow>
@@ -488,7 +488,7 @@ export function EngagementComposePanel({
           <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap items-center gap-1.5 flex-shrink-0">
             <span className="text-[12.5px] mr-0.5" style={{ color: MUTED }}>Drafted from</span>
             {contextUsed.map((c, i) => (
-              <span key={i} className="text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f3f4]" style={{ color: BODY }}>{c}</span>
+              <span key={i} className="text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f2ee]" style={{ color: BODY }}>{c}</span>
             ))}
           </div>
         )}
@@ -560,26 +560,26 @@ export function EngagementComposePanel({
             }}
             className="h-2 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
           >
-            <div className="w-10 h-px bg-transparent group-hover:bg-[#9aa0a6] group-hover:h-0.5 group-focus-visible:bg-[#202124] group-focus-visible:h-0.5 transition-all" />
+            <div className="w-10 h-px bg-transparent group-hover:bg-[#8c958f] group-hover:h-0.5 group-focus-visible:bg-[#0f1412] group-focus-visible:h-0.5 transition-all" />
           </div>
         )}
 
         {/* ── Knowledge sources (RAG) ── */}
         {ragSources.length > 0 && (
-          <div className="mx-[var(--re-gutter)] mb-2 rounded-[10px] border border-[#e8eaed] overflow-hidden flex-shrink-0">
+          <div className="mx-[var(--re-gutter)] mb-2 rounded-[10px] border border-[#e6e8e4] overflow-hidden flex-shrink-0">
             <button
               type="button"
               onClick={() => setShowSources(v => !v)}
               aria-expanded={showSources}
-              className="w-full flex items-center justify-between px-3.5 h-9 bg-white text-left border-0 cursor-pointer hover:bg-[#f8f9fa]"
+              className="w-full flex items-center justify-between px-3.5 h-9 bg-white text-left border-0 cursor-pointer hover:bg-[#faf9f6]"
             >
               <span className="text-[12.5px]" style={{ color: MUTED }}>
                 {ragSources.length} source{ragSources.length !== 1 ? 's' : ''} retrieved
               </span>
-              <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform', showSources && 'rotate-180')} style={{ color: '#9aa0a6' }} />
+              <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform', showSources && 'rotate-180')} style={{ color: '#8c958f' }} />
             </button>
             {showSources && (
-              <div className="divide-y divide-[#e8eaed] border-t border-[#e8eaed]">
+              <div className="divide-y divide-[#e6e8e4] border-t border-[#e6e8e4]">
                 {ragSources.map((s, i) => (
                   <div key={i} className="px-3.5 py-2.5">
                     <div className="flex items-center justify-between mb-1 gap-3">
@@ -617,7 +617,7 @@ export function EngagementComposePanel({
                 {error}
               </button>
               {errorOpen && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-[260px] overflow-auto rounded-[10px] border border-[#e8eaed] bg-white p-3 shadow-[0_8px_24px_rgba(32,33,36,0.12)]">
+                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-[260px] overflow-auto rounded-[10px] border border-[#e6e8e4] bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
                   <div className="mb-1.5 flex items-center justify-between gap-2">
                     <span className="text-[12px]" style={{ color: MUTED }}>Error detail</span>
                     <div className="flex items-center gap-2">
@@ -670,7 +670,7 @@ function ToAutocompleteInput({
         aria-label="Recipient email address"
         autoComplete="off"
         autoFocus={autoFocus}
-        className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#80868b]"
+        className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#6f7a74]"
         style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
@@ -718,7 +718,7 @@ function ChipInput({
         placeholder={chips.length === 0 ? placeholder : ''}
         aria-label={placeholder}
         autoComplete="off"
-        className="min-w-[120px] flex-1 text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+        className="min-w-[120px] flex-1 text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
         style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}

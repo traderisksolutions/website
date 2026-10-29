@@ -12,7 +12,7 @@ import { GscStatusChip } from '@/components/marketing/chips'
 import { ACTION_KIND_LABEL, fmtDate, n } from '@/lib/marketing/labels'
 import type { GscOverview, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#202124'
+const INK = '#0f1412'
 type Payload = GscOverview & { site: SiteSummary; configured: boolean }
 
 const ERROR_TEXT: Record<string, string> = {

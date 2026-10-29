@@ -86,10 +86,10 @@ function Articles() {
     <MarketingPage
       title="Articles"
       line={!counts ? (sitesError ?? 'Loading…') : <>
-        <button type="button" onClick={() => go({ status: 'pending' })} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2 text-[15px]" style={{ color: '#202124' }}>{n(counts.pending)} awaiting approval</button>
+        <button type="button" onClick={() => go({ status: 'pending' })} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2 text-[15px]" style={{ color: '#0f1412' }}>{n(counts.pending)} awaiting approval</button>
         {' '}· {n(counts.published)} published · {n(counts.draft)} drafts · {n(counts.archived)} archived
       </>}
-      line2={data && <>Public feed <a href={`/api/public/blog?site=${data.site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: '#202124' }}>/api/public/blog?site={data.site.domain}</a> · articles render at {data.site.domain}{data.site.blog_base_path}/…</>}
+      line2={data && <>Public feed <a href={`/api/public/blog?site=${data.site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: '#0f1412' }}>/api/public/blog?site={data.site.domain}</a> · articles render at {data.site.domain}{data.site.blog_base_path}/…</>}
       sites={sites} siteKey={siteKey} onSite={setSiteKey}
       actions={<>
         <Button size="lg" variant="outline" asChild><a href={withSite('/marketing/generate', siteKey)}>Generate</a></Button>

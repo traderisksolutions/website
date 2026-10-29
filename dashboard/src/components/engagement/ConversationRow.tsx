@@ -17,12 +17,12 @@ interface ConversationRowProps {
   onClick:     () => void
 }
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIRLINE = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIRLINE = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 export function ConversationRow({ lead, isActive, threadState, onClick }: ConversationRowProps) {
   const msgs      = threadState?.messages ?? []
@@ -49,8 +49,8 @@ export function ConversationRow({ lead, isActive, threadState, onClick }: Conver
       aria-pressed={isActive}
       className={cn(
         'relative w-full text-left px-4 py-3 flex items-start gap-3 cursor-pointer transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]',
-        isActive ? 'bg-[#f1f3f4]' : 'bg-white hover:bg-[#f8f9fa]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
+        isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]',
       )}
       style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}
     >

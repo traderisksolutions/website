@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { textareaCls } from '@/components/crm/primitives'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 const HEADER = 'company,country,domain,industry,why_now,source_url,product_line,fit_score,intent_score,recommended_action,name,title,email,email_basis,email_source_url,phone,phone_basis,linkedin_url,draft_message'
 

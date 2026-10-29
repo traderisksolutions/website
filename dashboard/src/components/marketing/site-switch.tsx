@@ -47,7 +47,7 @@ export function useSiteKey(sites: Site[]): [string | null, (key: string) => void
 
 export function SiteSelect({ sites, value, onChange, className }: { sites: Site[]; value: string | null; onChange: (k: string) => void; className?: string }) {
   return (
-    <label className={cn('inline-flex items-center gap-2 text-[13.5px]', className)} style={{ color: '#5f6368' }}>
+    <label className={cn('inline-flex items-center gap-2 text-[13.5px]', className)} style={{ color: '#4a5550' }}>
       Site
       <select value={value ?? ''} onChange={e => onChange(e.target.value)} aria-label="Site" className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8 font-medium')}>
         {sites.length === 0 && <option value="">Loading…</option>}

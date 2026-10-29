@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
     <div className="relative w-full overflow-x-auto">
-      <table ref={ref} className={cn('register w-full caption-bottom text-[13.5px] text-[#202124]', className)} {...props} />
+      <table ref={ref} className={cn('register w-full caption-bottom text-[13.5px] text-[#0f1412]', className)} {...props} />
     </div>
   )
 )
@@ -28,7 +28,7 @@ const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HTML
   ({ className, ...props }, ref) => (
     <tr
       ref={ref}
-      className={cn('border-b border-[#e8eaed] transition-colors hover:bg-[#f8f9fa] data-[state=selected]:bg-[#f1f3f4]', className)}
+      className={cn('border-b border-[#e6e8e4] transition-colors hover:bg-[#faf9f6] data-[state=selected]:bg-[#f1f2ee]', className)}
       {...props}
     />
   )
@@ -39,7 +39,7 @@ const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
-      className={cn('h-8 px-[10px] text-left align-middle text-[12px] font-normal text-[#5f6368] whitespace-nowrap border-b border-[#e8eaed]', className)}
+      className={cn('h-8 px-[10px] text-left align-middle text-[12px] font-normal text-[#4a5550] whitespace-nowrap border-b border-[#e6e8e4]', className)}
       {...props}
     />
   )

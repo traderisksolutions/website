@@ -28,8 +28,8 @@ const isComparison = (a: unknown): a is Comparison =>
 
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 const fmtDate = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
-const BTN2 = 'inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#dadce0] bg-white text-[#202124] hover:bg-[#f8f9fa] no-underline cursor-pointer'
-const BTN1 = 'inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#202124] text-white hover:opacity-90 no-underline border-0 cursor-pointer'
+const BTN2 = 'inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] bg-white text-[#0f1412] hover:bg-[#faf9f6] no-underline cursor-pointer'
+const BTN1 = 'inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 no-underline border-0 cursor-pointer'
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -115,12 +115,12 @@ export default function QuoteDetailPage() {
   const covers = Array.from(new Set((q.product_codes ?? []).flatMap(t => resolveProduct(t).codes))).map(c => PRODUCT_BY_CODE[c]?.abbrev ?? c).join(', ') || (q.product_codes ?? []).join('/')
   const priced = byInsurer.length > 0 && q.member_count > 0
   const basis = (q.notes ?? '').split('\n').filter(l => l.trim() && !/^\s*Drafted by/.test(l)).map(l => l.replace(/\s*\[(message|thread):[^\]]*\]/g, ''))
-  const summary = (label: string) => <summary className="cursor-pointer text-[16px] font-medium tracking-[-0.01em] list-none [&::-webkit-details-marker]:hidden"><span className="inline-block w-4 text-[#9aa0a6]">›</span>{label}</summary>
+  const summary = (label: string) => <summary className="cursor-pointer text-[16px] font-medium tracking-[-0.01em] list-none [&::-webkit-details-marker]:hidden"><span className="inline-block w-4 text-[#8c958f]">›</span>{label}</summary>
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-      <button onClick={() => router.push('/pricing-matrix')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#5f6368' }}>← Quotes</button>
+      <button onClick={() => router.push('/pricing-matrix')} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#4a5550' }}>← Quotes</button>
 
       <div className="mb-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -132,18 +132,18 @@ export default function QuoteDetailPage() {
             {priced && <a href={`/pricing-matrix/quote/${id}/report`} className={BTN2}>Client report</a>}
           </div>
         </div>
-        <p className="m-0 text-[14px] mt-2 tabular-nums" style={{ color: '#5f6368' }}>
+        <p className="m-0 text-[14px] mt-2 tabular-nums" style={{ color: '#4a5550' }}>
           {q.member_count} members · {covers}{q.effective_date ? ` · starts ${fmtDate(q.effective_date)}` : ''} · quoted {fmtDate(q.created_at)}
         </p>
-        {folderError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{folderError}</p>}
+        {folderError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#a1242f' }}>{folderError}</p>}
       </div>
 
       {/* No employee list: the one thing to do next, here, not three clicks away. */}
       {!priced && (
-        <section className="mb-10 rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-4" style={{ border: '1px solid #e8eaed', background: '#f8f9fa' }}>
+        <section className="mb-10 rounded-[14px] p-5 flex flex-wrap items-center justify-between gap-4" style={{ border: '1px solid #e6e8e4', background: '#faf9f6' }}>
           <div>
             <h2 className="m-0 text-[16px] font-medium">Employee list</h2>
-            <p className="m-0 mt-1 text-[14px]" style={{ color: '#5f6368' }}>Not received. Pricing starts when it arrives.</p>
+            <p className="m-0 mt-1 text-[14px]" style={{ color: '#4a5550' }}>Not received. Pricing starts when it arrives.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <a href={`/pricing-matrix?tab=quote&company=${enc}`} className={BTN2}><UploadCloud size={14} /> Upload employee list</a>
@@ -158,17 +158,17 @@ export default function QuoteDetailPage() {
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
                style={{ '--n': Math.min(byInsurer.length, 5) } as React.CSSProperties}>
             {byInsurer.map((r, i) => (
-              <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#202124] bg-white' : 'border-border bg-card')}>
+              <div key={r.insurer_name} className={cn('rounded-xl border p-4', i === 0 ? 'border-[#0f1412] bg-white' : 'border-border bg-card')}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[14px] font-semibold text-foreground" title={r.insurer_name}>{shortInsurer(r.insurer_name)}</span>
-                  {i === 0 && <span className="text-[11.5px] font-medium bg-[#f1f3f4] text-[#3c4043] px-2 py-0.5 rounded-[6px] whitespace-nowrap">Lowest</span>}
+                  {i === 0 && <span className="text-[11.5px] font-medium bg-[#f1f2ee] text-[#2a332f] px-2 py-0.5 rounded-[6px] whitespace-nowrap">Lowest</span>}
                 </div>
                 <p className="text-[22px] font-bold text-foreground mt-1 tabular-nums">{money(r.total)}</p>
                 <p className="text-[11px] text-muted-foreground/70 tabular-nums">incl. {money(r.gst)} GST</p>
                 <div className="mt-2 flex flex-col gap-0.5 text-[11.5px] text-muted-foreground">
                   {Object.entries(r.by_product).map(([p, v]) => <div key={p} className="flex justify-between gap-2"><span className="truncate">{p}</span><span className="tabular-nums">{money(v)}</span></div>)}
                 </div>
-                {r.missing > 0 && <p className="text-[11px] text-[#b06000] mt-1.5">{r.missing} line{r.missing === 1 ? '' : 's'} unpriced</p>}
+                {r.missing > 0 && <p className="text-[11px] text-[#8a5a00] mt-1.5">{r.missing} line{r.missing === 1 ? '' : 's'} unpriced</p>}
               </div>
             ))}
           </div>
@@ -185,14 +185,14 @@ export default function QuoteDetailPage() {
             </div>
           ) : (
             <div className="border border-border rounded-lg p-4 flex items-center justify-between gap-3">
-              <span className="text-[14px]" style={{ color: '#3c4043' }}>{analysis ? 'Written comparison from before 2 Oct 2026.' : 'Benefits not compared yet.'}</span>
+              <span className="text-[14px]" style={{ color: '#2a332f' }}>{analysis ? 'Written comparison from before 2 Oct 2026.' : 'Benefits not compared yet.'}</span>
               <button onClick={compareBenefits} disabled={analyzing} className={cn(BTN2, 'disabled:opacity-50')}>
                 {analyzing ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                 {analyzing ? 'Comparing…' : analysis ? 'Recompare' : 'Compare benefits'}
               </button>
             </div>
           )}
-          {error && <p className="text-[12.5px] mt-2" style={{ color: '#c5221f' }}>{error}</p>}
+          {error && <p className="text-[12.5px] mt-2" style={{ color: '#a1242f' }}>{error}</p>}
         </section>
       )}
 
@@ -210,12 +210,12 @@ export default function QuoteDetailPage() {
               {ON_REQUEST_PLANS.map(p => (
                 <RegisterRow key={p.key}>
                   <RegisterCell first primary={p.label} secondary={p.insurer} />
-                  <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{p.rates}</span></RegisterCell>
+                  <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{p.rates}</span></RegisterCell>
                   <RegisterCell nowrap={false}><ContactLines people={contactsFor(p.insurer, contacts)} /></RegisterCell>
                   <RegisterCell last align="right">
                     <span className="inline-flex items-center gap-4">
-                      <button className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }} onClick={() => setEditingContacts(p.insurer)}>Edit contacts</button>
-                      <button className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#202124' }} onClick={() => setEmailInsurer({ insurer: p.insurer, plan: p.label })}><Mail size={14} /> Email</button>
+                      <button className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }} onClick={() => setEditingContacts(p.insurer)}>Edit contacts</button>
+                      <button className="inline-flex items-center gap-1.5 text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#0f1412' }} onClick={() => setEmailInsurer({ insurer: p.insurer, plan: p.label })}><Mail size={14} /> Email</button>
                     </span>
                   </RegisterCell>
                 </RegisterRow>
@@ -230,12 +230,12 @@ export default function QuoteDetailPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <Step n={4}>Send to client</Step>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: '#5f6368' }}>
+              <div className="inline-flex items-center gap-1.5 text-[12.5px]" style={{ color: '#4a5550' }}>
                 Attach as
                 <div className="inline-flex rounded-lg border border-border overflow-hidden">
                   {(['xlsx', 'csv'] as const).map(f => (
                     <button key={f} onClick={() => setAttachFormat(f)}
-                      className={cn('px-2.5 py-1 font-medium border-0', attachFormat === f ? 'bg-[#202124] text-white' : 'bg-white text-muted-foreground hover:bg-muted/40')}>{f}</button>
+                      className={cn('px-2.5 py-1 font-medium border-0', attachFormat === f ? 'bg-[#0f1412] text-white' : 'bg-white text-muted-foreground hover:bg-muted/40')}>{f}</button>
                   ))}
                 </div>
               </div>
@@ -270,15 +270,15 @@ export default function QuoteDetailPage() {
 
       {/* Reference, folded: what each plan was matched against, and every member's line. */}
       {basis.length > 0 && (
-        <details className="mb-6 border-t pt-5" style={{ borderColor: '#e8eaed' }} open={!priced}>
+        <details className="mb-6 border-t pt-5" style={{ borderColor: '#e6e8e4' }} open={!priced}>
           {summary('Basis')}
-          <ul className="m-0 mt-3 pl-4 list-disc flex flex-col gap-1 text-[13.5px] max-w-[95ch]" style={{ color: '#3c4043' }}>
+          <ul className="m-0 mt-3 pl-4 list-disc flex flex-col gap-1 text-[13.5px] max-w-[95ch]" style={{ color: '#2a332f' }}>
             {basis.map((l, i) => <li key={i}>{l}</li>)}
           </ul>
         </details>
       )}
       {lines.length > 0 && (
-        <details className="mb-8 border-t pt-5" style={{ borderColor: '#e8eaed' }}>
+        <details className="mb-8 border-t pt-5" style={{ borderColor: '#e6e8e4' }}>
           {summary(`Per-member breakdown · ${lines.length} lines`)}
           <div className="mt-3">
             <Register label="Per-member breakdown" minWidth={760} maxHeight="520px">
@@ -294,12 +294,12 @@ export default function QuoteDetailPage() {
                 {lines.map((l, i) => (
                   <RegisterRow key={i}>
                     <RegisterCell first primary={l.member_name} secondary={l.relationship} />
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{shortInsurer(l.insurer_name)}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px]" style={{ color: '#3c4043' }}>{l.product_code}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px]" style={{ color: l.plan_code ? '#3c4043' : '#9aa0a6' }}>{l.plan_code ?? '—'}</span></RegisterCell>
-                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: l.age != null ? '#3c4043' : '#9aa0a6' }}>{l.age ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{shortInsurer(l.insurer_name)}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{l.product_code}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px]" style={{ color: l.plan_code ? '#2a332f' : '#8c958f' }}>{l.plan_code ?? '—'}</span></RegisterCell>
+                    <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: l.age != null ? '#2a332f' : '#8c958f' }}>{l.age ?? '—'}</span></RegisterCell>
                     <RegisterCell last align="right" nowrap={false}>
-                      {l.premium != null ? <span className="text-[14px] font-medium tabular-nums" style={{ color: '#202124' }}>{money(l.premium)}</span> : <span className="block text-[13px] leading-snug" style={{ color: '#5f6368' }}>{l.note}</span>}
+                      {l.premium != null ? <span className="text-[14px] font-medium tabular-nums" style={{ color: '#0f1412' }}>{money(l.premium)}</span> : <span className="block text-[13px] leading-snug" style={{ color: '#4a5550' }}>{l.note}</span>}
                     </RegisterCell>
                   </RegisterRow>
                 ))}

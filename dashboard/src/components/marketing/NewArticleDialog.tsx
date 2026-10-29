@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Field, inputCls, textareaCls } from '@/components/crm/primitives'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** A hand-written article. Saved as a draft; publish from the editor. */
 export function NewArticleDialog({ open, onOpenChange, siteKey, topics, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; siteKey: string | null; topics: string[]; onCreated: (id: string) => void }) {

@@ -10,8 +10,8 @@ interface StatusDropdownProps {
   onChange: (id: string, status: string) => void
 }
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** Status as a neutral chip with a chevron; the label carries the meaning, never a colour. */
 export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
@@ -36,8 +36,8 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Lead status: ${st.label}. Click to change.`}
-        className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e8eaed] transition-colors"
-        style={{ background: '#f1f3f4', color: '#3c4043' }}
+        className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors"
+        style={{ background: '#f1f2ee', color: '#2a332f' }}
       >
         {st.label} <ChevronDown size={11} style={{ color: MUTED }} />
       </button>
@@ -47,7 +47,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
           role="listbox"
           aria-label="Select status"
           className="absolute top-[calc(100%+4px)] left-0 bg-white rounded-[12px] z-[100] py-1 min-w-[160px] overflow-hidden"
-          style={{ border: '1px solid #e8eaed', boxShadow: '0 8px 24px rgba(32,33,36,0.10)' }}
+          style={{ border: '1px solid #e6e8e4', boxShadow: '0 8px 24px rgba(15,20,18,0.10)' }}
         >
           {ALL_STATUSES.map(s => {
             const sc = STATUS_MAP[s]
@@ -59,8 +59,8 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
                 role="option"
                 aria-selected={on}
                 onClick={e => { e.stopPropagation(); onChange(lead.id, s); setOpen(false) }}
-                className="w-full text-left px-3 h-9 text-[13.5px] bg-transparent border-0 cursor-pointer flex items-center justify-between gap-3 hover:bg-[#f8f9fa]"
-                style={{ fontWeight: on ? 500 : 400, color: on ? INK : '#3c4043' }}
+                className="w-full text-left px-3 h-9 text-[13.5px] bg-transparent border-0 cursor-pointer flex items-center justify-between gap-3 hover:bg-[#faf9f6]"
+                style={{ fontWeight: on ? 500 : 400, color: on ? INK : '#2a332f' }}
               >
                 {sc.label}
                 {on && <Check size={13} style={{ color: INK }} aria-hidden />}

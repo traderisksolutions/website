@@ -26,18 +26,18 @@ export function OwnerPicker({ value, staff, onChange, disabled, size = 'sm' }: {
         <span key={email} className="inline-flex items-center gap-0.5">
           <PersonTag email={email} staff={map} size={size} />
           <button type="button" disabled={disabled} onClick={() => onChange(value.filter(e => e !== email))} aria-label={`Remove ${map.get(email)?.name ?? email}`} title="Remove"
-            className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50" style={{ color: '#9aa0a6' }}><X size={11} /></button>
+            className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50" style={{ color: '#8c958f' }}><X size={11} /></button>
         </span>
       ))}
       {adding || value.length === 0 ? (
         <select autoFocus={adding} value="" disabled={disabled} aria-label="Add owner"
           onChange={e => { if (e.target.value) onChange([...value, e.target.value]); setAdding(false) }} onBlur={() => setAdding(false)}
-          className={`${h} rounded-[8px] border bg-white pl-2 pr-6 cursor-pointer outline-none focus:border-[#202124] disabled:opacity-50`} style={{ borderColor: '#dadce0', color: '#5f6368' }}>
+          className={`${h} rounded-[8px] border bg-white pl-2 pr-6 cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50`} style={{ borderColor: '#d5d9d4', color: '#4a5550' }}>
           <option value="">{value.length === 0 ? 'No owner' : 'Add person'}</option>
           {rest.map(m => <option key={m.email} value={m.email}>{m.name}</option>)}
         </select>
       ) : rest.length > 0 && (
-        <button type="button" disabled={disabled} onClick={() => setAdding(true)} className={`${h} px-2 rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50`} style={{ color: '#5f6368' }}>+ Add person</button>
+        <button type="button" disabled={disabled} onClick={() => setAdding(true)} className={`${h} px-2 rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50`} style={{ color: '#4a5550' }}>+ Add person</button>
       )}
     </span>
   )

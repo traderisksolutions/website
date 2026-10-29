@@ -14,9 +14,9 @@ import { daysUntil, isOpen, sortTasks } from './model'
  * remove. Every change writes through the board actions (optimistic, realtime).
  */
 
-const RULE = '#e8eaed'
-const INK = '#202124'
-const MUTED = '#5f6368'
+const RULE = '#e6e8e4'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 export function firstNameOf(email: string | null, staff: Map<string, StaffMember>): string | null {
   if (!email) return null
@@ -25,7 +25,7 @@ export function firstNameOf(email: string | null, staff: Map<string, StaffMember
 }
 
 /** One hue per person, chosen by hashing the address so it is stable everywhere. */
-const HUES = ['#c5221f', '#1a73e8', '#188038', '#e37400', '#7b1fa2', '#00838f', '#ad1457', '#5f6368']
+const HUES = ['#a1242f', '#1f4e3a', '#188038', '#e37400', '#7b1fa2', '#00838f', '#ad1457', '#4a5550']
 export function personHue(email: string): string {
   let h = 0
   for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0
@@ -77,7 +77,7 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
       <div className="flex items-center gap-2">
         <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do and press Enter" aria-label="New to-do"
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
-          className="h-10 flex-1 min-w-0 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#202124]" style={{ borderColor: '#dadce0', color: INK }} />
+          className="h-10 flex-1 min-w-0 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} />
         <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-10 w-10 rounded-[10px] text-white border-0 cursor-pointer inline-flex items-center justify-center" style={{ background: INK }}><Plus size={16} /></button>
       </div>
       {err && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{err}</p>}
@@ -94,7 +94,7 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
           <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1">
             {done.map(t => (
               <li key={t.id} className="flex items-center gap-2 text-[13.5px] line-through" style={{ color: MUTED }}>
-                <button type="button" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-[16px] h-[16px] rounded-[3px] border-0 inline-flex items-center justify-center cursor-pointer text-white" style={{ background: '#5f6368' }}><Check size={11} strokeWidth={3} /></button>
+                <button type="button" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-[16px] h-[16px] rounded-[3px] border-0 inline-flex items-center justify-center cursor-pointer text-white" style={{ background: '#4a5550' }}><Check size={11} strokeWidth={3} /></button>
                 <span className="truncate">{t.title}</span>
               </li>
             ))}
@@ -119,13 +119,13 @@ function TodoRow({ t, today, staff, staffList, actions }: { t: BoardTask; today:
   return (
     <li className="group flex items-start gap-2.5 py-3" style={{ borderBottom: `1px solid ${RULE}` }}>
       <button type="button" onClick={() => actions.updateTask(t.id, { status: 'complete' })} aria-label={`Complete: ${t.title}`}
-        className="mt-[3px] w-[16px] h-[16px] rounded-[3px] border bg-white flex-shrink-0 inline-flex items-center justify-center cursor-pointer p-0 text-transparent hover:text-[#202124]" style={{ borderColor: '#9aa0a6' }}>
+        className="mt-[3px] w-[16px] h-[16px] rounded-[3px] border bg-white flex-shrink-0 inline-flex items-center justify-center cursor-pointer p-0 text-transparent hover:text-[#0f1412]" style={{ borderColor: '#8c958f' }}>
         <Check size={11} strokeWidth={3} />
       </button>
       <div className="min-w-0 flex-1">
         {editing
           ? <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(t.title); setEditing(false) } }}
-              aria-label="To-do text" className="w-full h-7 rounded-[6px] border px-2 text-[14px] outline-none" style={{ borderColor: '#202124', color: INK }} />
+              aria-label="To-do text" className="w-full h-7 rounded-[6px] border px-2 text-[14px] outline-none" style={{ borderColor: '#0f1412', color: INK }} />
           : <button type="button" onClick={() => setEditing(true)} title="Click to edit" className="w-full text-left bg-transparent border-0 p-0 cursor-text text-[14px] leading-snug" style={{ color: INK }}>{t.title}</button>}
         <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[12px]" style={{ color: MUTED }}>
           <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -139,7 +139,7 @@ function TodoRow({ t, today, staff, staffList, actions }: { t: BoardTask; today:
           {t.primary_assignee && <PersonTag email={t.primary_assignee} staff={staff} />}
         </div>
       </div>
-      <button type="button" onClick={() => actions.deleteTask(t.id)} aria-label={`Remove: ${t.title}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+      <button type="button" onClick={() => actions.deleteTask(t.id)} aria-label={`Remove: ${t.title}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
     </li>
   )
 }

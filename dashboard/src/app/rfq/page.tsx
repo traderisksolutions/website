@@ -83,7 +83,7 @@ export default function RfqRegisterPage() {
           <label className="relative flex items-center">
             <Search size={14} className="absolute left-2.5" style={{ color: MUTED }} aria-hidden />
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
-              className="h-8 w-[260px] rounded-[8px] border border-[#dadce0] bg-white pl-8 pr-7 text-[13px] outline-none focus:border-[#202124]" />
+              className="h-8 w-[260px] rounded-[8px] border border-[#d5d9d4] bg-white pl-8 pr-7 text-[13px] outline-none focus:border-[#0f1412]" />
             {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1.5 bg-transparent border-0 p-1 cursor-pointer" style={{ color: MUTED }}><X size={13} /></button>}
           </label>
         </div>
@@ -92,7 +92,7 @@ export default function RfqRegisterPage() {
           {chips.map(c => (
             <button key={c.key} type="button" role="tab" aria-selected={filter === c.key} onClick={() => setFilter(c.key)}
               className="h-7 px-2.5 rounded-[7px] border cursor-pointer text-[13px] whitespace-nowrap"
-              style={{ borderColor: filter === c.key ? INK : '#dadce0', background: filter === c.key ? '#f1f3f4' : '#fff', color: filter === c.key ? INK : '#3c4043', fontWeight: filter === c.key ? 500 : 400 }}>
+              style={{ borderColor: filter === c.key ? INK : '#d5d9d4', background: filter === c.key ? '#f1f2ee' : '#fff', color: filter === c.key ? INK : '#2a332f', fontWeight: filter === c.key ? 500 : 400 }}>
               {c.label}{c.n !== undefined && <span className="ml-1.5 tabular-nums" style={{ color: MUTED }}>{c.n}</span>}
             </button>
           ))}

@@ -100,8 +100,8 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
   const tables = new Set(comparison.options.map(o => o.key.split(':')[0]))
   if (tables.size < 2) {
     return (
-      <div className="border border-[#e8eaed] rounded-lg px-3 py-2.5 text-[12.5px]" style={{ color: '#5f6368' }}>
-        <span className="font-bold" style={{ color: '#202124' }}>Value score</span> · needs two or more insurers on the quote.
+      <div className="border border-[#e6e8e4] rounded-lg px-3 py-2.5 text-[12.5px]" style={{ color: '#4a5550' }}>
+        <span className="font-bold" style={{ color: '#0f1412' }}>Value score</span> · needs two or more insurers on the quote.
       </div>
     )
   }
@@ -118,20 +118,20 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
   const label = 'text-[11px] font-semibold uppercase tracking-wide'
 
   return (
-    <div className="border border-[#e8eaed] rounded-lg overflow-hidden">
+    <div className="border border-[#e6e8e4] rounded-lg overflow-hidden">
       {/* Header: title and ranking order. */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 border-b border-[#e8eaed]">
-        <h3 className="m-0 text-[13px] font-bold inline-flex items-center" style={{ color: '#202124' }}>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5 border-b border-[#e6e8e4]">
+        <h3 className="m-0 text-[13px] font-bold inline-flex items-center" style={{ color: '#0f1412' }}>
           Value score <Tip text={METHOD} placement="bottomLeft" />
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-[12px] whitespace-nowrap" style={{ color: '#5f6368' }}>Rank by</span>
-          <div role="radiogroup" aria-label="Rank by" className="inline-flex rounded-lg border border-[#dadce0] overflow-hidden">
+          <span className="text-[12px] whitespace-nowrap" style={{ color: '#4a5550' }}>Rank by</span>
+          <div role="radiogroup" aria-label="Rank by" className="inline-flex rounded-lg border border-[#d5d9d4] overflow-hidden">
             {SORTS.map(s => (
               <button key={s.key} role="radio" aria-checked={settings.sort === s.key}
                       onClick={() => setSettings(x => ({ ...x, sort: s.key }))}
                       className={cn('px-2.5 py-1 text-[12px] font-medium whitespace-nowrap',
-                        settings.sort === s.key ? 'bg-[#202124] text-white' : 'text-[#5f6368] hover:bg-[#f8f9fa]')}>
+                        settings.sort === s.key ? 'bg-[#0f1412] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
                 {s.label}
               </button>
             ))}
@@ -140,12 +140,12 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
       </div>
 
       {/* Weights and filters. */}
-      <div className="grid gap-4 px-3 py-3 border-b border-[#e8eaed] md:grid-cols-2">
+      <div className="grid gap-4 px-3 py-3 border-b border-[#e6e8e4] md:grid-cols-2">
         <fieldset className="m-0 p-0 border-0 min-w-0">
           <div className="flex items-center justify-between mb-2">
-            <legend className={label} style={{ color: '#5f6368' }}>Weights</legend>
+            <legend className={label} style={{ color: '#4a5550' }}>Weights</legend>
             <button onClick={() => setSettings(s => ({ ...s, weights: DEFAULT_WEIGHTS }))}
-                    className="text-[12px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
+                    className="text-[12px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>
               Reset
             </button>
           </div>
@@ -153,13 +153,13 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
               the data arrives. A dimension out of coverage shows no share. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {quotedDims.map(d => (
-              <label key={d.key} htmlFor={`w-${d.key}`} className="flex items-center justify-between gap-2 text-[12.5px]" style={{ color: '#202124' }}>
+              <label key={d.key} htmlFor={`w-${d.key}`} className="flex items-center justify-between gap-2 text-[12.5px]" style={{ color: '#0f1412' }}>
                 <span className="truncate">{d.label}</span>
                 <span className="flex items-center gap-1.5 flex-shrink-0">
                   <input id={`w-${d.key}`} type="number" min={0} max={100} step={5} inputMode="numeric"
                          value={settings.weights[d.key]} onChange={e => setWeight(d.key, e.target.value)}
-                         className="w-14 px-1.5 py-1 text-right text-[12.5px] tabular-nums border border-[#dadce0] rounded-md" />
-                  <span className="w-9 text-right text-[11.5px] tabular-nums" style={{ color: '#5f6368' }}>
+                         className="w-14 px-1.5 py-1 text-right text-[12.5px] tabular-nums border border-[#d5d9d4] rounded-md" />
+                  <span className="w-9 text-right text-[11.5px] tabular-nums" style={{ color: '#4a5550' }}>
                     {weightTotal && result.activeDimensions.includes(d.key) ? `${Math.round((settings.weights[d.key] / weightTotal) * 100)}%` : '—'}
                   </span>
                 </span>
@@ -169,20 +169,20 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
         </fieldset>
 
         <fieldset className="m-0 p-0 border-0 min-w-0">
-          <legend className={cn(label, 'mb-2')} style={{ color: '#5f6368' }}>Filters</legend>
+          <legend className={cn(label, 'mb-2')} style={{ color: '#4a5550' }}>Filters</legend>
           <div className="grid grid-cols-2 gap-2">
-            <label htmlFor="f-pepm" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+            <label htmlFor="f-pepm" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
               Max PEPM (S$)
               <input id="f-pepm" type="number" min={0} step={10} inputMode="decimal" placeholder="No limit"
                      value={settings.filters.maxPepm ?? ''}
                      onChange={e => setFilters({ maxPepm: e.target.value === '' ? null : Math.max(0, Number(e.target.value)) || null })}
-                     className="px-2 py-1 text-[12.5px] tabular-nums border border-[#dadce0] rounded-md" style={{ color: '#202124' }} />
+                     className="px-2 py-1 text-[12.5px] tabular-nums border border-[#d5d9d4] rounded-md" style={{ color: '#0f1412' }} />
             </label>
-            <label htmlFor="f-ward" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+            <label htmlFor="f-ward" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
               Ward floor
               <select id="f-ward" value={settings.filters.minWardRank ?? ''}
                       onChange={e => setFilters({ minWardRank: e.target.value === '' ? null : Number(e.target.value) })}
-                      className="px-2 py-1 text-[12.5px] border border-[#dadce0] rounded-md bg-white" style={{ color: '#202124' }}>
+                      className="px-2 py-1 text-[12.5px] border border-[#d5d9d4] rounded-md bg-white" style={{ color: '#0f1412' }}>
                 <option value="">Any</option>
                 {WARD_FLOORS.map(w => <option key={w.rank} value={w.rank}>{w.label} or better</option>)}
               </select>
@@ -190,13 +190,13 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
           </div>
           {products.length > 1 && (
             <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <span className="text-[12px] mr-0.5" style={{ color: '#5f6368' }}>Must quote</span>
+              <span className="text-[12px] mr-0.5" style={{ color: '#4a5550' }}>Must quote</span>
               {products.map(p => {
                 const on = settings.filters.requiredProducts.includes(p)
                 return (
                   <button key={p} aria-pressed={on} onClick={() => toggleRequired(p)}
                           className={cn('px-2 py-0.5 text-[11.5px] font-medium rounded-md border',
-                            on ? 'bg-[#202124] text-white border-[#202124]' : 'border-[#dadce0] text-[#5f6368] hover:bg-[#f8f9fa]')}>
+                            on ? 'bg-[#0f1412] text-white border-[#0f1412]' : 'border-[#d5d9d4] text-[#4a5550] hover:bg-[#faf9f6]')}>
                     {PRODUCT_BY_CODE[p].abbrev}
                   </button>
                 )
@@ -211,7 +211,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
       <div className="relative overflow-x-auto">
         <table className="w-full border-collapse" style={{ minWidth: 560 + dims.length * 96 }}>
           <thead>
-            <tr className="bg-[#f8f9fa]" style={{ color: '#5f6368' }}>
+            <tr className="bg-[#faf9f6]" style={{ color: '#4a5550' }}>
               <th className={cn(th, 'text-right w-10')}>#</th>
               <th className={cn(th, 'text-left')}>Insurer</th>
               <th className={cn(th, 'text-right')}>Annual premium</th>
@@ -225,40 +225,40 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
           <tbody>
             {result.insurers.map(i => {
               const out = i.excluded.length > 0
-              const ink = out ? '#9aa0a6' : '#202124'
+              const ink = out ? '#8c958f' : '#0f1412'
               const struck = settings.filters.excludeTables.includes(i.tableId)
               return (
-                <tr key={i.tableId} className="border-t border-[#f1f3f4]">
+                <tr key={i.tableId} className="border-t border-[#f1f2ee]">
                   <td className={cn(td, 'text-right')} style={{ color: ink }}>{i.rank ?? '—'}</td>
                   <td className={cn(td, 'min-w-[180px]')}>
                     <div className="font-semibold" style={{ color: ink }} title={i.insurerName}>{shortInsurer(i.insurerName)}</div>
-                    <div className="text-[11.5px]" style={{ color: '#5f6368' }}>{i.planLabels.join(', ')}</div>
+                    <div className="text-[11.5px]" style={{ color: '#4a5550' }}>{i.planLabels.join(', ')}</div>
                     {i.verification && i.verification !== 'calculator' && (
                       <div className="text-[11px] font-medium" style={{ color: VERIFICATION[i.verification].color }}>{VERIFICATION[i.verification].label}</div>
                     )}
-                    {out && <div className="text-[11.5px]" style={{ color: '#5f6368' }}>{i.excluded.join(' · ')}</div>}
+                    {out && <div className="text-[11.5px]" style={{ color: '#4a5550' }}>{i.excluded.join(' · ')}</div>}
                   </td>
                   <td className={cn(td, 'text-right')} style={{ color: ink }}>
                     {i.annualTotal != null ? money(i.annualTotal) : 'Not priced'}
-                    {i.pricingGaps > 0 && <div className="text-[11px]" style={{ color: '#b06000' }}>{i.pricingGaps} unpriced</div>}
+                    {i.pricingGaps > 0 && <div className="text-[11px]" style={{ color: '#8a5a00' }}>{i.pricingGaps} unpriced</div>}
                   </td>
                   <td className={cn(td, 'text-right')} style={{ color: ink }}>{i.pepm != null ? money(i.pepm, 2) : '—'}</td>
                   {dims.map(d => {
                     const s = i.dimensions[d.key]
                     return (
-                      <td key={d.key} className={cn(td, 'text-right')} style={{ color: s.score == null ? '#9aa0a6' : ink }}>
+                      <td key={d.key} className={cn(td, 'text-right')} style={{ color: s.score == null ? '#8c958f' : ink }}>
                         {!s.quoted ? (s.score === 0 ? <span title="Not quoted">0</span> : '—') : s.score == null ? '—' : Math.round(s.score)}
                       </td>
                     )
                   })}
                   <td className={cn(td, 'text-right font-semibold')} style={{ color: ink }}>
                     {i.coverage != null ? Math.round(i.coverage) : '—'}
-                    <div className="text-[11px] font-normal" style={{ color: '#5f6368' }}>{i.linesScored} of {i.linesAvailable} lines</div>
+                    <div className="text-[11px] font-normal" style={{ color: '#4a5550' }}>{i.linesScored} of {i.linesAvailable} lines</div>
                   </td>
                   <td className={cn(td, 'text-right font-semibold')} style={{ color: ink }}>{i.valueIndex != null && !out ? Math.round(i.valueIndex) : '—'}</td>
                   <td className={cn(td, 'text-right')}>
                     <button onClick={() => toggleStrike(i.tableId)}
-                            className="text-[12px] bg-transparent border-0 p-0 cursor-pointer hover:underline whitespace-nowrap" style={{ color: '#5f6368' }}>
+                            className="text-[12px] bg-transparent border-0 p-0 cursor-pointer hover:underline whitespace-nowrap" style={{ color: '#4a5550' }}>
                       {struck ? 'Restore' : 'Strike out'}
                     </button>
                   </td>
@@ -269,7 +269,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
         </table>
       </div>
 
-      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 px-3 py-2 border-t border-[#e8eaed] bg-[#f8f9fa] text-[11.5px] tabular-nums" style={{ color: '#5f6368' }}>
+      <div className="flex flex-wrap justify-between gap-x-4 gap-y-1 px-3 py-2 border-t border-[#e6e8e4] bg-[#faf9f6] text-[11.5px] tabular-nums" style={{ color: '#4a5550' }}>
         <span>PEPM over {employees} employee{employees === 1 ? '' : 's'}{comparison.employees ? '' : ' (all members; recompare to count employees only)'}</span>
         {result.droppedDimensions.map(d => (
           <span key={d.key}>{DIMENSIONS.find(x => x.key === d.key)!.label} not in coverage: nothing comparable on record for {d.insurers.join(', ')}</span>
@@ -278,15 +278,15 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
       </div>
 
       {/* The written explanation. */}
-      <div className="px-3 py-3 border-t border-[#e8eaed]">
+      <div className="px-3 py-3 border-t border-[#e6e8e4]">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h4 className="m-0 text-[13px] font-bold" style={{ color: '#202124' }}>Explanation</h4>
+          <h4 className="m-0 text-[13px] font-bold" style={{ color: '#0f1412' }}>Explanation</h4>
           <div className="flex items-center gap-3">
-            {saveState === 'saving' && <span className="text-[11.5px]" style={{ color: '#9aa0a6' }}>Saving…</span>}
-            {saveState === 'failed' && <span className="text-[11.5px]" style={{ color: '#c5221f' }}>Weights not saved</span>}
+            {saveState === 'saving' && <span className="text-[11.5px]" style={{ color: '#8c958f' }}>Saving…</span>}
+            {saveState === 'failed' && <span className="text-[11.5px]" style={{ color: '#a1242f' }}>Weights not saved</span>}
             <button onClick={explain} disabled={explaining || !weightTotal}
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#dadce0] bg-white hover:bg-[#f8f9fa] disabled:opacity-50"
-                    style={{ color: '#202124' }}>
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50"
+                    style={{ color: '#0f1412' }}>
               {explaining && <Loader2 size={13} className="animate-spin" />}
               {explaining ? 'Writing…' : explanation ? 'Rewrite' : 'Write explanation'}
             </button>
@@ -294,17 +294,17 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
         </div>
         {explanation && (
           <>
-            <ul className="m-0 mt-2 pl-4 list-disc flex flex-col gap-1.5 text-[13px] leading-relaxed max-w-[75ch]" style={{ color: '#202124' }}>
+            <ul className="m-0 mt-2 pl-4 list-disc flex flex-col gap-1.5 text-[13px] leading-relaxed max-w-[75ch]" style={{ color: '#0f1412' }}>
               {explanation.points.map((p, n) => <li key={n}>{p}</li>)}
             </ul>
-            <p className="m-0 mt-2 text-[11.5px] tabular-nums" style={{ color: '#5f6368' }}>
+            <p className="m-0 mt-2 text-[11.5px] tabular-nums" style={{ color: '#4a5550' }}>
               {new Date(explanation.at).toLocaleString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               {' · weights '}{DIMENSIONS.map(d => explanation.settings.weights[d.key]).join('/')}
               {stale && ' · weights or filters changed since; rewrite to match'}
             </p>
           </>
         )}
-        {error && <p className="m-0 mt-2 text-[11.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="m-0 mt-2 text-[11.5px]" style={{ color: '#a1242f' }}>{error}</p>}
       </div>
     </div>
   )

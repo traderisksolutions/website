@@ -8,7 +8,7 @@ import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 import { useResizableRailWidth, RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 const ENGAGEMENT_ROUTE = '/engagement'
-const HAIRLINE = '#e8eaed'
+const HAIRLINE = '#e6e8e4'
 
 function onEngagementRoute(pathname: string) {
   return pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')
@@ -65,7 +65,7 @@ export function EngagementRail() {
             else if (e.key === 'End')        { e.preventDefault(); setAbsolute(max) }
           }}
           className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize z-10 flex items-center justify-center group focus-visible:outline-none">
-          <div className="w-px h-full bg-transparent group-hover:bg-[#202124]/30 group-focus-visible:bg-[#202124]/60 transition-colors" />
+          <div className="w-px h-full bg-transparent group-hover:bg-[#0f1412]/30 group-focus-visible:bg-[#0f1412]/60 transition-colors" />
         </div>
       </div>
     </aside>

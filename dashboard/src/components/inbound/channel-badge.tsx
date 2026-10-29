@@ -6,7 +6,7 @@ interface ChannelBadgeProps {
 
 // A category chip, not a state: one neutral fill, the channel name carries the meaning.
 const CHIP = 'inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 whitespace-nowrap'
-const STYLE = { background: '#f1f3f4', color: '#3c4043' } as const
+const STYLE = { background: '#f1f2ee', color: '#2a332f' } as const
 
 export function ChannelBadge({ source }: ChannelBadgeProps) {
   if (WA_SOURCES.has(source)) {

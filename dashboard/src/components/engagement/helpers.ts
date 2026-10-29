@@ -142,7 +142,7 @@ export function fmtWhen(iso: string | null, withTime = true): string {
  *  rule (see lib/signature-html), Gmail's gmail_signature div, Outlook's Signature div, or the
  *  plain-text "-- " delimiter. Anything less certain stays in the body: show more, never less. */
 const SIG_HTML_MARKERS = [
-  /<hr[^>]*border-top:\s*1px solid #e5e7eb[^>]*>/i,
+  /<hr[^>]*border-top:\s*1px solid #e6e8e4[^>]*>/i,
   /<div[^>]*class="[^"]*gmail_signature[^"]*"/i,
   /<div[^>]*id="Signature"/i,
 ]

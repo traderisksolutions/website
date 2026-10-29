@@ -179,7 +179,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   return (
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) requestClose() }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#202124]/40 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#0f1412]/40 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           ref={contentRef}
           aria-describedby={undefined}
@@ -196,7 +196,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
           // where the user clicks rather than on the Close button Radix would pick.
           onOpenAutoFocus={e => { e.preventDefault(); if (to.trim()) contentRef.current?.focus() }}
           className={cn(
-            'fixed z-50 flex flex-col overflow-hidden bg-white border border-[#e8eaed] shadow-[0_24px_60px_rgba(32,33,36,0.18)] focus:outline-none',
+            'fixed z-50 flex flex-col overflow-hidden bg-white border border-[#e6e8e4] shadow-[0_24px_60px_rgba(15,20,18,0.18)] focus:outline-none',
             'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200',
             fullscreen
               ? 'inset-3 rounded-[16px]'
@@ -215,7 +215,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
           {/* ── To ── */}
           <FieldRow label="To" tall htmlFor="new-email-to" right={
-            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f3f4]" style={{ color: FAINT }}>Cc</button> : undefined
+            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
           }>
             {to.trim() ? (
               <RecipientChip name={toName} email={to} onRemove={() => setTo('')} />
@@ -235,7 +235,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
                   aria-label="Recipient email address"
                   autoComplete="off"
                   autoFocus
-                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
                   style={{ color: INK }}
                 />
                 {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
@@ -264,7 +264,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
                   placeholder={ccChips.length === 0 ? (personal ? 'operations@ is added on send' : 'Add Cc…') : ''}
                   aria-label="Cc"
                   autoComplete="off"
-                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#80868b]"
+                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
                   style={{ color: INK }}
                 />
                 {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => { setCc([...ccChips, c.email].join(', ') + ', '); ccAc.close() }} />}
@@ -303,7 +303,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
               onChange={e => setSubject(e.target.value)}
               placeholder="Subject"
               aria-label="Subject"
-              className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#80868b]"
+              className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
               style={{ color: INK }}
             />
           </FieldRow>

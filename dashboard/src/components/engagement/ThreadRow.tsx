@@ -9,7 +9,7 @@ import { threadTitle } from '@/lib/crm/subject'
  * One conversation in the navigator, in the Notion Mail register. Standard (the default) is two
  * lines: dot, sender, the triage type in muted text, time; then `Company · subject`. Compact is one
  * line: sender, subject, time. Comfortable adds the state line ("Needs your reply", "Awaiting
- * client"). Unread is the ink dot only. Selected = field grey with a 3px ink bar; hover = #f8f9fa.
+ * client"). Unread is the ink dot only. Selected = field grey with a 3px ink bar; hover = #faf9f6.
  */
 
 export type Density = 'comfortable' | 'standard' | 'compact'
@@ -17,11 +17,11 @@ const PAD: Record<Density, string> = { comfortable: 'py-3', standard: 'py-2', co
 
 const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quote request', group_benefits: 'Group benefits', finance: 'Finance', new_business: 'New business' }
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIRLINE = '#e8eaed'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIRLINE = '#e6e8e4'
 
 export function ThreadRow({ lead, isActive, threadState, onClick, density = 'standard' }: {
   lead: Lead; isActive: boolean; threadState: ThreadState | undefined; onClick: () => void; density?: Density
@@ -39,8 +39,8 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
   const type = lead.category ? TYPE_LABEL[lead.category] : null
   const stateLine = [state, type].filter(Boolean).join(' · ')
   const rowCls = cn('relative w-full text-left border-0 cursor-pointer transition-colors',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]',
-    PAD[density], isActive ? 'bg-[#f1f3f4]' : 'bg-white hover:bg-[#f8f9fa]')
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
+    PAD[density], isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]')
   const label = `${name}, ${subject}${needs ? ', needs your reply' : ''}`
   const bar = isActive && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />
   const dot = <span data-dot className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: needs ? INK : 'transparent' }} aria-hidden />

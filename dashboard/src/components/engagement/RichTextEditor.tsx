@@ -43,17 +43,17 @@ export function RichTextEditor({
       aria-label={title}
       onMouseDown={e => e.preventDefault()}  // keep the selection
       onClick={onClick}
-      className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]/30"
-      style={{ color: '#3c4043' }}
+      className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30"
+      style={{ color: '#2a332f' }}
     >
       {children}
     </button>
   )
-  const Sep = () => <span aria-hidden className="w-px h-5 mx-1.5" style={{ background: '#e8eaed' }} />
+  const Sep = () => <span aria-hidden className="w-px h-5 mx-1.5" style={{ background: '#e6e8e4' }} />
 
   return (
-    <div className="rounded-[10px] bg-white overflow-hidden" style={{ border: '1px solid #dadce0' }}>
-      <div role="toolbar" aria-label="Formatting" className="flex items-center gap-0.5 flex-wrap px-2 py-1.5" style={{ borderBottom: '1px solid #e8eaed' }}>
+    <div className="rounded-[10px] bg-white overflow-hidden" style={{ border: '1px solid #d5d9d4' }}>
+      <div role="toolbar" aria-label="Formatting" className="flex items-center gap-0.5 flex-wrap px-2 py-1.5" style={{ borderBottom: '1px solid #e6e8e4' }}>
         <Btn onClick={() => exec('bold')} title="Bold" shortcut="⌘B"><Bold size={15} strokeWidth={2.5} /></Btn>
         <Btn onClick={() => exec('italic')} title="Italic" shortcut="⌘I"><Italic size={15} /></Btn>
         <Btn onClick={() => exec('formatBlock', '<h3>')} title="Heading"><Heading size={15} /></Btn>
@@ -74,7 +74,7 @@ export function RichTextEditor({
         aria-label="Message body"
         onInput={() => { if (ref.current) onChange(ref.current.innerHTML) }}
         className="rte-content px-3.5 py-3 text-[14px] leading-[1.6] outline-none overflow-y-auto"
-        style={{ minHeight, maxHeight: 340, color: '#202124' }}
+        style={{ minHeight, maxHeight: 340, color: '#0f1412' }}
       />
     </div>
   )

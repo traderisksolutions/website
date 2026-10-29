@@ -15,10 +15,10 @@ export type ActivityRow = {
   new_value: Record<string, unknown> | null
 }
 
-const INK   = '#202124'
-const BODY  = '#3c4043'
-const MUTED = '#5f6368'
-const HAIR  = '#e8eaed'
+const INK   = '#0f1412'
+const BODY  = '#2a332f'
+const MUTED = '#4a5550'
+const HAIR  = '#e6e8e4'
 
 // Compact "Last handled by {name} · {when}" line for a case/thread header.
 export function LastHandledBy({ resourceId, className }: { resourceId: string; className?: string }) {
@@ -58,8 +58,8 @@ export function ActivityFeed({ resourceId, limit = 50, emptyText = 'No activity 
       <div className="flex flex-col gap-3 py-2" aria-busy="true">
         {Array.from({ length: 3 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">
-            <span className="w-7 h-7 rounded-full animate-pulse" style={{ background: '#f1f3f4' }} />
-            <span className="h-3.5 w-56 rounded animate-pulse" style={{ background: '#f1f3f4' }} />
+            <span className="w-7 h-7 rounded-full animate-pulse" style={{ background: '#f1f2ee' }} />
+            <span className="h-3.5 w-56 rounded animate-pulse" style={{ background: '#f1f2ee' }} />
           </div>
         ))}
       </div>

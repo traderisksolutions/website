@@ -11,9 +11,9 @@ import { nowSGT, todaySGT } from '@/lib/sgt-time'
 import type { CalendarEvent } from '@/app/api/calendar/events/route'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FAINT = '#9aa0a6'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FAINT = '#8c958f'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -118,7 +118,7 @@ export default function CalendarPage() {
   function goto(delta: number) { setViewDate(d => new Date(d.getFullYear(), d.getMonth() + delta, 1)) }
   function gotoToday() { const d = nowSGT(); d.setDate(1); setViewDate(d) }
 
-  const navBtn = 'w-10 h-10 inline-flex items-center justify-center rounded-[10px] border bg-white cursor-pointer hover:bg-[#f8f9fa]'
+  const navBtn = 'w-10 h-10 inline-flex items-center justify-center rounded-[10px] border bg-white cursor-pointer hover:bg-[#faf9f6]'
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
@@ -133,8 +133,8 @@ export default function CalendarPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => goto(-1)} aria-label="Previous month" className={navBtn} style={{ borderColor: '#dadce0', color: INK }}><ChevronLeft size={16} /></button>
-            <button type="button" onClick={() => goto(1)} aria-label="Next month" className={navBtn} style={{ borderColor: '#dadce0', color: INK }}><ChevronRight size={16} /></button>
+            <button type="button" onClick={() => goto(-1)} aria-label="Previous month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronLeft size={16} /></button>
+            <button type="button" onClick={() => goto(1)} aria-label="Next month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronRight size={16} /></button>
             <Btn level="secondary" className="h-10 px-4" onClick={gotoToday}>Today</Btn>
           </div>
         </div>
@@ -154,7 +154,7 @@ export default function CalendarPage() {
           <div key={monthKey} className="animate-fade-in mt-8">
             {/* Desktop / tablet month grid */}
             <div className="hidden sm:block">
-              <div className="grid grid-cols-7 border-b border-[#e8eaed]">
+              <div className="grid grid-cols-7 border-b border-[#e6e8e4]">
                 {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-[12px] font-medium" style={{ color: MUTED }}>{w}</div>)}
               </div>
               <div className="grid grid-cols-7">
@@ -169,7 +169,7 @@ export default function CalendarPage() {
                       type="button"
                       disabled={!d}
                       onClick={() => d && setSelectedDate(d)}
-                      className={cn('flex flex-col items-stretch gap-1 py-2 px-1.5 text-left min-h-[96px] bg-transparent border-0 border-b border-[#e8eaed]', d ? 'hover:bg-[#f8f9fa] cursor-pointer' : '')}
+                      className={cn('flex flex-col items-stretch gap-1 py-2 px-1.5 text-left min-h-[96px] bg-transparent border-0 border-b border-[#e6e8e4]', d ? 'hover:bg-[#faf9f6] cursor-pointer' : '')}
                     >
                       {d && (
                         <>
@@ -178,7 +178,7 @@ export default function CalendarPage() {
                           </span>
                           <div className="flex flex-col gap-0.5">
                             {visible.map(e => (
-                              <span key={e.id} className="flex items-center gap-1.5 rounded-[6px] px-1.5 py-[3px] text-[11.5px] font-medium leading-none" style={{ background: '#f1f3f4', color: '#3c4043' }} title={eventKind(e)}>
+                              <span key={e.id} className="flex items-center gap-1.5 rounded-[6px] px-1.5 py-[3px] text-[11.5px] font-medium leading-none" style={{ background: '#f1f2ee', color: '#2a332f' }} title={eventKind(e)}>
                                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: eventDot(e) }} aria-hidden />
                                 <span className="truncate">{e.companyName ?? eventKind(e)}</span>
                               </span>
@@ -202,7 +202,7 @@ export default function CalendarPage() {
                 const d = fromISODate(key)
                 const dayEvents = byDay.get(key)!
                 return (
-                  <button key={key} type="button" onClick={() => setSelectedDate(d)} className="flex items-center justify-between py-3 text-left bg-transparent border-0 border-b border-[#e8eaed] cursor-pointer hover:bg-[#f8f9fa]">
+                  <button key={key} type="button" onClick={() => setSelectedDate(d)} className="flex items-center justify-between py-3 text-left bg-transparent border-0 border-b border-[#e6e8e4] cursor-pointer hover:bg-[#faf9f6]">
                     <span className="text-[14px]" style={{ color: INK }}>{d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                     <span className="flex items-center gap-1.5">
                       {dayEvents.slice(0, 3).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full" style={{ background: eventDot(e) }} aria-hidden />)}
@@ -218,7 +218,7 @@ export default function CalendarPage() {
             )}
 
             {/* Legend: two dots, kinds in words. */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 pt-4 border-t border-[#e8eaed]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 pt-4 border-t border-[#e6e8e4]">
               {LEGEND.map(l => (
                 <div key={l.label} className="flex items-center gap-2 text-[12.5px]" style={{ color: MUTED }}>
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.dot }} aria-hidden /> {l.label}
@@ -265,7 +265,7 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
 /** One event in the day panel: a title row with the kind as a neutral chip, facts, then actions. */
 function EventCard({ dot, title, kind, facts, children }: { dot: string; title: string; kind: string; facts: string[]; children?: React.ReactNode }) {
   return (
-    <div className="rounded-[12px] border border-[#e8eaed] bg-white p-4 flex flex-col gap-2">
+    <div className="rounded-[12px] border border-[#e6e8e4] bg-white p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap text-[14px] font-medium" style={{ color: INK }}>
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} aria-hidden />
         <span className="truncate">{title}</span>

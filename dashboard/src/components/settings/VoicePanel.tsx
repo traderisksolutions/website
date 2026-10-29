@@ -12,9 +12,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 type Payload = { text: string; isDefault: boolean; updatedAt: string | null; defaultText: string; error?: string }
 
@@ -63,7 +63,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   }
 
   if (!d) {
-    return <p className="m-0 mt-4 text-[14px]" style={{ color: msg?.tone === 'error' ? '#c5221f' : MUTED }}>{msg?.text ?? 'Loading…'}</p>
+    return <p className="m-0 mt-4 text-[14px]" style={{ color: msg?.tone === 'error' ? '#a1242f' : MUTED }}>{msg?.text ?? 'Loading…'}</p>
   }
 
   return (
@@ -79,15 +79,15 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
                 <>
                   <span className="text-[13px]" style={{ color: MUTED }}>Replace with the default?</span>
                   <button type="button" onClick={() => setConfirmRestore(false)}
-                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#dadce0', color: INK }}>Cancel</button>
+                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>Cancel</button>
                   <button type="button" onClick={() => void restore()} disabled={!!busy}
-                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#dadce0', color: '#c5221f' }}>
+                          className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: '#a1242f' }}>
                     {busy === 'restore' ? 'Restoring…' : 'Restore default'}
                   </button>
                 </>
               ) : (
                 <button type="button" onClick={() => setConfirmRestore(true)} disabled={!!busy}
-                        className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#dadce0', color: INK }}>
+                        className="h-9 px-3.5 rounded-[10px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>
                   Restore default
                 </button>
               )
@@ -100,7 +100,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
         )}
       </div>
 
-      {msg && <p className="m-0 text-[13px]" style={{ color: msg.tone === 'error' ? '#c5221f' : '#137333' }}>{msg.text}</p>}
+      {msg && <p className="m-0 text-[13px]" style={{ color: msg.tone === 'error' ? '#a1242f' : '#137333' }}>{msg.text}</p>}
 
       <label htmlFor="voice-soul" className="sr-only">Tone of voice</label>
       <textarea
@@ -109,8 +109,8 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
         onChange={e => setText(e.target.value)}
         readOnly={!isAdmin}
         spellCheck
-        className="w-full min-h-[560px] rounded-[12px] px-4 py-3.5 text-[13.5px] leading-[1.6] resize-y focus:outline-none focus:ring-2 focus:ring-[#202124]/15"
-        style={{ border: `1px solid ${RULE}`, color: INK, background: isAdmin ? '#fff' : '#f8f9fa',
+        className="w-full min-h-[560px] rounded-[12px] px-4 py-3.5 text-[13.5px] leading-[1.6] resize-y focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15"
+        style={{ border: `1px solid ${RULE}`, color: INK, background: isAdmin ? '#fff' : '#faf9f6',
                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }}
       />
 

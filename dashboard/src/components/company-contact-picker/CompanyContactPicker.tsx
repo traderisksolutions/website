@@ -14,9 +14,9 @@ import { cn } from '@/lib/utils'
  * confirms it — there's no separate "save" step at the parent form level for this part.
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 export type CompanyContact = { id: string; first_name: string | null; last_name: string | null; email: string | null; phone: string | null }
 export type CompanySuggestion = { id: string; name: string; address: string | null; type: string | null }
@@ -146,8 +146,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     onChange(null); setContacts([]); setAddingContact(false); setNotice(null)
   }
 
-  const inp = 'w-full h-10 rounded-[10px] border border-[#dadce0] bg-white px-3.5 text-[14px] text-[#202124] outline-none focus:border-[#202124] placeholder:text-[#80868b]'
-  const row = 'w-full text-left px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] flex items-center gap-2.5 text-[14px] disabled:opacity-60'
+  const inp = 'w-full h-10 rounded-[10px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]'
+  const row = 'w-full text-left px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] flex items-center gap-2.5 text-[14px] disabled:opacity-60'
 
   return (
     <div className={cn('flex flex-col gap-3', className)} style={{ color: INK }}>
@@ -155,23 +155,23 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       {!value ? (
         <div ref={boxRef} className="relative">
           <div className="relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#9aa0a6' }} />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#8c958f' }} />
             <input
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true) }}
               onFocus={() => setOpen(true)}
               placeholder="Search company name"
               aria-label="Company"
-              className="w-full h-12 rounded-[12px] border border-[#dadce0] bg-white pl-10 pr-4 text-[15px] outline-none focus:border-[#202124] placeholder:text-[#80868b]"
+              className="w-full h-12 rounded-[12px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[15px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
               style={{ color: INK }}
             />
           </div>
           {open && (query.trim().length > 0 || suggestions.length > 0) && (
-            <div className="absolute z-20 mt-1.5 w-full rounded-[14px] bg-white max-h-64 overflow-y-auto py-1" style={{ border: `1px solid ${RULE}`, boxShadow: '0 8px 24px rgba(32,33,36,0.08)' }}>
+            <div className="absolute z-20 mt-1.5 w-full rounded-[14px] bg-white max-h-64 overflow-y-auto py-1" style={{ border: `1px solid ${RULE}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
               {searching && <div className="px-4 py-2.5 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Searching…</div>}
               {!searching && suggestions.map(c => (
                 <button key={c.id} type="button" onClick={() => pickCompany(c)} className={row} style={{ color: INK }}>
-                  <Building2 size={14} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />
+                  <Building2 size={14} className="flex-shrink-0" style={{ color: '#8c958f' }} />
                   <span className="truncate">{c.name}</span>
                 </button>
               ))}
@@ -188,10 +188,10 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4" style={{ background: '#f1f3f4' }}>
+        <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4" style={{ background: '#f1f2ee' }}>
           <Building2 size={14} className="flex-shrink-0" style={{ color: MUTED }} />
           <span className="text-[15px] font-medium flex-1 truncate" style={{ color: INK }}>{value.companyName}</span>
-          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e8eaed]" style={{ color: MUTED }}><X size={14} /></button>
+          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4]" style={{ color: MUTED }}><X size={14} /></button>
         </div>
       )}
 
@@ -199,10 +199,10 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       {!hideContact && value && (
         <div>
           {value.contactId && !addingContact ? (
-            <div className="flex items-center gap-2.5 h-10 rounded-[10px] px-3.5" style={{ border: '1px solid #dadce0' }}>
+            <div className="flex items-center gap-2.5 h-10 rounded-[10px] px-3.5" style={{ border: '1px solid #d5d9d4' }}>
               <Mail size={14} className="flex-shrink-0" style={{ color: MUTED }} />
               <span className="text-[14px] flex-1 truncate">{value.contactName ? `${value.contactName} <${value.contactEmail}>` : value.contactEmail}</span>
-              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><Pencil size={12} /></button>
+              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><Pencil size={12} /></button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -211,18 +211,18 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
                 <div className="flex flex-col rounded-[12px] overflow-hidden" style={{ border: `1px solid ${RULE}` }}>
                   {contacts.map(c => (
                     <button key={c.id} type="button" onClick={() => pickContact(c)} className={cn(row, 'py-2.5')} style={{ color: INK, borderBottom: `1px solid ${RULE}` }}>
-                      <Mail size={13} className="flex-shrink-0" style={{ color: '#9aa0a6' }} />
+                      <Mail size={13} className="flex-shrink-0" style={{ color: '#8c958f' }} />
                       <span className="truncate">{contactLabel(c)}</span>
                     </button>
                   ))}
                 </div>
               )}
               {!addingContact ? (
-                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>
+                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>
                   <Plus size={12} /> Add email
                 </button>
               ) : (
-                <div className="flex flex-col gap-3 rounded-[16px] p-4" style={{ background: '#f1f3f4' }}>
+                <div className="flex flex-col gap-3 rounded-[16px] p-4" style={{ background: '#f1f2ee' }}>
                   <Field label="Email (required)"><input value={newEmail} onChange={e => setNewEmail(e.target.value)} className={inp} /></Field>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="Name (optional)"><input value={newName} onChange={e => setNewName(e.target.value)} className={inp} /></Field>
@@ -242,7 +242,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       )}
 
       {notice && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{notice}</p>}
-      {error && <p role="alert" className="m-0 text-[12.5px]" style={{ color: '#3c4043' }}>{error}</p>}
+      {error && <p role="alert" className="m-0 text-[12.5px]" style={{ color: '#2a332f' }}>{error}</p>}
     </div>
   )
 }

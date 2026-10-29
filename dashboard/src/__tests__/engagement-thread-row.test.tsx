@@ -72,7 +72,7 @@ describe('EngagementThreadRow', () => {
   it('shows an ink dot and "Needs your reply" when the last message is inbound', () => {
     render(<EngagementThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
     const dot = screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
-    expect(dot.style.background).toBe('rgb(32, 33, 36)')
+    expect(dot.style.background).toBe('rgb(15, 20, 18)')
     expect(screen.getByText('Needs your reply')).toBeInTheDocument()
     expect(screen.getByRole('button')).toHaveAttribute('aria-label', expect.stringContaining('needs your reply'))
   })
@@ -85,7 +85,7 @@ describe('EngagementThreadRow', () => {
 
   it('uses no colour-coded state classes', () => {
     render(<EngagementThreadRow lead={{ ...baseLead, category: 'claim' }} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
-    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#0C338A|#0c338a|text-primary|bg-primary|--warning/)
+    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#132c1c|#132c1c|text-primary|bg-primary|--warning/)
     expect(screen.getByText('Needs your reply · Claim')).toBeInTheDocument()
   })
 
@@ -121,12 +121,12 @@ describe('EngagementThreadRow', () => {
     it('still reflects active (field surface) and needs-reply (ink dot) state', () => {
       const { rerender } = render(<EngagementThreadRow lead={baseLead} isActive={true} threadState={emptyThread} onClick={vi.fn()} iconOnly />)
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'true')
-      expect(screen.getByRole('button').className).toContain('bg-[#f1f3f4]')
+      expect(screen.getByRole('button').className).toContain('bg-[#f1f2ee]')
       expect(screen.getByRole('button').querySelector('[data-dot]')).toBeNull()
 
       rerender(<EngagementThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} iconOnly />)
       const dot = screen.getByRole('button').querySelector('[data-dot]') as HTMLElement
-      expect(dot.style.background).toBe('rgb(32, 33, 36)')
+      expect(dot.style.background).toBe('rgb(15, 20, 18)')
     })
   })
 })
@@ -154,7 +154,7 @@ describe('ThreadRow (navigator)', () => {
 
   it('shows an ink dot and says "needs your reply" to a screen reader when the last message is inbound', () => {
     render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
-    expect(dotOf().style.background).toBe('rgb(32, 33, 36)')
+    expect(dotOf().style.background).toBe('rgb(15, 20, 18)')
     expect(screen.queryByText('Needs your reply')).toBeNull()
     expect(screen.getByRole('button')).toHaveAttribute('aria-label', expect.stringContaining('needs your reply'))
   })
@@ -196,12 +196,12 @@ describe('ThreadRow (navigator)', () => {
     render(<ThreadRow lead={baseLead} isActive={true} threadState={emptyThread} onClick={vi.fn()} />)
     const btn = screen.getByRole('button')
     expect(btn).toHaveAttribute('aria-pressed', 'true')
-    expect(btn.className).toContain('bg-[#f1f3f4]')
+    expect(btn.className).toContain('bg-[#f1f2ee]')
   })
 
   it('uses no colour-coded state classes', () => {
     render(<ThreadRow lead={baseLead} isActive={false} threadState={inboundThread} onClick={vi.fn()} />)
-    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#0C338A|#0c338a|text-primary|bg-primary/)
+    expect(screen.getByRole('button').outerHTML).not.toMatch(/amber|slate-|#132c1c|#132c1c|text-primary|bg-primary/)
   })
 
   it('calls onClick', () => {

@@ -3,8 +3,8 @@
 import { ExternalLink } from 'lucide-react'
 import { looksLikeUrl, safeHref, type EvidenceNode } from '@/lib/sales/evidence'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 // Renders the lead tool's free-form JSON as text nodes only. Lead text comes from the open web:
 // no HTML, and only http(s) strings become links.

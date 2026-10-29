@@ -46,10 +46,10 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
 
   if (picked && !open) {
     return (
-      <span className={cn('inline-flex items-center gap-1.5 h-10 rounded-[10px] border bg-white pl-3 pr-1.5 text-[14px] max-w-[260px]', className)} style={{ borderColor: '#dadce0', color: '#202124' }}>
+      <span className={cn('inline-flex items-center gap-1.5 h-10 rounded-[10px] border bg-white pl-3 pr-1.5 text-[14px] max-w-[260px]', className)} style={{ borderColor: '#d5d9d4', color: '#0f1412' }}>
         <span className="truncate">{picked.name}</span>
         <button type="button" disabled={disabled} onClick={() => { onChange(''); setOpen(true) }} aria-label="Clear company"
-          className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] flex-shrink-0" style={{ color: '#5f6368' }}><X size={12} /></button>
+          className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: '#4a5550' }}><X size={12} /></button>
       </span>
     )
   }
@@ -57,7 +57,7 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
   return (
     <div ref={box} className={cn('relative', className)}>
       <span className="relative block">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#80868b' }} />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6f7a74' }} />
         <input
           value={q} disabled={disabled} onFocus={() => setOpen(true)} onChange={e => { setQ(e.target.value); setOpen(true) }}
           onKeyDown={e => {
@@ -67,21 +67,21 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
             else if (e.key === 'Escape') { setOpen(false) }
           }}
           placeholder={placeholder} aria-label="Search companies" role="combobox" aria-expanded={open} aria-controls="company-options"
-          className="h-10 w-full min-w-[200px] rounded-[10px] border bg-white pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#202124] disabled:opacity-50"
-          style={{ borderColor: '#dadce0', color: '#202124' }} />
+          className="h-10 w-full min-w-[200px] rounded-[10px] border bg-white pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#0f1412] disabled:opacity-50"
+          style={{ borderColor: '#d5d9d4', color: '#0f1412' }} />
       </span>
       {open && (
         <ul id="company-options" role="listbox"
           className="absolute left-0 top-full mt-1 z-30 w-[300px] max-h-[290px] overflow-auto rounded-[12px] bg-white p-1.5 m-0 list-none"
-          style={{ border: '1px solid #e8eaed', boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
-          {matches.length === 0 && <li className="px-3 py-2.5 text-[13.5px]" style={{ color: '#5f6368' }}>No company matches “{q.trim()}”.</li>}
+          style={{ border: '1px solid #e6e8e4', boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+          {matches.length === 0 && <li className="px-3 py-2.5 text-[13.5px]" style={{ color: '#4a5550' }}>No company matches “{q.trim()}”.</li>}
           {matches.map((o, i) => (
             <li key={o.id} role="option" aria-selected={i === active}>
               <button type="button" onMouseEnter={() => setActive(i)} onClick={() => pick(o)}
-                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f3f4]' : 'bg-transparent')}>
-                <span className="block text-[14px] truncate" style={{ color: '#202124' }}>{o.name}</span>
+                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
+                <span className="block text-[14px] truncate" style={{ color: '#0f1412' }}>{o.name}</span>
                 {(o.domains?.[0] || o.kind) && (
-                  <span className="block text-[12.5px] truncate" style={{ color: '#5f6368' }}>{[o.domains?.[0], o.kind && o.kind !== 'client' ? o.kind : null].filter(Boolean).join(' · ')}</span>
+                  <span className="block text-[12.5px] truncate" style={{ color: '#4a5550' }}>{[o.domains?.[0], o.kind && o.kind !== 'client' ? o.kind : null].filter(Boolean).join(' · ')}</span>
                 )}
               </button>
             </li>

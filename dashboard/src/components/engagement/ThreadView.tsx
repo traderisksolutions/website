@@ -35,11 +35,11 @@ interface ThreadViewProps {
 }
 
 const KEY_CONTEXT = 'engagement_context_open'
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIR = '#e8eaed'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIR = '#e6e8e4'
 
 // Reply-All recipients = the To+CC of the message being replied to (the latest one). We KEEP
 // internal @trade-risksol.com colleagues and only drop: whoever's already in the To field,
@@ -327,10 +327,10 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
           onDelete={handleDelete} deleting={deleting} contextOpen={contextOpen} onToggleContext={toggleContext} />
 
         {taskDone && (
-          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-[13px]" style={{ background: '#f1f3f4', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
+          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-[13px]" style={{ background: '#f1f2ee', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
             <div className={cn(measure, 'flex items-center justify-between gap-3')}>
               <span>{taskDone.text}</span>
-              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#9aa0a6] bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-7 h-7 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-white" style={{ color: MUTED }}><X size={13} /></button></span>
+              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-7 h-7 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-white" style={{ color: MUTED }}><X size={13} /></button></span>
             </div>
           </div>
         )}
@@ -357,7 +357,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                     <div className="py-10">
                       <p className="m-0 text-center text-[15px]" style={{ color: MUTED }}>No email thread on file for {lead.email ?? 'this contact'}.</p>
                       {initialMsg && (
-                        <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f3f4' }}>
+                        <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f2ee' }}>
                           <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Enquiry form message</p>
                           <p className="m-0 text-[14.5px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
                         </div>
@@ -402,9 +402,9 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       onHeightChange={syncScrollAffordances} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
-                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-10 px-3.5 rounded-[8px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#9aa0a6] focus-visible:outline-none focus-visible:border-[#202124]')} style={{ border: '1px solid #dadce0', color: FAINT }}>
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-10 px-3.5 rounded-[8px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
                         <span className="truncate">{replyLabel}</span>
-                        <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #dadce0', color: '#9aa0a6' }} aria-hidden>r</kbd>
+                        <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #d5d9d4', color: '#8c958f' }} aria-hidden>r</kbd>
                       </button>
                     </div>
                   )}
@@ -415,11 +415,11 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
           {/* One affordance back down: the draft while it is open, the newest message otherwise. */}
           {!loading && composerOpen && composerOffscreen ? (
-            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #dadce0', color: INK }}>
+            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
               <ArrowDown size={13} /> Draft
             </button>
           ) : !composerOpen && showScrollToLatest ? (
-            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #dadce0', color: INK }}>
+            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
               <ArrowDown size={13} /> Latest message
             </button>
           ) : null}
@@ -454,7 +454,7 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
-  const inp = 'h-10 w-full rounded-[10px] bg-white px-3.5 text-[14px] outline-none focus:border-[#202124]'
+  const inp = 'h-10 w-full rounded-[10px] bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]'
   const lbl = 'flex flex-col gap-1 text-[12.5px]'
   async function go() {
     if (!lead.companyId) { setErr('Link this thread to a company first.'); return }
@@ -469,23 +469,23 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save') } finally { setBusy(false) }
   }
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(32,33,36,0.4)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(32,33,36,0.14)', color: INK }}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(15,20,18,0.4)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div><h2 id="task-from-email" className="m-0 text-[18px] font-medium tracking-[-0.01em]">New to-do</h2><p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{lead.companyName ? `For ${lead.companyName}` : 'This thread is not linked to a company yet'}</p></div>
-          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={16} /></button>
+          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={16} /></button>
         </div>
         <div className="flex flex-col gap-3">
-          <label className={lbl} style={{ color: MUTED }}>Title<input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inp} style={{ border: '1px solid #dadce0', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></label>
+          <label className={lbl} style={{ color: MUTED }}>Title<input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className={lbl} style={{ color: MUTED }}>Owner<select value={who} onChange={e => setWho(e.target.value)} className={inp} style={{ border: '1px solid #dadce0', color: INK }}><option value="">No one yet</option>{(board?.staff ?? []).map(s => <option key={s.email} value={s.email}>{s.name}</option>)}</select></label>
-            <label className={lbl} style={{ color: MUTED }}>Due date<input type="date" value={due} onChange={e => setDue(e.target.value)} className={inp} style={{ border: '1px solid #dadce0', color: INK }} /></label>
+            <label className={lbl} style={{ color: MUTED }}>Owner<select value={who} onChange={e => setWho(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }}><option value="">No one yet</option>{(board?.staff ?? []).map(s => <option key={s.email} value={s.email}>{s.name}</option>)}</select></label>
+            <label className={lbl} style={{ color: MUTED }}>Due date<input type="date" value={due} onChange={e => setDue(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
           </div>
-          <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded-[10px] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[#202124] resize-y" style={{ border: '1px solid #dadce0', color: INK }} /></label>
+          <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded-[10px] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[#0f1412] resize-y" style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
         </div>
         {err && <p className="m-0 mt-3 text-[13px]" style={{ color: BODY }} role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-10 px-4 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: INK }}>Cancel</button>
+          <button type="button" onClick={onClose} className="h-10 px-4 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
           <button type="button" onClick={() => void go()} disabled={busy} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: INK }}>{busy ? 'Saving…' : 'Create to-do'}</button>
         </div>
       </div>

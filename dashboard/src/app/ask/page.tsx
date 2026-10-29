@@ -12,10 +12,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Search, RefreshCw, ExternalLink, Paperclip } from 'lucide-react'
 import { Btn, SectionCard, Spinner, textareaCls } from '@/components/crm/primitives'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const RULE = '#e6e8e4'
 
 type Source = { n: number; title: string; uri: string }
 type Passage = {
@@ -148,7 +148,7 @@ export default function AskPage() {
               value={companyId}
               onChange={e => setCompanyId(e.target.value)}
               className="h-10 w-full sm:w-auto sm:max-w-[260px] min-w-0 truncate rounded-[10px] border px-3 text-[13px] bg-white"
-              style={{ borderColor: '#dadce0', color: companyId ? INK : FAINT }}
+              style={{ borderColor: '#d5d9d4', color: companyId ? INK : FAINT }}
             >
               <option value="">No client named</option>
               {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -163,8 +163,8 @@ export default function AskPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {EXAMPLES.map(x => (
                 <button key={x} onClick={() => { setQ(x); run(x) }}
-                  className="rounded-full border px-3 py-1.5 text-[12px] text-left transition-colors hover:border-[#202124]"
-                  style={{ borderColor: '#dadce0', color: MUTED }}>
+                  className="rounded-full border px-3 py-1.5 text-[12px] text-left transition-colors hover:border-[#0f1412]"
+                  style={{ borderColor: '#d5d9d4', color: MUTED }}>
                   {x}
                 </button>
               ))}
@@ -175,7 +175,7 @@ export default function AskPage() {
         {busy && <div className="py-14"><Spinner label="Searching and reading" /></div>}
 
         {err && (
-          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #dadce0', color: INK }}>
+          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #d5d9d4', color: INK }}>
             {err}
           </div>
         )}
@@ -215,7 +215,7 @@ export default function AskPage() {
                     <li key={s.n} className="flex gap-2.5 text-[13px]">
                       <span className="tabular-nums shrink-0" style={{ color: FAINT }}>[{s.n}]</span>
                       <a href={s.uri} target="_blank" rel="noreferrer"
-                         className="inline-flex items-center gap-1.5 underline decoration-[#dadce0] hover:decoration-[#202124]"
+                         className="inline-flex items-center gap-1.5 underline decoration-[#d5d9d4] hover:decoration-[#0f1412]"
                          style={{ color: INK }}>
                         {s.title || s.uri}
                         <ExternalLink size={12} style={{ color: FAINT }} />

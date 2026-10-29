@@ -13,8 +13,8 @@ import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
 import type { PortfolioCount } from '@/lib/companies/portfolio'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** Strip the money segment: the header names the relationship, the Finance tab carries the figures. */
 function withoutMoney(line: string): string {
@@ -22,7 +22,7 @@ function withoutMoney(line: string): string {
 }
 
 const ACTION_BTN = 'h-9 px-4 rounded-[10px] text-[14px]'
-const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#202124] focus:bg-[#f8f9fa] data-[highlighted]:bg-[#f8f9fa]'
+const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#0f1412] focus:bg-[#faf9f6] data-[highlighted]:bg-[#faf9f6]'
 
 /** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
 export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onCompany, onStage, onDrafts }: {
@@ -116,8 +116,8 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
               onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
               aria-label="Relationship"
               title="Relationship with the company, set by hand"
-              className="h-8 rounded-[8px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#202124] disabled:opacity-50"
-              style={{ borderColor: '#dadce0', color: INK }}
+              className="h-8 rounded-[8px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50"
+              style={{ borderColor: '#d5d9d4', color: INK }}
             >
               {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
             </select>
@@ -167,12 +167,12 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
                   aria-label="More actions"
                   title="More actions"
                   disabled={opening}
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center h-9 w-9 rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ color: INK }}
                 >
                   {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e8eaed] bg-white p-1.5 shadow-[0_12px_32px_rgba(32,33,36,0.12)]">
+                <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
                   <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
@@ -181,7 +181,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
             </span>
           </div>
           {status && <p className="m-0 mt-2 text-[14px]" style={{ color: MUTED }}>{status}</p>}
-          {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#c5221f' }}>{driveError}</p>}
+          {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#a1242f' }}>{driveError}</p>}
         </div>
       </div>
 
@@ -240,7 +240,7 @@ function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onC
             <Field label="Due date"><input type="date" className={inputCls} value={due} onChange={e => setDue(e.target.value)} /></Field>
           </div>
           <Field label="Internal note"><textarea className={textareaCls} rows={2} value={note} onChange={e => setNote(e.target.value)} /></Field>
-          {error && <p className="m-0 text-[12px]" style={{ color: '#c5221f' }} role="alert">{error}</p>}
+          {error && <p className="m-0 text-[12px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Create to-do</Btn>

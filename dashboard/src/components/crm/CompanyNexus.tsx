@@ -10,8 +10,8 @@ import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysis
 import { fmtRelative, fmtDate } from '@/lib/crm/format'
 import type { AiBrief, CaseRow, Company, CompanyThread, Person, Stage } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /**
  * Nexus for one company: the whole-relationship summary, the cases already opened, and a picker
@@ -92,7 +92,7 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
         title="Cases"
         actions={<Btn size="xs" level="secondary" onClick={() => setPicking(true)}><Network size={12} /> Generate case analysis</Btn>}
       >
-        {error && !picking && <p className="text-[13px] m-0 mb-2" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && !picking && <p className="text-[13px] m-0 mb-2" style={{ color: '#a1242f' }}>{error}</p>}
         {cases.length === 0 && <Empty compact>No cases yet. Press Generate case analysis and pick the emails that belong to one matter.</Empty>}
         <ul className="m-0 p-0 list-none flex flex-col">
           {cases.map(c => {
@@ -100,7 +100,7 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
             const sa = a?.structured_analysis
             const open = expanded === c.id
             return (
-              <li key={c.id} className="py-3 border-b border-[#e8eaed] last:border-b-0">
+              <li key={c.id} className="py-3 border-b border-[#e6e8e4] last:border-b-0">
                 <div className="flex items-start justify-between gap-3">
                   <button
                     type="button"

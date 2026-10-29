@@ -14,12 +14,12 @@ import { fullName, timeAgo, leadNeedsReply } from '@/components/engagement/helpe
 
 const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quote request', group_benefits: 'Group benefits', finance: 'Finance', new_business: 'New business' }
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const HAIRLINE = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const HAIRLINE = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 interface EngagementThreadRowProps {
   lead:        Lead
@@ -58,8 +58,8 @@ export function EngagementThreadRow({
         title={[name, subject].filter(Boolean).join(' · ')}
         className={cn(
           'relative w-full flex items-center justify-center py-1.5 border-0 cursor-pointer transition-colors',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]',
-          isActive ? 'bg-[#f1f3f4]' : 'bg-white hover:bg-[#f8f9fa]',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
+          isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]',
         )}
       >
         {isActive && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
@@ -85,8 +85,8 @@ export function EngagementThreadRow({
       aria-label={ariaLabel}
       className={cn(
         'relative w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-5 py-3 border-0 cursor-pointer transition-colors',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]',
-        isActive ? 'bg-[#f1f3f4]' : 'bg-white hover:bg-[#f8f9fa]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
+        isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]',
       )}
       style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}
     >

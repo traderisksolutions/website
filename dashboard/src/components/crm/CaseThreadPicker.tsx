@@ -17,8 +17,8 @@ import type { CompanyThread } from '@/lib/crm/types'
  * never filed under this client.
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 type Filter = 'all' | 'rfq' | 'claim' | 'renewal' | 'general'
 type Page = 'company' | 'everything'
 
@@ -47,7 +47,7 @@ function ThreadRow({ id, checked, onToggle, subject, summary, category, meta, wh
           </span>
         </span>
       </RegisterCell>
-      <RegisterCell>{category ? <Chip className="capitalize">{category === 'group_benefits' ? 'Group benefits' : category}</Chip> : <span style={{ color: '#9aa0a6' }}>—</span>}</RegisterCell>
+      <RegisterCell>{category ? <Chip className="capitalize">{category === 'group_benefits' ? 'Group benefits' : category}</Chip> : <span style={{ color: '#8c958f' }}>—</span>}</RegisterCell>
       <RegisterCell last align="right" primary={fmtRelative(when)} secondary={summary ? meta : undefined} />
     </RegisterRow>
   )
@@ -186,7 +186,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
         ) : (
           <>
             <label className="relative block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#80868b' }} />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
               <input
                 className={cn(inputCls, 'pl-9')}
                 placeholder="Search subject or sender across every thread"
@@ -232,7 +232,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
           />
         </label>
 
-        {error && <p className="text-[13px] m-0" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="text-[13px] m-0" style={{ color: '#a1242f' }}>{error}</p>}
 
         <div className="flex items-center justify-between gap-3 pt-1">
           <p className="text-[13px] m-0" style={{ color: MUTED }}>

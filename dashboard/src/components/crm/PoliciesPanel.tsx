@@ -5,8 +5,8 @@ import { SectionCard, Empty } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, fmtRelative, fmtMoney } from '@/lib/crm/format'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 export type Policy = {
   id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null
@@ -112,7 +112,7 @@ function ValueTiles({ value }: { value: CompanyValue }) {
   return (
     <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {value.byCurrency.map(v => (
-        <div key={v.currency} className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+        <div key={v.currency} className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
           <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Total billed ({v.currency})</p>
           <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>
             {v.billed.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -124,7 +124,7 @@ function ValueTiles({ value }: { value: CompanyValue }) {
         </div>
       ))}
 
-      <div className="rounded-[16px] p-5" style={{ background: '#f1f3f4' }}>
+      <div className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
         <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Policies</p>
         <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{value.policyCount}</p>
         <p className="m-0 mt-2 text-[12.5px]" style={{ color: MUTED }}>

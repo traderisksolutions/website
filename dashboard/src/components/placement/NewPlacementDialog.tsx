@@ -162,7 +162,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                 <Btn level="tertiary" size="xs" onClick={() => setRows(rs => [...rs, blankRow()])}><Plus size={12} /> Add line</Btn>
               </div>
               {rows.map((r, i) => (
-                <div key={r.key} className="rounded-[12px] p-3 flex flex-col gap-2.5" style={{ border: '1px solid #e8eaed' }}>
+                <div key={r.key} className="rounded-[12px] p-3 flex flex-col gap-2.5" style={{ border: '1px solid #e6e8e4' }}>
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2.5 items-end">
                     <Field label={`Line ${i + 1}`}>
                       <ProductLineSelect value={r.product_line} onChange={slug => setRow(r.key, { product_line: slug, label: r.label || (slug ? productLineLabel(slug) : '') })} />

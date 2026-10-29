@@ -189,7 +189,7 @@ export default function GbReviewPage() {
   const brochure = sources.find(x => x.kind === 'brochure') ?? sources.find(x => /\.pdf$/i.test(x.filename))
   const ver = verificationOf(d.table.rules)
   const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
-  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-white'
+  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white'
   const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
@@ -199,20 +199,20 @@ export default function GbReviewPage() {
   const tabLabel = (label: string) => { const c = resolveProduct(label).codes; return c.length ? c.map(x => PRODUCT_BY_CODE[x].abbrev).join('+') : '' }
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#202124' }}>
+    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
-      <button onClick={leave} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#5f6368' }}>← Rate tables</button>
+      <button onClick={leave} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#4a5550' }}>← Rate tables</button>
 
       <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{insurerLabel}</h1>
-          <p className="m-0 text-[13.5px] mt-2 truncate tabular-nums" style={{ color: '#5f6368' }}>
+          <p className="m-0 text-[13.5px] mt-2 truncate tabular-nums" style={{ color: '#4a5550' }}>
             {STATUS_WORD[status] ?? status} · {VERIFICATION[ver.status].label} · {t.plan_year ? `${t.plan_year} · ` : ''}age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {dirty && <span className="text-[11px] font-medium text-[#3c4043] mr-2">Unsaved changes</span>}
-          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#c5221f]' : 'text-[#3c4043]')}>{msg}</span>}
+          {dirty && <span className="text-[11px] font-medium text-[#2a332f] mr-2">Unsaved changes</span>}
+          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#a1242f]' : 'text-[#2a332f]')}>{msg}</span>}
           {/* One document button and one menu. Status sits in the line under the name. */}
           {brochure
             ? <a href={`/api/group-benefits/sources/file/${brochure.driveFileId}`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> Brochure</a>
@@ -227,7 +227,7 @@ export default function GbReviewPage() {
                 {status === 'approved' && <DropdownMenuItem onSelect={() => setEditing(true)}><Pencil size={13} className="mr-2" /> Edit rates</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => reExtract()} disabled={!!saving}><RefreshCw size={13} className="mr-2" /> Re-run extraction</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => del()} className="text-[#c5221f]"><Trash2 size={13} className="mr-2" /> Delete</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => del()} className="text-[#a1242f]"><Trash2 size={13} className="mr-2" /> Delete</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -239,7 +239,7 @@ export default function GbReviewPage() {
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
               </button>
               {status === 'in_review' && (
-                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-10 px-4 rounded-[10px] bg-[#202124] text-white hover:opacity-90 disabled:opacity-50">
+                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-10 px-4 rounded-[10px] bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-50">
                   {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
                 </button>
               )}
@@ -251,13 +251,13 @@ export default function GbReviewPage() {
       {/* One tab per cover the insurer prices, in the canon's order, then its benefits and its
           documents. Reading only: review and edit keep every section on one page. */}
       {reading && (
-        <div className="mb-6 flex items-center gap-6 overflow-x-auto" style={{ borderBottom: '1px solid #e8eaed' }} role="tablist">
+        <div className="mb-6 flex items-center gap-6 overflow-x-auto" style={{ borderBottom: '1px solid #e6e8e4' }} role="tablist">
           {[...productTabs, 'benefits', 'documents'].map(tab => (
             <button key={tab} role="tab" aria-selected={current === tab} onClick={() => setView(tab)}
-              className={cn('relative pb-2.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#202124]' : 'text-[#5f6368] hover:text-[#202124]')}>
+              className={cn('relative pb-2.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
               {tab === 'benefits' ? 'Benefits' : tab === 'documents' ? `Documents${sources.length ? ` · ${sources.length}` : ''}` : tab}
-              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-[11px] font-normal" style={{ color: '#9aa0a6' }}>{tabLabel(tab)}</span>}
-              {current === tab && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#202124]" aria-hidden />}
+              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-[11px] font-normal" style={{ color: '#8c958f' }}>{tabLabel(tab)}</span>}
+              {current === tab && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#0f1412]" aria-hidden />}
             </button>
           ))}
         </div>
@@ -266,30 +266,30 @@ export default function GbReviewPage() {
       {reading && current === 'documents' && (
         <section className="mb-8">
           {sources.length === 0 ? (
-            <p className="text-[13px]" style={{ color: '#5f6368' }}>No documents linked. Add the brochure or calculator to the insurer&apos;s folder in Drive, then link it under Rate tables.</p>
+            <p className="text-[13px]" style={{ color: '#4a5550' }}>No documents linked. Add the brochure or calculator to the insurer&apos;s folder in Drive, then link it under Rate tables.</p>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-[#e8eaed] divide-y divide-[#f1f3f4]">
+              <div className="rounded-lg border border-[#e6e8e4] divide-y divide-[#f1f2ee]">
                 {sources.map(f => (
                   <div key={f.driveFileId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
                       <div className="text-[13.5px] font-medium break-words">{f.filename}</div>
-                      <div className="text-[12px]" style={{ color: '#5f6368' }}>{f.kind === 'brochure' ? 'Brochure' : f.kind === 'calculator' ? 'Insurer calculator' : f.kind === 'workbook' ? 'TRS workbook' : 'File'}{f.planYear ? ` · ${f.planYear}` : ''}</div>
+                      <div className="text-[12px]" style={{ color: '#4a5550' }}>{f.kind === 'brochure' ? 'Brochure' : f.kind === 'calculator' ? 'Insurer calculator' : f.kind === 'workbook' ? 'TRS workbook' : 'File'}{f.planYear ? ` · ${f.planYear}` : ''}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       {/\.pdf$/i.test(f.filename) && (
-                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-[#dadce0] hover:bg-[#f8f9fa]">
+                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-[#d5d9d4] hover:bg-[#faf9f6]">
                           {previewId === f.driveFileId ? 'Hide preview' : 'Preview'}
                         </button>
                       )}
-                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-[#dadce0] hover:bg-[#f8f9fa]"><Download size={13} /> Download</a>
+                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-[#d5d9d4] hover:bg-[#faf9f6]"><Download size={13} /> Download</a>
                     </div>
                   </div>
                 ))}
               </div>
               {(previewId ?? (brochure && /\.pdf$/i.test(brochure.filename) ? brochure.driveFileId : null)) && (
                 <iframe title="Document preview" src={`/api/group-benefits/sources/file/${previewId ?? brochure!.driveFileId}`}
-                        className="w-full h-[78vh] min-h-[480px] rounded-lg" style={{ border: '1px solid #e8eaed' }} />
+                        className="w-full h-[78vh] min-h-[480px] rounded-lg" style={{ border: '1px solid #e6e8e4' }} />
               )}
             </div>
           )}
@@ -310,7 +310,7 @@ export default function GbReviewPage() {
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
               {!insurerCompanyId && meta.insurer_name && (
-                <a href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#5f6368' }}>Add this insurer in Companies</a>
+                <a href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#4a5550' }}>Add this insurer in Companies</a>
               )}
             </div>
             <div>
@@ -336,13 +336,13 @@ export default function GbReviewPage() {
         const stage = (d.table as { extract_stage?: string | null }).extract_stage ?? 'reading'
         const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
         return (
-          <div className="rounded-lg border border-[#e8eaed] bg-[#f8f9fa] px-4 py-3.5">
-            <p className="text-[12px] font-semibold text-[#3c4043] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+          <div className="rounded-lg border border-[#e6e8e4] bg-[#faf9f6] px-4 py-3.5">
+            <p className="text-[12px] font-semibold text-[#2a332f] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
             <div className="flex flex-col gap-1.5">
               {STAGES.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2 text-[12px]">
-                  {i < cur ? <CheckCircle2 size={14} className="text-[#3c4043] flex-shrink-0" />
-                    : i === cur ? <Loader2 size={14} className="animate-spin text-[#3c4043] flex-shrink-0" />
+                  {i < cur ? <CheckCircle2 size={14} className="text-[#2a332f] flex-shrink-0" />
+                    : i === cur ? <Loader2 size={14} className="animate-spin text-[#2a332f] flex-shrink-0" />
                     : <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex-shrink-0" />}
                   <span className={cn(i <= cur ? 'text-foreground/80 font-medium' : 'text-muted-foreground/50')}>{s.label}</span>
                 </div>
@@ -364,7 +364,7 @@ export default function GbReviewPage() {
                 if (!e) return null
                 return (
                   <span key={k} className={cn('px-2 py-0.5 rounded-[6px] font-medium',
-                    e.error ? 'bg-[#f1f3f4] text-[#3c4043]' : 'bg-muted text-muted-foreground')}
+                    e.error ? 'bg-[#f1f2ee] text-[#2a332f]' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
                     {({ opus: 'first read', gemini: 'second read', parser: 'text parser' } as const)[k]}: {e.error ? 'failed' : `${e.rates} cells`}
                   </span>
@@ -375,7 +375,7 @@ export default function GbReviewPage() {
 
           {/* Conflict summary — only when there is something to verify, or while reviewing */}
           {(d.conflicts.length > 0 || !reading) && <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
-            d.conflicts.length ? 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]' : 'bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]')}>
+            d.conflicts.length ? 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]' : 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]')}>
             {d.conflicts.length ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
@@ -384,11 +384,11 @@ export default function GbReviewPage() {
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
           {(d.wordingDiff?.length ?? 0) > 0 && (
-            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-[#f8f9fa] border border-[#e8eaed] text-[#3c4043]">
+            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]">
               <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
               <ul className="flex flex-col gap-0.5">
                 {d.wordingDiff!.map((w, i) => (
-                  <li key={i} className="text-[#3c4043]">
+                  <li key={i} className="text-[#2a332f]">
                     <span className="font-medium">{w.path}</span>: {w.from == null ? <em>added</em> : w.to == null ? <em>removed</em> : <>&ldquo;{String(w.from)}&rdquo; → &ldquo;{String(w.to)}&rdquo;</>}
                   </li>
                 ))}
@@ -398,7 +398,7 @@ export default function GbReviewPage() {
 
           {rates.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-[13px]">
-              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-[#202124] underline">re-run</button>.
+              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-[#0f1412] underline">re-run</button>.
             </div>
           )}
 
@@ -415,7 +415,7 @@ export default function GbReviewPage() {
                 for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
                 return (
                   <div key={mt} className="mb-5">
-                    {mtLabel(mt || null) && <p className="text-[12.5px] text-[#5f6368] mb-2">{mtLabel(mt || null)}</p>}
+                    {mtLabel(mt || null) && <p className="text-[12.5px] text-[#4a5550] mb-2">{mtLabel(mt || null)}</p>}
                     <div className="rounded-lg border border-border overflow-x-auto">
                       <table className="data-table matrix-table w-full border-collapse text-[12.5px]">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
@@ -426,13 +426,13 @@ export default function GbReviewPage() {
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-end">
                                     <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="w-24 text-right text-[12px] font-medium px-2 py-1 rounded border border-transparent focus:border-[#202124] focus:outline-none bg-white !text-[#202124]" />
-                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-[#9aa0a6] hover:text-[#c5221f]"><X size={12} /></button>
+                                      className="w-24 text-right text-[12px] font-medium px-2 py-1 rounded border border-transparent focus:border-[#0f1412] focus:outline-none bg-white !text-[#0f1412]" />
+                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-[#8c958f] hover:text-[#a1242f]"><X size={12} /></button>
                                   </span>
                                 ) : plan}
                               </th>
                             ))}
-                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-[#5f6368] hover:text-[#202124]"><Plus size={13} /></button></th>}
+                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-[#4a5550] hover:text-[#0f1412]"><Plus size={13} /></button></th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -441,14 +441,14 @@ export default function GbReviewPage() {
                               <td className="pl-4 whitespace-nowrap">
                                 {editable
                                   ? <input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
-                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#202124] focus:outline-none bg-white" />
+                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white" />
                                   : <span className="font-medium text-foreground/70">{band}</span>}
                               </td>
                               {plans.map(plan => {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f3f4] text-[#3c4043] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f2ee] text-[#2a332f] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
@@ -456,16 +456,16 @@ export default function GbReviewPage() {
                                       onChange={e => setCell(product, mt, band, plan, e.target.value)}
                                       title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''}
                                       className={cn('w-24 text-right tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
-                                        conflict ? 'border-[#dadce0] bg-[#f8f9fa]' : 'border-transparent hover:border-border')} />
+                                        conflict ? 'border-[#d5d9d4] bg-[#faf9f6]' : 'border-transparent hover:border-border')} />
                                   </td>
                                 )
                               })}
-                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>}
+                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>}
                             </tr>
                           ))}
                           {editable && (
                             <tr><td colSpan={plans.length + 2} className="pl-4">
-                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-[#202124] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
+                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
                             </td></tr>
                           )}
                         </tbody>
@@ -478,7 +478,7 @@ export default function GbReviewPage() {
           ))}
 
           {editable && (
-            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-[#202124] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
+            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-[#0f1412] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
           )}
 
           {/* Coverage / sum assured */}
@@ -498,7 +498,7 @@ export default function GbReviewPage() {
                         <td><input value={c.plan_code ?? ''} onChange={e => updateCoverage(i, { plan_code: e.target.value || null })} className={ci} /></td>
                         <td><input value={c.item_label} onChange={e => updateCoverage(i, { item_label: e.target.value })} className={ci} /></td>
                         <td className="text-right pr-2"><input value={c.value_numeric != null ? String(c.value_numeric) : (c.value_text ?? '')} onChange={e => { const n = parseFloat(e.target.value.replace(/,/g, '')); updateCoverage(i, isFinite(n) && /^[\d.,]+$/.test(e.target.value) ? { value_numeric: n, value_text: null } : { value_numeric: null, value_text: e.target.value }) }} className={cn(ci, 'text-right w-32')} /></td>
-                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>
+                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>
                       </tr>
                     ) : (
                       <tr key={i}>
@@ -509,7 +509,7 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-[#202124] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
+                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -540,12 +540,12 @@ export default function GbReviewPage() {
                         </td>
                         <td className="text-right pr-2 py-1">
                           <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className={cn('w-44 text-right text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#202124]' : 'border-transparent')} />
+                            className={cn('w-44 text-right text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#0f1412]' : 'border-transparent')} />
                         </td>
-                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#c5221f]"><Trash2 size={12} /></button></td>}
+                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>}
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-[#202124] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
+                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
                   </tbody>
                 </table>
               </div>

@@ -12,7 +12,7 @@ import { renderMarkdown, wordCount } from '@/lib/marketing/markdown'
 import { fmtDate } from '@/lib/marketing/labels'
 import type { ArticleDetail, ArticleStatus, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#202124'
+const INK = '#0f1412'
 type Payload = { site: SiteSummary; article: ArticleDetail }
 
 export default function ArticlePage() {

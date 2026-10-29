@@ -94,7 +94,7 @@ export type Sender = {
 
 export const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
   contacted: { label: 'Contacted', color: '#8A4200', bg: 'rgba(138,66,0,0.09)'  },
-  engaged:   { label: 'Engaged',   color: '#202124', bg: 'rgba(32,33,36,0.07)'  },
+  engaged:   { label: 'Engaged',   color: '#0f1412', bg: 'rgba(15,20,18,0.07)'  },
   qualified: { label: 'Qualified', color: '#096842', bg: 'rgba(9,104,66,0.09)'  },
   proposal:  { label: 'Proposal',  color: '#7E3C00', bg: 'rgba(130,60,0,0.09)'  },
   converted: { label: 'Converted', color: '#096842', bg: 'rgba(9,104,66,0.09)'  },
@@ -104,7 +104,7 @@ export const STATUS_MAP: Record<string, { label: string; color: string; bg: stri
 export const ALL_STATUSES = ['contacted', 'engaged', 'qualified', 'proposal', 'converted', 'dropped']
 
 export const EMAIL_TYPE_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  PRICING:      { label: 'Pricing',      color: '#1d4ed8', bg: 'rgba(29,78,216,0.08)'  },
+  PRICING:      { label: 'Pricing',      color: '#1f4e3a', bg: 'rgba(29,78,216,0.08)'  },
   COVERAGE:     { label: 'Coverage',     color: '#7c3aed', bg: 'rgba(124,58,237,0.08)' },
   RENEWAL:      { label: 'Renewal',      color: '#b45309', bg: 'rgba(180,83,9,0.08)'   },
   DOCUMENT:     { label: 'Document',     color: '#0369a1', bg: 'rgba(3,105,161,0.08)'  },

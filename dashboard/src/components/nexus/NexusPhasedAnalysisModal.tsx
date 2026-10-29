@@ -12,13 +12,13 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
 
-const INK   = '#202124'
-const BODY  = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT   = '#9aa0a6'
-const HAIR  = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK   = '#0f1412'
+const BODY  = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT   = '#8c958f'
+const HAIR  = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 type PhaseStatus = 'pending' | 'running' | 'done' | 'failed'
 
@@ -182,7 +182,7 @@ export function NexusPhasedAnalysisModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(32,33,36,0.4)' }}
+      style={{ background: 'rgba(15,20,18,0.4)' }}
       onClick={anyRunning ? undefined : onClose}
     >
       <div
@@ -194,7 +194,7 @@ export function NexusPhasedAnalysisModal({
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Run analysis</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>

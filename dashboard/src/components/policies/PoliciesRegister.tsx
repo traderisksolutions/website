@@ -136,7 +136,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                               <button key={x.key} type="button" role="tab" aria-selected={sec === x.key}
                                 onClick={e => { e.stopPropagation(); setSection(o => ({ ...o, [p.id]: x.key })) }}
                                 className="h-6 px-2 rounded-[6px] border-0 cursor-pointer text-[12.5px]"
-                                style={{ background: sec === x.key ? '#e8eaed' : 'transparent', color: sec === x.key ? INK : MUTED, fontWeight: sec === x.key ? 500 : 400 }}>
+                                style={{ background: sec === x.key ? '#e6e8e4' : 'transparent', color: sec === x.key ? INK : MUTED, fontWeight: sec === x.key ? 500 : 400 }}>
                                 {x.label}
                               </button>
                             ))}
@@ -247,7 +247,7 @@ function PolicyRows({ row, detail, expanded, onToggle }: { row: React.ReactNode;
     <>
       <RegisterRow onClick={onToggle} selected={expanded}>{row}</RegisterRow>
       {expanded && (
-        <tr style={{ borderBottom: '1px solid #e8eaed', background: '#fafafa' }}>
+        <tr style={{ borderBottom: '1px solid #e6e8e4', background: '#fafafa' }}>
           <td colSpan={COLS} className="px-[10px] py-2">{detail}</td>
         </tr>
       )}

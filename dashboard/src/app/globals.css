@@ -15,53 +15,63 @@
        because tables and the inbox read oversized. Type sizes are set for 1.0 now. */
     --ui-zoom: 1;
 
+    /* TRS brand (traderisksolutions.com.sg, 29 Oct 2026): deep green, mint and lime on green only,
+       EB Garamond for page and dialog titles, Geist for the interface, Geist Mono for references. */
+    --trs-green:   #132C1C;
+    --trs-green-2: #1F4E3A;
+    --trs-mint:    #E0FCD8;
+    --trs-soft:    #EDF7E8;
+    --trs-lime:    #8FF575;
+    --trs-tint:    #FAF9F6;
+
+
     /* ── shadcn/ui base tokens (HSL triplets, no hsl() wrapper) ── */
 
     /* App shell: the page IS white. Fills are for cards and zebra rows only,
        never for a full section — see docs/design-system.md. */
     --background:            0 0% 100%;      /* #FFFFFF */
-    --foreground:            0 0% 13%;      /* #202124 ink */
+    --foreground:            156 14% 7%;     /* #0F1412 ink */
 
     --card:                  0 0% 100%;      /* #FFFFFF — same as page; a hairline border/ring is what separates it, not a fill */
-    --card-foreground:       0 0% 13%;
+    --card-foreground:       156 14% 7%;
 
     --popover:               0 0% 100%;
-    --popover-foreground:    0 0% 13%;
+    --popover-foreground:    156 14% 7%;
 
     /* Deep refined navy — the one accent. Used for CTAs, active tabs, links,
        selected state. Not spent on decoration. */
-    --primary:               219 83% 28%;    /* #0C338A */
+    --primary:               142 40% 12%;    /* #132C1C TRS deep green */
     --primary-foreground:    0 0% 100%;
 
     /* Secondary / muted — hairline-grey, not a blue-tinted box */
-    --secondary:             210 12% 95%;    /* #F1F3F4 */
-    --secondary-foreground:  0 0% 13%;
+    --secondary:             75 13% 94%;     /* #F1F2EE */
+    --secondary-foreground:  156 14% 7%;
 
-    --muted:                 210 12% 95%;    /* #F1F3F4 */
-    --muted-foreground:      213 5% 39%;     /* #5f6368 */
+    --muted:                 75 13% 94%;     /* #F1F2EE */
+    --muted-foreground:      153 7% 31%;     /* #4A5550 */
 
     /* Accent — soft navy tint for hover / selected states, earned not decorative */
-    --accent:                210 12% 95%;    /* #F1F3F4 — hover / selected, neutral */
-    --accent-foreground:     0 0% 13%;
+    --accent:                100 48% 94%;    /* #EDF7E8 soft green — hover / selected */
+    --accent-foreground:     142 40% 12%;
 
-    --destructive:           354 55% 46%;    /* #C03347 */
+    --destructive:           355 63% 39%;    /* #A1242F */
     --destructive-foreground: 0 0% 100%;
 
     /* Border — hairline, structural. Reserve --input for stronger interactive affordance. */
-    --border:                216 18% 92%;    /* #e8eaed hairline */
-    --input:                 214 12% 86%;    /* #dadce0 control border */
-    --ring:                  0 0% 13%;      /* ink focus */
-    --radius:                0.75rem;
+    --border:                90 8% 90%;      /* #E6E8E4 hairline */
+    --input:                 108 6% 84%;     /* #D5D9D4 control border */
+    --ring:                  142 40% 12%;    /* deep green focus */
+    --radius:                0.625rem;
 
     /* ── Sidebar palette ── */
     --sidebar-bg:            0 0% 100%;
-    --sidebar-fg:            215 20% 40%;    /* #506078 — stronger nav labels */
-    --sidebar-primary:       215 44% 11%;    /* #101828 — strong labels */
+    --sidebar-fg:            153 7% 31%;
+    --sidebar-primary:       156 14% 7%;
     --sidebar-primary-fg:    0 0% 100%;
-    --sidebar-accent:        219 65% 95%;    /* stronger blue selected bg */
-    --sidebar-accent-fg:     219 83% 28%;    /* primary blue selected text */
-    --sidebar-border:        216 16% 84%;
-    --sidebar-ring:          219 83% 28%;
+    --sidebar-accent:        100 48% 94%;    /* soft green selected bg */
+    --sidebar-accent-fg:     142 40% 12%;    /* deep green selected text */
+    --sidebar-border:        108 6% 84%;
+    --sidebar-ring:          142 40% 12%;
 
     /* ── Layout dimensions ── */
     --topnav-height:         52px;
@@ -78,7 +88,7 @@
     --top-nav-h:             56px;
     --content-bg:            hsl(0 0% 100%);
     --card-bg:               #ffffff;
-    --card-border:           #e8eaed;
+    --card-border:           #e6e8e4;
     /* A hairline ring, not a drop shadow — the "no boxes, no tinted panels"
        rule means separation reads as a border, so every place that already
        spends `boxShadow: var(--card-shadow)` gets the new look for free. */
@@ -86,7 +96,7 @@
     --card-radius:           1rem;
 
     /* ── Chart palette — updated to match new primary ── */
-    --chart-1:               219 83% 28%;    /* primary blue */
+    --chart-1:               142 40% 12%;    /* deep green */
     --chart-2:               158 76% 30%;    /* success green */
     --chart-3:               32  88% 38%;    /* warning amber */
     --chart-4:               215 20% 40%;    /* mid slate */
@@ -100,52 +110,52 @@
     --surface:               rgba(255,255,255,0.72);
     --surface-elevated:      rgba(255,255,255,0.88);
     --surface-solid:         #ffffff;
-    --surface-sent:          rgba(12,51,138,0.055);  /* outbound email bubble tint */
+    --surface-sent:          rgba(19,44,28,0.055);  /* outbound email bubble tint */
 
     /* Borders — scale from whisper to assertive */
-    --border-subtle:         #e8eaed;
-    --border-mid:            #dadce0;
-    --border-strong:         #bdc1c6;
+    --border-subtle:         #e6e8e4;
+    --border-mid:            #d5d9d4;
+    --border-strong:         #bfc5bf;
 
     /* Text hierarchy — consolidated single source of truth */
-    --text-primary:          #202124;
-    --text-secondary:        #3c4043;
-    --text-muted:            #5f6368;
+    --text-primary:          #0f1412;
+    --text-secondary:        #2a332f;
+    --text-muted:            #4a5550;
 
     /* Primary blue hex — for JS inline styles, one family only */
-    --primary-hex:           #0C338A;
-    --primary-hover:         #092870;
-    --primary-selected-bg:   #f1f3f4;
-    --primary-focus-ring:    rgba(32,33,36,0.24);
-    --primary-badge-bg:      #f1f3f4;
-    --primary-light-bg:      #f1f3f4;   /* callout / info tint — neutral */
-    --primary-light-border:  #dadce0;
+    --primary-hex:           #132c1c;
+    --primary-hover:         #1f4e3a;
+    --primary-selected-bg:   #edf7e8;
+    --primary-focus-ring:    rgba(19,44,28,0.28);
+    --primary-badge-bg:      #edf7e8;
+    --primary-light-bg:      #f1f2ee;   /* callout / info tint — neutral */
+    --primary-light-border:  #d5d9d4;
 
     /* Semantic status — all validated ≥ 4.5:1 */
-    --success:               #3c4043;
-    --success-bg:            #f1f3f4;
-    --warning:               #3c4043;
-    --warning-bg:            #f1f3f4;
-    --warning-border:        #e8eaed;
-    --success-border:        #e8eaed;
-    --error:                 #3c4043;
-    --error-bg:              #f1f3f4;
-    --neutral-status-bg:     #f1f3f4;
-    --neutral-status-fg:     #3c4043;
+    --success:               #2a332f;
+    --success-bg:            #f1f2ee;
+    --warning:               #2a332f;
+    --warning-bg:            #f1f2ee;
+    --warning-border:        #e6e8e4;
+    --success-border:        #e6e8e4;
+    --error:                 #2a332f;
+    --error-bg:              #f1f2ee;
+    --neutral-status-bg:     #f1f2ee;
+    --neutral-status-fg:     #2a332f;
 
     /* Table / list surface tokens — light hairline-grey tints, not blue boxes */
     --table-header-bg:       #ffffff;
-    --group-header-bg:       #f8f9fa;
-    --group-header-fg:       #3c4043;
-    --selected-row-bg:       #f1f3f4;
-    --hover-row-bg:          #f8f9fa;
+    --group-header-bg:       #faf9f6;
+    --group-header-fg:       #2a332f;
+    --selected-row-bg:       #edf7e8;
+    --hover-row-bg:          #faf9f6;
 
     /* Elevation system — hairline first. A resting card is a 1px ring, not a
        drop shadow; only genuinely floating overlays (open dropdowns, modals)
        earn real elevation on top of that ring. */
     --shadow-card:           0 0 0 1px var(--border-subtle);
-    --shadow-panel:          0 0 0 1px var(--border-subtle), 0 8px 24px rgba(32,33,36,0.08);
-    --shadow-modal:          0 0 0 1px var(--border-subtle), 0 16px 40px rgba(32,33,36,0.14);
+    --shadow-panel:          0 0 0 1px var(--border-subtle), 0 8px 24px rgba(15,20,18,0.08);
+    --shadow-modal:          0 0 0 1px var(--border-subtle), 0 16px 40px rgba(15,20,18,0.14);
 
     /* Content padding */
     --content-px:            1.5rem;
@@ -153,14 +163,14 @@
     --content-pb:            4rem;
 
     /* Stat card tonal accents */
-    --stat-blue-bg:          #f1f3f4;
-    --stat-blue-fg:          #202124;
-    --stat-green-bg:         #f1f3f4;
-    --stat-green-fg:         #202124;
-    --stat-amber-bg:         #f1f3f4;
-    --stat-amber-fg:         #202124;
-    --stat-red-bg:           #f1f3f4;
-    --stat-red-fg:           #202124;
+    --stat-blue-bg:          #f1f2ee;
+    --stat-blue-fg:          #0f1412;
+    --stat-green-bg:         #f1f2ee;
+    --stat-green-fg:         #0f1412;
+    --stat-amber-bg:         #f1f2ee;
+    --stat-amber-fg:         #0f1412;
+    --stat-red-bg:           #f1f2ee;
+    --stat-red-fg:           #0f1412;
   }
 }
 
@@ -169,10 +179,13 @@
   * { box-sizing: border-box; border-color: hsl(var(--border)); }
 
   html, body, input, button, select, textarea {
-    font-family: var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-geist), 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
   }
 
   body {
+    /* Defined here, not on :root: the next/font variables they read are set on <body>. */
+    --font-serif-stack: var(--font-serif), "EB Garamond", "Iowan Old Style", Georgia, serif;
+    --font-mono-stack:  var(--font-mono), "Geist Mono", ui-monospace, Menlo, monospace;
     margin: 0;
     /* Global UI scale — enlarges fonts AND spacing uniformly (customer feedback:
        everything read too small). Tune --ui-zoom in one place; full-height (vh)
@@ -188,12 +201,21 @@
   h1, h2, h3, h4, h5, h6 {
     letter-spacing: -0.02em;
   }
+
+  /* Page titles in the website's serif (EB Garamond 500). Section headings stay Geist. */
+  h1 {
+    font-family: var(--font-serif-stack);
+    font-weight: 500 !important;
+    letter-spacing: -0.01em;
+  }
+  [role="dialog"] h2:first-of-type { font-family: var(--font-serif-stack); font-weight: 500; letter-spacing: -0.005em; }
+  code, kbd, .font-mono { font-family: var(--font-mono-stack); }
 }
 
 /* ── Scrollbar — fine, neutral ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #d5d9d4; border-radius: 4px; }
 
 /* ── Responsive layout — top nav at every breakpoint; content-area margin only shifts for the
    /engagement conversation-list rail (see components/nav/engagement-rail.tsx), set inline by
@@ -335,8 +357,8 @@
   gap: 16px;
   padding: 20px 24px 16px;
 }
-.page-title   { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; color: #202124; margin: 0; }
-.page-subtitle { font-size: 14.5px; color: #5f6368; margin: 4px 0 0; }
+.page-title   { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.15; color: #0f1412; margin: 0; }
+.page-subtitle { font-size: 14.5px; color: #4a5550; margin: 4px 0 0; }
 
 /* ════════════════════════════════════════════════════════════════
    Skeleton / loading shimmer
@@ -404,16 +426,16 @@
   padding: 2px 8px; border-radius: 6px;
   white-space: nowrap; letter-spacing: 0.01em;
 }
-.st-new       { background: #f1f3f4; color: #3c4043; }
-.st-contacted { background: #f1f3f4; color: #3c4043; }
-.st-engaged   { background: #f1f3f4; color: #3c4043; }
-.st-qualified { background: #f1f3f4; color: #3c4043; }
-.st-proposal  { background: #f1f3f4; color: #3c4043; }
-.st-converted { background: #f1f3f4; color: #3c4043; }
-.st-dropped   { background: #f1f3f4; color: #3c4043; }
-.st-replied   { background: #f1f3f4; color: #3c4043; }
-.st-prospect  { background: #f1f3f4; color: #3c4043; }
-.st-cc        { background: #f1f3f4; color: #3c4043; }
+.st-new       { background: #f1f2ee; color: #2a332f; }
+.st-contacted { background: #f1f2ee; color: #2a332f; }
+.st-engaged   { background: #f1f2ee; color: #2a332f; }
+.st-qualified { background: #f1f2ee; color: #2a332f; }
+.st-proposal  { background: #f1f2ee; color: #2a332f; }
+.st-converted { background: #f1f2ee; color: #2a332f; }
+.st-dropped   { background: #f1f2ee; color: #2a332f; }
+.st-replied   { background: #f1f2ee; color: #2a332f; }
+.st-prospect  { background: #f1f2ee; color: #2a332f; }
+.st-cc        { background: #f1f2ee; color: #2a332f; }
 
 /* ════════════════════════════════════════════════════════════════
    Focus ring — consistent, accessible
@@ -450,14 +472,14 @@ select:focus-visible {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 13px; font-weight: 500;
   padding: 6px 14px; border-radius: 999px;
-  border: 1px solid #dadce0;
+  border: 1px solid #d5d9d4;
   background: transparent;
   color: hsl(var(--muted-foreground));
   cursor: pointer; white-space: nowrap;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 .filter-pill:hover { background: hsl(var(--muted)); border-color: var(--border-mid); color: hsl(var(--foreground)); }
-.filter-pill.active { background: #202124; border-color: #202124; color: #ffffff; font-weight: 500; }
+.filter-pill.active { background: #0f1412; border-color: #0f1412; color: #ffffff; font-weight: 500; }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
   padding: 0 5px; border-radius: 4px;
@@ -470,7 +492,7 @@ select:focus-visible {
 .filter-search {
   display: flex; align-items: center; gap: 8px;
   height: 40px; padding: 0 14px;
-  border: 1px solid #dadce0;
+  border: 1px solid #d5d9d4;
   border-radius: 10px;
   background: hsl(var(--background));
   min-width: 200px;
@@ -491,15 +513,15 @@ select:focus-visible {
 /* Table header — tinted bg is the divider; no bottom border needed */
 .data-table thead th {
   font-size: 12px; font-weight: 500; letter-spacing: 0;
-  text-transform: none; color: #5f6368;
+  text-transform: none; color: #4a5550;
   padding: 0 12px; height: 40px;
   background: #ffffff;
-  border-bottom: 1px solid #e8eaed;
+  border-bottom: 1px solid #e6e8e4;
   white-space: nowrap;
 }
 /* Member-type differentiators for the Pricing Matrix review grid. */
-.data-table thead.mt-employee th  { background: #202124; color: #ffffff; border-bottom-color: #202124; }
-.data-table thead.mt-dependant th { background: #f1f3f4; color: #202124; }
+.data-table thead.mt-employee th  { background: #0f1412; color: #ffffff; border-bottom-color: #0f1412; }
+.data-table thead.mt-dependant th { background: #f1f2ee; color: #0f1412; }
 
 /* Wide rate matrices (Pricing Matrix review): zebra striping + a sticky Age-band
    first column so rows stay traceable when scrolling across many plan columns.
@@ -507,12 +529,12 @@ select:focus-visible {
    always rendered on the white review page, so the tints are light-mode fixed. */
 .data-table.matrix-table tbody td:first-child { background: #ffffff; }
 .data-table.matrix-table tbody tr:nth-child(even) td,
-.data-table.matrix-table tbody tr:nth-child(even) td:first-child { background: #f8f9fa; }
+.data-table.matrix-table tbody tr:nth-child(even) td:first-child { background: #faf9f6; }
 .data-table.matrix-table thead th        { position: sticky; top: 0; z-index: 2; }
 .data-table.matrix-table thead th:first-child,
 .data-table.matrix-table tbody td:first-child {
   position: sticky; left: 0;
-  box-shadow: 2px 0 4px -2px rgba(32, 33, 36, 0.12);
+  box-shadow: 2px 0 4px -2px rgba(15, 20, 18, 0.12);
 }
 .data-table.matrix-table thead th:first-child { z-index: 3; }
 .data-table.matrix-table tbody td:first-child { z-index: 1; }
@@ -526,7 +548,7 @@ select:focus-visible {
 .data-table tbody tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover td { background: var(--hover-row-bg); }
 .data-table tbody tr.row-selected td { background: var(--selected-row-bg); }
-.data-table tbody tr.row-selected:hover td { background: rgba(12,51,138,0.10); }
+.data-table tbody tr.row-selected:hover td { background: rgba(19,44,28,0.10); }
 
 /* Group header row in data tables */
 .data-table .group-row td {
@@ -542,10 +564,10 @@ select:focus-visible {
    ════════════════════════════════════════════════════════════════ */
 
 .kpi-grid { display: grid; gap: 16px; }
-.kpi-card { background: #f1f3f4; border-radius: 16px; padding: 18px 20px; }
-.kpi-label { font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #5f6368; margin: 0 0 8px; }
-.kpi-value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; color: #202124; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; }
-.kpi-sub   { font-size: 12.5px; color: #5f6368; margin: 6px 0 0; }
+.kpi-card { background: #f1f2ee; border-radius: 16px; padding: 18px 20px; }
+.kpi-label { font-size: 12.5px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #4a5550; margin: 0 0 8px; }
+.kpi-value { font-size: 28px; font-weight: 500; letter-spacing: -0.02em; color: #0f1412; line-height: 1; margin: 0; font-variant-numeric: tabular-nums; }
+.kpi-sub   { font-size: 12.5px; color: #4a5550; margin: 6px 0 0; }
 
 /* ════════════════════════════════════════════════════════════════
    Detail panel — right-side metadata panels
@@ -582,11 +604,11 @@ select:focus-visible {
    defaults entirely, and most sender HTML doesn't bring its own borders/spacing, so a real
    table would otherwise render with no visible grid at all. */
 .email-html-body table { border-collapse: collapse; margin: 0.5em 0; }
-.email-html-body td, .email-html-body th { border: 1px solid var(--border-subtle, #e5e7eb); padding: 4px 8px; text-align: left; }
+.email-html-body td, .email-html-body th { border: 1px solid var(--border-subtle, #e6e8e4); padding: 4px 8px; text-align: left; }
 .email-html-body th { font-weight: 600; background: rgba(0,0,0,0.03); }
 .email-html-body img { max-width: 100%; height: auto; }
 .email-html-body p { margin: 0 0 0.6em; }
-.email-html-body blockquote { border-left: 2px solid var(--border-subtle, #e5e7eb); padding-left: 0.75em; margin: 0.5em 0; color: rgba(0,0,0,0.6); }
+.email-html-body blockquote { border-left: 2px solid var(--border-subtle, #e6e8e4); padding-left: 0.75em; margin: 0.5em 0; color: rgba(0,0,0,0.6); }
 
 /* ── Email bodies: keep the sender's structure, use our typography ─────────────────────────
    A mail client renders every message in one face; we do the same. Inline fonts, sizes and
@@ -595,7 +617,7 @@ select:focus-visible {
    muted. Data tables are wrapped by MessageBlock (wrapTables) in .email-tbl. */
 .email-html-body, .email-html-body * {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  font-size: 14.5px !important; line-height: 1.6 !important; color: #202124 !important;
+  font-size: 14.5px !important; line-height: 1.6 !important; color: #0f1412 !important;
   background: transparent !important; max-width: 100%;
 }
 .email-html-body.is-earlier, .email-html-body.is-earlier * { font-size: 14px !important; }
@@ -604,28 +626,28 @@ select:focus-visible {
 .email-html-body p, .email-html-body div { margin: 0 0 10px; }
 .email-html-body div:empty, .email-html-body p:empty { margin: 0; }
 .email-html-body ul, .email-html-body ol { margin: 0 0 14px; padding-left: 1.4em; }
-.email-html-body a { color: #202124 !important; text-decoration: underline; text-decoration-color: #9aa0a6; text-underline-offset: 3px; }
+.email-html-body a { color: #0f1412 !important; text-decoration: underline; text-decoration-color: #8c958f; text-underline-offset: 3px; }
 .email-html-body img { max-width: 100% !important; height: auto !important; border-radius: 6px; }
 .email-html-body table { border-collapse: collapse; margin: 0.75em 0; width: auto !important; }
-.email-html-body td, .email-html-body th { border: 1px solid #e8eaed !important; padding: 6px 10px !important; text-align: left; vertical-align: top; }
-.email-html-body th { font-weight: 500 !important; background: #f8f9fa !important; }
-.email-html-body hr { border: 0; border-top: 1px solid #e8eaed; margin: 1em 0; }
-.email-html-body blockquote { border-left: 2px solid #e8eaed; padding-left: 0.9em; margin: 0.5em 0; }
+.email-html-body td, .email-html-body th { border: 1px solid #e6e8e4 !important; padding: 6px 10px !important; text-align: left; vertical-align: top; }
+.email-html-body th { font-weight: 500 !important; background: #faf9f6 !important; }
+.email-html-body hr { border: 0; border-top: 1px solid #e6e8e4; margin: 1em 0; }
+.email-html-body blockquote { border-left: 2px solid #e6e8e4; padding-left: 0.9em; margin: 0.5em 0; }
 /* A data table kept exactly as sent: rounded hairline container, horizontal scroll, caption. */
-.email-html-body .email-tbl { margin: 6px 0 18px; border: 1px solid #e8eaed !important; border-radius: 12px; overflow: hidden; }
+.email-html-body .email-tbl { margin: 6px 0 18px; border: 1px solid #e6e8e4 !important; border-radius: 12px; overflow: hidden; }
 .email-html-body .email-tbl-scroll { overflow-x: auto; margin: 0; }
 .email-html-body .email-tbl table { margin: 0; width: 100% !important; min-width: 520px; }
-.email-html-body .email-tbl td, .email-html-body .email-tbl th { border: 0 !important; border-bottom: 1px solid #e8eaed !important; padding: 10px 14px !important; }
+.email-html-body .email-tbl td, .email-html-body .email-tbl th { border: 0 !important; border-bottom: 1px solid #e6e8e4 !important; padding: 10px 14px !important; }
 .email-html-body .email-tbl td, .email-html-body .email-tbl td * { font-size: 14px !important; line-height: 1.45 !important; }
-.email-html-body .email-tbl th, .email-html-body .email-tbl th * { font-size: 12.5px !important; font-weight: 500 !important; color: #5f6368 !important; background: #fff !important; line-height: 1.45 !important; }
+.email-html-body .email-tbl th, .email-html-body .email-tbl th * { font-size: 12.5px !important; font-weight: 500 !important; color: #4a5550 !important; background: #fff !important; line-height: 1.45 !important; }
 .email-html-body .email-tbl tr:last-child td { border-bottom: 0 !important; }
-.email-html-body .email-tbl-cap { display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; margin: 0; border-top: 1px solid #e8eaed; }
-.email-html-body .email-tbl-cap, .email-html-body .email-tbl-cap span { font-size: 12.5px !important; line-height: 1.45 !important; color: #80868b !important; }
-.email-html-body .email-tbl-cap button { font-size: 12.5px !important; line-height: 1.45 !important; color: #202124 !important; text-decoration: underline; text-decoration-color: #9aa0a6; text-underline-offset: 3px; border: 0; padding: 0; cursor: pointer; }
+.email-html-body .email-tbl-cap { display: flex; justify-content: space-between; gap: 12px; padding: 8px 14px; margin: 0; border-top: 1px solid #e6e8e4; }
+.email-html-body .email-tbl-cap, .email-html-body .email-tbl-cap span { font-size: 12.5px !important; line-height: 1.45 !important; color: #6f7a74 !important; }
+.email-html-body .email-tbl-cap button { font-size: 12.5px !important; line-height: 1.45 !important; color: #0f1412 !important; text-decoration: underline; text-decoration-color: #8c958f; text-underline-offset: 3px; border: 0; padding: 0; cursor: pointer; }
 /* Quoted history and signature */
-.email-html-body.email-quoted, .email-html-body.email-quoted * { color: #3c4043 !important; font-size: 14.5px !important; line-height: 1.55 !important; }
+.email-html-body.email-quoted, .email-html-body.email-quoted * { color: #2a332f !important; font-size: 14.5px !important; line-height: 1.55 !important; }
 .email-html-body.email-quoted p, .email-html-body.email-quoted div { margin: 0 0 8px; }
-.email-html-body.email-sig, .email-html-body.email-sig * { color: #5f6368 !important; font-size: 13.5px !important; line-height: 1.5 !important; }
+.email-html-body.email-sig, .email-html-body.email-sig * { color: #4a5550 !important; font-size: 13.5px !important; line-height: 1.5 !important; }
 .email-html-body.email-sig p, .email-html-body.email-sig div { margin: 0 0 4px; }
 .email-html-body.email-sig hr { display: none; }
 .email-html-body.email-sig img { border-radius: 0; }
@@ -634,12 +656,20 @@ select:focus-visible {
 .email-original td, .email-original th { padding: 2px 6px; }
 .email-original img { max-width: 100%; height: auto; }
 .email-original a { text-decoration: underline; }
-.email-original blockquote { border-left: 2px solid #e8eaed; padding-left: 0.75em; margin: 0.5em 0; }
+.email-original blockquote { border-left: 2px solid #e6e8e4; padding-left: 0.75em; margin: 0.5em 0; }
 
 /* The dense register (src/components/ui/register.tsx): every cell reads at 13.5px, whatever size a
    caller's inline span asks for. One line per 32px row, a faint rule between columns so a wide
    grid reads across like a spreadsheet. */
 table.register td :is(.text-\[13px\], .text-\[14px\], .text-\[15px\]) { font-size: 13.5px; }
-table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #f1f3f4; }
+table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #f1f2ee; }
 table.register td :is(.text-\[12\.5px\]) { font-size: 12px; }
 table.register td .mt-0\.5 { margin-top: 0; }
+
+/* ── Top bar (traderisksolutions.com.sg navbar) ── */
+.trs-mark-t { font-family: var(--font-archivo, "Archivo"), "Archivo", system-ui, sans-serif; font-weight: 500; font-stretch: 125%; letter-spacing: .2em; padding-left: .2em; font-size: 18px; line-height: 1; color: #132c1c; }
+.trs-mark-c { font-family: "Zhi Mang Xing", "Kaiti SC", "STKaiti", serif; font-size: 15px; letter-spacing: .12em; line-height: 1; color: #132c1c; }
+.trs-tab { position: relative; display: inline-flex; align-items: center; height: 100%; padding: 0; font-size: 14px; font-weight: 450; color: rgba(15,20,18,.62); transition: color .15s; }
+.trs-tab:hover, .trs-tab.is-open { color: #0f1412; }
+.trs-tab.is-active { color: #0f1412; font-weight: 500; }
+.trs-tab.is-active::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: #132c1c; }

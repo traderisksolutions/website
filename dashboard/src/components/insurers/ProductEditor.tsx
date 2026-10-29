@@ -7,7 +7,7 @@ import { PRODUCT_LINES } from '@/lib/product-lines'
 import type { InsurerProduct } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 
-const cell = 'h-8 w-full rounded-[6px] border border-[#dadce0] bg-white px-2 text-[13px] text-[#202124] outline-none focus:border-[#202124] placeholder:text-[#9aa0a6]'
+const cell = 'h-8 w-full rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const label = 'text-[11.5px] font-medium'
 const splitList = (s: string) => s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean)
 
@@ -74,12 +74,12 @@ export function ProductEditor({ product, onSaved, onClose }: {
           {product.contacts.map(c => (
             <div key={c.contact_id} className="flex items-center gap-3 h-8 text-[13px]">
               <button type="button" onClick={() => makeDefault(c.contact_id)} disabled={busy || c.is_default} aria-label={c.is_default ? `${c.email} gets the request` : `Send requests to ${c.email}`}
-                className="bg-transparent border-0 p-0 cursor-pointer disabled:cursor-default" style={{ color: c.is_default ? INK : '#bdc1c6' }}>
+                className="bg-transparent border-0 p-0 cursor-pointer disabled:cursor-default" style={{ color: c.is_default ? INK : '#bfc5bf' }}>
                 <Star size={14} fill={c.is_default ? INK : 'none'} />
               </button>
               <span className="w-[180px] truncate">{c.name ?? '—'}</span>
               <span className="flex-1 truncate" style={{ color: MUTED }}>{c.email}</span>
-              <button type="button" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#f1f3f4]" style={{ color: MUTED }}><X size={13} /></button>
+              <button type="button" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
             </div>
           ))}
         </div>

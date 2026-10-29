@@ -25,10 +25,10 @@ const RANGE_LABEL: Record<Range, string> = {
   '90d': 'last 90 days',
 }
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
-const FIELD = '#f1f3f4'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
+const FIELD = '#f1f2ee'
 
 // ── Formatters ────────────────────────────────────────────────────────────────
 
@@ -94,7 +94,7 @@ function WorkflowTableRow({
             size={14}
             strokeWidth={2}
             className={cn('inline-block transition-transform duration-200', expanded && 'rotate-180')}
-            style={{ color: '#9aa0a6' }}
+            style={{ color: '#8c958f' }}
             aria-hidden
           />
         </RegisterCell>
@@ -155,20 +155,20 @@ function MethodologyCard() {
         type="button"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="w-full flex items-center gap-2 py-4 text-left bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa] transition-colors"
+        className="w-full flex items-center gap-2 py-4 text-left bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] transition-colors"
       >
         <span className="flex-1 text-[14px]" style={{ color: INK }}>How Kyn ROI is calculated</span>
         <ChevronDown
           size={14}
           strokeWidth={2}
           className={cn('flex-shrink-0 transition-transform duration-200', open && 'rotate-180')}
-          style={{ color: '#9aa0a6' }}
+          style={{ color: '#8c958f' }}
         />
       </button>
 
       {open && (
         <div className="pb-5">
-          <p className="m-0 mb-4 text-[14px] leading-relaxed" style={{ color: '#3c4043' }}>
+          <p className="m-0 mb-4 text-[14px] leading-relaxed" style={{ color: '#2a332f' }}>
             Time saved is estimated from observed AI automation events and conservative per-action
             benchmarks. Each event type reflects the manual work it replaces for an insurance
             professional. Estimated value is calculated at{' '}
@@ -184,7 +184,7 @@ function MethodologyCard() {
             </RegisterHead>
             <tbody>
               {actions.map(a => (
-                <RegisterRow key={a.label} className="hover:bg-[#f8f9fa]">
+                <RegisterRow key={a.label} className="hover:bg-[#faf9f6]">
                   <RegisterCell first primary={a.label} />
                   <RegisterCell align="right" primary={`${a.minutes} min`} />
                   <RegisterCell last nowrap={false}><span className="block text-[13.5px] leading-snug min-w-[260px]" style={{ color: MUTED }}>{a.basis}</span></RegisterCell>
@@ -316,14 +316,14 @@ export default function KynRoiPage() {
                 <CartesianGrid vertical={false} stroke={RULE} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: '#9aa0a6' }}
+                  tick={{ fontSize: 11, fill: '#8c958f' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={fmtDateAxis}
                   interval={range === '7d' ? 0 : range === '30d' ? 3 : 7}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: '#9aa0a6' }}
+                  tick={{ fontSize: 11, fill: '#8c958f' }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={v => `${Number(v).toFixed(0)}h`}
@@ -336,7 +336,7 @@ export default function KynRoiPage() {
                   contentStyle={{
                     fontSize: 12,
                     borderRadius: 10,
-                    border: '1px solid #dadce0',
+                    border: '1px solid #d5d9d4',
                     boxShadow: 'none',
                     color: INK,
                   }}

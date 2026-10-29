@@ -8,7 +8,7 @@ import type { HrLink } from '@/lib/hr/types'
 import { HrModal } from './HrModal'
 import { defaultMessage, EMAIL_OK, fmtLongDate, type HrLinkCreateResponse } from './labels'
 
-const MUTED = '#5f6368'
+const MUTED = '#4a5550'
 const FROM_LINE = 'Trade Risk Solutions Operations · operations@trade-risksol.com · reply-to the same'
 
 export type CompanyPick = { id: string | null; name: string }
@@ -114,7 +114,7 @@ export function SendLinkDialog({ open, onClose, onSent, initialCompany, initialE
           The rest of the email is fixed: what is collected, what is not, how it is used, the button, and the signature.
         </p>
 
-        {error && <p className="m-0 text-[12.5px]" style={{ color: '#c5221f' }}>{error}</p>}
+        {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
 
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           {messageEdited && !preview && (
@@ -164,7 +164,7 @@ function CompanyField({ value, onChange }: { value: CompanyPick; onChange: (v: C
     <div ref={box} className="relative">
       <Field label="Company" hint={value.id ? 'Matched to a company record.' : value.name.trim() ? 'No company record matched; the name is kept as typed.' : undefined}>
         <span className="relative block">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#80868b' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6f7a74' }} />
           <input
             value={value.name} role="combobox" aria-expanded={open} aria-controls="hr-company-options" aria-label="Company" autoComplete="off"
             onFocus={() => { if (hits.length) setOpen(true) }}
@@ -181,12 +181,12 @@ function CompanyField({ value, onChange }: { value: CompanyPick; onChange: (v: C
       {open && hits.length > 0 && (
         <ul id="hr-company-options" role="listbox"
           className="absolute left-0 top-full mt-1 z-30 w-full max-h-[260px] overflow-auto rounded-[12px] bg-white p-1.5 m-0 list-none"
-          style={{ border: '1px solid #e8eaed', boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
+          style={{ border: '1px solid #e6e8e4', boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
           {hits.map((h, i) => (
             <li key={h.id} role="option" aria-selected={i === active}>
               <button type="button" onMouseEnter={() => setActive(i)} onClick={() => pick(h)}
-                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f3f4]' : 'bg-transparent')}>
-                <span className="block text-[14px] truncate" style={{ color: '#202124' }}>{h.name}</span>
+                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
+                <span className="block text-[14px] truncate" style={{ color: '#0f1412' }}>{h.name}</span>
                 {h.domain && <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{h.domain}</span>}
               </button>
             </li>
@@ -205,22 +205,22 @@ function EmailPreview({ company, recipientName, recipientEmail, cc, message, eff
   const expiresWord = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' }).format(expires)
   const shortCompany = company.trim().replace(/\s+(pte\.?\s+ltd\.?|ltd\.?|limited|llp|inc\.?)$/i, '') || '[company]'
   return (
-    <div className="rounded-[12px] bg-[#f8f9fa] px-5 py-4 text-[13.5px] leading-[1.6]" style={{ color: '#3c4043' }}>
+    <div className="rounded-[12px] bg-[#faf9f6] px-5 py-4 text-[13.5px] leading-[1.6]" style={{ color: '#2a332f' }}>
       <div className="text-[12.5px] mb-3" style={{ color: MUTED }}>
         <div>From: Trade Risk Solutions Operations &lt;operations@trade-risksol.com&gt;</div>
         <div>To: {recipientName.trim() || '[recipient]'} &lt;{recipientEmail.trim() || '[email]'}&gt;</div>
         {cc.trim() && <div>Cc: {cc.trim()}</div>}
         <div>Subject: Employee list for {shortCompany}&apos;s group benefits quotation · ref GB-{new Date().getFullYear()}-NNNN</div>
       </div>
-      <div className="text-[11px] font-semibold tracking-[0.12em] mb-3" style={{ color: '#0C338A' }}>TRADE RISK SOLUTIONS <span className="font-normal tracking-normal" style={{ color: MUTED }}>· Reference GB-{new Date().getFullYear()}-NNNN</span></div>
+      <div className="text-[11px] font-semibold tracking-[0.12em] mb-3" style={{ color: '#132c1c' }}>TRADE RISK SOLUTIONS <span className="font-normal tracking-normal" style={{ color: MUTED }}>· Reference GB-{new Date().getFullYear()}-NNNN</span></div>
       {message.split(/\n{2,}/).map((p, i) => <p key={i} className="m-0 mb-3 whitespace-pre-wrap">{p}</p>)}
-      <p className="m-0 mb-1 font-medium" style={{ color: '#202124' }}>What we ask for</p>
+      <p className="m-0 mb-1 font-medium" style={{ color: '#0f1412' }}>What we ask for</p>
       <ul className="m-0 mb-3 pl-5">
         <li>Each employee: name, date of birth, gender, category or grade, work pass type, hire date.</li>
         <li>Each dependant to be covered: name, relationship, date of birth.</li>
       </ul>
-      <p className="m-0 mb-3"><span className="font-medium" style={{ color: '#202124' }}>What we do not ask for:</span> salaries, NRIC or passport numbers, home addresses, or any medical information.</p>
-      <div className="inline-flex items-center h-10 px-5 rounded-[10px] text-white text-[14px] font-medium mb-3" style={{ background: '#0C338A' }}>Open the secure page</div>
+      <p className="m-0 mb-3"><span className="font-medium" style={{ color: '#0f1412' }}>What we do not ask for:</span> salaries, NRIC or passport numbers, home addresses, or any medical information.</p>
+      <div className="inline-flex items-center h-10 px-5 rounded-[10px] text-white text-[14px] font-medium mb-3" style={{ background: '#132c1c' }}>Open the secure page</div>
       <p className="m-0 mb-3">The link is personal to you and expires on {expiresWord}. If the button does not work, copy the address in the email into your browser.</p>
       <p className="m-0 mb-3">The information is used only to obtain quotations from insurers for this policy{effectiveDate ? ` starting ${fmtLongDate(effectiveDate)}` : ''}, is held under our personal data protection policy, and is deleted on request. If you were not expecting this email, reply to this address or call us and we will stop.</p>
       <p className="m-0" style={{ color: MUTED }}>Signature and footer are added on send.</p>

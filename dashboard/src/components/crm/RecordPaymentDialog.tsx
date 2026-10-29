@@ -8,8 +8,8 @@ import { CHANNEL_LABEL, type ReceiptChannel } from '@/lib/crm/receipts'
 import type { PaymentDerived } from '@/lib/crm/types'
 
 const CHANNELS: ReceiptChannel[] = ['trs', 'insurer', 'writeoff']
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /**
  * Record what was actually received against one debit note. The whole point of the finance
@@ -137,7 +137,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
                   : 'Settles this debit note in full.'}
           </p>
 
-          {error && <p className="text-[13px] m-0" style={{ color: '#c5221f' }}>{error}</p>}
+          {error && <p className="text-[13px] m-0" style={{ color: '#a1242f' }}>{error}</p>}
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

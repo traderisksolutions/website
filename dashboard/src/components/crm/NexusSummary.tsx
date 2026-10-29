@@ -6,8 +6,8 @@ import { SectionCard, Btn, Empty } from './primitives'
 import { fmtDate } from '@/lib/crm/format'
 import { STAGE_LABEL, type AiBrief, type Company, type Person, type Stage } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /**
  * "Nexus summary" — one read across every thread with this company, plus who the stakeholders
@@ -51,7 +51,7 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
       title="Nexus summary"
       actions={actions}
     >
-      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#c5221f' }}>{error}</p>}
+      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#a1242f' }}>{error}</p>}
       {!brief && !busy && <Empty compact>No summary yet. Generate one to read the whole relationship at once.</Empty>}
       {!brief && busy && <Empty compact>Reading the threads, payments and quotes…</Empty>}
 

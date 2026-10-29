@@ -10,9 +10,9 @@ import { TEXT_LINK } from '@/lib/sales/rules'
 import { CONTACT_STATUS_LABEL, fmtSlot, n } from '@/lib/sales/labels'
 import type { CampaignContact } from '@/lib/sales/campaigns'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 
 type Step = { subject: string; body: string; delayDays: number }
 type View = 'review' | 'scheduled' | 'done'
@@ -84,7 +84,7 @@ export function CampaignQueue({ campaignId, contacts, steps, links, active, send
 
       <Register label="Recipients" minWidth={820}>
         <RegisterHead>
-          <RegisterTh first width={44}>{view === 'review' && <input type="checkbox" aria-label="Select all" className="size-4 accent-[#202124]" checked={rows.length > 0 && selected.size === rows.length} onChange={e => setSelected(e.target.checked ? new Set(rows.map(r => r.id)) : new Set())} />}</RegisterTh>
+          <RegisterTh first width={44}>{view === 'review' && <input type="checkbox" aria-label="Select all" className="size-4 accent-[#0f1412]" checked={rows.length > 0 && selected.size === rows.length} onChange={e => setSelected(e.target.checked ? new Set(rows.map(r => r.id)) : new Set())} />}</RegisterTh>
           <RegisterTh>Business</RegisterTh>
           <RegisterTh>Email</RegisterTh>
           <RegisterTh>Status</RegisterTh>
@@ -99,20 +99,20 @@ export function CampaignQueue({ campaignId, contacts, steps, links, active, send
             const isOpen = open === c.id
             return (
               <Fragment key={c.id}>
-                <tr style={{ borderBottom: `1px solid ${RULE}` }} className="hover:bg-[#f8f9fa]">
-                  <td className="pl-6 pr-2 py-3 align-top sticky left-0 bg-white z-10" style={{ boxShadow: 'inset -1px 0 0 #e8eaed' }}>
-                    {c.status === 'review' && <input type="checkbox" aria-label={`Select ${c.company ?? c.email}`} className="size-4 accent-[#202124]" checked={selected.has(c.id)} onChange={e => setSelected(s => { const x = new Set(s); if (e.target.checked) x.add(c.id); else x.delete(c.id); return x })} />}
+                <tr style={{ borderBottom: `1px solid ${RULE}` }} className="hover:bg-[#faf9f6]">
+                  <td className="pl-6 pr-2 py-3 align-top sticky left-0 bg-white z-10" style={{ boxShadow: 'inset -1px 0 0 #e6e8e4' }}>
+                    {c.status === 'review' && <input type="checkbox" aria-label={`Select ${c.company ?? c.email}`} className="size-4 accent-[#0f1412]" checked={selected.has(c.id)} onChange={e => setSelected(s => { const x = new Set(s); if (e.target.checked) x.add(c.id); else x.delete(c.id); return x })} />}
                   </td>
                   <td className="px-3 py-3 align-top">
                     <button type="button" onClick={() => setOpen(isOpen ? null : c.id)} className="flex w-full items-start gap-1.5 text-left bg-transparent border-0 p-0 cursor-pointer" aria-expanded={isOpen}>
-                      {isOpen ? <ChevronDown size={14} className="mt-1 shrink-0" style={{ color: '#9aa0a6' }} /> : <ChevronRight size={14} className="mt-1 shrink-0" style={{ color: '#9aa0a6' }} />}
+                      {isOpen ? <ChevronDown size={14} className="mt-1 shrink-0" style={{ color: '#8c958f' }} /> : <ChevronRight size={14} className="mt-1 shrink-0" style={{ color: '#8c958f' }} />}
                       <span className="min-w-0">
                         <span className="block truncate text-[15px] font-medium" style={{ color: INK }}>{c.company ?? '–'}</span>
                         <span className="block truncate text-[12.5px]" style={{ color: MUTED }}>{[c.name, c.location].filter(Boolean).join(' · ') || '–'}</span>
                       </span>
                     </button>
                   </td>
-                  <td className="px-3 py-3 align-top text-[14px]"><p className="m-0 truncate" style={{ color: MUTED }} title={c.email}>{c.email}</p>{usesOpening && !c.opening && c.status === 'review' && <p className="m-0 mt-0.5 text-[12px]" style={{ color: '#9aa0a6' }}>No personal opening</p>}</td>
+                  <td className="px-3 py-3 align-top text-[14px]"><p className="m-0 truncate" style={{ color: MUTED }} title={c.email}>{c.email}</p>{usesOpening && !c.opening && c.status === 'review' && <p className="m-0 mt-0.5 text-[12px]" style={{ color: '#8c958f' }}>No personal opening</p>}</td>
                   <td className="px-3 py-3 align-top"><Chip>{c.status === 'active' && c.current_step > 0 ? `Sent ${c.current_step} of ${emails.length}` : CONTACT_STATUS_LABEL[c.status] ?? c.status}</Chip></td>
                   <td className="px-3 pr-5 py-3 align-top text-[12.5px]" style={{ color: MUTED }}>
                     {seq ? seq.map((d, i) => <span key={i} className="block">Email {i + 1}: {fmtSlot(d, c.location)}</span>) : c.status === 'active' && firstAt ? <span>Next: {fmtSlot(firstAt, c.location)}</span> : c.status === 'review' ? 'Set on approval' : '–'}
@@ -126,12 +126,12 @@ export function CampaignQueue({ campaignId, contacts, steps, links, active, send
                         {usesOpening && c.status === 'review' && (
                           <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Personal opening (Email 1)
                             <textarea defaultValue={c.opening ?? ''} rows={2} maxLength={400} onBlur={e => { if ((e.target.value || '') !== (c.opening ?? '')) patch(c.id, { action: 'opening', opening: e.target.value }) }} className={textareaCls} />
-                            {c.opening_source === 'draft' && <span style={{ color: '#9aa0a6' }}>From the lead tool&apos;s draft</span>}
+                            {c.opening_source === 'draft' && <span style={{ color: '#8c958f' }}>From the lead tool&apos;s draft</span>}
                           </label>
                         )}
                         {emails.map((e, i) => (
                           <article key={i} className="rounded-[10px] p-4" style={{ border: `1px solid ${RULE}` }}>
-                            <p className="m-0 text-[12px]" style={{ color: '#9aa0a6' }}>Email {i + 1}{seq?.[i] ? ` · ${fmtSlot(seq[i], c.location)}` : ''}</p>
+                            <p className="m-0 text-[12px]" style={{ color: '#8c958f' }}>Email {i + 1}{seq?.[i] ? ` · ${fmtSlot(seq[i], c.location)}` : ''}</p>
                             {e.error ? <p className="m-0 mt-1 text-[14px]">{e.error}</p> : <><p className="m-0 mt-1 text-[14px] font-medium">{e.subject}</p><p className="m-0 mt-2 max-w-[65ch] whitespace-pre-wrap text-[14px] leading-relaxed"><LinkedText text={e.body} /></p></>}
                           </article>
                         ))}
@@ -158,7 +158,7 @@ function LinkedText({ text }: { text: string }) {
   let last = 0
   for (const m of Array.from(text.matchAll(TEXT_LINK))) {
     parts.push(text.slice(last, m.index))
-    parts.push(<a key={m.index} href={m[2]} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: '#1a73e8' }}>{m[1]}</a>)
+    parts.push(<a key={m.index} href={m[2]} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2" style={{ color: '#1f4e3a' }}>{m[1]}</a>)
     last = (m.index ?? 0) + m[0].length
   }
   parts.push(text.slice(last))

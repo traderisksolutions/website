@@ -14,18 +14,18 @@ import { cn } from '@/lib/utils'
  */
 
 const LINE = '#e2e3e5'
-const HEAD = '#f8f9fa'
-const INK = '#202124'
-const MUTED = '#5f6368'
+const HEAD = '#faf9f6'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 /** Light fills, all readable with ink text. */
 export const XL_FILL = {
-  good: '#e6f4ea',
-  bad: '#fce8e6',
-  warn: '#fef7e0',
-  info: '#e8f0fe',
-  quiet: '#f1f3f4',
-  pick: '#d2e3fc',
+  good: '#edf7e8',
+  bad: '#fdecec',
+  warn: '#fff4dc',
+  info: '#eaf1f7',
+  quiet: '#f1f2ee',
+  pick: '#dcefd2',
 } as const
 export type XlFill = keyof typeof XL_FILL
 
@@ -74,8 +74,8 @@ export function XlRow({ children, onClick, selected, group, className }: {
   return (
     <tr tabIndex={onClick ? 0 : undefined} onClick={onClick} aria-selected={onClick ? !!selected : undefined}
       onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#202124]', className)}
-      style={{ background: selected ? '#eef3fc' : group ? '#fafafa' : undefined }}>
+      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', className)}
+      style={{ background: selected ? '#edf7e8' : group ? '#fafafa' : undefined }}>
       {children}
     </tr>
   )
@@ -83,7 +83,7 @@ export function XlRow({ children, onClick, selected, group, className }: {
 
 /** The row number gutter, as in a spreadsheet. */
 export function XlNum({ n }: { n: number }) {
-  return <td className="h-6 w-8 px-1 text-center text-[11px] select-none" style={{ ...edge, background: HEAD, color: '#9aa0a6' }}>{n}</td>
+  return <td className="h-6 w-8 px-1 text-center text-[11px] select-none" style={{ ...edge, background: HEAD, color: '#8c958f' }}>{n}</td>
 }
 
 const isBlank = (v: React.ReactNode) => v === null || v === undefined || v === '' || v === false
@@ -100,7 +100,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
   return (
     <td colSpan={colSpan} title={title}
       className={cn('h-6 px-2 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center',
-        label && 'sticky left-0 z-10 group-hover:bg-[#f8f9fa]', strong && 'font-medium', className)}
+        label && 'sticky left-0 z-10 group-hover:bg-[#faf9f6]', strong && 'font-medium', className)}
       style={{ ...edge, background: bg, color: muted ? MUTED : INK, width, minWidth: width, maxWidth: width }}>
       {isBlank(children) ? <span style={{ color: '#c4c7c5' }}>–</span> : children}
     </td>
@@ -111,7 +111,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="h-6 px-2 text-left font-medium text-[12px]" style={{ ...edge, background: '#fafafa', color: '#3c4043' }}>{children}</td>
+      <td colSpan={colSpan} className="h-6 px-2 text-left font-medium text-[12px]" style={{ ...edge, background: '#fafafa', color: '#2a332f' }}>{children}</td>
     </tr>
   )
 }

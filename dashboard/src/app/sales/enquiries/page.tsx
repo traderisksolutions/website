@@ -11,8 +11,8 @@ import { EnquiryDrawer } from '@/components/sales/EnquiryDrawer'
 import { PRODUCT_LABEL, answerLabel } from '@/lib/intake/labels'
 import { bookingLabel, fmtWhen } from '@/lib/intake/format'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 type Site = { id: string; key: string; name: string; domain: string }
 type Row = {
@@ -98,10 +98,10 @@ function Enquiries() {
               options={(data?.sites ?? [{ key: 'corpcover', name: 'Corp Cover' } as Site]).map(s => ({ value: s.key, label: s.name, count: counts?.[s.key]?.total }))} />
           </div>
 
-          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e8eaed' }}>
+          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <label className="inline-flex">
               <span className="sr-only">Status</span>
-              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', status !== 'all' && 'border-[#202124] font-medium')}>
+              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', status !== 'all' && 'border-[#0f1412] font-medium')}>
                 {STATUS_FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
@@ -159,10 +159,10 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 6 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid #e8eaed' }}>
+        <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}>
           {[55, 50, 30, 50, 35, 20, 20].map((w, j) => (
             <td key={j} className={cn('px-3 h-14', j === 0 && 'pl-6', j === 6 && 'pr-5')}>
-              <div className="h-3.5 rounded bg-[#f1f3f4] animate-pulse" style={{ width: `${w}%` }} />
+              <div className="h-3.5 rounded bg-[#f1f2ee] animate-pulse" style={{ width: `${w}%` }} />
             </td>
           ))}
         </tr>

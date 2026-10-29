@@ -6,8 +6,8 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
 import type { Alert, LeftOff } from '@/lib/crm/types'
 
-const MUTED = '#5f6368'
-const BODY = '#3c4043'
+const MUTED = '#4a5550'
+const BODY = '#2a332f'
 
 /** Open items on the register: the item, its detail, when. A row opens what it names. */
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {

@@ -111,7 +111,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
           // Still the agent's proposal while nothing has gone to an insurer: Dismiss stands in for Close.
           const proposal = byAgent && p.status === 'open' && positions.every(x => x.dispatches.every(d => d.dispatch.status === 'drafted'))
           return (
-            <div key={p.id} className="py-3 first:pt-0 border-b border-[#e8eaed] last:border-b-0">
+            <div key={p.id} className="py-3 first:pt-0 border-b border-[#e6e8e4] last:border-b-0">
               {/* One 24px line: title · status · inception · client thread · origin, actions on the right. */}
               <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-[12.5px] whitespace-nowrap" style={{ color: MUTED }}>
                 <span className="text-[13px] font-medium tabular-nums" style={{ color: INK }}>{p.ref}</span>
@@ -189,7 +189,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn }: {
     <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-[12.5px]" style={{ color: MUTED }}>
       <span className="font-medium shrink-0" style={{ color: INK }}>{label}</span>
       <span className="shrink-0">· {summary}</span>
-      {bind && <span className="shrink-0 px-1.5 rounded-[5px]" style={{ background: '#d2e3fc', color: INK }}>{bind}</span>}
+      {bind && <span className="shrink-0 px-1.5 rounded-[5px]" style={{ background: '#dcefd2', color: INK }}>{bind}</span>}
       {pos.line.next_step && <span className="truncate min-w-0" title={pos.line.next_step}>· {pos.line.next_step}</span>}
       <span className="ml-auto flex items-center gap-1 shrink-0">
         {pos.pendingChange && (

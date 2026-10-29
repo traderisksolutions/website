@@ -179,21 +179,21 @@ type ThreadSuggestion = {
 
 // Design tokens (Home system). State is never colour-coded; a party is a category and may
 // carry one soft field. Every chip is the same neutral fill with ink text.
-const INK   = '#202124'
-const BODY  = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT   = '#9aa0a6'
-const HAIR  = '#e8eaed'
-const CTRL  = '#dadce0'
-const FIELD = '#f1f3f4'
-const HOVER = '#f8f9fa'
-const NAVY  = '#0C338A' // email compose surfaces only
+const INK   = '#0f1412'
+const BODY  = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT   = '#8c958f'
+const HAIR  = '#e6e8e4'
+const CTRL  = '#d5d9d4'
+const FIELD = '#f1f2ee'
+const HOVER = '#faf9f6'
+const NAVY  = '#132c1c' // email compose surfaces only
 
 const PARTY_FIELD: Record<string, string> = {
   client:       '#EAF2FF',
   insurer:      '#F1EEFF',
-  lawyer:       '#FFF6D8',
+  lawyer:       '#fff4dc',
   regulator:    '#F5F5F3',
   counterparty: '#FFF0E7',
   trs:          '#EAF6EC',
@@ -450,7 +450,7 @@ export default function NexusPage() {
                       type="button"
                       aria-current={on ? 'true' : undefined}
                       onClick={() => setSelectedId(c.id)}
-                      className={cn('w-full text-left px-4 py-3 flex flex-col gap-1 border-0 cursor-pointer transition-colors', on ? '' : 'hover:bg-[#f8f9fa]')}
+                      className={cn('w-full text-left px-4 py-3 flex flex-col gap-1 border-0 cursor-pointer transition-colors', on ? '' : 'hover:bg-[#faf9f6]')}
                       style={{ background: on ? FIELD : 'transparent' }}
                     >
                       <div className="flex items-center justify-between gap-2 min-w-0">
@@ -544,7 +544,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(32,33,36,0.4)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,20,18,0.4)' }} onClick={onClose}>
       <form
         onSubmit={submit}
         className="bg-white rounded-[16px] w-full max-w-[440px] p-6 flex flex-col gap-4"
@@ -553,7 +553,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
       >
         <div className="flex items-center justify-between gap-3">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>New case</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>
@@ -582,7 +582,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                 className={inputCls}
               />
               {companyPickerOpen && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(32,33,36,0.08)' }}>
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
                   {companySearching && <div className="px-3.5 py-2.5 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Searching…</div>}
                   {!companySearching && companyResults.length === 0 && (
                     <div className="px-3.5 py-2.5 text-[13px]" style={{ color: MUTED }}>
@@ -594,7 +594,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                       key={c.id}
                       type="button"
                       onClick={() => { setSelectedCompanyId(c.id); setCompanyQuery(c.name); setCompanyPickerOpen(false) }}
-                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]"
+                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]"
                       style={{ color: INK }}
                     >
                       {c.name}
@@ -1021,7 +1021,7 @@ function MissionHeader({
               <>
                 <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate" style={{ color: INK }}>{caseData.name}</h2>
                 <button type="button" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case"
-                  className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: FAINT }}>
+                  className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: FAINT }}>
                   <Pencil size={13} strokeWidth={2} />
                 </button>
               </>
@@ -1037,7 +1037,7 @@ function MissionHeader({
           {confirmDelete ? (
             <>
               <span className="text-[13px] mr-1" style={{ color: MUTED }}>Delete this case?</span>
-              <Btn level="secondary" onClick={onDelete} style={{ color: '#c5221f' }}>Delete</Btn>
+              <Btn level="secondary" onClick={onDelete} style={{ color: '#a1242f' }}>Delete</Btn>
               <Btn level="secondary" onClick={onCancelDelete}>Cancel</Btn>
             </>
           ) : (
@@ -1083,7 +1083,7 @@ function MissionHeader({
                 role="tab"
                 aria-selected={on}
                 onClick={() => onSetView(key)}
-                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', on ? 'font-medium' : 'hover:text-[#202124]')}
+                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', on ? 'font-medium' : 'hover:text-[#0f1412]')}
                 style={{ color: on ? INK : MUTED }}
               >
                 {label}
@@ -1628,7 +1628,7 @@ function StakeholderMapSection({
                       : `Replied ${timeAgo(r.last.sent_at)}`
                     return (
                       <Fragment key={r.key}>
-                        <tr className="cursor-pointer hover:bg-[#f8f9fa]" style={{ borderTop: `1px solid ${HAIR}` }} onClick={() => toggle(r.key)} aria-expanded={open}>
+                        <tr className="cursor-pointer hover:bg-[#faf9f6]" style={{ borderTop: `1px solid ${HAIR}` }} onClick={() => toggle(r.key)} aria-expanded={open}>
                           <td className="py-3 pl-3 align-top"><ChevronDown size={14} className={cn('transition-transform mt-0.5', open && 'rotate-180')} style={{ color: FAINT }} /></td>
                           <td className="py-3 px-3 align-top">
                             <div className="font-medium" style={{ color: INK }}>{r.s.name}</div>
@@ -1764,7 +1764,7 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
               </div>
               <div className="flex flex-col">
                 {g.items.map((f, i) => (
-                  <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-[#f8f9fa]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
+                  <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-[#faf9f6]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                     {f.storage_url
                       ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline no-underline truncate" style={{ color: INK }}>{f.filename}</a>
                       : <span className="font-medium truncate" style={{ color: INK }}>{f.filename}</span>}
@@ -1970,7 +1970,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
                     type="button"
                     aria-expanded={isOpen}
                     onClick={() => setExpandedId(isOpen ? null : itemKey)}
-                    className="w-full text-left px-5 py-3.5 flex items-start gap-3 bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]"
+                    className="w-full text-left px-5 py-3.5 flex items-start gap-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -2539,7 +2539,7 @@ function RunHistoryView({
                     title={run.pinned ? 'Unpin run. It becomes eligible for pruning.' : 'Pin run. Pinned runs are never pruned.'}
                     aria-label={run.pinned ? 'Unpin run' : 'Pin run'}
                     aria-pressed={run.pinned}
-                    className="flex items-center justify-center w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+                    className="flex items-center justify-center w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
                     style={{ color: run.pinned ? INK : FAINT }}
                   >
                     {run.pinned ? <Pin size={13} strokeWidth={2} /> : <PinOff size={13} strokeWidth={2} />}
@@ -2763,7 +2763,7 @@ function ThreadsOverviewCard({
           type="button"
           aria-expanded={expanded}
           onClick={() => setExpanded(v => !v)}
-          className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 cursor-pointer text-left hover:bg-[#f8f9fa]"
+          className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-transparent border-0 cursor-pointer text-left hover:bg-[#faf9f6]"
         >
           <div className="flex items-center gap-1.5 flex-wrap">
             {threads.slice(0, 5).map(ct => {
@@ -2788,7 +2788,7 @@ function ThreadsOverviewCard({
                     type="checkbox"
                     checked={selected.has(ct.thread_id)}
                     onChange={() => toggle(ct.thread_id)}
-                    className="mt-4 accent-[#202124] flex-shrink-0"
+                    className="mt-4 accent-[#0f1412] flex-shrink-0"
                     title="Include this thread in the next analysis"
                     aria-label="Include this thread in the next analysis"
                   />
@@ -2894,7 +2894,7 @@ function LinkedThreadCard({
           onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
           onClick={e => e.stopPropagation()}
           aria-label="Party type"
-          className="h-8 rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#202124]"
+          className="h-8 rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
           style={{ border: `1px solid ${CTRL}`, color: INK }}
         >
           {PARTY_TYPES.map(t => (
@@ -2913,7 +2913,7 @@ function LinkedThreadCard({
         <button
           type="button"
           onClick={() => onUnlink(ct.thread_id)}
-          className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]"
+          className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
           style={{ color: FAINT }}
           title="Remove from case"
           aria-label="Remove from case"
@@ -3000,7 +3000,7 @@ function TimelineMessageCard({
 
   return (
     <div
-      className="rounded-[16px] bg-white cursor-pointer hover:bg-[#f8f9fa]"
+      className="rounded-[16px] bg-white cursor-pointer hover:bg-[#faf9f6]"
       style={{ border: `1px solid ${HAIR}` }}
       onClick={() => setOpen(v => !v)}
       role="button"
@@ -3133,7 +3133,7 @@ function NexusStepCompose({
 
   function buildSigHtml(sig: SigOption): string {
     return [
-      '<br><hr style="margin:16px 0;border:none;border-top:1px solid #e5e7eb">',
+      '<br><hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">',
       `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
       sig.title ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
       sig.phone ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
@@ -3195,7 +3195,7 @@ function NexusStepCompose({
   }
 
   const rowLabel = 'text-[12.5px] w-14 flex-shrink-0'
-  const rowInput = 'flex-1 min-w-0 h-9 rounded-[8px] px-3 text-[14px] bg-white outline-none focus:border-[#202124]'
+  const rowInput = 'flex-1 min-w-0 h-9 rounded-[8px] px-3 text-[14px] bg-white outline-none focus:border-[#0f1412]'
 
   return (
     <div style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -3379,7 +3379,7 @@ function NexusComposeWindow({
           <input
             value={to}
             onChange={e => setTo(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
             style={{ color: INK }}
             placeholder="recipient@example.com"
           />
@@ -3395,7 +3395,7 @@ function NexusComposeWindow({
             <input
               value={cc}
               onChange={e => setCc(e.target.value)}
-              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
               style={{ color: INK }}
               placeholder="cc@example.com, …"
             />
@@ -3408,7 +3408,7 @@ function NexusComposeWindow({
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#80868b]"
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
             style={{ color: INK }}
             placeholder="Subject"
           />
@@ -3438,7 +3438,7 @@ function NexusComposeWindow({
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
               aria-label="Signature"
-              className="h-8 max-w-[200px] rounded-[8px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f3f4]"
+              className="h-8 max-w-[200px] rounded-[8px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee]"
               style={{ color: MUTED }}
             >
               <option value="">No signature</option>
@@ -3564,7 +3564,7 @@ function ThreadLinkerModal({
 
     return (
       <tr
-        className={cn('transition-colors', alreadyLinked ? 'opacity-50 cursor-default' : 'cursor-pointer hover:bg-[#f8f9fa]')}
+        className={cn('transition-colors', alreadyLinked ? 'opacity-50 cursor-default' : 'cursor-pointer hover:bg-[#faf9f6]')}
         style={{ borderTop: `1px solid ${HAIR}`, background: isSelected && !alreadyLinked ? FIELD : undefined }}
         onClick={() => !alreadyLinked && toggleSelect(thread.id)}
         aria-selected={isSelected}
@@ -3580,7 +3580,7 @@ function ThreadLinkerModal({
               onChange={() => toggleSelect(thread.id)}
               onClick={e => e.stopPropagation()}
               aria-label="Select thread"
-              className="w-4 h-4 accent-[#202124] cursor-pointer mt-0.5"
+              className="w-4 h-4 accent-[#0f1412] cursor-pointer mt-0.5"
             />
           )}
         </td>
@@ -3612,7 +3612,7 @@ function ThreadLinkerModal({
                 value={pty}
                 onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 aria-label="Party type"
-                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#202124]"
+                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               >
                 {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -3622,7 +3622,7 @@ function ThreadLinkerModal({
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 placeholder="Label, e.g. QBE Marine"
                 aria-label="Party label"
-                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none focus:border-[#202124] placeholder:text-[#80868b]"
+                className="h-8 w-full rounded-[8px] px-2 text-[13px] bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               />
             </div>
@@ -3635,7 +3635,7 @@ function ThreadLinkerModal({
   const th = 'py-2.5 pr-3 text-left text-[12px] font-medium'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(32,33,36,0.4)' }} onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,20,18,0.4)' }} onClick={onClose}>
       <div
         className="bg-white rounded-[16px] w-full max-w-[800px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
         style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
@@ -3646,7 +3646,7 @@ function ThreadLinkerModal({
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Link threads</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>
@@ -3664,7 +3664,7 @@ function ThreadLinkerModal({
               className={cn(inputCls, 'pl-9 pr-9')}
             />
             {search && (
-              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}>
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
                 <X size={13} />
               </button>
             )}

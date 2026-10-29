@@ -14,7 +14,7 @@ import { renderMarkdown } from '@/lib/marketing/markdown'
 import { fmtDate } from '@/lib/marketing/labels'
 import type { RunDetail, RunNode } from '@/lib/marketing/types'
 
-const INK = '#202124'
+const INK = '#0f1412'
 const ACTIVE = new Set(['queued', 'running'])
 
 export default function RunPage() {
@@ -105,7 +105,7 @@ function Run() {
                   return (
                     <li key={d.key} style={{ borderBottom: i < ENGINE_NODE_DEFS.length - 1 ? `1px solid ${RULE}` : undefined }}>
                       <button type="button" onClick={() => setSelected(on ? null : d.key)} aria-current={on ? 'step' : undefined}
-                        className={cn('w-full flex items-center gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]', on && 'bg-[#f1f3f4]')} style={{ color: INK }}>
+                        className={cn('w-full flex items-center gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'bg-[#f1f2ee]')} style={{ color: INK }}>
                         <span className="w-6 text-[13px] tabular-nums flex-shrink-0" style={{ color: MUTED }}>{i + 1}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[14.5px] font-medium truncate">{d.label}</span>
@@ -193,7 +193,7 @@ function Block({ title, text }: { title: string; text: string }) {
   return (
     <div>
       <p className="m-0 mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: MUTED }}>{title}</p>
-      <pre className="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-[#f8f9fa] p-2.5 font-mono text-[11.5px] leading-[1.5]" style={{ color: INK }}>{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
+      <pre className="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-[#faf9f6] p-2.5 font-mono text-[11.5px] leading-[1.5]" style={{ color: INK }}>{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
       {long && <button type="button" onClick={() => setOpen(v => !v)} className="mt-1 bg-transparent border-0 p-0 cursor-pointer text-[12.5px] underline underline-offset-2" style={{ color: INK }}>{open ? 'Show less' : 'Show all'}</button>}
     </div>
   )

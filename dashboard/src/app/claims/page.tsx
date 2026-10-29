@@ -5,8 +5,8 @@ import { Copy, Check, RefreshCw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Segmented } from '@/components/crm/primitives'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 
 async function fetchLeads(): Promise<Lead[]> {
   const res = await fetch('/api/leads', { cache: 'no-store' })
@@ -76,10 +76,10 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
     return () => document.removeEventListener('mousedown', h)
   }, [statusMenu])
 
-  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border bg-white text-[13.5px] font-medium no-underline hover:bg-[#f8f9fa]'
+  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[10px] border bg-white text-[13.5px] font-medium no-underline hover:bg-[#faf9f6]'
 
   return (
-    <div className="rounded-[16px] border border-[#e8eaed] bg-white">
+    <div className="rounded-[16px] border border-[#e6e8e4] bg-white">
       <div
         className="px-5 py-4 flex items-start gap-4 cursor-pointer select-none"
         onClick={() => setOpen(o => !o)}
@@ -98,7 +98,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <span className="text-[12.5px] tabular-nums" style={{ color: '#80868b' }}>{timeAgo(lead.created_at)}</span>
+          <span className="text-[12.5px] tabular-nums" style={{ color: '#6f7a74' }}>{timeAgo(lead.created_at)}</span>
           <div className="relative" ref={menuRef}>
             <button
               type="button"
@@ -106,15 +106,15 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               aria-haspopup="menu"
               aria-expanded={statusMenu}
               className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium border-0 cursor-pointer"
-              style={{ background: '#f1f3f4', color: '#3c4043' }}
+              style={{ background: '#f1f2ee', color: '#2a332f' }}
             >
               {STATUS_LABEL[lead.status] ?? STATUS_LABEL.new} <ChevronDown size={11} />
             </button>
             {statusMenu && (
-              <div role="menu" className="absolute right-0 top-[calc(100%+4px)] bg-white rounded-[12px] min-w-[150px] z-50 py-1" style={{ border: '1px solid #e8eaed', boxShadow: '0 16px 48px rgba(32,33,36,0.14)' }}>
+              <div role="menu" className="absolute right-0 top-[calc(100%+4px)] bg-white rounded-[12px] min-w-[150px] z-50 py-1" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
                 {ALL_STATUSES.map(s => (
                   <button key={s} type="button" role="menuitem" onClick={e => { e.stopPropagation(); onStatus(lead.id, s); setStatusMenu(false) }}
-                    className={cn('w-full text-left px-3 py-2 text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]', lead.status === s && 'font-medium')}
+                    className={cn('w-full text-left px-3 py-2 text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]', lead.status === s && 'font-medium')}
                     style={{ color: INK }}>
                     {STATUS_LABEL[s]}
                   </button>
@@ -126,7 +126,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
       </div>
 
       {open && (
-        <div className="px-5 py-4 border-t border-[#e8eaed]" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-4 border-t border-[#e6e8e4]" onClick={e => e.stopPropagation()}>
           {body && (
             <div className="mb-4">
               <p className="m-0 mb-1.5 text-[12.5px]" style={{ color: MUTED }}>Claim details</p>
@@ -139,7 +139,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
                 <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Email</p>
                 <button type="button" onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px]" style={{ color: INK }}>
                   <span className="max-w-[180px] truncate">{lead.email}</span>
-                  {copied === 'email' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#9aa0a6' }} />}
+                  {copied === 'email' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#8c958f' }} />}
                 </button>
               </div>
             )}
@@ -148,7 +148,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
                 <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Phone</p>
                 <button type="button" onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] tabular-nums" style={{ color: INK }}>
                   {lead.phone}
-                  {copied === 'phone' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#9aa0a6' }} />}
+                  {copied === 'phone' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#8c958f' }} />}
                 </button>
               </div>
             )}
@@ -159,19 +159,19 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 flex-wrap pt-4 border-t border-[#e8eaed]">
+          <div className="flex items-center gap-2 flex-wrap pt-4 border-t border-[#e6e8e4]">
             {waPhone && (
-              <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer" className={secondaryLink} style={{ borderColor: '#dadce0', color: INK }}>
+              <a href={`https://wa.me/${waPhone}`} target="_blank" rel="noopener noreferrer" className={secondaryLink} style={{ borderColor: '#d5d9d4', color: INK }}>
                 WhatsApp
               </a>
             )}
             {lead.email && (
-              <a href={`mailto:${lead.email}`} className={secondaryLink} style={{ borderColor: '#dadce0', color: INK }}>
+              <a href={`mailto:${lead.email}`} className={secondaryLink} style={{ borderColor: '#d5d9d4', color: INK }}>
                 Email
               </a>
             )}
             {lead.phone && (
-              <a href={`tel:${waPhone}`} className={secondaryLink} style={{ borderColor: '#dadce0', color: INK }}>
+              <a href={`tel:${waPhone}`} className={secondaryLink} style={{ borderColor: '#d5d9d4', color: INK }}>
                 Call
               </a>
             )}
@@ -234,7 +234,7 @@ export default function ClaimsPage() {
             <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
           </div>
           <div className="flex gap-2">
-            <a href="/claims/second-opinion" className="inline-flex h-12 items-center rounded-[12px] border border-[#dadce0] px-5 text-[15px] no-underline hover:bg-[#f8f9fa]" style={{ color: INK }}>Second opinion reports</a>
+            <a href="/claims/second-opinion" className="inline-flex h-12 items-center rounded-[12px] border border-[#d5d9d4] px-5 text-[15px] no-underline hover:bg-[#faf9f6]" style={{ color: INK }}>Second opinion reports</a>
             <Btn level="secondary" className="h-12 px-5 rounded-[12px] text-[15px]" onClick={() => load(true)} loading={refreshing}>
               {!refreshing && <RefreshCw size={14} />} Refresh
             </Btn>
@@ -255,10 +255,10 @@ export default function ClaimsPage() {
         <div className="mt-6">
           {loading ? (
             <div className="flex flex-col gap-3" aria-busy="true">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse" style={{ background: '#f1f3f4' }} />)}
+              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse" style={{ background: '#f1f2ee' }} />)}
             </div>
           ) : error ? (
-            <p className="py-16 text-center text-[16px] m-0" style={{ color: '#c5221f' }}>{error}</p>
+            <p className="py-16 text-center text-[16px] m-0" style={{ color: '#a1242f' }}>{error}</p>
           ) : filtered.length === 0 ? (
             <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>{filter === 'new' ? 'No new claims.' : 'No claims yet.'}</p>
           ) : (

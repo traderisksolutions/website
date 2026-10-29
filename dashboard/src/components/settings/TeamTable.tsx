@@ -20,9 +20,9 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
  * track it when we do not.
  */
 
-const INK = '#202124'
-const MUTED = '#5f6368'
-const RULE = '#e8eaed'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
+const RULE = '#e6e8e4'
 const ROLE_LABEL: Record<TeamUser['role'], string> = { administrator: 'Administrator', staff: 'Staff' }
 const ACCESS_LABEL = (active: boolean) => (active ? 'Active' : 'No access')
 
@@ -80,8 +80,8 @@ export function TeamTable() {
 
       {adding && (
         <div className="mb-4 rounded-[14px] p-4 flex items-end gap-3 flex-wrap" style={{ background: '#F5F5F3' }}>
-          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[200px]" style={{ color: MUTED }}>Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#202124]" style={{ borderColor: '#dadce0', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
-          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[160px]" style={{ color: MUTED }}>Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#202124]" style={{ borderColor: '#dadce0', color: INK }} /></label>
+          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[200px]" style={{ color: MUTED }}>Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
+          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[160px]" style={{ color: MUTED }}>Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} /></label>
           <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-50" style={{ background: INK }}>{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
           <button type="button" onClick={() => setAdding(false)} className="h-10 px-3 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer" style={{ color: MUTED }}>Cancel</button>
         </div>
@@ -114,20 +114,20 @@ export function TeamTable() {
               </RegisterCell>
               <RegisterCell>
                 {isAdmin && !u.isSelf
-                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded-[8px] border bg-white px-2.5 text-[13.5px] cursor-pointer" style={{ borderColor: '#dadce0', color: INK }}>
+                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded-[8px] border bg-white px-2.5 text-[13.5px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
                       {(['administrator', 'staff'] as const).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                     </select>
                   : <span className="text-[14px]" style={{ color: INK }} title={u.isSelf ? 'You cannot change your own role. Ask another administrator.' : undefined}>{ROLE_LABEL[u.role]}</span>}
               </RegisterCell>
-              <RegisterCell><span className="text-[14px]" style={{ color: u.active ? '#3c4043' : '#c5221f' }}>{ACCESS_LABEL(u.active)}</span></RegisterCell>
+              <RegisterCell><span className="text-[14px]" style={{ color: u.active ? '#2a332f' : '#a1242f' }}>{ACCESS_LABEL(u.active)}</span></RegisterCell>
               <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: INK }}>{when(u.joinedAt)}</span></RegisterCell>
               <RegisterCell last align="right">
                 {isAdmin && !u.isSelf && (
                   <span className="relative inline-block">
-                    <button type="button" onClick={() => setMenu(menu === u.id ? null : u.id)} aria-label={`Actions for ${u.name}`} aria-expanded={menu === u.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f3f4]" style={{ color: MUTED }}><MoreHorizontal size={16} /></button>
+                    <button type="button" onClick={() => setMenu(menu === u.id ? null : u.id)} aria-label={`Actions for ${u.name}`} aria-expanded={menu === u.id} className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><MoreHorizontal size={16} /></button>
                     {menu === u.id && (
-                      <span className="absolute right-0 top-full mt-1 w-44 rounded-[12px] bg-white p-1.5 z-10 text-left" style={{ border: `1px solid ${RULE}`, boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
-                        <button type="button" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#f8f9fa]" style={{ color: INK }}>{u.active ? 'Remove access' : 'Restore access'}</button>
+                      <span className="absolute right-0 top-full mt-1 w-44 rounded-[12px] bg-white p-1.5 z-10 text-left" style={{ border: `1px solid ${RULE}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+                        <button type="button" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]" style={{ color: INK }}>{u.active ? 'Remove access' : 'Restore access'}</button>
                       </span>
                     )}
                   </span>

@@ -9,8 +9,8 @@ import type { StaffMember } from '@/lib/crm/staff'
 import { fmtRelative } from '@/lib/crm/format'
 import type { Person, PersonParty } from '@/lib/crm/types'
 
-const INK = '#202124'
-const MUTED = '#5f6368'
+const INK = '#0f1412'
+const MUTED = '#4a5550'
 const PARTY_LABEL: Record<PersonParty, string> = { client: 'Client', insurer: 'Insurer', trs: 'TRS', other: 'Other' }
 
 export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain }: {
@@ -69,10 +69,10 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
                       {p.isPrimary && <Chip title="Most active client contact">Point person</Chip>}
                       {p.party === 'other' && <Chip title="Domain is not one of the company's domains">{PARTY_LABEL.other}</Chip>}
                       {p.sent === 0 && p.received === 0 && p.cc > 0 && <Chip title="Only ever copied, never wrote or was written to">Copied only</Chip>}
-                      {!p.isPrimary && p.party !== 'other' && !(p.sent === 0 && p.received === 0 && p.cc > 0) && <span className="text-[13.5px]" style={{ color: '#3c4043' }}>Contact</span>}
+                      {!p.isPrimary && p.party !== 'other' && !(p.sent === 0 && p.received === 0 && p.cc > 0) && <span className="text-[13.5px]" style={{ color: '#2a332f' }}>Contact</span>}
                     </span>
                   </RegisterCell>
-                  <RegisterCell primary={p.topics[0] ? <span className="capitalize">{p.topics.slice(0, 2).map(t => t.category).join(', ')}</span> : <span style={{ color: '#9aa0a6' }}>—</span>} />
+                  <RegisterCell primary={p.topics[0] ? <span className="capitalize">{p.topics.slice(0, 2).map(t => t.category).join(', ')}</span> : <span style={{ color: '#8c958f' }}>—</span>} />
                   <RegisterCell align="right" primary={p.threads} secondary={`wrote ${p.sent} · sent to ${p.received} · copied ${p.cc}`} />
                   <RegisterCell last align="right" primary={fmtRelative(p.lastSeen)} secondary={p.firstSeen ? `first ${fmtRelative(p.firstSeen)}` : undefined} />
                 </RegisterRow>

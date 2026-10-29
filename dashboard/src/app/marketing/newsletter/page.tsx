@@ -7,7 +7,7 @@ import { MarketingPage, MUTED, RULE } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
-const INK = '#202124'
+const INK = '#0f1412'
 
 type Sub = { id: string; email: string; status: 'pending' | 'confirmed' | 'unsubscribed'; source_url: string | null; confirm_sent_at: string | null; confirmed_at: string | null; created_at: string }
 type Issue = { id: string; subject: string; intro: string; article_ids: string[]; status: 'draft' | 'sending' | 'sent'; test_sent_at: string | null; approved_by: string | null; approved_at: string | null; sent_at: string | null; recipients: number; failures: number; created_at: string }
@@ -232,7 +232,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
               {articles.map(a => {
                 const pos = ids.indexOf(a.id)
                 return (
-                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-[10px] px-3 py-2 text-[14px] cursor-pointer', pos >= 0 ? 'bg-[#eef3fc]' : 'hover:bg-[#f8f9fa]')}>
+                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-[10px] px-3 py-2 text-[14px] cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
                     <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1" />
                     <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-[12.5px]" style={{ color: MUTED }}>Published {day(a.published_at)}</span></span>
                   </label>
@@ -251,7 +251,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
         </div>
         <div className="grid gap-1.5 content-start">
           <span className="text-[12.5px]" style={{ color: MUTED }}>Preview{dirty ? ' (save to refresh)' : ''}</span>
-          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#5f6368">Loading…</p>'} className="w-full h-[640px] rounded-[12px] bg-white" style={{ border: `1px solid ${RULE}` }} />
+          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-[12px] bg-white" style={{ border: `1px solid ${RULE}` }} />
         </div>
       </div>
     </section>

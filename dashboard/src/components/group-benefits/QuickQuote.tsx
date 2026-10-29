@@ -103,30 +103,30 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
   }
 
   const label = 'text-[11px] font-semibold uppercase tracking-wide'
-  const inp = 'w-full text-[13px] border border-[#dadce0] rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#202124]/15'
-  const sel = 'text-[12.5px] border border-[#dadce0] rounded-md px-2 py-1 bg-white'
+  const inp = 'w-full text-[13px] border border-[#d5d9d4] rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15'
+  const sel = 'text-[12.5px] border border-[#d5d9d4] rounded-md px-2 py-1 bg-white'
   const ready = members.length > 0 && Object.keys(specs).length > 0 && !!effDate
 
   return (
-    <div className="flex flex-col gap-6 max-w-[880px]" style={{ color: '#202124' }}>
+    <div className="flex flex-col gap-6 max-w-[880px]" style={{ color: '#0f1412' }}>
       {/* ── 1 Company ── */}
       <section className="flex flex-col gap-2">
         <Step n={1}>Company</Step>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          <label htmlFor="qq-company" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+          <label htmlFor="qq-company" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
             Company
             <input id="qq-company" value={company} onChange={e => setCompany(e.target.value)} className={inp} placeholder="Acme Pte Ltd" />
           </label>
-          <label htmlFor="qq-eff" className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+          <label htmlFor="qq-eff" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
             Policy start
             <input id="qq-eff" type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} />
           </label>
-          <div className="flex flex-col gap-1 text-[12px]" style={{ color: '#5f6368' }}>
+          <div className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
             Basis
-            <div role="radiogroup" aria-label="Basis" className="inline-flex rounded-md border border-[#dadce0] overflow-hidden w-fit">
+            <div role="radiogroup" aria-label="Basis" className="inline-flex rounded-md border border-[#d5d9d4] overflow-hidden w-fit">
               {(['new_business', 'renewal'] as const).map(b => (
                 <button key={b} role="radio" aria-checked={basis === b} onClick={() => setBasis(b)}
-                        className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#202124] text-white' : 'text-[#5f6368] hover:bg-[#f8f9fa]')}>
+                        className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#0f1412] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
                   {b === 'new_business' ? 'New business' : 'Renewal'}
                 </button>
               ))}
@@ -143,21 +143,21 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
           </Step>
           <div className="flex items-center gap-3">
             {!showUpload && (
-              <button onClick={() => setShowUpload(true)} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
+              <button onClick={() => setShowUpload(true)} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>
                 Upload a file instead
               </button>
             )}
-            <a href={`/pricing-matrix?tab=hrlinks&send=1${company.trim() ? `&company=${encodeURIComponent(company.trim())}` : ''}${effDate ? `&start=${effDate}` : ''}`} className="text-[12.5px] no-underline hover:underline" style={{ color: '#5f6368' }}>
+            <a href={`/pricing-matrix?tab=hrlinks&send=1${company.trim() ? `&company=${encodeURIComponent(company.trim())}` : ''}${effDate ? `&start=${effDate}` : ''}`} className="text-[12.5px] no-underline hover:underline" style={{ color: '#4a5550' }}>
               Ask HR for the list
             </a>
-            <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#5f6368' }}>
+            <button onClick={onUseWizard} className="text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>
               Map plans by hand
             </button>
           </div>
         </div>
         {showUpload && (
           <label htmlFor="qq-file" className={cn('flex items-center justify-center gap-2 border border-dashed rounded-lg py-6 cursor-pointer text-[13px]',
-            reading ? 'border-[#9aa0a6]' : 'border-[#dadce0] hover:border-[#9aa0a6]')} style={{ color: '#5f6368' }}>
+            reading ? 'border-[#8c958f]' : 'border-[#d5d9d4] hover:border-[#8c958f]')} style={{ color: '#4a5550' }}>
             {reading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
             {reading ? 'Reading…' : read ? `${read.filename} · upload another` : 'Upload employee list (.csv, .xlsx)'}
             <input id="qq-file" type="file" accept=".csv,.txt,.xlsx,.xls,.xlsm,text/csv" className="hidden"
@@ -165,8 +165,8 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
           </label>
         )}
         {read && (
-          <div className="border border-[#e8eaed] rounded-lg overflow-hidden">
-            <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2 border-b border-[#e8eaed] bg-[#f8f9fa] text-[12px] tabular-nums" style={{ color: '#5f6368' }}>
+          <div className="border border-[#e6e8e4] rounded-lg overflow-hidden">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2 border-b border-[#e6e8e4] bg-[#faf9f6] text-[12px] tabular-nums" style={{ color: '#4a5550' }}>
               <span>{members.length} members · {employees} employees · {members.length - employees} dependants</span>
               <span>{categories.length} categor{categories.length === 1 ? 'y' : 'ies'}: {categories.join(', ')}</span>
               {Object.keys(read.found).length > 0
@@ -174,32 +174,32 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
                 : <span>From {read.filename}</span>}
             </div>
             {unreadNow > 0 && (
-              <div className="px-3 py-2 border-b border-[#e8eaed] text-[12px]" style={{ color: '#b06000' }}>
+              <div className="px-3 py-2 border-b border-[#e6e8e4] text-[12px]" style={{ color: '#8a5a00' }}>
                 {unreadNow} {unreadNow === 1 ? 'person has' : 'people have'} no readable date of birth or age and will not be priced. Type the date in the row (DD/MM/YYYY). As read: {read.unread.slice(0, 5).join('; ')}{read.unread.length > 5 ? '…' : ''}
               </div>
             )}
             <div className="relative overflow-x-auto max-h-[260px] overflow-y-auto">
               <table className="w-full border-collapse text-[12.5px]" style={{ minWidth: 520 }}>
                 <thead className="sticky top-0 bg-white">
-                  <tr style={{ color: '#5f6368' }}>
+                  <tr style={{ color: '#4a5550' }}>
                     {['Name', 'Relationship', 'Category', 'Date of birth', 'Age'].map(h =>
-                      <th key={h} className={cn(label, 'text-left px-3 py-1.5 border-b border-[#e8eaed]')}>{h}</th>)}
+                      <th key={h} className={cn(label, 'text-left px-3 py-1.5 border-b border-[#e6e8e4]')}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {members.map((m, i) => (
-                    <tr key={i} className="border-b border-[#f1f3f4]">
+                    <tr key={i} className="border-b border-[#f1f2ee]">
                       <td className="px-3 py-1.5">{m.name}</td>
-                      <td className="px-3 py-1.5 capitalize" style={{ color: '#3c4043' }}>{m.relationship}</td>
-                      <td className="px-3 py-1.5" style={{ color: '#3c4043' }}>{m.category}</td>
-                      <td className="px-3 py-1 tabular-nums" style={{ color: '#3c4043' }}>
+                      <td className="px-3 py-1.5 capitalize" style={{ color: '#2a332f' }}>{m.relationship}</td>
+                      <td className="px-3 py-1.5" style={{ color: '#2a332f' }}>{m.category}</td>
+                      <td className="px-3 py-1 tabular-nums" style={{ color: '#2a332f' }}>
                         {m.dob || m.age != null ? fmtDob(m.dob) : (
                           <input aria-label={`Date of birth for ${m.name}`} placeholder="DD/MM/YYYY" onBlur={e => fixDob(i, e.target.value)}
                                  onKeyDown={e => { if (e.key === 'Enter') fixDob(i, (e.target as HTMLInputElement).value) }}
-                                 className="w-[110px] px-1.5 py-0.5 text-[12.5px] border border-[#b06000] rounded" />
+                                 className="w-[110px] px-1.5 py-0.5 text-[12.5px] border border-[#8a5a00] rounded" />
                         )}
                       </td>
-                      <td className="px-3 py-1.5 tabular-nums" style={{ color: '#3c4043' }}>{m.age ?? ''}</td>
+                      <td className="px-3 py-1.5 tabular-nums" style={{ color: '#2a332f' }}>{m.age ?? ''}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -214,14 +214,14 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
         <Step n={3}>
           Covers <Tip text="Each insurer is priced on its tier matching these facts. Where several tiers match, the lowest-cost one is used. Where none matches exactly, the closest is used and the quotation's notes say so." />
         </Step>
-        <div className="border border-[#e8eaed] rounded-lg divide-y divide-[#f1f3f4]">
+        <div className="border border-[#e6e8e4] rounded-lg divide-y divide-[#f1f2ee]">
           {COVERS.map(c => {
             const on = !!specs[c.code]
             const s = specs[c.code]
             return (
               <div key={c.code} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-2.5">
                 <label htmlFor={`cv-${c.code}`} className="flex items-center gap-2 min-w-[220px] text-[13px] cursor-pointer">
-                  <input id={`cv-${c.code}`} type="checkbox" checked={on} onChange={() => toggle(c.code)} className="accent-[#202124]" />
+                  <input id={`cv-${c.code}`} type="checkbox" checked={on} onChange={() => toggle(c.code)} className="accent-[#0f1412]" />
                   <span className={on ? 'font-medium' : ''}>{coverNames[c.code] || PRODUCT_BY_CODE[c.code].name}</span>
                 </label>
                 {on && c.kind === 'hospital' && c.code !== 'GHS_FW' && (
@@ -233,13 +233,13 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
                     <select aria-label="Ward" className={sel} value={s.ward ?? ''} onChange={e => patch(c.code, { ward: Number(e.target.value) || null })}>
                       <option value="1">1-bed ward</option><option value="2">2-bed ward</option><option value="4">4-bed ward</option>
                     </select>
-                    <label className="flex items-center gap-1.5 text-[12.5px]" style={{ color: '#3c4043' }}>
-                      <input type="checkbox" checked={!!s.coPay} onChange={e => patch(c.code, { coPay: e.target.checked })} className="accent-[#202124]" /> Co-payment
+                    <label className="flex items-center gap-1.5 text-[12.5px]" style={{ color: '#2a332f' }}>
+                      <input type="checkbox" checked={!!s.coPay} onChange={e => patch(c.code, { coPay: e.target.checked })} className="accent-[#0f1412]" /> Co-payment
                     </label>
                   </div>
                 )}
                 {on && c.code === 'GHS_FW' && (
-                  <span className="text-[12.5px]" style={{ color: '#5f6368' }}>
+                  <span className="text-[12.5px]" style={{ color: '#4a5550' }}>
                     {categories.some(x => /work\s*permit|\bwp\b|s[\s-]*pass|foreign|\bfw\b/i.test(x))
                       ? 'Priced for the work-permit and S Pass categories; GHS for everyone else.'
                       : 'No work-permit or S Pass category in the census; will not be priced.'}
@@ -257,12 +257,12 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
                     <select aria-label="Tier" className={sel} value={s.tier ?? 'entry'} onChange={e => patch(c.code, { tier: e.target.value as Tier })}>
                       <option value="entry">Entry tier</option><option value="top">Top tier</option>
                     </select>
-                    <label className="flex items-center gap-1.5 text-[12.5px]" style={{ color: '#3c4043' }}>
-                      <input type="checkbox" checked={!!s.coPay} onChange={e => patch(c.code, { coPay: e.target.checked })} className="accent-[#202124]" /> Co-payment
+                    <label className="flex items-center gap-1.5 text-[12.5px]" style={{ color: '#2a332f' }}>
+                      <input type="checkbox" checked={!!s.coPay} onChange={e => patch(c.code, { coPay: e.target.checked })} className="accent-[#0f1412]" /> Co-payment
                     </label>
                   </div>
                 )}
-                {on && <span className="text-[12px] ml-auto" style={{ color: '#9aa0a6' }}>{describeSpec(withDefaults(s))}</span>}
+                {on && <span className="text-[12px] ml-auto" style={{ color: '#8c958f' }}>{describeSpec(withDefaults(s))}</span>}
               </div>
             )
           })}
@@ -271,12 +271,12 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
 
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={price} disabled={!ready || pricing}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg bg-[#202124] text-white hover:opacity-90 disabled:opacity-40">
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
           {pricing && <Loader2 size={14} className="animate-spin" />}
           {pricing ? 'Pricing…' : 'Price at every insurer'}
         </button>
-        {!members.length && <span className="text-[12.5px]" style={{ color: '#9aa0a6' }}>Add the employee list first</span>}
-        {error && <span className="text-[12.5px]" style={{ color: '#c5221f' }}>{error}</span>}
+        {!members.length && <span className="text-[12.5px]" style={{ color: '#8c958f' }}>Add the employee list first</span>}
+        {error && <span className="text-[12.5px]" style={{ color: '#a1242f' }}>{error}</span>}
       </div>
     </div>
   )

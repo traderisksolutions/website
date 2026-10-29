@@ -6,7 +6,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
 import type { ActivityEvent, ActivityKind } from '@/lib/crm/types'
 
-const BODY = '#3c4043'
+const BODY = '#2a332f'
 
 const KIND_LABEL: Record<ActivityKind, string> = {
   email_in: 'Email in', email_out: 'Email out', ai_draft: 'Draft', debit_note: 'Debit note', payment: 'Payment',

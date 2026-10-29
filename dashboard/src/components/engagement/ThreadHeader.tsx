@@ -15,17 +15,17 @@ import { cleanSubject } from '@/lib/crm/subject'
  * No state colour, no shadow: a hairline under it is enough.
  */
 
-const INK = '#202124'
-const BODY = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const DOT = '#9aa0a6'
-const HAIR = '#e8eaed'
+const INK = '#0f1412'
+const BODY = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const DOT = '#8c958f'
+const HAIR = '#e6e8e4'
 
 const TYPE_LABEL: Record<string, string> = { renewal: 'Renewal', claim: 'Claim', rfq: 'Quotation request', group_benefits: 'Group benefits', finance: 'Finance', new_business: 'New business', general: 'General' }
 
-const ICON_BTN = 'h-8 w-8 rounded-[8px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f3f4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#202124]'
-const MENU_ITEM = 'w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer inline-flex items-center gap-2 hover:bg-[#f8f9fa] no-underline'
+const ICON_BTN = 'h-8 w-8 rounded-[8px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]'
+const MENU_ITEM = 'w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer inline-flex items-center gap-2 hover:bg-[#faf9f6] no-underline'
 
 export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDirection, ownerName, onBack, onReply, onReplyAll, onAddTask, onDelete, deleting, contextOpen, onToggleContext }: {
   /** Raw thread subject; kept in the heading's tooltip. */
@@ -67,7 +67,7 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
   const type = lead.category ? TYPE_LABEL[lead.category] ?? lead.category : null
 
   const parts: React.ReactNode[] = []
-  if (lead.companyId) parts.push(<Link key="co" href={`/companies/${lead.companyId}`} className="no-underline hover:underline underline-offset-[3px] decoration-[#9aa0a6]" style={{ color: INK }}>{lead.companyName ?? 'Company'}</Link>)
+  if (lead.companyId) parts.push(<Link key="co" href={`/companies/${lead.companyId}`} className="no-underline hover:underline underline-offset-[3px] decoration-[#8c958f]" style={{ color: INK }}>{lead.companyName ?? 'Company'}</Link>)
   if (type) parts.push(<span key="type">{type}</span>)
   if (state) parts.push(<span key="state">{state}</span>)
   if (ownerName) parts.push(<span key="owner">Owner {ownerName}</span>)
@@ -93,20 +93,20 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button type="button" onClick={onReply} className="h-8 px-3 rounded-[8px] text-white text-[13px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#202124]" style={{ background: INK }}><Reply size={14} /> Reply</button>
+            <button type="button" onClick={onReply} className="h-8 px-3 rounded-[8px] text-white text-[13px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: INK }}><Reply size={14} /> Reply</button>
             <button type="button" onClick={onReplyAll} title="Reply all" aria-label="Reply all" className={ICON_BTN} style={{ color: BODY }}><ReplyAll size={17} /></button>
-            <button type="button" onClick={onToggleContext} aria-pressed={contextOpen} title={contextOpen ? 'Hide context' : 'Show context'} aria-label="Context rail" className={cn(ICON_BTN, contextOpen && 'bg-[#f1f3f4]')} style={{ color: contextOpen ? INK : BODY }}><PanelRight size={17} /></button>
+            <button type="button" onClick={onToggleContext} aria-pressed={contextOpen} title={contextOpen ? 'Hide context' : 'Show context'} aria-label="Context rail" className={cn(ICON_BTN, contextOpen && 'bg-[#f1f2ee]')} style={{ color: contextOpen ? INK : BODY }}><PanelRight size={17} /></button>
             <div ref={ref} className="relative">
               <button ref={menuBtn} type="button" onClick={() => setMenu(v => !v)} aria-expanded={menu} aria-haspopup="menu" title="More actions" aria-label="More actions" className={ICON_BTN} style={{ color: BODY }}><MoreHorizontal size={17} /></button>
               {menu && (
-                <div role="menu" aria-label="More actions" className="absolute right-0 top-full mt-1.5 w-60 rounded-[12px] bg-white p-1.5 z-30" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(32,33,36,0.12)' }}>
+                <div role="menu" aria-label="More actions" className="absolute right-0 top-full mt-1.5 w-60 rounded-[12px] bg-white p-1.5 z-30" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); onAddTask() }} className={MENU_ITEM} style={{ color: INK }}><Plus size={14} /> Add to-do</button>
                   {lead.companyId && <Link href={`/companies/${lead.companyId}`} role="menuitem" className={cn(MENU_ITEM, 'block')} style={{ color: INK }}>Open company page</Link>}
                   <div className="my-1" style={{ borderTop: `1px solid ${HAIR}` }} />
                   {confirm
                     ? <div className="px-3 py-2 flex items-center justify-between gap-2 text-[13px]"><span style={{ color: BODY }}>Delete this thread?</span>
                         <span className="flex items-center gap-2.5">
-                          <button type="button" onClick={() => { void onDelete(); setMenu(false); setConfirm(false) }} disabled={deleting} className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50 underline underline-offset-[3px]" style={{ color: '#c5221f' }}>{deleting ? 'Deleting…' : 'Delete'}</button>
+                          <button type="button" onClick={() => { void onDelete(); setMenu(false); setConfirm(false) }} disabled={deleting} className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50 underline underline-offset-[3px]" style={{ color: '#a1242f' }}>{deleting ? 'Deleting…' : 'Delete'}</button>
                           <button type="button" onClick={() => setConfirm(false)} className="text-[13px] bg-transparent border-0 p-0 cursor-pointer" style={{ color: MUTED }}>Cancel</button>
                         </span></div>
                     : <button type="button" role="menuitem" onClick={() => setConfirm(true)} className={MENU_ITEM} style={{ color: BODY }}><Trash2 size={14} /> Delete thread</button>}

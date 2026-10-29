@@ -7,8 +7,8 @@
  * - No business logic — pure presentation
  * - No API calls or side effects
  * - Every component is self-contained and independently importable
- * - Tokens only: ink #202124, body #3c4043, muted #5f6368, faint #80868b, dot #9aa0a6,
- *   hairline #e8eaed, control #dadce0, field #f1f3f4. State is never colour-coded — every
+ * - Tokens only: ink #0f1412, body #2a332f, muted #4a5550, faint #6f7a74, dot #8c958f,
+ *   hairline #e6e8e4, control #d5d9d4, field #f1f2ee. State is never colour-coded — every
  *   variant that used to carry a tint (outbound blue, warning amber, success green) is the
  *   same neutral field; the label carries the meaning.
  */
@@ -16,13 +16,13 @@
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
-const INK   = '#202124'
-const BODY  = '#3c4043'
-const MUTED = '#5f6368'
-const FAINT = '#80868b'
-const FIELD = '#f1f3f4'
-const HAIR  = '#e8eaed'
-const CTRL  = '#dadce0'
+const INK   = '#0f1412'
+const BODY  = '#2a332f'
+const MUTED = '#4a5550'
+const FAINT = '#6f7a74'
+const FIELD = '#f1f2ee'
+const HAIR  = '#e6e8e4'
+const CTRL  = '#d5d9d4'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EaAvatar — initials circle. Variants kept for API compatibility; all neutral now
@@ -176,7 +176,7 @@ type StatusDotVariant = 'needs-reply' | 'replied' | 'none'
 
 const STATUS_DOT_COLOR: Record<StatusDotVariant, string> = {
   'needs-reply': INK,
-  'replied':     '#9aa0a6',
+  'replied':     '#8c958f',
   'none':        HAIR,
 }
 
