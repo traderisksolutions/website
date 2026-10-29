@@ -111,7 +111,7 @@ export function FollowUpsLedger() {
           <Segmented value={view} onChange={setView} options={VIEW_OPTIONS.map(o => ({ ...o, count: data?.counts[o.value] }))} />
           <Btn size="xs" level={mine ? 'secondary' : 'tertiary'} aria-pressed={mine} onClick={() => setMine(m => !m)}>Mine</Btn>
         </div>
-        {error && <p role="alert" className="m-0 mb-3 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+        {error && <p role="alert" className="m-0 mb-3 text-[13px]" style={{ color: ERROR }}>{/does not exist|42P01/.test(error) ? 'Nexus needs its database update (follow_ups) before it can show follow-ups.' : error}</p>}
         {note && <p role="status" className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>{note}</p>}
 
         {loading && !data ? <Spinner label="Loading follow-ups…" /> : (

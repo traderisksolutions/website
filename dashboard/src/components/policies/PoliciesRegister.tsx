@@ -116,8 +116,8 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                     row={
                       <>
                         <RegisterCell first primary={line} title={under} />
-                        <RegisterCell title={p.policy_number ?? undefined}><span className="block max-w-[170px] truncate tabular-nums">{p.policy_number ?? '—'}</span></RegisterCell>
-                        <RegisterCell title={p.insurer ?? undefined}><span className="block max-w-[220px] truncate tabular-nums">{p.insurer ?? '—'}</span></RegisterCell>
+                        <RegisterCell title={p.policy_number ?? undefined}><span className="block max-w-[160px] truncate text-[13.5px] tabular-nums">{p.policy_number ?? '—'}</span></RegisterCell>
+                        <RegisterCell title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-[13.5px]">{p.insurer ?? '—'}</span></RegisterCell>
                         <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
