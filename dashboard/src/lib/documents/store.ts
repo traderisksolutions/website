@@ -113,10 +113,21 @@ export async function patchPolicyFolder(policyId: string, url: string): Promise<
   await sb(`policies?id=eq.${enc(policyId)}`, { method: 'PATCH', headers: { ...JSON_H, Prefer: 'return=minimal' }, body: JSON.stringify({ drive_folder_url: url }) })
 }
 
+/** Every row of a query, 1,000 at a time (the API's page size). */
+async function allRows<T>(path: string): Promise<T[]> {
+  const out: T[] = []
+  for (let off = 0; ; off += 1000) {
+    const page = await sbTry<T[]>(`${path}&limit=1000&offset=${off}`, [])
+    out.push(...page)
+    if (page.length < 1000) return out
+  }
+}
+
 /** Attachments with no data-room row yet, oldest first: the catch-up queue. */
 export async function unseenAttachments(limit: number, since?: string): Promise<AttachmentRow[]> {
-  const seen = new Set((await sbTry<{ email_attachment_id: string }[]>(`policy_documents?email_attachment_id=not.is.null&select=email_attachment_id${since ? `&created_at=gte.${enc(since)}` : ''}&limit=20000`, [])).map(r => r.email_attachment_id))
-  const rows = await sbTry<AttachmentRow[]>(`email_attachments?select=id,message_id,thread_id,filename,mime_type,size_bytes,parsed_text,gmail_attachment_id,created_at${since ? `&created_at=gte.${enc(since)}` : ''}&order=created_at.asc&limit=20000`, [])
+  const s = since ? `&created_at=gte.${enc(since)}` : ''
+  const seen = new Set((await allRows<{ email_attachment_id: string }>(`policy_documents?email_attachment_id=not.is.null&select=email_attachment_id`)).map(r => r.email_attachment_id))
+  const rows = await allRows<AttachmentRow>(`email_attachments?select=id,message_id,thread_id,filename,mime_type,size_bytes,parsed_text,gmail_attachment_id,created_at${s}&order=created_at.asc`)
   return rows.filter(r => !seen.has(r.id)).slice(0, limit)
 }
 
