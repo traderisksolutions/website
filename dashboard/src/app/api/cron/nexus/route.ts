@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/nexus — hourly at :05 (vercel.json "5 * * * *"). Bearer CRON_SECRET.
+ * GET /api/cron/nexus — daily at 08:20 SGT (vercel.json "20 0 * * *"; the TRS Vercel team is on Hobby, which allows daily crons only). New mail is also read on ingest. Bearer CRON_SECRET.
  *   1. Reads every email message created since the cursor (app_settings 'nexus_reader_cursor'),
  *      up to 60 a run, and retries failed reads. follow_up_reads keeps each message to one read.
  *   2. Syncs the record sources: RFQ dispatches, renewals, debit notes.
