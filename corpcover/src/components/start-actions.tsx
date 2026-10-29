@@ -209,7 +209,7 @@ export function ReviewFlow({ inline = false }: { inline?: boolean }) {
       <ContactFields />
       <label className="field">Anything to check in particular<textarea name="details" rows={2} /></label>
       {error && <p role="alert" className="text-sm font-medium text-[#b42318]">{error}</p>}
-      <button type="submit" disabled={busy || !file} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Send for review"}</button>
+      <button type="submit" disabled={busy || !file} className="glass-primary w-full py-3 font-semibold disabled:opacity-50">{busy ? "Sending…" : "Send my policy for review"}</button>
     </form>
   );
 }

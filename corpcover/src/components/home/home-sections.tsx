@@ -17,8 +17,8 @@ export function HomeHero({ m }: { m: MarketKey }) {
       <p className="fh-lede">Advisers read your policy against your contracts and lease, then explain the gaps, the overlaps and the price.</p>
       <ul className="fh-points">{points.map(p => <li key={p}>{p}</li>)}</ul>
       <div className="fh-ctas">
-        <Link href={mpath(m, SERVICES.review.path)} className="btn btn-ghost">{SERVICES.review.name}</Link>
-        <Link href={mpath(m, SERVICES.quotes.path)} className="btn btn-primary">{SERVICES.quotes.name}
+        <Link href={mpath(m, SERVICES.review.path)} className="btn btn-ghost">{SERVICES.review.cta}</Link>
+        <Link href={mpath(m, SERVICES.quotes.path)} className="btn btn-primary">{SERVICES.quotes.cta}
           <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 12 12 4M5.5 4H12v6.5" /></svg>
         </Link>
       </div>
@@ -62,7 +62,7 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
             <li><b>PDF report</b><span>Each reason the insurer gave, the clause it relies on, and what the wording supports.</span></li>
             <li><b>30-minute call with a broker</b><span>A broker who did not sell you the policy goes through the report and your options with you.</span></li>
           </ul>
-          <Link href={mpath(m, "/claims")} className="btn btn-primary mt-8 self-center">Send my claim for review</Link>
+          <Link href={mpath(m, SERVICES.claim.path)} className="btn btn-primary mt-8 self-center">{SERVICES.claim.cta}</Link>
         </div>
         <Link href={mpath(m, "/claims")} className="cf-art grain grain-evergreen" aria-label="Example claim second opinion report">
           <span className="cf-sheet" aria-hidden><ClaimReportMock currency={MARKETS[m].currency} body={MARKETS[m].disputeBody} /></span>
@@ -73,9 +73,9 @@ export function ClaimFeature({ m }: { m: MarketKey }) {
 }
 
 const CARDS = [
-  { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: "Ask a question", path: "/ask" },
-  { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: "Send my policy for review", path: "/policy-review" },
-  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: "Request quotes", path: "/get-covered" },
+  { key: "ask", tone: "grain-evergreen", title: SERVICES.chat.name, text: "Ask about a cover, an exclusion or a contract clause. Each answer names the section it comes from.", cta: SERVICES.chat.cta, path: SERVICES.chat.path },
+  { key: "review", tone: "grain-moss", title: SERVICES.review.name, text: "Send the schedule and wording. An adviser checks each cover against your contracts and premises.", cta: SERVICES.review.cta, path: SERVICES.review.path },
+  { key: "choose", tone: "grain-pine", title: SERVICES.quotes.name, text: "Pick your business type. We show the cover it usually holds, and an adviser gets quotes from insurers.", cta: SERVICES.quotes.cta, path: SERVICES.quotes.path },
 ] as const;
 
 /** Three services (Harvey "One Platform" cards): the hovered card widens, the others fade. */

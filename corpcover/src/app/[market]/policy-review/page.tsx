@@ -31,7 +31,7 @@ export default function PolicyReview() {
         <FeatureTrio className="mt-[clamp(48px,6vw,80px)]" items={[
           { icon: "doc", title: "Know what you bought", text: "What each policy covers, what it leaves out, and where it falls short of your contracts and lease." },
           { icon: "shield", title: "No commitment", text: "A review is not a quote. Keep your insurer and your cover if they are right for you." },
-          { icon: "fee", title: "90% of reviews find a saving", text: "Often 50% or more on premium, for the same or better cover. The review costs your business nothing." },
+          { icon: "fee", title: "15% average saving", text: "On the previous premium, for the same or better cover. The review costs your business nothing." },
         ]} />
       </section>
       </Terrain>

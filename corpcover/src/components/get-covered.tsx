@@ -150,7 +150,7 @@ export function GetCovered({ initialBiz = "", market = "sg" }: { initialBiz?: st
       <div className="gc-body">
         <p className="text-ink-2">An adviser will confirm a {s.slot.toLowerCase()} call on {dayLabel(s.day)} by email to {s.email}, within 1 working day.</p>
         <div><p className="gc-label">Cover to discuss</p><div className="flex flex-wrap gap-2">{s.covers.map(c => <span key={c} className="gc-chip" aria-pressed="true">{c === "Work injury compensation" ? M.workInjury : c}</span>)}</div></div>
-        <Link href={mpath(market, "/articles")} className="btn btn-ghost justify-self-start">Read the guides while you wait</Link>
+        <Link href={mpath(market, "/articles")} className="btn btn-ghost justify-self-start">Read the insights</Link>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export default async function Subscribed(props: PageProps<"/subscribed">) {
           {ok ? "One email a week, with the new articles. Unsubscribe from any issue in one click." : "This link has expired or is not valid."}
         </p>
         {ok ? (
-          <div className="mt-7"><Link href="/articles" className="btn btn-primary">Read the latest articles</Link></div>
+          <div className="mt-7"><Link href="/articles" className="btn btn-primary">Read the insights</Link></div>
         ) : (
           <Subscribe variant="inline" className="mt-7" />
         )}

@@ -14,7 +14,7 @@ export default async function Unsubscribed(props: PageProps<"/unsubscribed">) {
         <p className="mt-5 t-lede">
           {ok ? "You will not receive the Corp Cover letter again." : "This link is not valid."}
         </p>
-        <div className="mt-7"><Link href="/articles" className="btn btn-ghost">Read the latest articles</Link></div>
+        <div className="mt-7"><Link href="/articles" className="btn btn-ghost">Read the insights</Link></div>
       </section>
     </main>
   );

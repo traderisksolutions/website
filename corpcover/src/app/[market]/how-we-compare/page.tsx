@@ -62,7 +62,7 @@ export default async function HowWeCompare({ params }: { params: Promise<{ marke
         <div className="grid content-start gap-3">
           <h2 className="text-[1.6rem] font-semibold tracking-[-0.02em]">Updates</h2>
           <p className="text-ink-2">Guides are reviewed at least once a year and when a rule or product changes. The date on each guide shows the last review. Wording differs by insurer, so a guide is general information, not advice on a specific policy.</p>
-          <Link href={mpath(m, "/get-covered")} className="btn btn-primary mt-3 justify-self-start">Get covered</Link>
+          <Link href={mpath(m, "/get-covered")} className="btn btn-primary mt-3 justify-self-start">Request quotes</Link>
         </div>
       </section>
     </main>
