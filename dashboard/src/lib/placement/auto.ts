@@ -10,12 +10,16 @@ import { sbTry } from '@/lib/crm/db'
 import * as store from './store'
 import { suggestInsurers } from '@/lib/insurer-products'
 import { createPlacement, proposeFromThread, type NewLine } from './workflow'
+import { approvedInsurerNames, tierOf } from './eb'
 
 /** Below this the classifier is guessing, and a guess should not open a placement. */
 export const AUTO_PLACE_CONFIDENCE = 0.7
 /** A proposed line the agent is less sure of than this is dropped rather than asked. */
 export const AUTO_LINE_CONFIDENCE = 0.6
-/** Employment benefits: the rate engine prices first, so no insurer is asked on round 1. */
+/**
+ * Employment benefits: the rate engine prices the Tier A and B insurers from the census, so only
+ * Tier C insurers (no rate table on file) are asked by email on round 1.
+ */
 export const EB_PRODUCT_LINE = 'employee_benefits'
 export const AGENT_ACTOR = 'agent'
 
@@ -56,6 +60,15 @@ export function pickDefaultContacts(routes: store.InsurerRoute[], productLine?: 
   return [...byInsurer.values()].sort((a, b) => a.insurer_name.localeCompare(b.insurer_name)).map(r => r.contact_id)
 }
 
+/**
+ * The contacts a line emails. For employment benefits the rate engine prices every insurer with a
+ * rate table, so those are left out and only Tier C insurers are asked; other lines keep them all.
+ */
+export function ebEmailContacts(productLine: string, picks: { contact_id: string; insurer: string }[], approvedInsurers: readonly string[]): string[] {
+  const keep = productLine === EB_PRODUCT_LINE ? picks.filter(p => tierOf(p.insurer, approvedInsurers) === 'C') : picks
+  return [...new Set(keep.map(p => p.contact_id))]
+}
+
 // ── The write ───────────────────────────────────────────────────────────────────────────────
 
 export type AutoPlaceResult =
@@ -84,17 +97,18 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
   const proposed = (proposal?.lines ?? []).filter(l => l.confidence >= AUTO_LINE_CONFIDENCE)
   if (proposed.length === 0) return { status: 'no_lines' }
 
-  const askedLines = [...new Set(proposed.filter(l => l.product_line !== EB_PRODUCT_LINE).map(l => l.product_line))]
+  const askedLines = [...new Set(proposed.map(l => l.product_line))]
   // The Insurers page ranks and ticks up to five per line; a line with no products there falls
   // back to one contact per insurer from the old list.
   const [suggested, routes] = askedLines.length > 0
     ? await Promise.all([suggestInsurers(askedLines, thread.company_id), store.insurerRoutes(askedLines)])
     : [{} as Awaited<ReturnType<typeof suggestInsurers>>, [] as store.InsurerRoute[]]
+  const approved = proposed.some(l => l.product_line === EB_PRODUCT_LINE) ? await approvedInsurerNames() : []
   const lines: NewLine[] = proposed.map(l => ({
     product_line: l.product_line, label: l.label, spec: l.spec,
-    contact_ids: l.product_line === EB_PRODUCT_LINE ? []
-      : suggested[l.product_line] ? suggested[l.product_line].filter(s => s.picked && s.contact).map(s => s.contact!.contact_id)
-      : pickDefaultContacts(routes, l.product_line),
+    contact_ids: ebEmailContacts(l.product_line, suggested[l.product_line]
+      ? suggested[l.product_line].filter(s => s.picked && s.contact).map(s => ({ contact_id: s.contact!.contact_id, insurer: s.product.insurer_name }))
+      : routes.filter(r => pickDefaultContacts(routes, l.product_line).includes(r.contact_id)).map(r => ({ contact_id: r.contact_id, insurer: r.insurer_name })), approved),
   }))
 
   // The agent's read takes a while; another call may have placed this thread meanwhile.
@@ -111,7 +125,7 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
   const subject = (thread.subject ?? '').trim() || 'the client email'
   await store.log({
     company_id: r.placement.company_id, placement_id: r.placement.id, kind: 'opened', actor: AGENT_ACTOR, thread_id: threadId,
-    text: `Proposed by the agent from ${subject}: ${labels.join(', ')}` + (ebLabels.length > 0 ? ` — ${ebLabels.join(', ')}: rate engine prices first, no insurer asked` : ''),
+    text: `Proposed by the agent from ${subject}: ${labels.join(', ')}` + (ebLabels.length > 0 ? ` — ${ebLabels.join(', ')}: rate engine prices Tier A and B, Tier C insurers asked by email` : ''),
     // Rows come back in insert order, so line i was asked with lines[i].contact_ids.
     detail: { auto: true, lines: r.lines.map((l, i) => ({ id: l.id, product_line: l.product_line, contact_ids: lines[i]?.contact_ids ?? [] })) },
   })

@@ -139,7 +139,16 @@ describe('lineStage and the register', () => {
     })
     const r = registerRow(p, placement, 'Kranji Precision', 'GHS')
     expect(r).toMatchObject({ ref: 'Q-0142', company_name: 'Kranji Precision', options: ['1M'], round: 1, asked: 2, quoted: 1, stage: 'quoting', waiting_on: 'insurer', last_by: 'mt@trade-risksol.com' })
-    expect(r.lowest?.premium_amount).toBe(6840)
+    // One price is not a lowest: the register follows the grid's two-price rule.
+    expect(r.lowest).toBeNull()
+    const two = registerRow(pos({
+      dispatches: [dispatch('d1', 'MSIG', { status: 'quoted' }), dispatch('d2', 'HL', { status: 'quoted' })],
+      quotes: [quote('q1', 'd1', 6840), quote('q2', 'd2', 7120)],
+    }), placement, 'Kranji Precision', 'GHS')
+    expect(two.lowest?.premium_amount).toBe(6840)
+  })
+  it('reads a declined line as lost', () => {
+    expect(stage({ lines: [line({ status: 'declined' })] }).stage).toBe('lost')
   })
   it('counts open lines by who they wait on', () => {
     const base = registerRow(pos({}), placement, 'A', 'GHS')

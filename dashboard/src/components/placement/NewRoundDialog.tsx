@@ -20,8 +20,10 @@ const REASONS: { value: Exclude<RoundReason, 'initial'>; label: string }[] = [
  * A new round on one line: the spec after a change, sent again to the insurers on that line.
  * The "What changes" list is the field-by-field diff; the summary is what the insurers read.
  */
-export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, prefill, currentContactIds, onDone }: {
+export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, prefill, currentContactIds, companyId, onDone }: {
   open: boolean
+  /** The client company: lets the picker rank insurers by its industry, as on the first round. */
+  companyId?: string
   onClose: () => void
   placementId: string
   line: PlacementLine
@@ -131,7 +133,7 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
 
             <div className="flex flex-col gap-2">
               <span className="text-[12.5px]" style={{ color: MUTED }}>Insurers to ask</span>
-              <ContactPicker productLines={[line.product_line]} value={picks} onChange={setPicks} preferIds={currentContactIds} />
+              <ContactPicker productLines={[line.product_line]} value={picks} onChange={setPicks} preferIds={currentContactIds} companyId={companyId} />
             </div>
 
             {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}

@@ -32,7 +32,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (ids != null && (!Array.isArray(ids) || !ids.every(isUuid))) return fail('quote_ids must be a list of quote ids')
     if (Array.isArray(ids) && ids.length === 0) return fail('Tick at least one quote to send', 409)
     const r = await draftClientSummary(id, actor, Array.isArray(ids) ? ids as string[] : null)
-    if (!r) return fail('The agent could not write the draft. Try again.', 502)
+    if (!r) {
+      const contact = await store.sbTryContact(placement.client_contact_id)
+      if (!contact?.email) return fail('The client contact on this placement has no email address. Add one on the company, then try again.', 409)
+      return fail('The agent could not write the draft. Try again.', 502)
+    }
     return NextResponse.json({ draftId: r.draftId }, { status: 201 })
   } catch (e) {
     return errorResponse(e)

@@ -11,11 +11,11 @@ import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 type Sender = { email: string; label: string; type: 'shared' | 'personal' }
-const KIND_WORD = { request: 'Request', chase: 'Follow-up', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
+const KIND_WORD = { request: 'Request', chase: 'Follow-up', tier: 'Option ask', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
 
 type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string }
 /** GET /api/companies/[id]/drafts → { queue: QueueItem[] } */
-export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'client' | 'confirm' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
+export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
 type SendState = { phase: 'idle' } | { phase: 'sending' } | { phase: 'sent' } | { phase: 'error'; message: string }
 /** One recipient of a request item while its fan-out runs: the dispatch id keys the line. */
 type RecipientState = { phase: 'queued' | 'sending' | 'sent' | 'error'; message?: string }

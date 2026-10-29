@@ -788,6 +788,16 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: err }, { status: res.status })
     }
 
+    // A discarded comparison email never reached the client: mark its share discarded so the
+    // grid stops showing those prices as sent. No-op for every other kind of draft.
+    if (status === 'rejected') {
+      await fetch(`${SB_URL}/rest/v1/placement_shares?ai_draft_id=eq.${encodeURIComponent(draftId)}&status=eq.drafted`, {
+        method:  'PATCH',
+        headers: sbHeaders('return=minimal'),
+        body:    JSON.stringify({ status: 'discarded' }),
+      }).catch(() => undefined)
+    }
+
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'

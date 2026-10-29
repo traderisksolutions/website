@@ -159,6 +159,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
           line={round.line}
           currentSpec={round.currentSpec}
           currentContactIds={round.currentContactIds}
+          companyId={companyId}
           prefill={round.prefill}
           onDone={onChanged}
         />

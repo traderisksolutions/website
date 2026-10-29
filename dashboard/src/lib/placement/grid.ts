@@ -120,7 +120,8 @@ export function lineStage(pos: LinePosition, placement: Pick<Placement, 'status'
   const s = pos.line.status
   if (s === 'done' || pos.line.done_at) return { stage: 'done', waitingOn: null }
   if (s === 'dropped' || s === 'closed') return { stage: 'dropped', waitingOn: null }
-  if (s === 'lost') return { stage: 'lost', waitingOn: null }
+  // Every insurer declined: nothing left to place on this line.
+  if (s === 'lost' || s === 'declined') return { stage: 'lost', waitingOn: null }
   const l = pos.line
   if (l.insurer_confirmed_at) return { stage: 'dn_due', waitingOn: 'broker' }
   if (l.confirm_sent_at) return { stage: 'confirming', waitingOn: 'insurer' }
@@ -169,7 +170,9 @@ export function registerRow(pos: LinePosition, placement: Placement, companyName
     received: placement.created_at, line_label: lineLabel, product_line: pos.line.product_line,
     options: pos.tiers.map(t => t.label), round: pos.roundNo,
     asked: pos.dispatches.filter(d => d.dispatch.status !== 'withdrawn').length + pos.engineQuotes.length,
-    quoted: pos.quotedCount, declined: pos.declinedCount, lowest: pos.best,
+    quoted: pos.quotedCount, declined: pos.declinedCount,
+    // Same rule as the comparison grid: a lowest needs at least two prices to compare.
+    lowest: pos.quotedCount >= 2 ? pos.best : null,
     inception: placement.inception_date, stage, waiting_on: waitingOn, next_step: pos.line.next_step,
     last_by: sends[0]?.dispatch.sent_by ?? placement.created_by ?? null, last_at: lastAt,
   }

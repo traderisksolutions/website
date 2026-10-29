@@ -811,7 +811,7 @@ async function confirmFromInsurer(line: PlacementLine, d: PlacementDispatch, pol
 }
 
 /** The drafts waiting on a person for this placement: requests, chases and the client email. */
-export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'client' | 'confirm' }[]> {
+export async function reviewQueue(placementId: string): Promise<{ draft: store.DraftRow; dispatches: PlacementDispatch[]; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' }[]> {
   const bundle = await store.loadPlacement(placementId)
   if (!bundle) return []
   const dispatchDraftIds = [...new Set(bundle.dispatches.filter(d => d.ai_draft_id && d.status === 'drafted').map(d => d.ai_draft_id!))]
@@ -824,7 +824,7 @@ export async function reviewQueue(placementId: string): Promise<{ draft: store.D
   return drafts.map(draft => ({
     draft,
     dispatches: bundle.dispatches.filter(d => d.ai_draft_id === draft.id),
-    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.confirm ? 'confirm' : draft.email_type === DRAFT_TYPE.chase || draft.email_type === DRAFT_TYPE.tier ? 'chase' : 'request',
+    kind: draft.email_type === DRAFT_TYPE.client ? 'client' : draft.email_type === DRAFT_TYPE.confirm ? 'confirm' : draft.email_type === DRAFT_TYPE.chase ? 'chase' : draft.email_type === DRAFT_TYPE.tier ? 'tier' : 'request',
   }))
 }
 
