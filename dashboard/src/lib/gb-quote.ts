@@ -37,6 +37,9 @@ export type AppliedRules = {
    *  and employees or spouses over 75 or under 16 (Working!C4); without this the engine would
    *  price people the insurer would not accept. */
   eligibility?: { child_max_age?: number; adult_min_age?: number; adult_max_age?: number } | null
+  /** Ages a single product covers, where narrower than the table: AIA dental covers children
+   *  from 3 to 25 only (brochure p17). `product` is the product code as the table stores it. */
+  product_eligibility?: { product: string; child_min_age?: number; child_max_age?: number }[] | null
 }
 
 // A member's relationship maps to which premium table applies (employee vs dependant).
@@ -95,6 +98,17 @@ export function eligibilityNote(rules: AppliedRules | null | undefined, relation
   if (child) return e.child_max_age != null && age > e.child_max_age ? `child over ${e.child_max_age} not eligible` : null
   if (e.adult_max_age != null && age > e.adult_max_age) return `over ${e.adult_max_age} not eligible`
   if (e.adult_min_age != null && age < e.adult_min_age) return `under ${e.adult_min_age} not eligible`
+  return null
+}
+
+/** Why this member is outside the ages one product covers, or null. */
+export function productEligibilityNote(rules: AppliedRules | null | undefined, product: string, relationship: string, age: number | null): string | null {
+  const list = rules?.product_eligibility
+  if (!Array.isArray(list) || age == null || !/child|son|daughter/i.test(relationship)) return null
+  const r = list.find(x => x?.product === product)
+  if (!r) return null
+  if (r.child_min_age != null && age < r.child_min_age) return `child under ${r.child_min_age} not covered`
+  if (r.child_max_age != null && age > r.child_max_age) return `child over ${r.child_max_age} not covered`
   return null
 }
 
@@ -240,8 +254,9 @@ export function computeQuote(
         const plan = tMap[product]?.[m.category] ?? null
         // Skip products the category isn't mapped to (e.g. staff without a GOS rider).
         if (!plan) continue
-        let { premium, note } = ineligible
-          ? { premium: null as number | null, note: ineligible as string | null }
+        const productIneligible = ineligible ?? productEligibilityNote(rules, product, m.relationship, age)
+        let { premium, note } = productIneligible
+          ? { premium: null as number | null, note: productIneligible as string | null }
           : findRate(table.rates, product, plan, age, memberTypeFor(m.relationship), { occupationClass: m.occupation_class })
         // Apply the insurer's calculator rules (guarded — no-op when the table has no rules).
         if (rules && premium != null) {

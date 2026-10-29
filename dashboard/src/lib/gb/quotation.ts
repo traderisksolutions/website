@@ -33,34 +33,7 @@ export async function createQuotation(input: QuotationInput, createdBy: string |
   const basis: QuoteBasis = input.basis === 'renewal' ? 'renewal' : 'new_business'
   if (!tableIds.length || !census.length || !products.length) throw new QuotationInputError('Select insurers, products and a census')
 
-  // Load the selected approved tables + their rates + any approved calculator rules
-  // (mechanical AppliedRules) + any approved richer computation rules (Phase 6d, optional).
-  const ids = tableIds.map(i => `"${i}"`).join(',')
-  const [metaRes, rateRows, richRes] = await Promise.all([
-    fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis,rules,rules_status&limit=100`, { headers: sbH(), cache: 'no-store' }),
-    fetchAllRows<RateTableInfo['rates'][number] & { rate_table_id: string }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only,dimensions`, sbH()),
-    fetch(`${SB_URL}/rest/v1/gb_computation_rules?rate_table_id=in.(${ids})&status=eq.approved&select=rate_table_id,rules`, { headers: sbH(), cache: 'no-store' }),
-  ])
-  const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string; rules: Record<string, unknown> | null; rules_status: string | null }[] = metaRes.ok ? await metaRes.json() : []
-  const richByTable = new Map<string, RateTableInfo['richRules']>(
-    (richRes.ok ? await richRes.json() : []).map((r: { rate_table_id: string; rules: RateTableInfo['richRules'] }) => [r.rate_table_id, r.rules]),
-  )
-
-  // Approved calculator rules override the table's age basis and drive GST/discount/gating.
-  const ruleBasis = (r: Record<string, unknown> | null): 'next_birthday' | 'last_birthday' | null =>
-    r?.age_basis === 'next birthday' ? 'next_birthday' : r?.age_basis === 'last birthday' ? 'last_birthday' : null
-  const tables: RateTableInfo[] = metas.map(m => {
-    const approved = m.rules_status === 'approved' && m.rules ? (m.rules as RateTableInfo['rules']) : null
-    return {
-      rate_table_id: m.id,
-      insurer_id: m.insurer_id ?? null,
-      insurer_name: m.insurer_name ?? 'Unknown',
-      age_basis: ruleBasis(m.rules) && m.rules_status === 'approved' ? ruleBasis(m.rules)! : (m.age_basis === 'last_birthday' ? 'last_birthday' : 'next_birthday'),
-      rates: rateRows.filter(r => r.rate_table_id === m.id),
-      rules: approved,
-      richRules: richByTable.get(m.id) ?? null,
-    }
-  })
+  const tables = await loadRateTables(tableIds)
 
   const result = computeQuote(census, tables, input.category_map ?? {}, products, gstRate, effDate, { basis })
 
@@ -87,6 +60,44 @@ export async function createQuotation(input: QuotationInput, createdBy: string |
   }
 
   return { quotationId: (quotation?.id ?? null) as string | null, result }
+}
+
+
+/**
+ * The selected rate tables with their rates and, where approved, the rules that shape the numbers
+ * (age basis, GST, group factor, eligibility, renewal-only bands). Shared by saving a quotation and
+ * by the plan builder's live preview, so a preview and the saved quotation are the same numbers.
+ */
+export async function loadRateTables(tableIds: string[]): Promise<RateTableInfo[]> {
+  // Load the selected approved tables + their rates + any approved calculator rules
+  // (mechanical AppliedRules) + any approved richer computation rules (Phase 6d, optional).
+  const ids = tableIds.map(i => `"${i}"`).join(',')
+  const [metaRes, rateRows, richRes] = await Promise.all([
+    fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=in.(${ids})&select=id,insurer_id,insurer_name,age_basis,rules,rules_status&limit=100`, { headers: sbH(), cache: 'no-store' }),
+    fetchAllRows<RateTableInfo['rates'][number] & { rate_table_id: string }>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,member_type,plan_code,band_label,age_min,age_max,premium,renewal_only,dimensions`, sbH()),
+    fetch(`${SB_URL}/rest/v1/gb_computation_rules?rate_table_id=in.(${ids})&status=eq.approved&select=rate_table_id,rules`, { headers: sbH(), cache: 'no-store' }),
+  ])
+  const metas: { id: string; insurer_id: string | null; insurer_name: string | null; age_basis: string; rules: Record<string, unknown> | null; rules_status: string | null }[] = metaRes.ok ? await metaRes.json() : []
+  const richByTable = new Map<string, RateTableInfo['richRules']>(
+    (richRes.ok ? await richRes.json() : []).map((r: { rate_table_id: string; rules: RateTableInfo['richRules'] }) => [r.rate_table_id, r.rules]),
+  )
+
+  // Approved calculator rules override the table's age basis and drive GST/discount/gating.
+  const ruleBasis = (r: Record<string, unknown> | null): 'next_birthday' | 'last_birthday' | null =>
+    r?.age_basis === 'next birthday' ? 'next_birthday' : r?.age_basis === 'last birthday' ? 'last_birthday' : null
+  return metas.map(m => {
+    const approved = m.rules_status === 'approved' && m.rules ? (m.rules as RateTableInfo['rules']) : null
+    return {
+      rate_table_id: m.id,
+      insurer_id: m.insurer_id ?? null,
+      insurer_name: m.insurer_name ?? 'Unknown',
+      age_basis: ruleBasis(m.rules) && m.rules_status === 'approved' ? ruleBasis(m.rules)! : (m.age_basis === 'last_birthday' ? 'last_birthday' : 'next_birthday'),
+      rates: rateRows.filter(r => r.rate_table_id === m.id),
+      rules: approved,
+      richRules: richByTable.get(m.id) ?? null,
+    }
+  })
+
 }
 
 export class QuotationInputError extends Error {}
