@@ -1,9 +1,10 @@
 /**
  * Insurer Excel calculator → RULES for a rate table (1:1).
  *
- * POST  /api/group-benefits/rate-tables/[id]/calculator   { storage_path, filename }
- *   Signs a read URL for the uploaded xlsx, calls the Python analyzer (/api/analyze_xlsx),
- *   and stores the detected rules + audit log on the rate table (status → in_review).
+ * POST  /api/group-benefits/rate-tables/[id]/calculator   { storage_path: 'drivefile:<id>', filename }
+ *   Reads the uploaded xlsx from Drive (calculator/upload-url opened the upload), sends its bytes
+ *   to the Python analyzer (/api/analyze_xlsx), and stores the detected rules + audit log on the
+ *   rate table (status → in_review).
  * PATCH /api/group-benefits/rate-tables/[id]/calculator   { rules, approved }
  *   Saves the reviewed rules; approved=true flips rules_status → approved.
  */
@@ -11,11 +12,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { internalHeaders }        from '@/lib/api-gate/internal'
+import { NEVER_STORED, attachmentRefBytes, isDriveRef } from '@/lib/storage/attachment-bytes'
 
 export const maxDuration = 120
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-const BUCKET = 'group-benefits'
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const { storage_path, filename } = await req.json() as { storage_path?: string; filename?: string }
-    if (!storage_path) return NextResponse.json({ error: 'storage_path required' }, { status: 400 })
+    if (!isDriveRef(storage_path)) return NextResponse.json({ error: 'storage_path must be a drivefile: reference' }, { status: 400 })
 
     // Load the table (for insurer name context).
     const table = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}&select=insurer_name&limit=1`, { headers: sbH(), cache: 'no-store' })
@@ -43,22 +44,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     await patchTable(id, { calculator_path: storage_path, calculator_filename: filename ?? null, rules_status: 'analyzing', rules_updated_at: new Date().toISOString() })
 
-    // Sign a short-lived read URL and hand it to the Python analyzer (fetches + parses it).
-    const signRes = await fetch(`${SB_URL}/storage/v1/object/sign/${BUCKET}/${storage_path}`, {
-      method: 'POST', headers: sbH(), body: JSON.stringify({ expiresIn: 300 }),
-    })
-    if (!signRes.ok) {
-      await patchTable(id, { rules_status: 'error', rules_log: { error: `sign failed: ${(await signRes.text()).slice(0, 200)}` } })
-      return NextResponse.json({ error: 'Could not sign the uploaded file' }, { status: 502 })
+    // Read the just-uploaded workbook from Drive (never an older copy) and hand its bytes to the
+    // Python analyzer.
+    const xlsx = await attachmentRefBytes(storage_path)
+    if (!xlsx?.length) {
+      await patchTable(id, { rules_status: 'error', rules_log: { error: NEVER_STORED } })
+      return NextResponse.json({ error: NEVER_STORED }, { status: 410 })
     }
-    const signed = (await signRes.json() as { signedURL?: string }).signedURL
-    const xlsx_url = `${SB_URL}/storage/v1${signed}`
 
     // Same-deployment Python serverless function.
     const origin = new URL(req.url).origin
     const pyRes = await fetch(`${origin}/api/analyze_xlsx`, {
       method: 'POST', headers: internalHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ xlsx_url, insurer_name: table?.insurer_name ?? null }),
+      body: JSON.stringify({ xlsx_base64: xlsx.toString('base64'), insurer_name: table?.insurer_name ?? null }),
     })
     const analysis = await pyRes.json().catch(() => ({ error: 'analyzer returned non-JSON' }))
     if (!pyRes.ok || analysis.error) {

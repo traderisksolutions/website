@@ -107,6 +107,14 @@ export const API_RULES: ApiRule[] = [
     requirement: 'open',
     reason: 'HR-facing employee-list link; the random token in the path is the credential, stored hashed and expiring.',
   },
+  {
+    // Images inserted into outgoing emails, fetched by recipients' mail clients, which have no
+    // login. The route serves only image/* files inside the Drive email-images folder, by their
+    // unguessable Drive id; anything else is 404.
+    prefix: '/api/public/email-image',
+    requirement: 'open',
+    reason: 'Images embedded in sent emails; recipients have no account, and only email-images files are served.',
+  },
 ]
 
 export function isApiPath(pathname: string): boolean {

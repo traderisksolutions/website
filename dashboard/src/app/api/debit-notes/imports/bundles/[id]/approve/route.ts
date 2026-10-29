@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH, stH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
+import { SB_URL, sbH, uploadPdf, signRead, downloadObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type AttachmentFileRef } from '@/lib/debit-note-commit'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
@@ -92,11 +92,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       paymentDueDate: body.debitNote.paymentDueDate ?? null,
       eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
     })
-    const pdfPath = `${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`
-    await uploadPdf(pdfPath, pdfBuffer)
+    const pdfPath = await uploadPdf(`${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`, pdfBuffer)
 
     const attachmentFiles: AttachmentFileRef[] = [
-      ...members.map(m => ({ filename: m.original_filename ?? m.storage_url.split('/').pop()!, storage_url: m.storage_url, source: (m.doc_type ?? 'other') as AttachmentFileRef['source'] })),
+      ...members.map(m => ({ filename: m.original_filename ?? 'document.pdf', storage_url: m.storage_url, source: (m.doc_type ?? 'other') as AttachmentFileRef['source'] })),
       { filename: `${result.debitNoteNo}.pdf`, storage_url: pdfPath, source: 'generated' as const },
     ]
 
@@ -107,8 +106,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // "Tax Invoice.pdf" would sit side by side with no way to tell them apart.
       const driveFiles = await Promise.all([
         ...members.map(async m => {
-          const res = await fetch(`${SB_URL}/storage/v1/object/debit-notes/${m.storage_url}`, { headers: stH() })
-          return { name: `${result.debitNoteNo} - ${m.original_filename ?? 'document.pdf'}`, mimeType: 'application/pdf', bytes: Buffer.from(await res.arrayBuffer()) }
+          // Throws NEVER_STORED for a file that was never stored, so nothing empty is filed.
+          return { name: `${result.debitNoteNo} - ${m.original_filename ?? 'document.pdf'}`, mimeType: 'application/pdf', bytes: await downloadObject(m.storage_url) }
         }),
         Promise.resolve({ name: `${result.debitNoteNo}.pdf`, mimeType: 'application/pdf', bytes: pdfBuffer }),
       ])

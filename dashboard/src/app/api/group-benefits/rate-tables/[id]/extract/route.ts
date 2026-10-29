@@ -14,6 +14,8 @@ import {
 } from '@/lib/gb-extract'
 import { GEMINI_FLASH, GEMINI_DEEP } from '@/lib/gemini-models'
 import { diffBenefits } from '@/lib/gb-diff'
+import { documentBytes } from '@/lib/gb/documents'
+import { NEVER_STORED } from '@/lib/storage/attachment-bytes'
 
 export const maxDuration = 300
 
@@ -24,7 +26,6 @@ function sbH(prefer = 'return=minimal') {
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
-const storageKey = () => ({ apikey: process.env.SUPABASE_SERVICE_KEY!, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY!}` })
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -46,9 +47,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
     await setStage('reading')
 
-    const pdfRes = await fetch(table.source_pdf_url, { headers: storageKey(), cache: 'no-store' })
-    if (!pdfRes.ok) return NextResponse.json({ error: 'Could not download PDF' }, { status: 502 })
-    const buf = Buffer.from(await pdfRes.arrayBuffer())
+    const buf = await documentBytes(id, 'brochure', table.source_pdf_url)
+    if (!buf) {
+      await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'draft' }) }).catch(() => {})
+      return NextResponse.json({ error: NEVER_STORED }, { status: 410 })
+    }
     const b64 = buf.toString('base64')
 
     const profileHint = `Expected primary product: ${table.product_code}${table.product_name ? ` (${table.product_name})` : ''}. Insurer: ${table.insurer_name ?? 'unknown'}.`

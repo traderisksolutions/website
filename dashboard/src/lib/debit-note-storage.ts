@@ -1,15 +1,19 @@
 /**
- * Debit Note — shared Supabase helpers (storage + REST). Mirrors src/lib/pm-storage.ts's
- * shape for a dedicated private bucket that holds both generated (Generate Debit Note) and
- * uploaded (bulk PDF import) debit-note PDFs.
+ * Debit Note — shared REST helpers and file storage. Files live in Drive: generated PDFs under
+ * debit-notes/<companyId>/, imported files under debit-note-uploads/<YYYY-MM>/. The stored
+ * reference is `drivefile:<id>`. Rows from before 29 Oct 2026 carry bare bucket paths whose bytes
+ * were never stored (the TRS API answers every old storage path with 200 "trs api"); reads of those throw
+ * NEVER_STORED.
  */
-export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-export const BUCKET  = 'debit-notes'
+import { putObject } from '@/lib/storage/drive-store'
+import { storeUpload } from '@/lib/storage/drive-upload'
+import { getDriveWriteToken } from '@/lib/gdrive-write'
+import { NEVER_STORED, driveIdOf, driveRef, driveWebLink, isDriveRef, requireRefBytes } from '@/lib/storage/attachment-bytes'
 
-/** debit_note_no is "DN260805" — no space, since 30 Sep 2026. Kept as a guard anyway: a raw
- *  space in a storage object key isn't URL-encoded by the plain template-string fetch() calls
- *  this file uses, and would break the upload the same way bracket-filled insurer filenames did.
- *  Historical rows and hand-typed overrides can still carry one. */
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
+
+/** debit_note_no is "DN260805" — no space, since 30 Sep 2026. Kept as a guard anyway so
+ *  file names stay free of spaces. Historical rows and hand-typed overrides can still carry one. */
 export const storageKeySegment = (s: string) => s.replace(/\s+/g, '')
 
 export function serviceKey(): string {
@@ -24,52 +28,38 @@ export function sbH(prefer = 'return=representation'): Record<string, string> {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-/** Storage headers (service key, no content-type). */
-export function stH(): Record<string, string> {
-  const k = serviceKey()
-  return { apikey: k, Authorization: `Bearer ${k}` }
+/** Writes a generated or re-uploaded debit-note PDF to Drive at debit-notes/<path>, replacing
+ *  the file already at that path. Returns the reference to store: `drivefile:<id>`. */
+export async function uploadPdf(path: string, bytes: Buffer): Promise<string> {
+  if (!bytes.length) throw new Error('PDF upload failed: no bytes')
+  return driveRef(await putObject(`debit-notes/${path}`, bytes, 'application/pdf'))
 }
 
-/** Ensure the (private) bucket exists — idempotent, ignores "already exists". */
-export async function ensureBucket(): Promise<void> {
-  await fetch(`${SB_URL}/storage/v1/bucket`, {
-    method: 'POST', headers: { ...stH(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false }),
-  }).catch(() => {})
+/** An imported file (bulk PDF import, OneDrive, zip member) into debit-note-uploads/<YYYY-MM>/. */
+export const storeImportFile = (filename: string, bytes: Buffer, mimeType = 'application/pdf') =>
+  storeUpload('debit-note-uploads', filename, mimeType, bytes)
+
+/** The link a browser opens for a stored file: its Drive page. Throws NEVER_STORED for a legacy
+ *  bucket path, whose bytes were never stored. */
+export async function signRead(ref: string): Promise<string> {
+  const link = driveWebLink(ref)
+  if (!link) throw new Error(NEVER_STORED)
+  return link
 }
 
-/** Upload a generated/re-uploaded PDF buffer server-side; returns the bare storage path. */
-export async function uploadPdf(path: string, bytes: Buffer): Promise<void> {
-  await ensureBucket()
-  const res = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, {
-    method: 'POST', headers: { ...stH(), 'Content-Type': 'application/pdf', 'x-upsert': 'true' },
-    body: bytes as unknown as BodyInit,
-  })
-  if (!res.ok) throw new Error(`PDF upload failed: ${(await res.text()).slice(0, 300)}`)
-}
+/** A stored file's bytes. Throws NEVER_STORED when they cannot be had. */
+export const downloadObject = (ref: string): Promise<Buffer> => requireRefBytes(ref)
 
-/** Sign a short-lived read URL for a stored object; returns the full fetchable URL. */
-export async function signRead(path: string, expiresIn = 3600): Promise<string> {
-  const res = await fetch(`${SB_URL}/storage/v1/object/sign/${BUCKET}/${path}`, {
-    method: 'POST', headers: sbH(), body: JSON.stringify({ expiresIn }),
-  })
-  if (!res.ok) throw new Error(`sign failed: ${(await res.text()).slice(0, 200)}`)
-  const signed = (await res.json() as { signedURL?: string }).signedURL
-  return `${SB_URL}/storage/v1${signed}`
-}
-
-export const bareObjectPath = (path: string) => `${SB_URL}/storage/v1/object/${BUCKET}/${path}`
-
-/** Downloads a stored object's raw bytes (service key — private bucket). */
-export async function downloadObject(path: string): Promise<Buffer> {
-  const res = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, { headers: stH() })
-  if (!res.ok) throw new Error(`Download failed: ${(await res.text()).slice(0, 300)}`)
-  return Buffer.from(await res.arrayBuffer())
-}
-
-/** Best-effort cleanup of a temp object (e.g. an uploaded zip once it's been unpacked). Never throws. */
-export async function deleteObject(path: string): Promise<void> {
-  await fetch(`${SB_URL}/storage/v1/object/${BUCKET}`, {
-    method: 'DELETE', headers: sbH(), body: JSON.stringify({ prefixes: [path] }),
-  }).catch(() => {})
+/** Best-effort removal of a stored file (moved to Drive trash). Legacy paths have nothing to
+ *  remove. Never throws. */
+export async function deleteObject(ref: string | null | undefined): Promise<void> {
+  if (!isDriveRef(ref)) return
+  try {
+    const token = await getDriveWriteToken()
+    // Content Manager can trash but not permanently delete on a Shared Drive.
+    await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(driveIdOf(ref))}?supportsAllDrives=true`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ trashed: true }),
+    })
+  } catch { /* best effort */ }
 }

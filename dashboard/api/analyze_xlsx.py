@@ -1,7 +1,7 @@
 """Vercel Python function — analyse an insurer's Excel calculator and return RULES only.
 
 POST /api/analyze_xlsx
-  body: { "xlsx_url": "<signed Supabase Storage URL>", "insurer_name": "AIA" (optional) }
+  body: { "xlsx_base64": "<workbook bytes>" | "xlsx_url": "<fetchable URL>", "insurer_name": "AIA" (optional) }
   ->  { insurer, source_file, structural_map, detection_log, rules, warnings }
 
 Reuses the rate-compiler's Step-1 (structural map) + Step-2 (rule detection) logic,
@@ -13,6 +13,7 @@ serverless function; keep the detectors in sync if that tool changes.
 """
 from __future__ import annotations
 
+import base64
 import datetime as _dt
 import io
 import json
@@ -293,17 +294,21 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         # Health check — a browser visit confirms the Python function is live.
-        self._send(200, {"ok": True, "service": "analyze_xlsx", "usage": "POST { xlsx_url, insurer_name? }"})
+        self._send(200, {"ok": True, "service": "analyze_xlsx", "usage": "POST { xlsx_base64 | xlsx_url, insurer_name? }"})
 
     def do_POST(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
             payload = json.loads(self.rfile.read(length) or b"{}")
+            b64 = payload.get("xlsx_base64")
             url = payload.get("xlsx_url")
-            if not url:
-                return self._send(400, {"error": "xlsx_url required"})
-            with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310 (trusted signed URL)
-                data = resp.read()
+            if b64:
+                data = base64.b64decode(b64)
+            elif url:
+                with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310 (trusted URL)
+                    data = resp.read()
+            else:
+                return self._send(400, {"error": "xlsx_base64 or xlsx_url required"})
             result = analyze(data, payload.get("insurer_name"))
             self._send(200, result)
         except Exception as e:  # noqa: BLE001 — surface the message to the caller

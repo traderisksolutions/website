@@ -2,23 +2,17 @@
  * POST /api/debit-notes/[id]/zip-attachment  { storageUrls: string[] }
  * The "Send documents" picker's action — zips exactly the files the user explicitly checked
  * (nothing is ever pre-selected; see the debit_notes.attachment_files list, which can include
- * the commission statement, so this must never auto-include everything) and uploads the zip to
- * the `email-attachments` bucket the Engagement send route reads from, returning the
- * {filename, mime_type, storage_url} shape the compose modal expects.
+ * the commission statement, so this must never auto-include everything), stores the zip in Drive
+ * (email-outgoing/<YYYY-MM>/) and returns the {filename, mime_type, storage_url: 'drivefile:<id>'}
+ * shape the compose modal and the send route read. Refuses if any checked file cannot be read.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH as debitSbH, storageKeySegment } from '@/lib/debit-note-storage'
-import { randomUUID }                from 'node:crypto'
+import { SB_URL, sbH as debitSbH, downloadObject, storageKeySegment } from '@/lib/debit-note-storage'
+import { storeUpload }               from '@/lib/storage/drive-upload'
 import AdmZip                        from 'adm-zip'
 
-const EMAIL_BUCKET = 'email-attachments'
-
-function emailStH() {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return { apikey: k, Authorization: `Bearer ${k}` }
-}
+type AttachmentFile = { filename?: string | null; storage_url: string }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -34,29 +28,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const dn = dnRes.ok ? (await dnRes.json())[0] : null
     if (!dn) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const allowed = new Set((dn.attachment_files as { storage_url: string }[] ?? []).map(f => f.storage_url))
-    const invalid = storageUrls.filter(u => !allowed.has(u))
+    const files = new Map((dn.attachment_files as AttachmentFile[] ?? []).map(f => [f.storage_url, f]))
+    const invalid = storageUrls.filter(u => !files.has(u))
     if (invalid.length) return NextResponse.json({ error: `Not attached to this debit note: ${invalid.join(', ')}` }, { status: 400 })
 
     const zip = new AdmZip()
-    for (const path of storageUrls) {
-      const fileRes = await fetch(`${SB_URL}/storage/v1/object/debit-notes/${path}`, { headers: debitSbH() })
-      if (!fileRes.ok) return NextResponse.json({ error: `Could not read ${path}` }, { status: 502 })
-      const bytes = Buffer.from(await fileRes.arrayBuffer())
-      zip.addFile(path.split('/').pop() ?? path, bytes)
+    const used = new Set<string>()
+    for (const ref of storageUrls) {
+      const name = files.get(ref)!.filename || (ref.startsWith('drivefile:') ? 'document' : ref.split('/').pop()) || 'document'
+      let bytes: Buffer
+      try { bytes = await downloadObject(ref) }
+      catch (e) { return NextResponse.json({ error: `${name}: ${e instanceof Error ? e.message : 'could not be read'}` }, { status: 410 }) }
+      zip.addFile(uniqueIn(used, name), bytes)
     }
-    const zipBuffer = zip.toBuffer()
 
     const filename = `${dn.debit_note_no}-documents.zip`
-    const uploadPath = `outgoing/${randomUUID()}/${storageKeySegment(filename)}`
-    const upRes = await fetch(`${SB_URL}/storage/v1/object/${EMAIL_BUCKET}/${uploadPath}`, {
-      method: 'POST', headers: { ...emailStH(), 'Content-Type': 'application/zip' },
-      body: zipBuffer as unknown as BodyInit,
-    })
-    if (!upRes.ok) return NextResponse.json({ error: await upRes.text() }, { status: 502 })
-
-    return NextResponse.json({ filename, mime_type: 'application/zip', storage_url: uploadPath })
+    const storageUrl = await storeUpload('email-outgoing', storageKeySegment(filename), 'application/zip', zip.toBuffer())
+    return NextResponse.json({ filename, mime_type: 'application/zip', storage_url: storageUrl })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
+}
+
+/** Two checked files with one name would overwrite each other in the zip. */
+function uniqueIn(used: Set<string>, name: string): string {
+  let out = name
+  for (let n = 2; used.has(out); n++) out = name.replace(/(\.[^.]*)?$/, m => ` (${n})${m}`)
+  used.add(out)
+  return out
 }

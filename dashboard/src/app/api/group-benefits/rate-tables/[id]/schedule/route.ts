@@ -15,7 +15,7 @@ import { logActivity } from '@/lib/log-activity'
 import { extractSchedule } from '@/lib/gb/ingest'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { BENEFIT_BY_CODE } from '@/lib/gb/canon'
-import { loadDocument } from '@/lib/gb/documents'
+import { documentBytes } from '@/lib/gb/documents'
 
 export const maxDuration = 300
 
@@ -26,7 +26,6 @@ function sbH(prefer = 'return=minimal') {
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
-const storageH = () => ({ apikey: process.env.SUPABASE_SERVICE_KEY!, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY!}` })
 
 type Table = {
   id: string; insurer_name: string | null; product_code: string; product_name: string | null
@@ -107,16 +106,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
         body: JSON.stringify({ schedule_status: s, ...extra }) }).catch(() => {})
     await setStatus('scanning')
 
-    // gb_documents, not source_pdf_url: those URLs all point at the Supabase bucket retired in
-    // September, which answers every object path with the string "trs api" rather than a 404.
-    // The URL is still tried as a fallback so a restored bucket would work without a change here.
-    let b64 = (await loadDocument(id, 'brochure'))?.base64 ?? null
-    if (!b64 && table.source_pdf_url) {
-      const pdfRes = await fetch(table.source_pdf_url, { headers: storageH(), cache: 'no-store' }).catch(() => null)
-      const buf = pdfRes?.ok ? Buffer.from(await pdfRes.arrayBuffer()) : null
-      // Anything that small is the catch-all string, not a PDF.
-      if (buf && buf.length > 1024 && buf.subarray(0, 4).toString() === '%PDF') b64 = buf.toString('base64')
-    }
+    // gb_documents first (recovered copies of tables whose source_pdf_url points at the retired
+    // bucket), then the Drive reference uploads have carried since 29 Oct 2026.
+    const b64 = (await documentBytes(id, 'brochure', table.source_pdf_url))?.toString('base64') ?? null
     if (!b64) {
       await setStatus('failed', { schedule_notes: 'No brochure on file for this table.' })
       return NextResponse.json({ error: 'No brochure on file for this table. Upload one first.' }, { status: 400 })
