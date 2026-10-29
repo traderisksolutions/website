@@ -1,33 +1,17 @@
+/**
+ * POST /api/upload/image (multipart: file) → { url }
+ * An image for the rich-text email editor. Stored in Drive (email-images/<YYYY-MM>/) and served
+ * to recipients, who have no login, by /api/public/email-image/<id>. Max 5 MB.
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
+import { storeUpload }               from '@/lib/storage/drive-upload'
+import { driveIdOf }                 from '@/lib/storage/attachment-bytes'
 
-const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-const BUCKET    = 'email-images'
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
-const ALLOWED   = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'])
+// No SVG: it can carry script, and the image is served from the dashboard's own origin.
+const ALLOWED   = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
-function storageHeaders(contentType?: string) {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:         k,
-    Authorization:  `Bearer ${k}`,
-    ...(contentType ? { 'Content-Type': contentType } : {}),
-  }
-}
-
-async function ensureBucket() {
-  const k = process.env.SUPABASE_SERVICE_KEY!
-  await fetch(`${SB_URL}/storage/v1/bucket`, {
-    method:  'POST',
-    headers: { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ id: BUCKET, name: BUCKET, public: true, file_size_limit: MAX_BYTES }),
-  })
-}
-
-// POST /api/upload/image
-// Accepts multipart/form-data with a single "file" field (image).
-// Uploads to Supabase Storage and returns { url: string }.
 export async function POST(req: NextRequest) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
@@ -44,25 +28,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `File too large — max 5 MB` }, { status: 400 })
     }
 
-    await ensureBucket()
-
-    const ext      = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-    const buffer   = await file.arrayBuffer()
-
-    const uploadRes = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${fileName}`, {
-      method:  'POST',
-      headers: { ...storageHeaders(file.type), 'x-upsert': 'false' },
-      body:    buffer,
-    })
-
-    if (!uploadRes.ok) {
-      const err = await uploadRes.text()
-      return NextResponse.json({ error: `Upload failed: ${err.slice(0, 200)}` }, { status: 502 })
-    }
-
-    const url = `${SB_URL}/storage/v1/object/public/${BUCKET}/${fileName}`
-    return NextResponse.json({ url })
+    const ref    = await storeUpload('email-images', file.name || 'image', file.type, Buffer.from(await file.arrayBuffer()))
+    const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin
+    return NextResponse.json({ url: `${origin}/api/public/email-image/${driveIdOf(ref)}` })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

@@ -17,7 +17,7 @@ import { normInsurer } from '@/lib/insurers'
 import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
 import type { HrLinkCensusResponse, HrLinkDetailResponse } from '@/components/group-benefits/hr/labels'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
-import { createClient } from '@/lib/supabase/client'
+import { uploadToDrive } from '@/lib/upload-attachment'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { Segmented } from '@/components/crm/primitives'
 
@@ -429,16 +429,11 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (file.size > 25 * 1024 * 1024) { setError('PDF too large (max 25 MB)'); return }
     setBusy(true); setError(null)
     try {
-      // 1. Push the PDF straight to Supabase Storage via a signed URL — bypasses the
+      // 1. Push the PDF straight to Drive through a resumable session — bypasses the
       //    serverless request-body size limit that fails on large insurer brochures.
-      const uu = await fetch('/api/group-benefits/rate-tables/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
-      const ud = await safeJson<{ path?: string; token?: string }>(uu)
-      if (!uu.ok || !ud.path || !ud.token) { setError(ud.error ?? 'Could not start upload'); return }
-      const supabase = createClient()
-      const { error: upErr } = await supabase.storage.from('group-benefits').uploadToSignedUrl(ud.path, ud.token, file, { contentType: 'application/pdf' })
-      if (upErr) { setError(`Upload failed: ${upErr.message}`); return }
-      // 2. Record the uploaded object → creates the draft row.
-      const cr = await fetch('/api/group-benefits/rate-tables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storage_path: ud.path, filename: file.name }) })
+      const ref = await uploadToDrive(file, 'group-benefits/rate-tables')
+      // 2. Record the uploaded file → creates the draft row.
+      const cr = await fetch('/api/group-benefits/rate-tables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storage_path: ref, filename: file.name }) })
       const cd = await safeJson<{ id?: string }>(cr)
       if (!cr.ok || !cd.id) { setError(cd.error ?? 'Upload failed'); return }
       // The review page starts extraction (single trigger) and polls for completion.

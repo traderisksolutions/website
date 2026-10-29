@@ -1,14 +1,15 @@
 /**
  * POST /api/group-benefits/quote/[id]/prepare-reply
  *   body: { lead_id, insurers: string[], format: 'xlsx'|'csv' }
- * Generates one file per selected insurer, uploads them to the private email-attachments
- * bucket, and creates a pending reply draft (comparison summary + those attachments) on the
+ * Generates one file per selected insurer, stores them in Drive (email-outgoing/<YYYY-MM>/,
+ * referenced as drivefile:<id>), and creates a pending reply draft (comparison summary + those attachments) on the
  * chosen lead's thread. The engagement composer then opens with the draft + files ready.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { buildExportData, buildInsurerCsv, buildInsurerXlsx, safeFileStem } from '@/lib/gb-export'
 import { logActivity }               from '@/lib/log-activity'
+import { storeUpload }               from '@/lib/storage/drive-upload'
 
 export const maxDuration = 120
 
@@ -19,7 +20,6 @@ function sbH(prefer = 'return=minimal') {
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
-const storeAuth = () => ({ apikey: process.env.SUPABASE_SERVICE_KEY!, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY!}` })
 
 type Ref = { filename: string; mime_type: string; storage_url: string }
 
@@ -47,12 +47,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       if (!data) continue
       const stem = safeFileStem(data)
       const bytes = fmt === 'csv' ? Buffer.from(buildInsurerCsv(data), 'utf-8') : await buildInsurerXlsx(data)
-      const path = `gb-quotes/${id}/${stem}-${Date.now().toString(36)}.${fmt}`
-      const up = await fetch(`${SB_URL}/storage/v1/object/email-attachments/${path}`, {
-        method: 'POST', headers: { ...storeAuth(), 'Content-Type': fmt === 'csv' ? 'text/csv' : XLSX_MIME }, body: new Uint8Array(bytes),
-      })
-      if (!up.ok) return NextResponse.json({ error: `Upload failed: ${(await up.text()).slice(0, 160)}` }, { status: 502 })
-      refs.push({ filename: `${stem}.${fmt}`, mime_type: fmt === 'csv' ? 'text/csv' : XLSX_MIME, storage_url: path })
+      const mime = fmt === 'csv' ? 'text/csv' : XLSX_MIME
+      const storageUrl = await storeUpload('email-outgoing', `${stem}.${fmt}`, mime, Buffer.from(bytes))
+      refs.push({ filename: `${stem}.${fmt}`, mime_type: mime, storage_url: storageUrl })
       summaries.push(`• ${insurer}: total ${data.totals.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} incl. GST (${data.lines.length} line(s))`)
     }
     if (!refs.length) return NextResponse.json({ error: 'No files generated for those insurers' }, { status: 404 })

@@ -141,12 +141,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       paymentDueDate: update.payment_due_date,
       eventType: update.event_type as EventType, endorsementEffectiveDate: update.endorsement_effective_date,
     })
-    // Renumbering moves the file to a path matching the new number, rather than reusing the old
-    // path, so the stored filename never disagrees with the number printed on the PDF/DB record.
-    const pdfPath = renumbering || !before.pdf_storage_url
-      ? `${before.company_id}/${storageKeySegment(debitNoteNo)}.pdf`
-      : before.pdf_storage_url
-    await uploadPdf(pdfPath, pdfBuffer)
+    // The file sits at a path named for the number, so the stored filename never disagrees with
+    // the number printed on the PDF. Same number: the same Drive file is overwritten (same ref).
+    // Renumbering: a new file, and the old one is trashed.
+    const pdfPath = await uploadPdf(`${before.company_id}/${storageKeySegment(debitNoteNo)}.pdf`, pdfBuffer)
     if (pdfPath !== before.pdf_storage_url) {
       await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ pdf_storage_url: pdfPath }) })
       if (before.pdf_storage_url) await deleteObject(before.pdf_storage_url)

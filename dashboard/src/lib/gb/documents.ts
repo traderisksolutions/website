@@ -7,9 +7,11 @@
  * disputed figure, and no annual re-scan. The five files were recovered from local copies on
  * 2 Oct 2026 and now live in gb_documents.
  *
- * Callers go through here rather than reading a URL, so moving the content to object storage
- * later changes this file and nothing else.
+ * Callers go through here rather than reading a URL. Uploads since 29 Oct 2026 are in Drive and
+ * referenced as `drivefile:<id>` (source_pdf_url, calculator_path); documentBytes reads either.
  */
+import { attachmentRefBytes } from '@/lib/storage/attachment-bytes'
+
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 function h() {
@@ -46,4 +48,15 @@ export async function loadDocument(rateTableId: string, kind: DocumentKind): Pro
   const row = (await res.json() as { filename: string; mime_type: string; byte_size: number; sha256: string; content_base64: string }[])[0]
   if (!row?.content_base64) return null
   return { filename: row.filename, mimeType: row.mime_type, byteSize: row.byte_size, sha256: row.sha256, base64: row.content_base64 }
+}
+
+/** A rate table's brochure or calculator: the stored reference (source_pdf_url / calculator_path)
+ *  when it holds the real file, else the recovered copy in gb_documents. Null when neither does. */
+export async function documentBytes(rateTableId: string, kind: DocumentKind, ref: string | null | undefined): Promise<Buffer | null> {
+  const buf = ref ? await attachmentRefBytes(ref).catch(() => null) : null
+  // A brochure that is not a PDF, or a workbook that is not a zip, is not the file.
+  const magic = buf?.subarray(0, 4).toString('latin1') ?? ''
+  if (buf?.length && (kind === 'brochure' ? magic === '%PDF' : magic.startsWith('PK'))) return buf
+  const doc = await loadDocument(rateTableId, kind)
+  return doc ? Buffer.from(doc.base64, 'base64') : null
 }

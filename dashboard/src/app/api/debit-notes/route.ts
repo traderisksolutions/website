@@ -10,7 +10,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
-import { SB_URL, sbH, uploadPdf, signRead, storageKeySegment } from '@/lib/debit-note-storage'
+import { SB_URL, sbH, uploadPdf, storageKeySegment } from '@/lib/debit-note-storage'
+import { driveWebLink } from '@/lib/storage/attachment-bytes'
 import {
   commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type PolicyInput, type DebitNoteInput,
 } from '@/lib/debit-note-commit'
@@ -103,8 +104,7 @@ export async function POST(req: NextRequest) {
         paymentDueDate: body.debitNote.paymentDueDate ?? null,
         eventType: body.debitNote.eventType, endorsementEffectiveDate: body.debitNote.endorsementEffectiveDate ?? null,
       })
-      pdfPath = `${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`
-      await uploadPdf(pdfPath, pdfBuffer)
+      pdfPath = await uploadPdf(`${result.companyId}/${storageKeySegment(result.debitNoteNo)}.pdf`, pdfBuffer)
       pdfForDrive = pdfBuffer
     }
 
@@ -118,7 +118,8 @@ export async function POST(req: NextRequest) {
         }],
       }),
     })
-    const downloadUrl = await signRead(pdfPath)
+    // Null for a historical PDF reference from before Drive storage: the note is issued either way.
+    const downloadUrl = driveWebLink(pdfPath)
 
     // File it in the company's Drive folder, as the import path does. Best-effort: a note with no
     // Drive folder is still issued, and the quote request it finishes stays open until it is filed.

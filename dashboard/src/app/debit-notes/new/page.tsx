@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, UploadCloud, Loader2, CheckCircle2, XCircle, AlertTriangle, FileText, Download, Send, Save, RefreshCw } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { uploadToDrive } from '@/lib/upload-attachment'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
@@ -55,13 +55,7 @@ export default function NewDebitNotePage() {
   }
 
   async function uploadOne(file: File): Promise<{ storage_url: string; original_filename: string }> {
-    const supabase = createClient()
-    const uu = await fetch('/api/debit-notes/imports/upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }) })
-    const ud = await uu.json()
-    if (!uu.ok) throw new Error(ud.error ?? `Could not start upload for ${file.name}`)
-    const { error: upErr } = await supabase.storage.from('debit-notes').uploadToSignedUrl(ud.path, ud.token, file, { contentType: file.type || 'application/octet-stream' })
-    if (upErr) throw new Error(`Upload failed: ${upErr.message}`)
-    return { storage_url: ud.path, original_filename: file.name }
+    return { storage_url: await uploadToDrive(file, 'debit-note-uploads'), original_filename: file.name }
   }
 
   async function onAddBundle(files: FileList | null) {

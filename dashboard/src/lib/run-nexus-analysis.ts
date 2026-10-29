@@ -25,9 +25,9 @@ import { logError } from '@/lib/error-log'
 import { GEMINI_FLASH as GEMINI_FLASH_MODEL, GEMINI_PRO as GEMINI_PRO_MODEL } from './gemini-models'
 import { OPUS_MODEL, fetchOpus } from './anthropic-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
+import { attachmentRefBytes, isDriveRef } from '@/lib/storage/attachment-bytes'
 
 const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-const STORAGE_BUCKET  = 'email-attachments'
 // Model ids come from one place so an env override actually takes effect here too.
 // Reading the whole case is the quality-critical step, so it runs on the Pro tier; Flash drafts.
 const GEMINI_EXTRACT_MODEL = GEMINI_PRO_MODEL
@@ -398,15 +398,12 @@ function findGmailPart(parts: GmailPart[] | undefined, filename: string): GmailP
 async function fetchAttachmentBytes(
   row: StoredAttachmentRowFull, gmailMsgId: string | null, gmailToken: string | null,
 ): Promise<Buffer | null> {
-  // 1. Storage, if it still serves real bytes.
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (row.storage_url && k) {
+  // 1. Drive (or a public URL), when the row carries one. A bare legacy bucket path was never
+  //    stored, so it goes straight to Gmail.
+  if (row.storage_url && (isDriveRef(row.storage_url) || /^https?:\/\//.test(row.storage_url))) {
     try {
-      const res = await fetch(`${SB_URL}/storage/v1/object/${STORAGE_BUCKET}/${row.storage_url}`, { headers: { apikey: k, Authorization: `Bearer ${k}` } })
-      if (res.ok) {
-        const buf = Buffer.from(await res.arrayBuffer())
-        if (looksLikeFile(buf, row.mime_type ?? '')) return buf
-      }
+      const buf = await attachmentRefBytes(row.storage_url)
+      if (buf && looksLikeFile(buf, row.mime_type ?? '')) return buf
     } catch { /* fall through to Gmail */ }
   }
   // 2. Gmail, by the source message.

@@ -1,13 +1,16 @@
 /**
- * Browser upload of an email attachment to Drive. First a resumable session (the file goes
- * straight to Google, any size); if the browser cannot reach it, a server upload for files under
- * 4 MB. Returns the reference the send route reads: `drivefile:<id>`.
+ * Browser upload of a file to Drive, into one of the UPLOAD_FOLDERS (default email-uploads).
+ * First a resumable session (the file goes straight to Google, any size); if the browser cannot
+ * reach it, a server upload for files under 4 MB. Returns the stored reference: `drivefile:<id>`.
+ * Throws when nothing was stored.
  */
-export async function uploadAttachment(file: File): Promise<string> {
+import type { UploadFolder } from '@/lib/storage/drive-upload'
+
+export async function uploadToDrive(file: File, folder: UploadFolder = 'email-uploads'): Promise<string> {
   const type = file.type || 'application/octet-stream'
   const uu = await fetch('/api/email/attachments/upload-url', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename: file.name, mime_type: type, size: file.size }),
+    body: JSON.stringify({ filename: file.name, mime_type: type, size: file.size, folder }),
   })
   const ud = await uu.json().catch(() => null) as { uploadUrl?: string } | null
   if (uu.ok && ud?.uploadUrl) {
@@ -20,8 +23,12 @@ export async function uploadAttachment(file: File): Promise<string> {
   if (file.size > 4_000_000) throw new Error(`Could not upload ${file.name}. Try again.`)
   const form = new FormData()
   form.set('file', file)
+  form.set('folder', folder)
   const r = await fetch('/api/email/attachments/upload', { method: 'POST', body: form })
   const d = await r.json().catch(() => null) as { storage_url?: string; error?: string } | null
   if (!r.ok || !d?.storage_url) throw new Error(d?.error ?? `Upload failed for ${file.name}`)
   return d.storage_url
 }
+
+/** An email attachment: uploadToDrive into email-uploads. */
+export const uploadAttachment = (file: File) => uploadToDrive(file, 'email-uploads')

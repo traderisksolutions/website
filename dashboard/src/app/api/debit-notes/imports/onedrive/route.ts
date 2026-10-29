@@ -6,7 +6,7 @@
  * or in a shared/team (SharePoint-backed) drive, since Graph resolves the link straight to the
  * right drive (see resolveShareUrl in lib/onedrive.ts) instead of us needing a drive/site id.
  *
- * Pulls every file under that folder (recursively) into the `debit-notes` storage bucket and
+ * Pulls every file under that folder (recursively) into Drive (debit-note-uploads/) and
  * groups them into bundles by their immediate parent subfolder — one subfolder = one
  * renewal/new-business event = one bundle, the natural OneDrive equivalent of "one .zip per
  * event" in the existing manual-upload flow (mirrors the bundle+item creation in
@@ -21,14 +21,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { waitUntil }                 from '@vercel/functions'
-import { randomUUID }                from 'node:crypto'
-import { SB_URL, sbH, uploadPdf }    from '@/lib/debit-note-storage'
+import { SB_URL, sbH, storeImportFile } from '@/lib/debit-note-storage'
 import { getOnedriveAccessToken, listOnedriveFolderRecursive, downloadOnedriveFile } from '@/lib/onedrive'
 import type { OnedriveFile }         from '@/lib/onedrive'
 
 export const maxDuration = 300
-
-const sanitise = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 150)
 
 async function createBundle(files: { storage_url: string; original_filename: string }[], sourceRef: string): Promise<void> {
   const bundleRes = await fetch(`${SB_URL}/rest/v1/debit_note_bundles`, {
@@ -59,9 +56,7 @@ async function runImport(userId: string, shareUrl: string): Promise<void> {
       for (const f of group) {
         try {
           const bytes = await downloadOnedriveFile(f.downloadUrl)
-          const path = `imports/${randomUUID()}/${sanitise(f.name)}`
-          await uploadPdf(path, bytes)
-          uploaded.push({ storage_url: path, original_filename: f.name })
+          uploaded.push({ storage_url: await storeImportFile(f.name, bytes), original_filename: f.name })
         } catch (e) {
           console.error(`[onedrive import] file failed "${folder}/${f.name}":`, e)
         }
