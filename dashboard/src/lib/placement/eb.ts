@@ -291,8 +291,11 @@ export async function openTierC(lineId: string, actor: string, contactIds?: stri
   }
   const census = await censusForLine(line, bundle.quotes)
   const tierC = new Set(routes.map(r => r.email))
-  const r = await openRounds(placement, [{ line, spec: line.spec, reason: 'broker', change_summary: `Tier C insurers asked: ${[...new Set(routes.map(x => x.insurer_name))].join(', ')}` }], actor, {
+  // Asking Tier B or C on a line with no request out yet is the first request, not a revision.
+  const asked = bundle.dispatches.some(x => x.line_id === line.id)
+  const r = await openRounds(placement, [{ line, spec: line.spec, reason: asked ? 'broker' : 'initial', change_summary: asked ? `Insurers asked: ${[...new Set(routes.map(x => x.insurer_name))].join(', ')}` : null }], actor, {
     filterRoute: x => tierC.has(x.email),
+    reuseEmptyRound: !asked,
     contactIds,
     extraBody: [requirement, census.length ? censusSummary(census) : null].filter(Boolean).join('\n\n') || undefined,
   })

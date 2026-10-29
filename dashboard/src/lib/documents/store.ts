@@ -147,3 +147,15 @@ export async function orphansWithCompany(limit: number): Promise<{ id: string; c
   const co = new Map(threads.map(t => [t.id, t.company_id!]))
   return orphans.flatMap(o => co.get(o.thread_id!) ? [{ id: o.id, company_id: co.get(o.thread_id!)! }] : [])
 }
+
+/**
+ * The policy and client of a placement request thread: an insurer's reply on the thread a request
+ * went out on is about that line's policy, whoever the thread is filed under. Null otherwise.
+ */
+export async function placementThreadPolicy(threadId: string | null): Promise<{ policy_id: string | null; company_id: string } | null> {
+  if (!threadId) return null
+  const [d] = await sbTry<{ line_id: string; company_id: string }[]>(`placement_dispatches?thread_id=eq.${enc(threadId)}&select=line_id,company_id&order=created_at.desc&limit=1`, [])
+  if (!d) return null
+  const [l] = await sbTry<{ policy_id: string | null }[]>(`placement_lines?id=eq.${enc(d.line_id)}&select=policy_id&limit=1`, [])
+  return { policy_id: l?.policy_id ?? null, company_id: d.company_id }
+}

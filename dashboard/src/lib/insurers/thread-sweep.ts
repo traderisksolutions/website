@@ -55,6 +55,11 @@ export async function sweepInsurerThreads(opts: { since?: string; agentLimit?: n
     all<PolicyRef>('policies?company_id=not.is.null&select=id,company_id,insurer,policy_number,cover_note_no,class_of_insurance,label'),
     opts.dryRun ? Promise.resolve([] as Existing[]) : all<Existing>('thread_insurers?select=thread_id,insurer_company_id,policy_status'),
   ])
+  // Placement request threads: the insurer, the client and the policy are known, not guessed.
+  const dispatches = await all<{ thread_id: string; insurer_company_id: string | null; company_id: string; line_id: string }>('placement_dispatches?thread_id=not.is.null&select=thread_id,insurer_company_id,company_id,line_id')
+  const lines = dispatches.length ? await all<{ id: string; policy_id: string | null }>('placement_lines?policy_id=not.is.null&select=id,policy_id') : []
+  const linePolicy = new Map(lines.map(l => [l.id, l.policy_id]))
+  const requestBy = new Map(dispatches.map(d => [d.thread_id, d]))
   const ids = new Set(threads.map(t => t.id))
   const msgs = (await all<Msg>(`email_messages?deleted_at=is.null&direction=eq.inbound&select=thread_id,from_address,direction${since ? `&sent_at=gte.${enc(opts.since!)}` : ''}`)).filter(m => ids.has(m.thread_id))
   const fromBy = new Map<string, string[]>()
@@ -69,10 +74,19 @@ export async function sweepInsurerThreads(opts: { since?: string; agentLimit?: n
     for (const d of fromBy.get(t.id) ?? []) { const c = insurerByDomain(d, insurers); if (c) found.set(c.id, { c, via: 'sender_domain' }) }
     const s = insurerFromSubject(t.subject, insurers)
     if (s && !found.has(s.id)) found.set(s.id, { c: s, via: 'subject' })
+    const request = requestBy.get(t.id)
+    const requestInsurer = request?.insurer_company_id ? insurers.find(i => i.id === request.insurer_company_id) : undefined
+    if (requestInsurer && !found.has(requestInsurer.id)) found.set(requestInsurer.id, { c: requestInsurer, via: 'subject' })
     if (found.size === 0) continue
     res.threads++
     for (const { c, via } of found.values()) {
       if (confirmed.has(`${t.id}|${c.id}`)) continue
+      const known = request && request.insurer_company_id === c.id ? linePolicy.get(request.line_id) ?? null : null
+      if (known) {
+        res.links++; res.byRule++
+        rows.push({ thread_id: t.id, insurer_company_id: c.id, client_company_id: request!.company_id, policy_id: known, via, policy_status: 'confirmed', policy_how: 'placement request thread', confidence: 1, reason: null, last_message_at: t.last_message_at, updated_at: new Date().toISOString() })
+        continue
+      }
       const g = guessPolicy(t.subject, t.company_id, c.company_name, policies)
       let policyId = g.policy_id, how = g.how, conf: number | null = g.policy_id ? 0.9 : null, reason: string | null = null
       if (!policyId && g.candidates.length > 1 && agentLeft > 0 && !opts.dryRun) {

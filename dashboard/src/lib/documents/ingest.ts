@@ -24,19 +24,20 @@ export async function ingestAttachment(attachmentId: string, opts: { file?: bool
   if (existing) return existing
   const att = await store.attachment(attachmentId)
   if (!att) return null
-  const [msg, thread] = await Promise.all([store.message(att.message_id), store.thread(att.thread_id)])
+  const [msg, thread, placed] = await Promise.all([store.message(att.message_id), store.thread(att.thread_id), store.placementThreadPolicy(att.thread_id)])
 
   const base: Partial<PolicyDocument> = {
     filename: att.filename, mime_type: att.mime_type, size_bytes: att.size_bytes, source: 'email',
     email_attachment_id: att.id, thread_id: att.thread_id, message_id: att.message_id,
     from_address: msg?.from_address ?? null, received_at: msg?.sent_at ?? att.created_at,
-    company_id: thread?.company_id ?? null,
+    // An insurer's reply on a request thread belongs to the client, even when the thread is filed under the insurer.
+    company_id: placed?.company_id ?? thread?.company_id ?? null,
   }
   if (isNoise(att.filename, att.mime_type)) return store.insertDocument({ ...base, doc_type: 'other', status: 'ignored', classified_by: 'rule' })
 
   const read = await readDocument({ filename: att.filename, text: att.parsed_text, subject: msg?.subject ?? thread?.subject, from: msg?.from_address, documentId: att.id })
   const policies = base.company_id ? await store.companyPolicies(base.company_id) : []
-  const policyId = matchPolicy(read, policies)
+  const policyId = placed?.policy_id ?? matchPolicy(read, policies)
   const doc = await store.insertDocument({
     ...base, policy_id: policyId, doc_type: read.doc_type, title: read.title, insurer_name: read.insurer_name, policy_number: read.policy_number,
     period_from: read.period_from, period_to: read.period_to, premium_text: read.premium_text, class_of_insurance: read.class_of_insurance,

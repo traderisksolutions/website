@@ -82,7 +82,11 @@ export function categoryMapFor(input: BuilderInput, tables: BuilderTable[]) {
   return buildCategoryMap(input.categories, tables, input.members.map(m => ({ category: m.category, relationship: m.relationship, work_pass: m.work_pass })))
 }
 
-export async function priceBuilder(input: BuilderInput): Promise<BuilderResult & { result: QuoteResult; categoryMap: ReturnType<typeof categoryMapFor> }> {
+export async function priceBuilder(raw: BuilderInput): Promise<BuilderResult & { result: QuoteResult; categoryMap: ReturnType<typeof categoryMapFor> }> {
+  // Every member must sit in a category the requirement covers: a list's own grades ("Staff",
+  // "Manager") that no category is named after go to the first category, or nothing is priced.
+  const names = new Set(raw.categories.map(c => c.name))
+  const input = { ...raw, members: raw.members.map(m => (names.has(m.category) ? m : { ...m, category: raw.categories[0]?.name ?? m.category })) }
   const tables = await builderTables(!!input.tier_b)
   const built = categoryMapFor(input, tables)
   const rateTables = await loadRateTables(tables.map(t => t.id))
@@ -118,9 +122,11 @@ export type SaveInput = BuilderInput & {
  * requirement that produced them. The quotation keeps its id, so links to it stay valid.
  */
 export async function saveBuilder(input: SaveInput): Promise<BuilderResult> {
-  const priced = await priceBuilder(input)
+  const names = new Set(input.categories.map(c => c.name))
+  const members = input.members.map(m => (names.has(m.category) ? m : { ...m, category: input.categories[0]?.name ?? m.category }))
+  const priced = await priceBuilder({ ...input, members })
   const { result, categoryMap } = priced
-  const census = engineMembers(input.members)
+  const census = engineMembers(members)
   const patch = {
     effective_date: input.effective_date, basis: input.basis ?? 'new_business',
     product_codes: categoryMap.products, rate_table_ids: priced.tables.map(t => t.id), category_map: categoryMap.map,

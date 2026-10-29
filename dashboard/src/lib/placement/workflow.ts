@@ -100,6 +100,9 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
   contactIds?: string[]
   /** Plain text appended under the draft body, e.g. the census for the insurer to price. */
   extraBody?: string
+  /** Use the line's current round when nobody has been asked on it yet (it holds only engine
+   *  prices), so the first email to an insurer is round 1, not a "revised" round 2. */
+  reuseEmptyRound?: boolean
 } = {}): Promise<{ rounds: PlacementRound[]; dispatches: PlacementDispatch[]; drafts: number; unrouted: string[] }> {
   const bundle = await store.loadPlacement(placement.id)
   const company = await store.company(placement.company_id)
@@ -112,6 +115,13 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
   const roundOf = new Map<string, PlacementRound>()
   for (const a of asks) {
     const prev = (bundle?.rounds ?? []).filter(r => r.line_id === a.line.id).sort((x, y) => y.round_no - x.round_no)[0] ?? null
+    if (prev && opts.reuseEmptyRound && !(bundle?.dispatches ?? []).some(d => d.round_id === prev.id)) {
+      await store.patchNoTs('placement_rounds', `id=eq.${prev.id}`, { spec: normaliseSpec(a.spec) })
+      const reused = { ...prev, spec: normaliseSpec(a.spec) }
+      rounds.push(reused); roundOf.set(a.line.id, reused)
+      await store.patch('placement_lines', `id=eq.${a.line.id}`, { spec: normaliseSpec(a.spec), status: 'quoting', current_round_id: prev.id, next_step: 'Send the requests to the insurers' })
+      continue
+    }
     if (prev) {
       await store.patchNoTs('placement_rounds', `id=eq.${prev.id}`, { closed_at: now() })
       await store.patch('placement_dispatches', `round_id=eq.${prev.id}&status=in.(drafted,sent,acknowledged,info_requested)`, { status: 'withdrawn' })
