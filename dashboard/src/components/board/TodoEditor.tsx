@@ -78,7 +78,7 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
         <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do and press Enter" aria-label="New to-do"
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
           className="h-10 flex-1 min-w-0 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} />
-        <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-10 w-10 rounded-[10px] text-white border-0 cursor-pointer inline-flex items-center justify-center" style={{ background: INK }}><Plus size={16} /></button>
+        <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-10 w-10 rounded-[10px] text-white border-0 cursor-pointer inline-flex items-center justify-center" style={{ background: '#132c1c' }}><Plus size={16} /></button>
       </div>
       {err && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{err}</p>}
 

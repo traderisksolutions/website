@@ -118,7 +118,7 @@ function CompaniesInner() {
               {(['client', 'insurer'] as const).map(k => {
                 const on = kind === k
                 const n = rows.filter(r => r.company.kind === k).length
-                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden /></button>
+                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden /></button>
               })}
             </div>
           </div>
@@ -137,7 +137,7 @@ function CompaniesInner() {
               </button>
               {filterOpen && <FilterPopover f={f} onChange={next => setF(v => ({ ...v, ...next }))} staff={staffList} me={me} onClose={() => setFilterOpen(false)} onClear={() => setF(EMPTY)} />}
             </div>
-            <button type="button" onClick={() => setCreating(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: INK }}>Add company</button>
+            <button type="button" onClick={() => setCreating(true)} className="h-12 px-6 rounded-[12px] text-white text-[15px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add company</button>
           </div>
         </div>
 
@@ -215,7 +215,7 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
       </ul>
       <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #f1f2ee' }}>
         <span className="text-[12px]" style={{ color: '#6f7a74' }}>Renewal periods count from today.</span>
-        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: INK }}>Done</button>
+        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: '#132c1c' }}>Done</button>
       </div>
     </div>
   )

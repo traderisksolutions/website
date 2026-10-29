@@ -19,7 +19,7 @@ export const FIELD    = '#f1f2ee'
 export const HOVER    = '#faf9f6'
 
 /** The three-level button ladder at the composer's 36px size. One filled ink primary per view. */
-export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[#0f1412] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
+export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[#132c1c] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
 export const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border border-[#d5d9d4] hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
 export const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-transparent text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border-0 hover:bg-[#f1f2ee] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
 
@@ -65,7 +65,7 @@ export function TbButton({ label, shortcut, active, disabled, text, caret, class
       disabled={disabled}
       onMouseDown={e => { e.preventDefault(); if (!disabled) onPress?.() }}
       onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !disabled) { e.preventDefault(); onPress?.() } }}
-      className={cn(TB_BASE, text && 'px-2.5', active ? 'bg-[#0f1412] text-white hover:bg-[#0f1412]' : 'text-[#2a332f] hover:bg-[#f1f2ee]', className)}
+      className={cn(TB_BASE, text && 'px-2.5', active ? 'bg-[#132c1c] text-white hover:bg-[#1f4e3a]' : 'text-[#2a332f] hover:bg-[#f1f2ee]', className)}
       {...aria}
     >
       {children}
@@ -195,7 +195,7 @@ export function RecipientChip({ name, email, onRemove, onClick, title }: {
       <Tag
         {...(onClick ? { type: 'button', onClick, className: 'inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer min-w-0 text-inherit' } : { className: 'inline-flex items-center gap-1.5 min-w-0' })}
       >
-        <span aria-hidden className="w-[18px] h-[18px] rounded-full bg-[#0f1412] text-white text-[10px] font-medium inline-flex items-center justify-center flex-shrink-0">{initial}</span>
+        <span aria-hidden className="w-[18px] h-[18px] rounded-full bg-[#132c1c] text-white text-[10px] font-medium inline-flex items-center justify-center flex-shrink-0">{initial}</span>
         <span className="truncate">{name || email}</span>
       </Tag>
       {onRemove && (

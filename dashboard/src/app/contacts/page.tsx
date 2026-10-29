@@ -191,7 +191,7 @@ function ContactsViewTabs({ view, onChange }: { view: 'contacts' | 'companies'; 
             className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
             style={{ color: on ? INK : MUTED }}>
             {k === 'contacts' ? 'Contacts' : 'Companies'}
-            <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+            <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
           </button>
         )
       })}

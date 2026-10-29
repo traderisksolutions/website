@@ -131,7 +131,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
               <button key={s.key} role="radio" aria-checked={settings.sort === s.key}
                       onClick={() => setSettings(x => ({ ...x, sort: s.key }))}
                       className={cn('px-2.5 py-1 text-[12px] font-medium whitespace-nowrap',
-                        settings.sort === s.key ? 'bg-[#0f1412] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
+                        settings.sort === s.key ? 'bg-[#132c1c] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
                 {s.label}
               </button>
             ))}
@@ -196,7 +196,7 @@ export function ValueScore({ quoteId, comparison, priorities, employeesFallback 
                 return (
                   <button key={p} aria-pressed={on} onClick={() => toggleRequired(p)}
                           className={cn('px-2 py-0.5 text-[11.5px] font-medium rounded-md border',
-                            on ? 'bg-[#0f1412] text-white border-[#0f1412]' : 'border-[#d5d9d4] text-[#4a5550] hover:bg-[#faf9f6]')}>
+                            on ? 'bg-[#132c1c] text-white border-[#132c1c]' : 'border-[#d5d9d4] text-[#4a5550] hover:bg-[#faf9f6]')}>
                     {PRODUCT_BY_CODE[p].abbrev}
                   </button>
                 )

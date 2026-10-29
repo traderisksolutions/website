@@ -239,7 +239,7 @@ export default function GbReviewPage() {
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
               </button>
               {status === 'in_review' && (
-                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-10 px-4 rounded-[10px] bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-50">
+                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-10 px-4 rounded-[10px] bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
                   {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
                 </button>
               )}

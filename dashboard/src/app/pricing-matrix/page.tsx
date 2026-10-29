@@ -151,7 +151,7 @@ function PricingMatrix() {
           <button onClick={() => setEmailInsurer({ insurer: null })} className="h-11 px-4 rounded-[12px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[15px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
           </button>
-          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#0f1412] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
+          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-11 px-5 rounded-[12px] bg-[#132c1c] text-white text-[15px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
             <Plus size={16} /> Quotes
           </button>
         </div>
@@ -459,7 +459,7 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         {error && <p className="text-[12px] text-[#a1242f]">{error}</p>}
         <div className="flex justify-end gap-2 mt-1">
           <button onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f2ee]">Cancel</button>
-          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-50">
+          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
             {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload and extract'}
           </button>
         </div>

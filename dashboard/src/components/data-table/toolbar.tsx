@@ -88,7 +88,7 @@ export function DataTableFilter({
       onClick={onClick}
       className={cn(
         'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-[13px]',
-        active && 'bg-[#0f1412] text-white border-[#0f1412] hover:bg-[#0f1412] hover:opacity-90',
+        active && 'bg-[#132c1c] text-white border-[#132c1c] hover:bg-[#1f4e3a] hover:opacity-90',
         className,
       )}
     >

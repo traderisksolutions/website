@@ -75,14 +75,14 @@ export function TeamTable() {
     <div>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <p className="m-0 text-[14px]" style={{ color: MUTED }}>{err ? '' : users ? `${users.length} ${users.length === 1 ? 'person' : 'people'} · ${users.filter(u => u.role === 'administrator').length} administrator${users.filter(u => u.role === 'administrator').length === 1 ? '' : 's'}` : 'Loading…'}</p>
-        {isAdmin && !adding && <button type="button" onClick={() => setAdding(true)} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5" style={{ background: INK }}><Plus size={15} /> Add person</button>}
+        {isAdmin && !adding && <button type="button" onClick={() => setAdding(true)} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5" style={{ background: '#132c1c' }}><Plus size={15} /> Add person</button>}
       </div>
 
       {adding && (
         <div className="mb-4 rounded-[14px] p-4 flex items-end gap-3 flex-wrap" style={{ background: '#F5F5F3' }}>
           <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[200px]" style={{ color: MUTED }}>Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
           <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[160px]" style={{ color: MUTED }}>Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-10 rounded-[10px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} /></label>
-          <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-50" style={{ background: INK }}>{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
+          <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-50" style={{ background: '#132c1c' }}>{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
           <button type="button" onClick={() => setAdding(false)} className="h-10 px-3 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer" style={{ color: MUTED }}>Cancel</button>
         </div>
       )}

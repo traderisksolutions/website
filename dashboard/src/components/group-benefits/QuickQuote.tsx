@@ -126,7 +126,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
             <div role="radiogroup" aria-label="Basis" className="inline-flex rounded-md border border-[#d5d9d4] overflow-hidden w-fit">
               {(['new_business', 'renewal'] as const).map(b => (
                 <button key={b} role="radio" aria-checked={basis === b} onClick={() => setBasis(b)}
-                        className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#0f1412] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
+                        className={cn('px-3 py-1.5 text-[12.5px] font-medium', basis === b ? 'bg-[#132c1c] text-white' : 'text-[#4a5550] hover:bg-[#faf9f6]')}>
                   {b === 'new_business' ? 'New business' : 'Renewal'}
                 </button>
               ))}
@@ -271,7 +271,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
 
       <div className="flex flex-wrap items-center gap-3">
         <button onClick={price} disabled={!ready || pricing}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-40">
           {pricing && <Loader2 size={14} className="animate-spin" />}
           {pricing ? 'Pricing…' : 'Price at every insurer'}
         </button>

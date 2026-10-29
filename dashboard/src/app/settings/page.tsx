@@ -120,7 +120,7 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
         ) : (
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not connected. Replies send from the shared address.</p>
-            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium no-underline inline-flex items-center" style={{ background: INK }}>Connect Gmail</a>
+            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium no-underline inline-flex items-center" style={{ background: '#132c1c' }}>Connect Gmail</a>
           </div>
         )}
         <p className="m-0 mt-3 text-[12.5px]" style={{ color: MUTED }}>A separate Google grant with the send scope only. Message content is never stored — only a token for sending.</p>

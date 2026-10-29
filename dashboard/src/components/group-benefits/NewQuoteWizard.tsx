@@ -346,7 +346,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
             <div className="inline-flex rounded-lg border border-border overflow-hidden w-fit text-[12.5px]">
               {(['new_business', 'renewal'] as const).map(b => (
                 <button key={b} onClick={() => setBasis(b)}
-                  className={cn('px-4 py-1.5 font-medium', basis === b ? 'bg-[#0f1412] text-white' : 'text-muted-foreground hover:bg-muted/50')}>
+                  className={cn('px-4 py-1.5 font-medium', basis === b ? 'bg-[#132c1c] text-white' : 'text-muted-foreground hover:bg-muted/50')}>
                   {b === 'new_business' ? 'New Business' : 'Renewal'}
                 </button>
               ))}
@@ -490,7 +490,7 @@ export function NewQuoteWizard({ onSaved, initialMembers, initialCompany, onDraf
 
           <div className="flex items-center gap-2">
             {onDraftReply && (
-              <button onClick={() => onDraftReply(plainToHtml(buildReplySummary(byInsurer)))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90">
+              <button onClick={() => onDraftReply(plainToHtml(buildReplySummary(byInsurer)))} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90">
                 <Reply size={13} /> Draft reply with this quote{analysis ? ' + recommendation' : ''}
               </button>
             )}
@@ -507,7 +507,7 @@ function Nav({ back, next, nextLabel, nextDisabled, busy }: { back?: () => void;
   return (
     <div className="flex items-center justify-between pt-1">
       {back ? <button onClick={back} className="flex items-center gap-1.5 text-[12.5px] text-muted-foreground hover:text-foreground"><ArrowLeft size={13} /> Back</button> : <span />}
-      <button onClick={next} disabled={nextDisabled} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
+      <button onClick={next} disabled={nextDisabled} className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-40">
         {busy ? <Loader2 size={13} className="animate-spin" /> : null}{nextLabel} {!busy && <ArrowRight size={13} />}
       </button>
     </div>

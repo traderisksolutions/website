@@ -86,7 +86,7 @@ export function CoverageTab() {
           <Tip text="Reference only; nothing here needs ticking. A check means the insurer's current rate table prices the cover, or its schedule prints the benefit line; the wording under it is the insurer's own. Type TRS's name in the first column to standardise it; a blank keeps the canonical name." />
         </div>
         <button onClick={save} disabled={!dirty || saving}
-                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-40">
+                className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-40">
           {saving && <Loader2 size={13} className="animate-spin" />}{saving ? 'Saving…' : dirty ? 'Save names' : 'Names saved'}
         </button>
       </div>

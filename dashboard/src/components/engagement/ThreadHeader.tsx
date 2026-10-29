@@ -93,7 +93,7 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
           </div>
 
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button type="button" onClick={onReply} className="h-8 px-3 rounded-[8px] text-white text-[13px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: INK }}><Reply size={14} /> Reply</button>
+            <button type="button" onClick={onReply} className="h-8 px-3 rounded-[8px] text-white text-[13px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0f1412]" style={{ background: '#132c1c' }}><Reply size={14} /> Reply</button>
             <button type="button" onClick={onReplyAll} title="Reply all" aria-label="Reply all" className={ICON_BTN} style={{ color: BODY }}><ReplyAll size={17} /></button>
             <button type="button" onClick={onToggleContext} aria-pressed={contextOpen} title={contextOpen ? 'Hide context' : 'Show context'} aria-label="Context rail" className={cn(ICON_BTN, contextOpen && 'bg-[#f1f2ee]')} style={{ color: contextOpen ? INK : BODY }}><PanelRight size={17} /></button>
             <div ref={ref} className="relative">

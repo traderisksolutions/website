@@ -486,7 +486,7 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
         {err && <p className="m-0 mt-3 text-[13px]" style={{ color: BODY }} role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="h-10 px-4 rounded-[10px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
-          <button type="button" onClick={() => void go()} disabled={busy} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: INK }}>{busy ? 'Saving…' : 'Create to-do'}</button>
+          <button type="button" onClick={() => void go()} disabled={busy} className="h-10 px-4 rounded-[10px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
         </div>
       </div>
     </div>

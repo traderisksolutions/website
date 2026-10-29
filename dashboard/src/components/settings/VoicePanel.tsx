@@ -93,7 +93,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
               )
             )}
             <button type="button" onClick={() => void save()} disabled={!dirty || !!busy}
-                    className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: INK }}>
+                    className="h-9 px-4 rounded-[10px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: '#132c1c' }}>
               {busy === 'save' ? 'Saving…' : 'Save'}
             </button>
           </div>

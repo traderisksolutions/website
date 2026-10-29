@@ -29,7 +29,7 @@ const isComparison = (a: unknown): a is Comparison =>
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
 const fmtDate = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 const BTN2 = 'inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] bg-white text-[#0f1412] hover:bg-[#faf9f6] no-underline cursor-pointer'
-const BTN1 = 'inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 no-underline border-0 cursor-pointer'
+const BTN1 = 'inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 no-underline border-0 cursor-pointer'
 
 export default function QuoteDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -235,7 +235,7 @@ export default function QuoteDetailPage() {
                 <div className="inline-flex rounded-lg border border-border overflow-hidden">
                   {(['xlsx', 'csv'] as const).map(f => (
                     <button key={f} onClick={() => setAttachFormat(f)}
-                      className={cn('px-2.5 py-1 font-medium border-0', attachFormat === f ? 'bg-[#0f1412] text-white' : 'bg-white text-muted-foreground hover:bg-muted/40')}>{f}</button>
+                      className={cn('px-2.5 py-1 font-medium border-0', attachFormat === f ? 'bg-[#132c1c] text-white' : 'bg-white text-muted-foreground hover:bg-muted/40')}>{f}</button>
                   ))}
                 </div>
               </div>

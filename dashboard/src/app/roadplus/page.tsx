@@ -399,7 +399,7 @@ export default function RoadplusReconPage() {
                 style={{ color: on ? INK : MUTED }}
               >
                 {t.label}
-                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
+                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
               </button>
             )
           })}

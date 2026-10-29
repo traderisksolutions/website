@@ -287,7 +287,7 @@ function TransferSection({
             />
           </label>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-[10px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: INK }}>
+            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-[10px] text-[13px] font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>
               {saving ? 'Moving…' : 'Confirm'}
             </button>
             <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-[10px] text-[13px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>

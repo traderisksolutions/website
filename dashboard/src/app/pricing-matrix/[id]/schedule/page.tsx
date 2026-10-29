@@ -130,7 +130,7 @@ export default function SchedulePage() {
                   <X size={13} /> Reject all {d.pending}
                 </button>
                 <button onClick={() => decide('accepted')} disabled={!!busy}
-                        className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90 disabled:opacity-50">
+                        className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
                   {busy === 'accepted' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Accept all {d.pending}
                 </button>

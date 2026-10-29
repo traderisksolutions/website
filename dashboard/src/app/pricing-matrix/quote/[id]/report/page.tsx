@@ -30,7 +30,7 @@ export default function QuoteReportPage() {
           <h1 className="m-0 text-[15px] font-medium truncate">{company ? `${company} · Client report` : 'Client report'}</h1>
         </div>
         <a href={`${src}?download=1`}
-           className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#0f1412] text-white hover:opacity-90">
+           className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90">
           <Download size={14} /> Download PDF
         </a>
       </div>
