@@ -36,6 +36,7 @@ const EXPECTED_OPEN = [
   '/api/auth/onedrive/callback', // Microsoft OAuth redirect
   '/api/marketing/gsc/callback', // Google OAuth redirect (Search Console)
   '/api/public/blog',            // published-article feed read by the business's own websites
+  '/api/public/email-image',     // images inside sent emails; image files in the email-images Drive folder only
   '/api/public/hr',              // HR Connect: random token in the path, stored hashed, expiring
   '/api/public/intake',          // website form intake, own SITE_INTAKE_KEY header
   '/api/public/newsletter',      // sites' sign-up (own key) + HMAC-signed confirm/unsubscribe links
