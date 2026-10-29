@@ -21,13 +21,15 @@ const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 export type InsurerOption = { id: string; name: string }
 export type InsurerContact = { insurer: string; contact_id: string; name: string | null; email: string }
-export type InsurerContactsResponse = { insurers?: InsurerOption[]; contacts?: InsurerContact[]; error?: string }
+/** An insurer with an employee-benefits product on the one insurer list, contact or not. */
+export type EbInsurer = { insurer: string; insurer_company_id: string }
+export type InsurerContactsResponse = { insurers?: InsurerOption[]; contacts?: InsurerContact[]; eb_insurers?: EbInsurer[]; error?: string }
 
-export async function loadInsurerContacts(): Promise<{ insurers: InsurerOption[]; contacts: InsurerContact[] }> {
+export async function loadInsurerContacts(): Promise<{ insurers: InsurerOption[]; contacts: InsurerContact[]; eb_insurers: EbInsurer[] }> {
   const res = await fetch('/api/group-benefits/insurer-contacts', { cache: 'no-store' })
   const d = await res.json().catch(() => ({})) as InsurerContactsResponse
   if (!res.ok) throw new Error(d.error ?? `Could not load insurer contacts (${res.status})`)
-  return { insurers: d.insurers ?? [], contacts: d.contacts ?? [] }
+  return { insurers: d.insurers ?? [], contacts: d.contacts ?? [], eb_insurers: d.eb_insurers ?? [] }
 }
 
 export const contactsFor = (insurer: string, contacts: InsurerContact[]) =>

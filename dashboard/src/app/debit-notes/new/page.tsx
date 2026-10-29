@@ -12,6 +12,7 @@ import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit
 import { DebitNotePreviewPanel } from '@/components/debit-notes/DebitNotePreviewPanel'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
 import type { DebitNotePdfData, DebitNoteBankProfile } from '@/lib/debit-note-pdf'
+import { InsurerOptions, INSURER_OPTIONS_ID } from '@/components/insurers/InsurerOptions'
 
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: DocType | null; status: string; error_message: string | null }
 type Bundle = {
@@ -583,7 +584,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
         {/* Row 2 — insurer & class */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
+          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} list={INSURER_OPTIONS_ID} autoComplete="off" /><InsurerOptions /></Field>
           <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
         </div>
 

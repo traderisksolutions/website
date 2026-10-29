@@ -285,7 +285,7 @@ export async function openTierC(lineId: string, actor: string, contactIds?: stri
   const routes = (await store.insurerRoutes([line.product_line])).filter(r => tierOf(r.insurer_name, approved) === 'C')
   if (routes.length === 0) {
     await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, kind: 'info', actor: 'system',
-      text: `No Tier C insurer contact on file for ${line.label ?? line.product_line}. Add one under Settings → Insurers.` })
+      text: `No Tier C insurer contact on file for ${line.label ?? line.product_line}. Add one on the Insurers page.` })
     return { dispatches: [], drafts: 0, unrouted: [line.label ?? line.product_line], lives: 0 }
   }
   const census = await censusForLine(line, bundle.quotes)

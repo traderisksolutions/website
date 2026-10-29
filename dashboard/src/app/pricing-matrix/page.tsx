@@ -219,20 +219,22 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
 }) {
   const router = useRouter()
   const [contacts, setContacts] = useState<InsurerContact[]>([])
+  const [ebInsurers, setEbInsurers] = useState<string[]>([])
   const [contactsError, setContactsError] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const reload = () => loadInsurerContacts().then(d => setContacts(d.contacts)).catch(e => setContactsError(e instanceof Error ? e.message : 'Could not load contacts'))
+  const reload = () => loadInsurerContacts().then(d => { setContacts(d.contacts); setEbInsurers(d.eb_insurers.map(e => e.insurer)) }).catch(e => setContactsError(e instanceof Error ? e.message : 'Could not load contacts'))
   useEffect(() => { void reload() }, [])
 
   const priced = new Set(tables.map(t => normInsurer(t.insurer_name)))
   const named = new Set(ON_REQUEST_PLANS.map(p => normInsurer(p.insurer)))
-  // Named higher-tier plans first, then any other insurer with an employee benefits contact.
+  // Tier B plans first (Cigna, April), then every other insurer with an employee-benefits product
+  // on the Insurers page (Tier C), contact or not, so a missing contact shows as a gap to fill.
   const onRequest = [
-    ...ON_REQUEST_PLANS.map(p => ({ key: p.key, insurer: p.insurer, label: p.label, rates: p.rates, plan: p.label as string | undefined })),
-    ...Array.from(new Set(contacts.map(c => c.insurer)))
+    ...ON_REQUEST_PLANS.map(p => ({ key: p.key, insurer: p.insurer, label: p.label, rates: `Tier B · ${p.rates}`, plan: p.label as string | undefined })),
+    ...Array.from(new Set([...ebInsurers, ...contacts.map(c => c.insurer)]))
       .filter(n => !priced.has(normInsurer(n)) && !named.has(normInsurer(n)))
       .sort((a, b) => shortInsurer(a).localeCompare(shortInsurer(b)))
-      .map(n => ({ key: n, insurer: n, label: shortInsurer(n), rates: 'On request', plan: undefined })),
+      .map(n => ({ key: n, insurer: n, label: shortInsurer(n), rates: 'Tier C · On request', plan: undefined })),
   ]
   const who = (name: string | null) => contactsFor(name ?? '', contacts)
   const h2 = 'm-0 text-[16px] font-medium tracking-[-0.01em]'

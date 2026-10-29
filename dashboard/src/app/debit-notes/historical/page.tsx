@@ -13,6 +13,7 @@ import { CompanyContactPicker, type PickerValue } from '@/components/company-con
 import { useAutoMatchCompany } from '@/components/company-contact-picker/useAutoMatchCompany'
 import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit-notes/SendDocumentsModal'
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
+import { InsurerOptions, INSURER_OPTIONS_ID } from '@/components/insurers/InsurerOptions'
 
 export default function HistoricalDebitNotePage() {
   return (
@@ -543,7 +544,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
         {/* Row 2 — insurer & class */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} /></Field>
+          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} list={INSURER_OPTIONS_ID} autoComplete="off" /><InsurerOptions /></Field>
           <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
         </div>
 

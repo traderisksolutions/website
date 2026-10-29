@@ -10,11 +10,9 @@ const picks = [
 ]
 
 describe('ebEmailContacts', () => {
-  it('emails only Tier C insurers on an employment-benefits line', () => {
-    expect(ebEmailContacts(EB_PRODUCT_LINE, picks, [])).toEqual(['c-etiqa', 'c-cigna', 'c-hl'])
-  })
-  it('leaves Cigna out once its rate table is approved (Tier B)', () => {
-    expect(ebEmailContacts(EB_PRODUCT_LINE, picks, ['Cigna Europe'])).toEqual(['c-etiqa', 'c-hl'])
+  it('emails nobody on an employment-benefits line: Tier A is priced, B and C wait for the broker', () => {
+    expect(ebEmailContacts(EB_PRODUCT_LINE, picks, [])).toEqual([])
+    expect(ebEmailContacts(EB_PRODUCT_LINE, picks, ['Cigna Europe'])).toEqual([])
   })
   it('keeps every insurer on other lines', () => {
     expect(ebEmailContacts('wica', picks, [])).toHaveLength(5)

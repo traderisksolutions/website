@@ -134,7 +134,8 @@ export async function createInsurer(name: string, domain: string | null): Promis
   if (existing) return { id: existing.id, name: existing.name }
   const d = domain?.trim().toLowerCase().replace(/^https?:\/\/|^www\.|\/.*$/g, '') || null
   const [row] = await sb<{ id: string; company_name: string }[]>('companies', { method: 'POST', body: JSON.stringify({
-    company_name: name.trim(), kind: 'insurer', domain: d, domains: d ? [d] : [],
+    // owner_emails is NOT NULL on companies; an insurer has no TRS owner.
+    company_name: name.trim(), kind: 'insurer', domain: d, domains: d ? [d] : [], owner_emails: [],
   }) })
   return { id: row.id, name: displayName(row.company_name) }
 }
