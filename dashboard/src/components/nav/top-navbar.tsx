@@ -127,7 +127,7 @@ export function TopNavbar() {
                   {section.label}
                   <ChevronDown size={12} strokeWidth={2.5} className={cn('transition-transform', isOpen && 'rotate-180')} style={{ color: MUTED }} />
                 </button>
-                {isOpen && <Dropdown section={section} pathname={pathname} onNavigate={() => setOpen(null)} />}
+                {isOpen && <Dropdown section={section} pathname={pathname} onNavigate={() => setOpen(null)} alignRight={(section.groups?.length ?? 1) > 1} />}
               </div>
             )
           })}
@@ -143,14 +143,14 @@ export function TopNavbar() {
 }
 
 /** A dropdown in the website's mega-menu style: white card, 14px rounded corners, soft shadow. */
-function Dropdown({ section, pathname, onNavigate }: { section: NavSection; pathname: string; onNavigate: () => void }) {
+function Dropdown({ section, pathname, onNavigate, alignRight }: { section: NavSection; pathname: string; onNavigate: () => void; alignRight?: boolean }) {
   const groups: NavGroup[] = section.groups ?? [{ heading: '', items: section.items! }]
-  const cols = Math.min(groups.length, 3)
+  const cols = Math.min(groups.length, 4)
   return (
     <div
       role="menu"
-      className="absolute left-0 top-[calc(100%+10px)] z-50 rounded-[14px] bg-white p-2"
-      style={{ minWidth: cols === 1 ? 300 : cols === 2 ? 540 : 760, border: '1px solid rgba(200,200,204,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)' }}
+      className={cn('absolute top-[calc(100%+10px)] z-50 rounded-[14px] bg-white p-2', alignRight ? 'right-0' : 'left-0')}
+      style={{ minWidth: cols === 1 ? 300 : cols === 2 ? 540 : cols === 3 ? 760 : 940, border: '1px solid rgba(200,200,204,0.45)', boxShadow: '0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05)' }}
     >
       <div className="grid gap-x-2" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
         {groups.map((g, i) => (

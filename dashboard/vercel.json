@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/data-room",
       "schedule": "45 2 * * *"
+    },
+    {
+      "path": "/api/cron/insurer-threads",
+      "schedule": "50 2 * * *"
     }
   ]
 }

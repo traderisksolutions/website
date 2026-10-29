@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { Btn, Spinner } from '@/components/crm/primitives'
@@ -87,6 +88,7 @@ export default function InsurersPage() {
         {error && <p className="mt-4 text-[13px]" style={{ color: ERROR }}>{error}</p>}
         <div className="mt-6">
           {!rows ? <Spinner label="Loading insurers…" /> : (
+            <>
             <Register label="Insurer products" minWidth={1240}>
               <RegisterHead>
                 <RegisterTh first>Product</RegisterTh>
@@ -107,7 +109,8 @@ export default function InsurersPage() {
                 {groups.length === 0 && <RegisterEmpty colSpan={COLS}>{total === 0 ? 'No products yet. Add an insurer, then the products you ask it for.' : 'Nothing matches.'}</RegisterEmpty>}
                 {groups.map(([insurer, rs]) => (
                   <Fragment key={insurer}>
-                    <RegisterGroupRow colSpan={COLS}>{insurer}<span className="ml-2 font-normal" style={{ color: MUTED }}>{rs.length} product{rs.length === 1 ? '' : 's'}</span></RegisterGroupRow>
+                    <RegisterGroupRow colSpan={COLS}>{insurer}<span className="ml-2 font-normal" style={{ color: MUTED }}>{rs.length} product{rs.length === 1 ? '' : 's'}</span>
+                      {rs[0]?.insurer_company_id && <Link href={`/insurers/${rs[0].insurer_company_id}`} className="ml-3 font-normal underline underline-offset-4" style={{ color: INK }}>Threads</Link>}</RegisterGroupRow>
                     {rs.map(r => {
                       const def = r.contacts.find(c => c.is_default) ?? r.contacts[0] ?? null
                       const isOpen = open === r.id
@@ -140,6 +143,15 @@ export default function InsurersPage() {
                 ))}
               </tbody>
             </Register>
+            {insurers.length > 0 && (
+              <section className="mt-10">
+                <h2 className="m-0 mb-3 text-[16px] font-medium">Email threads by insurer</h2>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+                  {insurers.map(i => <Link key={i.id} href={`/insurers/${i.id}`} className="no-underline hover:underline" style={{ color: INK }}>{i.name}</Link>)}
+                </div>
+              </section>
+            )}
+            </>
           )}
         </div>
       </div>
