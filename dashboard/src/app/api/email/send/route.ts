@@ -6,6 +6,7 @@ import { createSign, randomUUID }     from 'node:crypto'
 import { logActivity }                from '@/lib/log-activity'
 import { createClient }               from '@/lib/supabase/server'
 import { buildQuotedHistory, buildReferences, type ThreadMessage } from '@/lib/build-reply-thread'
+import { attachmentRefBytes } from '@/lib/storage/attachment-bytes'
 import { buildRawEmail, htmlToText, type EmailAttachment, type ThreadingHeaders } from '@/lib/email-mime'
 
 const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
@@ -352,22 +353,17 @@ export async function POST(req: NextRequest) {
     // Download any selected attachments from Supabase Storage → base64 for the MIME envelope.
     let emailAttachments: EmailAttachment[] = []
     if (Array.isArray(attachmentRefs) && attachmentRefs.length > 0) {
-      const svcKey = process.env.SUPABASE_SERVICE_KEY
+      // Drive for uploads, Gmail for files already on a thread (see attachment-bytes.ts). A file
+      // that cannot be fetched stops the send: an email must never go out missing its attachment.
+      const missing: string[] = []
       emailAttachments = (await Promise.all(attachmentRefs.slice(0, 10).map(async ref => {
-        try {
-          if (!ref.storage_url) return null
-          // storage_url is either a full URL or a bare path in the private email-attachments
-          // bucket — the latter needs the service key to fetch. (This also fixes RFQ forwards,
-          // which pass bare paths.)
-          const r = ref.storage_url.startsWith('http')
-            ? await fetch(ref.storage_url)
-            : await fetch(`${SB_URL}/storage/v1/object/email-attachments/${ref.storage_url}`,
-                { headers: svcKey ? { apikey: svcKey, Authorization: `Bearer ${svcKey}` } : undefined })
-          if (!r.ok) return null
-          const buf = Buffer.from(await r.arrayBuffer())
-          return { filename: ref.filename, mimeType: ref.mime_type || 'application/octet-stream', dataB64: buf.toString('base64') }
-        } catch { return null }
+        const buf = ref.storage_url ? await attachmentRefBytes(ref.storage_url).catch(() => null) : null
+        if (!buf) { missing.push(ref.filename); return null }
+        return { filename: ref.filename, mimeType: ref.mime_type || 'application/octet-stream', dataB64: buf.toString('base64') }
       }))).filter((a): a is EmailAttachment => a !== null)
+      if (missing.length > 0) {
+        return NextResponse.json({ error: `Not sent: could not fetch ${missing.join(', ')}. Attach it again and retry.` }, { status: 502 })
+      }
     }
 
     // Belt-and-braces: a bad address here (e.g. a bare display-name string like "Soon Teng" that

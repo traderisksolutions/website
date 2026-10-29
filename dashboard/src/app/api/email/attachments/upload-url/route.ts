@@ -1,58 +1,40 @@
 /**
- * POST /api/email/attachments/upload-url   { filename }
- * Returns a Supabase Storage signed upload URL so the browser uploads the file DIRECTLY to
- * storage — bypassing Vercel's ~4.5 MB serverless request-body limit (large PDFs/brochures
- * otherwise fail with a non-JSON "Request Entity Too Large"). No size cap here; the only real
- * ceiling is Gmail's ~25 MB per-message limit, enforced at send time by Gmail itself.
+ * POST /api/email/attachments/upload-url { filename, mime_type?, size? } → { uploadUrl }
+ * Opens a resumable upload session in Drive (email-uploads/<YYYY-MM>/) so the browser sends the
+ * file straight to Google, past Vercel's ~4.5 MB request limit. The browser PUTs the file to
+ * uploadUrl; Google answers with { id }, and the attachment reference is `drivefile:<id>`.
+ * Replaces the Supabase signed-upload URL: that bucket no longer exists.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
-import { randomUUID }                from 'node:crypto'
+import { randomUUID } from 'node:crypto'
+import { requireStaffOrCron } from '@/lib/api-auth'
+import { getDriveWriteToken, findOrCreateFolder, rootFolderId } from '@/lib/gdrive-write'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
-const BUCKET = 'email-attachments'
-
-const sanitise = (s: string) => s.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 150)
+const sanitise = (s: string) => s.replace(/[\\/:*?"<>|#%]+/g, '_').slice(0, 150)
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
-    const { filename } = await req.json().catch(() => ({})) as { filename?: string }
+    const { filename, mime_type, size } = await req.json().catch(() => ({})) as { filename?: string; mime_type?: string; size?: number }
     const name = sanitise(filename || 'attachment')
-
-    const k = process.env.SUPABASE_SERVICE_KEY
-    if (!k) return NextResponse.json({ error: 'server misconfigured' }, { status: 500 })
-    const auth = { apikey: k, Authorization: `Bearer ${k}` }
-
-    // Ensure the private bucket exists (this call has a JSON body).
-    await fetch(`${SB_URL}/storage/v1/bucket`, {
-      method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: BUCKET, name: BUCKET, public: false, allowed_mime_types: null, file_size_limit: null }),
-    }).catch(() => {})
-    // The create call above is a no-op once the bucket already exists, so it can never clear a
-    // restrictive allowed_mime_types/file_size_limit set at some earlier point (a stricter
-    // default, a manual dashboard edit, whatever) — this is any-file-type attachments (PDF,
-    // xlsx, docx, zip, ...), not just images, so explicitly re-assert "unrestricted" on every
-    // call rather than only at first creation.
-    await fetch(`${SB_URL}/storage/v1/bucket/${BUCKET}`, {
-      method: 'PUT', headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ public: false, allowed_mime_types: null, file_size_limit: null }),
-    }).catch(() => {})
-
-    // Create the signed upload URL. This POST has NO body, so we must NOT send a JSON
-    // Content-Type header (the storage server 400s "Body cannot be empty").
-    const path = `outgoing/${randomUUID()}/${name}`
-    const res  = await fetch(`${SB_URL}/storage/v1/object/upload/sign/${BUCKET}/${path}`, { method: 'POST', headers: auth })
-    if (!res.ok) return NextResponse.json({ error: `Could not create upload URL: ${(await res.text()).slice(0, 200)}` }, { status: 502 })
-    const data  = await res.json() as { url?: string }
-    const token = new URLSearchParams((data.url ?? '').split('?')[1] ?? '').get('token')
-    if (!token) return NextResponse.json({ error: 'No upload token returned' }, { status: 502 })
-
-    return NextResponse.json({ path, token })
+    const type = mime_type || 'application/octet-stream'
+    const token = await getDriveWriteToken()
+    const uploads = await findOrCreateFolder('email-uploads', rootFolderId(), token)
+    const month = await findOrCreateFolder(new Date().toISOString().slice(0, 7), uploads, token)
+    const origin = req.headers.get('origin') ?? new URL(req.url).origin
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type,
+        ...(typeof size === 'number' && size > 0 ? { 'X-Upload-Content-Length': String(size) } : {}), Origin: origin,
+      },
+      body: JSON.stringify({ name: `${randomUUID().slice(0, 8)} ${name}`, parents: [month] }),
+    })
+    const uploadUrl = res.headers.get('location')
+    if (!res.ok || !uploadUrl) return NextResponse.json({ error: `Drive would not open an upload: ${(await res.text()).slice(0, 200)}` }, { status: 502 })
+    return NextResponse.json({ uploadUrl })
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
 }

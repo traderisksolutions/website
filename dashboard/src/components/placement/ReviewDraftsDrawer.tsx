@@ -1,12 +1,12 @@
 'use client'
 
+import { uploadAttachment } from '@/lib/upload-attachment'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, Maximize2, PanelRight, Paperclip, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Empty, Spinner } from '@/components/crm/primitives'
 import { RichEditor } from '@/components/RichEditor'
 import { TbGroup, TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RecipientChip, QuietSelect, AttachmentChip } from '@/components/engagement-agent/compose-toolbar'
-import { createClient } from '@/lib/supabase/client'
 import { bodyToHtml } from '@/lib/placement/compare'
 import { draftBodyToHtml, emailReadyHtml, htmlToDraftText, isBlankHtml } from '@/lib/email-body'
 import { productLineLabel } from '@/lib/product-lines'
@@ -297,22 +297,16 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
     }
   }
 
-  /** Upload local files straight to storage (signed URL), as the reply composer does. */
+  /** Upload local files to Drive, as the reply composer does. */
   async function uploadFiles(itemId: string, files: FileList | null) {
     if (!files || files.length === 0) return
     setUploading(true)
     try {
-      const supabase = createClient()
       for (const file of Array.from(files)) {
-        const uu = await fetch('/api/email/attachments/upload-url', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: file.name }),
-        })
-        const ud = await uu.json().catch(() => null) as { path?: string; token?: string; error?: string } | null
-        if (!uu.ok || !ud?.path || !ud?.token) { setItem(itemId, { state: { phase: 'error', message: ud?.error ?? `Could not start upload for ${file.name}` } }); continue }
-        const { error: upErr } = await supabase.storage.from('email-attachments')
-          .uploadToSignedUrl(ud.path, ud.token, file, { contentType: file.type || 'application/octet-stream' })
-        if (upErr) { setItem(itemId, { state: { phase: 'error', message: `Upload failed for ${file.name}: ${upErr.message}` } }); continue }
-        const att: Att = { filename: file.name, mime_type: file.type || 'application/octet-stream', storage_url: ud.path }
+        let ref: string
+        try { ref = await uploadAttachment(file) }
+        catch (e) { setItem(itemId, { state: { phase: 'error', message: errText(e) } }); continue }
+        const att: Att = { filename: file.name, mime_type: file.type || 'application/octet-stream', storage_url: ref }
         setItems(xs => xs ? xs.map(x => x.draft.id === itemId && !x.attachments.some(a => a.storage_url === att.storage_url) ? { ...x, attachments: [...x.attachments, att] } : x) : xs)
       }
     } finally {
