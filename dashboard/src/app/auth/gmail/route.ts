@@ -23,7 +23,9 @@ export async function GET(request: NextRequest) {
   u.searchParams.set('scope', `openid email ${GMAIL_READ_SCOPE}`)
   u.searchParams.set('access_type', 'offline')
   u.searchParams.set('prompt', 'consent')
-  u.searchParams.set('include_granted_scopes', 'true')
+  // No include_granted_scopes: permissions the account gave the dashboard before (sending, for
+  // the shared mailbox) must not ride along. The token is read-only Gmail and nothing else.
+  u.searchParams.set('include_granted_scopes', 'false')
   u.searchParams.set('hd', ALLOWED_DOMAIN)
   u.searchParams.set('state', `gmail.${nonce}`)
   const hint = searchParams.get('email')

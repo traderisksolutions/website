@@ -8,6 +8,7 @@ const ERRORS: Record<string, string> = {
   callback: 'Google did not complete the sign-in. Please try again.',
   domain: 'Use your @trade-risksol.com account.',
   scope: 'Gmail access was not allowed. Please try again and tick the Gmail box.',
+  too_wide: 'Google granted more than read-only access, so nothing was stored. Remove TRS access in Google Account → Security → Third-party connections, then try again.',
   no_refresh: 'Google did not return lasting access. Please try again.',
   watch: 'Connected read only, but Gmail notifications could not start. TRS operations will look into it.',
   config: 'The dashboard is not set up for this yet. Please contact TRS operations.',

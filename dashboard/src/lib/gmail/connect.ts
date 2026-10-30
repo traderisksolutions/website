@@ -6,7 +6,7 @@ import { GOOGLE_TOKEN, profileFromIdToken } from '@/lib/auth/google'
 import { isAllowedEmail } from '@/lib/auth/session'
 import { GMAIL_READ_SCOPE, getMailbox, saveMailbox, watchMailbox } from './mailboxes'
 
-export type ConnectResult = { ok: true; email: string } | { ok: false; error: 'callback' | 'domain' | 'scope' | 'no_refresh' | 'watch' }
+export type ConnectResult = { ok: true; email: string } | { ok: false; error: 'callback' | 'domain' | 'scope' | 'too_wide' | 'no_refresh' | 'watch' }
 
 export async function connectMailbox(code: string, redirectUri: string): Promise<ConnectResult> {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? '', clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET ?? ''
@@ -19,7 +19,10 @@ export async function connectMailbox(code: string, redirectUri: string): Promise
   const profile = j.id_token ? profileFromIdToken(j.id_token, clientId) : null
   if (!profile) return { ok: false, error: 'callback' }
   if (!isAllowedEmail(profile.email)) return { ok: false, error: 'domain' }
-  if (!(j.scope ?? '').split(' ').includes(GMAIL_READ_SCOPE)) return { ok: false, error: 'scope' }
+  const scopes = (j.scope ?? '').split(' ')
+  if (!scopes.includes(GMAIL_READ_SCOPE)) return { ok: false, error: 'scope' }
+  // Read only, or not at all: a token that could send, change or delete mail is never stored.
+  if (scopes.some(s => /gmail\.(send|compose|modify|insert|labels)|mail\.google\.com/.test(s))) return { ok: false, error: 'too_wide' }
   if (!j.refresh_token) return { ok: false, error: 'no_refresh' }
   await saveMailbox(profile.email, j.refresh_token)
   const m = await getMailbox(profile.email)
