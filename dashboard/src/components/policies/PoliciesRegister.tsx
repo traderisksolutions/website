@@ -21,7 +21,7 @@ type Section = 'quotes' | 'employees' | 'dns'
 const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue' }
 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
-const COLS = 10
+const COLS = 11
 /** A button inside the dense grid: 22px tall so the row stays 34px. */
 const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
 const PLAN_MAX = 36
@@ -31,7 +31,20 @@ const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…'
  * The company's policies: one row per line of cover, from first quote to lapse. A row opens to
  * the quotes received for it; the chosen one is marked in words.
  */
-export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policies', payments, onOpenDrafts, docStatus }: {
+/** A policy's filed documents and its Drive folder, from the data room. */
+export type PolicyFiles = { folder: string | null; documents: { id: string; doc_type: string; title: string | null; filename: string; received_at: string | null; created_at: string }[] }
+/** The document a broker means by "the policy", best first. */
+const FILE_ORDER = ['policy_schedule', 'policy_wording', 'cover_note', 'certificate', 'endorsement', 'bond', 'benefit_summary', 'renewal_notice', 'insurer_debit_note', 'trs_debit_note']
+const FILE_WORD: Record<string, string> = { policy_schedule: 'Schedule', policy_wording: 'Wording', cover_note: 'Cover note', certificate: 'Certificate', endorsement: 'Endorsement', bond: 'Bond', benefit_summary: 'Benefits', renewal_notice: 'Renewal notice', insurer_debit_note: 'Insurer DN', trs_debit_note: 'TRS DN' }
+function bestFile(f: PolicyFiles | undefined) {
+  const docs = f?.documents ?? []
+  const rank = (t: string) => { const i = FILE_ORDER.indexOf(t); return i < 0 ? FILE_ORDER.length : i }
+  return [...docs].sort((a, b) => rank(a.doc_type) - rank(b.doc_type) || (b.received_at ?? b.created_at).localeCompare(a.received_at ?? a.created_at))[0] ?? null
+}
+
+export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policies', payments, onOpenDrafts, docStatus, files }: {
+  /** Per policy id: its documents and Drive folder. Adds the File column when given. */
+  files?: Record<string, PolicyFiles> | null
   policies: PolicyView[] | null
   /** Data-room status per policy id: what is on file against what the policy needs. */
   docStatus?: Record<string, DataRoomStatus> | null
@@ -90,6 +103,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
               <RegisterTh>Period</RegisterTh>
               <RegisterTh>Status</RegisterTh>
               <RegisterTh>Documents</RegisterTh>
+              {files !== undefined && <RegisterTh>File</RegisterTh>}
               <RegisterTh align="right">Notes</RegisterTh>
               <RegisterTh align="right">Members</RegisterTh>
               <RegisterTh last align="right">Net</RegisterTh>
@@ -123,6 +137,20 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
                         <RegisterCell primary={docStatus?.[p.id] ? statusWord(docStatus[p.id]) : '—'}
                           title={docStatus?.[p.id]?.missing.length ? `Missing: ${docStatus[p.id].missing.map(m => m.label).join(', ')}` : undefined} />
+                        {files !== undefined && (() => {
+                          const f = files?.[p.id], doc = bestFile(f), more = (f?.documents.length ?? 0) - 1
+                          // No filed document: the newest debit note's PDF in Drive, which sits with the policy papers.
+                          const dn = [...dns].sort((a, b) => (b.issue_date ?? '').localeCompare(a.issue_date ?? ''))[0]
+                          const link = 'underline underline-offset-4 text-[13.5px] whitespace-nowrap'
+                          return (
+                            <RegisterCell title={doc ? `${doc.title || doc.filename}${more > 0 ? ` · ${more} more in the data room` : ''}` : f?.folder ? 'Drive folder' : undefined}>
+                              {doc ? <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>{FILE_WORD[doc.doc_type] ?? 'Document'} ↗</a>
+                                : dn ? <a href={`/api/debit-notes/${dn.id}/pdf`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>Debit note ↗</a>
+                                : f?.folder ? <a href={f.folder} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: MUTED }}>Folder ↗</a>
+                                : <span style={{ color: MUTED }}>{files === null ? '…' : '—'}</span>}
+                            </RegisterCell>
+                          )
+                        })()}
                         <RegisterCell align="right" primary={p.debitNoteCount} />
                         <RegisterCell align="right" primary={p.is_eb && p.membersActive != null ? p.membersActive : '—'} />
                         <RegisterCell last align="right" primary={p.is_eb && p.netToDate != null ? fmtAmount(p.netToDate, p.currency ?? 'SGD') : '—'} />

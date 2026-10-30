@@ -21,6 +21,7 @@ import { DataRoom } from '@/components/documents/DataRoom'
 import { portfolio } from '@/lib/companies/portfolio'
 import type { DataRoomStatus } from '@/lib/documents/taxonomy'
 import { MembersPanel } from '@/components/policies/MembersPanel'
+import type { PolicyFiles } from '@/components/policies/PoliciesRegister'
 import { ReviewDraftsDrawer, type QueueItem } from '@/components/placement/ReviewDraftsDrawer'
 import type { PolicyView } from '@/components/policies/types'
 import type {
@@ -130,8 +131,12 @@ function CompanyWorkspace() {
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
   const loadPlacements = useCallback(() => j<PlacementData>(`/api/companies/${id}/placements`, EMPTY_BUNDLE).then(setPlacementData), [id, j])
   const [docStatus, setDocStatus] = useState<Record<string, DataRoomStatus> | null>(null)
-  const loadDocStatus = useCallback(() => j<{ rooms: { policy: { id: string }; status: DataRoomStatus }[] }>(`/api/companies/${id}/data-room`, { rooms: [] })
-    .then(r => setDocStatus(Object.fromEntries(r.rooms.map(x => [x.policy.id, x.status])))), [id, j])
+  const [docFiles, setDocFiles] = useState<Record<string, PolicyFiles> | null>(null)
+  const loadDocStatus = useCallback(() => j<{ rooms: { policy: { id: string; drive_folder_url?: string | null }; status: DataRoomStatus; documents: PolicyFiles['documents'] }[] }>(`/api/companies/${id}/data-room`, { rooms: [] })
+    .then(r => {
+      setDocStatus(Object.fromEntries(r.rooms.map(x => [x.policy.id, x.status])))
+      setDocFiles(Object.fromEntries(r.rooms.map(x => [x.policy.id, { folder: x.policy.drive_folder_url ?? null, documents: x.documents ?? [] }])))
+    }), [id, j])
   useEffect(() => { void loadDocStatus() }, [loadDocStatus])
   const loadPolicies = useCallback(() => j<{ policies: PolicyView[] }>(`/api/companies/${id}/policies`, { policies: [] }).then(r => setPolicies(r.policies)), [id, j])
   const loadActivity = useCallback(() => j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)), [id, j])
@@ -354,7 +359,7 @@ function CompanyWorkspace() {
         {tab === 'documents' && <DataRoom companyId={id} />}
 
         {tab === 'policies' && (
-          <PoliciesRegister title="" policies={existing} docStatus={docStatus} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
+          <PoliciesRegister title="" policies={existing} docStatus={docStatus} files={docFiles} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
             onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 
