@@ -282,7 +282,7 @@ function CompanyWorkspace() {
 
         {/* Two working tabs; the rest under More. Only a phone ever scrolls them. */}
         <div className="flex items-center gap-6 mb-8 -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
-          <div className="flex items-center gap-6 overflow-x-auto min-w-0" role="tablist">
+          <div className="flex items-center gap-6 overflow-x-auto overflow-y-hidden min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
             {MAIN_TABS.map(t => {
               const on = tab === t.key
               const n = countFor(t.key)
@@ -298,7 +298,7 @@ function CompanyWorkspace() {
                 >
                   {t.label}
                   {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#6f7a74' }}>{n}</span>}
-                  <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
+                  <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
                 </button>
               )
             })}
@@ -354,7 +354,7 @@ function CompanyWorkspace() {
         {tab === 'documents' && <DataRoom companyId={id} />}
 
         {tab === 'policies' && (
-          <PoliciesRegister title="Existing paying policies" policies={existing} docStatus={docStatus} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
+          <PoliciesRegister title="" policies={existing} docStatus={docStatus} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
             onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 

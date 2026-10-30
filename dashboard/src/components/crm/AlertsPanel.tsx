@@ -1,6 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ThreadModal } from '@/components/engagement/ThreadModal'
 import { SectionCard, Empty } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
@@ -9,11 +11,17 @@ import type { Alert, LeftOff } from '@/lib/crm/types'
 const MUTED = '#4a5550'
 const BODY = '#2a332f'
 
+/** A thread link (/engagement?lead=<id>) opens in the reader instead of leaving the page. */
+const threadOf = (href: string | null | undefined) => href?.match(/^\/engagement\?lead=([0-9a-f-]{36})/)?.[1] ?? null
+
 /** Open items on the register: the item, its detail, when. A row opens what it names. */
 export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
   const router = useRouter()
+  const [reading, setReading] = useState<string | null>(null)
+  const open = (href: string) => { const t = threadOf(href); if (t) setReading(t); else router.push(href) }
   return (
     <SectionCard title="Open items">
+      <ThreadModal threadId={reading} onClose={() => setReading(null)} />
       {alerts.length === 0 ? <Empty compact>Nothing open.</Empty> : (
         <Register label="Open items" minWidth={0}>
           <RegisterHead>
@@ -23,7 +31,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
           </RegisterHead>
           <tbody>
             {alerts.map(a => (
-              <RegisterRow key={a.id} onClick={a.href ? () => router.push(a.href!) : undefined}>
+              <RegisterRow key={a.id} onClick={a.href ? () => open(a.href!) : undefined}>
                 <RegisterCell first identityWidth={520} primary={a.title} />
                 <RegisterCell nowrap={false}><span className="text-[14px]" style={{ color: BODY }}>{a.detail ?? '—'}</span></RegisterCell>
                 <RegisterCell last align="right" title={a.at ? `${fmtRelative(a.at)} · ${fmtDateTime(a.at)}` : undefined} primary={a.at ? fmtDate(a.at) : '—'} />
@@ -42,6 +50,8 @@ const who = (s: string) => (s.includes('@') ? s.split('@')[0] : s)
 /** Where we left off on the register: what happened, who, when. */
 export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
   const router = useRouter()
+  const [reading, setReading] = useState<string | null>(null)
+  const open = (href: string) => { const t = threadOf(href); if (t) setReading(t); else router.push(href) }
   const rows: { event: string; detail: string | null; who: string | null; at: string; href?: string }[] = []
   if (leftOff.lastInbound) rows.push({ event: 'They wrote', detail: leftOff.lastInbound.subject, who: who(leftOff.lastInbound.from), at: leftOff.lastInbound.at, href: `/engagement?lead=${leftOff.lastInbound.threadId}` })
   if (leftOff.lastOutbound) rows.push({ event: 'We replied', detail: leftOff.lastOutbound.subject, who: who(leftOff.lastOutbound.by), at: leftOff.lastOutbound.at, href: `/engagement?lead=${leftOff.lastOutbound.threadId}` })
@@ -50,6 +60,7 @@ export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
 
   return (
     <SectionCard title="Where we left off">
+      <ThreadModal threadId={reading} onClose={() => setReading(null)} />
       {rows.length === 0 ? <Empty compact>No activity yet.</Empty> : (
         <Register label="Where we left off" minWidth={0}>
           <RegisterHead>
@@ -59,7 +70,7 @@ export function LeftOffPanel({ leftOff }: { leftOff: LeftOff }) {
           </RegisterHead>
           <tbody>
             {rows.map((r, i) => (
-              <RegisterRow key={i} onClick={r.href ? () => router.push(r.href!) : undefined}>
+              <RegisterRow key={i} onClick={r.href ? () => open(r.href!) : undefined}>
                 <RegisterCell first identityWidth={520} title={r.detail ?? undefined} primary={r.detail ? <>{r.event} <span className="font-normal" style={{ color: MUTED }}>· {r.detail}</span></> : r.event} />
                 <RegisterCell><span className="text-[14px]" style={{ color: BODY }}>{r.who ?? '—'}</span></RegisterCell>
                 <RegisterCell last align="right" title={`${fmtRelative(r.at)} · ${fmtDateTime(r.at)}`} primary={fmtDate(r.at)} />

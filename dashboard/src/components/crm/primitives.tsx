@@ -42,9 +42,10 @@ export function SectionCard({ title, actions, children, className, padded = true
   title?: string; actions?: React.ReactNode; children: React.ReactNode; className?: string; padded?: boolean
 }) {
   return (
-    <section className={cn('min-w-0 py-6 border-t first:border-t-0 first:pt-0', className)} style={{ borderColor: '#e6e8e4' }}>
+    // A rule only between two sections in a row; never under a tab strip, a header or another rule.
+    <section className={cn('min-w-0 pb-6 [section+&]:pt-6 [section+&]:border-t', className)} style={{ borderColor: '#e6e8e4' }}>
       {(title || actions) && (
-        <header className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <header className={cn('flex items-center gap-3 mb-3 flex-wrap', title ? 'justify-between' : 'justify-end')}>
           {title && <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: INK }}>{title}</h2>}
           {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
         </header>

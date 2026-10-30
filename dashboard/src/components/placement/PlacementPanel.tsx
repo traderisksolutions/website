@@ -120,7 +120,6 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   return (
     <>
       <SectionCard
-        title="Prospective requested quotes"
         actions={<Btn size="xs" level="primary" onClick={() => setNewOpen(true)}><FilePlus size={12} /> New placement</Btn>}
       >
         {!data && <Spinner label="Loading placements…" />}

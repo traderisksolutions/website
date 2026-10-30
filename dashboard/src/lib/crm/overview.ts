@@ -47,14 +47,14 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   const nextRenewalDate = upcoming.find(d => d >= today) ?? upcoming[upcoming.length - 1] ?? null
   for (const p of policies) {
     const d = daysBetween(today, p.end_date as string)
-    if (d < 0) alerts.push({ id: `ended-${p.end_date}-${p.class_of_insurance}`, kind: 'policy_ended', tone: 'amber', title: `${p.class_of_insurance ?? 'Policy'} ended ${fmtRelative(p.end_date)}`, detail: 'Renewal not recorded yet', href: `/companies/${company.id}?tab=purchases`, at: p.end_date })
-    else if (d <= 60) alerts.push({ id: `renew-${p.end_date}-${p.class_of_insurance}`, kind: 'renewal', tone: d <= 14 ? 'amber' : 'blue', title: `${p.class_of_insurance ?? 'Policy'} renews ${fmtRelative(p.end_date)}`, detail: fmtDate(p.end_date), href: `/companies/${company.id}?tab=purchases`, at: p.end_date })
+    if (d < 0) alerts.push({ id: `ended-${p.end_date}-${p.class_of_insurance}`, kind: 'policy_ended', tone: 'amber', title: `${p.class_of_insurance ?? 'Policy'} ended ${fmtRelative(p.end_date)}`, detail: 'Renewal not recorded yet', href: `/companies/${company.id}?tab=policies`, at: p.end_date })
+    else if (d <= 60) alerts.push({ id: `renew-${p.end_date}-${p.class_of_insurance}`, kind: 'renewal', tone: d <= 14 ? 'amber' : 'blue', title: `${p.class_of_insurance ?? 'Policy'} renews ${fmtRelative(p.end_date)}`, detail: fmtDate(p.end_date), href: `/companies/${company.id}?tab=policies`, at: p.end_date })
   }
 
   // Agent
   const lastMessageAt = threads[0]?.last_message_at ?? null
   const summaryStale = !!company.ai_brief_at && !!lastMessageAt && company.ai_brief_at < lastMessageAt
-  if (!company.ai_brief) alerts.push({ id: 'no-summary', kind: 'no_summary', tone: 'neutral', title: 'No Nexus summary yet', detail: 'Generate one to see the whole relationship in one read', href: null, at: null })
+  if (!company.ai_brief) alerts.push({ id: 'no-summary', kind: 'no_summary', tone: 'neutral', title: 'No Nexus summary yet', detail: 'Generate one to see the whole relationship in one read', href: `/companies/${company.id}?tab=nexus`, at: null })
   else if (summaryStale) alerts.push({ id: 'stale-summary', kind: 'summary_stale', tone: 'neutral', title: 'Nexus summary is older than the latest email', detail: `Summary ${fmtRelative(company.ai_brief_at)} · last email ${fmtRelative(lastMessageAt)}`, href: null, at: null })
 
   // Where we left off
