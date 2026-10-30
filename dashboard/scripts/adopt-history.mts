@@ -22,6 +22,7 @@ import { isInternal } from '@/lib/placement/match'
 import { normaliseSpec } from '@/lib/placement/spec'
 import { normCompany } from '@/lib/gb/intake'
 import { shortInsurer } from '@/lib/gb/insurer-names'
+import { clientsForThreads } from '@/lib/nexus/company-view'
 import type { Spec } from '@/lib/placement/types'
 
 const KEY = process.env.SUPABASE_SERVICE_KEY!, BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`
@@ -145,6 +146,32 @@ async function plan(out: string) {
   console.log(`client threads with no line read ${skippedClient}; insurer threads left out ${unattached.length} (no client ${unattached.filter(x => !x.client).length}, no line ${unattached.filter(x => x.client && !x.it.line).length})`)
 }
 
+/**
+ * Re-files insurer-only records whose "client" is an insurer (thread_insurers rows filed from the
+ * insurer's side) under the client the thread names. No model call.
+ */
+async function regroup(file: string) {
+  const plan = JSON.parse(readFileSync(file, 'utf8')) as { groups: Group[]; unattached: unknown[] }
+  const kinds = new Map((await all<any>('companies?select=id,kind')).map((c: any) => [c.id, c.kind]))
+  const bad = plan.groups.filter(g => kinds.get(g.client_id) !== 'client')
+  const keep = plan.groups.filter(g => kinds.get(g.client_id) === 'client')
+  const clients = await clientsForThreads(bad.flatMap(g => g.insurers.map(i => i.thread_id)))
+  const near = (a: string, b: string) => Math.abs(Date.parse(a) - Date.parse(b)) <= WINDOW_DAYS * day
+  let moved = 0, dropped = 0
+  for (const g of bad) for (const it of g.insurers) {
+    const c = clients.get(it.thread_id)
+    const line = it.line ?? g.lines[it.line_index] ?? g.lines[0]
+    if (!c || kinds.get(c.id) !== 'client') { plan.unattached.push({ thread_id: it.thread_id, insurer: it.insurer_name, client: null, line: line?.product_line ?? null }); dropped++; continue }
+    const target = keep.find(k => k.client_id === c.id && k.lines.some(l => l.product_line === line.product_line) && near(k.first_at, it.first_at))
+    if (target) target.insurers.push({ ...it, line_index: target.lines.findIndex(l => l.product_line === line.product_line) })
+    else keep.push({ ...g, client_id: c.id, client_name: c.name, client_thread_id: null, lines: [line], insurers: [{ ...it, line_index: 0 }], first_at: it.first_at, last_at: it.last_at })
+    moved++
+  }
+  plan.groups = keep
+  writeFileSync(file, JSON.stringify(plan, null, 2))
+  console.log(`re-filed ${moved} insurer threads under their client, ${dropped} left out; records now ${keep.length}`)
+}
+
 async function apply(file: string) {
   const { groups } = JSON.parse(readFileSync(file, 'utf8')) as { groups: Group[] }
   const placedNow = new Set((await all<any>('placements?select=client_thread_id')).map((p: any) => p.client_thread_id).filter(Boolean))
@@ -206,6 +233,7 @@ async function undo() {
 
 const [cmd, file] = process.argv.slice(2)
 if (cmd === 'plan') await plan(file ?? 'adopt-plan.json')
+else if (cmd === 'regroup') await regroup(file ?? 'adopt-plan.json')
 else if (cmd === 'apply') await apply(file ?? 'adopt-plan.json')
 else if (cmd === 'undo') await undo()
 else console.log('usage: plan <file> | apply <file> | undo')
