@@ -9,7 +9,7 @@ import { GMAIL_READ_SCOPE } from '@/lib/gmail/mailboxes'
  * in with their TRS account and allows it once; Google returns to /auth/callback, which stores the
  * mailbox. No dashboard login needed: the link is sent to the person.
  */
-export const GMAIL_STATE_COOKIE = 'trs_gmail_state'
+const GMAIL_STATE_COOKIE = 'trs_gmail_state'
 
 export async function GET(request: NextRequest) {
   const { origin, searchParams } = new URL(request.url)
