@@ -5,8 +5,10 @@
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { chaseable, viewsOf, VIEWS, type View } from './rules'
 import type { FollowUp } from './types'
+import { clientsForThreads } from './company-view'
 
-export type LedgerRow = FollowUp & { company_name: string | null; views: View[]; chaseable: boolean }
+/** client_id / client_name: the client the row is about, also when it sits on an insurer's thread. */
+export type LedgerRow = FollowUp & { company_name: string | null; client_id: string | null; client_name: string | null; views: View[]; chaseable: boolean }
 export type Ledger = { rows: LedgerRow[]; counts: Record<View, number>; chaseable: number; mine_count: number }
 
 export async function loadLedger(opts: { view: View; mine: boolean; actor: string }, now = new Date()): Promise<Ledger> {
@@ -27,7 +29,11 @@ export async function loadLedger(opts: { view: View; mine: boolean; actor: strin
   for (let i = 0; i < ids.length; i += 80) {
     for (const c of await sbTry<{ id: string; company_name: string }[]>(`companies?id=in.(${ids.slice(i, i + 80).join(',')})&select=id,company_name`, [])) names.set(c.id, c.company_name)
   }
-  const rows = picked.map(({ r, views }) => ({ ...r, company_name: r.company_id ? names.get(r.company_id) ?? null : null, views, chaseable: chaseable(r, now) }))
+  const clients = await clientsForThreads([...new Set(picked.map(t => t.r.thread_id).filter((x): x is string => !!x))])
+  const rows = picked.map(({ r, views }) => {
+    const client = r.thread_id ? clients.get(r.thread_id) ?? null : null
+    return { ...r, company_name: r.company_id ? names.get(r.company_id) ?? null : null, client_id: client?.id ?? null, client_name: client?.name ?? null, views, chaseable: chaseable(r, now) }
+  })
   if (opts.view === 'done') rows.sort((a, b) => (b.closed_at ?? '').localeCompare(a.closed_at ?? ''))
   return { rows, counts, chaseable: scoped.filter(r => chaseable(r, now)).length, mine_count: mine.length }
 }

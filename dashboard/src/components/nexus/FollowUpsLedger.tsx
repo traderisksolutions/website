@@ -159,9 +159,9 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
   const debtor = r.owner_party === 'insurer' || r.owner_party === 'client' ? r.counterparty_name ?? r.counterparty_email : r.owner_party === 'date' ? r.counterparty_name : null
   return (
     <RegisterRow>
-      <RegisterCell first title={r.company_name ?? undefined}>
-        {r.company_id && r.company_name
-          ? <Link href={`/companies/${r.company_id}`} className="block truncate font-medium no-underline hover:underline" style={{ color: INK }}>{r.company_name}</Link>
+      <RegisterCell first title={r.client_name ?? r.company_name ?? undefined}>
+        {(r.client_id ?? r.company_id) && (r.client_name ?? r.company_name)
+          ? <Link href={`/nexus/companies/${r.client_id ?? r.company_id}`} className="block truncate font-medium no-underline hover:underline" style={{ color: INK }}>{r.client_name ?? r.company_name}</Link>
           : <span style={{ color: MUTED }}>—</span>}
       </RegisterCell>
       <RegisterCell><Chip tone={status.tone}>{status.label}</Chip></RegisterCell>
