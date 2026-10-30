@@ -32,12 +32,16 @@ const CHASE_WITHIN_MS = 60 * day
 
 const STOP = new Set(('re fw fwd trs insurance insurer quote quotes quotation quotations request rfq renewal renewals policy policies project projects development developments proposed '
   + 'residential commercial works contract contractor pte ltd limited llp singapore sg company group holdings employer employers employee liability all risk risks car pel wica cgl gpa '
-  + 'medical group the and for with from your our new revised final terms slip slips cover coverage nbi trade solutions solution update dear').split(' '))
+  + 'medical group the and for with from your our new revised final terms slip slips cover coverage nbi trade solutions solution update dear '
+  + 'road roads street avenue lane drive crescent block tower phase redevelopment resi flat flats tender confirmation confirm loa site package').split(' '))
+
+/** "Stevens" and "Steven" are the same word in a subject. */
+const stem = (w: string) => (w.length > 4 && w.endsWith('s') ? w.slice(0, -1) : w)
 
 /** The words that name a job: what is left of a subject after insurance words, insurer names and short words. */
 export function projectTokens(text: string, exclude: Iterable<string> = []): Set<string> {
   const ex = new Set([...exclude].map(w => w.toLowerCase()))
-  return new Set((text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(w => w.length >= 4 && !STOP.has(w) && !ex.has(w) && !/^\d+$/.test(w)))
+  return new Set((text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(w => w.length >= 4 && !STOP.has(w) && !ex.has(w) && !/^\d+$/.test(w)).map(stem).filter(w => !STOP.has(w) && !ex.has(w)))
 }
 
 export function sharedTokens(a: Set<string>, b: Set<string>): string[] {
@@ -48,9 +52,11 @@ export function sharedTokens(a: Set<string>, b: Set<string>): string[] {
 export function belongsToRequest(i: { subject: string; firstAt: string; insurerWords: string[] }, c: { subject: string; project: string | null; clientName: string; startAt: string }): boolean {
   const gap = Date.parse(i.firstAt) - Date.parse(c.startAt)
   if (!(gap >= -BEFORE_MS && gap <= AFTER_MS)) return false
-  if (subjectNames(i.subject, c.clientName)) return true
-  const mine = projectTokens(i.subject, i.insurerWords)
-  const theirs = projectTokens(`${c.subject} ${c.project ?? ''}`, i.insurerWords)
+  // A client with several jobs: naming the client is enough only when the subject names no job.
+  const clientWords = c.clientName.toLowerCase().match(/[a-z0-9]+/g) ?? []
+  const mine = projectTokens(i.subject, [...i.insurerWords, ...clientWords])
+  const theirs = projectTokens(`${c.subject} ${c.project ?? ''}`, [...i.insurerWords, ...clientWords])
+  if (mine.size === 0) return subjectNames(i.subject, c.clientName)
   return sharedTokens(mine, theirs).length > 0
 }
 
@@ -86,7 +92,48 @@ export async function priorInsurerThreads(client: { thread: ThreadRow; clientNam
     out.push({ thread: t, insurer_company_id: f.insurer_company_id, insurer_name: shortInsurer(name) || name, first_at: firstAt, trs_first_at: trs[0].sent_at ?? firstAt,
       replies, to_email: (replies.at(-1)?.from_address ?? '').toLowerCase() })
   }
-  return out
+  // One thread per insurer and cover: the one with the most replies (a first send the insurer
+  // answered on a new thread leaves an empty one behind).
+  const best = new Map<string, PriorThread>()
+  for (const p of out) {
+    const key = `${p.insurer_company_id}|${linesNamed(p.thread.subject ?? '').map(n => n.product_line).sort().join(',')}`
+    const cur = best.get(key)
+    if (!cur || p.replies.length > cur.replies.length || (p.replies.length === cur.replies.length && p.first_at > cur.first_at)) best.set(key, p)
+  }
+  return [...best.values()]
+}
+
+/**
+ * An open placement of this client that is already this job: same project words in its title or
+ * client thread, opened within the request window. A second client thread on the same job joins it.
+ */
+export async function placementForJob(companyId: string, subject: string, project: string | null, at: string): Promise<{ id: string } | null> {
+  const open = await sbTry<{ id: string; title: string; created_at: string; client_thread_id: string | null }[]>(
+    `placements?company_id=eq.${companyId}&status=neq.closed&select=id,title,created_at,client_thread_id&order=created_at.desc&limit=50`, [])
+  const [co] = await sbTry<{ company_name: string }[]>(`companies?id=eq.${companyId}&select=company_name`, [])
+  const clientWords = (co?.company_name ?? '').toLowerCase().match(/[a-z0-9]+/g) ?? []
+  const mine = projectTokens(`${subject} ${project ?? ''}`, clientWords)
+  if (mine.size === 0) return null
+  for (const p of open) {
+    if (Math.abs(Date.parse(p.created_at) - Date.parse(at)) > AFTER_MS) continue
+    const [t] = p.client_thread_id ? await sbTry<{ subject: string | null }[]>(`email_threads?id=eq.${p.client_thread_id}&select=subject`, []) : []
+    if (sharedTokens(mine, projectTokens(`${p.title} ${t?.subject ?? ''}`, clientWords)).length) return { id: p.id }
+  }
+  return null
+}
+
+/** Cover named in a subject, as a product line. */
+const LINE_WORDS: [string, RegExp, string][] = [
+  ['construction_car', /(?:^|[^a-z])car(?:[^a-z]|$)|contractors?'? ?all ?risks?/i, "Contractors' All Risks (CAR)"],
+  ['wica', /\bwica\b|\bpel\b|employers?'? ?liability|work injury/i, "Work Injury / Employer's Liability"],
+  ['general_liability', /\bcgl\b|\bpl\b|public liability|general liability/i, 'Public Liability'],
+  ['employee_benefits', /\bgpa\b|personal accident|\bghs\b|\bgtl\b/i, 'Group Personal Accident (GPA)'],
+  ['professional_indemnity', /\bpi\b|professional indemnity/i, 'Professional Indemnity (PI)'],
+  ['surety_bonds', /\bbonds?\b|guarantee/i, 'Surety Bonds'],
+  ['marine_cargo', /cargo/i, 'Marine Cargo'],
+]
+export function linesNamed(subject: string): { product_line: string; label: string }[] {
+  return LINE_WORDS.filter(([, re]) => re.test(subject)).map(([product_line, , label]) => ({ product_line, label }))
 }
 
 /**
@@ -94,9 +141,13 @@ export async function priorInsurerThreads(client: { thread: ThreadRow; clientNam
  * insurer thread and line (sent on its real date), each reply read into the grid. No drafts.
  */
 export async function recordMidway(input: { thread: ThreadRow; companyId: string; proposal: IntakeResult; lines: IntakeResult['lines']; prior: PriorThread[]; actor: string }) {
+  // A cover an insurer was asked about that the client thread does not list (GPA asked later) is its own line.
+  const asked = input.lines.map(l => ({ product_line: l.product_line, label: l.label, spec: l.spec }))
+  for (const p of input.prior) for (const n of linesNamed(p.thread.subject ?? ''))
+    if (!asked.some(a => a.product_line === n.product_line)) asked.push({ ...n, spec: {} })
   const { placement, lines } = await createPlacement({
     company_id: input.companyId, title: input.proposal.title, client_thread_id: input.thread.id, inception_date: input.proposal.inception_date,
-    lines: input.lines.map(l => ({ product_line: l.product_line, label: l.label, spec: l.spec, contact_ids: [] })), actor: input.actor, dispatch: false,
+    lines: asked.map(l => ({ ...l, contact_ids: [] })), actor: input.actor, dispatch: false,
   })
   const rounds = await store.insert<{ id: string; line_id: string }>('placement_rounds', lines.map(l => ({
     placement_id: placement.id, line_id: l.id, round_no: 1, spec: l.spec, reason: 'initial', opened_by: input.actor,
@@ -106,7 +157,10 @@ export async function recordMidway(input: { thread: ThreadRow; companyId: string
   const now = Date.now()
   let read = 0
   for (const p of input.prior) {
-    for (const r of rounds) {
+    // The lines this insurer thread is about: those its subject names, else every line.
+    const named = new Set(linesNamed(p.thread.subject ?? '').map(n => n.product_line))
+    const mine = rounds.filter(r => !named.size || named.has(lines.find(l => l.id === r.line_id)?.product_line ?? ''))
+    for (const r of (mine.length ? mine : rounds)) {
       await store.insert('placement_dispatches', {
         placement_id: placement.id, line_id: r.line_id, round_id: r.id, company_id: input.companyId, insurer_company_id: p.insurer_company_id,
         insurer_name: p.insurer_name, to_email: p.to_email, thread_id: p.thread.id, gmail_thread_id: p.thread.gmail_thread_id, status: 'sent',

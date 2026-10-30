@@ -11,7 +11,7 @@ import * as store from './store'
 import { suggestInsurers } from '@/lib/insurer-products'
 import { createPlacement, proposeFromThread, type NewLine } from './workflow'
 import { approvedInsurerNames } from './eb'
-import { clientThreadFor, priorInsurerThreads, recordMidway } from './adopt'
+import { clientThreadFor, placementForJob, priorInsurerThreads, recordMidway } from './adopt'
 
 /** Below this the classifier is guessing, and a guess should not open a placement. */
 export const AUTO_PLACE_CONFIDENCE = 0.7
@@ -114,6 +114,9 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
   // Already under way: record it from the mailbox rather than ask the insurers again.
   const [full] = await sbTry<{ id: string; subject: string | null; gmail_thread_id: string | null; company_id: string | null; created_at: string }[]>(
     `email_threads?id=eq.${threadId}&select=id,subject,gmail_thread_id,company_id,created_at&limit=1`, [])
+  // Another client thread on a job already recorded (the LOA, a confirmation) joins it.
+  const sameJob = full ? await placementForJob(thread.company_id!, full.subject ?? '', proposal!.project, full.created_at) : null
+  if (sameJob) return { status: 'exists', placement_id: sameJob.id }
   const clientName = (await store.company(thread.company_id!))?.company_name ?? ''
   const prior = full ? await priorInsurerThreads({ thread: full, clientName, project: proposal!.project }) : []
   if (full && (proposal!.stage === 'midway' || prior.length > 0)) {
