@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { exchangeCode } from '@/lib/auth/google'
 import { createSession, isAllowedEmail, SESSION_COOKIE, SESSION_TTL_SECONDS } from '@/lib/auth/session'
 import { lookupStaff } from '@/lib/auth/users'
+import { connectMailbox } from '@/lib/gmail/connect'
 
 /**
  * Google redirects here with an authorization code. We exchange it server-side with our client
@@ -21,6 +22,18 @@ export async function GET(request: NextRequest) {
 
   if (searchParams.get('error')) return NextResponse.redirect(`${origin}/login?error=oauth`)
   const code = searchParams.get('code')
+  const state = searchParams.get('state') ?? ''
+
+  // Read-only Gmail consent from /auth/gmail: store the mailbox, never a session.
+  if (state.startsWith('gmail.')) {
+    const nonce = request.cookies.get('trs_gmail_state')?.value
+    if (!code || !nonce || state !== `gmail.${nonce}`) return NextResponse.redirect(`${origin}/connect/gmail?error=callback`)
+    const r = await connectMailbox(code, `${origin}/auth/callback`)
+    const out = NextResponse.redirect(r.ok ? `${origin}/connect/gmail?connected=${encodeURIComponent(r.email)}` : `${origin}/connect/gmail?error=${r.error}`)
+    out.cookies.delete('trs_gmail_state')
+    return out
+  }
+
   if (!code) return NextResponse.redirect(`${origin}/login?error=callback`)
 
   const clientId     = process.env.GOOGLE_OAUTH_CLIENT_ID ?? ''

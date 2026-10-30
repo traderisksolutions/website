@@ -6,6 +6,7 @@ import { waitUntil }        from '@vercel/functions'
 import { readMessage as readFollowUps } from '@/lib/nexus/reader'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
+import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 
 export const maxDuration = 300
 
@@ -452,7 +453,25 @@ async function tagThreadWithCampaignContext(email: string, threadId: string, bod
  * missing unique constraint silently dropped two days of client mail while the endpoint
  * reported "processed 50, succeeded 50, failed 0".
  */
-async function ingestMessage(token: string, gmailMsgId: string, origin: string): Promise<string> {
+/** First row of a PostgREST read, or null. */
+async function first<T>(path: string): Promise<T | null> {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbHeaders('return=representation'), cache: 'no-store' })
+  const rows = res.ok ? await res.json() : []
+  return Array.isArray(rows) && rows[0] ? rows[0] as T : null
+}
+async function saveAlias(mailbox: string, gmailThreadId: string, threadId: string): Promise<void> {
+  await fetch(`${SB_URL}/rest/v1/email_thread_aliases?on_conflict=mailbox,gmail_thread_id`, {
+    method: 'POST', headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
+    body: JSON.stringify({ mailbox, gmail_thread_id: gmailThreadId, thread_id: threadId }),
+  }).catch(() => {})
+}
+
+/**
+ * mailbox: whose Gmail the message was read from. operations@ by default; a personal mailbox
+ * (gmail_mailboxes) otherwise. The same email in two mailboxes is stored once, and its thread is
+ * the one conversation whatever Gmail calls it in each mailbox.
+ */
+async function ingestMessage(token: string, gmailMsgId: string, origin: string, mailbox = OPERATIONS_MAILBOX): Promise<string> {
   const msg = await fetchGmailMessage(token, gmailMsgId)
   if (!msg) return 'gmail returned nothing'
 
@@ -469,6 +488,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string):
   // (gmailMsgId) is not a valid References value; the Message-ID header is.
   const rfc822MessageId = headerVal(hdrs, 'Message-ID') || null
   const inReplyTo       = headerVal(hdrs, 'In-Reply-To') || null
+  const references      = (headerVal(hdrs, 'References') || '').match(/<[^>]+>/g) ?? []
+
+  // Already stored from another mailbox (Nathan copied operations@, or the reverse): note this
+  // mailbox's thread id against the stored thread and stop.
+  if (rfc822MessageId) {
+    const dup = await first<{ id: string; thread_id: string }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(rfc822MessageId)}&select=id,thread_id&limit=1`)
+    if (dup) { if (gmailThreadId) await saveAlias(mailbox, gmailThreadId, dup.thread_id); return 'already stored' }
+  }
 
   const fromEmail = (fromRaw.match(/<(.+?)>/) ?? [, fromRaw])[1]?.trim() ?? fromRaw.trim()
   const fromName  = fromRaw.includes('<') ? fromRaw.split('<')[0].trim().replace(/^"|"$/g, '') : null
@@ -625,8 +652,25 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string):
     } catch (e) { console.error('[ingest] company resolution failed:', e) }
   }
 
-  // 2. Upsert thread linked to external contact
-  const threadUpsert = await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
+  // 2. The thread. A conversation already stored under another mailbox's Gmail thread id is
+  // found by this mailbox's alias, or by the message it replies to; else upsert by Gmail id.
+  let knownThreadId: string | null = (await first<{ thread_id: string }>(`email_thread_aliases?mailbox=eq.${encodeURIComponent(mailbox)}&gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=thread_id`))?.thread_id ?? null
+  if (!knownThreadId && !(await first<{ id: string }>(`email_threads?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=id`))) {
+    for (const ref of [inReplyTo, ...references.reverse()].filter((r): r is string => !!r)) {
+      const parent = await first<{ thread_id: string }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id&limit=1`)
+      if (parent) { knownThreadId = parent.thread_id; await saveAlias(mailbox, gmailThreadId, parent.thread_id); break }
+    }
+  }
+  if (knownThreadId) {
+    // Only a newer message moves the thread's latest time and snippet (the read-back goes oldest-first in pages).
+    await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${knownThreadId}&or=(last_message_at.is.null,last_message_at.lt.${encodeURIComponent(sentAt)})`, {
+      method: 'PATCH', headers: sbHeaders('return=minimal'),
+      body: JSON.stringify({ snippet: bodyText.slice(0, 200), last_message_at: sentAt, status: 'active' }),
+    })
+  }
+  const threadUpsert = knownThreadId
+    ? await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${knownThreadId}&select=*`, { headers: sbHeaders('return=representation'), cache: 'no-store' })
+    : await fetch(`${SB_URL}/rest/v1/email_threads?on_conflict=gmail_thread_id`, {
     method:  'POST',
     headers: sbHeaders('return=representation,resolution=merge-duplicates'),
     body:    JSON.stringify({
@@ -853,6 +897,27 @@ export async function GET(req: NextRequest) {
   const windowMinutes = parseInt(req.nextUrl.searchParams.get('window') ?? '0', 10)
   const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
   const origin = host.startsWith('localhost') ? `http://${host}` : `https://${host}`
+
+  // ?mailbox=<connected address>&days=90[&page=<token>] → one page (100) of that mailbox's inbox and
+  // sent mail since then; call again with the returned next page until it is null.
+  const mailbox = (req.nextUrl.searchParams.get('mailbox') ?? '').toLowerCase()
+  if (mailbox) {
+    const m = await getMailbox(mailbox)
+    if (!m || m.status !== 'active') return NextResponse.json({ error: 'Mailbox not connected' }, { status: 404 })
+    try {
+      const days = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('days') ?? '90', 10) || 90, 1), 365)
+      const token = await accessTokenFor(m)
+      const page = await listSince(token, Math.floor(Date.now() / 1000) - days * 86_400, req.nextUrl.searchParams.get('page') ?? undefined)
+      const outcomes: Record<string, number> = {}
+      for (let i = 0; i < page.ids.length; i += 10) {
+        const rs = await Promise.allSettled(page.ids.slice(i, i + 10).map(id => ingestMessage(token, id, origin, mailbox)))
+        for (const r of rs) { const k = r.status === 'fulfilled' ? String(r.value).slice(0, 40) : 'threw'; outcomes[k] = (outcomes[k] ?? 0) + 1 }
+      }
+      return NextResponse.json({ ok: true, mailbox, processed: page.ids.length, outcomes, next: page.next })
+    } catch (e) {
+      return NextResponse.json({ error: String(e) }, { status: 500 })
+    }
+  }
   try {
     const token      = await getAccessToken()
     const messageIds = windowMinutes > 0
@@ -890,7 +955,7 @@ export async function POST(req: NextRequest) {
   const rawData = body?.message?.data
   if (!rawData) return NextResponse.json({ ok: true })
 
-  let notification: { historyId?: string }
+  let notification: { historyId?: string; emailAddress?: string }
   try { notification = JSON.parse(Buffer.from(rawData, 'base64').toString('utf-8')) }
   catch { return NextResponse.json({ error: 'Bad payload' }, { status: 400 }) }
 
@@ -899,6 +964,21 @@ export async function POST(req: NextRequest) {
 
   const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
   const origin = host.startsWith('localhost') ? `http://${host}` : `https://${host}`
+
+  // A personal mailbox someone connected: its own token and its own history pointer.
+  const address = (notification.emailAddress ?? '').toLowerCase()
+  if (address && address !== OPERATIONS_MAILBOX) {
+    const m = await getMailbox(address)
+    if (!m || m.status !== 'active') return NextResponse.json({ ok: true })
+    try {
+      const token = await accessTokenFor(m)
+      const ids = await newMessageIds(m, token) ?? (await listSince(token, Math.floor(Date.now() / 1000) - 3 * 86_400)).ids
+      const results = await Promise.allSettled(ids.map(id => ingestMessage(token, id, origin, address)))
+      const failed = results.filter(r => r.status === 'rejected').length
+      await patchMailbox(address, failed ? { last_error: `${failed}/${ids.length} failed`, last_ingest_at: new Date().toISOString() } : { history_id: historyId, last_ingest_at: new Date().toISOString(), last_error: null })
+    } catch (e) { console.error('[ingest] mailbox', address, e) }
+    return NextResponse.json({ ok: true })
+  }
 
   try {
     const token      = await getAccessToken()

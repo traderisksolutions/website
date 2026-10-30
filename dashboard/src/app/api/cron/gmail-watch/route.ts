@@ -1,3 +1,4 @@
+import { listMailboxes, watchMailbox } from '@/lib/gmail/mailboxes'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 30
@@ -134,6 +135,12 @@ export async function GET(req: NextRequest) {
 
   const forced = req.nextUrl.searchParams.get('force') === '1'
   const now    = Date.now()
+
+  // ── 0. Personal mailboxes (Nathan, Ernest…): renew any watch with under 2 days left ────────
+  for (const m of await listMailboxes()) {
+    const left = m.watch_expiration ? Date.parse(m.watch_expiration) - now : 0
+    if (forced || left < 2 * 86_400_000) await watchMailbox(m).catch(e => console.error('[gmail-watch] mailbox', m.email, e instanceof Error ? e.message : e))
+  }
 
   // ── 1. Get access token ────────────────────────────────────────────────────
   let token: string

@@ -13,7 +13,7 @@ import { verifyApiRequest } from '@/lib/api-gate/verify'
 // has to be able to start sign-in, and gating it behind a session is a redirect loop.
 // /connect/<token> is the HR Connect page a client's HR contact opens from an email; the token in
 // the path is its credential (src/lib/hr/links.ts), checked by /api/public/hr.
-export const PUBLIC_PATHS = ['/login', '/auth/signin', '/auth/callback', '/auth/signout', '/unsubscribed', '/connect']
+export const PUBLIC_PATHS = ['/login', '/auth/signin', '/auth/callback', '/auth/signout', '/auth/gmail', '/unsubscribed', '/connect']
 const TRS_DOMAIN   = 'trade-risksol.com'
 
 export async function middleware(request: NextRequest) {
