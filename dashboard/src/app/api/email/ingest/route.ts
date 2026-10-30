@@ -129,6 +129,10 @@ async function fetchGmailAttachment(token: string, messageId: string, attachment
   return data.data ?? null
 }
 
+/** Inline images embedded into body_html: 300 KB each, 1 MB per message (base64 length). */
+const INLINE_IMAGE_MAX = 400_000
+const INLINE_TOTAL_MAX = 1_400_000
+
 async function resolveInlineImages(html: string, parts: MimePart[], messageId: string, token: string): Promise<string> {
   const cidsInHtml = new Set(Array.from(html.matchAll(/src=["']cid:([^"']+)["']/gi), m => m[1]))
   if (!cidsInHtml.size) return html
@@ -137,11 +141,14 @@ async function resolveInlineImages(html: string, parts: MimePart[], messageId: s
   collectContentIdParts(parts, byId)
 
   let out = html
+  let embedded = 0
   for (const cid of Array.from(cidsInHtml)) {
     const part = byId.get(cid)
     if (!part) continue
     const base64url = part.data ?? (part.attachmentId ? await fetchGmailAttachment(token, messageId, part.attachmentId) : null)
-    if (!base64url) continue
+    // A large image left as cid: keeps the row small enough to insert inside the statement timeout.
+    if (!base64url || base64url.length > INLINE_IMAGE_MAX || embedded + base64url.length > INLINE_TOTAL_MAX) continue
+    embedded += base64url.length
     const dataUri = `data:${part.mimeType};base64,${Buffer.from(base64url, 'base64url').toString('base64')}`
     out = out.split(`cid:${cid}`).join(dataUri)
   }
