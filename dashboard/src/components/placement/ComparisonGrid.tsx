@@ -48,7 +48,8 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
   leftOut: Set<string>
   onToggleEmail: (quoteId: string) => void
   onChanged: () => void
-  onOpenDrafts: () => void
+  /** Opens the drafts workspace; with a dispatch id, on that insurer's draft. */
+  onOpenDrafts: (focus?: string) => void
 }) {
   const grid = useMemo(() => lineGrid(pos), [pos])
   const lowest = useMemo(() => lowestByOption(grid), [grid])
@@ -142,7 +143,10 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
               {grid.insurers.flatMap(ins => ins.cells.map(c => (
                 <XlCell key={`${ins.key}:${c.option.key}`} fill={STATE_FILL[c.state] ?? null}
                   title={c.state === 'not_asked' ? 'Added after the request went out; ask the insurers to price it' : undefined}>
-                  {CELL_WORD[c.state]}
+                  {(c.state === 'drafted' || c.state === 'chase') && ins.dispatch
+                    ? <button type="button" className="underline decoration-dotted underline-offset-4 hover:decoration-solid" style={{ color: INK }}
+                        aria-label={`Open the ${ins.insurer} draft`} onClick={() => onOpenDrafts(ins.dispatch!.dispatch.id)}>{CELL_WORD[c.state]}</button>
+                    : CELL_WORD[c.state]}
                 </XlCell>
               )))}
             </XlRow>

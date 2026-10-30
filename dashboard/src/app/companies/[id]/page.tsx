@@ -104,6 +104,9 @@ function CompanyWorkspace() {
   const [draftsCount, setDraftsCount] = useState<number | null>(null)
   // ?drafts=1 (the Home board's "Drafts to approve" link) opens the drafts workspace on arrival.
   const [draftsOpen, setDraftsOpen] = useState(() => search.get('drafts') === '1')
+  // A dispatch or draft id to open the workspace on (a "Drafted" cell in the comparison grid).
+  const [draftsFocus, setDraftsFocus] = useState<string | null>(null)
+  const openDrafts = useCallback((focus?: string) => { setDraftsFocus(focus ?? null); setDraftsOpen(true) }, [])
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
   const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {
@@ -207,6 +210,7 @@ function CompanyWorkspace() {
     <ReviewDraftsDrawer
       companyId={id}
       open={draftsOpen}
+      focus={draftsFocus}
       onClose={closeDrafts}
       onChanged={onSpineChanged}
       onCount={onDraftsCount}
@@ -351,20 +355,20 @@ function CompanyWorkspace() {
 
         {tab === 'policies' && (
           <PoliciesRegister title="Existing paying policies" policies={existing} docStatus={docStatus} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
-            onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+            onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 
         {tab === 'quotes' && (quotes && threads ? (
           <>
-            <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+            <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
             {quotingLoose.length > 0 && (
               <PoliciesRegister title="Being quoted outside a request" policies={quotingLoose} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
-                onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />
+                onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
             )}
           </>
         ) : <Spinner />)}
 
-        {tab === 'members' && <MembersPanel policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} onOpenDrafts={() => setDraftsOpen(true)} />}
+        {tab === 'members' && <MembersPanel policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />}
 
         {tab === 'payments' && (detail ? (
           <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} onChanged={reloadDetail} />

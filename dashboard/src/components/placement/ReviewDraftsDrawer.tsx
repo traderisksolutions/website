@@ -68,9 +68,11 @@ const statusWord = (s: SendState) => s.phase === 'sending' ? 'Sending…' : s.ph
  * request is one draft per policy line shared by every insurer asked; sending it fans the text out
  * per insurer first. Opens as a large modal (list left, editor right) or docked to the right edge.
  */
-export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCount, lines, policies }: {
+export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged, onCount, lines, policies }: {
   companyId: string
   open: boolean
+  /** A draft id or dispatch id: the draft to show first. */
+  focus?: string | null
   onClose: () => void
   onChanged: () => void
   onCount?: (n: number) => void
@@ -109,6 +111,8 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
   // Mirror of `items` for the sequential send, which outlives any one render's closure.
   const itemsRef = useRef<Item[] | null>(null)
   useEffect(() => { itemsRef.current = items }, [items])
+  const focusRef = useRef<string | null>(null)
+  useEffect(() => { if (open) focusRef.current = focus ?? null }, [open, focus])
 
   /** Load the queue. Edits already made to drafts still in the queue are kept. */
   const load = useCallback(async () => {
@@ -123,7 +127,9 @@ export function ReviewDraftsDrawer({ companyId, open, onClose, onChanged, onCoun
           : { ...q, subject: q.draft.subject ?? '', html: draftBodyToHtml(q.draft.body ?? ''), cc: '', attachments: (q.draft.attachments ?? []) as Att[], state: { phase: 'idle' }, recipients: {} }
       })
       setItems(next)
-      setSelectedId(cur => cur && next.some(x => x.draft.id === cur) ? cur : next[0]?.draft.id ?? null)
+      const focused = focusRef.current ? next.find(x => x.draft.id === focusRef.current || x.dispatches.some(dp => dp.id === focusRef.current)) : undefined
+      if (focused) { focusRef.current = null; setMobileView('editor') }
+      setSelectedId(cur => focused ? focused.draft.id : cur && next.some(x => x.draft.id === cur) ? cur : next[0]?.draft.id ?? null)
       onCount?.(d.queue.length)
     } catch (e) {
       setError(errText(e))

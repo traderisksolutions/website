@@ -18,7 +18,7 @@ export function CompanyQuotes({ companyId, companyName, threads, data, policies,
   data: { bundle: PlacementBundle; positions: LinePosition[] } | null
   policies: PolicyView[] | null
   onChanged: () => void
-  onOpenDrafts: () => void
+  onOpenDrafts: (focus?: string) => void
 }) {
   return <PlacementPanel companyId={companyId} companyName={companyName} threads={threads} data={data} policies={policies} onChanged={onChanged} onOpenDrafts={onOpenDrafts} />
 }

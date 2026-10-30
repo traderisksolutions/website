@@ -41,7 +41,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   data: { bundle: PlacementBundle; positions: LinePosition[] } | null
   policies: PolicyView[] | null
   onChanged: () => void
-  onOpenDrafts: () => void
+  onOpenDrafts: (focus?: string) => void
 }) {
   const [newOpen, setNewOpen] = useState(false)
   // Appointment letter: one status per company; the button sits on every placement header.
