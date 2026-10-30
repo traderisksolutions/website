@@ -332,6 +332,12 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   const fannedOut = (item: Item) => item.kind === 'request' && item.dispatches.length > 1
   const linesOf = (item: Item) => Array.from(new Set(item.dispatches.map(d => lineLabel(d.line_id)).filter((x): x is string => !!x))).join(', ')
   const recipientOf = (item: Item) => fannedOut(item) ? `${item.dispatches.length} insurers` : (item.draft.to_email ?? 'No recipient')
+  /** "Request Chubb"; a fan-out names the first two insurers and counts the rest. */
+  const titleOf = (item: Item) => {
+    const names = Array.from(new Set(item.dispatches.map(d => d.insurer_name).filter(Boolean)))
+    const who = names.length > 2 ? `${names.slice(0, 2).join(', ')} +${names.length - 2}` : names.join(', ')
+    return [KIND_WORD[item.kind] ?? item.kind, who].filter(Boolean).join(' ')
+  }
 
   const select = (id: string) => { setSelectedId(id); setMobileView('editor') }
 
@@ -355,7 +361,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
               )}
             >
               <span className="flex items-baseline justify-between gap-3">
-                <span className="text-[14px] font-medium text-foreground truncate">{KIND_WORD[item.kind] ?? item.kind}</span>
+                <span className="text-[14px] font-medium text-foreground truncate">{titleOf(item)}</span>
                 <span className={cn('text-[12px] flex-shrink-0', item.state.phase === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{statusWord(item.state)}</span>
               </span>
               <span className="text-[12.5px] text-muted-foreground truncate">{recipientOf(item)}</span>
