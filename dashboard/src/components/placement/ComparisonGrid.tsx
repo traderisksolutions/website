@@ -10,6 +10,10 @@ import { CELL_WORD, lineGrid, lowestByOption, type CellState, type GridCell, typ
 import type { LinePosition, PlacementQuote } from '@/lib/placement/types'
 import type { PolicyView } from '@/components/policies/types'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
+import { UploadListDialog, SendHrLinkDialog } from '@/components/policies/MembersPanel'
+
+/** Lines the employment-benefits rate engine prices from an employee list. */
+const EB_LINES = new Set(['employee_benefits', 'group_health'])
 
 const STATE_FILL: Partial<Record<CellState, XlFill>> = { quoted: 'good', declined: 'bad', chase: 'warn', expired: 'quiet', not_asked: 'quiet', drafted: 'info', withdrawn: 'quiet' }
 
@@ -56,6 +60,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [ebDialog, setEbDialog] = useState<'upload' | 'hr' | null>(null)
 
   const proposed = pos.tiers.filter(t => t.status === 'proposed')
   const lineId = pos.line.id
@@ -86,9 +91,22 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
     grid.insurers.flatMap(ins => ins.cells.map(c => <XlCell key={`${ins.key}:${c.option.key}`}>{render(c, ins)}</XlCell>))
 
   const chosenId = policy?.chosen_quote_id ?? null
+  const eb = EB_LINES.has(pos.line.product_line)
+  const listIn = !!(pos.line as { census_submission_id?: string | null }).census_submission_id || pos.engineQuotes.length > 0
 
   return (
     <div className="flex flex-col gap-1.5">
+      {/* Employment benefits: the census prices every Tier A insurer here, no email needed. */}
+      {eb && (
+        <div className="flex items-center gap-1.5 flex-wrap text-[12px]" style={{ color: MUTED }}>
+          <span>Employee list</span>
+          <span style={{ color: INK }}>{listIn ? `${pos.engineQuotes.length} insurer${pos.engineQuotes.length === 1 ? '' : 's'} priced from the list` : 'none yet'}</span>
+          <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('upload')}>{listIn ? 'Replace census' : 'Upload census'}</Btn>
+          <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('hr')}>Send HR a link</Btn>
+          <UploadListDialog open={ebDialog === 'upload'} lineId={lineId} onClose={() => setEbDialog(null)} onDone={() => { setEbDialog(null); onChanged() }} />
+          <SendHrLinkDialog open={ebDialog === 'hr'} lineId={lineId} onClose={() => setEbDialog(null)} onDone={() => { setEbDialog(null); onChanged() }} />
+        </div>
+      )}
       {/* Options toolbar: what the client wants compared, and asking the insurers for the new ones. */}
       <div className="flex items-center gap-1.5 flex-wrap text-[12px]" style={{ color: MUTED }}>
         <span>Options</span>

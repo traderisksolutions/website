@@ -1,6 +1,7 @@
 'use client'
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { InsurersDirectory } from '@/components/insurers/InsurersDirectory'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -112,17 +113,17 @@ function CompaniesInner() {
         {/* Header */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Companies</h1>
-            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{data ? `${rows.filter(r => r.company.kind === kind).length} ${kind === 'client' ? 'client' : 'insurer'} relationship${rows.filter(r => r.company.kind === kind).length === 1 ? '' : 's'}` : 'Loading…'}</p>
+            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Contacts</h1>
+            {kind === 'client' && <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{data ? `${rows.filter(r => r.company.kind === kind).length} ${kind === 'client' ? 'client' : 'insurer'} relationship${rows.filter(r => r.company.kind === kind).length === 1 ? '' : 's'}` : 'Loading…'}</p>}
             <div className="mt-4 flex items-center gap-6" role="tablist" aria-label="Clients or insurers">
               {(['client', 'insurer'] as const).map(k => {
                 const on = kind === k
                 const n = rows.filter(r => r.company.kind === k).length
-                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setKind(k)} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden /></button>
+                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => { setKind(k); router.replace(k === 'insurer' ? '/companies?kind=insurer' : '/companies', { scroll: false }) }} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden /></button>
               })}
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
+          {kind === 'client' && <div className="flex items-center gap-3 flex-wrap">
             {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
@@ -137,20 +138,22 @@ function CompaniesInner() {
               </button>
               {filterOpen && <FilterPopover f={f} onChange={next => setF(v => ({ ...v, ...next }))} staff={staffList} me={me} onClose={() => setFilterOpen(false)} onClear={() => setF(EMPTY)} />}
             </div>
-            <button type="button" onClick={() => setCreating(true)} className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add company</button>
-          </div>
+            <button type="button" onClick={() => setCreating(true)} className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add client</button>
+          </div>}
         </div>
 
-        {error && <p className="mt-8 text-[14px]" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
+        {kind === 'insurer' && <InsurersDirectory embedded />}
 
-        {!data && !error && (
+        {kind === 'client' && error && <p className="mt-8 text-[14px]" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
+
+        {kind === 'client' && !data && !error && (
           <div className="mt-6 rounded-[16px] overflow-hidden bg-white" style={{ border: '1px solid #e6e8e4' }} aria-busy="true">
             <div className="h-11" style={{ borderBottom: '1px solid #e6e8e4' }} />
             {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[66px] px-6 flex items-center gap-8" style={{ borderBottom: '1px solid #e6e8e4' }}><span className="h-3.5 w-44 rounded bg-[#f1f2ee] animate-pulse" /><span className="h-3.5 w-16 rounded bg-[#f1f2ee] animate-pulse" /><span className="h-3.5 w-28 rounded bg-[#f1f2ee] animate-pulse ml-auto" /></div>)}
           </div>
         )}
 
-        {data && (
+        {kind === 'client' && data && (
           <>
             {anyFilter && (
               <p className="mt-6 mb-3 text-[13.5px] flex items-center gap-3 flex-wrap" style={{ color: MUTED }} aria-live="polite">

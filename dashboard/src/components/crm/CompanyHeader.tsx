@@ -104,7 +104,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
 
   return (
     <div className="mb-8">
-      <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
+      <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Contacts</Link>
 
       {/* The name takes the full width on one line; stage, people, domain, pin and the actions share the row beneath. */}
       <div className="mt-3">

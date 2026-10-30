@@ -177,7 +177,7 @@ function CompanyWorkspace() {
     return (
       <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
         <div className="mx-auto max-w-[1320px] px-6 sm:px-12 pt-12 pb-20">
-          <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
+          <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Contacts</Link>
           <p className="m-0 mt-6 text-[16px]" style={{ color: MUTED }}>{error}</p>
         </div>
       </div>

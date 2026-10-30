@@ -355,7 +355,7 @@ function AskTierCDialog({ open, lineId, productLine, onClose, onDone }: {
 }
 
 /** A spreadsheet of employees: read on the server, then priced by the rate engine on the same call. */
-function UploadListDialog({ open, lineId, onClose, onDone }: { open: boolean; lineId: string; onClose: () => void; onDone: (r: { count: number; quotes: number }) => void }) {
+export function UploadListDialog({ open, lineId, onClose, onDone }: { open: boolean; lineId: string; onClose: () => void; onDone: (r: { count: number; quotes: number }) => void }) {
   const [file, setFile] = useState<File | null>(null)
   const [basis, setBasis] = useState<'new_business' | 'renewal'>('new_business')
   const [busy, setBusy] = useState<'reading' | 'pricing' | null>(null)
@@ -422,7 +422,7 @@ function UploadListDialog({ open, lineId, onClose, onDone }: { open: boolean; li
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 /** HR fills the list on a public page; the link is emailed from operations@. */
-function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: boolean; lineId: string; onClose: () => void; onDone: () => void }) {
+export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: boolean; lineId: string; onClose: () => void; onDone: () => void }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [cc, setCc] = useState('')

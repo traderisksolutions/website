@@ -129,7 +129,7 @@ export default function TriagePage() {
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
+            <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Contacts</Link>
             <h1 className="m-0 mt-3 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Match threads</h1>
             <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
           </div>
