@@ -29,6 +29,10 @@ function figure(amount: number | null | undefined, currency: string | null, text
 /** Rows that belong to the quote in each cell. */
 const QUOTE_ROWS: { key: string; label: string; value: (q: PlacementQuote) => string; title?: (q: PlacementQuote) => string | undefined }[] = [
   { key: 'premium', label: 'Premium (S$)', value: q => figure(q.premium_amount, q.currency, q.premium_text) + (q.needs_review ? ' ·check' : ''), title: q => q.premium_text ?? undefined },
+  { key: 'rate', label: 'Rate', value: q => q.rate_pct != null ? `${q.rate_pct}%${q.rate_check === 'mismatch' ? ' ·check' : ''}` : clip(q.rate_text ?? '', 14),
+    title: q => q.rate_pct != null && q.rate_base_amount ? `${q.rate_pct}% × S$${Math.round(q.rate_base_amount).toLocaleString('en-SG')} = S$${Math.round(q.rate_base_amount * q.rate_pct / 100).toLocaleString('en-SG')}${q.rate_check === 'mismatch' ? ' — does not match the premium' : ''}` : undefined },
+  { key: 'share', label: 'Share', value: q => [q.share_pct != null ? `${q.share_pct}%` : null, q.role === 'lead' ? 'lead' : q.role === 'follow' ? 'follow' : null].filter(Boolean).join(' · ') },
+  { key: 'brokerage', label: 'Brokerage', value: q => q.brokerage_pct != null ? `${q.brokerage_pct}%` : '' },
   { key: 'head', label: 'Per head (S$)', value: q => figure(q.premium_per_head_amount, q.currency, q.premium_per_head_text), title: q => q.premium_per_head_text ?? undefined },
   { key: 'limit', label: 'Limit', value: q => clip(q.limit_text ?? '', 18), title: q => q.limit_text ?? undefined },
   { key: 'excess', label: 'Excess', value: q => clip(q.excess_text ?? '', 18), title: q => q.excess_text ?? undefined },
@@ -36,6 +40,9 @@ const QUOTE_ROWS: { key: string; label: string; value: (q: PlacementQuote) => st
   { key: 'valid', label: 'Valid until', value: q => q.valid_until ? fmtDate(q.valid_until) : clip(q.validity_text ?? '', 16) },
   { key: 'received', label: 'Received', value: q => fmtDate(q.created_at) },
 ]
+
+/** Rows a line shows only when some insurer gave the figure: most lines are priced by premium alone. */
+const ONLY_WHEN_SET = new Set(['rate', 'share', 'brokerage'])
 
 /**
  * One line, priced side by side: every insurer asked across the top, each option the client
@@ -168,7 +175,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
                 </XlCell>
               )))}
             </XlRow>
-            {QUOTE_ROWS.map(r => (
+            {QUOTE_ROWS.filter(r => !ONLY_WHEN_SET.has(r.key) || grid.insurers.some(i => i.cells.some(c => c.quote && r.value(c.quote)))).map(r => (
               <XlRow key={r.key}>
                 <XlCell label align="left" muted>{r.label}</XlCell>
                 {grid.insurers.flatMap(ins => ins.cells.map(c => {

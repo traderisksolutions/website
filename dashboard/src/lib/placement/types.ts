@@ -161,6 +161,15 @@ export interface PlacementQuote {
   tier_label?: string | null
   premium_per_head_text?: string | null
   premium_per_head_amount?: number | null
+  /** Rate as written, its % value, the base it applies to, and whether premium = rate × base. */
+  rate_text?: string | null
+  rate_pct?: number | null
+  rate_base_amount?: number | null
+  rate_check?: 'ok' | 'mismatch' | null
+  /** Capacity as % of 100%, lead or follow, brokerage % — for panels of co-insurers. */
+  share_pct?: number | null
+  role?: 'lead' | 'follow' | null
+  brokerage_pct?: number | null
   premium_text: string | null
   premium_amount: number | null
   currency: string | null

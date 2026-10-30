@@ -6,6 +6,7 @@ import { callGemini } from '@/lib/ai-call'
 import { GEMINI_DEEP } from '@/lib/gemini-models'
 import { withVoice } from '@/lib/voice'
 import { productLineLabel, PRODUCT_LINES } from '@/lib/product-lines'
+import { parsePct, rateCheck, roleOf } from './figures'
 import { normaliseSpec, parseMoney, specLines } from './spec'
 import type { Evidence, PlacementLogEntry, PlacementQuote, Spec } from './types'
 import type { MailAttachment, MailMessage } from './store'
@@ -41,7 +42,13 @@ export const memoryLines = (log: PlacementLogEntry[], max = 40): string =>
 // ── 1. Intake: the client's request → policy lines ───────────────────────────────────────────
 
 export type IntakeLine = { product_line: string; label: string; spec: Spec; confidence: number }
-export type IntakeResult = { title: string; inception_date: string | null; lines: IntakeLine[]; client_asks: string[] }
+/**
+ * stage: 'new' = the client has asked and TRS has not yet gone to market; 'midway' = the thread
+ * shows TRS already asked insurers, relayed terms, sent a comparison or is negotiating.
+ * insurers_approached: insurers the thread says TRS asked or that quoted, as named.
+ * project: the job or site as the parties call it ("Dover Drive"), null when there is none.
+ */
+export type IntakeResult = { title: string; inception_date: string | null; lines: IntakeLine[]; client_asks: string[]; stage: 'new' | 'midway'; insurers_approached: string[]; project: string | null }
 
 export async function readRequest(msgs: MailMessage[], atts: MailAttachment[], companyName: string | null): Promise<IntakeResult | null> {
   const lines = PRODUCT_LINES.map(p => `${p.slug} = ${p.label}`).join('\n')
@@ -52,7 +59,8 @@ ${lines}
 For each line give the spec the insurers will be asked to price: insured (who and where), limit (limit of indemnity or sum insured, verbatim), excess, period, scope (activities, territory, what is included), extras (extensions asked for), notes (anything else the underwriter needs). Leave a field out if the client did not say.
 Also give: a short title for this placement ("PI and D&O for ${companyName ?? 'the client'}"), the inception date as YYYY-MM-DD if stated, and client_asks: the questions the client asked that are not a spec (e.g. "can we pay quarterly").
 Quote figures verbatim. Never invent a limit or a period. confidence is 0 to 1 for whether this line was really requested.
-Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ "product_line": slug, "label": string, "spec": {...}, "confidence": number }], "client_asks": string[] }`
+Read the WHOLE thread, oldest to newest, and decide stage: "new" when the client has asked and the broker has not yet gone to insurers; "midway" when the broker has already approached insurers, relayed insurer questions or terms, sent the client quotes or a comparison, or is negotiating. insurers_approached: every insurer the thread says was asked or quoted, as named (e.g. "Great Eastern", "China Taiping"). project: the job, site or project name the parties use ("Dover Drive"), else null.
+Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ "product_line": slug, "label": string, "spec": {...}, "confidence": number }], "client_asks": string[], "stage": "new"|"midway", "insurers_approached": string[], "project": string|null }`
   const { text, error } = await callGemini({
     agent: 'placement', feature: 'placement_intake', model: GEMINI_DEEP, system, json: true, temperature: 0, maxOutputTokens: 16_000, thinkingShare: 0.3,
     parts: [{ text: `CLIENT: ${companyName ?? 'unknown'}\n\n${mailCorpus(msgs, atts)}` }],
@@ -68,6 +76,9 @@ Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ 
       product_line: l.product_line, label: (l.label ?? '').trim() || productLineLabel(l.product_line), spec: normaliseSpec(l.spec), confidence: Number(l.confidence ?? 0.5),
     })),
     client_asks: Array.isArray(raw.client_asks) ? raw.client_asks.filter(x => typeof x === 'string').slice(0, 10) : [],
+    stage: raw.stage === 'midway' ? 'midway' : 'new',
+    insurers_approached: Array.isArray(raw.insurers_approached) ? raw.insurers_approached.filter((x): x is string => typeof x === 'string' && !!x.trim()).slice(0, 20) : [],
+    project: typeof raw.project === 'string' && raw.project.trim() ? raw.project.trim().slice(0, 80) : null,
   }
 }
 
@@ -143,6 +154,8 @@ export type ReadQuote = {
   /** Which line it prices, by the key given in the prompt; which tier, as the insurer wrote it (null = the line's own spec). */
   line_key: string; tier: string | null
   premium: string | null; per_head: string | null; limit: string | null; excess: string | null; validity: string | null; valid_until: string | null
+  /** As written: the rate ("0.0575%"), the amount it applies to, the insurer's share of the risk, lead or follow, the brokerage. */
+  rate?: string | null; rate_base?: string | null; share?: string | null; role?: string | null; brokerage?: string | null
   key_terms: string[]; exclusions: string[]; subjectivities: string[]; evidence: Evidence; primary_source: string
 }
 export type ReplyRead = {
@@ -169,7 +182,7 @@ Context: ${ctx.insurerName} was asked (round ${ctx.roundNo}) to quote:
 ${lines}
 kind is one of: quote (at least one price is given), decline (they will not quote), info_request (they need something before quoting), acknowledgement (received, working on it), confirmation (they confirm cover is bound or in force for the option the broker confirmed, or say the policy / cover note is issued), other.
 policy_number: with confirmation, the policy or cover note number they give, verbatim; else null.
-quotes: one entry for EVERY price in the email and its attachments. If the insurer prices several cover levels, plans or options, each is its own entry. For each: line_key (the key above it prices; if only one line is listed use its key), tier (the cover level or plan as the insurer names it, using a tier name from the list above when it is that tier; null when it is simply the spec asked), premium (total, verbatim with currency), per_head (premium per employee or per life if stated, verbatim), limit, excess, validity (as written), valid_until as YYYY-MM-DD if a date or a period from the email date (${msg.sent_at?.slice(0, 10) ?? 'unknown'}) can be read, key_terms, exclusions, subjectivities as short strings, evidence: for premium, per_head, limit, excess, validity give { "excerpt": the exact words you read it from, "source": "email body" or "attachment: <filename>" }, primary_source likewise.
+quotes: one entry for EVERY price in the email and its attachments. If the insurer prices several cover levels, plans or options, each is its own entry. For each: line_key (the key above it prices; if only one line is listed use its key), tier (the cover level or plan as the insurer names it, using a tier name from the list above when it is that tier; null when it is simply the spec asked), premium (total, verbatim with currency), per_head (premium per employee or per life if stated, verbatim), limit, excess, validity (as written), rate (a premium rate as written, e.g. "0.0575%", when the insurer quotes one), rate_base (the sum insured, contract value or wages the rate applies to, verbatim, only if the email states it), share (the insurer's capacity or share as written, e.g. "72.5% of 100%"), role ("lead" when they offer to lead, "follow" when they follow lead terms or co-insure, else null), brokerage (commission to the broker as written), valid_until as YYYY-MM-DD if a date or a period from the email date (${msg.sent_at?.slice(0, 10) ?? 'unknown'}) can be read, key_terms, exclusions, subjectivities as short strings, evidence: for premium, per_head, limit, excess, validity give { "excerpt": the exact words you read it from, "source": "email body" or "attachment: <filename>" }, primary_source likewise.
 declined_lines: keys of lines they will not quote (empty if kind is decline for everything).
 Never compute or guess a figure. A figure with no excerpt must be null. Never put two prices in one entry.
 Return JSON only: { "kind": ..., "summary": one sentence, "questions": string[], "quotes": [...], "declined_lines": string[], "policy_number": string|null }`
@@ -192,6 +205,7 @@ Return JSON only: { "kind": ..., "summary": one sentence, "questions": string[],
     return [{
       line_key: key, tier: str(q.tier), premium: str(q.premium), per_head: str(q.per_head), limit: str(q.limit), excess: str(q.excess),
       validity: str(q.validity), valid_until: date(q.valid_until),
+      rate: str(q.rate), rate_base: str(q.rate_base), share: str(q.share), role: str(q.role), brokerage: str(q.brokerage),
       key_terms: arr(q.key_terms), exclusions: arr(q.exclusions), subjectivities: arr(q.subjectivities),
       evidence: (q.evidence && typeof q.evidence === 'object') ? q.evidence as Evidence : {}, primary_source: str(q.primary_source) ?? 'email body',
     }]
@@ -212,6 +226,19 @@ export function quoteFields(read: ReadQuote): Pick<PlacementQuote, 'premium_amou
   const p = parseMoney(read.premium), l = parseMoney(read.limit), h = parseMoney(read.per_head)
   const needs_review = (!read.evidence?.premium?.excerpt || p == null) && (!read.evidence?.per_head?.excerpt || h == null)
   return { premium_amount: p?.amount ?? null, currency: p?.currency ?? h?.currency ?? null, limit_amount: l?.amount ?? null, premium_per_head_amount: h?.amount ?? null, needs_review }
+}
+
+/**
+ * Rate, share, lead or follow, brokerage; and whether the premium is the rate on its base. The
+ * base is the one the insurer states, else the line's sum insured as asked (specBase). A premium
+ * that is not rate × base goes to review.
+ */
+export function rateFields(read: ReadQuote, specBase: number | null): Pick<PlacementQuote, 'rate_text' | 'rate_pct' | 'rate_base_amount' | 'rate_check' | 'share_pct' | 'role' | 'brokerage_pct'> {
+  const rate_pct = parsePct(read.rate)
+  const rate_base_amount = parseMoney(read.rate_base)?.amount ?? (rate_pct != null ? specBase : null)
+  const { check } = rateCheck({ ratePct: rate_pct, base: rate_base_amount, premium: parseMoney(read.premium)?.amount ?? null })
+  const role = read.role === 'lead' || read.role === 'follow' ? read.role : roleOf(read.share)
+  return { rate_text: read.rate ?? null, rate_pct, rate_base_amount, rate_check: check, share_pct: parsePct(read.share), role, brokerage_pct: parsePct(read.brokerage) }
 }
 
 // ── 4. Reading the client's reply for a change of ask ────────────────────────────────────────

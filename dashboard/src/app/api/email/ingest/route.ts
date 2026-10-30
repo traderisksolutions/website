@@ -776,6 +776,19 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string):
     }
   }
 
+  // 6a. A TRS email out on a thread no placement holds: a request to an insurer, or a reply on a
+  // client's request, is recorded — picked up mid-way when it already is. Nothing is sent.
+  if (direction === 'outbound' && thread?.id) {
+    const recipients = `${toRaw},${ccRaw}`.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) ?? []
+    waitUntil(
+      fetch(`${origin}/api/placements/on-send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '', ...internalHeaders() },
+        body: JSON.stringify({ thread_id: thread.id, recipients }),
+      }).catch(() => {}),
+    )
+  }
+
   // 6. Trigger downstream flows for inbound messages only
   if (direction === 'inbound') {
     // Tag thread with campaign context if sender is an outbound campaign lead (non-blocking)

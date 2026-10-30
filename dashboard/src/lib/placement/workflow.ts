@@ -6,7 +6,7 @@
 import { productLineLabel } from '@/lib/product-lines'
 import { createQuotingPolicy } from '@/lib/policies/spine'
 import { handlePolicyInbound } from '@/lib/policies/inbound'
-import { describeChanges, normaliseSpec, specDiff } from './spec'
+import { describeChanges, normaliseSpec, parseMoney, specDiff } from './spec'
 import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
 import { isBrokerBlock } from '@/lib/letters/appointment'
@@ -73,7 +73,7 @@ export async function createPlacement(input: {
 export async function proposeFromThread(threadId: string): Promise<agent.IntakeResult | null> {
   const t = await store.thread(threadId)
   if (!t) return null
-  const msgs = await store.threadMessages(threadId)
+  const msgs = await store.threadMessages(threadId, 60)
   const atts = (await Promise.all(msgs.filter(m => m.has_attachments).map(m => store.attachmentsFor(m.id, true, 20_000)))).flat()
   const c = t.company_id ? await store.company(t.company_id) : null
   return agent.readRequest(msgs, atts, c?.company_name ?? null)
@@ -403,13 +403,19 @@ async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, att
           if (made) { tier = made; tiers.push(made) }
         }
         await store.patchNoTs('placement_quotes', `dispatch_id=eq.${d.id}&status=eq.received&tier_id=${tier ? `eq.${tier.id}` : 'is.null'}`, { status: 'superseded' })
-        await store.insert('placement_quotes', {
+        const row = {
           placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, insurer_name: d.insurer_name,
           tier_id: tier?.id ?? null, tier_label: q.tier, premium_text: q.premium, premium_per_head_text: q.per_head,
           limit_text: q.limit, excess_text: q.excess, validity_text: q.validity, valid_until: q.valid_until,
           key_terms: q.key_terms, exclusions: q.exclusions, subjectivities: q.subjectivities, summary: read.summary, evidence: q.evidence,
           source_message_id: msg.id, thread_id: threadId, extracted_by: 'placement', ...agent.quoteFields(q),
-        })
+        }
+        // The line's sum insured as asked is the rate's base when the insurer does not state one.
+        const specBase = /sum insured|contract value|wages/i.test(line?.spec?.limit ?? '') ? parseMoney(line?.spec?.limit)?.amount ?? null : null
+        const rates = agent.rateFields(q, specBase)
+        if (rates.rate_check === 'mismatch') row.needs_review = true
+        // Rate columns arrive with migration 20261030_quote_rates; until then the quote is kept without them.
+        await store.insert('placement_quotes', { ...row, ...rates }).catch(() => store.insert('placement_quotes', row))
       }
       const review = qs.some(q => agent.quoteFields(q).needs_review)
       await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'quoted', last_inbound_at: at, next_chase_at: null })

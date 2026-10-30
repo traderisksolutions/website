@@ -23,8 +23,9 @@ describe('shouldAutoPlace', () => {
     expect(shouldAutoPlace({ ...ok, confidence: Number.NaN })).toBe(false)
   })
 
-  it('needs a client company on the thread', () => {
-    expect(shouldAutoPlace({ ...ok, companyKind: 'insurer' })).toBe(false)
+  it('needs a client or insurer company on the thread', () => {
+    expect(shouldAutoPlace({ ...ok, companyKind: 'insurer' })).toBe(true)
+    expect(shouldAutoPlace({ ...ok, companyKind: 'prospect' })).toBe(false)
     expect(shouldAutoPlace({ ...ok, companyKind: null })).toBe(false)
     expect(shouldAutoPlace({ ...ok, companyKind: undefined })).toBe(false)
   })

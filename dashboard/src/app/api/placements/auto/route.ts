@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const r = await autoPlaceFromThread(b.thread_id)
-    const status = r.status === 'created' ? 201 : r.status === 'exists' ? 409 : r.status === 'not_found' ? 404 : 200
+    const status = r.status === 'created' || r.status === 'adopted' ? 201 : r.status === 'exists' ? 409 : r.status === 'not_found' ? 404 : 200
     return NextResponse.json(r, { status })
   } catch (e) {
     return errorResponse(e)
