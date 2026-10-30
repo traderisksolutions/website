@@ -500,6 +500,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   const fromEmail = (fromRaw.match(/<(.+?)>/) ?? [, fromRaw])[1]?.trim() ?? fromRaw.trim()
   const fromName  = fromRaw.includes('<') ? fromRaw.split('<')[0].trim().replace(/^"|"$/g, '') : null
 
+  // A person's own mailbox carries newsletters and notices operations@ never got: Gmail's
+  // Promotions, Social and Forums tabs, and anything sent to a list, stay out.
+  if (mailbox !== OPERATIONS_MAILBOX && !isInternal(fromEmail)) {
+    const labels: string[] = msg.labelIds ?? []
+    const bulk = /bulk|list|junk/i.test(headerVal(hdrs, 'Precedence')) || !!headerVal(hdrs, 'List-Unsubscribe') || !!headerVal(hdrs, 'List-Id')
+    if (bulk || labels.some(l => l === 'CATEGORY_PROMOTIONS' || l === 'CATEGORY_SOCIAL' || l === 'CATEGORY_FORUMS')) return 'skipped: newsletter or list'
+  }
+
   if (isAutomated(fromEmail)) {
     console.log('[ingest] skip automated:', fromEmail)
     return 'skipped: automated sender'
