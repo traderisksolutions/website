@@ -95,9 +95,9 @@ export async function newMessageIds(m: Mailbox, token: string): Promise<string[]
 }
 
 /** One page of inbox and sent mail since a date, for the first read-back. */
-export async function listSince(token: string, afterEpoch: number, pageToken?: string): Promise<{ ids: string[]; next: string | null }> {
+export async function listSince(token: string, afterEpoch: number, pageToken?: string, size = 100): Promise<{ ids: string[]; next: string | null }> {
   const q = encodeURIComponent(`after:${afterEpoch} (in:inbox OR in:sent) -in:chats`)
-  const res = await fetch(`${GMAIL_API}/messages?q=${q}&maxResults=100${pageToken ? `&pageToken=${pageToken}` : ''}`, { headers: { Authorization: `Bearer ${token}` } })
+  const res = await fetch(`${GMAIL_API}/messages?q=${q}&maxResults=${size}${pageToken ? `&pageToken=${pageToken}` : ''}`, { headers: { Authorization: `Bearer ${token}` } })
   const j = res.ok ? await res.json() as { messages?: { id: string }[]; nextPageToken?: string } : {}
   return { ids: (j.messages ?? []).map(m => m.id), next: j.nextPageToken ?? null }
 }

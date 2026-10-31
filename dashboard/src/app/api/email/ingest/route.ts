@@ -913,7 +913,7 @@ export async function GET(req: NextRequest) {
   const host   = req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? 'localhost:3000'
   const origin = host.startsWith('localhost') ? `http://${host}` : `https://${host}`
 
-  // ?mailbox=<connected address>&days=90[&page=<token>] → one page (100) of that mailbox's inbox and
+  // ?mailbox=<connected address>&days=90[&page=<token>][&size=25] → one page (default 100) of that mailbox's inbox and
   // sent mail since then; call again with the returned next page until it is null.
   const mailbox = (req.nextUrl.searchParams.get('mailbox') ?? '').toLowerCase()
   if (mailbox) {
@@ -922,9 +922,16 @@ export async function GET(req: NextRequest) {
     try {
       const days = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('days') ?? '90', 10) || 90, 1), 365)
       const token = await accessTokenFor(m)
-      const page = await listSince(token, Math.floor(Date.now() / 1000) - days * 86_400, req.nextUrl.searchParams.get('page') ?? undefined)
+      const size = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('size') ?? '100', 10) || 100, 1), 100)
+      const pageToken = req.nextUrl.searchParams.get('page') ?? undefined
+      const page = await listSince(token, Math.floor(Date.now() / 1000) - days * 86_400, pageToken, size)
       const outcomes: Record<string, number> = {}
+      const started = Date.now()
       for (let i = 0; i < page.ids.length; i += 10) {
+        // Near the 300 s limit: stop and hand back this same page. Stored messages dedupe on the re-run.
+        if (Date.now() - started > 200_000) {
+          return NextResponse.json({ ok: true, mailbox, processed: i, outcomes, partial: true, next: pageToken ?? page.next })
+        }
         const rs = await Promise.allSettled(page.ids.slice(i, i + 10).map(id => ingestMessage(token, id, origin, mailbox)))
         for (const r of rs) { const k = r.status === 'fulfilled' ? String(r.value).slice(0, 40) : 'threw'; outcomes[k] = (outcomes[k] ?? 0) + 1 }
       }
