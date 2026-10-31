@@ -210,45 +210,37 @@ export async function decideDomain(domain: string, input: DomainDecisionInput, u
 }
 
 /**
- * Fold one company into another: everything that pointed at the duplicate now points at the
- * survivor, the duplicate's names become aliases so the spelling still resolves, and the
- * duplicate row is removed.
+ * Fold one company into another in a single database transaction (merge_companies, migration
+ * 20261031_client_structure.sql). Every column that points at a company is found from the live
+ * schema, so a table added later is never left behind, and the merge aborts if one reference
+ * survives. The duplicate's row and every repointed or removed row go to record_merges.
+ *
+ * It used to PATCH nine named tables one request at a time and then delete the duplicate, which
+ * left policies and documents without a company and cascaded away employment-benefit members,
+ * movements and insurer transactions.
  */
-export async function mergeCompanies(loserId: string, winnerId: string, userEmail: string | null): Promise<{ moved: Record<string, number> }> {
+export async function mergeCompanies(loserId: string, winnerId: string, userEmail: string | null, reason?: string): Promise<{ moved: Record<string, number> }> {
   if (loserId === winnerId) throw new Error('A company cannot be merged into itself.')
   const rows = (await sbTry<Record<string, unknown>[]>(`companies?id=in.(${enc(loserId)},${enc(winnerId)})&select=*`, [])).map(normalizeCompany)
   const loser = rows.find(c => c.id === loserId)
   const winner = rows.find(c => c.id === winnerId)
   if (!loser || !winner) throw new Error('One of those companies no longer exists.')
 
-  const moved: Record<string, number> = {}
-  const move = async (table: string, column = 'company_id') => {
-    const before = await sbTry<{ id: string }[]>(`${table}?${column}=eq.${enc(loserId)}&select=id&limit=2000`, [])
-    if (before.length === 0) { moved[table] = 0; return }
-    await sbTry(`${table}?${column}=eq.${enc(loserId)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ [column]: winnerId }) })
-    moved[table] = before.length
-  }
-  for (const table of ['email_threads', 'contacts', 'cases', 'debit_notes', 'inbound_leads', 'pm_quotations', 'customers', 'company_contacts', 'pm_classification_tiers']) {
-    await move(table)
-  }
+  const res = await sb('rpc/merge_companies', {
+    method: 'POST',
+    body: JSON.stringify({ p_keep: winnerId, p_drop: loserId, p_actor: userEmail ?? 'system', p_reason: reason ?? `${loser.name} was the same company` }),
+  }) as { moved?: Record<string, number> } | null
+  const moved = res?.moved ?? {}
 
-  // Keep every spelling working, and take over any domain only the duplicate knew.
+  // Keep the duplicate's spelling working. Its own aliases moved with it.
   await recordAlias(winnerId, loser.name, 'manual', userEmail)
-  await sbTry(`company_aliases?company_id=eq.${enc(loserId)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ company_id: winnerId }) })
-  const domains = Array.from(new Set([...winner.domains, ...loser.domains]))
-  if (domains.length !== winner.domains.length) {
-    await sbTry(`companies?id=eq.${enc(winnerId)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ domains, domain: domains[0] }) })
-  }
-
-  await sb(`companies?id=eq.${enc(loserId)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
   // A merge is the agent's most consequential edit: one client's history moves onto another.
   recordHousekeeping({
     action: 'company.merged', subject: winner.name,
     resourceType: 'company', resourceId: winnerId,
-    basis: `${loser.name} was the same company`,
+    basis: reason ?? `${loser.name} was the same company`,
     metadata: { loser_id: loserId, moved },
   })
-
   return { moved }
 }
 
