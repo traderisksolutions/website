@@ -153,6 +153,8 @@ export type AiFeature =
   // the chase drafted for an overdue row.
   | 'nexus_followup_read'
   | 'nexus_chase_draft'
+  // The case worker (31 Oct 2026): reads a case's threads whole and prepares the next step.
+  | 'case_work'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

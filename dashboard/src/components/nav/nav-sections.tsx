@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Inbox, Mail, AlertTriangle, Users, BarChart2, Bot, UsersRound, Cpu, FolderOpen, BookMarked, History,
-  Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car,
+  Settings, FlaskConical, TrendingUp, ScrollText, Network, HeartPulse, Car, ListChecks,
   Receipt, CalendarDays, Waypoints, Building2, Link2, Wrench, Home, Landmark, Megaphone, Contact,
   Newspaper, Sparkles, Library, Search, Globe, Crosshair, CalendarClock, Table2 } from 'lucide-react'
 
@@ -39,6 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
   // (requests, insurers) sits on the bar; billing under Finance; winning business under one menu;
   // everything checked rarely under More.
   { label: 'Home',      href: '/',           icon: Home },
+  { label: 'Work',      href: '/work',       icon: ListChecks },
   { label: 'Inbox',     href: '/engagement', icon: Inbox },
   { label: 'Nexus',     href: '/nexus',      icon: Network },
   { label: 'Contacts',  href: '/companies',  icon: Building2 },

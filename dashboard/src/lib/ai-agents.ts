@@ -106,6 +106,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   dn_commission_extract: 'housekeeping',
   // Nexus follow-ups: reading each email for who owes what.
   nexus_followup_read:   'housekeeping',
+  case_work:             'housekeeping',
 
   // ── Client relationships ──────────────────────────────────────────────────
   draft_reply:              'crm',
