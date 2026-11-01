@@ -794,9 +794,12 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   // 4c. Autonomous admin: intake reads every stored message — the history inside it, its case —
   // and hands the work on through agent_tasks (src/lib/admin). Queued, then drained after the
   // response for up to a minute; the daily /api/cron/agents run picks up whatever is left.
+  // The knowledge depositor logs the message into every company's ledger it concerns; queued
+  // after intake, so the history intake rebuilds is there to log too.
   waitUntil(
     enqueue({ agent: 'intake', kind: 'message', idem_key: `intake:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } })
-      .then(() => drainAgents({ agents: ['intake', 'resolver'], budgetMs: 60_000 }))
+      .then(() => enqueue({ agent: 'knowledge_depositor', kind: 'message', idem_key: `deposit:msg:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } }))
+      .then(() => drainAgents({ agents: ['intake', 'resolver', 'knowledge_depositor'], budgetMs: 60_000 }))
       .catch(e => console.warn('[ingest] intake (non-fatal):', e instanceof Error ? e.message : e)),
   )
 

@@ -6,15 +6,23 @@
  *
  *   knowledge_keeper · record_facts  { facts }            facts another agent read
  *   knowledge_keeper · seed_company  { company_id }       policies, insureds, acts-for contacts
- *   knowledge_keeper · read_message  { message_id, company_id }  a model reads durable facts off client mail
+ *   knowledge_keeper · read_ledger   { group_id }         reads the group's ledger from its cursor: client mail only
+ *   knowledge_keeper · read_message  { message_id, company_id }  older hand-off: logs the message, then reads the ledger
+ *
+ * Mail is read from the company ledger (src/lib/admin/ledger.ts), not message by message: the
+ * cursor in agent_cursors makes a run resume where the last one stopped, and only a client
+ * writing in their own words is read — never insurers, partners, TPAs, vendors, lists or TRS.
  */
 import { sb, sbTry, enc, isInternal, bareEmail } from '@/lib/crm/db'
 import { callGemini } from '@/lib/ai-call'
 import { GEMINI_LITE } from '@/lib/gemini-models'
-import { skip, type AgentTask } from '@/lib/agent-tasks/queue'
+import { skip, enqueue, type AgentTask } from '@/lib/agent-tasks/queue'
 import { readHistory } from './history'
 import { refKey } from './signals'
 import type { FactInput, ReadMessagePayload, RecordFactsPayload, SeedCompanyPayload } from './handoffs'
+import { readLedger, getCursor, setCursor } from '@/lib/admin/ledger'
+import { factReadable } from '@/lib/admin/k/shape'
+import { depositMessages, directory } from '@/lib/admin/k/deposit'
 
 type Row = Record<string, any>
 
@@ -147,25 +155,60 @@ export function verifiedFacts(raw: unknown, text: string): { topic: string; key:
     .slice(0, 20)
 }
 
-async function readMessage(task: AgentTask) {
-  const { message_id, company_id } = task.payload as ReadMessagePayload
-  const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(message_id)}&select=id,from_address,subject,body_text,sent_at`, [])
-  if (!m) { await skip(task.id, 'message not found'); return 'handled' as const }
-  if (isInternal(bareEmail(m.from_address))) { await skip(task.id, 'TRS mail'); return 'handled' as const }
+const AGENT = 'knowledge_keeper'
+const PER_RUN = 25
+
+/** Facts the model reads off one client email, checked against the email's own text. */
+async function factsFromMessage(messageId: string, companyId: string): Promise<FactInput[]> {
+  const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,from_address,subject,body_text,sent_at`, [])
+  if (!m || isInternal(bareEmail(m.from_address))) return []
   const own = readHistory(m.body_text ?? '', m.subject).top.slice(0, 6000)
-  if (own.length < 40) { await skip(task.id, 'too little text'); return 'handled' as const }
-  const r = await callGemini({ agent: 'admin', feature: 'admin_fact_read', model: GEMINI_LITE, system: FACT_SYSTEM, parts: [{ text: `FROM: ${m.from_address}\nSUBJECT: ${m.subject ?? ''}\n\n${own}` }], json: true, maxOutputTokens: 4000, thinkingShare: 0, metadata: { company_id, message_id } })
+  if (own.length < 40) return []
+  const r = await callGemini({ agent: 'admin', feature: 'admin_fact_read', model: GEMINI_LITE, system: FACT_SYSTEM, parts: [{ text: `FROM: ${m.from_address}\nSUBJECT: ${m.subject ?? ''}\n\n${own}` }], json: true, maxOutputTokens: 4000, thinkingShare: 0, metadata: { company_id: companyId, message_id: messageId } })
   if (!r.text) throw new Error(r.error ?? 'no answer from the model')
   let parsed: unknown = null
   try { parsed = JSON.parse(r.text) } catch { throw new Error('model answer was not JSON') }
-  const facts: FactInput[] = verifiedFacts(parsed, own).map(f => ({ company_id, topic: f.topic, key: f.key, value: f.value, quote: f.quote, source_kind: 'email', source_id: message_id, source_date: String(m.sent_at ?? '').slice(0, 10) || null, confidence: 'medium' }))
-  return writeFacts(facts, 'knowledge_keeper')
+  return verifiedFacts(parsed, own).map(f => ({ company_id: companyId, topic: f.topic, key: f.key, value: f.value, quote: f.quote, source_kind: 'email', source_id: messageId, source_date: String(m.sent_at ?? '').slice(0, 10) || null, confidence: 'medium' }))
+}
+
+/** Reads a group's new ledger entries from the cursor. The cursor moves after each entry, so a failure resumes at that entry. */
+async function readLedgerTask(task: AgentTask) {
+  const groupId = String(task.payload?.group_id ?? task.company_id ?? '')
+  if (!groupId) { await skip(task.id, 'no group'); return 'handled' as const }
+  const dir = await directory()
+  let cursor = await getCursor(AGENT, groupId)
+  const entries = await readLedger(groupId, cursor, PER_RUN)
+  let read = 0, inserted = 0, superseded = 0
+  for (const e of entries) {
+    if (e.source_table === 'email_messages' && e.company_id && factReadable(e, dir.byId.get(e.company_id)?.kind)) {
+      const w = await writeFacts(await factsFromMessage(e.source_id, e.company_id), AGENT)
+      read++; inserted += w.inserted; superseded += w.superseded
+    }
+    cursor = e.seq
+    await setCursor(AGENT, groupId, cursor)
+  }
+  // More waiting: carry on in a follow-up task rather than one long run.
+  if (entries.length === PER_RUN) await enqueue({ agent: 'knowledge_keeper', kind: 'read_ledger', idem_key: `facts:ledger:${groupId}:after:${cursor}`, created_by_agent: 'knowledge_keeper', company_id: groupId, payload: { group_id: groupId } })
+  return { entries: entries.length, read, inserted, superseded, cursor }
+}
+
+/** Older hand-off from intake: make sure the message is in the ledger, then read the group from its cursor. */
+async function readMessage(task: AgentTask) {
+  const { message_id, company_id } = task.payload as ReadMessagePayload
+  const dir = await directory()
+  if (dir.byId.get(company_id)?.kind !== 'client') { await skip(task.id, 'not a client'); return 'handled' as const }
+  const r = await depositMessages([message_id])
+  if (r.unfiled.length) { await skip(task.id, 'thread not filed yet; the depositor looks again'); return 'handled' as const }
+  const groupId = dir.group(company_id)
+  await enqueue({ agent: 'knowledge_keeper', kind: 'read_ledger', idem_key: `facts:ledger:${groupId}:${new Date().toISOString().slice(0, 13)}`, created_by_agent: 'knowledge_keeper', company_id: groupId, payload: { group_id: groupId } })
+  return { deposited: r.written, queued_read: groupId }
 }
 
 export async function knowledgeTask(task: AgentTask) {
   if (task.kind === 'record_facts') return writeFacts((task.payload as RecordFactsPayload).facts ?? [], task.created_by_agent || 'knowledge_keeper')
   if (task.kind === 'seed_company') return seedCompany(task)
   if (task.kind === 'read_message') return readMessage(task)
+  if (task.kind === 'read_ledger') return readLedgerTask(task)
   await skip(task.id, `unknown kind ${task.kind}`)
   return 'handled' as const
 }
