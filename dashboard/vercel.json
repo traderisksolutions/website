@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/admin-sweep",
       "schedule": "10 1 * * *"
+    },
+    {
+      "path": "/api/placements/endorsements/sweep",
+      "schedule": "5 1 * * *"
     }
   ]
 }
