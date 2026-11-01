@@ -237,6 +237,13 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     handed.push('knowledge_keeper')
   }
 
+  // Insurer mail may carry a quotation, indication or bind confirmation: the placement agent
+  // reads the figures into placement_quotes (it skips mail with nothing to read).
+  if (kind === 'insurer') {
+    await enqueue({ agent: 'placement', kind: 'quote_in', idem_key: `quote:${msg.id}`, created_by_agent: 'intake', company_id: caseCompany ?? thread?.company_id ?? null, thread_id: msg.thread_id, message_id: msg.id, payload: { message_id: msg.id }, run_after: new Date(Date.now() + 120_000).toISOString() })
+    handed.push('placement')
+  }
+
   // Mail on a case gets its onward email decided by the relay agent (client ↔ TRS ↔ insurer).
   // Claims forwards stay with the claims agent; the relay skips claim notices itself.
   if (matched && (kind === 'client' || kind === 'insurer')) {
