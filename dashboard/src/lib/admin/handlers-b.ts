@@ -1,2 +1,17 @@
 /** Phase B agents register here: claims, endorsements, eb_movements, renewals, recipient_router, drafter, chaser. */
-export {}
+import { register } from '@/lib/agent-tasks/runner'
+import { handleClaims } from './b/claims-agent'
+import { handleDrafter } from './b/drafter'
+import { handleChaser, handleRenewals } from './b/sweeps'
+import { handleEbMovements, handleEndorsements } from './b/policy-agents'
+
+// The recipient router is a pure function the drafter calls (b/router.ts), not a queued agent:
+// routing has no side effects, so a task for it would only add a hop.
+register('claims', handleClaims)
+register('drafter', handleDrafter)
+register('chaser', handleChaser)
+register('renewals', handleRenewals)
+register('eb_movements', handleEbMovements)
+register('endorsements', handleEndorsements)
+
+export const PHASE_B_AGENTS = ['claims', 'drafter', 'chaser', 'renewals', 'eb_movements', 'endorsements'] as const
