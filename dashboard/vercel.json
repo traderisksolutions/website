@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/nexus",
       "schedule": "20 0 * * *"
+    },
+    {
+      "path": "/api/cron/agents",
+      "schedule": "40 2 * * *"
     }
   ]
 }
