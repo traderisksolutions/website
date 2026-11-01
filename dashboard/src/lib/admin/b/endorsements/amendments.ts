@@ -208,6 +208,8 @@ export async function handleInsurerQuery(policy: PolicyRow, insurerName: string,
   const asked = askedItems(msg.body_text)
   const own = ownText(msg.body_text).replace(/\s+/g, ' ').trim().slice(0, 1200)
   const named = ms.filter(m => own.toLowerCase().includes((m.subject ?? m.member_name).toLowerCase()))
+  // Off the batch's own thread, the mail must name one of its people; "please confirm" on another matter is not this batch's question.
+  if (b.thread_id !== threadId && !named.length) return { handled: false, detail: 'insurer mail names none of the batch and is not on its thread' }
   const about = (named.length ? named : ms).map(m => m.subject ?? m.member_name)
   const label = policy.label || policy.class_of_insurance || 'the policy'
   const pairId = randomUUID()

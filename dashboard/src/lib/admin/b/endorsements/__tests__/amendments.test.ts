@@ -54,6 +54,12 @@ describe('reading an insurer change of mind', () => {
   it('a plain note is none', () => {
     expect(detectInsurerIntent('Endorsement 3 - Tax Invoice', 'Please find attached the endorsement and tax invoice.').intent).toBe('none')
   })
+  it('"please confirm" on its own is how insurers end a mail, not a query', () => {
+    expect(detectInsurerIntent(null, 'Please confirm to proceed issuance.').intent).toBe('none')
+    expect(detectInsurerIntent(null, 'Kindly confirm your attendance by clicking the link below.').intent).toBe('none')
+    expect(detectInsurerIntent(null, 'Can you please advise your suitable phone number, I would like a quick call.').intent).toBe('none')
+    expect(detectInsurerIntent(null, 'Please advise the inception date (no backdating is allowed).').intent).toBe('query')
+  })
 })
 
 describe('the plan against what is on file (cases 1, 2, 7, 8)', () => {

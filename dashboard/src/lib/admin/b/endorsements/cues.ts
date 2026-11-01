@@ -42,10 +42,11 @@ export const CLIENT_CUES: Record<Exclude<ClientIntent, 'none'>, RegExp[]> = {
 }
 
 export const INSURER_CUES: Record<Exclude<InsurerIntent, 'none'>, RegExp[]> = {
+  // A request is a query only when the same sentence says what is wanted: "please confirm" alone is how insurers end any mail.
   query: [
-    /\b(?:please|kindly|pls)\s+(?:provide|furnish|submit|send|advise|confirm|clarify|share)\b/i,
+    /\b(?:please|kindly|pls)\s+(?:provide|furnish|submit|send|advise|confirm|clarify|share)\b[^.?!\n]{0,120}\b(?:dob|date of birth|passport|nric|fin\b|work permit|medical|declaration|form|proof|supporting|inception date|effective date|commencement date|last day|member|staff|employee|dependant|dependent|plan|category|salary|occupation|nationality|gender|age)\b/i,
     /\b(?:pending|awaiting|require|required|need|missing)\s+(?:the\s+)?(?:documents?|information|details|dob|date of birth|passport|nric|fin|work permit|medical|declaration|form|proof|supporting)\b/i,
-    /\b(?:unable to|cannot|can't)\s+(?:process|proceed|effect|action)\b/i,
+    /\b(?:unable to|cannot|can't)\s+(?:process|proceed|effect|action)\b[^.?!\n]{0,80}\b(?:without|until|pending|as)\b/i,
     /\b(?:incomplete|insufficient)\s+(?:information|details|documents?)\b/i,
     /\bwhat is (?:the|his|her|their)\s+(?:dob|date of birth|effective date|plan|category)\b/i,
   ],
