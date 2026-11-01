@@ -4,7 +4,10 @@
  * about the case itself and never drafts.
  *
  *   intake · message    one stored email (enqueued by the ingest route)
- *   intake · read_case  the case worker reads one client, debounced 10 minutes per client
+ *   intake · read_case  the case worker reads one client, debounced 10 minutes per client. It
+ *                       resumes from its ledger cursor (agent 'case_builder'): only the threads
+ *                       that moved since it last read the group, plus the open items' threads.
+ *                       A group with no ledger yet gets the full read.
  */
 import { createHash } from 'node:crypto'
 import { sb, sbTry, enc, inChunks, isInternal, isAutomated, bareEmail } from '@/lib/crm/db'
@@ -16,6 +19,11 @@ import { bestCase, debouncedRunAfter, type CaseCandidate, type CaseMatch, type J
 import { referencesIn, companyOfReferences, type RefTarget } from './references'
 import { gapsFor, leftOffTrs } from './gaps'
 import type { ClaimMailPayload, Gap, OpenMidwayPayload, ReadCasePayload } from './handoffs'
+import { caseCompanyFor, readsFacts, laterToClear, ebViaQueue, focusThreads } from './intake-routes'
+import { clearLater } from '@/lib/admin/b/later'
+import { looksLikeEndorsement } from '@/lib/policies/endorsement'
+import { readLedger, getCursor, setCursor } from '@/lib/admin/ledger'
+import { groupRoot } from './knowledge'
 
 type Row = Record<string, any>
 
@@ -27,6 +35,14 @@ async function insurers() {
   for (const r of rows) for (const d of [...(r.domains ?? []), r.domain]) if (d) domains.add(String(d).toLowerCase())
   insurerCache = { at: Date.now(), domains, ids: new Set(rows.map(r => r.id as string)) }
   return insurerCache
+}
+
+let kindCache: { at: number; kinds: Map<string, string | null> } | null = null
+async function companyKinds() {
+  if (kindCache && Date.now() - kindCache.at < 600_000) return kindCache.kinds
+  const rows = await sbTry<Row[]>('companies?select=id,kind&limit=5000', [])
+  kindCache = { at: Date.now(), kinds: new Map(rows.map(r => [r.id as string, (r.kind ?? null) as string | null])) }
+  return kindCache.kinds
 }
 
 export const rebuiltHash = (m: HistoryMessage) =>
@@ -136,6 +152,16 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   }
   if (kind === 'automated' || ooo) return { kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
 
+  // "Come back later until the client / insurer replies" ends when that side writes on the case.
+  if (kind === 'client' || kind === 'insurer') {
+    const waits = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(msg.thread_id)}&select=work_items(id,later_until,later_when,closed_at)`, [])
+    const items = waits.map(w => w.work_items).filter((w: Row | null): w is Row => !!w && !w.closed_at)
+    for (const id of laterToClear(items as { id: string; later_until: string | null; later_when: string | null }[], kind)) {
+      await clearLater(id, `${kind} replied`, 'intake')
+      handed.push('later_cleared')
+    }
+  }
+
   const history = readHistory(msg.body_text ?? '', msg.subject)
   const held = await sbTry<Row[]>(`email_messages?thread_id=eq.${enc(msg.thread_id)}&deleted_at=is.null&select=id,sent_at&order=sent_at.asc&limit=1`, [])
   const firstHeld = held[0]?.id === msg.id
@@ -154,7 +180,24 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   const refItemIds = refHits.flatMap(h => h.value.map((v: RefTarget) => v.kind === 'claim' ? v.workItemId : v.kind === 'work_item' ? v.workItemId : null)).filter((x): x is string => !!x)
   const refCompany = companyOfReferences(refHits)
   const people = Array.from(new Set([from, ...history.messages.flatMap(m => [m.fromAddress, ...m.to, ...m.cc])].filter((e): e is string => !!e && !isInternal(e) && !isAutomated(e))))
-  const companyId: string | null = thread?.company_id && !ins.ids.has(thread.company_id) ? thread.company_id : refCompany
+  const kinds = await companyKinds()
+  const threadKind = thread?.company_id ? (ins.ids.has(thread.company_id) ? 'insurer' : kinds.get(thread.company_id) ?? null) : null
+  const companyId: string | null = caseCompanyFor({ companyId: thread?.company_id ?? null, kind: threadKind }, refCompany)
+
+  // A policy number on file that is an endorsement goes to the endorsements agent to find its master.
+  const policyIds = Array.from(new Set(refHits.flatMap(h => h.value.map((v: RefTarget) => v.kind === 'policy' ? v.policyId : null)).filter((x): x is string => !!x))).slice(0, 10)
+  if (policyIds.length) {
+    const pols = await sbTry<Row[]>(`policies?id=in.(${policyIds.join(',')})&select=id,company_id,policy_number,class_of_insurance,description,end_date`, [])
+    const endorsements = pols.filter(p => looksLikeEndorsement(p))
+    if (endorsements.length) {
+      await enqueue(endorsements.map(p => ({ agent: 'endorsements' as const, kind: 'attach', idem_key: `endorse:${p.id}`, created_by_agent: 'intake' as const, policy_id: p.id, company_id: p.company_id ?? null, message_id: msg.id, thread_id: msg.thread_id, payload: { policy_id: p.id } })))
+      handed.push('endorsements')
+    }
+  }
+  if (ebViaQueue() && kind !== 'internal') {
+    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: companyId, payload: { message_id: msg.id } })
+    handed.push('eb_movements')
+  }
 
   const [link] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(msg.thread_id)}&select=work_item_id,joined_by,work_items(case_type,company_id)`, [])
   let matched: CaseMatch | null = link ? { workItemId: link.work_item_id, score: 1, joinedBy: 'thread', evidence: 'thread already on the case' } : null
@@ -190,7 +233,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   const caseCompany = matchedCompany ?? companyId
   if (caseCompany) {
     await enqueue({ agent: 'knowledge_keeper', kind: 'seed_company', idem_key: `seed:${caseCompany}:${day}`, created_by_agent: 'intake', company_id: caseCompany, payload: { company_id: caseCompany } })
-    if (kind === 'client') await enqueue({ agent: 'knowledge_keeper', kind: 'read_message', idem_key: `facts:${msg.id}`, created_by_agent: 'intake', company_id: caseCompany, message_id: msg.id, payload: { message_id: msg.id, company_id: caseCompany } })
+    if (readsFacts(kind, kinds.get(caseCompany) ?? null)) await enqueue({ agent: 'knowledge_keeper', kind: 'read_message', idem_key: `facts:${msg.id}`, created_by_agent: 'intake', company_id: caseCompany, message_id: msg.id, payload: { message_id: msg.id, company_id: caseCompany } })
     handed.push('knowledge_keeper')
   }
 
@@ -228,8 +271,14 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
 /** The case worker reads one client. A model failure throws, so the task retries. */
 export async function readCase(task: AgentTask) {
   const p = task.payload as ReadCasePayload
-  const r = await workCompany(p.company_id, { write: true })
-  if (r.note && r.note !== 'no recent threads') throw new Error(r.note)
+  // Resume from the ledger: the threads that moved since the case builder last read this group.
+  const group = await groupRoot(p.company_id)
+  const cursor = await getCursor('case_builder', group)
+  const entries = await readLedger(group, cursor, 500)
+  const focus = focusThreads({ cursor, entries, payloadThreads: p.thread_ids ?? [] })
+  const r = await workCompany(p.company_id, { write: true, focusThreadIds: focus ?? undefined })
+  if (r.note && r.note !== 'no recent threads' && !r.note.startsWith('not a client')) throw new Error(r.note)
+  if (entries.length) await setCursor('case_builder', group, Math.max(...entries.map(e => Number(e.seq))))
   // Where the reader put a thread on the case intake suggested, say how it was found.
   for (const h of p.hints ?? []) {
     await sbTry(`work_item_threads?work_item_id=eq.${enc(h.work_item_id)}&thread_id=eq.${enc(h.thread_id)}&joined_by=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ joined_by: h.joined_by, joined_evidence: h.evidence }) })
@@ -260,3 +309,4 @@ export async function readCase(task: AgentTask) {
   }
   return { stored: r.stored, cases: r.cases.length, dropped: r.dropped, to_claims: toClaims }
 }
+

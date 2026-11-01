@@ -11,7 +11,8 @@ export const STATUSES = ['trs_to_act', 'waiting_client', 'waiting_insurer', 'sta
 export type CaseType = typeof CASE_TYPES[number]
 export type CaseStatus = typeof STATUSES[number]
 
-export type CaseDraft = { reply_in_thread: string; to: string[]; cc: string[]; subject: string; body: string; attach: string[] }
+export type Party = 'client' | 'insurer'
+export type CaseDraft = { reply_in_thread: string; to: string[]; cc: string[]; subject: string; body: string; attach: string[]; party?: Party }
 export type CleanCase = {
   /** An open item this case updates; null opens a new item. */
   item_id: string | null
@@ -31,6 +32,9 @@ export type CleanCase = {
   draft: CaseDraft | null
   /** Why a proposed draft was not kept, so the queue can say "draft withheld: …". */
   draft_withheld: string | null
+  /** The other party's email on the same matter (insurer chase + client update): sent together. */
+  pair_draft: CaseDraft | null
+  pair_withheld: string | null
   suggested_owner: string | null
   owner_basis: string | null
   needs_human: string | null
@@ -88,6 +92,27 @@ export function parseAnswer(raw: unknown): unknown[] {
   return Array.isArray(cases) ? cases : []
 }
 
+/** One proposed draft checked against the case. A draft that fails any rule is withheld, never repaired. */
+export function checkDraft(raw: unknown, threads: string[], ctx: CaseContext, known: Set<string>): { draft: CaseDraft | null; withheld: string | null } {
+  const d = raw as Record<string, unknown> | null | undefined
+  if (!d || typeof d !== 'object') return { draft: null, withheld: null }
+  const to = (Array.isArray(d.to) ? d.to : []).map(email).filter((x): x is string => !!x)
+  const cc = (Array.isArray(d.cc) ? d.cc : []).map(email).filter((x): x is string => !!x)
+  const body = str(d.body, 6000)
+  const thread = typeof d.reply_in_thread === 'string' && threads.includes(d.reply_in_thread) ? d.reply_in_thread : null
+  const strangers = [...to, ...cc].filter(a => !known.has(a))
+  const attach = (Array.isArray(d.attach) ? d.attach : []).filter((f): f is string => typeof f === 'string')
+  const missing = attach.filter(f => !ctx.attachments.includes(f))
+  if (!thread) return { draft: null, withheld: 'it does not reply on one of the case threads' }
+  if (to.length === 0) return { draft: null, withheld: 'it has no recipient' }
+  if (!body) return { draft: null, withheld: 'it has no body' }
+  if (strangers.length) return { draft: null, withheld: `${strangers.join(', ')} ${strangers.length === 1 ? 'is' : 'are'} not on the case` }
+  if (missing.length) return { draft: null, withheld: `the case holds no file named ${missing.join(', ')}` }
+  if (signedByLeaver(body, ctx.departedNames ?? [])) return { draft: null, withheld: 'it is signed by someone who has left' }
+  const party = d.party === 'client' || d.party === 'insurer' ? d.party : null
+  return { draft: { reply_in_thread: thread, to, cc: cc.filter(a => !to.includes(a)), subject: str(d.subject, 200) ?? '', body, attach, ...(party ? { party } : {}) }, withheld: null }
+}
+
 export function cleanCase(raw: unknown, ctx: CaseContext): CleanCase | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
@@ -111,22 +136,17 @@ export function cleanCase(raw: unknown, ctx: CaseContext): CleanCase | null {
 
   let draft: CaseDraft | null = null
   let withheld: string | null = null
-  const d = r.draft as Record<string, unknown> | null | undefined
-  if (d && typeof d === 'object' && status !== 'done') {
-    const to = (Array.isArray(d.to) ? d.to : []).map(email).filter((x): x is string => !!x)
-    const cc = (Array.isArray(d.cc) ? d.cc : []).map(email).filter((x): x is string => !!x)
-    const body = str(d.body, 6000)
-    const thread = typeof d.reply_in_thread === 'string' && threads.includes(d.reply_in_thread) ? d.reply_in_thread : null
-    const strangers = [...to, ...cc].filter(a => !known.has(a))
-    const attach = (Array.isArray(d.attach) ? d.attach : []).filter((f): f is string => typeof f === 'string')
-    const missing = attach.filter(f => !ctx.attachments.includes(f))
-    if (!thread) withheld = 'it does not reply on one of the case threads'
-    else if (to.length === 0) withheld = 'it has no recipient'
-    else if (!body) withheld = 'it has no body'
-    else if (strangers.length) withheld = `${strangers.join(', ')} ${strangers.length === 1 ? 'is' : 'are'} not on the case`
-    else if (missing.length) withheld = `the case holds no file named ${missing.join(', ')}`
-    else if (signedByLeaver(body, ctx.departedNames ?? [])) withheld = 'it is signed by someone who has left'
-    else draft = { reply_in_thread: thread, to, cc: cc.filter(a => !to.includes(a)), subject: str(d.subject, 200) ?? '', body, attach }
+  let pair: CaseDraft | null = null
+  let pairWithheld: string | null = null
+  if (status !== 'done') {
+    const main = checkDraft(r.draft, threads, ctx, known)
+    draft = main.draft; withheld = main.withheld
+    if (draft && r.pair_draft) {
+      const p = checkDraft(r.pair_draft, threads, ctx, known)
+      if (!p.draft) pairWithheld = p.withheld
+      else if (!draft.party || !p.draft.party || draft.party === p.draft.party) pairWithheld = 'a pair needs one client and one insurer email'
+      else pair = p.draft
+    }
   }
 
   return {
@@ -146,6 +166,8 @@ export function cleanCase(raw: unknown, ctx: CaseContext): CleanCase | null {
     deadline_basis: deadline ? str(r.deadline_basis, 200) : null,
     draft,
     draft_withheld: withheld,
+    pair_draft: pair,
+    pair_withheld: pairWithheld,
     suggested_owner: owner && ctx.staff.includes(owner) ? owner : null,
     owner_basis: str(r.owner_basis, 200),
     needs_human: str(r.needs_human, 400),

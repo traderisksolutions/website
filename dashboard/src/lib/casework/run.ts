@@ -11,8 +11,10 @@ import { callGemini } from '@/lib/ai-call'
 import { GEMINI_DEEP } from '@/lib/gemini-models'
 import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
-import { companyCore } from '@/lib/crm/resolve'
-import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clean'
+import { randomUUID } from 'node:crypto'
+import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
+import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
+import { cleanCase, parseAnswer, type CaseContext, type CaseDraft, type CleanCase } from './clean'
 
 const ACTOR = 'case_worker'
 const WINDOW_DAYS = 90
@@ -27,7 +29,8 @@ Group the threads into CASES. A case is one piece of work for one client: a clai
 For each case decide:
 - status: done (nothing left for anyone), waiting_client, waiting_insurer, trs_to_act (TRS owes the next move), stalled (a TRS ask unanswered for more than 7 days, or a deadline passed).
 - next_action: one imperative line of what TRS does next. Waiting more than 5 working days means the next action is a chase.
-- draft, only when TRS must send something now: reply on one of the case threads, to and cc only from addresses on the thread, short, courteous, plain English in the tone of TRS's own messages, signed "{owner_name}". Attach only files that appear on the case, by exact file name.
+- draft, only when TRS must send something now: reply on one of the case threads, to and cc only from addresses on the thread, short, courteous, plain English in the tone of TRS's own messages, signed "{owner_name}". Attach only files that appear on the case, by exact file name. Say who it goes to in party: "insurer" or "client".
+- pair_draft, when the matter has two parties and both should hear from TRS now: the other party's email, same rules, the opposite party. Typical pairs: chase the insurer and tell the client it was chased; send the client's claim to the insurer and acknowledge it to the client. They are approved and sent together.
 - deadline: a real date from the mail or the policy (inception, expiry, a date someone stated), with its basis.
 - suggested_owner: the TRS colleague active on this case or client. Never someone who has left.
 - needs_human: any decision you must not make (coverage dispute, claim decline, payee or bank details, premium acceptance, cancelling cover). Say exactly what must be decided.
@@ -38,22 +41,41 @@ Messages marked REBUILT were read out of a forward or quoted history: TRS never 
 Never invent an amount, date, policy number, name or attachment. If it is not in the mail, say it is missing.
 
 Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"draft":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
-draft, when present: {"reply_in_thread":"","to":[""],"cc":[""],"subject":"","body":"","attach":[""]}`
+draft and pair_draft, when present: {"reply_in_thread":"","to":[""],"cc":[""],"subject":"","body":"","attach":[""],"party":"insurer|client"}`
 
-export type CaseInput = { companyId: string | null; prompt: string; ctx: CaseContext; files: Map<string, Row>; threadSide: Map<string, 'client' | 'insurer' | 'internal' | 'other'> }
+/** Added to the prompt when the record read is a partner broker, not a client. */
+export const PARTNER_NOTE = `This record is a PARTNER BROKER that places work with TRS for its own clients; it is not TRS's client. For each case put the END CLIENT's company name (the policyholder named in the mail) in "client". Only TRS's own dealings with the partner (co-broking fees, agreements) use the partner's name as client, with case_type other. If the end client is not named, say so in needs_human.`
+
+export type CaseInput = { companyId: string | null; mode: CaseMode; companyName: string | null; prompt: string; ctx: CaseContext; files: Map<string, Row>; threadSide: Map<string, 'client' | 'insurer' | 'internal' | 'other'> }
 
 /** Everything the case worker reads for one client, and what its answer will be checked against. */
-export async function loadCase(companyId: string, today = new Date().toISOString().slice(0, 10)): Promise<CaseInput | null> {
+export async function loadCase(companyId: string, today = new Date().toISOString().slice(0, 10), opts: { focusThreadIds?: string[] } = {}): Promise<CaseInput | null> {
   const [company] = await sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=id,company_name,kind,domains,parent_id&limit=1`, [])
   if (!company) return null
+  const mode = caseModeFor(company.kind)
+  if (mode === 'none') return null
   const since = new Date(Date.parse(today) - WINDOW_DAYS * 86_400_000).toISOString()
   const aliases = await sbTry<Row[]>(`company_aliases?company_id=eq.${enc(companyId)}&select=alias`, [])
   const items = await sbTry<Row[]>(`work_items?company_id=eq.${enc(companyId)}&closed_at=is.null&select=id,title,case_type,status,next_action,owner_email,work_item_threads(thread_id)`, [])
 
   // The client's own threads, the threads of its open items, and insurer-side threads that name it.
-  const own = await sbTry<Row[]>(`email_threads?company_id=eq.${enc(companyId)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at&order=last_message_at.desc&limit=${MAX_THREADS}`, [])
+  // A focused read (the case builder resuming from its ledger cursor) takes only the threads that
+  // moved, plus the open items' threads, so the whole client is not re-read for every email.
+  const focus = opts.focusThreadIds ? opts.focusThreadIds.filter(Boolean) : null
+  const own = focus
+    ? (focus.length ? await sbTry<Row[]>(`email_threads?id=in.(${focus.slice(0, MAX_THREADS).join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at`, []) : [])
+    : await sbTry<Row[]>(`email_threads?company_id=eq.${enc(companyId)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at&order=last_message_at.desc&limit=${MAX_THREADS}`, [])
+  // Open items already on these threads, whoever they are filed under (a partner's mail opens
+  // cases under the end client), so the reader updates them instead of opening duplicates.
+  if (own.length) {
+    const onThreads = await sbTry<Row[]>(`work_item_threads?thread_id=in.(${own.map(t => t.id).join(',')})&select=work_items(id,title,case_type,status,next_action,owner_email,closed_at,work_item_threads(thread_id))`, [])
+    for (const l of onThreads) {
+      const w = l.work_items
+      if (w && !w.closed_at && !items.some(i => i.id === w.id)) items.push(w)
+    }
+  }
   const linked = items.flatMap(i => (i.work_item_threads ?? []).map((t: Row) => t.thread_id as string))
-  const names = Array.from(new Set([company.company_name, ...aliases.map(a => a.alias)].map(n => companyCore(String(n ?? ''))).filter(n => n.length >= 5)))
+  const names = focus ? [] : Array.from(new Set([company.company_name, ...aliases.map(a => a.alias)].map(n => companyCore(String(n ?? ''))).filter(n => n.length >= 5)))
   const named: Row[] = []
   for (const n of names.slice(0, 6)) {
     const words = n.split(' ').slice(0, 3).join('*')
@@ -118,7 +140,8 @@ export async function loadCase(companyId: string, today = new Date().toISOString
 
   const prompt = [
     `TODAY: ${today}`,
-    `CLIENT: ${company.company_name}${aliases.length ? ` (also: ${aliases.map(a => a.alias).slice(0, 8).join('; ')})` : ''}`,
+    `${mode === 'partner' ? 'PARTNER BROKER' : 'CLIENT'}: ${company.company_name}${aliases.length ? ` (also: ${aliases.map(a => a.alias).slice(0, 8).join('; ')})` : ''}`,
+    mode === 'partner' ? PARTNER_NOTE : '',
     `TRS STAFF WHO CAN OWN WORK: ${staff.filter(s => !gone.has(s)).join(', ')}`,
     gone.size ? `LEFT TRS (reassign their work): ${Array.from(gone).join(', ')}` : '',
     policies.length ? `POLICIES ON FILE:\n${policies.map(p => `- ${p.insurer} ${p.class_of_insurance ?? p.product_line ?? ''} ${p.policy_number ?? '(no number)'} ${p.start_date ?? '?'} to ${p.end_date ?? '?'} [${p.lifecycle}]`).join('\n')}` : 'POLICIES ON FILE: none',
@@ -127,7 +150,7 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   ].filter(Boolean).join('\n\n')
 
   return {
-    companyId, prompt, files, threadSide,
+    companyId, mode, companyName: company.company_name ?? null, prompt, files, threadSide,
     ctx: { departedNames: Array.from(gone).map(e => e.split('@')[0].split(/[._]/)[0]), threadIds: ids, addresses: Array.from(addresses), attachments: Array.from(new Set(attachments.map(a => a.filename).filter(Boolean))), text: texts.join('\n'), staff: staff.filter(s => !gone.has(s)), today, itemIds: items.map(i => i.id) },
   }
 }
@@ -145,12 +168,31 @@ export async function readCase(input: CaseInput): Promise<{ cases: CleanCase[]; 
 }
 
 /** Writes one case: the item, its threads, its draft, and an event saying what changed. */
+/**
+ * Whose case it is. A client's read files cases under the client. A partner broker's read files
+ * each case under the end client the reader named, when that client is on file; otherwise the case
+ * has no company and asks a person. Only the partner's own dealings stay under the partner.
+ */
+async function caseCompany(input: CaseInput, c: CleanCase): Promise<{ companyId: string | null; needsHuman: string | null }> {
+  if (input.mode !== 'partner') return { companyId: input.companyId, needsHuman: null }
+  const named = (c.client ?? '').trim()
+  const partner = input.companyName ?? 'the partner'
+  if (!named) return { companyId: null, needsHuman: `Which end client is this for? ${partner} is a partner broker, not the client.` }
+  if (input.companyName && companyCore(named) === companyCore(input.companyName)) return { companyId: input.companyId, needsHuman: null }
+  const index = await getCompanyIndex()
+  const hit = matchByName(named, index)
+  const company = hit ? index.byId.get(hit.companyId) : null
+  if (company && caseModeFor(company.kind) === 'client') return { companyId: company.id, needsHuman: null }
+  return { companyId: null, needsHuman: `End client "${named}" is not on file. Choose or add the client; ${partner} is a partner broker.` }
+}
+
 export async function storeCase(input: CaseInput, c: CleanCase): Promise<string> {
+  const owner = await caseCompany(input, c)
   const row = {
-    company_id: input.companyId, client_name: c.client, case_type: c.case_type, title: c.title, status: c.status,
+    company_id: owner.companyId, client_name: c.client, case_type: c.case_type, title: c.title, status: c.status,
     waiting_since: c.waiting_since, last_activity_at: c.last_activity, summary: c.summary, next_action: c.next_action,
     deadline: c.deadline, deadline_basis: c.deadline_basis, insurer_name: c.insurer, policy_number: c.policy_number,
-    suggested_owner: c.suggested_owner, owner_basis: c.owner_basis, needs_human: c.needs_human, confidence: c.confidence,
+    suggested_owner: c.suggested_owner, owner_basis: c.owner_basis, needs_human: [owner.needsHuman, c.needs_human].filter(Boolean).join(' ') || null, confidence: c.confidence,
     evidence: c.evidence, model: GEMINI_DEEP, read_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     closed_at: c.status === 'done' ? new Date().toISOString() : null, closed_by: c.status === 'done' ? ACTOR : null,
   }
@@ -168,27 +210,36 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
   })
 
   if (c.draft) {
-    const [contact] = await sbTry<Row[]>(`contacts?email=ilike.${enc(c.draft.to[0])}&select=id&limit=1`, [])
-    // The previous unsent draft for this item is replaced, never left beside the new one.
+    // The previous unsent drafts for this item are replaced, never left beside the new ones.
     await sbTry(`ai_drafts?work_item_id=eq.${enc(id)}&status=in.(pending,draft)`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'rejected', rejection_note: 'replaced by a newer read' }) })
-    const [draft] = await sb<Row[]>('ai_drafts', {
-      method: 'POST', headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        contact_id: contact?.id ?? null, thread_id: c.draft.reply_in_thread, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
-        generated_by: 'gemini', to_email: c.draft.to.join(', '), cc: c.draft.cc.join(', ') || null, subject: c.draft.subject, body: c.draft.body,
-        attachments: c.draft.attach.map(f => input.files.get(f)).filter(Boolean).map(a => ({ filename: a!.filename, mime_type: a!.mime_type, storage_url: a!.storage_url })),
-        work_item_id: id,
-      }),
-    })
-    await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: draft.id }) })
+    const pairId = c.pair_draft ? randomUUID() : null
+    const draftId = await insertDraft(input, id, c.draft, pairId)
+    if (c.pair_draft) await insertDraft(input, id, c.pair_draft, pairId)
+    await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: draftId }) })
   }
-  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action, draft: !!c.draft, draft_withheld: c.draft_withheld } }) })
+  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action, draft: !!c.draft, pair: !!c.pair_draft, draft_withheld: c.draft_withheld, pair_withheld: c.pair_withheld } }) })
   return id
 }
 
+async function insertDraft(input: CaseInput, workItemId: string, d: CaseDraft, pairId: string | null): Promise<string> {
+  const [contact] = await sbTry<Row[]>(`contacts?email=ilike.${enc(d.to[0])}&select=id&limit=1`, [])
+  const [draft] = await sb<Row[]>('ai_drafts', {
+    method: 'POST', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      contact_id: contact?.id ?? null, thread_id: d.reply_in_thread, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
+      generated_by: 'gemini', to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body,
+      attachments: d.attach.map(f => input.files.get(f)).filter(Boolean).map(a => ({ filename: a!.filename, mime_type: a!.mime_type, storage_url: a!.storage_url })),
+      work_item_id: workItemId, pair_id: pairId, party: d.party,
+    }),
+  })
+  return draft.id as string
+}
+
 /** Reads one client and stores every case. Returns what happened, for logs and the dry run. */
-export async function workCompany(companyId: string, opts: { write: boolean; today?: string } = { write: false }) {
-  const input = await loadCase(companyId, opts.today)
+export async function workCompany(companyId: string, opts: { write: boolean; today?: string; focusThreadIds?: string[] } = { write: false }) {
+  const [co] = await sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=kind&limit=1`, [])
+  if (co && caseModeFor(co.kind) === 'none') return { companyId, cases: [] as CleanCase[], stored: 0, dropped: 0, note: `not a client (${co.kind})` }
+  const input = await loadCase(companyId, opts.today, { focusThreadIds: opts.focusThreadIds })
   if (!input) return { companyId, cases: [] as CleanCase[], stored: 0, dropped: 0, note: 'no recent threads' }
   const { cases, dropped, error } = await readCase(input)
   if (error) return { companyId, cases, stored: 0, dropped, note: error }

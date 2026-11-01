@@ -13,6 +13,7 @@
  * set is kept unless the mail now gives a different one, and the change is logged on the item.
  */
 import { clearReferenceCache } from '@/lib/admin/a/references'
+import { isClaimLike } from '@/lib/admin/a/signals'
 import { createHash } from 'node:crypto'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
@@ -21,6 +22,8 @@ import {
   inferStage, waitingOn, documentState, claimGaps, type ClaimStage,
 } from './claim-read'
 import { loadCaseData, toMailLines, itemEvent } from './data'
+import { needsForwardToInsurer } from './drafts'
+import { caseModeFor } from './kinds'
 
 type Row = Record<string, any>
 const ACTOR = 'claims'
@@ -37,7 +40,7 @@ export type ClaimRow = {
 }
 
 /** Reads one claim work item and writes its register row. Returns the row written. */
-export async function refreshClaim(workItemId: string, extra: { gaps?: { item: string; basis: string }[]; opened_mode?: string } = {}): Promise<ClaimRow | null> {
+export async function refreshClaim(workItemId: string, extra: { gaps?: { item: string; basis: string }[]; opened_mode?: string } = {}): Promise<(ClaimRow & { needs_forward: boolean }) | null> {
   const d = await loadCaseData(workItemId)
   if (!d) return null
   const [prev] = await sbTry<Row[]>(`claims?work_item_id=eq.${enc(workItemId)}&select=*&limit=1`, [])
@@ -81,7 +84,16 @@ export async function refreshClaim(workItemId: string, extra: { gaps?: { item: s
   })
   const changed = prev ? (['stage', 'insurer_ref', 'amount_claimed', 'amount_settled', 'loss_date'] as const).filter(k => String(prev[k] ?? '') !== String(row[k] ?? '')) : ['opened']
   if (changed.length) await itemEvent(workItemId, 'note', ACTOR, { claim: changed, stage: row.stage })
-  return row
+  // Forward only what the client's own words show is a claim: a quote request filed as a claim is not sent on.
+  const clientWords = lines.filter(l => l.side === 'client').map(l => l.text).join('\n')
+  return { ...row, needs_forward: !closed && isClaimLike(d.item.title, clientWords) && needsForwardToInsurer(lines, stage) }
+}
+
+/** A client's new claim that has not reached the insurer yet: the drafter forwards it, with a note to the client. */
+async function forwardIfDue(id: string, row: (ClaimRow & { needs_forward: boolean }) | null) {
+  if (!row?.needs_forward || row.closed_at) return false
+  await enqueue({ agent: 'drafter', kind: 'forward_to_insurer', work_item_id: id, company_id: row.company_id, idem_key: `drafter:forward_to_insurer:${id}`, created_by_agent: 'claims' })
+  return true
 }
 
 /** Opens a claim TRS had no case for, from a forward or a thread operations@ joined midway. */
@@ -92,11 +104,14 @@ export async function openClaim(p: { thread_id: string; company_id?: string | nu
   if (!t) throw new Error('thread not found')
   const [co] = t.company_id ? await sbTry<Row[]>(`companies?id=eq.${enc(t.company_id)}&select=id,kind,company_name&limit=1`, []) : []
   const isInsurer = co?.kind === 'insurer'
-  const companyId = p.company_id ?? (isInsurer ? null : t.company_id ?? null)
+  // An insurer, partner broker, TPA or vendor thread does not make that company the claimant's client.
+  const notClient = !!co && caseModeFor(co.kind) !== 'client'
+  const companyId = p.company_id ?? (notClient ? null : t.company_id ?? null)
   const [item] = await sb<Row[]>('work_items', {
     method: 'POST', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
-      company_id: companyId, client_name: isInsurer ? null : co?.company_name ?? null, case_type: 'claim',
+      company_id: companyId, client_name: notClient ? null : co?.company_name ?? null, case_type: 'claim',
+      needs_human: !companyId ? `Which client is this claim for? It came in on a thread filed under ${co?.company_name ?? 'no company'}.` : null,
       title: (p.title ?? stripPrefix(t.subject) ?? 'Claim').slice(0, 140) || 'Claim', status: 'trs_to_act',
       last_activity_at: t.last_message_at, source: ACTOR, confidence: 'low',
       summary: p.mode === 'midway' ? 'Opened midway.' : p.mode === 'from_forward' ? 'Opened from a forward.' : null,
@@ -123,6 +138,8 @@ export async function handleClaims(task: AgentTask): Promise<Record<string, unkn
       // Intake caches claim references; a new claim must be matchable on the next message.
       clearReferenceCache()
       const row = await refreshClaim(id, { gaps, opened_mode: mode })
+      // Sending the claim on comes first; the request for missing items follows once it has gone.
+      if (await forwardIfDue(id, row)) return { work_item_id: id, stage: row?.stage, gaps: row?.gaps.length ?? 0, forward: true }
       if (row && row.gaps.length && !row.closed_at) await enqueue({
         agent: 'drafter', kind: 'request_missing', work_item_id: id, company_id: row.company_id, thread_id: thread,
         idem_key: `drafter:request_missing:${id}:${hash(row.gaps.map(g => g.item))}`, created_by_agent: 'claims',
@@ -139,7 +156,8 @@ export async function handleClaims(task: AgentTask): Promise<Record<string, unkn
       }
       if (!id) { await skip(task.id, 'thread is not on a claim'); return 'handled' }
       const row = await refreshClaim(id)
-      return { work_item_id: id, stage: row?.stage }
+      const forward = await forwardIfDue(id, row)
+      return { work_item_id: id, stage: row?.stage, forward }
     }
     case 'sync': {
       const items = await sbTry<Row[]>('work_items?case_type=eq.claim&closed_at=is.null&select=id&limit=500', [])
