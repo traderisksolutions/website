@@ -2,6 +2,7 @@
  * The claims agent: one job, keep each claim's register row true to its mail. Every class.
  *
  * Kinds it takes:
+ *   case_mail     Intake joined new mail to an open claim; handled as case_update.
  *   case_update   a claim's threads moved (new mail, a forward rejoined). Re-read, update the row.
  *   open_midway   Intake found a claim TRS has no case for: a forward, or operations@ copied in
  *                 partway. Open the work item and the claim, mark how it opened, list the gaps,
@@ -11,6 +12,7 @@
  * Facts come only from the mail and the files (claim-read.ts). A value staff or an earlier read
  * set is kept unless the mail now gives a different one, and the change is logged on the item.
  */
+import { clearReferenceCache } from '@/lib/admin/a/references'
 import { createHash } from 'node:crypto'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
@@ -115,9 +117,11 @@ export async function handleClaims(task: AgentTask): Promise<Record<string, unkn
     case 'open_midway': {
       const thread = (p.thread_id ?? task.thread_id) as string | undefined
       if (!thread) { await skip(task.id, 'no thread'); return 'handled' }
-      const mode = p.mode === 'from_forward' || (Array.isArray(p.rebuilt_message_ids) && p.joined_by === 'forward') ? 'from_forward' : 'midway'
+      const mode = p.opened_mode === 'from_forward' || p.mode === 'from_forward' || (Array.isArray(p.rebuilt_message_ids) && p.joined_by === 'forward') ? 'from_forward' : 'midway'
       const gaps = Array.isArray(p.gaps) ? p.gaps.map((g: any) => typeof g === 'string' ? { item: g, basis: 'named by Intake' } : { item: String(g.item ?? ''), basis: String(g.basis ?? 'named by Intake') }).filter((g: { item: string }) => g.item) : []
       const id = task.work_item_id ?? await openClaim({ thread_id: thread, company_id: task.company_id, title: p.title ?? null, mode, joined_by: p.joined_by ?? null, gaps })
+      // Intake caches claim references; a new claim must be matchable on the next message.
+      clearReferenceCache()
       const row = await refreshClaim(id, { gaps, opened_mode: mode })
       if (row && row.gaps.length && !row.closed_at) await enqueue({
         agent: 'drafter', kind: 'request_missing', work_item_id: id, company_id: row.company_id, thread_id: thread,
@@ -125,8 +129,9 @@ export async function handleClaims(task: AgentTask): Promise<Record<string, unkn
       })
       return { work_item_id: id, stage: row?.stage, gaps: row?.gaps.length ?? 0 }
     }
+    case 'case_mail':   // Intake: new mail joined to an open claim (ClaimMailPayload)
     case 'case_update': {
-      let id = task.work_item_id as string | null
+      let id = (task.work_item_id ?? p.work_item_id ?? null) as string | null
       const thread = (p.thread_id ?? task.thread_id) as string | undefined
       if (!id && thread) {
         const [l] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(thread)}&select=work_item_id,work_items(case_type)&limit=1`, [])
