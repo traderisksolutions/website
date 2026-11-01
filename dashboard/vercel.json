@@ -67,6 +67,14 @@
     {
       "path": "/api/analytics/autonomy/recompute?days=3",
       "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron/autonomy-send",
+      "schedule": "*/30 0-10 * * 1-5"
+    },
+    {
+      "path": "/api/cron/autonomy-send?digest=1",
+      "schedule": "30 9 * * 1-5"
     }
   ]
 }

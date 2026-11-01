@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Btn, Segmented, SectionCard, Spinner } from '@/components/crm/primitives'
 import type { Bucket, Metrics } from '@/lib/analytics/autonomy/metrics'
+import type { LadderRow } from '@/lib/autonomy/rules'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -56,6 +57,93 @@ function Rows({ rows, first, extra }: { rows: Bucket[]; first: string; extra?: (
         ))}
       </tbody>
     </table></div>
+  )
+}
+
+type Sent = { id: string; work_item_id: string | null; draft_class: string; to: string; subject: string; client: string | null; sent_at: string }
+type LadderPayload = { ladder: LadderRow[]; killSwitch: boolean; sentToday: Sent[]; error?: string }
+
+const CLASS_LABEL: Record<string, string> = { ack: 'Acknowledgement', status: 'Status update', request: 'Request for information', forward: 'Forward to insurer', relay: 'Relay to client', answer: 'Answer about cover' }
+const STATUS_LABEL: Record<string, string> = { manual: 'Manual', candidate: 'Candidate', auto: 'Auto-send on', paused: 'Paused' }
+
+/** The ladder: which classes may send without a person, and how far each is from qualifying. */
+function Ladder() {
+  const [l, setL] = useState<LadderPayload | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/autonomy', { cache: 'no-store' })
+      const j = await res.json() as LadderPayload
+      if (!res.ok || j.error) setErr(j.error ?? `Request failed (${res.status})`); else { setL(j); setErr(null) }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Request failed') }
+  }, [])
+  useEffect(() => { load() }, [load])
+  const act = async (cls: string, action: 'auto' | 'pause' | 'manual') => {
+    setBusy(cls)
+    try {
+      const res = await fetch(`/api/autonomy/${encodeURIComponent(cls)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+      const j = await res.json(); if (!res.ok || j.error) setErr(j.error ?? 'Request failed'); else await load()
+    } finally { setBusy(null) }
+  }
+  const pauseAll = async () => {
+    setBusy('all')
+    try { const res = await fetch('/api/autonomy/pause-all', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); const j = await res.json(); if (!res.ok || j.error) setErr(j.error ?? 'Request failed'); else await load() }
+    finally { setBusy(null) }
+  }
+  const auto = l?.ladder.filter(r => r.status === 'auto').length ?? 0
+  return (
+    <>
+      <SectionCard title="Auto-send ladder" actions={<Btn level="secondary" size="sm" onClick={pauseAll} disabled={busy !== null || auto === 0}>Pause all</Btn>}>
+        <p className="text-[12px] mb-3" style={{ color: FAINT }}>
+          A class qualifies after {l?.ladder[0]?.min_unedited ?? 20} approvals sent unedited. A person switches it on; the count never does. Money, terms, chases and decisions never auto-send. {l?.killSwitch ? 'AUTONOMY_AUTOSEND is off: nothing sends.' : ''}
+        </p>
+        {err && <div className="mb-3 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #d5d9d4', color: INK }}>{err}</div>}
+        <div className="overflow-x-auto"><table className="trs-table w-full min-w-[640px]">
+          <thead><tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
+            <th className={th}>Rung</th><th className={th}>Class</th><th className={th}>State</th><th className={`${th} text-right`}>Unedited</th><th className={`${th} text-right`}>Approved</th><th className={`${th} text-right`}>Needed</th><th className={th}>Since</th><th className={th}></th>
+          </tr></thead>
+          <tbody>
+            {(l?.ladder ?? []).map(r => (
+              <tr key={r.draft_class} style={{ borderBottom: `1px solid ${RULE}` }}>
+                <td className={num} style={{ color: MUTED, textAlign: 'left' }}>{r.rung}</td>
+                <td className={td} style={{ color: INK }}>{CLASS_LABEL[r.draft_class] ?? r.draft_class}</td>
+                <td className={td} style={{ color: r.status === 'auto' ? INK : MUTED }}>{STATUS_LABEL[r.status] ?? r.status}{r.status === 'paused' && r.paused_reason ? ` · ${r.paused_reason}` : ''}</td>
+                <td className={num} style={{ color: INK }}>{r.approvals_unedited}</td>
+                <td className={num} style={{ color: MUTED }}>{r.approvals_total}</td>
+                <td className={num} style={{ color: MUTED }}>{r.min_unedited}</td>
+                <td className={td} style={{ color: MUTED }}>{date(r.last_graduated_at)}</td>
+                <td className={td}>
+                  <div className="flex gap-1.5 justify-end">
+                    {(r.status === 'candidate' || (r.status === 'paused' && r.approvals_unedited >= r.min_unedited)) && <Btn level="primary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'auto')}>Switch on auto-send</Btn>}
+                    {r.status === 'auto' && <Btn level="secondary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'pause')}>Pause</Btn>}
+                    {r.status === 'paused' && <Btn level="tertiary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'manual')}>Back to manual</Btn>}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table></div>
+      </SectionCard>
+      <SectionCard title={`Auto-sent today · ${l?.sentToday.length ?? 0}`}>
+        {l && l.sentToday.length === 0 && <p className="text-[13px]" style={{ color: MUTED }}>Nothing auto-sent today.</p>}
+        {l && l.sentToday.length > 0 && (
+          <div className="overflow-x-auto"><table className="trs-table w-full min-w-[640px]">
+            <thead><tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}><th className={th}>Time</th><th className={th}>Class</th><th className={th}>Client</th><th className={th}>To</th><th className={th}>Subject</th><th className={th}></th></tr></thead>
+            <tbody>{l.sentToday.map(s => (
+              <tr key={s.id} style={{ borderBottom: `1px solid ${RULE}` }}>
+                <td className={td} style={{ color: MUTED }}>{new Date(s.sent_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td className={td} style={{ color: INK }}>{CLASS_LABEL[s.draft_class] ?? s.draft_class}</td>
+                <td className={td} style={{ color: INK }}>{s.client ?? '—'}</td>
+                <td className={td} style={{ color: MUTED }}>{s.to}</td>
+                <td className={td} style={{ color: MUTED }}>{s.subject}</td>
+                <td className={td}>{s.work_item_id && <a className="underline" style={{ color: INK }} href={`/today/${s.work_item_id}`}>Open case</a>}</td>
+              </tr>
+            ))}</tbody>
+          </table></div>
+        )}
+      </SectionCard>
+    </>
   )
 }
 
@@ -108,6 +196,8 @@ export default function AutonomyPage() {
 
         {err && <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #d5d9d4', color: INK }}>{err}</div>}
         {loading && !d && <div className="py-16"><Spinner label="Loading" /></div>}
+
+        <div className="mt-6 space-y-6"><Ladder /></div>
 
         {d && (
           <div className="mt-6 space-y-6">
