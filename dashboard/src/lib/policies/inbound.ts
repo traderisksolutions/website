@@ -1,23 +1,29 @@
 /**
- * The mail loop on a live EB policy, after bind.
+ * The mail loop on a live policy, after bind — any class, not only employee benefits.
  *
- *   client mail  "X joined on 1 Nov, Y resigned"  → movements (reported) → draft to the insurer
- *   insurer mail with a debit / credit note        → transactions → the movements it settles
+ *   client mail  "X joined on 1 Nov, Y resigned"  → movements in the open batch (one Today item a week)
+ *   insurer mail with a debit / credit note        → transaction → the movements it settles → TRS note
  *
- * Called from placement's handleInbound when the thread is not part of a placement. Drafts land
- * in ai_drafts as pending with email_type POLICY_MOVEMENT; a person approves and sends them.
+ * Called from placement's handleInbound when the thread is not part of a placement, and from the
+ * eb_movements agent. The ingest call only queues the work (one task per message, whoever asks);
+ * the agent runs it with `direct`, so one code path handles every message once. Set
+ * ADMIN_EB_DIRECT=1 to run inline instead (local tests). The reading itself lives in
+ * src/lib/admin/b/endorsements.
  */
 import { sbTry, bareEmail, emailDomain, isInternal } from '@/lib/crm/db'
 import * as store from '@/lib/placement/store'
 import type { InboundResult } from '@/lib/placement/workflow'
 import { normInsurer } from '@/lib/insurers'
 import * as agent from './agent'
-import { liveEbPolicies, listMembers, recordMovement, openMovements } from './members'
-import { matchMovement, noteMovements, recordTransaction } from './transactions'
+import { liveEbPolicies, recordMovement } from './members'
 import type { PolicyMovement, PolicyRow } from './types'
-import { checkNote, estimateMovements, movementAttachments } from './movement-flow'
+import { estimateMovements, movementAttachments } from './movement-flow'
 import { movementSubject } from './movement-sheet'
 import { shortInsurer } from '@/lib/gb/insurer-names'
+import { enqueue } from '@/lib/agent-tasks/queue'
+import { intakeClientMail } from '@/lib/admin/b/endorsements/intake'
+import { intakeInsurerMail } from '@/lib/admin/b/endorsements/notes'
+import { livePolicies } from '@/lib/admin/b/endorsements/store'
 
 export const MOVEMENT_DRAFT_TYPE = 'POLICY_MOVEMENT'
 
@@ -45,28 +51,19 @@ export function senderIsInsurer(senderDomain: string, insurer: { company_name: s
 }
 
 const label = (p: PolicyRow) => p.label || p.class_of_insurance || p.product_line || 'Employee benefits'
-const money = (currency: string, amount: number) => {
-  const sym = currency === 'SGD' ? 'S$' : `${currency} `
-  const abs = Math.abs(amount).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return `${amount < 0 ? '-' : ''}${sym}${abs}`
-}
-const monthYear = (d: string | null) => d ? new Date(`${d}T00:00:00Z`).toLocaleDateString('en-SG', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : null
-const period = (a: string | null, b: string | null) => {
-  const x = monthYear(a), y = monthYear(b)
-  return x && y ? `${x.split(' ')[0]}–${y.split(' ')[0]}` : (x ?? y ?? null)
-}
 const countText = (ms: Pick<PolicyMovement, 'kind'>[]) => {
   const j = ms.filter(m => m.kind === 'join').length, l = ms.filter(m => m.kind === 'leave').length, c = ms.filter(m => m.kind === 'change').length
   const parts = [j ? `${j} joiner${j === 1 ? '' : 's'}` : '', l ? `${l} leaver${l === 1 ? '' : 's'}` : '', c ? `${c} change${c === 1 ? '' : 's'}` : ''].filter(Boolean)
   return parts.join(', ') || 'no movements'
 }
 
-// ── The request to the insurer ──────────────────────────────────────────────────────────────
+// ── The request to the insurer (a person asks for it from the policy page) ──────────────────
 
 /**
  * Drafts one email to the chosen insurer's EB contact covering every movement given, writes it
  * to ai_drafts (POLICY_MOVEMENT) and stamps the movements with the draft id. Throws when the
- * policy has no insurer or no contact on file for it.
+ * policy has no insurer or no contact on file for it. The weekly batch (endorsements/batches.ts)
+ * does the same by itself; this stays for the policy page's "Request now" button.
  */
 export async function requestMovements(policy: PolicyRow, movements: PolicyMovement[], actor: string): Promise<{ draftId: string; insurerName: string }> {
   if (movements.length === 0) throw new Error('No reported movements to request')
@@ -91,15 +88,12 @@ export async function requestMovements(policy: PolicyRow, movements: PolicyMovem
   })
   if (!text) throw new Error('The agent could not write the request')
 
-  // What each movement should cost, for checking the insurer's note when it comes.
   await estimateMovements(policy, movements).catch(e => console.error('[benefits_admin] estimate', e instanceof Error ? e.message : e))
-  // The insurer's own sheet and the client's original files go with the request.
   const files = await movementAttachments(policy, movements, company?.company_name ?? 'Client', insurerName)
   const counts = { joins: movements.filter(m => m.kind === 'join').length, leaves: movements.filter(m => m.kind === 'leave').length, changes: movements.filter(m => m.kind === 'change').length }
   const subject = movementSubject(shortInsurer(insurerName), company?.company_name ?? 'Client', policy.policy_number, counts)
   const attachedLine = files.attachments.length ? `\n\nAttached: ${files.attachments.map(a => a.filename).join('; ')}.` : ''
 
-  // The latest thread with this insurer on this company carries the draft; otherwise it starts one.
   const prior = insurer ? await sbTry<{ thread_id: string | null }[]>(`placement_dispatches?company_id=eq.${policy.company_id}&insurer_company_id=eq.${insurer.id}&thread_id=not.is.null&order=created_at.desc&limit=1`, []) : []
   const cc = [...new Set(routes.slice(1).map(r => r.email))].slice(0, 5)
   const draft = await store.createDraft({ contact_id: to.contact_id, to_email: to.email, subject, body: `${text.body.trimEnd()}${attachedLine}`, thread_id: prior[0]?.thread_id ?? null, email_type: MOVEMENT_DRAFT_TYPE, cc, attachments: files.attachments })
@@ -113,17 +107,19 @@ export async function requestMovements(policy: PolicyRow, movements: PolicyMovem
 
 /**
  * The client whose policy a thread is about. The thread's own company first; then a movement
- * request TRS sent on this thread (insurer replies are often filed under the insurer); then a live
- * EB policy whose number appears in the subject, or whose client's name does (QBE's automated
+ * request TRS sent on this thread (insurer replies are often filed under the insurer); then a
+ * live policy whose number appears in the subject, or whose client's name does (QBE's automated
  * "Customer <INSURED NAME>" mails).
  */
 async function clientFor(threadId: string, threadCompany: string | null, subject: string | null): Promise<{ companyId: string; policyId: string | null } | null> {
-  if (threadCompany && (await liveEbPolicies(threadCompany)).length) return { companyId: threadCompany, policyId: null }
-  const sent = await sbTry<{ id: string }[]>(`ai_drafts?thread_id=eq.${threadId}&email_type=eq.${MOVEMENT_DRAFT_TYPE}&select=id&limit=5`, [])
+  if (threadCompany && (await livePolicies(threadCompany)).length) return { companyId: threadCompany, policyId: null }
+  const sent = await sbTry<{ id: string; work_item_id: string | null }[]>(`ai_drafts?thread_id=eq.${threadId}&or=(email_type.eq.${MOVEMENT_DRAFT_TYPE},context_used->>kind.eq.movement_batch)&select=id,work_item_id&limit=5`, [])
   if (sent.length) {
     const [m] = await sbTry<{ company_id: string; policy_id: string }[]>(`policy_movements?sent_draft_id=in.(${sent.map(d => d.id).join(',')})&select=company_id,policy_id&limit=1`, [])
     if (m) return { companyId: m.company_id, policyId: m.policy_id }
   }
+  const [batch] = await sbTry<{ company_id: string; policy_id: string }[]>(`movement_batches?thread_id=eq.${threadId}&select=company_id,policy_id&limit=1`, [])
+  if (batch) return { companyId: batch.company_id, policyId: batch.policy_id }
   const subj = (subject ?? '').toLowerCase()
   if (!subj) return null
   const live = await liveEbPolicies()
@@ -144,13 +140,20 @@ function pickPolicy(policies: PolicyRow[], text: string): PolicyRow {
   return byInsurer.length === 1 ? byInsurer[0] : policies[0]
 }
 
-export async function handlePolicyInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }): Promise<InboundResult> {
+export const ebDirect = (env: Record<string, string | undefined> = process.env) => env.ADMIN_EB_DIRECT === '1'
+
+export async function handlePolicyInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }, opts: { direct?: boolean } = {}): Promise<InboundResult> {
   if (input.direction !== 'inbound') return { handled: 'none' }
+  if (!opts.direct && !ebDirect()) {
+    // Queued once per message, whoever asks (ingest, intake): the eb_movements agent runs it.
+    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${input.message_id}`, created_by_agent: 'system', message_id: input.message_id, thread_id: input.thread_id, payload: { message_id: input.message_id } })
+    return { handled: 'none', detail: 'queued' }
+  }
   const thread = await store.thread(input.thread_id)
   if (!thread) return { handled: 'none' }
   const client = await clientFor(input.thread_id, thread.company_id, thread.subject)
   if (!client) return { handled: 'none' }
-  const all = await liveEbPolicies(client.companyId)
+  const all = await livePolicies(client.companyId)
   const policies = client.policyId ? [...all.filter(p => p.id === client.policyId), ...all.filter(p => p.id !== client.policyId)] : all
   if (policies.length === 0) return { handled: 'none' }
   const msg = await store.message(input.message_id)
@@ -159,84 +162,23 @@ export async function handlePolicyInbound(input: { message_id: string; thread_id
   if (!sender || isInternal(sender)) return { handled: 'none' }
   const domain = emailDomain(sender)
 
-  // The chosen insurer writing in: its note settles movements.
+  // The insurer writing in: its note settles movements. The policy its mail names, else the first whose insurer it is.
+  const insurerPolicies: PolicyRow[] = []
   for (const p of policies) {
     const insurer = await insurerCompany(p.chosen_insurer_company_id)
-    if (!senderIsInsurer(domain, insurer, p.insurer)) continue
-    if (!msg.has_attachments) return { handled: 'none', detail: 'insurer mail without attachment' }
-    return handleInsurerNote(p, insurer?.company_name ?? p.insurer ?? 'The insurer', msg, input.thread_id)
+    if (senderIsInsurer(domain, insurer, p.insurer)) insurerPolicies.push(p)
+  }
+  if (insurerPolicies.length) {
+    if (!msg.has_attachments && !/credit note|debit note|tax invoice|endorsement/i.test(`${msg.subject ?? ''}\n${msg.body_text ?? ''}`)) return { handled: 'none', detail: 'insurer mail without a note' }
+    const p = pickPolicy(insurerPolicies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}`)
+    const insurer = await insurerCompany(p.chosen_insurer_company_id)
+    const r = await intakeInsurerMail(p, insurer?.company_name ?? p.insurer ?? 'The insurer', msg, input.thread_id)
+    return { handled: 'insurer', detail: r.detail }
   }
 
-  // The client writing in. Its attachments are read first: a list sent only as an Excel or PDF
-  // with "please update" in the body is still a movement.
-  const company = await store.company(client.companyId)
-  const atts = await store.attachmentsFor(msg.id, !!msg.has_attachments)
-  const policy = pickPolicy(policies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}\n${atts.map(a => `${a.filename}\n${(a.parsed_text ?? '').slice(0, 2000)}`).join('\n')}`)
-  const cls = await agent.classifyMovementMail(msg, atts, { companyName: company?.company_name ?? 'the client', policyLabel: label(policy) })
-  if (!cls.isMovement || cls.confidence < 0.5) return { handled: 'none', detail: 'not a movement' }
-  return handleClientMovements(policy, company?.company_name ?? 'the client', msg, input.thread_id)
+  // The client writing in: a change request on one of its policies.
+  const r = await intakeClientMail(client.companyId, msg, input.thread_id)
+  return { handled: r.handled ? 'client' : 'none', detail: r.detail }
 }
 
-async function handleClientMovements(policy: PolicyRow, companyName: string, msg: store.MailMessage, threadId: string): Promise<InboundResult> {
-  const atts = await store.attachmentsFor(msg.id, !!msg.has_attachments)
-  const members = await listMembers(policy.id)
-  const read = await agent.readMovementMail(msg, atts, { companyName, policyLabel: label(policy), members })
-  const base = { company_id: policy.company_id!, thread_id: threadId, message_id: msg.id }
-  if (!read || read.movements.length === 0) {
-    await store.log({ ...base, kind: 'reply', actor: 'system', text: 'Client wrote about staff movements; the agent could not list them. Open the thread.', detail: { policy_id: policy.id } })
-    return { handled: 'client', detail: 'unread' }
-  }
-  const rows: PolicyMovement[] = []
-  for (const m of read.movements) {
-    try {
-      rows.push(await recordMovement(policy.id, policy.company_id!, { ...m, reported_thread_id: threadId, reported_message_id: msg.id }))
-    } catch (e) { console.error('[benefits_admin] movement write', e instanceof Error ? e.message : e) }
-  }
-  let tail = ''
-  try {
-    const r = await requestMovements(policy, rows, 'agent')
-    tail = ` — request to ${r.insurerName} drafted`
-  } catch (e) {
-    tail = ` — ${e instanceof Error ? e.message : 'request not drafted'}`
-  }
-  await store.log({ ...base, kind: 'change', text: `Client reported ${countText(rows)}${tail}`, detail: { policy_id: policy.id, movement_ids: rows.map(r => r.id) } })
-  return { handled: 'client', detail: `movements ${rows.length}` }
-}
-
-async function handleInsurerNote(policy: PolicyRow, insurerName: string, msg: store.MailMessage, threadId: string): Promise<InboundResult> {
-  const atts = await store.attachmentsFor(msg.id, true)
-  const members = await listMembers(policy.id)
-  const read = await agent.readInsurerNote(msg, atts, { insurerName, policyLabel: label(policy), policyNumber: policy.policy_number, members })
-  const base = { company_id: policy.company_id!, thread_id: threadId, message_id: msg.id }
-  if (!read) {
-    await store.log({ ...base, kind: 'reply', actor: 'system', text: `${insurerName} sent a document; the agent could not read it. Open the thread.`, detail: { policy_id: policy.id } })
-    return { handled: 'insurer', detail: 'unread' }
-  }
-  if (read.notes.length === 0) return { handled: 'insurer', detail: 'no note' }
-  let open = await openMovements(policy.id)
-  let written = 0
-  for (const n of read.notes) {
-    if (n.amount == null && !n.note_no) continue
-    const att = atts.find(a => (n.evidence.amount?.source ?? '').includes(a.filename)) ?? null
-    const { transaction, duplicate } = await recordTransaction(policy.id, policy.company_id!, {
-      kind: n.kind, note_no: n.note_no, issued_on: n.issued_on ?? msg.sent_at?.slice(0, 10) ?? null, pax: n.pax, amount: n.amount ?? 0,
-      currency: n.currency ?? policy.currency ?? 'SGD', description: n.description, period_start: n.period_start, period_end: n.period_end,
-      insurer: insurerName, member_names: n.member_names, source_thread_id: threadId, source_message_id: msg.id, source_attachment_id: att?.id ?? null,
-      evidence: n.evidence, needs_review: n.needs_review,
-    })
-    if (duplicate) continue
-    written++
-    const matched = matchMovement(transaction, open)
-    await noteMovements(transaction.id, matched)
-    const check = await checkNote(policy, transaction, matched).catch(() => null)
-    open = open.filter(m => !matched.some(x => x.id === m.id))
-    const who = matched.length ? matched : null
-    const whoText = who ? `${who.length} ${who[0].kind === 'leave' ? 'leaver' : who[0].kind === 'join' ? 'joiner' : 'change'}${who.length === 1 ? '' : 's'} (${who.map(m => m.member_name).join(', ')})`
-      : n.member_names.length ? `${n.pax ?? n.member_names.length} pax (${n.member_names.join(', ')})` : n.pax ? `${n.pax} pax` : 'the policy'
-    const per = period(transaction.period_start, transaction.period_end)
-    const vsEstimate = check?.estimate != null ? ` (expected ${money(transaction.currency, check.estimate)}${check.withinTolerance ? '' : ', check the difference'})` : ''
-    await store.log({ ...base, kind: 'billing', text: `${insurerName} ${transaction.kind} note${transaction.note_no ? ` ${transaction.note_no}` : ''}: ${money(transaction.currency, transaction.amount)} for ${whoText}${per ? `, ${per}` : ''}${vsEstimate}${transaction.needs_review ? ' — check the figure against the source' : ''}`,
-      detail: { policy_id: policy.id, transaction_id: transaction.id, movement_ids: matched.map(m => m.id) } })
-  }
-  return { handled: 'insurer', detail: `notes ${written}` }
-}
+export { recordMovement }
