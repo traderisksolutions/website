@@ -155,6 +155,12 @@ export type AiFeature =
   | 'nexus_chase_draft'
   // The case worker (31 Oct 2026): reads a case's threads whole and prepares the next step.
   | 'case_work'
+  // Autonomous admin (1 Nov 2026): the siloed agents on agent_tasks.
+  | 'admin_fact_read'
+  | 'admin_claim_read'
+  | 'admin_endorsement_read'
+  | 'admin_route'
+  | 'admin_draft'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number

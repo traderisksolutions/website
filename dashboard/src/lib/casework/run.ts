@@ -33,6 +33,8 @@ For each case decide:
 - needs_human: any decision you must not make (coverage dispute, claim decline, payee or bank details, premium acceptance, cancelling cover). Say exactly what must be decided.
 - evidence: verbatim quotes, under 160 characters, from the message that sets the status.
 
+Messages marked REBUILT were read out of a forward or quoted history: TRS never received them. Use them for the history of the case; reply only on a real thread; a file they name is not held unless it is listed as an attachment elsewhere — ask for it.
+
 Never invent an amount, date, policy number, name or attachment. If it is not in the mail, say it is missing.
 
 Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"draft":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
@@ -69,6 +71,8 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   const attachments = await inChunks(ids, 30, chunk => sbTry<Row[]>(`email_attachments?thread_id=in.(${chunk.join(',')})&select=message_id,thread_id,filename,mime_type,storage_url`, []))
   // Recipients live here, not in the message row: without them a reply has nobody to go to.
   const people = await inChunks(ids, 30, chunk => sbTry<Row[]>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=message_id,email,role`, []))
+  // Messages TRS never received, rebuilt from forwards and quoted history (src/lib/admin/a/intake.ts).
+  const rebuilt = await inChunks(ids, 30, chunk => sbTry<Row[]>(`rebuilt_messages?thread_id=in.(${chunk.join(',')})&select=thread_id,origin,from_address,to_addresses,cc_addresses,sent_at,sent_at_text,subject,body_text,attachments_named,trs_copied&order=position.asc`, []))
   const peopleBy = new Map<string, Row[]>()
   for (const p of people) peopleBy.set(p.message_id, [...(peopleBy.get(p.message_id) ?? []), p])
   const policies = await sbTry<Row[]>(`policies?company_id=eq.${enc(companyId)}&select=insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle&order=end_date.desc.nullslast&limit=25`, [])
@@ -90,6 +94,13 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   for (const t of threads) {
     threadSide.set(t.id, t.company_id === companyId ? 'client' : insurerIds.has(t.company_id) ? 'insurer' : 'other')
     const lines = [`### THREAD ${t.id}\nsubject: ${t.subject ?? ''}`]
+    for (const r of rebuilt.filter(r => r.thread_id === t.id)) {
+      const body = String(r.body_text ?? '').slice(0, 3000)
+      texts.push(body)
+      if (r.from_address) addresses.add(String(r.from_address).toLowerCase())
+      const to = (r.to_addresses ?? []).join(', '), cc = (r.cc_addresses ?? []).join(', ')
+      lines.push(`--- REBUILT from ${r.origin} (TRS did not receive this${r.trs_copied ? '' : '; TRS was not copied'}) ${r.sent_at ?? r.sent_at_text ?? 'date unknown'} from ${r.from_address ?? 'unknown'}${to ? `\nto: ${to}` : ''}${cc ? `\ncc: ${cc}` : ''}${r.attachments_named?.length ? `\nnames files (not held by TRS): ${r.attachments_named.join(', ')}` : ''}\n${body}`)
+    }
     for (const m of messages.filter(m => m.thread_id === t.id)) {
       const body = latestText(m.body_text, 4000)
       texts.push(body)
