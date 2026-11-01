@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ListChecks, Building2, Inbox, Table2, ShieldCheck, FileText, Landmark, FolderOpen, Megaphone,
-  Settings, History, AlertTriangle, Cpu, TrendingUp, Users } from 'lucide-react'
+  Settings, History, AlertTriangle, Cpu, TrendingUp, Users, Gauge } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
 
@@ -82,6 +82,7 @@ export const ACCOUNT_LINKS: { title: string; href: string; icon: LucideIcon }[] 
   { title: 'Activity log', href: '/analytics/activity',  icon: History },
   { title: 'Error log',    href: '/analytics/error-log', icon: AlertTriangle },
   { title: 'AI spend',     href: '/analytics/ai-usage',  icon: Cpu },
+  { title: 'Autonomy',     href: '/analytics/autonomy',  icon: Gauge },
   { title: 'Kyn ROI',      href: '/kyn-roi',             icon: TrendingUp },
 ]
 
