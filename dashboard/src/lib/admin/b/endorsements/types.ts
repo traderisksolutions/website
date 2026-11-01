@@ -28,4 +28,8 @@ export type BatchRow = {
   sheet_storage_url: string | null; counts: Record<string, number>; estimate_total: number | null; noted_total: number | null
   needs_human: string | null; sent_at: string | null; noted_at: string | null; billed_at: string | null; settled_at: string | null
   chase_count: number; last_chase_at: string | null; next_chase_at: string | null; created_at: string; updated_at: string
+  /** Amendments (20261104): revision n of a batch the insurer already has; the parent is revision 1. */
+  revision: number; parent_batch_id: string | null
+  /** awaiting_client while the insurer's question is with the client; partial when the insurer noted some movements. */
+  sub_state: 'awaiting_client' | 'partial' | null; awaiting_since: string | null; question: string | null
 }

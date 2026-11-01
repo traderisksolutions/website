@@ -23,6 +23,7 @@ import { shortInsurer } from '@/lib/gb/insurer-names'
 import { enqueue } from '@/lib/agent-tasks/queue'
 import { intakeClientMail } from '@/lib/admin/b/endorsements/intake'
 import { intakeInsurerMail } from '@/lib/admin/b/endorsements/notes'
+import { detectInsurerIntent } from '@/lib/admin/b/endorsements/cues'
 import { livePolicies } from '@/lib/admin/b/endorsements/store'
 
 export const MOVEMENT_DRAFT_TYPE = 'POLICY_MOVEMENT'
@@ -169,7 +170,7 @@ export async function handlePolicyInbound(input: { message_id: string; thread_id
     if (senderIsInsurer(domain, insurer, p.insurer)) insurerPolicies.push(p)
   }
   if (insurerPolicies.length) {
-    if (!msg.has_attachments && !/credit note|debit note|tax invoice|endorsement/i.test(`${msg.subject ?? ''}\n${msg.body_text ?? ''}`)) return { handled: 'none', detail: 'insurer mail without a note' }
+    if (!msg.has_attachments && !/credit note|debit note|tax invoice|endorsement/i.test(`${msg.subject ?? ''}\n${msg.body_text ?? ''}`) && detectInsurerIntent(msg.subject, msg.body_text).intent === 'none') return { handled: 'none', detail: 'insurer mail without a note' }
     const p = pickPolicy(insurerPolicies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}`)
     const insurer = await insurerCompany(p.chosen_insurer_company_id)
     const r = await intakeInsurerMail(p, insurer?.company_name ?? p.insurer ?? 'The insurer', msg, input.thread_id)

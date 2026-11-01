@@ -16,6 +16,8 @@ export type MovementRow = PolicyMovement & {
   movement_type: string; subject: string | null; batch_id: string | null; work_item_id: string | null; read_by: string | null; quote: string | null
   last_day: string | null; employment_date: string | null; category: string | null; plan_code: string | null
   estimate_amount: number | null; annual_rate: number | null; sent_at: string | null; noted_at: string | null; billed_at: string | null; settled_at: string | null
+  /** Versions (20261104): v2 supersedes v1; a cancelled row keeps its reason; a reversal names the insurer note it undoes. */
+  version: number; supersedes_id: string | null; cancelled_at: string | null; cancel_reason: string | null; reversal_of_transaction_id: string | null
 }
 
 export async function batch(id: string): Promise<BatchRow | null> {

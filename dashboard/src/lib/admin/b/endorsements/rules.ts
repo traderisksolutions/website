@@ -91,6 +91,24 @@ export function batchTitle(c: Counts, estimate: number | null, insurer: string |
   return `Approve batch: ${parts.join(', ') || 'no movements'}${est}${tail ? ` · ${tail}` : ''}`.slice(0, 140)
 }
 
+/** The Today item's title for an amendment: "Approve amendment: cancel 1, change 1, est. -S$104.20 · QBE N0018606 (rev. 2)". */
+export function amendmentTitle(ops: { cancel: number; replace: number; reverse: number; add: number }, estimate: number | null, insurer: string | null, policyNumber: string | null, revision: number): string {
+  const parts = [ops.cancel ? `cancel ${ops.cancel}` : '', ops.replace ? `change ${ops.replace}` : '', ops.reverse ? `reverse ${ops.reverse}` : '', ops.add ? `add ${ops.add}` : ''].filter(Boolean)
+  const est = estimate != null ? `, est. ${money(estimate)}` : ''
+  const tail = [insurer, policyNumber].filter(Boolean).join(' ')
+  return `Approve amendment: ${parts.join(', ') || 'no changes'}${est}${tail ? ` · ${tail}` : ''} (rev. ${revision})`.slice(0, 140)
+}
+
+/** What an amendment batch asks the insurer, counted by operation. */
+export function amendmentOps(ms: { detail?: Record<string, unknown> | null; supersedes_id?: string | null }[]): { cancel: number; replace: number; reverse: number; add: number } {
+  const ops = { cancel: 0, replace: 0, reverse: 0, add: 0 }
+  for (const m of ms) {
+    const a = (m.detail ?? {}).amendment
+    if (a === 'cancel') ops.cancel++; else if (a === 'reverse') ops.reverse++; else if (a === 'replace' || m.supersedes_id) ops.replace++; else ops.add++
+  }
+  return ops
+}
+
 /** The Today item's title for the TRS note to the client. */
 export function noteTitle(kind: 'debit' | 'credit', amount: number, noteNo: string | null, insurer: string | null): string {
   return `Approve ${kind === 'credit' ? 'credit' : 'debit'} note to client: ${money(Math.abs(amount))}${noteNo ? ` for ${insurer ?? 'insurer'} ${noteNo}` : insurer ? ` (${insurer})` : ''}`.slice(0, 140)
@@ -110,8 +128,10 @@ export const gstRateFor = (line: string | null, className: string | null) => (/t
 /** Chase an unbilled batch 5 working days after sending, then every 5 working days, up to three times. */
 export const CHASE_AFTER_DAYS = 7
 export const MAX_CHASES = 3
-export function chaseDue(b: { status: BatchStatus; sent_at: string | null; next_chase_at: string | null; chase_count: number }, now: Date): boolean {
+export function chaseDue(b: { status: BatchStatus; sent_at: string | null; next_chase_at: string | null; chase_count: number; sub_state?: string | null }, now: Date): boolean {
   if (b.status !== 'sent' || !b.sent_at || b.chase_count >= MAX_CHASES) return false
+  // The insurer's question is with the client: the clock is paused until the client answers.
+  if (b.sub_state === 'awaiting_client') return false
   const at = b.next_chase_at ?? new Date(Date.parse(b.sent_at) + CHASE_AFTER_DAYS * 86_400_000).toISOString()
   return Date.parse(at) <= now.getTime()
 }
