@@ -25,6 +25,14 @@ export function TopNavbar() {
 
   useEffect(() => { createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null)) }, [])
   useEffect(() => { setMobileOpen(false); setJumpOpen(false) }, [pathname])
+  // Today's count beside its place: items to go through, not those set for later. Refreshed when
+  // a person leaves Today, so a cleared item drops off the number.
+  const [todayCount, setTodayCount] = useState<number | null>(null)
+  const onToday = pathname.startsWith('/today')
+  useEffect(() => {
+    if (onToday) return
+    fetch('/api/today/count', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => setTodayCount(typeof d?.count === 'number' ? d.count : null)).catch(() => setTodayCount(null))
+  }, [onToday])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setJumpOpen(v => !v) }
@@ -93,6 +101,7 @@ export function TopNavbar() {
           {PLACES.map(place => (
             <Link key={place.label} href={place.href} aria-current={current?.label === place.label ? 'page' : undefined} className="trs-place">
               {place.label}
+              {place.href === '/today' && todayCount !== null && <span className="font-mono text-[11px] text-trs-muted tabular-nums">{todayCount}</span>}
             </Link>
           ))}
         </nav>
