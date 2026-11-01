@@ -22,6 +22,7 @@ import {
   inferStage, waitingOn, documentState, claimGaps, type ClaimStage,
 } from './claim-read'
 import { loadCaseData, toMailLines, itemEvent } from './data'
+import { settledFromAttachments } from '@/lib/documents/money-store'
 import { needsForwardToInsurer } from './drafts'
 import { caseModeFor } from './kinds'
 
@@ -69,7 +70,8 @@ export async function refreshClaim(workItemId: string, extra: { gaps?: { item: s
     claimant: pick(findClaimant(text), prev?.claimant),
     loss_date: pick(findLossDate(text), prev?.loss_date),
     amount_claimed: pick(findClaimedAmount(text), prev?.amount_claimed),
-    amount_settled: pick(findSettledAmount(text), prev?.amount_settled),
+    // The mail's words first; else the insurer's settlement letter among the attachments.
+    amount_settled: pick(findSettledAmount(text), prev?.amount_settled) ?? (await settledFromAttachments(d.messages.map(m => m.id)))?.value ?? null,
     stage,
     waiting_on: waitingOn(lines, stage),
     gaps: closed ? [] : gaps,

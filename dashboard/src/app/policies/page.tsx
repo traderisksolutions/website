@@ -72,7 +72,7 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                   : 'No client'} />
                 <RegisterCell>{r.class_of_insurance ?? (r.product_line ? productLineLabel(r.product_line) : '—')}</RegisterCell>
                 <RegisterCell>{r.insurer ?? '—'}</RegisterCell>
-                <RegisterCell className="font-mono text-[12.5px]">{r.policy_number ?? '—'}</RegisterCell>
+                <RegisterCell className="font-mono text-[12.5px]"><Link href={`/policies/${r.id}`} className="text-trs-ink no-underline hover:underline">{r.policy_number ?? 'Ledger'}</Link></RegisterCell>
                 <RegisterCell className="tabular-nums">{r.start_date || r.end_date ? `${r.start_date ? fmtDate(r.start_date) : '?'} – ${r.end_date ? fmtDate(r.end_date) : '?'}` : '—'}</RegisterCell>
                 <RegisterCell last>
                   {lapsedLive ? <Chip tone="red">Past expiry</Chip> : <Chip tone={r.lifecycle === 'renewal_due' ? 'amber' : r.lifecycle === 'live' || r.lifecycle === 'bound' ? 'green' : 'neutral'}>{LIFECYCLE_LABEL[r.lifecycle] ?? r.lifecycle}</Chip>}
