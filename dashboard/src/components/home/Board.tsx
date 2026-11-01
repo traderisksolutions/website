@@ -1,5 +1,6 @@
 'use client'
 
+import { PageHeader } from '@/components/page-header'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Pin } from 'lucide-react'
@@ -60,13 +61,10 @@ export function Board() {
   const total = data?.columns.reduce((n, c) => n + c.cards.length, 0) ?? 0
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-12 pt-14 pb-20">
+    <div className="bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
 
-        <header className="text-center max-w-[720px] mx-auto">
-          <h1 className="m-0 text-[36px] sm:text-[44px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>Companies to work on</h1>
-          <p className="m-0 mt-3 text-[14px]" style={{ color: '#6f7a74' }}>{longDate(new Date())}</p>
-        </header>
+        <PageHeader className="mb-2" title="Companies to work on" meta={<>{longDate(new Date())}{data ? ` · ${total} pinned` : ''}</>} />
 
         {error && <p className="mt-10 text-[14px] text-center" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void load()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
 

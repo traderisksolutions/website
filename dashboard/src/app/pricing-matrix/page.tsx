@@ -136,7 +136,7 @@ function PricingMatrix() {
   }, [hrLinkId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
       <div className="flex items-end justify-between gap-6 flex-wrap">
         <div className="min-w-0 max-w-[640px]">

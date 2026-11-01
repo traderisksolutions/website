@@ -1,5 +1,7 @@
 'use client'
 
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/page-header'
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
@@ -118,28 +120,20 @@ export default function CalendarPage() {
   function goto(delta: number) { setViewDate(d => new Date(d.getFullYear(), d.getMonth() + delta, 1)) }
   function gotoToday() { const d = nowSGT(); d.setDate(1); setViewDate(d) }
 
-  const navBtn = 'w-9 h-9 inline-flex items-center justify-center rounded-[10px] border bg-white cursor-pointer hover:bg-[#faf9f6]'
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">
-              {MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span>
-            </h1>
-            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
-              {loading ? 'Loading…' : `${events.length} item${events.length === 1 ? '' : 's'} this month`}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => goto(-1)} aria-label="Previous month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronLeft size={16} /></button>
-            <button type="button" onClick={() => goto(1)} aria-label="Next month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronRight size={16} /></button>
-            <Btn level="secondary" className="h-9 px-4" onClick={gotoToday}>Today</Btn>
-          </div>
-        </div>
+    <div className="bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+        <PageHeader
+          title={<>{MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span></>}
+          meta={loading ? 'Loading…' : `${events.length} item${events.length === 1 ? '' : 's'} this month`}
+          actions={<>
+            <Button variant="outline" size="icon" onClick={() => goto(-1)} aria-label="Previous month"><ChevronLeft /></Button>
+            <Button variant="outline" size="icon" onClick={() => goto(1)} aria-label="Next month"><ChevronRight /></Button>
+            <Btn level="secondary" onClick={gotoToday}>Today</Btn>
+          </>} />
 
-        <div className="mt-8 flex items-center gap-4 flex-wrap">
+        <div className="mt-6 flex items-center gap-4 flex-wrap">
           <Segmented
             value={renewalWin}
             onChange={setRenewalWin}

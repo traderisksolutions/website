@@ -58,7 +58,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
   const noContact = (rows ?? []).filter(r => r.status === 'active' && r.contacts.length === 0).length
 
   return (
-    <div className={embedded ? '' : 'min-h-[calc(100vh-56px)] bg-white'} style={{ color: INK }}>
+    <div className={embedded ? '' : 'min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white'} style={{ color: INK }}>
       <div className={embedded ? 'pt-6' : 'mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20'}>
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">

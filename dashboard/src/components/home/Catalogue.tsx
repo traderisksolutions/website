@@ -53,7 +53,7 @@ export function Catalogue() {
   const pin = (id: string, on: boolean) => void patchCompany(id, { pinned: on })
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
       <div className="mx-auto max-w-[1280px] px-6 sm:px-12 lg:px-16 pt-14 pb-20">
 
         <header className="text-center max-w-[720px] mx-auto">

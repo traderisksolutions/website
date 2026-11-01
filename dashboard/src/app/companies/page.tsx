@@ -5,6 +5,8 @@ import { InsurersDirectory } from '@/components/insurers/InsurersDirectory'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { PageHeader } from '@/components/page-header'
+import { Btn, Segmented } from '@/components/crm/primitives'
 import { NewCompanyDialog } from '@/components/crm/dialogs'
 import { useBoardData, type Row } from '@/components/board/useBoardData'
 import { CompanyTable, compareRows, SORT_LABEL, type Sort, type SortKey } from '@/components/companies/CompanyTable'
@@ -108,39 +110,30 @@ function CompaniesInner() {
   const anyFilter = view !== 'all' || activeCount > 0 || !!q.trim()
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK, fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
-        {/* Header */}
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Contacts</h1>
-            {kind === 'client' && <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{data ? `${rows.filter(r => r.company.kind === kind).length} ${kind === 'client' ? 'client' : 'insurer'} relationship${rows.filter(r => r.company.kind === kind).length === 1 ? '' : 's'}` : 'Loading…'}</p>}
-            <div className="mt-4 flex items-center gap-6" role="tablist" aria-label="Clients or insurers">
-              {(['client', 'insurer'] as const).map(k => {
-                const on = kind === k
-                const n = rows.filter(r => r.company.kind === k).length
-                return <button key={k} type="button" role="tab" aria-selected={on} onClick={() => { setKind(k); router.replace(k === 'insurer' ? '/companies?kind=insurer' : '/companies', { scroll: false }) }} className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')} style={{ color: on ? INK : MUTED }}>{k === 'client' ? 'Clients' : 'Insurers'}<span className="ml-1.5 tabular-nums" style={{ color: '#6f7a74' }}>{data ? n : ''}</span><span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden /></button>
-              })}
-            </div>
-          </div>
-          {kind === 'client' && <div className="flex items-center gap-3 flex-wrap">
-            {sync !== 'idle' && <span role="status" className="text-[13px]" style={{ color: '#6f7a74' }}>{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
+    <div className="bg-white text-trs-ink">
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+        <PageHeader
+          title="Companies"
+          meta={data ? `${rows.filter(r => r.company.kind === kind).length} ${kind === 'client' ? 'clients' : 'insurers'}` : 'Loading…'}
+          actions={kind === 'client' && <>
+            {sync !== 'idle' && <span role="status" className="text-[13px] text-trs-subtle">{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
             <label className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
-              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-9 w-[260px] sm:w-[340px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors" style={{ borderColor: '#d5d9d4' }} />
-              {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
-                 : <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[11px] border rounded px-1.5 leading-[18px] hidden sm:block" style={{ color: '#8c958f', borderColor: '#d5d9d4' }}>/</kbd>}
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
+              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-9 w-[220px] sm:w-[300px] rounded-[8px] border border-trs-line-2 bg-white pl-9 pr-9 text-[14px] outline-none focus:border-trs-ink transition-colors" />
+              {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer text-trs-muted hover:bg-trs-canvas"><X size={13} /></button>
+                 : <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] border border-trs-line-2 rounded px-1.5 leading-[18px] hidden sm:block text-trs-subtle">/</kbd>}
             </label>
             <div className="relative">
-              <button type="button" onClick={() => setFilterOpen(v => !v)} aria-expanded={filterOpen} aria-haspopup="dialog"
-                className={cn('h-9 px-4 rounded-[7px] border bg-white text-[14px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]', activeCount ? 'font-medium' : '')} style={{ borderColor: activeCount ? INK : '#d5d9d4', color: INK }}>
+              <Btn onClick={() => setFilterOpen(v => !v)} aria-expanded={filterOpen} aria-haspopup="dialog" className={activeCount ? 'border-trs-ink' : undefined}>
                 <SlidersHorizontal size={15} /> Filter{activeCount ? ` · ${activeCount}` : ''}
-              </button>
+              </Btn>
               {filterOpen && <FilterPopover f={f} onChange={next => setF(v => ({ ...v, ...next }))} staff={staffList} me={me} onClose={() => setFilterOpen(false)} onClear={() => setF(EMPTY)} />}
             </div>
-            <button type="button" onClick={() => setCreating(true)} className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90" style={{ background: '#132c1c' }}>Add client</button>
-          </div>}
-        </div>
+            <Btn level="primary" onClick={() => setCreating(true)}>Add client</Btn>
+          </>}
+        >
+          <Segmented<'client' | 'insurer'> value={kind} label="Clients or insurers" onChange={k => { setKind(k); router.replace(k === 'insurer' ? '/companies?kind=insurer' : '/companies', { scroll: false }) }} options={(['client', 'insurer'] as const).map(k => ({ value: k, label: k === 'client' ? 'Clients' : 'Insurers', count: data ? rows.filter(r => r.company.kind === k).length : undefined }))} />
+        </PageHeader>
 
         {kind === 'insurer' && <InsurersDirectory embedded />}
 

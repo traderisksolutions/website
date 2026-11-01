@@ -60,7 +60,7 @@ export function LeadDrawer({ id, lookupOn, onClose, onPrev, onNext, onChanged }:
   return (
     <aside ref={panel} tabIndex={-1} role="dialog" aria-label={lead?.company ?? 'Lead'}
       className="fixed right-0 z-40 w-full sm:w-[480px] bg-white flex flex-col outline-none"
-      style={{ top: 56, bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(15,20,18,0.25)', color: INK }}>
+      style={{ top: 'var(--top-nav-h)', bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(15,20,18,0.25)', color: INK }}>
       <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Spinner, Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { PageHeader } from '@/components/page-header'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { RecordPaymentDialog } from '@/components/crm/RecordPaymentDialog'
 import { fmtMoney, fmtDate } from '@/lib/crm/format'
@@ -84,16 +85,12 @@ export default function FinancePage() {
   const pct = sgd && sgd.billed > 0 ? Math.round((sgd.collected / sgd.billed) * 100) : 0
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Finance</h1>
-            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
-              {data ? `${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'} waiting for payment, oldest first.` : 'Loading…'}
-            </p>
-          </div>
-        </div>
+    <div className="bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+        <PageHeader title="Receipts"
+          meta={!data ? 'Loading…' : sgd
+            ? `${fmtMoney(sgd.collected, 'SGD')} collected of ${fmtMoney(sgd.billed, 'SGD')} billed (${pct}%) · ${fmtMoney(sgd.billed - sgd.collected, 'SGD')} to collect across ${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'}`
+            : `${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'} to collect`} />
 
         {error && <p className="mt-6 mb-0 text-[14px]" style={{ color: '#a1242f' }}>{error}</p>}
         {!data && !error && <Spinner label="Loading the reconciliation…" />}
@@ -108,26 +105,7 @@ export default function FinancePage() {
               </p>
             )}
 
-            {/* Two figures: what has come in, what is still to come. */}
-            {sgd && (
-              <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
-                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Collected</p>
-                  <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.collected, 'SGD')}</p>
-                  <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>of {fmtMoney(sgd.billed, 'SGD')} billed · {data.counts.settled} of {data.counts.total} settled</p>
-                  <div className="mt-3 h-1 rounded-full overflow-hidden" style={{ background: '#d5d9d4' }} aria-hidden>
-                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
-                  </div>
-                </div>
-                <div className="rounded-[16px] p-5" style={{ background: '#f1f2ee' }}>
-                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Still to collect</p>
-                  <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{fmtMoney(sgd.billed - sgd.collected, 'SGD')}</p>
-                  <p className="m-0 mt-2 text-[12.5px] tabular-nums" style={{ color: MUTED }}>across {data.counts.open} debit note{data.counts.open === 1 ? '' : 's'}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-8 flex items-center gap-3 flex-wrap">
+            <div className="mt-6 flex items-center gap-3 flex-wrap">
               <Segmented
                 value={view}
                 onChange={setView}

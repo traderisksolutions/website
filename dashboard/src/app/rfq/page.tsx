@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Search, X } from 'lucide-react'
-import { Btn, Spinner } from '@/components/crm/primitives'
+import { Btn, Segmented, Spinner } from '@/components/crm/primitives'
+import { PageHeader } from '@/components/page-header'
 import { XlGrid, XlHead, XlHeadRow, XlTh, XlRow, XlCell, XlNum, XlEmpty, XL_BTN, type XlFill } from '@/components/ui/xl-grid'
 import { fmtDate, fmtRelative } from '@/lib/crm/format'
 import { threadHref } from '@/lib/placement/position'
@@ -70,33 +71,20 @@ export default function RfqRegisterPage() {
   ]
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1500px] px-6 sm:px-12 pt-12 pb-20">
-        <div className="flex items-end justify-between gap-6 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Requests for quotes</h1>
-            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
-              Every policy a client asked us to quote and where it stands.
-              {counts && counts.done_this_month > 0 && ` ${counts.done_this_month} done this month.`}
-            </p>
-          </div>
-          <label className="relative flex items-center">
-            <Search size={14} className="absolute left-2.5" style={{ color: MUTED }} aria-hidden />
-            <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
-              className="h-[30px] w-[260px] rounded-[6px] border border-[#d5d9d4] bg-white pl-8 pr-7 text-[13px] outline-none focus:border-[#0f1412]" />
-            {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1.5 bg-transparent border-0 p-1 cursor-pointer" style={{ color: MUTED }}><X size={13} /></button>}
-          </label>
-        </div>
-
-        <div className="flex items-center gap-1.5 flex-wrap mt-6 mb-3" role="tablist">
-          {chips.map(c => (
-            <button key={c.key} type="button" role="tab" aria-selected={filter === c.key} onClick={() => setFilter(c.key)}
-              className="h-[30px] px-2.5 rounded-[7px] border cursor-pointer text-[13px] whitespace-nowrap"
-              style={{ borderColor: filter === c.key ? INK : '#d5d9d4', background: filter === c.key ? '#f1f2ee' : '#fff', color: filter === c.key ? INK : '#2a332f', fontWeight: filter === c.key ? 500 : 400 }}>
-              {c.label}{c.n !== undefined && <span className="ml-1.5 tabular-nums" style={{ color: MUTED }}>{c.n}</span>}
-            </button>
-          ))}
-        </div>
+    <div className="bg-white" style={{ color: INK }}>
+      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+        <PageHeader className="mb-4" title="Requests for quotes"
+          meta={counts ? `${counts.open} open${counts.done_this_month > 0 ? ` · ${counts.done_this_month} done this month` : ''}` : undefined}
+          actions={
+            <label className="relative flex items-center">
+              <Search size={14} className="absolute left-2.5" style={{ color: MUTED }} aria-hidden />
+              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
+                className="h-9 w-[240px] sm:w-[280px] rounded-[8px] border border-trs-line-2 bg-white pl-8 pr-8 text-[13.5px] outline-none focus:border-trs-ink" />
+              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-trs-canvas" style={{ color: MUTED }}><X size={13} /></button>}
+            </label>
+          }>
+          <Segmented<Filter> value={filter} onChange={setFilter} label="Requests" options={chips.map(c => ({ value: c.key, label: c.label, count: c.n }))} />
+        </PageHeader>
         {error && <p className="m-0 mb-3 text-[13px]" style={{ color: ERROR }}>{error}</p>}
 
         {filter === 'unmatched'

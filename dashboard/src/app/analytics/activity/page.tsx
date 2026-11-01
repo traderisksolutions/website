@@ -211,7 +211,7 @@ export default function ActivityLogPage() {
   const anyFilter = filterUser || filterAction || days !== 30
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
 
         {/* ── Header ─────────────────────────────────────────────────────────── */}

@@ -1,5 +1,7 @@
 'use client'
 
+import { Segmented } from '@/components/crm/primitives'
+import { PageHeader } from '@/components/page-header'
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { X, ChevronRight, ChevronDown, Copy, Check } from 'lucide-react'
 import BulkImportContacts from '@/components/BulkImportContacts'
@@ -182,21 +184,7 @@ function AddContactDialog({ open, onOpenChange, onSaved, referral = false }: {
 
 /** Contacts | Companies switch, as underline tabs (same pattern as the Companies page). */
 function ContactsViewTabs({ view, onChange }: { view: 'contacts' | 'companies'; onChange: (v: 'contacts' | 'companies') => void }) {
-  return (
-    <div className="mt-4 flex items-center gap-6" role="tablist" aria-label="Contacts or companies">
-      {(['contacts', 'companies'] as const).map(k => {
-        const on = view === k
-        return (
-          <button key={k} type="button" role="tab" aria-selected={on} onClick={() => onChange(k)}
-            className={cn('relative pb-2 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
-            style={{ color: on ? INK : MUTED }}>
-            {k === 'contacts' ? 'Contacts' : 'Companies'}
-            <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
-          </button>
-        )
-      })}
-    </div>
-  )
+  return <Segmented<'contacts' | 'companies'> value={view} onChange={onChange} label="Contacts or companies" options={[{ value: 'contacts', label: 'Contacts' }, { value: 'companies', label: 'Companies' }]} />
 }
 
 export default function ContactsPage() {
@@ -269,21 +257,16 @@ export default function ContactsPage() {
       <AppMainPanel className="bg-white">
 
         {/* Header: title, count line, view tabs, actions */}
-        <div className="flex-shrink-0 px-6 sm:px-12 pt-10" style={{ color: INK }}>
-          <div className="flex items-end justify-between gap-6 flex-wrap">
-            <div className="min-w-0">
-              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Contacts</h1>
-              <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
-                {loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} cc` : ''}`}
-              </p>
-              <ContactsViewTabs view={view} onChange={setView} />
-            </div>
-            <div className="flex items-center gap-3 flex-wrap pb-2">
-              <Button size="lg" variant="outline" onClick={() => setImportOpen(true)}>Import CSV</Button>
-              <Button size="lg" variant="outline" onClick={() => setReferralOpen(true)}>Log referral</Button>
-              <Button size="lg" onClick={() => setAddOpen(true)}>Add contact</Button>
-            </div>
-          </div>
+        <div className="flex-shrink-0 px-4 sm:px-6 lg:px-10 pt-6" style={{ color: INK }}>
+          <PageHeader title="People"
+            meta={loading ? 'Loading…' : `${primaryCount} contact${primaryCount !== 1 ? 's' : ''}${ccCount > 0 ? ` · ${ccCount} cc` : ''}`}
+            actions={<>
+              <Button variant="outline" onClick={() => setImportOpen(true)}>Import CSV</Button>
+              <Button variant="outline" onClick={() => setReferralOpen(true)}>Log referral</Button>
+              <Button onClick={() => setAddOpen(true)}>Add contact</Button>
+            </>}>
+            <ContactsViewTabs view={view} onChange={setView} />
+          </PageHeader>
 
           {/* Filter row: status pills left, search right */}
           <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>

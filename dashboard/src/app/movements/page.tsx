@@ -4,6 +4,7 @@
  * Member movements across every client: each batch of joiners and leavers, the step it waits on,
  * and the next action. Longest waiting first.
  */
+import { PageHeader } from '@/components/page-header'
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty } from '@/components/crm/primitives'
@@ -42,17 +43,16 @@ export default function MovementsPage() {
   const shown = (rows ?? []).filter(r => stage === 'all' || r.stage === stage)
 
   return (
-    <div className="px-6 md:px-8 py-6 max-w-[1320px] mx-auto">
-      <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
-        <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">Member movements</h1>
-        <Segmented value={stage} onChange={v => setStage(v)} options={[
+    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-[1320px] mx-auto min-w-0">
+      <PageHeader className="mb-5" title="Member movements" meta={rows ? `${rows.length} open` : undefined}>
+        <Segmented value={stage} onChange={v => setStage(v)} label="Stage" options={[
           { value: 'all', label: 'All', count: rows?.length ?? 0 },
           { value: 'to_send', label: STAGE.to_send, count: n('to_send') },
           { value: 'insurer', label: STAGE.insurer, count: n('insurer') },
           { value: 'to_bill', label: STAGE.to_bill, count: n('to_bill') },
           { value: 'billed', label: STAGE.billed, count: n('billed') },
         ]} />
-      </div>
+      </PageHeader>
       {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
       {!rows ? <Spinner label="Loading movements…" /> : shown.length === 0 ? <Empty>No movements here.</Empty> : (

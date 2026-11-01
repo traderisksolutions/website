@@ -486,16 +486,16 @@ select:focus-visible {
    "selected" without the heavy-handed invert-to-black a filled pill implies. */
 .filter-pill {
   display: inline-flex; align-items: center; gap: 6px;
-  font-size: 13px; font-weight: 500;
-  padding: 6px 14px; border-radius: 999px;
-  border: 1px solid #d5d9d4;
-  background: transparent;
-  color: hsl(var(--muted-foreground));
+  height: 30px; font-size: 13px; font-weight: 500;
+  padding: 0 12px; border-radius: 7px;
+  border: 1px solid var(--trs-line-2);
+  background: #ffffff;
+  color: var(--trs-ink-2);
   cursor: pointer; white-space: nowrap;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.filter-pill:hover { background: hsl(var(--muted)); border-color: var(--border-mid); color: hsl(var(--foreground)); }
-.filter-pill.active { background: #0f1412; border-color: #0f1412; color: #ffffff; font-weight: 500; }
+.filter-pill:hover { background: var(--trs-canvas); border-color: var(--trs-ink-2); color: var(--trs-ink); }
+.filter-pill.active, .filter-pill[aria-pressed="true"] { background: var(--trs-select-bg); border-color: var(--trs-select-bg); color: var(--trs-select-fg); }
 .filter-pill-count {
   font-size: 10px; font-weight: 700;
   padding: 0 5px; border-radius: 4px;

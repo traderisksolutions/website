@@ -4,16 +4,19 @@
  * The work queue: every open case the case worker keeps, next thing to do first. A decision,
  * a reply ready to send, work with nothing prepared yet, and cases waiting on someone else.
  * Approving signs the draft as the person approving and sends it through /api/email/send.
- * Built for a phone first: one column of cards, buttons that fit a thumb.
+ * Review lists the decisions agents hand to people (review.tsx). One column at every width.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty, inputCls, textareaCls } from '@/components/crm/primitives'
+import { PageHeader } from '@/components/page-header'
+import { ReviewList, useReview } from './review'
 import { callApi, errText, INK, MUTED, ERROR, selectCls } from '@/components/placement/shared'
 import type { WorkItem, Lane } from '@/lib/casework/queue'
 
 type Staff = { email: string; name: string }
 type Who = 'mine' | 'unowned' | 'all'
+type View = 'queue' | 'review'
 
 const LANE: Record<Lane, string> = { decide: 'Decide', send: 'Ready to send', act: 'To act', waiting: 'Waiting' }
 const TYPE: Record<string, string> = {
@@ -36,6 +39,8 @@ export default function WorkPage() {
   const [me, setMe] = useState<string | null>(null)
   const [lane, setLane] = useState<Lane | 'all'>('all')
   const [who, setWho] = useState<Who>('all')
+  const [view, setView] = useState<View>('queue')
+  const review = useReview()
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const today = new Date().toISOString().slice(0, 10)
@@ -52,34 +57,40 @@ export default function WorkPage() {
   const shown = byWho.filter(i => lane === 'all' || i.lane === lane)
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[920px] mx-auto">
-      <div className="flex flex-col gap-3 mb-5">
-        <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">Work</h1>
-        <div className="flex flex-wrap gap-2">
-          <Segmented value={who} onChange={setWho} options={[
+    <div className="px-4 md:px-8 py-6 max-w-[920px] mx-auto w-full min-w-0">
+      <PageHeader className="mb-5" title="Work" meta={items ? `${items.length} open` : undefined}>
+        <Segmented<View> value={view} onChange={setView} label="View" options={[
+          { value: 'queue', label: 'Queue', count: items?.length ?? 0 },
+          { value: 'review', label: 'Review', count: review.missing ? undefined : review.tasks?.length ?? 0 },
+        ]} />
+        {view === 'queue' && <>
+          <Segmented value={who} onChange={setWho} label="Owner" options={[
             { value: 'mine', label: 'Mine', count: (items ?? []).filter(i => i.owner_email === me).length },
             { value: 'unowned', label: 'No owner', count: (items ?? []).filter(i => !i.owner_email || i.owner_left).length },
             { value: 'all', label: 'Everyone', count: items?.length ?? 0 },
           ]} />
-          <Segmented value={lane} onChange={setLane} options={[
+          <Segmented value={lane} onChange={setLane} label="Lane" options={[
             { value: 'all', label: 'All', count: byWho.length },
             ...(['decide', 'send', 'act', 'waiting'] as Lane[]).map(l => ({ value: l, label: LANE[l], count: count(l) })),
           ]} />
-        </div>
-      </div>
-      {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
-      {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
-      {!items ? <Spinner label="Loading work…" /> : shown.length === 0 ? <Empty>Nothing here.</Empty> : (
-        <div className="flex flex-col gap-3">
-          {shown.map(i => <Card key={i.id} item={i} today={today} staff={staff} onDone={(msg) => { setNotice(msg); setError(null); load() }} onError={m => setError(m)} />)}
-        </div>
-      )}
+        </>}
+      </PageHeader>
+      {view === 'review' ? <ReviewList state={review} reload={review.reload} /> : <>
+        {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
+        {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
+        {!items ? <Spinner label="Loading work…" /> : shown.length === 0 ? <Empty>Nothing here.</Empty> : (
+          <div className="flex flex-col gap-3">
+            {shown.map((i, n) => <Card key={i.id} item={i} first={n === 0} today={today} staff={staff} onDone={(msg) => { setNotice(msg); setError(null); load() }} onError={m => setError(m)} />)}
+          </div>
+        )}
+      </>}
     </div>
   )
 }
 
-function Card({ item: i, today, staff, onDone, onError }: { item: WorkItem; today: string; staff: Staff[]; onDone: (msg: string) => void; onError: (msg: string) => void }) {
-  const [open, setOpen] = useState(i.lane === 'send' || i.lane === 'decide')
+function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkItem; first: boolean; today: string; staff: Staff[]; onDone: (msg: string) => void; onError: (msg: string) => void }) {
+  // Only the top card opens by default, so the screen holds one primary.
+  const [open, setOpen] = useState(first && (i.lane === 'send' || i.lane === 'decide'))
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [to, setTo] = useState(i.draft?.to ?? '')
@@ -107,8 +118,8 @@ function Card({ item: i, today, staff, onDone, onError }: { item: WorkItem; toda
   })
 
   return (
-    <article className="rounded-[10px] bg-white px-4 py-3.5" style={{ boxShadow: 'var(--card-shadow)' }}>
-      <button type="button" onClick={() => setOpen(o => !o)} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer">
+    <article className="rounded-[10px] bg-white px-4 py-3.5 border border-trs-line">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[12.5px] truncate" style={{ color: MUTED }}>{client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}{i.policy_number ? ` · ${i.policy_number}` : ''}</div>
@@ -136,7 +147,7 @@ function Card({ item: i, today, staff, onDone, onError }: { item: WorkItem; toda
           {i.next_action && <div><span style={{ color: MUTED }}>Next: </span>{i.next_action}{i.deadline_basis ? <span style={{ color: MUTED }}> · {i.deadline_basis}</span> : null}</div>}
 
           {i.draft && (
-            <div className="rounded-[8px] px-3 py-2.5" style={{ boxShadow: 'var(--card-shadow)' }}>
+            <div className="rounded-[8px] px-3 py-2.5 border border-trs-line">
               {editing ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-[12.5px]" style={{ color: MUTED }}>To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
@@ -161,17 +172,19 @@ function Card({ item: i, today, staff, onDone, onError }: { item: WorkItem; toda
             </div>
           )}
 
-          <div className="flex flex-wrap gap-2 items-center">
-            {i.draft && <Btn level="primary" loading={busy === 'send'} disabled={busy !== null} onClick={() => void send()}>{editing ? 'Save and send' : 'Approve and send'}</Btn>}
-            {i.draft && <Btn level="secondary" disabled={busy !== null} onClick={() => setEditing(e => !e)}>{editing ? 'Cancel edit' : 'Edit'}</Btn>}
+          {/* Quiet moves far left, the one primary far right. */}
+          <div className="flex flex-wrap gap-2 items-center pt-3 border-t border-trs-line">
+            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('snooze', async () => { await post({ action: 'snooze', until: plusDays(3) }); return 'Back in 3 days.' })}>Not now</Btn>
+            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('close', async () => { await post({ action: 'close' }); return `Closed: ${i.title}.` })}>Done</Btn>
             {i.draft && !editing && <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('discard', async () => { await post({ action: 'discard_draft' }); return 'Draft discarded.' })}>Discard draft</Btn>}
+            <span className="flex-1" />
             <select aria-label="Owner" className={`${selectCls} w-auto`} disabled={busy !== null} value={i.owner_left ? '' : i.owner_email ?? ''}
               onChange={e => e.target.value && void run('assign', async () => { await post({ action: 'assign', owner: e.target.value }); return `Assigned to ${staff.find(s => s.email === e.target.value)?.name ?? e.target.value}.` })}>
               <option value="">{i.owner_left || !i.owner_email ? 'Assign owner' : 'Change owner'}</option>
               {staff.map(s => <option key={s.email} value={s.email}>{s.name}{s.email === i.suggested_owner ? ' (suggested)' : ''}</option>)}
             </select>
-            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('snooze', async () => { await post({ action: 'snooze', until: plusDays(3) }); return 'Back in 3 days.' })}>Not now</Btn>
-            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('close', async () => { await post({ action: 'close' }); return `Closed: ${i.title}.` })}>Done</Btn>
+            {i.draft && <Btn level="secondary" disabled={busy !== null} onClick={() => setEditing(e => !e)}>{editing ? 'Cancel edit' : 'Edit'}</Btn>}
+            {i.draft && <Btn level="primary" loading={busy === 'send'} disabled={busy !== null} onClick={() => void send()}>{editing ? 'Save and send' : 'Approve and send'}</Btn>}
           </div>
         </div>
       )}

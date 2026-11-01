@@ -15,7 +15,7 @@ import { CompanyQuotes } from '@/components/crm/CompanyQuotes'
 import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
 import { CompanyLog } from '@/components/crm/CompanyLog'
-import { Spinner } from '@/components/crm/primitives'
+import { Segmented, Spinner } from '@/components/crm/primitives'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
 import { DataRoom } from '@/components/documents/DataRoom'
 import { portfolio } from '@/lib/companies/portfolio'
@@ -57,13 +57,13 @@ type Detail = {
  * Employees and debit notes open under each policy row; everything else sits under More.
  */
 const MAIN_TABS = [
-  { key: 'quotes',   label: 'Prospective requested quotes' },
-  { key: 'policies', label: 'Existing paying policies' },
+  { key: 'quotes',   label: 'Quotes' },
+  { key: 'policies', label: 'Policies' },
   { key: 'documents', label: 'Data room' },
 ] as const
 const MORE_TABS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'members',  label: 'All employees' },
+  { key: 'members',  label: 'Employees' },
   { key: 'payments', label: 'Finance' },
   { key: 'threads',  label: 'Threads' },
   { key: 'log',      label: 'Log' },
@@ -89,8 +89,7 @@ function CompanyWorkspace() {
   const search = useSearchParams()
   const asked = search.get('tab') ?? ''
   const tab: Tab = TABS.some(t => t.key === asked) ? asked as Tab : TAB_ALIAS[asked] ?? DEFAULT_TAB
-  const setTab = (t: Tab) => { setMoreOpen(false); router.replace(`/companies/${id}${t === DEFAULT_TAB ? '' : `?tab=${t}`}`, { scroll: false }) }
-  const [moreOpen, setMoreOpen] = useState(false)
+  const setTab = (t: Tab) => { router.replace(`/companies/${id}${t === DEFAULT_TAB ? '' : `?tab=${t}`}`, { scroll: false }) }
 
   const [ov, setOv] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -180,7 +179,7 @@ function CompanyWorkspace() {
 
   if (error) {
     return (
-      <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+      <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
         <div className="mx-auto max-w-[1320px] px-6 sm:px-12 pt-12 pb-20">
           <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Contacts</Link>
           <p className="m-0 mt-6 text-[16px]" style={{ color: MUTED }}>{error}</p>
@@ -228,7 +227,7 @@ function CompanyWorkspace() {
   // chrome and runs edge to edge under one slim bar that continues the main navigation.
   if (tab === 'threads') {
     return (
-      <div className="flex flex-col bg-white" style={{ height: 'calc(100vh - 56px)', color: INK }}>
+      <div className="flex flex-col bg-white" style={{ height: 'calc(100vh / var(--ui-zoom) - var(--top-nav-h))', color: INK }}>
         <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <button
             type="button"
@@ -271,7 +270,7 @@ function CompanyWorkspace() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1320px] px-6 sm:px-12 pt-12 pb-20">
         <CompanyHeader
           company={company}
@@ -285,59 +284,12 @@ function CompanyWorkspace() {
 
         {ov.alerts.length > 0 && <AlertsPanel alerts={ov.alerts} />}
 
-        {/* Two working tabs; the rest under More. Only a phone ever scrolls them. */}
-        <div className="flex items-center gap-6 mb-8 -mx-6 px-6 sm:mx-0 sm:px-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
-          <div className="flex items-center gap-6 overflow-x-auto overflow-y-hidden min-w-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist">
-            {MAIN_TABS.map(t => {
-              const on = tab === t.key
-              const n = countFor(t.key)
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => setTab(t.key)}
-                  className={cn('relative pb-3 flex-shrink-0 whitespace-nowrap bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
-                  style={{ color: on ? INK : MUTED }}
-                >
-                  {t.label}
-                  {n !== null && n > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: '#6f7a74' }}>{n}</span>}
-                  <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
-                </button>
-              )
-            })}
-          </div>
-          <div className="relative ml-auto flex-shrink-0 pb-3">
-            {(() => {
-              const inMore = MORE_TABS.find(t => t.key === tab)
-              return (
-                <button type="button" aria-haspopup="menu" aria-expanded={moreOpen} onClick={() => setMoreOpen(o => !o)}
-                  className={cn('bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', inMore ? 'font-medium' : 'hover:text-[#0f1412]')}
-                  style={{ color: inMore ? INK : MUTED }}>
-                  {inMore ? `More: ${inMore.label}` : 'More'} ▾
-                </button>
-              )
-            })()}
-            {moreOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} aria-hidden />
-                <div role="menu" className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded-[10px] bg-white py-1 shadow-[0_4px_16px_rgba(42,51,47,0.18)]" style={{ border: '1px solid #e6e8e4' }}>
-                  {MORE_TABS.map(t => {
-                    const n = countFor(t.key)
-                    return (
-                      <button key={t.key} type="button" role="menuitem" onClick={() => setTab(t.key)}
-                        className="flex w-full items-center justify-between gap-4 h-9 px-3 bg-transparent border-0 cursor-pointer text-[14px] text-left hover:bg-[#f1f2ee]"
-                        style={{ color: tab === t.key ? INK : '#2a332f', fontWeight: tab === t.key ? 500 : 400 }}>
-                        {t.label}
-                        {n !== null && n > 0 && <span className="tabular-nums text-[12.5px]" style={{ color: '#6f7a74' }}>{n}</span>}
-                      </button>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+        {/* Every tab in one segmented row; wraps on a phone. */}
+        <div className="mb-6 min-w-0">
+          <Segmented<Tab> value={tab} onChange={setTab} label="Company sections" options={TABS.map(t => {
+            const n = countFor(t.key)
+            return { value: t.key, label: t.label, count: n !== null && n > 0 ? n : undefined }
+          })} />
         </div>
 
         {tab === 'overview' && (

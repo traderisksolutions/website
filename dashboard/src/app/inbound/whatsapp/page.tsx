@@ -8,7 +8,7 @@ export default function WhatsAppPage() {
     router.replace('/inbound/email?filter=whatsapp')
   }, [router])
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <p className="m-0 text-[15px]" style={{ color: '#4a5550' }}>Opening WhatsApp leads…</p>
       </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { PageHeader } from '@/components/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import { useEffect, useMemo, useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -232,17 +234,13 @@ function DebitNotesContent() {
   return (
     <AppSplitLayout>
       <AppMainPanel>
-        <div className="px-8 pt-10 pb-6" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
-          <div className="flex items-end justify-between gap-6 flex-wrap">
-            <div>
-              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#0f1412]">Debit Notes</h1>
-              <p className="m-0 mt-2 text-[15px] text-[#4a5550]">{loading ? 'Loading…' : `${rows.length} debit note${rows.length === 1 ? '' : 's'}`}{companyId ? ' for this company' : ''}</p>
-            </div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className="h-9 px-5 rounded-[7px] bg-white text-[14px] border no-underline inline-flex items-center gap-2 hover:bg-[#faf9f6] text-[#0f1412]" style={{ borderColor: '#d5d9d4' }}><FolderOpen size={15} /> Drive folder</a>
-              <Link href="/debit-notes/new" className="h-9 px-6 rounded-[7px] text-white text-[14px] font-medium no-underline inline-flex items-center gap-2 hover:opacity-90" style={{ background: '#0f1412' }}><Plus size={15} /> New debit note</Link>
-            </div>
-          </div>
+        <div className="px-4 sm:px-6 lg:px-8 pt-6 pb-5">
+          <PageHeader title="Debit notes"
+            meta={loading ? 'Loading…' : `${rows.length} debit note${rows.length === 1 ? '' : 's'}${companyId ? ' for this company' : ''}`}
+            actions={<>
+              <a href="https://drive.google.com/drive/folders/1fNWSYQdZwhkz2A4APmif41PLNwNWNv9r" target="_blank" rel="noreferrer" className={buttonVariants({ variant: 'outline' }) + ' no-underline'}><FolderOpen size={15} /> Drive folder</a>
+              <Link href="/debit-notes/new" className={buttonVariants() + ' no-underline'}><Plus size={15} /> New debit note</Link>
+            </>} />
         </div>
         {(activeFilterCount > 0 || sortKey) && (
           <DataTableToolbar>
@@ -255,7 +253,7 @@ function DebitNotesContent() {
           </DataTableToolbar>
         )}
         <AppPageBody padded={false}>
-          <div className="px-8 pb-10">
+          <div className="px-4 sm:px-6 lg:px-8 pb-10">
             <Register label="Debit notes" minWidth={1080} maxHeight="calc(100vh - 260px)">
               <RegisterHead>
                 {HEADER_COLUMNS.map((col, i) => (

@@ -92,7 +92,7 @@ export function FollowUpsLedger() {
   const allCount = data?.chaseable ?? 0
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1500px] px-4 sm:px-12 pt-12 pb-20">
         <div className="flex items-end justify-between gap-4 flex-wrap">
           <div className="min-w-0">
