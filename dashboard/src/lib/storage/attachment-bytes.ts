@@ -12,7 +12,7 @@
  * stored, and NEVER_STORED is the message to show.
  */
 import { getDriveWriteToken } from '@/lib/gdrive-write'
-import { attachmentBytes } from '@/lib/documents/drive'
+import { gmailTokenForMessage } from '@/lib/gmail/mailboxes'
 import { enc, sbTry } from '@/lib/crm/db'
 
 export const NEVER_STORED = 'This file was never stored; upload it again'
@@ -33,12 +33,39 @@ export function driveWebLink(ref: string | null | undefined): string | null {
   return isDriveRef(ref) ? `https://drive.google.com/file/d/${encodeURIComponent(driveIdOf(ref))}/view` : null
 }
 
+type Part = { filename?: string; body?: { attachmentId?: string; data?: string }; parts?: Part[] }
+function findPart(p: Part | undefined, filename: string): Part | null {
+  if (!p) return null
+  if (p.filename === filename && (p.body?.attachmentId || p.body?.data)) return p
+  for (const c of p.parts ?? []) { const hit = findPart(c, filename); if (hit) return hit }
+  return null
+}
+
+/**
+ * The bytes of one file on a stored message, fetched again from Gmail with the token of the
+ * mailbox the message was read from (a Gmail id is only valid in its own mailbox).
+ */
+export async function messageAttachmentBytes(messageDbId: string, filename: string): Promise<Buffer | null> {
+  const t = await gmailTokenForMessage(messageDbId)
+  if (!t) return null
+  const h = { Authorization: `Bearer ${t.token}` }
+  const msg = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(t.gmailMessageId)}?format=full`, { headers: h })
+  if (!msg.ok) return null
+  const part = findPart((await msg.json() as { payload?: Part }).payload, filename)
+  if (!part) return null
+  let data = part.body?.data ?? null
+  if (!data && part.body?.attachmentId) {
+    const att = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${encodeURIComponent(t.gmailMessageId)}/attachments/${part.body.attachmentId}`, { headers: h })
+    if (!att.ok) return null
+    data = (await att.json() as { data?: string }).data ?? null
+  }
+  return data ? Buffer.from(data.replace(/-/g, '+').replace(/_/g, '/'), 'base64') : null
+}
+
 async function viaAttachmentRow(filter: string): Promise<Buffer | null> {
   const [att] = await sbTry<{ filename: string; message_id: string }[]>(`email_attachments?${filter}&select=filename,message_id&limit=1`, [])
   if (!att) return null
-  const [msg] = await sbTry<{ gmail_message_id: string | null }[]>(`email_messages?id=eq.${enc(att.message_id)}&select=gmail_message_id&limit=1`, [])
-  if (!msg?.gmail_message_id) return null
-  return attachmentBytes(msg.gmail_message_id, att.filename)
+  return messageAttachmentBytes(att.message_id, att.filename)
 }
 
 export async function attachmentRefBytes(ref: string): Promise<Buffer | null> {

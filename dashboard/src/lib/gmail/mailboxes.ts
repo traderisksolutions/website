@@ -101,3 +101,32 @@ export async function listSince(token: string, afterEpoch: number, pageToken?: s
   const j = res.ok ? await res.json() as { messages?: { id: string }[]; nextPageToken?: string } : {}
   return { ids: (j.messages ?? []).map(m => m.id), next: j.nextPageToken ?? null }
 }
+
+/**
+ * A token that can read this message's Gmail copy. A Gmail message id belongs to one mailbox, so
+ * the token must be that mailbox's: operations@ when the thread was read there, else the person's
+ * mailbox the thread came from (email_thread_aliases). Null when no mailbox can be found or its
+ * token is gone.
+ */
+export async function gmailTokenForThread(threadId: string): Promise<{ token: string; mailbox: string } | null> {
+  const aliases = await sbTry<{ mailbox: string }[]>(`email_thread_aliases?thread_id=eq.${enc(threadId)}&select=mailbox`, [])
+  const boxes = Array.from(new Set(aliases.map(a => a.mailbox)))
+  const order = [OPERATIONS_MAILBOX, ...boxes.filter(b => b !== OPERATIONS_MAILBOX)]
+  if (!boxes.includes(OPERATIONS_MAILBOX) && boxes.length) order.shift()
+  if (!order.length) order.push(OPERATIONS_MAILBOX)
+  for (const mailbox of order) {
+    try {
+      if (mailbox === OPERATIONS_MAILBOX) { const { getGmailToken } = await import('@/lib/gmail-send'); return { token: await getGmailToken(), mailbox } }
+      const m = await getMailbox(mailbox)
+      if (m && m.status === 'active') return { token: await accessTokenFor(m), mailbox }
+    } catch { /* try the next mailbox */ }
+  }
+  return null
+}
+
+export async function gmailTokenForMessage(messageDbId: string): Promise<{ token: string; mailbox: string; gmailMessageId: string } | null> {
+  const [m] = await sbTry<{ thread_id: string; gmail_message_id: string | null }[]>(`email_messages?id=eq.${enc(messageDbId)}&select=thread_id,gmail_message_id&limit=1`, [])
+  if (!m?.gmail_message_id) return null
+  const t = await gmailTokenForThread(m.thread_id)
+  return t ? { ...t, gmailMessageId: m.gmail_message_id } : null
+}

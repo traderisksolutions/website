@@ -9,6 +9,7 @@ import { internalHeaders }      from '@/lib/api-gate/internal'
 import { enqueue }              from '@/lib/agent-tasks/queue'
 import { drain as drainAgents } from '@/lib/admin'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
+import { captureAttachments, hasRealAttachments } from '@/lib/gmail/attachments'
 
 export const maxDuration = 300
 
@@ -737,7 +738,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
       body_html:        bodyHtml || null,
       highlights:       highlights.length ? highlights : null,
       sent_at:          sentAt,
-      has_attachments:  (msg.payload?.parts ?? []).some((p: { filename?: string }) => p.filename && p.filename.length > 0),
+      // Real files only: a signature logo is not an attachment (src/lib/gmail/attachments.ts).
+      has_attachments:  hasRealAttachments(msg.payload),
     }),
   })
   if (!msgInsert.ok) {
@@ -748,6 +750,10 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   const msgRows = await msgInsert.json()
   const dbMsg   = Array.isArray(msgRows) ? msgRows[0] : msgRows
   if (!dbMsg?.id) return 'already stored'
+
+  // 3b. Every real file gets its row now, from the MIME already in hand, whatever mailbox the
+  // message came from. Readers fetch the bytes later with that mailbox's token.
+  await captureAttachments({ messageId: dbMsg.id, threadId: thread.id, payload: msg.payload })
 
   // 4. Insert participants (ON CONFLICT DO NOTHING via unique constraint)
   type P = { thread_id: string; message_id: string; email: string; name: string | null; role: string; contact_id: string | null }
@@ -898,15 +904,14 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   // Completely independent of the engagement AI flow above.
   // Fires for ALL directions (inbound + outbound) with attachments.
   // Any failure here is caught and logged — ingest is never affected.
-  const hasAtts = (msg.payload?.parts ?? []).some(
-    (p: { filename?: string }) => p.filename && p.filename.length > 0
-  )
+  // force: the rows already exist (3b), and the route must still extract text and file them.
+  const hasAtts = hasRealAttachments(msg.payload)
   if (hasAtts && dbMsg?.id) {
     waitUntil(
       fetch(`${origin}/api/nexus/attachments/extract`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
-        body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_message_id: gmailMsgId }),
+        body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_message_id: gmailMsgId, mailbox, force: true }),
       }).catch(e => console.warn('[ingest] attachment extract trigger (non-fatal):', e instanceof Error ? e.message : e))
     )
   }
