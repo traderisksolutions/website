@@ -191,6 +191,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   admin_endorsement_read:   'admin',
   admin_route:              'admin',
   admin_draft:              'admin',
+  admin_relay:              'admin',
 }
 
 export function agentOfFeature(feature: string | null | undefined): AgentId {

@@ -4,6 +4,7 @@ import { handleClaims } from './b/claims-agent'
 import { handleDrafter } from './b/drafter'
 import { handleChaser, handleRenewals } from './b/sweeps'
 import { handleEbMovements, handleEndorsements } from './b/policy-agents'
+import { handleRelay } from './b/relay/agent'
 
 // The recipient router is a pure function the drafter calls (b/router.ts), not a queued agent:
 // routing has no side effects, so a task for it would only add a hop.
@@ -13,5 +14,6 @@ register('chaser', handleChaser)
 register('renewals', handleRenewals)
 register('eb_movements', handleEbMovements)
 register('endorsements', handleEndorsements)
+register('relay', handleRelay)
 
-export const PHASE_B_AGENTS = ['claims', 'drafter', 'chaser', 'renewals', 'eb_movements', 'endorsements'] as const
+export const PHASE_B_AGENTS = ['claims', 'drafter', 'chaser', 'renewals', 'eb_movements', 'endorsements', 'relay'] as const
