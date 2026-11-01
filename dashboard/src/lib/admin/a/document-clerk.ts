@@ -8,6 +8,7 @@
 import { sbTry, enc } from '@/lib/crm/db'
 import { ingestAttachment } from '@/lib/documents/ingest'
 import { applyMoneyRead, companyPolicies, NOTE_TYPES, TERMS_TYPES, CLAIM_TYPES } from '@/lib/documents/money-store'
+import { applyMemberListingDoc } from '@/lib/documents/members-store'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import type { AttachmentsPayload } from './handoffs'
 
@@ -34,6 +35,11 @@ export async function fileAttachments(task: AgentTask) {
         const [att] = await sbTry<{ parsed_text: string | null }[]>(`email_attachments?id=eq.${enc(a.id)}&select=parsed_text&limit=1`, [])
         await applyMoneyRead(doc as any, att?.parsed_text, await companyPolicies(doc.company_id), true)
       } catch (e) { console.warn('[document_clerk] money read failed (non-fatal):', e instanceof Error ? e.message : e) }
+    }
+    // A member list (census or insurer listing) goes onto the policy's register: headcount and rate per head.
+    if (doc.company_id && doc.doc_type === 'member_list') {
+      try { await applyMemberListingDoc(doc as any, true) }
+      catch (e) { console.warn('[document_clerk] member listing read failed (non-fatal):', e instanceof Error ? e.message : e) }
     }
     if (COVER_DOC_TYPES.has(doc.doc_type) && doc.company_id) {
       cover++
