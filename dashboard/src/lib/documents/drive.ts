@@ -1,8 +1,11 @@
 /**
  * Files a data-room document in Drive:
  *
- *   <root>/<Company>/Policies/<2026–27 Goods in Transit · Great Eastern>/<Cover>/<file>
- *   <root>/<Company>/To sort/<file>                       (no policy yet)
+ *   <root>/<Group>/Policies/<2026–27 Goods in Transit · Great Eastern>/<Cover>/<file>
+ *   <root>/<Group>/To sort/<file>                         (no policy yet)
+ *
+ * <Group> is the top of the client's group (companies.parent_id), so every entity of a group
+ * shares one folder; a standalone client is its own group.
  *
  * <root> is the folder debit notes already archive into, so a company keeps one folder. The bytes
  * come from Gmail (the old attachment store is gone since the database moved to Cloud SQL) or
@@ -11,6 +14,7 @@
 import { getDriveWriteToken, findOrCreateFolder, getFolderWebLink, rootFolderId, uploadFileToDrive, folderIdFromUrl } from '@/lib/gdrive-write'
 import { getGmailToken } from '@/lib/gmail-send'
 import { docGroup, documentFileName, policyFolderName } from './taxonomy'
+import { sbTry, enc } from '@/lib/crm/db'
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
@@ -21,6 +25,19 @@ function findPart(p: Part | undefined, filename: string): Part | null {
   if (p.filename && p.filename === filename && p.body?.attachmentId) return p
   for (const c of p.parts ?? []) { const hit = findPart(c, filename); if (hit) return hit }
   return null
+}
+
+/** The data-room folder name for a company: the name of the top of its group. */
+export async function groupFolderName(companyId: string, fallback: string): Promise<string> {
+  let id = companyId, name = fallback
+  for (let i = 0; i < 5; i++) {
+    const [c] = await sbTry<{ company_name: string | null; parent_id: string | null }[]>(`companies?id=eq.${enc(id)}&select=company_name,parent_id&limit=1`, [])
+    if (!c) break
+    if (c.company_name) name = c.company_name
+    if (!c.parent_id || c.parent_id === id) break
+    id = c.parent_id
+  }
+  return name.replace(/[\/\\]/g, '-').trim() || fallback
 }
 
 /** The attachment's bytes, fetched again from Gmail by message id and filename. */

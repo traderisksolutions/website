@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto'
 import { logError } from '@/lib/error-log'
 import { isNoise, classifyByName } from './taxonomy'
 import { matchPolicy, readDocument, type DocRead } from './classify'
-import { attachmentBytes, fileToDrive, moveDriveFile } from './drive'
+import { attachmentBytes, fileToDrive, moveDriveFile, groupFolderName } from './drive'
 import * as store from './store'
 import type { PolicyDocument } from './store'
 
@@ -64,7 +64,7 @@ export async function fileDocument(doc: PolicyDocument, bytes?: Buffer): Promise
     const twin = await store.sameBytes(doc.company_id, sha, doc.id)
     if (twin) return (await store.patchDocument(doc.id, { sha256: sha, status: 'ignored', drive_url: twin.drive_url, error: `Same file as document ${twin.id}` })) ?? doc
     const policy = doc.policy_id ? await store.policy(doc.policy_id) : null
-    const r = await fileToDrive({ companyName: company.name, policy, doc }, data)
+    const r = await fileToDrive({ companyName: await groupFolderName(doc.company_id, company.name), policy, doc }, data)
     if (policy && r.policyFolderUrl) await store.patchPolicyFolder(policy.id, r.policyFolderUrl)
     return (await store.patchDocument(doc.id, { sha256: sha, drive_file_id: r.fileId, drive_url: r.url, status: 'filed', error: null, size_bytes: doc.size_bytes ?? data.length })) ?? doc
   } catch (e) {
@@ -104,7 +104,7 @@ export async function updateDocument(id: string, patch: { doc_type?: string; pol
   try {
     const company = await store.company(next.company_id)
     const policy = next.policy_id ? await store.policy(next.policy_id) : null
-    const r = await moveDriveFile(next.drive_file_id, { companyName: company?.name ?? 'Unnamed company', policy, doc: next })
+    const r = await moveDriveFile(next.drive_file_id, { companyName: await groupFolderName(next.company_id, company?.name ?? 'Unnamed company'), policy, doc: next })
     if (policy && r.policyFolderUrl) await store.patchPolicyFolder(policy.id, r.policyFolderUrl)
   } catch (e) {
     return store.patchDocument(id, { error: e instanceof Error ? e.message.slice(0, 500) : String(e) })
