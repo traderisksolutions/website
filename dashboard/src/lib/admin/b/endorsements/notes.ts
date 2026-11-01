@@ -18,7 +18,10 @@ import { depositEvent } from '@/lib/admin/k/deposit'
 import { OPERATIONS } from '@/lib/admin/b/router'
 import { readNoteText } from './read-note'
 import { gstRateFor, lineFor, noteDecision, noteTitle } from './rules'
-import { batchEvent, patchBatch, patchMovements, touchItem, type MovementRow } from './store'
+import { batchEvent, batchMovements, patchBatch, patchMovements, touchItem, type MovementRow } from './store'
+import { correctionAmount, detectInsurerIntent, partialLine } from './cues'
+import { findSupersededTransaction, handleInsurerQuery } from './amendments'
+import { addDays } from '@/lib/admin/b/dates'
 import { randomUUID } from 'node:crypto'
 
 type Row = Record<string, any>
@@ -72,48 +75,54 @@ async function billingContact(companyId: string, fallback: string | null): Promi
  * the PDF, and opens the Today item with the note attached. Marks the movements billed on
  * approval (sync.ts), not here.
  */
-export async function issueTrsNote(t: PolicyTransaction & { batch_id?: string | null }, policy: PolicyRow, insurerName: string, movements: MovementRow[], opts: { reporter?: string | null; workItemId?: string | null } = {}): Promise<{ debitNoteId: string; debitNoteNo: string; workItemId: string }> {
+export async function issueTrsNote(t: PolicyTransaction & { batch_id?: string | null }, policy: PolicyRow, insurerName: string, movements: MovementRow[], opts: { reporter?: string | null; workItemId?: string | null; reverses?: { debitNoteId: string; kind: 'reversal' | 'correction'; signedAmount?: number } } = {}): Promise<{ debitNoteId: string; debitNoteNo: string; workItemId: string }> {
   const company = await store.company(policy.company_id!)
   if (!company) throw new Error('Company not found')
   const contact = await billingContact(policy.company_id!, opts.reporter ?? null)
   const gstRate = gstRateFor(lineFor(policy), policy.class_of_insurance)
-  const gross = Math.abs(Number(t.amount))
+  // A reversal or correction is signed by the difference it settles, not by the insurer note's own kind.
+  const signedBasis = opts.reverses?.signedAmount ?? Number(t.amount)
+  const kind: 'debit' | 'credit' = opts.reverses?.signedAmount != null ? (signedBasis < 0 ? 'credit' : 'debit') : t.kind
+  const [prevNote] = opts.reverses ? await sbTry<Row[]>(`debit_notes?id=eq.${enc(opts.reverses.debitNoteId)}&select=debit_note_no&limit=1`, []) : [null]
+  const gross = Math.abs(signedBasis)
   const net = Math.round(gross / (1 + gstRate) * 100) / 100
   const gst = Math.round((gross - net) * 100) / 100
   const who = movements.length ? movements.map(m => m.subject ?? m.member_name).join(', ') : (t.member_names ?? []).join(', ')
-  const what = movements.length ? (movements.every(m => m.kind === 'leave') ? 'Deletion' : movements.every(m => m.kind === 'join') ? 'Addition' : 'Change') : t.kind === 'credit' ? 'Refund' : 'Adjustment'
-  const description = `${what}${who ? `: ${who}` : ''}${t.period_start && t.period_end ? ` (${t.period_start} to ${t.period_end})` : ''} — insurer ${t.kind === 'credit' ? 'credit' : 'debit'} note ${t.note_no ?? ''}`.replace(/\s+/g, ' ').trim()
+  const what = movements.length ? (movements.every(m => m.kind === 'leave') ? 'Deletion' : movements.every(m => m.kind === 'join') ? 'Addition' : 'Change') : kind === 'credit' ? 'Refund' : 'Adjustment'
+  const prefix = opts.reverses ? `${opts.reverses.kind === 'reversal' ? 'Reversal of' : 'Correction to'} our note ${prevNote?.debit_note_no ?? ''} — ` : ''
+  const description = `${prefix}${what}${who ? `: ${who}` : ''}${t.period_start && t.period_end ? ` (${t.period_start} to ${t.period_end})` : ''} — insurer ${t.kind === 'credit' ? 'credit' : 'debit'} note ${t.note_no ?? ''}`.replace(/\s+/g, ' ').trim()
   const today = new Date().toISOString().slice(0, 10)
   const due = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10)
   const effective = movements[0]?.effective_on ?? t.period_start ?? null
-  const signed = t.kind === 'credit' ? -net : net
+  const signed = kind === 'credit' ? -net : net
   const r = await commitDebitNote({
     company: { companyId: policy.company_id! }, contact: contact?.contactId ? { contactId: contact.contactId } : null, policy: { policyId: policy.id },
-    debitNote: { currency: t.currency || 'SGD', lineItems: [{ description, amount: signed }], gstAmount: t.kind === 'credit' ? -gst : gst, issueDate: today, paymentDueDate: t.kind === 'credit' ? null : due,
+    debitNote: { currency: t.currency || 'SGD', lineItems: [{ description, amount: signed }], gstAmount: kind === 'credit' ? -gst : gst, issueDate: today, paymentDueDate: kind === 'credit' ? null : due,
       insurer: insurerName, eventType: 'endorsement', endorsementEffectiveDate: effective, source: 'manual' },
   })
   const bank = await getBankProfileForCurrency(t.currency || 'SGD')
   const pdf = await renderDebitNotePdf({
     debitNoteNo: r.debitNoteNo, issueDate: today, policyNumber: policy.policy_number, clientName: company.company_name, clientContactName: contact?.name ?? null,
     classOfInsurance: policy.class_of_insurance ?? policy.label ?? null, periodStart: policy.start_date, periodEnd: policy.end_date, insurer: insurerName,
-    description: null, currency: t.currency || 'SGD', lineItems: [{ description, amount: signed }], gstAmount: t.kind === 'credit' ? -gst : gst, total: r.grossAmount, bankProfile: bank,
-    paymentDueDate: t.kind === 'credit' ? null : due, eventType: 'endorsement', endorsementEffectiveDate: effective,
+    description: null, currency: t.currency || 'SGD', lineItems: [{ description, amount: signed }], gstAmount: kind === 'credit' ? -gst : gst, total: r.grossAmount, bankProfile: bank,
+    paymentDueDate: kind === 'credit' ? null : due, eventType: 'endorsement', endorsementEffectiveDate: effective,
   })
   const pdfPath = await uploadPdf(`${r.companyId}/${storageKeySegment(r.debitNoteNo)}.pdf`, pdf)
   await attachDebitNotePdf(r.debitNoteId, pdfPath)
   await attachDebitNoteArchival(r.debitNoteId, { attachmentFiles: [{ filename: `${r.debitNoteNo}.pdf`, storage_url: pdfPath, source: 'generated' }] })
+  if (opts.reverses) await sb(`debit_notes?id=eq.${enc(r.debitNoteId)}`, { method: 'PATCH', headers: MIN, body: JSON.stringify({ reverses_debit_note_id: opts.reverses.debitNoteId, reversal_kind: opts.reverses.kind }) })
   await store.patchNoTs('policy_transactions', `id=eq.${t.id}`, { debit_note_id: r.debitNoteId })
   await depositEvent('debit_notes', r.debitNoteId).catch(() => 0)
 
   // The Today item: one draft to the client with the note attached; nothing to the insurer.
-  const title = noteTitle(t.kind, Number(t.amount), t.note_no, insurerName)
+  const title = noteTitle(kind, Number(t.amount), t.note_no, insurerName)
   let itemId = opts.workItemId ?? null
   const body = [
     `Dear ${contact?.name?.split(' ')[0] ?? 'Sir/Madam'},`,
     '',
-    `Please find attached our ${t.kind === 'credit' ? 'credit' : 'debit'} note ${r.debitNoteNo} for ${money(r.grossAmount)} on ${policy.label || policy.class_of_insurance || 'your policy'}${policy.policy_number ? ` (${policy.policy_number})` : ''}: ${description.replace(/ — insurer.*$/, '')}.`,
+    `Please find attached our ${kind === 'credit' ? 'credit' : 'debit'} note ${r.debitNoteNo}${opts.reverses ? ` (${opts.reverses.kind === 'reversal' ? 'reversing' : 'correcting'} our note ${prevNote?.debit_note_no ?? ''})` : ''} for ${money(r.grossAmount)} on ${policy.label || policy.class_of_insurance || 'your policy'}${policy.policy_number ? ` (${policy.policy_number})` : ''}: ${description.replace(/ — insurer.*$/, '')}.`,
     '',
-    t.kind === 'credit' ? 'The refund will be made to your account on file once the insurer releases it.' : `Payment is due by ${due}. Bank details are on the note.`,
+    kind === 'credit' ? 'The refund will be made to your account on file once the insurer releases it.' : `Payment is due by ${due}. Bank details are on the note.`,
     '',
     'Best regards,',
     '{owner_name}',
@@ -122,20 +131,20 @@ export async function issueTrsNote(t: PolicyTransaction & { batch_id?: string | 
   if (!itemId) {
     const [item] = await sb<Row[]>('work_items', { method: 'POST', headers: REP, body: JSON.stringify({
       company_id: policy.company_id, client_name: company.company_name, case_type: 'premium_billing', title, status: 'trs_to_act', last_activity_at: new Date().toISOString(),
-      summary: `${insurerName} ${t.kind} note ${t.note_no ?? ''} ${money(Number(t.amount))}; TRS ${r.debitNoteNo} raised.`.replace(/\s+/g, ' '), next_action: 'Approve the note to the client',
+      summary: `${insurerName} ${kind} note ${t.note_no ?? ''} ${money(Number(t.amount))}; TRS ${r.debitNoteNo} raised.`.replace(/\s+/g, ' '), next_action: 'Approve the note to the client',
       insurer_name: insurerName, policy_id: policy.id, policy_number: policy.policy_number, source: 'endorsements', confidence: 'high',
     }) })
     itemId = item.id as string
   } else await touchItem(itemId, { title, status: 'trs_to_act', next_action: 'Approve the note to the client', needs_human: null, last_activity_at: new Date().toISOString() })
   const [draft] = await sb<Row[]>('ai_drafts', { method: 'POST', headers: REP, body: JSON.stringify({
     contact_id: contact?.contactId ?? null, thread_id: movements[0]?.reported_thread_id ?? null, channel: 'email', email_type: 'CASE_WORK', status: 'pending', generated_by: 'template',
-    to_email: contact?.email ?? '', cc: OPERATIONS, subject: `${t.kind === 'credit' ? 'Credit' : 'Debit'} note ${r.debitNoteNo} — ${company.company_name} — ${policy.label || policy.class_of_insurance || 'policy'}`,
+    to_email: contact?.email ?? '', cc: OPERATIONS, subject: `${kind === 'credit' ? 'Credit' : 'Debit'} note ${r.debitNoteNo} — ${company.company_name} — ${policy.label || policy.class_of_insurance || 'policy'}`,
     body, attachments: [{ filename: `${r.debitNoteNo}.pdf`, mime_type: 'application/pdf', storage_url: pdfPath }], work_item_id: itemId, pair_id: randomUUID(), party: 'client',
     context_used: { agent: 'endorsements', kind: 'trs_note', debit_note_id: r.debitNoteId, transaction_id: t.id },
   }) })
   await touchItem(itemId, { draft_id: draft.id, ...(contact?.email ? {} : { needs_human: 'No billing contact on file for the client. Add one, then send the note.' }) })
   await store.patchNoTs('policy_transactions', `id=eq.${t.id}`, { trs_note_work_item_id: itemId })
-  await batchEvent(itemId, 'billed', 'endorsements', { transaction_id: t.id, insurer_note: t.note_no, insurer_amount: t.amount, trs_note: r.debitNoteNo, trs_amount: r.grossAmount, debit_note_id: r.debitNoteId, draft_id: draft.id })
+  await batchEvent(itemId, opts.reverses ? (opts.reverses.kind === 'reversal' ? 'reversed' : 'corrected') : 'billed', 'endorsements', { transaction_id: t.id, insurer_note: t.note_no, insurer_amount: t.amount, trs_note: r.debitNoteNo, trs_amount: r.grossAmount, debit_note_id: r.debitNoteId, draft_id: draft.id, reverses_debit_note_id: opts.reverses?.debitNoteId ?? null, reverses_note_no: prevNote?.debit_note_no ?? null, reversal_kind: opts.reverses?.kind ?? null })
   return { debitNoteId: r.debitNoteId, debitNoteNo: r.debitNoteNo, workItemId: itemId }
 }
 
@@ -147,7 +156,13 @@ export async function intakeInsurerMail(policy: PolicyRow, insurerName: string, 
   const atts = await store.attachmentsFor(msg.id, true)
   const members = await listMembers(policy.id)
   const { notes, by } = await readNotes(msg, atts, { insurerName, policy, members })
+  const ins = detectInsurerIntent(msg.subject, msg.body_text)
   if (!notes.length) {
+    // No note, but a question or a refusal: it goes to the client, the batch waits, the chase clock pauses.
+    if (ins.intent === 'query' || ins.intent === 'reject') {
+      const q = await handleInsurerQuery(policy, insurerName, msg, threadId, ins.intent, ins.cue ?? '')
+      if (q.handled) return { transactions: 0, billed: 0, asked: 1, detail: q.detail }
+    }
     await store.log({ company_id: policy.company_id!, thread_id: threadId, message_id: msg.id, kind: 'reply', actor: 'endorsements', text: `${insurerName} wrote with documents; no debit or credit note was read. Open the thread.`, detail: { policy_id: policy.id } })
     return { transactions: 0, billed: 0, asked: 0, detail: 'no note read' }
   }
@@ -163,16 +178,46 @@ export async function intakeInsurerMail(policy: PolicyRow, insurerName: string, 
     })
     if (duplicate) continue
     transactions++
-    const matched = matchMovement(transaction, open)
+    let matched = matchMovement(transaction, open)
+
+    // A re-issued note replaces an earlier one: the earlier is superseded, its movements move to the
+    // new note, and a TRS note already raised on it is corrected by the difference.
+    const prev = (ins.intent === 'reissue' || !matched.length) ? await findSupersededTransaction(policy.id, transaction, matched.map(m => m.member_name), ins.intent === 'reissue') : null
+    if (prev) {
+      await store.patchNoTs('policy_transactions', `id=eq.${transaction.id}`, { supersedes_id: prev.id, batch_id: prev.batch_id ?? null })
+      await store.patchNoTs('policy_transactions', `id=eq.${prev.id}`, { superseded_at: new Date().toISOString() })
+      const prevRows = await sbTry<MovementRow[]>(`policy_movements?transaction_id=eq.${enc(prev.id)}&select=*`, [])
+      await patchMovements(prevRows.map(r => r.id), { transaction_id: transaction.id })
+      const prevItem = prevRows.find(r => r.work_item_id)?.work_item_id ?? null
+      await batchEvent(prevItem, 'note_superseded', 'endorsements', { transaction_id: transaction.id, supersedes: prev.id, note_no: transaction.note_no, previous_note_no: prev.note_no, amount: transaction.amount, previous_amount: prev.amount, cue: ins.cue, read_by: by })
+      await store.log({ company_id: policy.company_id!, thread_id: threadId, message_id: msg.id, kind: 'billing', actor: 'endorsements', text: `${insurerName} re-issued ${prev.note_no ?? 'its note'} as ${transaction.note_no ?? 'a new note'}: ${money(transaction.amount)} (was ${money(Number(prev.amount))})`, detail: { policy_id: policy.id, transaction_id: transaction.id, supersedes: prev.id } })
+      if (prev.debit_note_id) {
+        const corr = correctionAmount(Number(prev.amount), Number(transaction.amount))
+        if (corr) {
+          try { await issueTrsNote({ ...transaction, batch_id: prev.batch_id ?? null }, policy, insurerName, prevRows, { workItemId: prevItem, reverses: { debitNoteId: prev.debit_note_id, kind: 'correction', signedAmount: corr.kind === 'credit' ? -corr.amount : corr.amount } }); billed++ }
+          catch (e) { if (prevItem) await touchItem(prevItem, { needs_human: `The corrective TRS note could not be generated: ${e instanceof Error ? e.message : String(e)}. Raise it from Debit notes.`, status: 'trs_to_act' }); asked++ }
+        } else await batchEvent(prevItem, 'corrected', 'endorsements', { transaction_id: transaction.id, supersedes: prev.id, difference: 0 })
+        continue
+      }
+      // Not yet billed: the new figure is the one to bill, for the movements the earlier note settled.
+      matched = prevRows as unknown as PolicyMovement[]
+    }
     await noteMovements(transaction.id, matched)
     const check = await checkNote(policy, transaction, matched).catch(() => ({ estimate: null, variance: null, withinTolerance: null }))
     open = open.filter(m => !matched.some(x => x.id === m.id))
     const batchId = (matched as (PolicyMovement & { batch_id?: string | null })[]).find(m => m.batch_id)?.batch_id ?? null
     const rows = matched.length ? await sbTry<MovementRow[]>(`policy_movements?id=in.(${matched.map(m => m.id).join(',')})&select=*`, []) : []
     const itemId = rows.find(r => r.work_item_id)?.work_item_id ?? null
+    // The insurer may note some of a batch: the noted ones go on to billing, the rest stay sent and are chased on their own line.
+    let remaining: MovementRow[] = []
     if (batchId) {
       await store.patchNoTs('policy_transactions', `id=eq.${transaction.id}`, { batch_id: batchId })
-      await patchBatch(batchId, { status: 'noted', noted_at: new Date().toISOString(), noted_total: transaction.amount, next_chase_at: null })
+      const all = await batchMovements(batchId)
+      remaining = all.filter(m => m.status === 'sent')
+      if (remaining.length) {
+        await patchBatch(batchId, { sub_state: 'partial', noted_total: transaction.amount, next_chase_at: addDays(new Date().toISOString().slice(0, 10), 7) + 'T01:00:00Z' })
+        await batchEvent(itemId, 'partial_noted', 'endorsements', { batch_id: batchId, transaction_id: transaction.id, noted: rows.map(r => r.subject ?? r.member_name), remaining: remaining.map(r => r.subject ?? r.member_name), line: partialLine(all.length, remaining.length) })
+      } else await patchBatch(batchId, { status: 'noted', sub_state: null, noted_at: new Date().toISOString(), noted_total: transaction.amount, next_chase_at: null })
     }
     await batchEvent(itemId, 'noted', 'endorsements', { transaction_id: transaction.id, note_no: transaction.note_no, amount: transaction.amount, kind: transaction.kind, matched: matched.map(m => m.member_name), estimate: check.estimate, variance: check.variance, read_by: by })
     await store.log({ company_id: policy.company_id!, thread_id: threadId, message_id: msg.id, kind: 'billing', actor: 'endorsements',
@@ -184,8 +229,11 @@ export async function intakeInsurerMail(policy: PolicyRow, insurerName: string, 
     if (decision.bill) {
       try {
         const reporter = rows[0]?.reported_message_id ? bareEmail((await store.message(rows[0].reported_message_id))?.from_address) : null
-        await issueTrsNote({ ...transaction, batch_id: batchId }, policy, insurerName, rows, { reporter, workItemId: itemId })
-        if (batchId) await patchBatch(batchId, { status: 'billed', billed_at: new Date().toISOString() })
+        // The note settles a reversal the client asked for: the TRS note reverses the one raised on the original.
+        const undo = rows.find(r => r.reversal_of_transaction_id)
+        const [orig] = undo?.reversal_of_transaction_id ? await sbTry<Row[]>(`policy_transactions?id=eq.${enc(undo.reversal_of_transaction_id)}&select=debit_note_id&limit=1`, []) : [null]
+        await issueTrsNote({ ...transaction, batch_id: batchId }, policy, insurerName, rows, { reporter, workItemId: itemId, reverses: orig?.debit_note_id ? { debitNoteId: orig.debit_note_id, kind: 'reversal' } : undefined })
+        if (batchId && !remaining.length) await patchBatch(batchId, { status: 'billed', billed_at: new Date().toISOString() })
         await patchMovements(rows.map(r => r.id), { status: 'billed', billed_at: new Date().toISOString() })
         billed++
       } catch (e) {

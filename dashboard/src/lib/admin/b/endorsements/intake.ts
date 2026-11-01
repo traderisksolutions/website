@@ -17,7 +17,10 @@ import { parseMovementBody } from './parse-body'
 import { parseMovementRows } from './parse-sheet'
 import { isSpreadsheet, sheetRows } from './read-xlsx'
 import { lineFor, movementTypeFor } from './rules'
-import { openBatchFor, patchMovements, livePolicies, type MovementRow } from './store'
+import { batch as batchById, openBatchFor, patchMovements, livePolicies, type MovementRow } from './store'
+import { detectClientIntent, planClientAmendment, type Incoming } from './cues'
+import { applyClientPlan, asOnFile, awaitingClient, movementsOnFile, relayClientAnswer } from './amendments'
+import { prepareBatch } from './batches'
 import type { ParsedMovement, Cadence } from './types'
 
 const LOOKS_LIKE_MOVEMENT = /\b(resign\w*|last day|leaver|joiner|new (?:staff|hire|employee)|onboard\w*|add(?:ition)?\b|delet\w*|remov\w*|terminat\w*|movement|endorse\w*|include|exclude|update (?:the )?(?:member|staff|list)|vehicle|registration)\b/i
@@ -76,6 +79,41 @@ export async function intakeClientMail(companyId: string, msg: store.MailMessage
   const company = await store.company(companyId)
   let movements = read.movements
   let readBy: string | null = read.readBy
+
+  // Minds change. A withdrawal, a cancellation or a correction is settled against what is on file
+  // before anything new is recorded; the client's answer to an insurer's question goes back to the insurer.
+  const intent = detectClientIntent(msg.subject, msg.body_text)
+  if (!movements.length && intent.intent === 'none') {
+    const waiting = await awaitingClient(companyId, policy.id)
+    if (waiting.length) {
+      const r = await relayClientAnswer(waiting[0], policy, policy.insurer ?? 'the insurer', msg, threadId)
+      if (r.handled) return { handled: true, detail: r.detail, policyId: policy.id, batchId: waiting[0].id, movements: 0 }
+    }
+  }
+  if (intent.intent !== 'none' || movements.length) {
+    const onFile = await movementsOnFile(policy.id)
+    const incoming: Incoming[] = movements.map(m => ({ kind: m.kind, name: m.name, effective_on: m.effective_on, last_day: m.last_day, detail: m.detail }))
+    let plan = planClientAmendment(intent.intent, incoming, onFile.map(asOnFile), threadId, m => onFile.find(x => x.id === m.id)?.reported_thread_id ?? null)
+    if (intent.intent === 'withdraw' && !plan.length) {
+      // "Ignore my last email" on a new thread: it means what the same person reported most recently.
+      const recent = await recentByReporter(onFile, bareEmail(msg.from_address), msg.sent_at)
+      plan = planClientAmendment('withdraw', [], recent.map(asOnFile), null, () => null)
+    }
+    if (plan.some(a => a.do !== 'new')) {
+      const batch = await openBatchFor(policy)
+      const applied = await applyClientPlan({ policy, companyId, threadId, messageId: msg.id, actor: 'endorsements' }, plan, onFile, batch, intent.cue)
+      if (applied.amendmentBatchId) {
+        // The insurer already has the request: the amendment is drafted now, on the same thread, for Today.
+        const rev = await batchById(applied.amendmentBatchId)
+        if (rev && rev.status === 'open') await prepareBatch(rev).catch(e => console.error('[endorsements] amendment draft', e instanceof Error ? e.message : e))
+      }
+      await store.log({ company_id: companyId, thread_id: threadId, message_id: msg.id, kind: 'movement', actor: 'endorsements',
+        text: `Client ${intent.intent === 'withdraw' ? 'withdrew' : intent.intent === 'cancel' ? 'cancelled' : 'changed'} ${applied.cancelled + applied.superseded + applied.reversed} earlier change${applied.cancelled + applied.superseded + applied.reversed === 1 ? '' : 's'} on ${policy.label || policy.class_of_insurance || 'the policy'}${applied.amendmentBatchId ? '; amendment drafted to the insurer' : ''}${applied.reversed ? '; reversal requested' : ''}`,
+        detail: { policy_id: policy.id, cue: intent.cue, cancelled: applied.cancelled, superseded: applied.superseded, reversed: applied.reversed, amendment_batch_id: applied.amendmentBatchId } })
+      movements = read.movements.filter(m => applied.fresh.some(f => f.name === m.name && f.kind === m.kind))
+      if (!movements.length) return { handled: true, detail: `amendment: ${applied.cancelled} cancelled, ${applied.superseded} changed, ${applied.reversed} reversed`, policyId: policy.id, batchId: applied.amendmentBatchId ?? batch.id, movements: 0 }
+    }
+  }
   if (!movements.length) {
     if (!read.looksLikeMovement) return { handled: false, detail: 'not a movement' }
     if (opts.allowModel === false) return { handled: false, detail: 'rules read nothing; model not allowed' }
@@ -120,6 +158,19 @@ export async function intakeClientMail(companyId: string, msg: store.MailMessage
     text: `Client reported ${rows.length} change${rows.length === 1 ? '' : 's'} on ${policy.label || policy.class_of_insurance || 'the policy'} (${readBy}); in the ${batch.cadence} batch from ${batch.window_start}`,
     detail: { policy_id: policy.id, batch_id: batch.id, movement_ids: rows.map(r => r.id), reporter } })
   return { handled: true, detail: `movements ${rows.length} (${readBy})`, policyId: policy.id, batchId: batch.id, movements: rows.length }
+}
+
+/** The movements a reporter sent in the week before this mail, newest first. */
+async function recentByReporter(onFile: MovementRow[], reporter: string, sentAt: string | null): Promise<MovementRow[]> {
+  if (!reporter) return []
+  const ids = Array.from(new Set(onFile.map(m => m.reported_message_id).filter((x): x is string => !!x)))
+  if (!ids.length) return []
+  const since = new Date(Date.parse(sentAt ?? new Date().toISOString()) - 7 * 86_400_000).toISOString()
+  const msgs = await sbTry<{ id: string; from_address: string | null; sent_at: string | null }[]>(`email_messages?id=in.(${ids.join(',')})&sent_at=gte.${enc(since)}&select=id,from_address,sent_at&order=sent_at.desc`, [])
+  const mine = msgs.filter(m => bareEmail(m.from_address) === reporter)
+  if (!mine.length) return []
+  const latest = mine[0].id
+  return onFile.filter(m => m.reported_message_id === latest)
 }
 
 export type { Cadence }

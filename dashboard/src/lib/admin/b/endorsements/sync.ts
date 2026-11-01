@@ -7,6 +7,7 @@ import { markMovementsSent } from '@/lib/policies/members'
 import { workingDaysBetween, addDays } from '@/lib/admin/b/dates'
 import { OPERATIONS } from '@/lib/admin/b/router'
 import { chaseDue, MAX_CHASES } from './rules'
+import { partialLine } from './cues'
 import { batchEvent, batchMovements, batchesWhere, patchBatch, patchMovements, touchItem } from './store'
 import { downloadObject } from '@/lib/debit-note-storage'
 import { fileToDrive, groupFolderName } from '@/lib/documents/drive'
@@ -96,13 +97,17 @@ export async function chaseBatches(now = new Date()): Promise<number> {
     if (!orig?.to_email) continue
     const [item] = await sbTry<Row[]>(`work_items?id=eq.${enc(b.work_item_id)}&select=draft_id,later_until&limit=1`, [])
     if (item?.draft_id || item?.later_until) continue   // a draft already waits, or a person set it aside
-    const ms = await batchMovements(b.id)
+    const all = await batchMovements(b.id)
+    // Only what the insurer has not yet noted is chased; the noted ones are already on their way to billing.
+    const ms = all.filter(m => m.status === 'sent')
+    if (!ms.length) continue
+    const partial = partialLine(all.length, ms.length)
     const sentOn = (b.sent_at ?? b.created_at).slice(0, 10)
     const wd = workingDaysBetween(sentOn, now.toISOString().slice(0, 10))
     const body = [
       'Dear Underwriter,',
       '',
-      `Following up on the movement request we sent on ${sentOn}${orig.subject ? ` ("${orig.subject}")` : ''}, ${wd} working days ago:`,
+      `Following up on the movement request we sent on ${sentOn}${orig.subject ? ` ("${orig.subject}")` : ''}, ${wd} working days ago${partial ? ` — ${partial}` : ''}:`,
       '',
       ...ms.map(m => `- ${m.subject ?? m.member_name} (${m.kind === 'join' ? 'addition' : m.kind === 'leave' ? 'deletion' : 'change'}${m.effective_on ? `, effective ${m.effective_on}` : ''})`),
       '',
@@ -120,7 +125,7 @@ export async function chaseBatches(now = new Date()): Promise<number> {
     const next = b.chase_count + 1 >= MAX_CHASES ? null : addDays(now.toISOString().slice(0, 10), 7) + 'T01:00:00Z'
     await patchBatch(b.id, { chase_count: b.chase_count + 1, last_chase_at: now.toISOString(), next_chase_at: next })
     await touchItem(b.work_item_id, { draft_id: draft.id, status: 'trs_to_act', next_action: `Send chase ${b.chase_count + 1} to the insurer` })
-    await batchEvent(b.work_item_id, 'chase', 'endorsements', { batch_id: b.id, round: b.chase_count + 1, draft_id: draft.id })
+    await batchEvent(b.work_item_id, 'chase', 'endorsements', { batch_id: b.id, round: b.chase_count + 1, draft_id: draft.id, remaining: ms.map(m => m.subject ?? m.member_name), partial })
     n++
   }
   return n

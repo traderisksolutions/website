@@ -13,8 +13,8 @@ import { movementSubject } from '@/lib/policies/movement-sheet'
 import type { PolicyRow } from '@/lib/policies/types'
 import { insurerLastHandler } from '@/lib/admin/b/data'
 import { OPERATIONS } from '@/lib/admin/b/router'
-import { batchDue, batchTitle, countOf, estimateTotal, lineFor, movementTypeFor } from './rules'
-import { batchMovements, batchEvent, openBatches, patchBatch, patchMovements, touchItem, type MovementRow } from './store'
+import { amendmentOps, amendmentTitle, batchDue, batchTitle, countOf, estimateTotal, lineFor, movementTypeFor } from './rules'
+import { batch as batchById, batchMovements, batchEvent, openBatches, patchBatch, patchMovements, touchItem, type MovementRow } from './store'
 import type { BatchRow } from './types'
 
 type Row = Record<string, any>
@@ -23,6 +23,15 @@ const MIN = { Prefer: 'return=minimal' }
 
 const fmt = (iso: string | null) => iso ? new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : null
 const word = (m: MovementRow) => m.movement_type === 'vehicle' ? (m.kind === 'join' ? 'add' : m.kind === 'leave' ? 'delete' : 'change') : (m.kind === 'join' ? 'addition' : m.kind === 'leave' ? 'deletion' : 'change')
+const kindWord = (k: string) => k === 'join' ? 'addition' : k === 'leave' ? 'deletion' : 'change'
+/** A line of an amendment: what the insurer should undo or redo against the earlier request. */
+const amendLine = (m: MovementRow) => {
+  const d = (m.detail ?? {}) as Record<string, unknown>
+  const name = m.subject ?? m.member_name
+  if (d.amendment === 'cancel') return `- ${name} — please cancel the ${kindWord(String(d.of_kind ?? 'change'))} we requested; no change to be made`
+  if (d.amendment === 'reverse') return `- ${name} — please reverse the ${kindWord(String(d.of_kind ?? 'change'))} already endorsed and issue the corresponding ${d.of_kind === 'join' ? 'credit' : 'debit'} note`
+  return `${line(m)}${m.supersedes_id ? ' (replaces our earlier instruction)' : ''}`
+}
 const line = (m: MovementRow) => {
   const when = m.kind === 'leave' ? (m.last_day ? `last day ${fmt(m.last_day)}` : m.effective_on ? `effective ${fmt(m.effective_on)}` : 'date to confirm') : m.effective_on ? `effective ${fmt(m.effective_on)}` : 'date to confirm'
   const extra = [m.relationship && m.relationship !== 'employee' ? m.relationship : null, m.plan_code ? `plan ${m.plan_code}` : null, m.category].filter(Boolean).join(', ')
@@ -73,11 +82,14 @@ export async function prepareBatch(b: BatchRow, now = new Date()): Promise<{ wor
   const type = movementTypeFor(lineFor(policy))
   const counts = countOf(ms)
   const estimate = estimateTotal(ms)
-  const title = batchTitle(counts, estimate, insurerName ? shortInsurer(insurerName) : null, policy.policy_number, type)
+  // A revision amends a batch the insurer already has: same thread, "further to our request", its own title.
+  const parent = b.parent_batch_id ? await batchById(b.parent_batch_id) : null
+  const [parentDraft] = parent?.draft_id ? await sbTry<Row[]>(`ai_drafts?id=eq.${enc(parent.draft_id)}&select=subject,to_email,cc,sent_at&limit=1`, []) : [null]
+  const title = parent ? amendmentTitle(amendmentOps(ms), estimate, insurerName ? shortInsurer(insurerName) : null, policy.policy_number, b.revision) : batchTitle(counts, estimate, insurerName ? shortInsurer(insurerName) : null, policy.policy_number, type)
   const quotes = ms.filter(m => m.quote).map(m => ({ thread: m.reported_thread_id, quote: String(m.quote).slice(0, 160) }))
 
   // One open item per batch; the thread that reported the movements joins it.
-  let itemId = b.work_item_id
+  let itemId = b.work_item_id ?? parent?.work_item_id ?? null
   if (!itemId) {
     const [item] = await sb<Row[]>('work_items', { method: 'POST', headers: REP, body: JSON.stringify({
       company_id: b.company_id, client_name: company.company_name, case_type: type === 'member' ? 'member_movement' : 'endorsement', title,
@@ -106,15 +118,18 @@ export async function prepareBatch(b: BatchRow, now = new Date()): Promise<{ wor
     return { workItemId: itemId, question: q }
   }
 
-  const files = await movementAttachments(policy, ms as unknown as Parameters<typeof movementAttachments>[1], company.company_name, insurerName)
-  const subject = movementSubject(shortInsurer(insurerName), company.company_name, policy.policy_number, counts)
+  const files = parent ? { attachments: [] as { filename: string; mime_type?: string; storage_url: string }[], sheetError: null as string | null } : await movementAttachments(policy, ms as unknown as Parameters<typeof movementAttachments>[1], company.company_name, insurerName)
+  const subject = parent ? `Re: ${parentDraft?.subject ?? movementSubject(shortInsurer(insurerName), company.company_name, policy.policy_number, counts)}` : movementSubject(shortInsurer(insurerName), company.company_name, policy.policy_number, counts)
   const label = policy.label || policy.class_of_insurance || 'policy'
+  const sentOn = parent?.sent_at ? fmt(parent.sent_at) : parentDraft?.sent_at ? fmt(parentDraft.sent_at) : null
   const body = [
     'Dear Underwriter,',
     '',
-    `Please process the following ${type === 'vehicle' ? 'vehicle' : 'member'} movement${ms.length === 1 ? '' : 's'} on ${company.company_name}'s ${label}${policy.policy_number ? ` (Policy No. ${policy.policy_number})` : ''}:`,
+    parent
+      ? `Further to our request${sentOn ? ` of ${sentOn}` : ''} on ${company.company_name}'s ${label}${policy.policy_number ? ` (Policy No. ${policy.policy_number})` : ''}, please amend as follows:`
+      : `Please process the following ${type === 'vehicle' ? 'vehicle' : 'member'} movement${ms.length === 1 ? '' : 's'} on ${company.company_name}'s ${label}${policy.policy_number ? ` (Policy No. ${policy.policy_number})` : ''}:`,
     '',
-    ...ms.map(line),
+    ...ms.map(parent ? amendLine : line),
     '',
     files.attachments.length ? `Attached: ${files.attachments.map(a => a.filename).join('; ')}.` : '',
     '',
@@ -127,7 +142,8 @@ export async function prepareBatch(b: BatchRow, now = new Date()): Promise<{ wor
   // The latest batch on this policy carries the thread with the insurer; otherwise this starts one.
   const [prior] = await sbTry<Row[]>(`movement_batches?policy_id=eq.${enc(policy.id)}&thread_id=not.is.null&status=in.(sent,noted,billed,settled)&select=thread_id&order=sent_at.desc&limit=1`, [])
   const pairId = randomUUID()
-  const draftId = await storeDraft(itemId, { thread_id: prior?.thread_id ?? null, to: desk.to, cc: Array.from(new Set([...desk.cc, OPERATIONS])), subject, body, kind: 'movement_batch', party: 'insurer', pair_id: pairId, attachments: files.attachments, contact_id: desk.contactId }, true)
+  const insurerTo = parent && parentDraft?.to_email ? String(parentDraft.to_email).split(/,\s*/) : desk.to
+  const draftId = await storeDraft(itemId, { thread_id: parent?.thread_id ?? b.thread_id ?? prior?.thread_id ?? null, to: insurerTo, cc: Array.from(new Set([...desk.cc, OPERATIONS])), subject, body, kind: parent ? 'movement_amendment' : 'movement_batch', party: 'insurer', pair_id: pairId, attachments: files.attachments, contact_id: desk.contactId }, true)
 
   const to = await reporters(ms)
   let pairDraftId: string | null = null
@@ -135,9 +151,9 @@ export async function prepareBatch(b: BatchRow, now = new Date()): Promise<{ wor
     const ack = [
       `Dear ${to[0].split('@')[0].split(/[._]/)[0].replace(/^\w/, c => c.toUpperCase())},`,
       '',
-      `Thank you. We have sent the following to ${shortInsurer(insurerName)} on ${label}${policy.policy_number ? ` (${policy.policy_number})` : ''}:`,
+      parent ? `Noted. We have asked ${shortInsurer(insurerName)} to amend our earlier request on ${label}${policy.policy_number ? ` (${policy.policy_number})` : ''} as follows:` : `Thank you. We have sent the following to ${shortInsurer(insurerName)} on ${label}${policy.policy_number ? ` (${policy.policy_number})` : ''}:`,
       '',
-      ...ms.map(line),
+      ...ms.map(m => parent ? amendLine(m) : `${line(m)}${m.supersedes_id ? ' (replaces your earlier instruction)' : ''}`),
       '',
       estimate != null ? `Estimated premium adjustment: ${estimate < 0 ? '-' : ''}S$${Math.abs(estimate).toFixed(2)}, subject to the insurer's note.` : 'We will send the insurer\'s debit or credit note once issued.',
       '',
@@ -149,8 +165,8 @@ export async function prepareBatch(b: BatchRow, now = new Date()): Promise<{ wor
   }
   await patchMovements(ms.map(m => m.id), { sent_draft_id: draftId })
   await patchBatch(b.id, { status: 'ready', work_item_id: itemId, draft_id: draftId, pair_id: pairId, counts, estimate_total: estimate, needs_human: null, sheet_storage_url: files.attachments[0]?.storage_url ?? null })
-  await touchItem(itemId, { needs_human: null, next_action: 'Approve the batch to the insurer' })
-  await batchEvent(itemId, 'draft', 'endorsements', { batch_id: b.id, draft_id: draftId, pair_draft_id: pairDraftId, to: desk.to, basis: desk.basis, sheet: files.attachments[0]?.filename ?? null, sheet_error: files.sheetError })
+  await touchItem(itemId, { needs_human: null, next_action: parent ? 'Approve the amendment to the insurer' : 'Approve the batch to the insurer' })
+  await batchEvent(itemId, parent ? 'amendment_draft' : 'draft', 'endorsements', { batch_id: b.id, revision: b.revision, parent_batch_id: b.parent_batch_id, draft_id: draftId, pair_draft_id: pairDraftId, to: insurerTo, basis: parent ? 'same desk as the request' : desk.basis, sheet: files.attachments[0]?.filename ?? null, sheet_error: files.sheetError })
   return { workItemId: itemId, question: null }
 }
 
