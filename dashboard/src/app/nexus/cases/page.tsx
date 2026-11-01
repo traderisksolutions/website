@@ -553,7 +553,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
       >
         <div className="flex items-center justify-between gap-3">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>New case</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>
@@ -1021,7 +1021,7 @@ function MissionHeader({
               <>
                 <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate" style={{ color: INK }}>{caseData.name}</h2>
                 <button type="button" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case"
-                  className="flex-shrink-0 w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: FAINT }}>
+                  className="flex-shrink-0 w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: FAINT }}>
                   <Pencil size={13} strokeWidth={2} />
                 </button>
               </>
@@ -2539,7 +2539,7 @@ function RunHistoryView({
                     title={run.pinned ? 'Unpin run. It becomes eligible for pruning.' : 'Pin run. Pinned runs are never pruned.'}
                     aria-label={run.pinned ? 'Unpin run' : 'Pin run'}
                     aria-pressed={run.pinned}
-                    className="flex items-center justify-center w-7 h-7 rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
+                    className="flex items-center justify-center w-[30px] h-[30px] rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
                     style={{ color: run.pinned ? INK : FAINT }}
                   >
                     {run.pinned ? <Pin size={13} strokeWidth={2} /> : <PinOff size={13} strokeWidth={2} />}
@@ -2913,7 +2913,7 @@ function LinkedThreadCard({
         <button
           type="button"
           onClick={() => onUnlink(ct.thread_id)}
-          className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
+          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
           style={{ color: FAINT }}
           title="Remove from case"
           aria-label="Remove from case"
@@ -3646,7 +3646,7 @@ function ThreadLinkerModal({
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Link threads</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>

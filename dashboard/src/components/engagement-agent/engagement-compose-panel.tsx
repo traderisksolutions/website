@@ -396,7 +396,7 @@ export function EngagementComposePanel({
           {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
           <span className="flex-1" />
           {onMinimise && (
-            <button type="button" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className={cn(BTN_TERTIARY, 'h-8 px-2.5')}>
+            <button type="button" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')}>
               Minimise
             </button>
           )}
@@ -417,9 +417,9 @@ export function EngagementComposePanel({
                 Reply all
               </button>
             )}
-            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
+            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
             {!showCc && !showBcc && <span aria-hidden>·</span>}
-            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
+            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
           </>
         }>
           {headerExpanded || !toAddress ? (
@@ -433,14 +433,14 @@ export function EngagementComposePanel({
         {/* ── Cc / Bcc — revealed from the To row ── */}
         {showCc && (
           <FieldRow label="Cc" tall right={
-            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
           }>
             <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
           </FieldRow>
         )}
         {showBcc && (
           <FieldRow label="Bcc" tall right={
-            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-7 h-7 inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
           }>
             <ChipInput chips={bccList} onChange={setBccList} placeholder="Add Bcc…" />
           </FieldRow>

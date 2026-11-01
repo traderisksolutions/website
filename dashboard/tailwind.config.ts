@@ -11,6 +11,15 @@ const config: Config = {
         mono: ['var(--font-mono)', 'Geist Mono', 'ui-monospace', 'Menlo', 'monospace'],
       },
       colors: {
+        // Revamp tokens (globals.css :root). Use these in class names instead of hex literals.
+        trs: {
+          green: 'var(--trs-green)', 'green-2': 'var(--trs-green-2)', mint: 'var(--trs-mint)', soft: 'var(--trs-soft)', lime: 'var(--trs-lime)',
+          ink: 'var(--trs-ink)', 'ink-2': 'var(--trs-ink-2)', muted: 'var(--trs-muted)', subtle: 'var(--trs-subtle)',
+          line: 'var(--trs-line)', 'line-2': 'var(--trs-line-2)', canvas: 'var(--trs-canvas)', field: 'var(--trs-field)', tint: 'var(--trs-tint)',
+          'select-bg': 'var(--trs-select-bg)', 'select-fg': 'var(--trs-select-fg)',
+          pos: 'var(--trs-pos)', 'pos-bg': 'var(--trs-pos-bg)', warn: 'var(--trs-warn)', 'warn-bg': 'var(--trs-warn-bg)',
+          neg: 'var(--trs-neg)', 'neg-bg': 'var(--trs-neg-bg)', info: 'var(--trs-info)', 'info-bg': 'var(--trs-info-bg)',
+        },
         border:     'hsl(var(--border))',
         input:      'hsl(var(--input))',
         ring:       'hsl(var(--ring))',

@@ -91,7 +91,7 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
             <p className="m-0 text-[14px]" style={{ color: INK }}>Round opened.</p>
             <p className="m-0 text-[14px]" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
             <div className="flex justify-end pt-2">
-              <Btn level="primary" className="h-10 px-4" onClick={onClose}>Done</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn>
             </div>
           </div>
         ) : (
@@ -140,7 +140,7 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
 
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-              <Btn level="primary" className="h-10 px-4" onClick={save} loading={busy} disabled={picks === null}>Open round and draft emails</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy} disabled={picks === null}>Open round and draft emails</Btn>
             </div>
           </div>
         )}

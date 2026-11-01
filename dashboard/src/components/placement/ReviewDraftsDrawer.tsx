@@ -393,7 +393,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
       <div className="flex flex-col min-h-0 h-full">
         <div className="flex items-center gap-2 px-[var(--re-gutter)] py-2.5 flex-shrink-0 border-b border-[--border-subtle]">
           {!docked && (
-            <button type="button" onClick={() => setMobileView('list')} className="md:hidden inline-flex items-center gap-1 h-8 pr-2 bg-transparent border-0 cursor-pointer text-[13px] text-muted-foreground">
+            <button type="button" onClick={() => setMobileView('list')} className="md:hidden inline-flex items-center gap-1 h-[30px] pr-2 bg-transparent border-0 cursor-pointer text-[13px] text-muted-foreground">
               <ChevronLeft size={15} /> All drafts
             </button>
           )}
@@ -530,7 +530,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         {!phone && (docked
           ? <Btn level="tertiary" size="xs" onClick={() => switchLayout('modal')}><Maximize2 size={13} /> Expand</Btn>
           : <Btn level="tertiary" size="xs" onClick={() => switchLayout('dock')}><PanelRight size={13} /> Dock to side</Btn>)}
-        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="inline-flex items-center justify-center w-8 h-8 rounded-[8px] border-0 bg-transparent cursor-pointer text-foreground hover:bg-muted">
+        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent cursor-pointer text-foreground hover:bg-muted">
           <X size={16} />
         </button>
       </div>

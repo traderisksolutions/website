@@ -14,7 +14,7 @@ export function MinimizedChatBar({ title, onRestore, onClose }: { title: string;
         <span className="text-[12.5px] font-semibold text-foreground truncate">{title}</span>
       </button>
       <button onClick={onClose} aria-label="Close chat"
-        className="h-7 w-7 flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+        className="h-[30px] w-[30px] flex items-center justify-center rounded-md text-muted-foreground/70 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
         <X size={15} />
       </button>
     </div>

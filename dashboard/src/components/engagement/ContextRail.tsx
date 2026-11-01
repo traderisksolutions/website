@@ -95,7 +95,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     <aside className="h-full flex flex-col min-h-0 bg-white" aria-label="Context" style={{ borderLeft: onClose ? `1px solid ${HAIR}` : undefined }}>
       <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-2 text-[13px]" style={{ color: MUTED }}>
         <span>Context</span>
-        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-8 w-8 rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
+        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-[30px] w-[30px] rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-5 flex flex-col gap-2.5">

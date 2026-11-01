@@ -82,7 +82,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
     const on = activeTab === s.key
     return (
       <button key={s.key} type="button" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={s.caption}
-        className={cn('relative flex items-center justify-between h-7 px-2.5 rounded-[6px] text-[13px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', on && 'font-medium')}
+        className={cn('relative flex items-center justify-between h-[30px] px-2.5 rounded-[6px] text-[13px] bg-transparent border-0 cursor-pointer text-left hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', on && 'font-medium')}
         style={{ color: on ? INK : BODY }}>
         {on && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-[2px]" style={{ background: INK }} />}
         <span className="truncate">{s.label}</span>
@@ -139,7 +139,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
           <div className="flex items-center gap-0.5 mr-1" role="group" aria-label="Row density">
             {DENSITIES.map(d => { const Icon = d.icon; return (
               <button key={d.key} type="button" onClick={() => pick(d.key)} aria-pressed={density === d.key} title={d.label} aria-label={d.label}
-                className={cn('w-7 h-7 inline-flex items-center justify-center rounded-[6px] border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', density === d.key ? 'bg-[#f1f2ee]' : 'bg-transparent hover:bg-[#faf9f6]')}
+                className={cn('w-[30px] h-[30px] inline-flex items-center justify-center rounded-[6px] border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]', density === d.key ? 'bg-[#f1f2ee]' : 'bg-transparent hover:bg-[#faf9f6]')}
                 style={{ color: density === d.key ? INK : DOT }}><Icon size={14} /></button>
             ) })}
           </div>

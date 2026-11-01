@@ -34,7 +34,7 @@ export default async function ConnectGmail({ searchParams }: { searchParams: Pro
             </ul>
             <p className="mt-4 mb-0 text-[14px] leading-[1.6]" style={{ color: '#2a332f' }}>Google will ask you to allow <b>“View your email messages and settings”</b>. That is the only permission requested.</p>
             {error && <p className="text-[14px] mt-3 mb-0" style={{ color: '#a23b2c' }}>{error}</p>}
-            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-11 px-6 rounded-[8px] text-white text-[15px] font-medium no-underline" style={{ background: '#132c1c' }}>Allow read-only access</a>
+            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-9 px-6 rounded-[8px] text-white text-[15px] font-medium no-underline" style={{ background: '#132c1c' }}>Allow read-only access</a>
             <p className="mt-4 mb-0 text-[13px]" style={{ color: '#4a5550' }}>Sign in with your @trade-risksol.com account. Remove access at any time: Google Account → Security → Third-party connections.</p>
           </>
         )}

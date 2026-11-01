@@ -133,7 +133,7 @@ export default function TriagePage() {
             <h1 className="m-0 mt-3 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Match threads</h1>
             <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>{countLine}</p>
           </div>
-          <Btn level="primary" className="h-12 px-6 rounded-[12px] text-[15px]" onClick={runAutofile} loading={running === 'autofile'} title="Files every thread it can by email domain, creating companies it is sure about. Anything less certain lands here.">
+          <Btn level="primary" onClick={runAutofile} loading={running === 'autofile'} title="Files every thread it can by email domain, creating companies it is sure about. Anything less certain lands here.">
             File everything
           </Btn>
         </div>
@@ -312,7 +312,7 @@ function DomainCard({ row, companies, busy, onDecide }: {
           <span className="text-[12.5px]" style={{ color: MUTED }}>Existing company</span>
           <span className="flex gap-2">
             <CompanySearchSelect options={companies} value={pick} onChange={setPick} placeholder="Search companies…" className="max-w-[240px]" />
-            <Btn size="sm" level="secondary" className="h-10" disabled={!pick || busy} loading={busy} onClick={() => onDecide({ decision: 'assign', companyId: pick })}>Assign</Btn>
+            <Btn size="sm" level="secondary" className="h-9" disabled={!pick || busy} loading={busy} onClick={() => onDecide({ decision: 'assign', companyId: pick })}>Assign</Btn>
           </span>
         </label>
 
@@ -323,11 +323,11 @@ function DomainCard({ row, companies, busy, onDecide }: {
             <select value={kind} onChange={e => setKind(e.target.value as CompanyKind)} className={`${inputCls} w-auto`} aria-label="Kind">
               {COMPANY_KINDS.filter(k => k !== 'other').map(k => <option key={k} value={k}>{k}</option>)}
             </select>
-            <Btn size="sm" level="secondary" className="h-10" disabled={!name.trim() || busy} loading={busy} onClick={() => onDecide({ decision: 'create', name: name.trim(), kind })}>Create</Btn>
+            <Btn size="sm" level="secondary" className="h-9" disabled={!name.trim() || busy} loading={busy} onClick={() => onDecide({ decision: 'create', name: name.trim(), kind })}>Create</Btn>
           </span>
         </label>
 
-        <Btn size="sm" level="tertiary" className="h-10" disabled={busy} onClick={() => onDecide({ decision: 'ignore' })} title="Newsletters, vendors, anyone we do not need to track">Not one to track</Btn>
+        <Btn size="sm" level="tertiary" className="h-9" disabled={busy} onClick={() => onDecide({ decision: 'ignore' })} title="Newsletters, vendors, anyone we do not need to track">Not one to track</Btn>
       </div>
     </li>
   )
@@ -377,14 +377,14 @@ function MisfiledCard({ group, companies, onDone }: { group: MisfiledGroup; comp
 
       <div className="mt-4 pt-4 border-t border-[#e6e8e4] flex items-center gap-2 flex-wrap">
         <CompanySearchSelect options={companies} value={pick} onChange={setPick} className="max-w-[240px]" />
-        <Btn size="sm" level={group.match ? 'primary' : 'secondary'} className="h-10" disabled={!pick || busy} loading={busy && !!pick}
+        <Btn size="sm" level={group.match ? 'primary' : 'secondary'} className="h-9" disabled={!pick || busy} loading={busy && !!pick}
           onClick={() => decideAll({ decision: 'link', companyId: pick })}>
           Move {n === 1 ? 'it' : `all ${n}`}
         </Btn>
         <span className="text-[13px]" style={{ color: '#8c958f' }}>or</span>
         <input value={name} onChange={e => setName(e.target.value)} className={`${inputCls} w-auto max-w-[220px]`} aria-label="New company name" placeholder="Company name" />
-        <Btn size="sm" level="secondary" className="h-10" disabled={!name.trim() || busy} onClick={() => decideAll({ decision: 'create', name: name.trim() })}>Create and move</Btn>
-        <Btn size="sm" level="tertiary" className="h-10" disabled={busy} onClick={() => decideAll({ decision: 'not_client' })}>Keep under the insurer</Btn>
+        <Btn size="sm" level="secondary" className="h-9" disabled={!name.trim() || busy} onClick={() => decideAll({ decision: 'create', name: name.trim() })}>Create and move</Btn>
+        <Btn size="sm" level="tertiary" className="h-9" disabled={busy} onClick={() => decideAll({ decision: 'not_client' })}>Keep under the insurer</Btn>
       </div>
     </li>
   )
@@ -419,8 +419,8 @@ function ThreadCard({ row, companies, onDone }: { row: ThreadRow; companies: Com
       </div>
       <div className="mt-4 pt-4 border-t border-[#e6e8e4] flex items-center gap-2 flex-wrap">
         <CompanySearchSelect options={companies} value={pick} onChange={setPick} className="max-w-[260px]" />
-        <Btn size="sm" level="secondary" className="h-10" disabled={!pick || busy} onClick={() => decide({ decision: 'link', companyId: pick })}>Link</Btn>
-        <Btn size="sm" level="tertiary" className="h-10" disabled={busy} onClick={() => decide({ decision: 'not_client' })}>Not a client</Btn>
+        <Btn size="sm" level="secondary" className="h-9" disabled={!pick || busy} onClick={() => decide({ decision: 'link', companyId: pick })}>Link</Btn>
+        <Btn size="sm" level="tertiary" className="h-9" disabled={busy} onClick={() => decide({ decision: 'not_client' })}>Not a client</Btn>
       </div>
     </li>
   )

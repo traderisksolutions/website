@@ -123,7 +123,7 @@ export function Alert({
           {onDismiss && (
             <button
               type="button" onClick={onDismiss} aria-label="Dismiss this alert"
-              className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[#f1f2ee]"
+              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[#f1f2ee]"
               style={{ color: '#6f7a74' }}
             >
               ×

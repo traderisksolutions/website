@@ -73,7 +73,7 @@ export function CompanyLog({ bundle, events, onChanged }: {
               <option value="note">Note</option>
               <option value="decision">Decision</option>
             </select>
-            <Btn level="secondary" className="h-10" onClick={add} loading={busy} disabled={!text.trim()}>Add</Btn>
+            <Btn level="secondary" className="h-9" onClick={add} loading={busy} disabled={!text.trim()}>Add</Btn>
           </div>
         </div>
       )}

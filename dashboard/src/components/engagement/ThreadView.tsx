@@ -330,7 +330,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
           <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-[13px]" style={{ background: '#f1f2ee', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
             <div className={cn(measure, 'flex items-center justify-between gap-3')}>
               <span>{taskDone.text}</span>
-              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-7 h-7 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-white" style={{ color: MUTED }}><X size={13} /></button></span>
+              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-white" style={{ color: MUTED }}><X size={13} /></button></span>
             </div>
           </div>
         )}
@@ -473,7 +473,7 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
       <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
         <div className="flex items-start justify-between gap-3 mb-4">
           <div><h2 id="task-from-email" className="m-0 text-[18px] font-medium tracking-[-0.01em]">New to-do</h2><p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{lead.companyName ? `For ${lead.companyName}` : 'This thread is not linked to a company yet'}</p></div>
-          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={16} /></button>
+          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={16} /></button>
         </div>
         <div className="flex flex-col gap-3">
           <label className={lbl} style={{ color: MUTED }}>Title<input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></label>

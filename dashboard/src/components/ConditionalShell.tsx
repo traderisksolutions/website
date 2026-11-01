@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { TopNavbar } from '@/components/nav/top-navbar'
+import { TopNavbar, PlaceTabs } from '@/components/nav/top-navbar'
 import { HousekeepingBanner } from '@/components/HousekeepingBanner'
 import { AiCreditsAlert } from '@/components/AiCreditsAlert'
 import { EngagementRail, useShowEngagementRail } from '@/components/nav/engagement-rail'
@@ -56,6 +56,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
     // than gated by pathname so it never has to special-case "no provider mounted".
     <EngagementNavProvider>
       <TopNavbar />
+      <PlaceTabs />
       <EngagementRail />
       <MainContent>{children}</MainContent>
       {onNexus && (

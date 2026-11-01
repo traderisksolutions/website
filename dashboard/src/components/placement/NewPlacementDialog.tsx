@@ -121,7 +121,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
             <p className="m-0 text-[14px]" style={{ color: INK }}>Placement created.</p>
             <p className="m-0 text-[14px]" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
             <div className="flex justify-end pt-2">
-              <Btn level="primary" className="h-10 px-4" onClick={onClose}>Done</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn>
             </div>
           </div>
         ) : (
@@ -135,7 +135,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                   ))}
                 </select>
               </Field>
-              <Btn level="secondary" className="h-10" disabled={!threadId || reading} loading={reading} onClick={readThread}>
+              <Btn level="secondary" className="h-9" disabled={!threadId || reading} loading={reading} onClick={readThread}>
                 {reading ? 'Reading the thread…' : 'Read from thread'}
               </Btn>
             </div>
@@ -170,7 +170,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                     <Field label="Label">
                       <input className={inputCls} value={r.label} onChange={e => setRow(r.key, { label: e.target.value })} />
                     </Field>
-                    <Btn level="tertiary" size="xs" className="h-10 sm:mb-0" aria-label="Remove line" disabled={rows.length === 1} onClick={() => setRows(rs => rs.filter(x => x.key !== r.key))}>
+                    <Btn level="tertiary" size="xs" className="h-9 sm:mb-0" aria-label="Remove line" disabled={rows.length === 1} onClick={() => setRows(rs => rs.filter(x => x.key !== r.key))}>
                       <X size={12} /> Remove
                     </Btn>
                   </div>
@@ -201,7 +201,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
 
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-              <Btn level="primary" className="h-10 px-4" onClick={create} loading={busy} disabled={validRows.length === 0 || reading || picksPending}>Create</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={create} loading={busy} disabled={validRows.length === 0 || reading || picksPending}>Create</Btn>
             </div>
           </div>
         )}

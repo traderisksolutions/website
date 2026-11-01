@@ -194,7 +194,7 @@ export function NexusPhasedAnalysisModal({
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
           <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Run analysis</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
             <X size={15} />
           </button>
         </div>

@@ -134,7 +134,7 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
             {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-              <Btn level="primary" className="h-10 px-4" onClick={issue} loading={busy}>Issue and file in Drive</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={issue} loading={busy}>Issue and file in Drive</Btn>
             </div>
           </div>
         )}

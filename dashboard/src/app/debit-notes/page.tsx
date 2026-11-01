@@ -81,7 +81,7 @@ function FilterInput({ label, value, onChange, autoFocus }: { label: string; val
         style={{ borderColor: '#d5d9d4', color: INK }}
       />
       {value && (
-        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
+        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
       )}
     </div>
   )

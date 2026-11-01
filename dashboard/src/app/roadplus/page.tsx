@@ -436,7 +436,7 @@ export default function RoadplusReconPage() {
                   onClick={() => setLive((v) => !v)}
                   aria-pressed={live}
                   title={live ? `Checks for new transactions every ${POLL_MS / 1000}s` : 'Live updates paused'}
-                  className="inline-flex items-center gap-2 h-10 px-2 text-[13px] bg-transparent border-0 cursor-pointer hover:underline underline-offset-4"
+                  className="inline-flex items-center gap-2 h-9 px-2 text-[13px] bg-transparent border-0 cursor-pointer hover:underline underline-offset-4"
                   style={{ color: MUTED }}
                 >
                   <span className="inline-block w-2 h-2 rounded-full" style={{ background: live ? '#8c958f' : '#d5d9d4' }} aria-hidden />

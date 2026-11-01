@@ -188,7 +188,7 @@ function CompaniesTab({ data, busy, onAdd, onRemove }: { data: Payload; busy: bo
       <Ask question="Add a competitor" hint="Paste the company's website. The blog is found from the sitemap.">
         <form onSubmit={submit} className="flex items-end gap-4 flex-wrap">
           <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://" aria-label="Competitor website URL" autoComplete="off" spellCheck={false} className={askField(true)} style={{ ...askFieldStyle, flexBasis: 360 }} />
-          <Btn type="submit" level="primary" disabled={busy || !url.trim()} className="h-11 px-[18px] text-[15px]">Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
+          <Btn type="submit" level="primary" disabled={busy || !url.trim()} >Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
         </form>
       </Ask>
 
@@ -250,7 +250,7 @@ function PromptsTab({ data, busy, onAdd, onToggle, onRemove }: { data: Payload; 
         <form onSubmit={submit} className="flex items-end gap-4 flex-wrap">
           <input value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="Which insurance is compulsory for a small business in Singapore?" aria-label="Prompt" autoComplete="off" className={askField(false)} style={{ ...askFieldStyle, flexBasis: 320 }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="compulsory business insurance singapore" aria-label="Search query" autoComplete="off" className={askField(false)} style={{ ...askFieldStyle, flexBasis: 240 }} />
-          <Btn type="submit" level="primary" disabled={busy || prompt.trim().length < 8} className="h-10 px-4">Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
+          <Btn type="submit" level="primary" disabled={busy || prompt.trim().length < 8} className="h-9 px-4">Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
         </form>
       </Ask>
 

@@ -43,7 +43,7 @@ export function FloatingChatComposer({
         <input ref={fileRef} type="file" multiple className="hidden"
           onChange={(e) => { if (e.target.files?.length) onAttachFiles(e.target.files); e.target.value = '' }} />
         <button onClick={() => fileRef.current?.click()} aria-label="Attach file" title="Attach a file for the consultant to read"
-          className="h-7 w-7 flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+          className="h-[30px] w-[30px] flex items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
           <Paperclip size={15} />
         </button>
         <textarea
@@ -58,12 +58,12 @@ export function FloatingChatComposer({
         />
         {sending ? (
           <button onClick={onStop} aria-label="Stop generating"
-            className="h-7 w-7 flex items-center justify-center rounded-lg bg-foreground/80 text-background flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+            className="h-[30px] w-[30px] flex items-center justify-center rounded-lg bg-foreground/80 text-background flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
             <Square size={12} fill="currentColor" />
           </button>
         ) : (
           <button onClick={onSend} disabled={!draft.trim() && attachments.length === 0} aria-label="Send message"
-            className="h-7 w-7 flex items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+            className="h-[30px] w-[30px] flex items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40 transition-opacity flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
             <ArrowUp size={15} />
           </button>
         )}

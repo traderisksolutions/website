@@ -63,7 +63,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           type="button"
           onClick={onClose}
           aria-label="Close detail panel"
-          className="w-8 h-8 inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer"
+          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer"
           style={{ color: MUTED }}
         >
           <X size={14} />

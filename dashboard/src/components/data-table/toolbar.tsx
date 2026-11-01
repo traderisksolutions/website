@@ -122,7 +122,7 @@ export function DataTableReset({ onReset, className }: DataTableResetProps) {
       variant="ghost"
       size="compact"
       onClick={onReset}
-      className={cn('h-8 text-muted-foreground hover:text-foreground px-2 gap-1', className)}
+      className={cn('h-[30px] text-muted-foreground hover:text-foreground px-2 gap-1', className)}
     >
       Reset
       <X className="h-3 w-3" />

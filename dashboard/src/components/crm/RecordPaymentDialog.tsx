@@ -144,7 +144,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
           <Btn level="tertiary" onClick={onClose}>Cancel</Btn>
           <Btn
             level="primary"
-            className="h-10 px-4"
+            className="h-9 px-4"
             onClick={save}
             loading={busy}
             disabled={!Number.isFinite(entered) || entered <= 0 || remaining < 0}

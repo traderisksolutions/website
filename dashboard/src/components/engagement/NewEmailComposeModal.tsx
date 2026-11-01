@@ -210,12 +210,12 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
             <DialogPrimitive.Title className="m-0 text-[18px] font-medium tracking-[-0.01em]" style={{ color: INK }}>New email</DialogPrimitive.Title>
             <span className="flex-1" />
             {savedState && <span className="text-[12.5px] mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
-            <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-8 px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
+            <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
           </div>
 
           {/* ── To ── */}
           <FieldRow label="To" tall htmlFor="new-email-to" right={
-            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-7 px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
+            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
           }>
             {to.trim() ? (
               <RecipientChip name={toName} email={to} onRemove={() => setTo('')} />

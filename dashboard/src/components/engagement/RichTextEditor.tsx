@@ -43,7 +43,7 @@ export function RichTextEditor({
       aria-label={title}
       onMouseDown={e => e.preventDefault()}  // keep the selection
       onClick={onClick}
-      className="h-8 w-8 flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30"
+      className="h-[30px] w-[30px] flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30"
       style={{ color: '#2a332f' }}
     >
       {children}

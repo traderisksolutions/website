@@ -160,7 +160,7 @@ export function ConversationList({
                   )}
                 </button>
                 <button type="button" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
-                  className="absolute right-2 top-2 w-8 h-8 inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: FAINT }}>
+                  className="absolute right-2 top-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: FAINT }}>
                   <X size={13} />
                 </button>
               </div>

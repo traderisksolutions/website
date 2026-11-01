@@ -19,34 +19,28 @@ import { cn } from '@/lib/utils'
 
 // ── AppPageHeader ─────────────────────────────────────────────────────────────
 // Sticky framed header for full-height operational pages.
-// Includes title, optional description, and optional right-side actions.
+// Title and optional right-side actions. No description line, by standing rule.
 // Has border-bottom so it visually separates from scrollable content below.
 
 interface AppPageHeaderProps {
   title: string
-  description?: string
   actions?: React.ReactNode
   className?: string
 }
 
-export function AppPageHeader({ title, description, actions, className }: AppPageHeaderProps) {
+export function AppPageHeader({ title, actions, className }: AppPageHeaderProps) {
   return (
     <div
       className={cn(
         'flex items-start justify-between gap-4 px-6 sm:px-10 py-6 flex-shrink-0',
-        'border-b border-[#e6e8e4] bg-white',
+        'border-b border-trs-line bg-white',
         className,
       )}
     >
       <div className="min-w-0">
-        <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15]" style={{ color: '#0f1412' }}>
+        <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink">
           {title}
         </h1>
-        {description && (
-          <p className="m-0 mt-1 text-[14.5px] leading-snug" style={{ color: '#4a5550' }}>
-            {description}
-          </p>
-        )}
       </div>
       {actions && (
         <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">

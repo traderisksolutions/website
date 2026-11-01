@@ -346,7 +346,7 @@ function AskTierCDialog({ open, lineId, productLine, onClose, onDone }: {
           {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-10 px-4" onClick={draft} loading={busy} disabled={picks === null}>Draft the requests</Btn>
+            <Btn level="primary" className="h-9 px-4" onClick={draft} loading={busy} disabled={picks === null}>Draft the requests</Btn>
           </div>
         </div>
       </DialogContent>
@@ -394,7 +394,7 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
             <p className="m-0 text-[14px]" style={{ color: INK }}>{result.count} on the list · {result.quotes} engine quote{result.quotes === 1 ? '' : 's'}{result.partial ? ' · some insurers could not be priced' : ''}</p>
             {result.notes.length > 0 && <ul className="m-0 pl-4 text-[13px]" style={{ color: MUTED }}>{result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
             {result.issues.length > 0 && <ul className="m-0 pl-4 text-[13px]" style={{ color: MUTED }}>{result.issues.slice(0, 10).map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            <div className="flex justify-end pt-2"><Btn level="primary" className="h-10 px-4" onClick={onClose}>Done</Btn></div>
+            <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -410,7 +410,7 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
             {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy !== null}>Cancel</Btn>
-              <Btn level="primary" className="h-10 px-4" onClick={run} loading={busy !== null} disabled={!file}>{busy === 'reading' ? 'Reading the list…' : busy === 'pricing' ? 'Pricing…' : 'Upload and price'}</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={run} loading={busy !== null} disabled={!file}>{busy === 'reading' ? 'Reading the list…' : busy === 'pricing' ? 'Pricing…' : 'Upload and price'}</Btn>
             </div>
           </div>
         )}
@@ -458,7 +458,7 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
           <div className="flex flex-col gap-3">
             <p className="m-0 text-[14px]" style={{ color: INK }}>{sent.mailError ? `Link created. Email not sent: ${sent.mailError}` : 'Link sent.'}</p>
             <p className="m-0 text-[13px] break-all" style={{ color: MUTED }}>{sent.url}</p>
-            <div className="flex justify-end pt-2"><Btn level="primary" className="h-10 px-4" onClick={onClose}>Done</Btn></div>
+            <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -471,7 +471,7 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
             {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-              <Btn level="primary" className="h-10 px-4" onClick={send} loading={busy}>Send</Btn>
+              <Btn level="primary" className="h-9 px-4" onClick={send} loading={busy}>Send</Btn>
             </div>
           </div>
         )}
@@ -537,7 +537,7 @@ function RecordMovementDialog({ open, policyId, onClose, onDone }: { open: boole
           {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-10 px-4" onClick={save} loading={busy}>Record</Btn>
+            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>
           </div>
         </div>
       </DialogContent>
@@ -616,7 +616,7 @@ function RecordNoteDialog({ open, policyId, currency: defaultCurrency, onClose, 
           {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-10 px-4" onClick={save} loading={busy}>Record</Btn>
+            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>
           </div>
         </div>
       </DialogContent>

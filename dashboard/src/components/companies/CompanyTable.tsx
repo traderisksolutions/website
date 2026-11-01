@@ -93,7 +93,7 @@ function SortHeader({ col, sort, onSort, className }: { col: typeof COLUMNS[numb
   return (
     <th scope="col" aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('py-0 font-normal', col.align === 'right' ? 'text-right' : 'text-left', className)}>
       <button type="button" onClick={() => onSort(col.key)} title={col.hint}
-        className={cn('group inline-flex items-center gap-1.5 h-8 bg-transparent border-0 cursor-pointer text-[12px] whitespace-nowrap', col.align === 'right' && 'flex-row-reverse', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
+        className={cn('group inline-flex items-center gap-1.5 h-[30px] bg-transparent border-0 cursor-pointer text-[12px] whitespace-nowrap', col.align === 'right' && 'flex-row-reverse', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
         {col.label}
         <Icon size={13} className={cn(on ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
       </button>

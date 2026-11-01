@@ -191,7 +191,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
         <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4" style={{ background: '#f1f2ee' }}>
           <Building2 size={14} className="flex-shrink-0" style={{ color: MUTED }} />
           <span className="text-[15px] font-medium flex-1 truncate" style={{ color: INK }}>{value.companyName}</span>
-          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4]" style={{ color: MUTED }}><X size={14} /></button>
+          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4]" style={{ color: MUTED }}><X size={14} /></button>
         </div>
       )}
 
@@ -202,7 +202,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
             <div className="flex items-center gap-2.5 h-10 rounded-[10px] px-3.5" style={{ border: '1px solid #d5d9d4' }}>
               <Mail size={14} className="flex-shrink-0" style={{ color: MUTED }} />
               <span className="text-[14px] flex-1 truncate">{value.contactName ? `${value.contactName} <${value.contactEmail}>` : value.contactEmail}</span>
-              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><Pencil size={12} /></button>
+              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><Pencil size={12} /></button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

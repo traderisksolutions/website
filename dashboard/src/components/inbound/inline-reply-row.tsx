@@ -339,7 +339,7 @@ export function ReplyExpandButton({
       aria-expanded={isExpanded}
       aria-label={isExpanded ? 'Collapse reply panel' : 'Draft and send reply'}
       className={cn(
-        'inline-flex items-center justify-center w-8 h-8 rounded-[8px] cursor-pointer transition-colors',
+        'inline-flex items-center justify-center w-[30px] h-[30px] rounded-[8px] cursor-pointer transition-colors',
         isExpanded ? 'bg-[#f1f2ee] hover:bg-[#e6e8e4]' : 'bg-white hover:bg-[#faf9f6]',
       )}
       style={{ border: '1px solid #d5d9d4', color: INK }}

@@ -460,8 +460,8 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         </label>
         {error && <p className="text-[12px] text-[#a1242f]">{error}</p>}
         <div className="flex justify-end gap-2 mt-1">
-          <button onClick={onClose} className="h-10 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f2ee]">Cancel</button>
-          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-10 px-5 rounded-[10px] text-[14px] font-medium bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
+          <button onClick={onClose} className="h-9 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f2ee]">Cancel</button>
+          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-9 px-5 rounded-[10px] text-[14px] font-medium bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
             {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload and extract'}
           </button>
         </div>

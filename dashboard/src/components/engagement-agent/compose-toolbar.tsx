@@ -19,7 +19,7 @@ export const FIELD    = '#f1f2ee'
 export const HOVER    = '#faf9f6'
 
 /** The three-level button ladder at the composer's 36px size. One filled ink primary per view. */
-export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[#132c1c] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
+export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] bg-[#132c1c] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
 export const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border border-[#d5d9d4] hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
 export const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-transparent text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border-0 hover:bg-[#f1f2ee] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
 
@@ -146,7 +146,7 @@ export function TbMenuItem({ onSelect, active, disabled, shortcut, children, cla
       disabled={disabled}
       onMouseDown={e => e.preventDefault()}
       onClick={() => { if (!disabled) onSelect() }}
-      className={cn('flex w-full items-center gap-2.5 h-8 px-2.5 rounded-[6px] text-left text-[13.5px] text-[#0f1412] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed', active && 'bg-[#f1f2ee] font-medium', className)}
+      className={cn('flex w-full items-center gap-2.5 h-[30px] px-2.5 rounded-[6px] text-left text-[13.5px] text-[#0f1412] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed', active && 'bg-[#f1f2ee] font-medium', className)}
       style={style}
     >
       <span className="flex-1 min-w-0 truncate">{children}</span>

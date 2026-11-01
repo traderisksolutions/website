@@ -118,7 +118,7 @@ export default function CalendarPage() {
   function goto(delta: number) { setViewDate(d => new Date(d.getFullYear(), d.getMonth() + delta, 1)) }
   function gotoToday() { const d = nowSGT(); d.setDate(1); setViewDate(d) }
 
-  const navBtn = 'w-10 h-10 inline-flex items-center justify-center rounded-[10px] border bg-white cursor-pointer hover:bg-[#faf9f6]'
+  const navBtn = 'w-9 h-9 inline-flex items-center justify-center rounded-[10px] border bg-white cursor-pointer hover:bg-[#faf9f6]'
 
   return (
     <div className="min-h-[calc(100vh-56px)] bg-white" style={{ color: INK }}>
@@ -135,7 +135,7 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2">
             <button type="button" onClick={() => goto(-1)} aria-label="Previous month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronLeft size={16} /></button>
             <button type="button" onClick={() => goto(1)} aria-label="Next month" className={navBtn} style={{ borderColor: '#d5d9d4', color: INK }}><ChevronRight size={16} /></button>
-            <Btn level="secondary" className="h-10 px-4" onClick={gotoToday}>Today</Btn>
+            <Btn level="secondary" className="h-9 px-4" onClick={gotoToday}>Today</Btn>
           </div>
         </div>
 

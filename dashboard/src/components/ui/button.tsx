@@ -4,30 +4,37 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * The one button. Two heights only: 36 (default) and 30 (sm). Five levels:
+ *   default      Primary — solid green, one per screen
+ *   outline      Secondary — white, hairline border (`secondary` is the same look)
+ *   ghost        Quiet — no border, muted text (`quiet` is the same look)
+ *   destructive  Outlined red; the confirm step lives in the page, not in the colour
+ *   link         Inline text action
+ * Older size names (compact, xs, lg, icon-xs) map onto the two heights so callers keep working.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] text-[14px] font-medium transition-[background-color,opacity,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1f4e3a] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[8px] border text-[14px] font-medium transition-[background-color,border-color,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trs-green focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-45 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 cursor-pointer",
   {
     variants: {
       variant: {
-        default: "bg-[#132c1c] text-white hover:bg-[#1f4e3a]",
-        destructive:
-          "bg-white text-[#a1242f] border border-[#d5d9d4] hover:bg-[#faf9f6]",
-        outline:
-          "bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]",
-        secondary:
-          "bg-[#f1f2ee] text-[#0f1412] hover:bg-[#e6e8e4]",
-        ghost: "text-[#4a5550] hover:bg-[#faf9f6] hover:text-[#0f1412]",
-        link: "text-[#0f1412] underline underline-offset-4 decoration-[#8c958f] hover:decoration-[#0f1412]",
+        default: "border-transparent bg-trs-green text-white hover:bg-trs-green-2",
+        outline: "border-trs-line-2 bg-white text-trs-ink hover:border-trs-ink-2",
+        secondary: "border-trs-line-2 bg-white text-trs-ink hover:border-trs-ink-2",
+        ghost: "border-transparent bg-transparent text-trs-muted hover:bg-trs-canvas hover:text-trs-ink",
+        quiet: "border-transparent bg-transparent text-trs-muted hover:bg-trs-canvas hover:text-trs-ink",
+        destructive: "border-trs-line-2 bg-white text-trs-neg hover:border-trs-neg",
+        link: "border-transparent text-trs-ink underline underline-offset-4 decoration-trs-subtle hover:decoration-trs-ink",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-9 px-3.5 text-[13.5px]",
-        compact: "h-[30px] px-3 text-[13px] rounded-[6px]",
-        xs: "h-[30px] px-2.5 text-[13px] rounded-[6px]",
-        lg: "h-11 px-5 text-[15px] rounded-[7px]",
-        icon: "h-9 w-9",
-        "icon-sm": "h-[30px] w-[30px] rounded-[6px]",
-        "icon-xs": "h-6 w-6",
+        default: "h-9 px-3.5",
+        sm: "h-[30px] px-2.5 text-[13px] rounded-[7px] [&_svg]:size-3.5",
+        compact: "h-[30px] px-2.5 text-[13px] rounded-[7px] [&_svg]:size-3.5",
+        xs: "h-[30px] px-2.5 text-[13px] rounded-[7px] [&_svg]:size-3.5",
+        lg: "h-9 px-3.5",
+        icon: "h-9 w-9 p-0",
+        "icon-sm": "h-[30px] w-[30px] p-0 rounded-[7px] [&_svg]:size-3.5",
+        "icon-xs": "h-[30px] w-[30px] p-0 rounded-[7px] [&_svg]:size-3.5",
       },
     },
     defaultVariants: {

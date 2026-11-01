@@ -324,7 +324,7 @@ function MarkLiveDialog({ policy, onClose, onDone }: { policy: PolicyView | null
           {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-10 px-4" onClick={save} loading={busy}>Mark live</Btn>
+            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Mark live</Btn>
           </div>
         </div>
       </DialogContent>

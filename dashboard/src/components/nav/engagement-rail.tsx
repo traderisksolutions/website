@@ -46,14 +46,14 @@ export function EngagementRail() {
 
   if (navCollapsed) {
     return (
-      <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 56, bottom: 0, width: RAIL_COLLAPSED, borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator, collapsed">
+      <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 'var(--top-nav-h)', bottom: 0, width: RAIL_COLLAPSED, borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator, collapsed">
         <CollapsedNavRail />
       </aside>
     )
   }
 
   return (
-    <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 56, bottom: 0, width: 'var(--engagement-rail-w, 380px)', borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator">
+    <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 'var(--top-nav-h)', bottom: 0, width: 'var(--engagement-rail-w, 380px)', borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator">
       <div className="relative h-full">
         <ThreadListPane collapsible />
         <div role="separator" aria-orientation="vertical" aria-label="Resize navigator" aria-valuenow={width} aria-valuemin={min} aria-valuemax={max} tabIndex={0}
