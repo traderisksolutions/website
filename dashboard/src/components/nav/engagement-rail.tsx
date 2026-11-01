@@ -8,7 +8,7 @@ import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 import { useResizableRailWidth, RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 const ENGAGEMENT_ROUTE = '/engagement'
-const HAIRLINE = '#e6e8e4'
+const HAIRLINE = 'var(--trs-line)'
 
 function onEngagementRoute(pathname: string) {
   return pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')

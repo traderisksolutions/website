@@ -33,7 +33,7 @@ interface Tokens {
 
 const TOKENS: Record<AlertVariant, Tokens> = {
   info: {
-    accent: '#1f4e3a', tint: '#f1f6fe', title: '#174ea6',
+    accent: 'var(--trs-green-2)', tint: '#f1f6fe', title: '#174ea6',
     role: 'status', live: 'polite', label: 'Information',
     glyph: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -63,7 +63,7 @@ const TOKENS: Record<AlertVariant, Tokens> = {
     ),
   },
   error: {
-    accent: '#a1242f', tint: '#fdf1f0', title: '#a50e0e',
+    accent: 'var(--trs-neg)', tint: '#fdf1f0', title: '#a50e0e',
     role: 'alert', live: 'assertive', label: 'Error',
     glyph: (
       <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -103,7 +103,7 @@ export function Alert({
       role={t.role}
       aria-live={t.live}
       className="flex overflow-hidden rounded-[10px] bg-white"
-      style={{ border: '1px solid #d5d9d4', borderLeft: `3px solid ${t.accent}` }}
+      style={{ border: '1px solid var(--trs-line-2)', borderLeft: `3px solid ${t.accent}` }}
       {...(dataAttr ? { [dataAttr]: '' } : {})}
     >
       <div className="flex w-11 flex-shrink-0 justify-center pt-[15px]" style={{ background: t.tint, color: t.accent }}>
@@ -118,13 +118,13 @@ export function Alert({
                 <span className="sr-only">{t.label}: </span>{title}
               </h2>
             )}
-            {children && <div className="mt-[3px] text-[13px] leading-[1.5]" style={{ color: '#2a332f' }}>{children}</div>}
+            {children && <div className="mt-[3px] text-[13px] leading-[1.5]" style={{ color: 'var(--trs-ink-2)' }}>{children}</div>}
           </div>
           {onDismiss && (
             <button
               type="button" onClick={onDismiss} aria-label="Dismiss this alert"
-              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[#f1f2ee]"
-              style={{ color: '#6f7a74' }}
+              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[var(--trs-field)]"
+              style={{ color: 'var(--trs-subtle)' }}
             >
               ×
             </button>
@@ -153,17 +153,17 @@ export function Alert({
                         className="mt-[5px] flex-shrink-0 transition-transform duration-150"
                         style={{ transform: isOpen ? 'rotate(90deg)' : 'none' }}
                       >
-                        <path d="M3 1l4 4-4 4" stroke="#6f7a74" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M3 1l4 4-4 4" stroke="var(--trs-subtle)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     ) : (
-                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: '#6f7a74' }} />
+                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: 'var(--trs-subtle)' }} />
                     )}
-                    <span className="text-[13px] leading-[1.5]" style={{ color: '#2a332f' }}>{r.summary}</span>
+                    <span className="text-[13px] leading-[1.5]" style={{ color: 'var(--trs-ink-2)' }}>{r.summary}</span>
                   </button>
                   {expandable && isOpen && (
                     <div id={id} className="pb-2 pl-5 pt-[2px]">
                       {r.detail.map((d, n) => (
-                        <div key={n} className="text-[12px] leading-[1.6]" style={{ color: '#4a5550' }}>{d}</div>
+                        <div key={n} className="text-[12px] leading-[1.6]" style={{ color: 'var(--trs-muted)' }}>{d}</div>
                       ))}
                     </div>
                   )}
@@ -177,8 +177,8 @@ export function Alert({
           <div className="mt-[9px]">
             <a
               href={actionHref}
-              className="text-[13px] underline decoration-[#d5d9d4] underline-offset-[3px] hover:decoration-[#0f1412]"
-              style={{ color: '#0f1412' }}
+              className="text-[13px] underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)]"
+              style={{ color: 'var(--trs-ink)' }}
             >
               {actionLabel}
             </a>

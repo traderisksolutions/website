@@ -13,18 +13,18 @@ import { cn } from '@/lib/utils'
  * cells are the point (prices side by side, counts, dates).
  */
 
-const LINE = '#e6e8e4'
-const HEAD = '#faf9f6'
-const INK = '#0f1412'
-const MUTED = '#4a5550'
+const LINE = 'var(--trs-line)'
+const HEAD = 'var(--trs-tint)'
+const INK = 'var(--trs-ink)'
+const MUTED = 'var(--trs-muted)'
 
 /** Light fills, all readable with ink text. */
 export const XL_FILL = {
-  good: '#edf7e8',
+  good: 'var(--trs-soft)',
   bad: '#fdecec',
   warn: '#fff4dc',
   info: '#eaf1f7',
-  quiet: '#f1f2ee',
+  quiet: 'var(--trs-field)',
   pick: '#dcefd2',
 } as const
 export type XlFill = keyof typeof XL_FILL
@@ -74,8 +74,8 @@ export function XlRow({ children, onClick, selected, group, className }: {
   return (
     <tr tabIndex={onClick ? 0 : undefined} onClick={onClick} aria-selected={onClick ? !!selected : undefined}
       onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', className)}
-      style={{ background: selected ? '#edf7e8' : group ? '#fafafa' : undefined }}>
+      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--trs-ink)]', className)}
+      style={{ background: selected ? 'var(--trs-soft)' : group ? '#fafafa' : undefined }}>
       {children}
     </tr>
   )
@@ -100,7 +100,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
   return (
     <td colSpan={colSpan} title={title}
       className={cn('h-8 px-2.5 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center',
-        label && 'sticky left-0 z-10 group-hover:bg-[#faf9f6]', strong && 'font-medium', className)}
+        label && 'sticky left-0 z-10 group-hover:bg-[var(--trs-tint)]', strong && 'font-medium', className)}
       style={{ ...edge, background: bg, color: muted ? MUTED : INK, width, minWidth: width, maxWidth: width }}>
       {isBlank(children) ? <span style={{ color: '#c4c7c5' }}>–</span> : children}
     </td>
@@ -111,7 +111,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-[12.5px]" style={{ ...edge, background: '#fafafa', color: '#2a332f' }}>{children}</td>
+      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-[12.5px]" style={{ ...edge, background: '#fafafa', color: 'var(--trs-ink-2)' }}>{children}</td>
     </tr>
   )
 }
