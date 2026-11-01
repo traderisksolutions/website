@@ -173,6 +173,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   placement_intake:         'placement',
   placement_dispatch_draft: 'placement',
   placement_reply_read:     'placement',
+  placement_quote_capture:  'placement',
   placement_client_change:  'placement',
   placement_chase_draft:    'placement',
   placement_client_summary: 'placement',
