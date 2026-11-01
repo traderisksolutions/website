@@ -8,6 +8,7 @@ import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
 import { enqueue }              from '@/lib/agent-tasks/queue'
 import { drain as drainAgents } from '@/lib/admin'
+import { autoSendRun } from '@/lib/autonomy'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 import { captureAttachments, hasRealAttachments } from '@/lib/gmail/attachments'
 
@@ -806,6 +807,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     enqueue({ agent: 'intake', kind: 'message', idem_key: `intake:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } })
       .then(() => enqueue({ agent: 'knowledge_depositor', kind: 'message', idem_key: `deposit:msg:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } }))
       .then(() => drainAgents({ agents: ['intake', 'resolver', 'knowledge_depositor'], budgetMs: 60_000 }))
+      // Graduated draft classes go out after the drain; the daily cron is the fallback (Hobby plan: daily crons only).
+      .then(() => autoSendRun().catch(e => console.warn('[ingest] auto-send (non-fatal):', e instanceof Error ? e.message : e)))
       .catch(e => console.warn('[ingest] intake (non-fatal):', e instanceof Error ? e.message : e)),
   )
 
