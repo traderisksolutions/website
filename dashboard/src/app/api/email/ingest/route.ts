@@ -910,7 +910,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     waitUntil(
       fetch(`${origin}/api/nexus/attachments/extract`, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '' },
+        headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '', ...internalHeaders() },
         body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_message_id: gmailMsgId, mailbox, force: true }),
       }).catch(e => console.warn('[ingest] attachment extract trigger (non-fatal):', e instanceof Error ? e.message : e))
     )
