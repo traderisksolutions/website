@@ -15,6 +15,7 @@ import { ActionBar } from '@/components/ui/action-bar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, ThreadModal, DocModal, fmtDate, fmtWhen } from '@/components/assistant/shared'
+import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
 
 type Staff = { email: string; name: string }
@@ -22,6 +23,8 @@ type Edit = { to: string; cc: string; subject: string; body: string }
 const asEdit = (d: TodayDraft): Edit => ({ to: d.to, cc: d.cc ?? '', subject: d.subject, body: d.body })
 const changed = (a: Edit, d: TodayDraft) => a.to !== d.to || a.cc !== (d.cc ?? '') || a.subject !== d.subject || a.body !== d.body
 const inputCls = 'w-full min-w-0 h-9 rounded-[7px] border border-trs-line-2 bg-white px-3 text-[14px] text-trs-ink outline-none focus:border-trs-ink'
+/** The send route attaches only what the request names: every file on the draft that has a reference. */
+const withRefs = (a: TodayDraft['attachments']) => a.filter(x => x.storage_url).map(x => ({ filename: x.filename, mime_type: x.mime_type ?? undefined, storage_url: x.storage_url as string }))
 
 export default function ReviewPage() {
   const { id } = useParams<{ id: string }>()
@@ -36,6 +39,7 @@ export default function ReviewPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [thread, setThread] = useState<string | null>(null)
   const [doc, setDoc] = useState<{ title: string; drive_url: string | null } | null>(null)
+  const [editing, setEditing] = useState(false)
 
   const load = useCallback(() => {
     setItem(null); setError(null)
@@ -84,12 +88,12 @@ export default function ReviewPage() {
     await saveAll()
     const sent: string[] = []
     const { draftId } = await work({ action: 'prepare_send' })
-    await callApi('/api/email/send', { method: 'POST', body: { draftId } })
+    await callApi('/api/email/send', { method: 'POST', body: { draftId, attachments: withRefs(item.draft.attachments) } })
     sent.push(item.draft.to)
     for (const p of item.paired.filter(x => include[x.id])) {
       try {
         const { draftId: pid } = await callApi<{ draftId: string }>(`/api/drafts/${p.id}`, { method: 'POST', body: { action: 'prepare' } })
-        await callApi('/api/email/send', { method: 'POST', body: { draftId: pid } })
+        await callApi('/api/email/send', { method: 'POST', body: { draftId: pid, attachments: withRefs(p.attachments) } })
         sent.push(p.to)
       } catch (e) {
         // The main email is out; say exactly which one did not go.
@@ -134,14 +138,16 @@ export default function ReviewPage() {
               <Chip tone="neutral">{forward ? 'Forward to insurer' : partyLabel(item.draft.party, 'Reply')}</Chip>
               <span className="text-[12px] text-trs-muted">Signed with your name on send</span>
             </div>
-            <DraftFields value={main} onChange={setMain} files={item.draft.attachments.map(a => a.filename)} />
+            <DraftFields value={main} onChange={setMain} files={item.draft.attachments.map(a => a.filename)}
+              picker={<AttachmentPicker itemId={item.id} draftId={item.draft.id} files={item.draft.attachments.map(a => a.filename)} documents={item.documents} onChanged={() => { setNotice('Attachments updated.'); load() }} onError={setError} />} />
             {item.paired.map(p => (
               <div key={p.id} className="border-t border-trs-line">
                 <label className="flex items-center gap-2 px-4 py-2.5 cursor-pointer text-[13.5px] text-trs-ink">
                   <input type="checkbox" checked={!!include[p.id]} onChange={e => setInclude(s => ({ ...s, [p.id]: e.target.checked }))} />
                   {forward && p.party === 'client' ? 'Tell the client it was lodged' : `Also update the ${p.party === 'insurer' ? 'insurer' : 'client'}`}
                 </label>
-                {include[p.id] && pairs[p.id] && <DraftFields value={pairs[p.id]} onChange={v => setPairs(s => ({ ...s, [p.id]: v }))} files={p.attachments.map(a => a.filename)} compact />}
+                {include[p.id] && pairs[p.id] && <DraftFields value={pairs[p.id]} onChange={v => setPairs(s => ({ ...s, [p.id]: v }))} files={p.attachments.map(a => a.filename)} compact
+                  picker={<AttachmentPicker itemId={item.id} draftId={p.id} files={p.attachments.map(a => a.filename)} documents={item.documents} onChanged={() => { setNotice('Attachments updated.'); load() }} onError={setError} />} />}
               </div>
             ))}
           </> : (
@@ -171,12 +177,15 @@ export default function ReviewPage() {
         </section>
 
         <aside className="flex flex-col gap-3 min-w-0">
-          <Card title="Case">
+          <Card title="Case" action={<Btn size="xs" level={editing ? 'secondary' : 'tertiary'} onClick={() => setEditing(v => !v)}>{editing ? 'Close editor' : 'Edit'}</Btn>}>
             <div className="flex flex-wrap gap-1.5">
               <Chip tone={st.tone}>{st.label}</Chip>
               <Chip>{CASE_TYPE[item.case_type] ?? item.case_type}</Chip>
               {item.deadline && <Chip tone="amber">Due {fmtDate(item.deadline)}</Chip>}
+              {(item.pending.level === 'red' || item.pending.level === 'amber') && <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip>}
+              {item.owner_email && <Chip>{item.owner_email.split('@')[0]}</Chip>}
             </div>
+            {editing && <CaseEditor item={item} onSaved={m => { setNotice(m); setError(null); setEditing(false); load() }} onError={setError} />}
             {item.summary && <p className="m-0 text-[13.5px] text-trs-ink-2">{item.summary}</p>}
             {timeline.length > 0 && (
               <ol className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]">
@@ -222,7 +231,7 @@ export default function ReviewPage() {
   )
 }
 
-function DraftFields({ value, onChange, files, compact }: { value: Edit; onChange: (v: Edit) => void; files: string[]; compact?: boolean }) {
+function DraftFields({ value, onChange, files, compact, picker }: { value: Edit; onChange: (v: Edit) => void; files: string[]; compact?: boolean; picker?: React.ReactNode }) {
   const set = (k: keyof Edit) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange({ ...value, [k]: e.target.value })
   return (
     <div className="flex flex-col">
@@ -234,15 +243,15 @@ function DraftFields({ value, onChange, files, compact }: { value: Edit; onChang
       ))}
       <textarea aria-label="Message" value={value.body} onChange={set('body')} rows={compact ? 6 : 12}
         className="block w-full border-0 px-4 py-3 text-[14px] leading-relaxed text-trs-ink outline-none resize-y bg-white font-sans" />
-      {files.length > 0 && <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-t border-trs-line text-[12.5px] text-trs-muted">Attached {files.map(f => <Chip key={f}>{f}</Chip>)}</div>}
+      {picker ?? (files.length > 0 && <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-t border-trs-line text-[12.5px] text-trs-muted">Attached {files.map(f => <Chip key={f}>{f}</Chip>)}</div>)}
     </div>
   )
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section className="rounded-[10px] border border-trs-line bg-white px-4 py-3 flex flex-col gap-2 min-w-0">
-      <h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">{title}</h2>
+      <div className="flex items-center justify-between gap-2"><h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">{title}</h2>{action}</div>
       {children}
     </section>
   )
@@ -260,6 +269,7 @@ function eventText(kind: string, actor: string, d: Record<string, any>): string 
     case 'owner': return `Assigned to ${String(d.owner ?? '').split('@')[0]}`
     case 'later': return d.choice ? `Set for later by ${who}` : `Brought back by ${who}`
     case 'seen': return `Read by ${who}`
+    case 'edit': return d.attachments ? `Attachments changed by ${who}` : `Edited by ${who}: ${Object.keys(d.changes ?? {}).map(k => k.replace(/_/g, ' ')).join(', ')}`
     case 'closed': return `Closed by ${who}`
     case 'reopened': return `Reopened by ${who}`
     case 'read': return `Case read by ${who}${d.status ? ` · ${String(d.status).replace(/_/g, ' ')}` : ''}`
