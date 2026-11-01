@@ -7,6 +7,7 @@
  */
 import { sbTry, enc } from '@/lib/crm/db'
 import { ingestAttachment } from '@/lib/documents/ingest'
+import { applyMoneyRead, companyPolicies, NOTE_TYPES, TERMS_TYPES, CLAIM_TYPES } from '@/lib/documents/money-store'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import type { AttachmentsPayload } from './handoffs'
 
@@ -27,6 +28,13 @@ export async function fileAttachments(task: AgentTask) {
     const doc = await ingestAttachment(a.id)
     if (!doc || doc.status === 'ignored') continue
     filed++
+    // Money data: insurer notes, schedules and claim letters go into the policy ledger on arrival.
+    if (doc.company_id && (NOTE_TYPES.has(doc.doc_type) || TERMS_TYPES.has(doc.doc_type) || CLAIM_TYPES.has(doc.doc_type))) {
+      try {
+        const [att] = await sbTry<{ parsed_text: string | null }[]>(`email_attachments?id=eq.${enc(a.id)}&select=parsed_text&limit=1`, [])
+        await applyMoneyRead(doc as any, att?.parsed_text, await companyPolicies(doc.company_id), true)
+      } catch (e) { console.warn('[document_clerk] money read failed (non-fatal):', e instanceof Error ? e.message : e) }
+    }
     if (COVER_DOC_TYPES.has(doc.doc_type) && doc.company_id) {
       cover++
       await enqueue({ agent: 'policy_reader', kind: 'document', idem_key: `policydoc:${doc.id}`, created_by_agent: 'document_clerk', company_id: doc.company_id, policy_id: doc.policy_id, message_id, payload: { document_id: doc.id } })
