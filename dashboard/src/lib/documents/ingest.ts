@@ -13,6 +13,7 @@ import { logError } from '@/lib/error-log'
 import { isNoise, classifyByName } from './taxonomy'
 import { matchPolicy, readDocument, type DocRead } from './classify'
 import { attachmentBytes, fileToDrive, moveDriveFile, groupFolderName } from './drive'
+import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import * as store from './store'
 import type { PolicyDocument } from './store'
 
@@ -55,9 +56,14 @@ export async function fileDocument(doc: PolicyDocument, bytes?: Buffer): Promise
     if (!company) throw new Error('Company not found')
     let data = bytes
     if (!data) {
-      const msg = doc.message_id ? await store.message(doc.message_id) : null
-      if (!msg?.gmail_message_id) throw new Error('No Gmail message to fetch the file from')
-      data = await attachmentBytes(msg.gmail_message_id, doc.filename)
+      // The token of the mailbox the message came from (Cheng's or operations@); the old
+      // operations@-only fetch stays as the fallback.
+      data = doc.message_id ? (await messageAttachmentBytes(doc.message_id, doc.filename)) ?? undefined : undefined
+      if (!data) {
+        const msg = doc.message_id ? await store.message(doc.message_id) : null
+        if (!msg?.gmail_message_id) throw new Error('No Gmail message to fetch the file from')
+        data = await attachmentBytes(msg.gmail_message_id, doc.filename)
+      }
     }
     // A reply chain re-attaches the same file: keep the first copy, mark the rest duplicates.
     const sha = createHash('sha256').update(data).digest('hex')

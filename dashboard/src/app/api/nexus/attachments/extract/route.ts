@@ -17,6 +17,7 @@
  * instead of re-fetching from Gmail API.
  */
 
+import { gmailTokenForMessage } from '@/lib/gmail/mailboxes'
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { ingestAttachment } from '@/lib/documents/ingest'
@@ -522,8 +523,8 @@ export async function POST(req: NextRequest) {
     // Ensure storage bucket exists
     await ensureBucket()
 
-    // Get Gmail token
-    const token = await getGmailToken()
+    // The token of the mailbox the message was read from; operations@ as the fallback.
+    const token = (await gmailTokenForMessage(message_id).catch(() => null))?.token ?? await getGmailToken()
     if (!token) {
       console.warn('[nexus/extract] Gmail token unavailable — cannot extract attachments')
       return NextResponse.json({ ok: true, skipped: 'no_gmail_token' })
