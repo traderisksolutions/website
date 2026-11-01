@@ -25,7 +25,7 @@ import { referencesIn, companyOfReferences } from './references'
 
 type Row = Record<string, any>
 
-export type ResolveStep = 'policy_no' | 'acts_for' | 'employer' | 'uen' | 'signature' | 'domain' | 'group_member' | 'subject'
+export type ResolveStep = 'policy_no' | 'acts_for' | 'employer' | 'uen' | 'signature' | 'domain' | 'group_member' | 'subject' | 'subject_name'
 export type Resolution = { companyId: string; step: ResolveStep; evidence: string }
 
 export type ThreadEvidence = {
@@ -127,7 +127,56 @@ export async function resolveEvidence(ev: ThreadEvidence): Promise<Resolution | 
   // 5. Subject.
   const hit = matchByName(ev.subject, index)
   if (hit && index.byId.get(hit.companyId)?.kind === 'client') return { companyId: hit.companyId, step: 'subject', evidence: hit.evidence }
+  // 5b. The client's name as TRS writes subjects: "(TRS) Insurer - Client | line", "TRS<>Insurer Client – line".
+  const seg = clientSegment(ev.subject)
+  if (seg) {
+    const m = matchName(seg, buildIdentityIndex(index.companies, await loadAliases()))
+    const c = m && m.score >= 0.8 ? index.byId.get(m.companyId) : null
+    if (c && c.kind === 'client') return { companyId: c.id, step: 'subject_name', evidence: `subject names "${seg}" (${m!.strength})` }
+  }
   return null
+}
+
+/** Words that name a line of cover or a year, never a client. */
+const LINE_WORDS = /\b(wic|wica|pi|d\s?&\s?o|car|cgl|pl|gpa|ghs|gtl|fwmi|eb|cyber|imi|motor|fleet|marine|cargo|bond|bonds|performance|renewal|renewals|quotation|quote|insurance|corporate|policy|cover|20\d\d|tech|group|employee|benefits?|proposals?|revised)\b/gi
+
+/**
+ * The client part of a TRS subject. "(TRS) Zurich - JGC Asia WIC" → "JGC Asia";
+ * "TRS<>CTPIS Lian Huay Temple – CAR, PL" → "Lian Huay Temple"; "(TRS) Plast Plastics Pte Ltd- WIC" → "Plast Plastics Pte Ltd".
+ */
+export function clientSegment(subject: string | null | undefined): string | null {
+  if (!subject) return null
+  let s = subject.replace(/^(?:\s*(?:re|fw|fwd)\s*:\s*|\s*\[external\]\s*)+/i, '').trim()
+  let m = s.match(/\(TRS\)\s*([^|–:]+?)\s*[-–:]\s*(.+)$/i)
+  let rest: string | null = null
+  if (m) rest = m[2]
+  else if ((m = s.match(/TRS\s*<>\s*\S+\s+(.+)$/i))) rest = m[1]
+  else if ((m = s.match(/\(TRS\)\s*(.+)$/i))) rest = m[1]
+  if (!rest) return null
+  rest = rest.split(/\s*[|–]\s*|\s+-\s+|:\s/)[0]
+  const cleaned = rest.replace(LINE_WORDS, ' ').replace(/[\s,&/\-–]+$/g, '').replace(/\s{2,}/g, ' ').trim()
+  return cleaned.length >= 4 ? cleaned : null
+}
+
+/**
+ * A thread with an insurer or TPA on it but no client is still filed to that party
+ * (thread_insurers, client unknown), so insurer-side mail is never lost and the client can be
+ * attached later. Returns the parties linked.
+ */
+export async function linkInsurerParty(ev: ThreadEvidence, lastMessageAt: string | null = null): Promise<string[]> {
+  const domains = Array.from(new Set(ev.people.map(emailDomain).filter(Boolean)))
+  if (!domains.length) return []
+  const parties = await sbTry<Row[]>(`companies?kind=in.(insurer,tpa)&domains=ov.{${domains.map(d => `"${d}"`).join(',')}}&select=id,company_name,domains`, [])
+  const linked: string[] = []
+  for (const p of parties) {
+    const d = domains.find(x => (p.domains ?? []).includes(x)) ?? domains[0]
+    await sbTry('thread_insurers?on_conflict=thread_id,insurer_company_id', null, {
+      method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify({ thread_id: ev.threadId, insurer_company_id: p.id, via: 'sender_domain', policy_status: 'none', confidence: 0.9, reason: `${d} on the thread; no client named`, last_message_at: lastMessageAt }),
+    })
+    linked.push(p.company_name)
+  }
+  return linked
 }
 
 /** resolver · thread */
@@ -153,11 +202,12 @@ export async function resolveTask(task: AgentTask) {
     recordHousekeeping({ action: 'thread.filed', subject: r.companyId, resourceType: 'thread', resourceId: threadId, basis: `resolver: ${r.step} — ${r.evidence}`, metadata: { thread_subject: ev.subject, company_id: r.companyId, step: r.step } })
     return { company_id: r.companyId, step: r.step, evidence: r.evidence }
   }
+  const parties = await linkInsurerParty(ev)
   const sender = ev.people[0] ?? (task.payload.sender as string | null) ?? 'this sender'
   const domain = emailDomain(sender)
   await askHuman(task.id, `Which client is ${sender}?`, {
     sender, domain: domain && !PUBLIC_EMAIL_DOMAINS.has(domain) ? domain : null, subject: ev.subject,
-    guess: task.payload.guess ?? null, people: ev.people.slice(0, 6),
+    guess: task.payload.guess ?? null, people: ev.people.slice(0, 6), parties,
   })
   return 'handled' as const
 }

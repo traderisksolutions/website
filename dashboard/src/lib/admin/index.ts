@@ -2,4 +2,5 @@
 import './handlers-a'
 import './handlers-b'
 import './handlers-k'
+import './handlers-p'
 export { drain } from '@/lib/agent-tasks/runner'

@@ -139,6 +139,7 @@ export type AiFeature =
   | 'placement_intake'
   | 'placement_dispatch_draft'
   | 'placement_reply_read'
+  | 'placement_quote_capture'
   | 'placement_client_change'
   | 'placement_chase_draft'
   | 'placement_client_summary'

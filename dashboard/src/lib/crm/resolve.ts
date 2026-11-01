@@ -127,16 +127,29 @@ function keysFor(name: string): string[] {
   return Array.from(keys).filter(k => !TOO_GENERIC.has(k))
 }
 
-/** Pure index builder — no I/O, so the matching rules can be tested directly. */
-export function makeCompanyIndex(companies: Company[], extraExcludedDomains: string[] = []): CompanyIndex {
+/**
+ * Pure index builder — no I/O, so the matching rules can be tested directly. Confirmed aliases
+ * (company_aliases: "Healthway Dental", "BLL") count as names, so a subject that uses the short
+ * form a client signs with still resolves.
+ */
+export function makeCompanyIndex(companies: Company[], extraExcludedDomains: string[] = [], aliases: { company_id: string; alias: string }[] = []): CompanyIndex {
   const domainOwners = new Map<string, Set<string>>()
   const keyOwners = new Map<string, Set<string>>()
+  const ids = new Set(companies.map(c => c.id))
   for (const c of companies) {
     for (const d of c.domains) {
       if (!d || PUBLIC_EMAIL_DOMAINS.has(d)) continue
       domainOwners.set(d, (domainOwners.get(d) ?? new Set()).add(c.id))
     }
     for (const k of keysFor(c.name)) keyOwners.set(k, (keyOwners.get(k) ?? new Set()).add(c.id))
+  }
+  for (const a of aliases) {
+    if (!ids.has(a.company_id)) continue
+    const ks = keysFor(a.alias)
+    // A confirmed three-letter acronym ("AAS", "BLL") is a name in its own right.
+    const core = companyCore(a.alias)
+    if (!ks.length && core.length === 3 && /^[A-Z]{3}$/.test(a.alias.trim())) ks.push(core)
+    for (const k of ks) keyOwners.set(k, (keyOwners.get(k) ?? new Set()).add(a.company_id))
   }
   // A key or domain claimed by more than one company identifies nobody.
   const domains = new Map<string, string>()
@@ -159,7 +172,11 @@ export async function buildCompanyIndex(): Promise<CompanyIndex> {
   // list and let insurer domains be mistaken for a client's own.
   const insurerContacts = await sbTry<{ contacts: { email: string | null } | null }[]>(`insurer_contacts?select=contacts(email)`, [])
   const insurerDomains = insurerContacts.map(r => emailDomain(r.contacts?.email)).filter(Boolean)
-  return makeCompanyIndex(companies, insurerDomains)
+  // Insurer, TPA, partner and vendor domains are never a client's own.
+  const counterparties = await sbTry<{ domains: string[] | null }[]>(`companies?kind=in.(insurer,tpa,partner,vendor)&select=domains`, [])
+  for (const c of counterparties) for (const d of c.domains ?? []) if (d) insurerDomains.push(d.toLowerCase())
+  const aliases = await sbTry<{ company_id: string; alias: string }[]>(`company_aliases?select=company_id,alias&limit=5000`, [])
+  return makeCompanyIndex(companies, insurerDomains, aliases)
 }
 
 /**
