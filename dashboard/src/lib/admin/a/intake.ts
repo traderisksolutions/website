@@ -237,6 +237,13 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     handed.push('knowledge_keeper')
   }
 
+  // Mail on a case gets its onward email decided by the relay agent (client ↔ TRS ↔ insurer).
+  // Claims forwards stay with the claims agent; the relay skips claim notices itself.
+  if (matched && (kind === 'client' || kind === 'insurer')) {
+    await enqueue({ agent: 'relay', kind: 'message', idem_key: `relay:${msg.id}`, created_by_agent: 'intake', work_item_id: matched.workItemId, company_id: caseCompany, thread_id: msg.thread_id, message_id: msg.id, payload: { message_id: msg.id, work_item_id: matched.workItemId, thread_id: msg.thread_id }, run_after: new Date(Date.now() + 90_000).toISOString() })
+    handed.push('relay')
+  }
+
   if (matched) {
     if (matchedType === 'claim') {
       const [claim] = await sbTry<Row[]>(`claims?work_item_id=eq.${enc(matched.workItemId)}&select=id`, [])
@@ -307,6 +314,19 @@ export async function readCase(task: AgentTask) {
       }
     }
   }
-  return { stored: r.stored, cases: r.cases.length, dropped: r.dropped, to_claims: toClaims }
+  // Messages the reader has now put on a case get their onward email decided by the relay agent.
+  let toRelay = 0
+  if (p.message_ids?.length) {
+    const msgs = await sbTry<Row[]>(`email_messages?id=in.(${p.message_ids.join(',')})&deleted_at=is.null&select=id,thread_id,from_address`, [])
+    const links = await sbTry<Row[]>(`work_item_threads?thread_id=in.(${Array.from(new Set(msgs.map(m => m.thread_id))).join(',') || '00000000-0000-0000-0000-000000000000'})&select=work_item_id,thread_id,work_items(company_id,closed_at)`, [])
+    for (const m of msgs) {
+      const l = links.find(x => x.thread_id === m.thread_id && !x.work_items?.closed_at)
+      const from = bareEmail(m.from_address)
+      if (!l || isInternal(from) || isAutomated(from)) continue
+      await enqueue({ agent: 'relay', kind: 'message', idem_key: `relay:${m.id}`, created_by_agent: 'intake', work_item_id: l.work_item_id, company_id: l.work_items?.company_id ?? p.company_id, thread_id: m.thread_id, message_id: m.id, payload: { message_id: m.id, work_item_id: l.work_item_id, thread_id: m.thread_id } })
+      toRelay++
+    }
+  }
+  return { stored: r.stored, cases: r.cases.length, dropped: r.dropped, to_claims: toClaims, to_relay: toRelay }
 }
 

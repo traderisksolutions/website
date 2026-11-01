@@ -161,6 +161,8 @@ export type AiFeature =
   | 'admin_endorsement_read'
   | 'admin_route'
   | 'admin_draft'
+  // The relay agent (3 Nov 2026): which onward email an inbound message calls for.
+  | 'admin_relay'
 
 export interface GeminiUsageMeta {
   promptTokenCount?:     number
