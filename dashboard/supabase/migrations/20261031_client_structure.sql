@@ -49,10 +49,7 @@ create table if not exists public.policy_insureds (
   primary key (policy_id, company_id)
 );
 create index if not exists policy_insureds_company_idx on public.policy_insureds(company_id);
-alter table public.policy_insureds enable row level security;
-drop policy if exists staff_policy_insureds on public.policy_insureds;
-create policy staff_policy_insureds on public.policy_insureds using (auth.role() = 'authenticated');
-grant all on table public.policy_insureds to authenticated, service_role;
+grant all on table public.policy_insureds to service_role;
 
 -- ── merges ──────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.record_merges (
@@ -67,10 +64,7 @@ create table if not exists public.record_merges (
   reason     text,
   merged_at  timestamptz not null default now()
 );
-alter table public.record_merges enable row level security;
-drop policy if exists staff_record_merges on public.record_merges;
-create policy staff_record_merges on public.record_merges using (auth.role() = 'authenticated');
-grant all on table public.record_merges to authenticated, service_role;
+grant all on table public.record_merges to service_role;
 
 -- Every uuid column that points at p_table: real foreign keys, plus columns named in p_cols that
 -- predate their foreign key (debit_notes.company_id, company_chunks.company_id …).
@@ -169,10 +163,10 @@ end $$;
 
 -- Functions are executable by PUBLIC by default, and these run as their owner. Only the
 -- service role may call them; the dashboard does, server-side.
-revoke execute on function public.merge_reference_columns(regclass, text[]) from public, anon, authenticated;
-revoke execute on function public.merge_records(regclass, uuid, uuid, text, text, text[], jsonb) from public, anon, authenticated;
-revoke execute on function public.merge_companies(uuid, uuid, text, text) from public, anon, authenticated;
-revoke execute on function public.merge_contacts(uuid, uuid, text, text) from public, anon, authenticated;
+revoke execute on function public.merge_reference_columns(regclass, text[]) from public;
+revoke execute on function public.merge_records(regclass, uuid, uuid, text, text, text[], jsonb) from public;
+revoke execute on function public.merge_companies(uuid, uuid, text, text) from public;
+revoke execute on function public.merge_contacts(uuid, uuid, text, text) from public;
 grant execute on function public.merge_reference_columns(regclass, text[]) to service_role;
 grant execute on function public.merge_records(regclass, uuid, uuid, text, text, text[], jsonb) to service_role;
 grant execute on function public.merge_companies(uuid, uuid, text, text) to service_role;

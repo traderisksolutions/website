@@ -82,19 +82,7 @@ create table if not exists public.staff_departures (
   created_at timestamptz not null default now()
 );
 
-alter table public.work_items        enable row level security;
-alter table public.work_item_threads enable row level security;
-alter table public.work_item_events  enable row level security;
-alter table public.staff_departures  enable row level security;
-drop policy if exists staff_work_items on public.work_items;
-create policy staff_work_items on public.work_items using (auth.role() = 'authenticated');
-drop policy if exists staff_work_item_threads on public.work_item_threads;
-create policy staff_work_item_threads on public.work_item_threads using (auth.role() = 'authenticated');
-drop policy if exists staff_work_item_events on public.work_item_events;
-create policy staff_work_item_events on public.work_item_events using (auth.role() = 'authenticated');
-drop policy if exists staff_staff_departures on public.staff_departures;
-create policy staff_staff_departures on public.staff_departures using (auth.role() = 'authenticated');
-grant all on table public.work_items, public.work_item_threads, public.work_item_events, public.staff_departures to authenticated, service_role;
+grant all on table public.work_items, public.work_item_threads, public.work_item_events, public.staff_departures to service_role;
 
 alter table public.ai_drafts add column if not exists work_item_id uuid references public.work_items(id) on delete set null;
 
