@@ -7,7 +7,7 @@
  * below or it lands in `unattributed` — which the spend page shows rather than hides.
  */
 
-export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'group_benefit' | 'placement' | 'benefits_admin' | 'unattributed'
+export type AgentId = 'housekeeping' | 'crm' | 'askai' | 'pricingmatrix' | 'group_benefit' | 'placement' | 'benefits_admin' | 'admin' | 'unattributed'
 
 export interface AgentSpec {
   id:    AgentId
@@ -84,6 +84,16 @@ export const AGENTS: Record<Exclude<AgentId, 'unattributed'>, AgentSpec> = {
     work: 'Reads staff movements off client mail, drafts the endorsement request, and reads the insurer\u2019s debit and credit notes onto the policy.',
     envKey: 'GEMINI_API_KEY_BENEFITS_ADMIN',
     model: 'gemini-3.8-flash',
+  },
+  admin: {
+    id: 'admin',
+    label: 'Autonomous admin',
+    // 1 Nov 2026. The siloed agents on agent_tasks (src/lib/admin): intake, resolver, document
+    // clerk, policy reader, knowledge keeper, and the claims-side agents. Most of their work is
+    // deterministic; this key pays only for the reads a rule cannot do. Never sends.
+    work: 'Reads facts off client mail into the knowledge bank, reads claim and endorsement mail, and drafts replies for a person to approve.',
+    envKey: 'GEMINI_API_KEY_ADMIN',
+    model: 'gemini-3.5-flash-lite',
   },
 }
 
@@ -174,6 +184,13 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   policy_movement_read:     'benefits_admin',
   policy_note_read:         'benefits_admin',
   policy_movement_draft:    'benefits_admin',
+
+  // ── Autonomous admin ──────────────────────────────────────────────────────
+  admin_fact_read:          'admin',
+  admin_claim_read:         'admin',
+  admin_endorsement_read:   'admin',
+  admin_route:              'admin',
+  admin_draft:              'admin',
 }
 
 export function agentOfFeature(feature: string | null | undefined): AgentId {

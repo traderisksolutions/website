@@ -6,6 +6,8 @@ import { waitUntil }        from '@vercel/functions'
 import { readMessage as readFollowUps } from '@/lib/nexus/reader'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
+import { enqueue }              from '@/lib/agent-tasks/queue'
+import { drain as drainAgents } from '@/lib/admin'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 
 export const maxDuration = 300
@@ -788,6 +790,15 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
         .catch(e => console.error('[ingest] autofile failed:', e)),
     )
   }
+
+  // 4c. Autonomous admin: intake reads every stored message — the history inside it, its case —
+  // and hands the work on through agent_tasks (src/lib/admin). Queued, then drained after the
+  // response for up to a minute; the daily /api/cron/agents run picks up whatever is left.
+  waitUntil(
+    enqueue({ agent: 'intake', kind: 'message', idem_key: `intake:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } })
+      .then(() => drainAgents({ agents: ['intake', 'resolver'], budgetMs: 60_000 }))
+      .catch(e => console.warn('[ingest] intake (non-fatal):', e instanceof Error ? e.message : e)),
+  )
 
   // 5. Upsert contacts for all other external participants (To + CC header addresses)
   const otherExternal = allParticipants.filter(

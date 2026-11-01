@@ -15,8 +15,8 @@
  *   3. name and classify those domains (one batched model call per handful)
  *   4. match each domain's stem, then each name, against the companies we already have —
  *      including the ones born from a debit note that have a name but no domain yet
- *   5. otherwise CREATE, whatever the model's confidence, and mark the record unconfirmed
- *      for a person to glance at. A queue nobody clears is what left mail unfiled for a week.
+ *   5. otherwise create insurers and partners; a client is never created (1 Nov 2026) — its
+ *      threads go to the resolver, which asks a person on the dashboard which client it is
  *   6. link every thread that touches a claimed domain
  *   7. for threads with no client-side domain at all, fall back to the name in the subject
  *   8. give every contact a company from their email domain
@@ -29,6 +29,8 @@ import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type
 import { geminiJson } from './ai'
 import { recordHousekeeping } from '@/lib/agent-activity'
 import { GEMINI_LITE } from '@/lib/gemini-models'
+import { enqueue } from '@/lib/agent-tasks/queue'
+import { threadEvidence, resolveKnown } from '@/lib/admin/a/resolver'
 import type { Company, CompanyKind } from './types'
 
 // Above this, a name match is trusted without review.
@@ -411,8 +413,13 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
       }
     }
 
-    // Create, whatever the confidence. A weak guess becomes an unconfirmed record a person
-    // renames in a second; a queue nobody clears is what left 11 threads unfiled for a week.
+    // Insurers and partners are still created, which claims their domains. A client is not
+    // (1 Nov 2026): each of its threads goes to the resolver, which asks a person which client it is.
+    if (kind === 'client') {
+      if (!dry) await enqueue(ev.threadIds.slice(0, 20).map(id => ({ agent: 'resolver' as const, kind: 'thread', idem_key: `resolve:${id}`, created_by_agent: 'system' as const, thread_id: id, payload: { thread_id: id, sender: ev.people[0] ?? null, subject: null, guess: name } }))).catch(() => {})
+      decisions.push({ domain: ev.domain, name, kind, confidence, reason: `${reason} Not created: a person confirms which client.`, action: 'queued', companyId: null, companyName: null, threads: ev.threadIds.length })
+      continue
+    }
     if (dry) {
       decisions.push({ domain: ev.domain, name, kind, confidence, reason, action: 'created', companyId: null, companyName: name, threads: ev.threadIds.length })
       claimed.set(ev.domain, `dry-${ev.domain}`)
@@ -495,9 +502,11 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
  *      first email instead of being created twice.
  *   3. The organisation named in the sender's signature matches a company → same.
  *   4. The client is named in the subject → file.
- *   5. Otherwise a company is CREATED for the domain — named by the model when it answers,
- *      from the domain itself when it does not — and marked unconfirmed for a person to
- *      glance at. Nothing waits in a queue; every email files somewhere.
+ *   5. Otherwise an insurer or partner is created for the domain. A client is not: the thread
+ *      goes to the resolver (agent_tasks), which asks a person "Which client is <sender>?".
+ *
+ * Before all of these, step 0 runs the resolver's strongest checks: a policy number on file,
+ * a sender on file as acting for a client, a UEN in the sender's own text.
  *
  * Domains on the not-a-client list (our sister company, ISPs) and insurer-owned domains never
  * become clients.
@@ -532,6 +541,12 @@ export async function autofileThread(threadId: string): Promise<{ companyId: str
     await sbTry(`company_link_suggestions?thread_id=eq.${enc(threadId)}&status=eq.pending`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'accepted', verdict: 'existing', suggested_company_id: companyId, decided_at: new Date().toISOString(), decided_by: 'autofile' }) })
     return { companyId, via }
   }
+
+  // 0. A policy number on file, a sender on file as acting for a client, or a UEN in the
+  // sender's own text — each names the client more surely than a domain (src/lib/admin/a/resolver.ts).
+  const tev = await threadEvidence(threadId).catch(() => null)
+  const known = tev ? await resolveKnown(tev).catch(() => null) : null
+  if (known) return file(known.companyId, `${known.step}: ${known.evidence}`)
 
   // 1. Known domain.
   for (const e of emails) {
@@ -617,6 +632,14 @@ export async function autofileThread(threadId: string): Promise<{ companyId: str
       await recordAlias(company.id, name, 'ai')
       return file(company.id, `"${name}" matched ${company.name}`)
     }
+  }
+
+  // A client is never created unattended (1 Nov 2026): a made-up client record is worse than a
+  // question. The resolver asks a person "Which client is <sender>?" on the dashboard.
+  if (kind === 'client') {
+    const sender = emails.find(e => e && emailDomain(e) === domain) ?? null
+    await enqueue({ agent: 'resolver', kind: 'thread', idem_key: `resolve:${threadId}`, created_by_agent: 'system', thread_id: threadId, payload: { thread_id: threadId, sender, subject: t.subject ?? null, guess: name } }).catch(() => {})
+    return { companyId: null, via: `left for review — ${name} is not on file` }
   }
 
   const companyId = await createCompany({
