@@ -17,7 +17,7 @@ import { askHuman, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { handlePolicyInbound } from '@/lib/policies/inbound'
 import { findMasterPolicy, looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { closeDueBatches, closeBatchNow } from './endorsements/batches'
-import { syncSent, syncSettled, chaseBatches } from './endorsements/sync'
+import { syncSent, syncSettled, syncNotesSent, chaseBatches } from './endorsements/sync'
 import { billTransaction } from './endorsements/notes'
 
 type Row = Record<string, any>
@@ -40,7 +40,7 @@ export async function handleEbMovements(task: AgentTask): Promise<Record<string,
       if (r.question) { await askHuman(task.id, r.question, { work_item_id: r.workItemId }); return 'handled' }
       return r as Record<string, unknown>
     }
-    case 'sync': return { sent: await syncSent(), settled: await syncSettled() }
+    case 'sync': return { sent: await syncSent(), notes_filed: await syncNotesSent(), settled: await syncSettled() }
     case 'chase_sweep': return { chased: await chaseBatches() }
     case 'bill': {
       const id = (task.payload?.transaction_id ?? null) as string | null

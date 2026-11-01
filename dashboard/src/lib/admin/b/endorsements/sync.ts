@@ -8,6 +8,8 @@ import { workingDaysBetween, addDays } from '@/lib/admin/b/dates'
 import { OPERATIONS } from '@/lib/admin/b/router'
 import { chaseDue, MAX_CHASES } from './rules'
 import { batchEvent, batchMovements, batchesWhere, patchBatch, patchMovements, touchItem } from './store'
+import { downloadObject } from '@/lib/debit-note-storage'
+import { fileToDrive, groupFolderName } from '@/lib/documents/drive'
 
 type Row = Record<string, any>
 const REP = { Prefer: 'return=representation' }
@@ -31,6 +33,40 @@ export async function syncSent(now = new Date()): Promise<number> {
     await patchBatch(b.id, { status: 'sent', sent_at: at, thread_id: threadId, next_chase_at: addDays(at.slice(0, 10), 7) + 'T01:00:00Z' })
     await batchEvent(b.work_item_id, 'batch_sent', 'endorsements', { batch_id: b.id, movements: sent.length, at })
     n++
+  }
+  return n
+}
+
+/**
+ * TRS notes a person approved and sent: the PDF is filed in the group's data room under the
+ * policy's Billing folder, the note carries the Drive link, and the case and company log record
+ * "note sent" with that link. Runs after every send, so a note never sits only in app storage.
+ */
+export async function syncNotesSent(now = new Date()): Promise<number> {
+  const ts = await sbTry<Row[]>('policy_transactions?debit_note_id=not.is.null&trs_note_work_item_id=not.is.null&select=id,batch_id,debit_note_id,trs_note_work_item_id,policy_id,work_items!trs_note_work_item_id(draft_id,company_id)&limit=500', [])
+  let n = 0
+  for (const t of ts) {
+    const item = t.work_items as Row | null
+    if (!item?.draft_id) continue
+    const [d] = await sbTry<Row[]>(`ai_drafts?id=eq.${enc(item.draft_id)}&select=status,sent_at,to_email&limit=1`, [])
+    if (d?.status !== 'sent') continue
+    const [dn] = await sbTry<Row[]>(`debit_notes?id=eq.${enc(t.debit_note_id)}&select=id,debit_note_no,pdf_storage_url,drive_folder_url,insurer,issue_date&limit=1`, [])
+    if (!dn || dn.drive_folder_url || !dn.pdf_storage_url) continue
+    try {
+      const [policy] = await sbTry<Row[]>(`policies?id=eq.${enc(t.policy_id)}&select=id,label,class_of_insurance,insurer,policy_number,start_date,drive_folder_url,company_id&limit=1`, [])
+      const [company] = await sbTry<Row[]>(`companies?id=eq.${enc(item.company_id)}&select=company_name&limit=1`, [])
+      const bytes = await downloadObject(dn.pdf_storage_url)
+      const r = await fileToDrive({
+        companyName: await groupFolderName(item.company_id, company?.company_name ?? 'Unnamed company'),
+        policy: policy ? { id: policy.id, label: policy.label ?? null, class_of_insurance: policy.class_of_insurance ?? null, insurer: policy.insurer ?? null, policy_number: policy.policy_number ?? null, start_date: policy.start_date ?? null, drive_folder_url: policy.drive_folder_url ?? null } : null,
+        doc: { doc_type: 'trs_debit_note', filename: `${dn.debit_note_no}.pdf`, received_at: d.sent_at ?? now.toISOString(), insurer_name: dn.insurer ?? null, mime_type: 'application/pdf' },
+      }, bytes)
+      if (policy && r.policyFolderUrl && !policy.drive_folder_url) await sb(`policies?id=eq.${enc(policy.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ drive_folder_url: r.policyFolderUrl }) })
+      await sb(`debit_notes?id=eq.${enc(dn.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ drive_folder_url: r.url }) })
+      await batchEvent(t.trs_note_work_item_id, 'note_sent', 'endorsements', { debit_note_id: dn.id, trs_note: dn.debit_note_no, to: d.to_email, sent_at: d.sent_at, drive_url: r.url })
+      await touchItem(t.trs_note_work_item_id, { status: 'waiting_client', next_action: 'Payment due; the chaser follows up', last_activity_at: now.toISOString() })
+      n++
+    } catch (e) { console.warn('[endorsements] note filing failed (retried next sync):', e instanceof Error ? e.message : e) }
   }
   return n
 }
