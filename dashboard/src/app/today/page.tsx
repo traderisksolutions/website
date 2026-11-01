@@ -12,7 +12,8 @@ import { Btn, Chip, Segmented, Spinner, Empty, LinkBtn } from '@/components/crm/
 import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
-import { bridgeOf, LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
+import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
+import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
 import type { TodayItem } from '@/lib/today/data'
 
 type Who = 'mine' | 'all'
@@ -21,7 +22,8 @@ const GROUPS: { key: Group; label: string }[] = [
   { key: 'send', label: 'Ready to send' }, { key: 'decide', label: 'Decide' },
   { key: 'act', label: 'To act' }, { key: 'read', label: 'Read' }, { key: 'later', label: 'Come back later' },
 ]
-const BRIDGE_LABEL: Record<string, string> = { rfq: 'RFQ and renewals', claims: 'Claims', endorsements: 'Endorsements and members' }
+const BRIDGE_LABEL: Record<string, string> = HOME_BRIDGE_LABEL
+const SIDE_LABEL: Record<string, string> = { client: 'waiting on client', insurer: 'waiting on insurer', trs: 'for TRS' }
 
 export default function TodayRoute() {
   return <Suspense fallback={null}><TodayPage /></Suspense>
@@ -31,6 +33,8 @@ function TodayPage() {
   const router = useRouter()
   const params = useSearchParams()
   const bridge = params.get('bridge')
+  const level = params.get('level') as PendingLevel | null
+  const side = params.get('side') as Side | null
   const [items, setItems] = useState<TodayItem[] | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [who, setWho] = useState<Who>('mine')
@@ -49,7 +53,9 @@ function TodayPage() {
 
   const scoped = useMemo(() => (items ?? [])
     .filter(i => who === 'all' || i.owner_email === me || !i.owner_email)
-    .filter(i => !bridge || bridgeOf(i.case_type) === bridge), [items, who, me, bridge])
+    .filter(i => !bridge || homeBridgeOf(i.case_type) === bridge)
+    .filter(i => !level || i.pending.level === level)
+    .filter(i => !side || i.side === side), [items, who, me, bridge, level, side])
   const count = (g: Group) => scoped.filter(i => i.group === g).length
   // The rows j/k walk: every visible group, Later only when it is open.
   const flat = useMemo(() => GROUPS.filter(g => g.key !== 'later' || showLater).flatMap(g => scoped.filter(i => i.group === g.key)), [scoped, showLater])
@@ -81,7 +87,7 @@ function TodayPage() {
           { value: 'mine', label: 'Mine', count: (items ?? []).filter(i => i.group !== 'later' && (i.owner_email === me || !i.owner_email)).length },
           { value: 'all', label: 'Everyone', count: (items ?? []).filter(i => i.group !== 'later').length },
         ]} />
-        {bridge && <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">{BRIDGE_LABEL[bridge] ?? bridge}<Link href="/today" className="text-trs-ink">Show all</Link></span>}
+        {(bridge || level || side) && <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">{[bridge && (BRIDGE_LABEL[bridge] ?? bridge), level && LEVEL_LABEL[level], side && SIDE_LABEL[side]].filter(Boolean).join(' · ')}<Link href="/today" className="text-trs-ink">Show all</Link></span>}
       </PageHeader>
 
       {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
@@ -137,6 +143,7 @@ function Row({ item: i, on, index, onFocus, onDone, onError }: { item: TodayItem
       className={`grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-3 border-b border-trs-line last:border-b-0 ${on ? 'bg-trs-canvas shadow-[inset_3px_0_0_var(--trs-green)]' : ''}`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1.5">
+          {(i.pending.level === 'red' || i.pending.level === 'amber') && <span title={i.pending.reason} className={`inline-block w-2 h-2 rounded-full ${i.pending.level === 'red' ? 'bg-trs-neg' : 'bg-trs-warn'}`} />}
           <Chip>{CASE_TYPE[i.case_type] ?? i.case_type}</Chip>
           <span className="text-[12.5px] text-trs-muted truncate">{i.client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}</span>
           {i.group === 'act' && <Chip tone={st.tone}>{st.label}</Chip>}
