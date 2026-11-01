@@ -8,6 +8,7 @@ import { enqueue, skip, type AgentTask, type NewTask } from '@/lib/agent-tasks/q
 import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
+import { laterActive, laterDue, clearLater } from './later'
 
 type Row = Record<string, any>
 
@@ -22,10 +23,12 @@ export type ChaseDecision = { chase: 'chase_insurer' | 'chase_client' | null; st
  * idempotency key moves on only when another round has passed. A TRS move owed for more than 7
  * days marks the item stalled.
  */
-export function chaseDecision(i: { status: string; waiting_since: string | null; last_activity_at: string | null; snoozed_until: string | null; closed_at: string | null }, today: string): ChaseDecision {
+export function chaseDecision(i: { status: string; waiting_since: string | null; last_activity_at: string | null; snoozed_until: string | null; closed_at: string | null; later_until?: string | null; later_when?: string | null }, today: string): ChaseDecision {
   const none: ChaseDecision = { chase: null, stall: false, round: 0 }
   if (i.closed_at || i.status === 'done') return none
   if (i.snoozed_until && i.snoozed_until > today) return none
+  // Set aside by a person ("come back later"): neither chased nor marked stalled meanwhile.
+  if (laterActive(i, `${today}T23:59:59.999Z`)) return none
   if (i.status === 'waiting_insurer' || i.status === 'waiting_client') {
     if (!i.waiting_since) return none
     const wd = workingDaysBetween(i.waiting_since, today)
@@ -51,10 +54,13 @@ export function renewalBand(endDate: string | null, today: string): number | nul
 export async function handleChaser(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
   const today = (task.payload?.today as string) ?? new Date().toISOString().slice(0, 10)
   if (task.kind !== 'sweep') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
-  const items = await sbTry<Row[]>('work_items?closed_at=is.null&select=id,company_id,status,waiting_since,last_activity_at,snoozed_until,closed_at&limit=1000', [])
+  const items = await sbTry<Row[]>('work_items?closed_at=is.null&select=id,company_id,status,waiting_since,last_activity_at,snoozed_until,closed_at,later_until,later_when&limit=1000', [])
   const tasks: NewTask[] = []
-  let stalled = 0
+  let stalled = 0, released = 0
+  const now = new Date().toISOString()
   for (const i of items) {
+    // A timed "come back later" that has run out puts the item back on the queue.
+    if (laterDue(i, now)) { await clearLater(i.id, 'time reached', 'chaser'); i.later_until = null; released++ }
     const d = chaseDecision(i as Parameters<typeof chaseDecision>[0], today)
     if (d.stall) {
       await sb(`work_items?id=eq.${enc(i.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'stalled', updated_at: new Date().toISOString() }) })
@@ -64,7 +70,7 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
     if (d.chase) tasks.push({ agent: 'drafter', kind: d.chase, work_item_id: i.id, company_id: i.company_id, idem_key: `drafter:${d.chase}:${i.id}:${i.waiting_since}:${d.round}`, created_by_agent: 'chaser' })
   }
   await enqueue(tasks)
-  return { chases: tasks.length, stalled }
+  return { chases: tasks.length, stalled, released }
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

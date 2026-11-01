@@ -32,8 +32,12 @@ export type CaseData = {
   policies: Row[]
 }
 
+/**
+ * Domains on the insurer side of a case: insurers, and TPAs, who handle claims for them (IHP's
+ * "Claim Pending Further Action" reminders are insurer-side mail, not the client's).
+ */
 export async function insurerDomains(): Promise<string[]> {
-  const rows = await sbTry<Row[]>('companies?kind=eq.insurer&select=domain,domains', [])
+  const rows = await sbTry<Row[]>('companies?kind=in.(insurer,tpa)&select=domain,domains', [])
   return Array.from(new Set(rows.flatMap(r => [r.domain, ...(r.domains ?? [])]).filter(Boolean).map((d: string) => d.toLowerCase())))
 }
 
@@ -130,6 +134,37 @@ export async function insurerLastHandler(insurerName: string | null | undefined,
     if (hit) return bareEmail(hit.from_address)
   }
   return null
+}
+
+/**
+ * The insurer's claims desk from the insurer list: product contacts (insurer_products) first, the
+ * older per-line directory (insurer_contacts) second. A contact whose title or note says "claim"
+ * wins; otherwise the contacts for the claim's product line. Empty when the list has nobody.
+ */
+export async function insurerClaimsDesk(insurerName: string | null | undefined, productLine: string | null | undefined): Promise<string[]> {
+  const name = String(insurerName ?? '').trim()
+  if (name.length < 3) return []
+  const words = name.split(/\s+/).slice(0, 2).join('*')
+  const line = String(productLine ?? '').toLowerCase()
+  const out: { email: string; claims: boolean; line: boolean }[] = []
+  const [co] = await sbTry<Row[]>(`companies?kind=eq.insurer&company_name=ilike.*${enc(words)}*&select=id&limit=1`, [])
+  if (co) {
+    const products = await sbTry<Row[]>(`insurer_products?insurer_company_id=eq.${enc(co.id)}&status=eq.active&select=product_line,insurer_product_contacts(role_title,is_default,contacts(email))`, [])
+    for (const p of products) for (const c of p.insurer_product_contacts ?? []) {
+      const email = String(c.contacts?.email ?? '').toLowerCase()
+      if (email) out.push({ email, claims: /claim/i.test(String(c.role_title ?? '')), line: !!line && String(p.product_line).toLowerCase() === line })
+    }
+  }
+  const [legacy] = await sbTry<Row[]>(`insurers?name=ilike.*${enc(words)}*&select=id&limit=1`, [])
+  if (legacy) {
+    const rows = await sbTry<Row[]>(`insurer_contacts?insurer_id=eq.${enc(legacy.id)}&select=product_line,contact_email,notes`, [])
+    for (const r of rows) {
+      const email = String(r.contact_email ?? '').toLowerCase()
+      if (email) out.push({ email, claims: /claim/i.test(`${r.notes ?? ''} ${r.product_line ?? ''}`), line: !!line && String(r.product_line).toLowerCase() === line })
+    }
+  }
+  const pick = out.filter(o => o.claims).length ? out.filter(o => o.claims) : out.filter(o => o.line)
+  return Array.from(new Set(pick.map(o => o.email)))
 }
 
 export async function itemEvent(workItemId: string, kind: string, actor: string, detail: Row = {}) {

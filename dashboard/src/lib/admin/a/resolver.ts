@@ -8,6 +8,10 @@
  *   5. subject         the subject names one client
  *   6. a person        "Which client is <sender>?" — never a made-up client record
  *
+ * Every step resolves to a client only. A sender at an insurer, a partner broker, a TPA or a
+ * vendor is never filed as the client. Mail already filed under a partner broker is read in partner
+ * mode, which files each case under the end client (src/lib/casework/run.ts).
+ *
  * Steps 1–3 are exported as resolveKnown() so autofile can run them before its domain pass.
  */
 import { sbTry, enc, isInternal, isAutomated, bareEmail, emailDomain, PUBLIC_EMAIL_DOMAINS } from '@/lib/crm/db'
@@ -111,7 +115,8 @@ export async function resolveEvidence(ev: ThreadEvidence): Promise<Resolution | 
     if (!owner) continue
     const company = index.byId.get(owner)
     if (!company || company.kind !== 'client') continue
-    const members = await sbTry<Row[]>(`companies?parent_id=eq.${enc(owner)}&select=id,company_name`, [])
+    // Members that are clients only: a group can also hold its own broker or vendor records.
+    const members = await sbTry<Row[]>(`companies?parent_id=eq.${enc(owner)}&or=(kind.eq.client,kind.is.null)&select=id,company_name`, [])
     if (members.length) {
       const sub = matchByName(ev.subject, { ...index, keys: new Map(Array.from(index.keys).filter(([, id]) => members.some(m => m.id === id))) })
       if (sub) return { companyId: sub.companyId, step: 'group_member', evidence: `${emailDomain(p)} is ${company.name}'s; the subject names ${index.byId.get(sub.companyId)?.name}` }
