@@ -30,6 +30,7 @@ import type {
 } from '@/lib/crm/types'
 import type { LinePosition, PlacementBundle } from '@/lib/placement/types'
 import { CompanyKnowledge } from '@/components/assistant/CompanyKnowledge'
+import { CompanyRenewals } from '@/components/policies/CompanyRenewals'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -65,6 +66,7 @@ const MAIN_TABS = [
 const MORE_TABS = [
   { key: 'overview', label: 'Overview' },
   { key: 'knowledge', label: 'Knowledge' },
+  { key: 'renewals', label: 'Renewals' },
   { key: 'members',  label: 'Employees' },
   { key: 'payments', label: 'Finance' },
   { key: 'threads',  label: 'Threads' },
@@ -312,6 +314,7 @@ function CompanyWorkspace() {
 
         {tab === 'documents' && <DataRoom companyId={id} />}
         {tab === 'knowledge' && <CompanyKnowledge companyId={id} />}
+        {tab === 'renewals' && <CompanyRenewals companyId={id} />}
 
         {tab === 'policies' && (
           <PoliciesRegister title="" policies={existing} docStatus={docStatus} files={docFiles} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
