@@ -130,9 +130,12 @@ export async function removeProductContact(productId: string, contactId: string)
 
 /** A new insurer is a company of kind 'insurer'. Returns the existing one when the name already exists. */
 export async function createInsurer(name: string, domain: string | null): Promise<{ id: string; name: string }> {
-  const existing = (await listInsurerCompanies()).find(i => i.name.toLowerCase() === name.trim().toLowerCase())
-  if (existing) return { id: existing.id, name: existing.name }
   const d = domain?.trim().toLowerCase().replace(/^https?:\/\/|^www\.|\/.*$/g, '') || null
+  // One record per insurer: the same name, or a record that already owns the domain, is reused.
+  // The database refuses a duplicate too (20261102_insurer_uniqueness.sql), so a miss here surfaces as an error, not a second record.
+  const existing = (await listInsurerCompanies()).find(i => i.name.toLowerCase() === name.trim().toLowerCase())
+    ?? (d ? (await sbTry<{ id: string; company_name: string }[]>(`companies?kind=eq.insurer&domains=cs.{${enc(d)}}&select=id,company_name&limit=1`, []))[0] : undefined)
+  if (existing) return { id: existing.id, name: displayName('name' in existing ? existing.name : existing.company_name) }
   const [row] = await sb<{ id: string; company_name: string }[]>('companies', { method: 'POST', body: JSON.stringify({
     // owner_emails is NOT NULL on companies; an insurer has no TRS owner.
     company_name: name.trim(), kind: 'insurer', domain: d, domains: d ? [d] : [], owner_emails: [],
