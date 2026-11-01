@@ -31,6 +31,7 @@ import type {
 import type { LinePosition, PlacementBundle } from '@/lib/placement/types'
 import { CompanyKnowledge } from '@/components/assistant/CompanyKnowledge'
 import { CompanyRenewals } from '@/components/policies/CompanyRenewals'
+import { RenewalCalendar } from '@/components/renewal/RenewalCalendar'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -314,7 +315,7 @@ function CompanyWorkspace() {
 
         {tab === 'documents' && <DataRoom companyId={id} />}
         {tab === 'knowledge' && <CompanyKnowledge companyId={id} />}
-        {tab === 'renewals' && <CompanyRenewals companyId={id} />}
+        {tab === 'renewals' && <><RenewalCalendar companyId={id} /><CompanyRenewals companyId={id} /></>}
 
         {tab === 'policies' && (
           <PoliciesRegister title="" policies={existing} docStatus={docStatus} files={docFiles} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}

@@ -9,6 +9,7 @@ import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
 import { laterActive, laterDue, clearLater } from './later'
+import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from './renewals/advice-agent'
 
 type Row = Record<string, any>
 
@@ -74,6 +75,9 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
+  // The report at 60 days and the quote check at 30 days are the agent's other two jobs (renewals/advice-agent.ts).
+  if (task.kind === 'advice') return handleAdvice(task)
+  if (task.kind === 'rfq_check') return handleRfqCheck(task)
   if (task.kind !== 'sweep') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
   const today = (task.payload?.today as string) ?? new Date().toISOString().slice(0, 10)
   const max = Math.max(...RENEWAL_BANDS)
@@ -105,9 +109,12 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
       opened++
     }
     if (itemId) tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: itemId, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
+    // One report per renewal, from the first band the policy is seen in; one quote check inside 30 days.
+    tasks.push(adviceTask(p.id, p.company_id, p.end_date))
+    if (band <= RFQ_DAYS) tasks.push(rfqCheckTask(p.id, p.company_id, p.end_date))
   }
   await enqueue(tasks)
-  return { policies: policies.length, opened, notices: tasks.length }
+  return { policies: policies.length, opened, tasks: tasks.length }
 }
 
 /** The tasks the daily sweep starts. Keys carry the day, so a second run the same day is a no-op. */

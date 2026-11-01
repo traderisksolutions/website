@@ -7,7 +7,9 @@ import { fmtAmount } from '@/components/policies/types'
 import { fmtDate } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { getPolicyLedger, getRenewalPack, type LedgerLine, type PeriodFigures } from '@/lib/policies/ledger'
-import { PolicyTabs, RenewalAdviceButton } from './controls'
+import { buildReportModel } from '@/lib/policies/ledger/report-model'
+import { RenewalReportSections } from '@/components/renewal/RenewalReportSections'
+import { PolicyTabs, RenewalAdviceButton, ReportLink } from './controls'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +41,7 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
           {' · '}{policy.start_date ? fmtDate(policy.start_date) : '?'} – {policy.end_date ? fmtDate(policy.end_date) : '?'}
           {' · '}{lines.length} {lines.length === 1 ? 'line' : 'lines'}{last ? ` · net ${fmtAmount(last.running_net, ccy)}` : ''}
         </>}
-        actions={tab === 'renewal' ? <RenewalAdviceButton policyId={policy.id} /> : undefined}
+        actions={tab === 'renewal' ? <><ReportLink policyId={policy.id} /><RenewalAdviceButton policyId={policy.id} /></> : undefined}
       >
         <PolicyTabs value={tab} />
       </PageHeader>
@@ -128,16 +130,9 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.high, ccy)}</RegisterCell>
                 <RegisterCell last nowrap={false}>High of the range, as billed</RegisterCell>
               </RegisterRow>
-              {pack.missing.map(m => (
-                <RegisterRow key={m}>
-                  <RegisterCell first identityWidth={240}>Not on file</RegisterCell>
-                  <RegisterCell align="right">—</RegisterCell>
-                  <RegisterCell align="right">—</RegisterCell>
-                  <RegisterCell last nowrap={false}>{m}</RegisterCell>
-                </RegisterRow>
-              ))}
             </tbody>
           </Register>
+          <RenewalReportSections m={buildReportModel(pack)} />
         </>
       )}
     </div>
