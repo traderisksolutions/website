@@ -37,6 +37,8 @@ export type ReadCasePayload = {
   message_ids: string[]
   opened_mode: 'normal' | 'from_forward' | 'midway'
   gaps: Gap[]
+  /** Cases intake thinks a thread belongs to; the reader decides. Recorded as joined_by when it agrees. */
+  hints?: { thread_id: string; work_item_id: string; joined_by: JoinedBy; evidence: string }[]
 }
 
 /** resolver · thread — find the client for a thread nobody has filed. */

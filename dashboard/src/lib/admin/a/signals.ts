@@ -52,6 +52,27 @@ export function subjectCore(subject: string | null | undefined): string[] {
   return Array.from(new Set(s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').split(' ').filter(w => w.length >= 2 && !STOP.has(w))))
 }
 
+/** Words every insurance subject uses. Two subjects sharing only these are not about one matter. */
+const GENERIC = new Set(('renewal renew renewed claim claims quotation quote quotes policy policies insurance insurer employee employees benefit benefits ' +
+  'group ghs gtl gpa gp sp gci gmm wic wica fwmi fwb mcare plan plans premium premiums debit credit note notes dn cn member members list ' +
+  'documents document movement movements addition additions removal deletion query enquiry inquiry new business staff sum insured cover ' +
+  'coverage update follow up request reminder outstanding payment invoice invoices billing office medical hospitalisation hospital life ' +
+  'term critical illness personal accident travel property fire liability marine motor 2024 2025 2026 2027 jan feb mar apr may jun jul aug ' +
+  'sep sept oct nov dec january february march april june july august september october november december ' +
+  'qbe aia singlife income zurich liberty allianz chubb msig axa tokio hl assurance great eastern etiqa sompo eq ntuc prudential raffles health').split(' '))
+
+/** The words of a subject that say which matter it is: names, places, numbers. */
+const FUNCTION_WORDS = new Set(('that this these those has have had was were is are be been being will would shall should can could may ' +
+  'not no yes our your their his her its they them we you from into onto over under about after before between during until ' +
+  'than then also only just all any each per via under status date dated pending further action notice period last step next ' +
+  'team please kindly thanks thank regards dear hi hello attn attention ref reference number nos').split(' '))
+
+/**
+ * The words of a subject that say which matter it is: names, places, items. Not reference
+ * numbers (a policy number is matched on its own), not function words, not insurance vocabulary.
+ */
+export const distinctive = (words: string[]) => words.filter(w => w.length >= 3 && !GENERIC.has(w) && !FUNCTION_WORDS.has(w) && (w.match(/\d/g) ?? []).length < 3 && !/^\d+$/.test(w))
+
 export function overlap(a: string[] | Set<string>, b: string[] | Set<string>): number {
   const A = new Set(a), B = new Set(b)
   if (!A.size || !B.size) return 0
@@ -70,7 +91,7 @@ export function isOutOfOffice(subject: string | null | undefined, body: string |
 export function isClaimLike(subject: string | null | undefined, body: string | null | undefined): boolean {
   const strong = /\bclaims?\b|\bclaimant\b|notification of (loss|accident|incident)|\bWICA\b.*\b(accident|injur)|\baccident\b|\bincident report\b|\bloss adjust/i
   if (strong.test(String(subject ?? ''))) return true
-  const words = [/\bclaims? (form|no\.?|number|ref)/i, /\baccident\b/i, /\binjur(y|ed|ies)\b/i, /\bmedical (leave|certificate|report)\b/i, /\bhospitali[sz]/i, /\bdamaged?\b/i, /\btheft\b|\bstolen\b/i, /\bcollision\b/i, /\bdate of (loss|accident|incident)\b/i, /\badjuster\b|\bsurveyor\b/i, /\bsubrogat/i]
+  const words = [/\bclaims? (form|no\.?|number|ref)/i, /\baccident\b/i, /\binjur(y|ed|ies)\b/i, /\bmedical (leave|certificate|report)\b/i, /\bhospitali[sz]/i, /\bdamaged?\b/i, /\btheft\b|\bstolen\b/i, /\bcollision\b/i, /\bdate of (loss|accident|incident)\b/i, /\badjuster\b|\bsurveyor\b/i, /\bsubrogat/i, /\bleak(ed|ing|age)?\b|\bflood(ed|ing)?\b|\bburst\b|\bfire\b/i, /\brepair (quote|quotation|cost|invoice)/i, /\bpolice report\b/i, /\bbroken\b|\bcracked\b/i]
   const b = String(body ?? '').slice(0, 6000)
   return words.filter(w => w.test(b)).length >= 2
 }

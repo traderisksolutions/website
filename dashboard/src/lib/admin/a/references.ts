@@ -13,6 +13,9 @@ export type RefTarget =
 type Row = Record<string, any>
 let cache: { at: number; index: Map<string, RefTarget[]> } | null = null
 
+/** Forget the cached index — after an agent records a new claim or policy number, say. */
+export function clearReferenceCache() { cache = null }
+
 export async function referenceIndex(): Promise<Map<string, RefTarget[]>> {
   if (cache && Date.now() - cache.at < 300_000) return cache.index
   const [policies, claims, items] = await Promise.all([

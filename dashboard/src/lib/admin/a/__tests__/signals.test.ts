@@ -58,11 +58,20 @@ describe('case matching', () => {
     expect(m?.joinedBy).toBe('claim_ref')
     expect(m?.score).toBe(1)
   })
-  it('a policy number joins, and claim talk prefers the claim case on that policy', () => {
-    const s = sig({ refs: ['2026F1234567BFP'], claimLike: true })
-    const claim = cand({ workItemId: 'claim', caseType: 'claim', policyRefs: ['2026F1234567BFP'] })
-    const renewal = cand({ workItemId: 'renewal', caseType: 'renewal', policyRefs: ['2026F1234567BFP'] })
+  it('a policy number joins with one matter word, and claim talk prefers the claim case', () => {
+    const s = sig({ refs: ['2026F1234567BFP'], claimLike: true, subjectWords: subjectCore('Re: Water damage Harbourfront') })
+    const claim = cand({ workItemId: 'claim', caseType: 'claim', policyRefs: ['2026F1234567BFP'], subjectWords: subjectCore('Water damage claim — Harbourfront') })
+    const renewal = cand({ workItemId: 'renewal', caseType: 'renewal', policyRefs: ['2026F1234567BFP'], subjectWords: subjectCore('Harbourfront shop renewal') })
     expect(bestCase(s, [renewal, claim])?.workItemId).toBe('claim')
+  })
+  it('a policy number alone does not join: a new matter on an old policy stays new', () => {
+    const s = sig({ refs: ['2026F1234567BFP'], claimLike: true, subjectWords: subjectCore('Claim for Lee Ah Kow') })
+    expect(bestCase(s, [cand({ caseType: 'claim', policyRefs: ['2026F1234567BFP'], subjectWords: subjectCore('Claim for Tan Mei Ling') })])).toBeNull()
+  })
+  it("the client's own name proves nothing", () => {
+    const s = sig({ people: ['hr@acme.example'], subjectWords: subjectCore('Acme Holdings staff additions') })
+    const c = cand({ people: ['hr@acme.example'], subjectWords: subjectCore('Acme Holdings WIC renewal'), nameWords: subjectCore('Acme Holdings Pte Ltd') })
+    expect(bestCase(s, [c])).toBeNull()
   })
   it('joins on the same person and subject within 60 days', () => {
     const s = sig({ people: ['pat@acme.example'], subjectWords: subjectCore('Fwd: Damage at Harbourfront unit') })
@@ -71,8 +80,8 @@ describe('case matching', () => {
     expect(scoreCase({ ...s, sentAt: '2027-03-01T00:00:00Z' }, c)).toBeNull()
   })
   it('does not guess between two equal cases', () => {
-    const s = sig({ refs: ['QZX4821K'] })
-    expect(bestCase(s, [cand({ workItemId: 'a', caseType: 'renewal', policyRefs: ['QZX4821K'] }), cand({ workItemId: 'b', caseType: 'renewal', policyRefs: ['QZX4821K'] })])).toBeNull()
+    const s = sig({ refs: ['QZX4821K'], subjectWords: ['harbourfront'] })
+    expect(bestCase(s, [cand({ workItemId: 'a', caseType: 'renewal', policyRefs: ['QZX4821K'], subjectWords: ['harbourfront'] }), cand({ workItemId: 'b', caseType: 'renewal', policyRefs: ['QZX4821K'], subjectWords: ['harbourfront'] })])).toBeNull()
   })
   it('does not join on people alone with an unrelated subject', () => {
     const s = sig({ people: ['pat@acme.example'], subjectWords: ['invoice', 'october'] })

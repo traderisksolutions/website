@@ -69,7 +69,7 @@ async function candidates(opts: { companyIds: string[]; refItemIds: string[]; pe
   }
   const list = Array.from(ids).slice(0, 40)
   if (!list.length) return []
-  const items = await sbTry<Row[]>(`work_items?id=in.(${list.join(',')})&closed_at=is.null&select=id,case_type,company_id,title,policy_number,policy_id,last_activity_at,work_item_threads(thread_id,email_threads(subject)),claims(insurer_ref,policy_number)`, [])
+  const items = await sbTry<Row[]>(`work_items?id=in.(${list.join(',')})&closed_at=is.null&select=id,case_type,company_id,title,policy_number,policy_id,last_activity_at,work_item_threads(thread_id,email_threads(subject)),claims(insurer_ref,policy_number),companies(company_name)`, [])
   const threadIds = items.flatMap(i => (i.work_item_threads ?? []).map((t: Row) => t.thread_id as string))
   const people = await inChunks(threadIds, 60, chunk => sbTry<Row[]>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=thread_id,email`, []))
   const peopleBy = new Map<string, Set<string>>()
@@ -84,13 +84,15 @@ async function candidates(opts: { companyIds: string[]; refItemIds: string[]; pe
       policyRefs: [i.policy_number, ...claims.map(c => c.policy_number)].flatMap(p => String(p ?? '').split(/[\s,;()]+/)).map(refKey).filter(k => k.length >= 6 && (k.match(/\d/g) ?? []).length >= 3),
       people: Array.from(new Set(threads.flatMap(t => Array.from(peopleBy.get(t.thread_id) ?? [])))),
       subjectWords: Array.from(new Set([i.title, ...threads.map(t => t.email_threads?.subject)].flatMap(s => subjectCore(s)))),
+      nameWords: subjectCore(i.companies?.company_name),
       lastActivity: i.last_activity_at,
     }
   })
 }
 
 /** Queues the case worker for a client, or pushes back the one already queued (a burst). */
-export async function scheduleRead(p: { companyId: string; threadId: string; messageId: string; mode: ReadCasePayload['opened_mode']; gaps: Gap[]; by: 'intake' }) {
+export async function scheduleRead(p: { companyId: string; threadId: string; messageId: string; mode: ReadCasePayload['opened_mode']; gaps: Gap[]; by: 'intake'; hint?: CaseMatch | null }) {
+  const hints = p.hint ? [{ thread_id: p.threadId, work_item_id: p.hint.workItemId, joined_by: p.hint.joinedBy, evidence: p.hint.evidence }] : []
   const [open] = await sbTry<Row[]>(`agent_tasks?agent=eq.intake&kind=eq.read_case&company_id=eq.${enc(p.companyId)}&status=eq.queued&select=id,payload&limit=1`, [])
   const runAfter = debouncedRunAfter(Date.now())
   if (open) {
@@ -101,18 +103,19 @@ export async function scheduleRead(p: { companyId: string; threadId: string; mes
       message_ids: Array.from(new Set([...(was.message_ids ?? []), p.messageId])),
       opened_mode: was.opened_mode !== 'normal' ? was.opened_mode : p.mode,
       gaps: [...(was.gaps ?? []), ...p.gaps].slice(0, 40),
+      hints: [...(was.hints ?? []), ...hints].slice(0, 40),
     }
     await sb(`agent_tasks?id=eq.${enc(open.id)}&status=eq.queued`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ run_after: runAfter, payload }) })
     return open.id as string
   }
-  const payload: ReadCasePayload = { company_id: p.companyId, thread_ids: [p.threadId], message_ids: [p.messageId], opened_mode: p.mode, gaps: p.gaps }
+  const payload: ReadCasePayload = { company_id: p.companyId, thread_ids: [p.threadId], message_ids: [p.messageId], opened_mode: p.mode, gaps: p.gaps, hints }
   await enqueue({ agent: 'intake', kind: 'read_case', idem_key: `readcase:${p.companyId}:${p.messageId}`, created_by_agent: p.by, company_id: p.companyId, thread_id: p.threadId, payload, run_after: runAfter })
   return null
 }
 
 export type IntakeResult = {
   kind: SenderKind; out_of_office: boolean; forward: boolean; first_held: boolean
-  rebuilt: number; refs: string[]; matched: CaseMatch | null; handed: string[]
+  rebuilt: number; refs: string[]; matched: CaseMatch | null; hint: CaseMatch | null; handed: string[]
 }
 
 export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'handled'> {
@@ -131,7 +134,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     await enqueue({ agent: 'document_clerk', kind: 'attachments', idem_key: `docs:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id } })
     handed.push('document_clerk')
   }
-  if (kind === 'automated' || ooo) return { kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, handed }
+  if (kind === 'automated' || ooo) return { kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
 
   const history = readHistory(msg.body_text ?? '', msg.subject)
   const held = await sbTry<Row[]>(`email_messages?thread_id=eq.${enc(msg.thread_id)}&deleted_at=is.null&select=id,sent_at&order=sent_at.asc&limit=1`, [])
@@ -157,19 +160,25 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   let matched: CaseMatch | null = link ? { workItemId: link.work_item_id, score: 1, joinedBy: 'thread', evidence: 'thread already on the case' } : null
   let matchedType: string | null = link?.work_items?.case_type ?? null
   let matchedCompany: string | null = link?.work_items?.company_id ?? null
+  // Only the thread itself or an insurer claim reference joins a case here. A policy number or
+  // the same people on a like subject is only a hint for the case reader: scored on 159 labelled
+  // cases (Nov 2026), those rules joined the wrong case more often than the right one.
+  let hint: CaseMatch | null = null
   if (!matched) {
     const cands = await candidates({ companyIds: companyId ? [companyId] : [], refItemIds, people })
     const m = bestCase({ refs: refHits.map(h => h.key), people, subjectWords: subjectCore(msg.subject), sentAt: msg.sent_at ?? new Date().toISOString(), claimLike }, cands)
-    if (m) {
-      const joinedBy: JoinedBy = forward && (m.joinedBy === 'subject' || m.joinedBy === 'people') ? 'forward' : m.joinedBy
-      matched = { ...m, joinedBy }
-      const c = cands.find(x => x.workItemId === m.workItemId)
+    const c = m ? cands.find(x => x.workItemId === m.workItemId) : null
+    if (m && m.joinedBy === 'claim_ref') {
+      matched = m
       matchedType = c?.caseType ?? null
       matchedCompany = c?.companyId ?? null
       await sbTry('work_item_threads?on_conflict=work_item_id,thread_id', null, {
         method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-        body: JSON.stringify({ work_item_id: m.workItemId, thread_id: msg.thread_id, side: thread?.company_id && ins.ids.has(thread.company_id) ? 'insurer' : kind === 'internal' ? 'internal' : 'client', joined_by: joinedBy, joined_evidence: m.evidence }),
+        body: JSON.stringify({ work_item_id: m.workItemId, thread_id: msg.thread_id, side: thread?.company_id && ins.ids.has(thread.company_id) ? 'insurer' : kind === 'internal' ? 'internal' : 'client', joined_by: m.joinedBy, joined_evidence: m.evidence }),
       })
+    } else if (m) {
+      hint = { ...m, joinedBy: forward ? 'forward' : m.joinedBy }
+      matchedCompany = c?.companyId ?? null
     }
   }
 
@@ -195,7 +204,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
       await scheduleRead({ companyId: caseCompany, threadId: msg.thread_id, messageId: msg.id, mode: 'normal', gaps: [], by: 'intake' })
       handed.push('intake.read_case')
     }
-  } else if (rebuilt.length) {
+  } else if (rebuilt.length && !hint) {
     // TRS has no record of this conversation: open it from what the history says.
     const files = await sbTry<Row[]>(`email_attachments?thread_id=eq.${enc(msg.thread_id)}&select=filename`, [])
     const gaps = gapsFor(rebuilt, files.map(f => f.filename).filter(Boolean), { refFound: refHits.length > 0, claimLike })
@@ -209,11 +218,11 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
       handed.push('intake.read_case')
     }
   } else if (caseCompany) {
-    await scheduleRead({ companyId: caseCompany, threadId: msg.thread_id, messageId: msg.id, mode: 'normal', gaps: [], by: 'intake' })
+    await scheduleRead({ companyId: caseCompany, threadId: msg.thread_id, messageId: msg.id, mode: hint && forward ? 'from_forward' : 'normal', gaps: [], by: 'intake', hint })
     handed.push('intake.read_case')
   }
 
-  return { kind, out_of_office: ooo, forward, first_held: firstHeld, rebuilt: rebuiltIds.length, refs: refHits.map(h => h.key), matched, handed }
+  return { kind, out_of_office: ooo, forward, first_held: firstHeld, rebuilt: rebuiltIds.length, refs: refHits.map(h => h.key), matched, hint, handed }
 }
 
 /** The case worker reads one client. A model failure throws, so the task retries. */
@@ -221,6 +230,10 @@ export async function readCase(task: AgentTask) {
   const p = task.payload as ReadCasePayload
   const r = await workCompany(p.company_id, { write: true })
   if (r.note && r.note !== 'no recent threads') throw new Error(r.note)
+  // Where the reader put a thread on the case intake suggested, say how it was found.
+  for (const h of p.hints ?? []) {
+    await sbTry(`work_item_threads?work_item_id=eq.${enc(h.work_item_id)}&thread_id=eq.${enc(h.thread_id)}&joined_by=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ joined_by: h.joined_by, joined_evidence: h.evidence }) })
+  }
   if (p.opened_mode !== 'normal' && p.thread_ids?.length) {
     const joinedBy: JoinedBy = p.opened_mode === 'from_forward' ? 'forward' : 'quoted'
     const links = await sbTry<Row[]>(`work_item_threads?thread_id=in.(${p.thread_ids.join(',')})&select=work_item_id,thread_id,joined_by`, [])
@@ -231,5 +244,19 @@ export async function readCase(task: AgentTask) {
       await sbTry('work_item_events', null, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'note', actor: 'intake', detail: { opened_mode: p.opened_mode, gaps: p.gaps, task_id: task.id } }) })
     }
   }
-  return { stored: r.stored, cases: r.cases.length, dropped: r.dropped }
+  // Mail the reader has now put on a claim goes to the claims agent, as mail joined at intake does.
+  let toClaims = 0
+  if (p.thread_ids?.length) {
+    const onClaims = await sbTry<Row[]>(`work_item_threads?thread_id=in.(${p.thread_ids.join(',')})&select=work_item_id,thread_id,joined_by,work_items!inner(case_type,company_id)&work_items.case_type=eq.claim`, [])
+    for (const l of onClaims) {
+      const [claim] = await sbTry<Row[]>(`claims?work_item_id=eq.${enc(l.work_item_id)}&select=id`, [])
+      const msgs = await sbTry<Row[]>(`email_messages?thread_id=eq.${enc(l.thread_id)}&id=in.(${(p.message_ids ?? []).join(',') || '00000000-0000-0000-0000-000000000000'})&select=id`, [])
+      for (const m of msgs) {
+        const payload: ClaimMailPayload = { work_item_id: l.work_item_id, claim_id: claim?.id ?? null, thread_id: l.thread_id, message_id: m.id, joined_by: l.joined_by ?? 'thread', rebuilt_ids: [] }
+        await enqueue({ agent: 'claims', kind: 'case_mail', idem_key: `claimmail:${m.id}`, created_by_agent: 'intake', work_item_id: l.work_item_id, company_id: l.work_items?.company_id ?? p.company_id, thread_id: l.thread_id, message_id: m.id, payload })
+        toClaims++
+      }
+    }
+  }
+  return { stored: r.stored, cases: r.cases.length, dropped: r.dropped, to_claims: toClaims }
 }

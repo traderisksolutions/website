@@ -57,7 +57,7 @@ export async function threadEvidence(threadId: string): Promise<ThreadEvidence |
 
 async function clientIds(ids: string[]): Promise<Row[]> {
   if (!ids.length) return []
-  return sbTry<Row[]>(`companies?id=in.(${Array.from(new Set(ids)).join(',')})&kind=eq.client&select=id,company_name,parent_id`, [])
+  return sbTry<Row[]>(`companies?id=in.(${Array.from(new Set(ids)).join(',')})&kind=eq.client&select=id,company_name`, [])
 }
 
 /** Steps 1–3. Null when none of them is conclusive. */
