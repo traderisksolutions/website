@@ -34,7 +34,7 @@ export const STAGE_TONE: Record<Stage, StageTone> = {
   lead: 'neutral', prospect: 'blue', quoting: 'amber', client: 'green', renewal_due: 'amber', lapsed: 'red',
 }
 
-export const COMPANY_KINDS = ['client', 'insurer', 'partner', 'other'] as const
+export const COMPANY_KINDS = ['client', 'insurer', 'partner', 'tpa', 'vendor', 'other'] as const
 export type CompanyKind = typeof COMPANY_KINDS[number]
 
 // ── Company ───────────────────────────────────────────────────────────────────────────────────
