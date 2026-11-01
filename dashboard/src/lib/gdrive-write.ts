@@ -25,9 +25,14 @@ function b64url(input: string | Buffer): string {
   return b64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 }
 
+/**
+ * The TRS service account (GOOGLE_TRS_DRIVE_SA_JSON, ai-engagement@trs-ai-project) is preferred: it
+ * is shared only to the TRS drive and can move the older files that the shared Kyn account cannot.
+ * GOOGLE_SERVICE_ACCOUNT_JSON stays as the fallback until every environment carries the TRS key.
+ */
 export async function getDriveWriteToken(): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not set')
+  const raw = process.env.GOOGLE_TRS_DRIVE_SA_JSON || process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+  if (!raw) throw new Error('GOOGLE_TRS_DRIVE_SA_JSON or GOOGLE_SERVICE_ACCOUNT_JSON not set')
   const creds = JSON.parse(raw) as { client_email: string; private_key: string }
   const now = Math.floor(Date.now() / 1000)
   const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
