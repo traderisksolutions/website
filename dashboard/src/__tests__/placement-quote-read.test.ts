@@ -67,6 +67,19 @@ describe('readQuoteText', () => {
     expect(q.premium_amount).toBeNull()
     expect(q.per_head_amount).toBe(6)
   })
+  it('takes the figure nearest to "premium" when a limit sits on the same line', () => {
+    const q = readQuoteText('Client is proceeding with S$12m limit at S$13k premium. Thanks!')!
+    expect(q.premium_amount).toBe(13_000)
+    expect(q.limit_amount).toBe(12_000_000)
+  })
+  it('reads US$ as USD even after a gap', () => {
+    const q = readQuoteText('Renewal terms: the additional flat premium range of US$15k to 18k + GST applies.')!
+    expect(q.currency).toBe('USD')
+    expect(q.premium_amount).toBe(15_000)
+  })
+  it('a premium notice is not a quote', () => {
+    expect(readQuoteText('We are writing to inform you that the Policy premium of S$ 732.48 is due for payment.')).toBeNull()
+  })
   it('reads a currency code glued to the digits', () => {
     const q = readQuoteText('We note that the USD10,000 premium is net of brokerage.')!
     expect(q.currency).toBe('USD')

@@ -102,12 +102,13 @@ const addDays = (iso: string, n: number) => new Date(Date.parse(iso) + n * 864e5
 
 // ── Patterns ──────────────────────────────────────────────────────────────────────────────────
 
-const MONEY = String.raw`((?:S\$|SGD|US\$|USD|MYR|RM|EUR|GBP|HKD|\$)\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?(?:\s?(?:m|mil|million|k))?|\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\s?(?:SGD|USD|MYR))`
+const MONEY = String.raw`(?<![A-Za-z])((?:S\$|SGD|US\$|USD|MYR|RM|EUR|GBP|HKD|\$)\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?(?:\s?(?:m|mil|million|k))?|\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?\s?(?:SGD|USD|MYR))`
 const PREMIUM = new RegExp(String.raw`(?:total|annual|net|gross|minimum|renewal|quoted|indicative|proposed)?\s*premium(?:\s*(?:payable|amount|quoted|offered|is|of|:|-|–))?[^\n$S\d]{0,40}?${MONEY}`, 'i')
-const PREMIUM_REV = new RegExp(String.raw`${MONEY}[^\n]{0,30}?\b(?:premium|per annum|p\.a\.)\b`, 'i')
+const PREMIUM_REV = new RegExp(String.raw`${MONEY}(?:(?![$])[^\n]){0,30}?\b(?:premium|per annum|p\.a\.)\b`, 'i')
 const GST = new RegExp(String.raw`\bGST\b[^\n]{0,25}?${MONEY}`, 'i')
 const GST_NOTE = /\((?:incl(?:usive|\.)?|excl(?:usive|\.)?|before|after|plus|subject to)[^)]{0,20}GST\)|\b(?:inclusive|exclusive|before|after|plus|subject to) of GST\b/i
 const LIMIT = new RegExp(String.raw`(?:limit of (?:liability|indemnity)|limit of cover|sum insured|aggregate limit|any one (?:occurrence|accident|claim)|\blimit\b)[^\n]{0,30}?${MONEY}`, 'i')
+const LIMIT_REV = new RegExp(String.raw`${MONEY}(?:(?![$])[^\n]){0,20}?\b(?:limit|sum insured)\b`, 'i')
 const EXCESS = new RegExp(String.raw`(?:excess|deductible)[^\n]{0,30}?${MONEY}([^\n.;]{0,50})?`, 'i')
 const PERIOD = /(?:period of (?:insurance|cover)|policy period|cover(?:age)? period|period)\s*[:\-–]?\s*(?:from\s*)?([^\n]{6,22}?)\s*(?:to|-|–|till|until)\s*([^\n,;(]{6,22})/i
 const VALIDITY = /\b(?:quot(?:e|ation)|terms?|offer|indication)?\s*(?:is\s+|are\s+)?valid(?:ity)?\s*(?:for|until|till|up to|through|to)\s*([^\n.;)]{3,40})/i
@@ -119,10 +120,17 @@ const RENEWAL = /\brenewal (?:terms|premium|quotation|offer)\b/i
 const CONDITIONS = /(?:^|\n)\s*(?:subject to|conditions?|warranty|warranties|subjectivit(?:y|ies))\s*[:\-–]?\s*([^\n]{8,200})/gi
 
 /** parseMoney with the currency code glued to the digits ("USD10,000", "SGD4,250") read correctly. */
-const money = (text: string | null | undefined) => parseMoney(text?.replace(/\b(SGD|USD|MYR|EUR|GBP|HKD|AUD|IDR)(?=\d)/gi, '$1 '))
+const money = (text: string | null | undefined) => {
+  const t = text?.replace(/\b(SGD|USD|MYR|EUR|GBP|HKD|AUD|IDR)(?=\d)/gi, '$1 ')
+  const r = parseMoney(t)
+  // parseMoney tests "S$" first, so "US$" and "HK$" would read as SGD.
+  const dollar = t?.match(/(?:^|[^A-Za-z])(US|HK|A|NZ)\$/i)
+  if (r && dollar) r.currency = { us: 'USD', hk: 'HKD', a: 'AUD', nz: 'NZD' }[dollar[1].toLowerCase()] ?? r.currency
+  return r
+}
 
 /** A premium excerpt that is not a quoted premium: a threshold, a payment, a question, a limit, or words that happen to say "premium". */
-const NOT_A_PREMIUM = /premium (?:paid|payment|notice|road|foldable|bicycle|rate)|\bis it \$|\?|claims? experience|expiring premium|\b(?:up to|limit of|sum insured|cover(?:age)? (?:of|for|up to))\b[^\n]{0,40}?(?:S\$|SGD|US\$|USD|\$)\s?\d/i
+const NOT_A_PREMIUM = /premium (?:paid|payment|notice|road|foldable|bicycle|rate)|\b(?:is|are) due\b|due for payment|\bis it \$|\?|claims? experience|expiring premium|\b(?:up to|limit of|sum insured|cover(?:age)? (?:of|for|up to))\b[^\n]{0,40}?(?:S\$|SGD|US\$|USD|\$)\s?\d/i
 const MINIMUM_PREMIUM = /\bminimum\b[^\n]{0,40}\bpremium\b|\bpremium\b[^\n]{0,30}\bminimum\b/i
 const PER_HEAD = /\bper\s+(?:pax|head|person|employee|life|member|staff|worker)\b/i
 
@@ -165,7 +173,10 @@ export function readQuoteText(text: string | null | undefined, opts: { sentAt?: 
 
   const gm = t.match(GST); put('gst', gm)
   const gst_text = gm ? gm[1].trim() : (t.match(GST_NOTE)?.[0] ?? null)
-  const lm = t.match(LIMIT); put('limit', lm)
+  let lm = t.match(LIMIT_REV) ?? t.match(LIMIT)
+  // A limit that reads the same figure as the premium is the premium, misread.
+  if (lm && pMoney && money(lm[1])?.amount === pMoney.amount) lm = null
+  put('limit', lm)
   const xm = t.match(EXCESS); put('excess', xm)
   const prm = t.match(PERIOD); put('period', prm)
   const period_from = prm ? parseDate(prm[1]) : null
