@@ -92,6 +92,9 @@ export function isBulkMail(subject: string | null | undefined, body: string | nu
   const s = String(subject ?? ''), b = String(body ?? '')
   if (/^(invitation|updated invitation|accepted|declined|tentatively accepted|canceled event|cancelled event|new event)\b.*@/i.test(s) || attachments.some(a => /\.ics$/i.test(a))) return true
   if (/\b(newsletter|webinar|e-?invite|special offer|promo(tion)?s?)\b/i.test(s) && /unsubscribe|view (this|in) (email|browser)|manage (your )?preferences/i.test(b)) return true
+  // An insurer's circular to every intermediary: "Dear Valued Partner … kindly assist to
+  // disseminate … reply to this email to unsubscribe". Nothing in it is about a client.
+  if (/^\s*dear (valued |intermediary |business )?(partners?|intermediar(y|ies)|advisers?|brokers?)\b/im.test(b.slice(0, 400)) && /unsubscribe|disseminate|service update|system maintenance|not be available/i.test(b)) return true
   return /unsubscribe/i.test(b.slice(-1500)) && /view (this|in) (email|browser)|manage (your )?(email )?preferences|you are receiving this/i.test(b)
 }
 

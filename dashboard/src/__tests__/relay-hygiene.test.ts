@@ -50,3 +50,11 @@ describe('routeRecipients: client side never picks a partner or reinsurer', () =
     expect(r.ok && r.cc).toContain('hr@example-client.sg')
   })
 })
+
+describe('isBulkMail: insurer circulars to intermediaries', () => {
+  it('treats a "Dear Valued Partner … disseminate … unsubscribe" circular as bulk', async () => {
+    const { isBulkMail } = await import('@/lib/admin/a/signals')
+    expect(isBulkMail('(TRS) ICOM-2026-09-30 Introducing a new way to book appointments', 'Dear Valued Partner, Kindly assist to disseminate to your advisers. Note: If you no longer wish to receive our emails, kindly reply to this email to unsubscribe. Kind regards')).toBe(true)
+    expect(isBulkMail('Re: Quote slip', 'Dear Nathan, please find the slip attached. Regards')).toBe(false)
+  })
+})
