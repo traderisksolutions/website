@@ -10,6 +10,8 @@ import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { refKey } from './signals'
 import type { FactInput, PolicyDocumentPayload } from './handoffs'
 import { issuedDifferences, differenceLines, type Bound } from '@/lib/policies/issued-check'
+import { gmailRef } from '@/lib/storage/attachment-bytes'
+import { extractBundle } from '@/lib/debit-notes/extract-bundle'
 
 type Row = Record<string, any>
 
@@ -44,7 +46,37 @@ export async function readPolicyDocument(task: AgentTask) {
   if (!facts.length) { await skip(task.id, 'no facts on this document'); return 'handled' as const }
   await enqueue({ agent: 'knowledge_keeper', kind: 'record_facts', idem_key: `facts:doc:${document_id}`, created_by_agent: 'policy_reader', company_id: doc.company_id, policy_id: doc.policy_id ?? null, payload: { facts } })
   const checked = await checkIssued(doc)
-  return { facts: facts.length, ...(checked ? { differences: checked } : {}) }
+  const queued = await queueDebitNote(doc)
+  return { facts: facts.length, ...(checked ? { differences: checked } : {}), ...(queued ? { debit_note_bundle: queued } : {}) }
+}
+
+/**
+ * The insurer's tax invoice on a bound policy raises the TRS debit note: the invoice goes into
+ * the debit note review queue as a bundle, read by the same extraction a manual upload uses, so
+ * Hasya approves it there instead of raising it by hand. The case's next action says so.
+ */
+async function queueDebitNote(doc: Row): Promise<string | null> {
+  if (doc.doc_type !== 'insurer_debit_note' || !doc.company_id || !doc.email_attachment_id) return null
+  const [co] = await sbTry<Row[]>(`companies?id=eq.${enc(doc.company_id)}&select=kind&limit=1`, [])
+  if (!co || co.kind !== 'client') return null
+  // Already in the queue, from this invoice or from the movement loop's own path.
+  const dup = await sbTry<Row[]>(`pdf_import_items?storage_url=eq.${enc(gmailRef(doc.email_attachment_id))}&select=id&limit=1`, [])
+  if (dup.length) return null
+  // A TRS note already on the policy for this period means the invoice is the copy, not the trigger.
+  if (doc.policy_id) {
+    const existing = await sbTry<Row[]>(`debit_notes?policy_id=eq.${enc(doc.policy_id)}&select=id,created_at&order=created_at.desc&limit=1`, [])
+    if (existing[0] && doc.period_from && String(existing[0].created_at) >= String(doc.period_from)) return null
+  }
+  const [bundle] = await sbTry<Row[]>('debit_note_bundles', [], { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ status: 'pending', source: 'insurer_invoice', source_ref: doc.id, suggested_company_id: doc.company_id, match_confidence: 1 }) })
+  if (!bundle) return null
+  await sbTry('pdf_import_items', null, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ bundle_id: bundle.id, storage_url: gmailRef(doc.email_attachment_id), original_filename: doc.filename ?? 'insurer invoice.pdf', status: 'pending' }) })
+  const r = await extractBundle(bundle.id)
+  const items = await sbTry<Row[]>(`work_items?company_id=eq.${enc(doc.company_id)}&closed_at=is.null${doc.policy_id ? `&policy_id=eq.${enc(doc.policy_id)}` : ''}&select=id&order=updated_at.desc&limit=1`, [])
+  if (items[0]) {
+    await sbTry(`work_items?id=eq.${enc(items[0].id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ next_action: r.ok ? `Approve the TRS debit note in the review queue (${doc.filename ?? 'insurer invoice'})` : `Raise the TRS debit note: the insurer invoice ${doc.filename ?? ''} could not be read (${r.ok ? '' : r.error})`.replace(/\s+/g, ' '), updated_at: new Date().toISOString() }) })
+    await sbTry('work_item_events', null, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: items[0].id, kind: 'note', actor: 'policy_reader', detail: { debit_note_bundle: bundle.id, extracted: r.ok, invoice: doc.filename ?? null } }) })
+  }
+  return bundle.id as string
 }
 
 const COVER_DOCS = new Set(['policy_schedule', 'cover_note', 'certificate', 'endorsement'])

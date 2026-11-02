@@ -58,6 +58,8 @@ export type RelayFacts = {
   documents?: string[]
   /** request_documents: the client has instructed, so the ask thanks them for it first. */
   instructed?: boolean
+  /** relay_documents: a TRS debit note is among the files, so the billing line goes under them. */
+  billing?: boolean
   /** relay_question: what the insurer asked, as listed. */
   asks?: string[]
   /** relay_quote */
@@ -194,11 +196,15 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
         subject: replySubject(f.threadSubject, `${line}: ${f.insurerName ?? 'insurer'} response`),
         body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has declined to offer terms for ${line}${f.quoted ? `, for the reason below:\n\n${quoteBlock(f.quoted)}` : '.'}\n\nWe are approaching the other markets and will revert with any terms received.\n\n${SIGN}`,
       }
-    case 'relay_documents':
+    case 'relay_documents': {
+      // Nathan's fixed billing line under the policy documents: the client pays TRS against the
+      // debit note; TRS settles the insurer.
+      const billing = f.billing ? `\nFor premium payment, settlement can be made via Trade Risk Solutions as per the attached TRS debit note; we will then settle the premium with the insurer on your behalf, for easier tracking and reconciliation. This is not a tax invoice; the insurer's tax invoice is attached.\n` : ''
       return {
-        subject: replySubject(f.threadSubject, `${policyRef(f) || f.title}: documents`),
-        body: `${hi}\n\nPlease find attached the ${f.files?.length === 1 ? 'document' : 'documents'} issued by ${f.insurerName ?? 'the insurer'} for ${policyRef(f) || f.title}.\n${attached(f.files)}\nPlease keep them for your records and let us know if anything needs correcting.\n\n${SIGN}`,
+        subject: replySubject(f.threadSubject, `${policyRef(f) || f.title}: ${f.billing ? 'policy documents and debit note' : 'documents'}`),
+        body: `${hi}\n\nPlease find attached the ${f.files?.length === 1 ? 'document' : 'documents'} issued by ${f.insurerName ?? 'the insurer'} for ${policyRef(f) || f.title}.\n${attached(f.files)}${billing}\nPlease keep them for your records and let us know if anything needs correcting.\n\n${SIGN}`,
       }
+    }
     case 'relay_decision':
       return {
         subject: replySubject(f.threadSubject, `${f.title}: update from ${f.insurerName ?? 'the insurer'}`),

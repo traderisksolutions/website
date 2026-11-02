@@ -59,3 +59,16 @@ describe('claims kinds', () => {
     expect(b.body).toContain('Ahead of the renewal of Water damage claim (Policy No. EX123, claim ref. CL-1, loss on 20 Oct 2026) on 1 Jan 2027')
   })
 })
+
+describe('the delivery pack', () => {
+  it('carries the billing line only when the TRS debit note is among the files', async () => {
+    const { composeRelay } = await import('@/lib/admin/b/relay/compose')
+    const base = { greetingName: 'Serene', clientName: 'Example Client Pte Ltd', insurerName: 'Example Insurer', lineLabel: null, policyNumber: 'EX123', className: 'Public liability', threadSubject: 'Re: PL renewal', title: 'PL renewal' }
+    const withNote = composeRelay('relay_documents', { ...base, files: ['Policy EX123.pdf', 'TRS DN260901.pdf'], billing: true })
+    expect(withNote.subject).toBe('Re: PL renewal')
+    expect(withNote.body).toContain('settlement can be made via Trade Risk Solutions as per the attached TRS debit note')
+    expect(withNote.body).toContain('This is not a tax invoice')
+    const without = composeRelay('relay_documents', { ...base, files: ['Policy EX123.pdf'] })
+    expect(without.body).not.toContain('debit note')
+  })
+})

@@ -390,8 +390,12 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       const rt = await route('client', d, line)
       if (!rt.ok) return ask(rt.question)
       const docFiles = files.filter(f => !/\.(png|jpe?g|gif)$/i.test(f.filename))
-      await store('relay_documents', { ...base(), files: docFiles.map(f => f.filename) }, rt, { threadId: clientThread, attachments: docFiles.map(f => ({ filename: f.filename, mime_type: f.mime_type, storage_url: f.storage_url, message_id: f.message_id })) })
-      await setItem({ status: 'trs_to_act', next_action: 'Send the client the policy documents' })
+      // The delivery pack, as Nathan sends it: the policy documents, then the TRS debit note with
+      // the insurer's tax invoice, and the fixed billing line. The note is attached when it exists.
+      const dn = policy ? await sbTry<Row[]>(`policy_documents?policy_id=eq.${enc(policy.id)}&status=eq.filed&doc_type=eq.trs_debit_note&select=filename,mime_type,storage_url,message_id,drive_url&order=received_at.desc&limit=1`, []) : []
+      const pack = [...docFiles.map(f => ({ filename: f.filename, mime_type: f.mime_type, storage_url: f.storage_url, message_id: f.message_id })), ...dn.map(x => ({ filename: x.filename, mime_type: x.mime_type, storage_url: x.storage_url ?? x.drive_url, message_id: x.message_id ?? '' }))]
+      await store('relay_documents', { ...base(), files: pack.map(f => f.filename), billing: dn.length > 0 }, rt, { threadId: clientThread, attachments: pack })
+      await setItem({ status: 'trs_to_act', next_action: dn.length ? 'Send the client the policy documents and the debit note' : 'Send the client the policy documents; the debit note follows from the review queue' })
       break
     }
     case 'claim_decision': {
