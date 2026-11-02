@@ -43,7 +43,7 @@ describe('chaseDecision', () => {
   const item = { status: 'waiting_insurer', waiting_since: '2026-10-23', last_activity_at: null, snoozed_until: null, closed_at: null }
   it('chases after more than 5 working days, one per round', () => {
     expect(chaseDecision(item, '2026-10-30').chase).toBeNull()           // 5 working days
-    expect(chaseDecision(item, '2026-11-02')).toEqual({ chase: 'chase_insurer', stall: false, round: 1 })
+    expect(chaseDecision(item, '2026-11-02')).toEqual({ chase: 'chase_insurer', stall: false, round: 1, urgent: false, escalate: false })
     expect(chaseDecision(item, '2026-11-09').round).toBe(2)
     expect(chaseDecision({ ...item, status: 'waiting_client' }, '2026-11-02').chase).toBe('chase_client')
     expect(chaseDecision({ ...item, snoozed_until: '2026-11-10' }, '2026-11-02').chase).toBeNull()

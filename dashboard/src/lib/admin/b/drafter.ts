@@ -76,6 +76,17 @@ async function routeSide(side: Party, kind: DraftKind, d: CaseData, claim: Row |
   })
 }
 
+/**
+ * Pure. The case's next action as a reason the recipient cares about: "Wait for the insurer"
+ * says nothing to the insurer, "Send the policy documents to the client" becomes the line
+ * "This is needed for the policy documents to go to the client."
+ */
+export function dependencyLine(nextAction: string | null | undefined): string | null {
+  const a = String(nextAction ?? '').trim().replace(/\.$/, '')
+  if (!a || /^(wait|waiting|chase|follow)/i.test(a) || a.length < 12) return null
+  return `This is needed so that we can ${a.charAt(0).toLowerCase()}${a.slice(1)}.`
+}
+
 function facts(kind: DraftKind, d: CaseData, claim: Row | undefined, greetingName: string | null, task: AgentTask, side: Party): { f: DraftFacts; attachments: Attachment[]; threadId: string | null } {
   const sideThreads = d.threads.filter(t => t.side === side).sort((a, b) => String(b.last_message_at ?? '').localeCompare(String(a.last_message_at ?? '')))
   const thread = sideThreads[0] ?? (side === 'client' ? d.threads.find(t => t.side !== 'insurer') : null) ?? d.threads[0] ?? null
@@ -99,6 +110,10 @@ function facts(kind: DraftKind, d: CaseData, claim: Row | undefined, greetingNam
       className: policy?.class_of_insurance ?? policy?.product_line ?? null, threadSubject: thread?.subject ?? null,
       original: original ? { from: original.from, sent_at: original.sent_at, subject: subjectThread?.subject ?? null, text: latestText(original.text, 6000) } : null,
       files: (kind === 'forward_to_insurer' || kind === 'client_ack') ? clientFiles.map(f => f.filename) : [],
+      round: typeof task.payload?.round === 'number' ? task.payload.round : undefined,
+      urgent: task.payload?.urgent === true,
+      deadline: (task.payload?.deadline as string | null | undefined) ?? d.item.deadline ?? null,
+      dependency: dependencyLine(d.item.next_action),
     },
   }
 }

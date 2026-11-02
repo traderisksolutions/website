@@ -3,6 +3,7 @@
  * few actions a person takes on them. Approving a draft fills the signature with the approver's
  * name; the send itself goes through /api/email/send like every other reply.
  */
+import { fillVoice } from '@/lib/admin/b/voice'
 import { sb, sbTry, enc, emailDomain } from '@/lib/crm/db'
 import { queueRank, type CaseStatus } from './clean'
 import { laterActive, setLater, clearLater, type LaterWhen } from '@/lib/admin/b/later'
@@ -143,14 +144,13 @@ export async function act(id: string, a: WorkAction, actor: string): Promise<{ d
     }
     case 'prepare_send': {
       if (!item.draft_id) throw new Error('There is no draft to send.')
-      const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(item.draft_id)}&select=id,body,status,pair_id&limit=1`)
+      const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(item.draft_id)}&select=id,body,status,pair_id,thread_id&limit=1`)
       if (!d || !['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
-      const [me] = await sbTry<Row[]>(`contacts?email=eq.${enc(actor)}&select=first_name,last_name&limit=1`, [])
-      const name = [me?.first_name, me?.last_name].filter(Boolean).join(' ') || actor.split('@')[0]
-      await sb(`ai_drafts?id=eq.${enc(d.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: signAs(d.body ?? '', name) }) })
+      // The approver's own voice: greeting word, close, name, phone (src/lib/admin/b/voice.ts).
+      await sb(`ai_drafts?id=eq.${enc(d.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: await fillVoice(d.body ?? '', actor, d.thread_id) }) })
       // The pair is signed by the same person and sent in the same step.
-      const [p] = d.pair_id ? await sbTry<Row[]>(`ai_drafts?pair_id=eq.${enc(d.pair_id)}&id=neq.${enc(d.id)}&status=in.(pending,draft)&select=id,body&limit=1`, []) : []
-      if (p) await sb(`ai_drafts?id=eq.${enc(p.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: signAs(p.body ?? '', name) }) })
+      const [p] = d.pair_id ? await sbTry<Row[]>(`ai_drafts?pair_id=eq.${enc(d.pair_id)}&id=neq.${enc(d.id)}&status=in.(pending,draft)&select=id,body,thread_id&limit=1`, []) : []
+      if (p) await sb(`ai_drafts?id=eq.${enc(p.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: await fillVoice(p.body ?? '', actor, p.thread_id) }) })
       return { draftId: d.id, ...(p ? { pairDraftId: p.id as string } : {}) }
     }
     case 'sent': {

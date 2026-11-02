@@ -100,7 +100,8 @@ describe('come back later', () => {
     expect(laterDue({ later_until: '2026-11-01T00:00:00Z', later_when: 'client_reply' }, now)).toBe(false)
   })
   it('the chaser leaves an item set aside alone', () => {
-    const waiting = { status: 'waiting_insurer', waiting_since: '2026-10-01', last_activity_at: null, snoozed_until: null, closed_at: null }
+    // 12 working days waiting: the second chase. (After three chases the chaser hands over instead.)
+    const waiting = { status: 'waiting_insurer', waiting_since: '2026-10-15', last_activity_at: null, snoozed_until: null, closed_at: null }
     expect(chaseDecision(waiting, '2026-11-02').chase).toBe('chase_insurer')
     expect(chaseDecision({ ...waiting, later_when: 'insurer_reply' }, '2026-11-02').chase).toBeNull()
     expect(chaseDecision({ ...waiting, later_until: '2026-11-05T01:00:00Z' }, '2026-11-02').chase).toBeNull()

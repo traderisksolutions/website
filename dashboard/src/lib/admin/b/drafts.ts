@@ -47,12 +47,24 @@ export type DraftFacts = {
   original?: Original | null
   /** For forward_to_insurer and client_ack: the files sent on. */
   files?: string[]
+  /** Chases: which chase this is (1, 2, 3), whether the deadline is inside 5 days, and the deadline. */
+  round?: number
+  urgent?: boolean
+  deadline?: string | null
+  /** Chases: what the reply unblocks, in the recipient's terms ("for the cover note to be released"). */
+  dependency?: string | null
 }
 
 const fmt = (iso: string | null | undefined) => {
   if (!iso) return null
   const d = new Date(iso.slice(0, 10) + 'T00:00:00Z')
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+}
+
+/** Days from today (Singapore) to a date; negative when past. */
+function daysLeft(iso: string): number {
+  const today = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10)
+  return Math.round((Date.parse(iso.slice(0, 10)) - Date.parse(today)) / 86_400_000)
 }
 
 function refLine(f: DraftFacts): string {
@@ -83,16 +95,36 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
         body: `${hi}\n\nThank you for your email on ${what}.\n\nTo take the claim forward with ${f.insurerName ?? 'the insurer'}, we still need:\n${items}\n\nPlease send them in reply to this email.\n\n${sign}`,
       }
     }
-    case 'chase_insurer':
+    case 'chase_insurer': {
+      // One line, one ask, and the reason the insurer cares, as Nathan chases: "Any update on the
+      // issuance for this policy?", "Client is chasing on this". The third chase asks for a call.
+      const r = f.round ?? 1
+      const left = f.deadline ? daysLeft(f.deadline) : null
+      const dep = f.dependency ? ` ${f.dependency}` : ''
+      const ask = f.urgent && left !== null
+        ? `As ${left <= 0 ? 'the deadline is today' : `expiry is in ${left} day${left === 1 ? '' : 's'}`}, may we have your reply on ${what} by today please?${dep}`
+        : r === 1 ? `May I check on ${what}${f.lastSent ? `, sent to you on ${fmt(f.lastSent)}` : ''}?${dep}`
+        : r === 2 ? `Following up on ${what}. Our client is chasing on this.${dep}`
+        : `Following up again on ${what}. Could you give me a call at {owner_phone}? It is time-sensitive on the client's side.`
       return {
         subject: replySubject(f.threadSubject, `${f.title}: status`),
-        body: `${hi}\n\nWe refer to ${what}${f.lastSent ? `, last sent to you on ${fmt(f.lastSent)}` : ''}.\n\nPlease let us know the status, and whether anything further is required from the insured.\n\n${sign}`,
+        body: `${hi}\n\n${ask}\n\nThank you!\n\n${sign}`,
       }
-    case 'chase_client':
+    }
+    case 'chase_client': {
+      const r = f.round ?? 1
+      const left = f.deadline ? daysLeft(f.deadline) : null
+      const dep = f.dependency ? ` ${f.dependency}` : ''
+      const ask = f.urgent && left !== null
+        ? `Kind reminder that ${what} ${left <= 0 ? 'falls due today' : `is due in ${left} day${left === 1 ? '' : 's'}, on ${fmt(f.deadline)}`}. Do let us know how you would like to proceed, or if you have arranged this elsewhere so that we can inform the insurer.`
+        : r === 1 ? `Following up on my email${f.lastSent ? ` of ${fmt(f.lastSent)}` : ''} on ${what}. When convenient, could you let us have your reply so that we can proceed?${dep}`
+        : r === 2 ? `Following up again on ${what}.${dep} Do let us know if anything on our side would help.`
+        : `Following up once more on ${what}. If easier, I am happy to take a call at {owner_phone}.`
       return {
         subject: replySubject(f.threadSubject, `${f.title}: follow-up`),
-        body: `${hi}\n\nWe refer to our email${f.lastSent ? ` of ${fmt(f.lastSent)}` : ''} on ${what}.\n\nPlease let us have your reply so that we can proceed.\n\n${sign}`,
+        body: `${hi}\n\n${ask}\n\nThank you!\n\n${sign}`,
       }
+    }
     case 'renewal_notice':
       return {
         subject: `Renewal: ${f.className ?? 'policy'}${f.policyNumber ? ` ${f.policyNumber}` : ''}${f.clientName ? `, ${f.clientName}` : ''}`,

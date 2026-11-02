@@ -300,7 +300,7 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       if (d.item.status === 'waiting_insurer') {
         const ins = await route('insurer', d, line)
         if (ins.ok) {
-          const b = buildDraft('chase_insurer', { greetingName: await greetingFor(ins.to[0]), clientName: base().clientName, title: d.item.title, policyNumber: base().policyNumber, insurerName, insurerRef: null, claimant: null, lossDate: null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, threadSubject: d.threads.find(t => t.id === insurerThread)?.subject ?? null })
+          const b = buildDraft('chase_insurer', { greetingName: await greetingFor(ins.to[0]), clientName: base().clientName, title: d.item.title, policyNumber: base().policyNumber, insurerName, insurerRef: null, claimant: null, lossDate: null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, threadSubject: d.threads.find(t => t.id === insurerThread)?.subject ?? null, round: 1, deadline: d.item.deadline ?? null })
           const id = await storeDraft(d.item.id, { thread_id: insurerThread, to: ins.to, cc: ins.cc, subject: b.subject, body: b.body, kind: 'chase_insurer', party: 'insurer', pair_id: pairId }, { primary: false })
           await sbTry(`ai_drafts?id=eq.${enc(id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_class: 'status', relay_intent: intent, context_used: { agent: ACTOR, kind: 'chase_insurer', message_id: msg.id, intent, via, basis: ins.basis } }) })
           made.push({ kind: 'forward_question', draftId: id, to: ins.to })

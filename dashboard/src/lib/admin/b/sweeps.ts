@@ -14,31 +14,69 @@ import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from
 type Row = Record<string, any>
 
 export const CHASE_AFTER_WORKING_DAYS = 5
+/** A client is chased after a calendar week; Nathan's own cadence is 7 to 14 days. */
+export const CHASE_CLIENT_AFTER_DAYS = 7
+/** Inside the last week before a deadline, every two days. */
+export const NEAR_DEADLINE_DAYS = 7
+export const NEAR_DEADLINE_EVERY = 2
+/** Five days out the chase asks for the answer today. */
+export const URGENT_DAYS = 5
+/** After three chases the matter goes to a person: the fourth email does not work, a call does. */
+export const MAX_CHASES = 3
 export const STALL_AFTER_DAYS = 7
 export const RENEWAL_BANDS = [60, 30, 14] as const
 
-export type ChaseDecision = { chase: 'chase_insurer' | 'chase_client' | null; stall: boolean; round: number }
+export type ChaseDecision = {
+  chase: 'chase_insurer' | 'chase_client' | null
+  stall: boolean
+  round: number
+  /** Deadline within URGENT_DAYS: the chase asks for the answer today. */
+  urgent: boolean
+  /** Three chases sent and still waiting: hand to a person for a call. */
+  escalate: boolean
+}
+
+export type ChaseItem = {
+  status: string; waiting_since: string | null; last_activity_at: string | null; snoozed_until: string | null; closed_at: string | null
+  later_until?: string | null; later_when?: string | null; deadline?: string | null
+}
 
 /**
- * Pure. Waiting more than 5 working days earns a chase; one per 5-working-day round, so the
- * idempotency key moves on only when another round has passed. A TRS move owed for more than 7
- * days marks the item stalled.
+ * Pure. Cadence by party and by distance from the deadline, as Nathan keeps it: an insurer is
+ * chased after 5 working days, a client after 7 calendar days, one chase per round; inside the
+ * last week before a deadline every 2 days, and inside the last 5 days the chase asks for the
+ * answer today. After three chases the item is handed to a person rather than chased a fourth
+ * time. A TRS move owed for more than 7 days marks the item stalled.
  */
-export function chaseDecision(i: { status: string; waiting_since: string | null; last_activity_at: string | null; snoozed_until: string | null; closed_at: string | null; later_until?: string | null; later_when?: string | null }, today: string): ChaseDecision {
-  const none: ChaseDecision = { chase: null, stall: false, round: 0 }
+export function chaseDecision(i: ChaseItem, today: string): ChaseDecision {
+  const none: ChaseDecision = { chase: null, stall: false, round: 0, urgent: false, escalate: false }
   if (i.closed_at || i.status === 'done') return none
   if (i.snoozed_until && i.snoozed_until > today) return none
   // Set aside by a person ("come back later"): neither chased nor marked stalled meanwhile.
   if (laterActive(i, `${today}T23:59:59.999Z`)) return none
   if (i.status === 'waiting_insurer' || i.status === 'waiting_client') {
     if (!i.waiting_since) return none
-    const wd = workingDaysBetween(i.waiting_since, today)
-    if (wd <= CHASE_AFTER_WORKING_DAYS) return none
-    return { chase: i.status === 'waiting_insurer' ? 'chase_insurer' : 'chase_client', stall: false, round: Math.floor((wd - 1) / CHASE_AFTER_WORKING_DAYS) }
+    const toDeadline = i.deadline ? daysBetween(today, i.deadline) : null
+    const near = toDeadline !== null && toDeadline <= NEAR_DEADLINE_DAYS
+    const urgent = toDeadline !== null && toDeadline <= URGENT_DAYS
+    let round = 0
+    if (near) {
+      const d = daysBetween(i.waiting_since, today)
+      round = d < NEAR_DEADLINE_EVERY ? 0 : Math.floor(d / NEAR_DEADLINE_EVERY)
+    } else if (i.status === 'waiting_insurer') {
+      const wd = workingDaysBetween(i.waiting_since, today)
+      round = wd <= CHASE_AFTER_WORKING_DAYS ? 0 : Math.floor((wd - 1) / CHASE_AFTER_WORKING_DAYS)
+    } else {
+      const d = daysBetween(i.waiting_since, today)
+      round = d < CHASE_CLIENT_AFTER_DAYS ? 0 : Math.floor(d / CHASE_CLIENT_AFTER_DAYS)
+    }
+    if (round === 0) return none
+    if (round > MAX_CHASES) return { ...none, round, urgent, escalate: true }
+    return { chase: i.status === 'waiting_insurer' ? 'chase_insurer' : 'chase_client', stall: false, round, urgent, escalate: false }
   }
   if (i.status === 'trs_to_act') {
     const since = i.last_activity_at ?? i.waiting_since
-    return { chase: null, stall: !!since && daysBetween(since, today) > STALL_AFTER_DAYS, round: 0 }
+    return { ...none, stall: !!since && daysBetween(since, today) > STALL_AFTER_DAYS }
   }
   return none
 }
@@ -55,23 +93,30 @@ export function renewalBand(endDate: string | null, today: string): number | nul
 export async function handleChaser(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
   const today = (task.payload?.today as string) ?? new Date().toISOString().slice(0, 10)
   if (task.kind !== 'sweep') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
-  const items = await sbTry<Row[]>('work_items?closed_at=is.null&select=id,company_id,status,waiting_since,last_activity_at,snoozed_until,closed_at,later_until,later_when&limit=1000', [])
+  const items = await sbTry<Row[]>('work_items?closed_at=is.null&select=id,company_id,status,waiting_since,last_activity_at,snoozed_until,closed_at,later_until,later_when,deadline,needs_human,next_action,insurer_name&limit=1000', [])
   const tasks: NewTask[] = []
-  let stalled = 0, released = 0
+  let stalled = 0, released = 0, escalated = 0
   const now = new Date().toISOString()
   for (const i of items) {
     // A timed "come back later" that has run out puts the item back on the queue.
     if (laterDue(i, now)) { await clearLater(i.id, 'time reached', 'chaser'); i.later_until = null; released++ }
-    const d = chaseDecision(i as Parameters<typeof chaseDecision>[0], today)
+    const d = chaseDecision(i as ChaseItem, today)
+    if (d.escalate && !i.needs_human) {
+      // The fourth chase is a call. The item moves to Decide with the ask spelled out.
+      const who = i.status === 'waiting_insurer' ? (i.insurer_name ? `${i.insurer_name}` : 'the insurer') : 'the client'
+      await sb(`work_items?id=eq.${enc(i.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `No reply from ${who} after ${MAX_CHASES} chases. Call them.`, updated_at: new Date().toISOString() }) })
+      await itemEvent(i.id, 'note', 'chaser', { escalated: true, chases: MAX_CHASES, waiting_since: i.waiting_since })
+      escalated++
+    }
     if (d.stall) {
       await sb(`work_items?id=eq.${enc(i.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'stalled', updated_at: new Date().toISOString() }) })
       await itemEvent(i.id, 'status', 'chaser', { status: 'stalled', basis: `no TRS move for more than ${STALL_AFTER_DAYS} days` })
       stalled++
     }
-    if (d.chase) tasks.push({ agent: 'drafter', kind: d.chase, work_item_id: i.id, company_id: i.company_id, idem_key: `drafter:${d.chase}:${i.id}:${i.waiting_since}:${d.round}`, created_by_agent: 'chaser' })
+    if (d.chase) tasks.push({ agent: 'drafter', kind: d.chase, work_item_id: i.id, company_id: i.company_id, payload: { round: d.round, urgent: d.urgent, deadline: i.deadline ?? null }, idem_key: `drafter:${d.chase}:${i.id}:${i.waiting_since}:${d.round}`, created_by_agent: 'chaser' })
   }
   await enqueue(tasks)
-  return { chases: tasks.length, stalled, released }
+  return { chases: tasks.length, stalled, released, escalated }
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

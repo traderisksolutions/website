@@ -80,6 +80,12 @@ const quoted = (o: Original | null | undefined) => o ? [
   '---------- Forwarded message ----------', `From: ${o.from}`, o.sent_at ? `Date: ${fmt(o.sent_at)}` : null, o.subject ? `Subject: ${o.subject}` : null, '', o.text.trim(),
 ].filter(l => l !== null).join('\n') : ''
 const attached = (files: string[] | undefined) => files?.length ? `\nAttached: ${files.join(', ')}.\n` : ''
+/** The other side's words, verbatim, between QUOTE and UNQUOTE, as Nathan relays them. */
+export const quoteBlock = (text: string | null | undefined) => { const t = String(text ?? '').trim(); return t ? `QUOTE\n${t}\nUNQUOTE` : '' }
+/** "1. …" lines, so the answers can come back against the same numbers. */
+export const numbered = (items: string[]) => items.map((a, i) => `${i + 1}. ${a.replace(/^\s*(?:\d{1,2}[.)]|[-•*–])\s+/, '')}`).join('\n')
+/** True when a text already carries numbered answers ("1. …", "2. …"). */
+export const hasNumbering = (text: string | null | undefined) => (String(text ?? '').match(/^\s*\d{1,2}[.)]\s+\S/gm) ?? []).length >= 2
 const policyRef = (f: RelayFacts) => [f.className, f.policyNumber ? `Policy No. ${f.policyNumber}` : null].filter(Boolean).join(', ')
 /** The reference after a title, unless the title already carries the policy number. */
 const refAfter = (f: RelayFacts) => { const r = policyRef(f); return r && !(f.policyNumber && f.title.includes(f.policyNumber)) ? ` (${r})` : '' }
@@ -109,7 +115,7 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'forward_documents':
       return {
         subject: replySubject(f.threadSubject, `${client} | ${f.title}`),
-        body: `${hi}\n\nPlease find attached the documents from our client ${client} on ${matterOf(f)}${refAfter(f)}.\n${attached(f.files)}\nPlease proceed and let us know if anything further is required.\n\n${SIGN}\n\n${quoted(f.original)}`,
+        body: `${hi}\n\nPlease find attached the documents from our client ${client} on ${matterOf(f)}${refAfter(f)}${hasNumbering(f.original?.text) ? ', with their answers to your questions numbered as asked below' : ''}.\n${attached(f.files)}\nPlease proceed and let us know if anything further is required.\n\n${SIGN}\n\n${quoted(f.original)}`,
       }
     case 'forward_instruction':
       return {
@@ -119,7 +125,7 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'forward_question':
       return {
         subject: replySubject(f.threadSubject, `${client} | ${f.title}: query`),
-        body: `${hi}\n\nOur client ${client} has raised the query below on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}.\n\nPlease let us have your reply so that we can revert to the client.\n\n${SIGN}\n\n${quoted(f.original)}`,
+        body: `${hi}\n\nPlease see below ${hasNumbering(f.original?.text) ? `our client ${client}'s answers to your questions, numbered as asked,` : `the query from our client ${client}`} on ${matterOf(f)}${refAfter(f)}:\n\n${quoteBlock(f.original?.text)}\n\n${hasNumbering(f.original?.text) ? 'Please let us know if anything further is needed.' : 'Please let us have your reply so that we can revert to the client.'}\n\n${SIGN}`,
       }
     case 'request_info': {
       const items = (f.missing ?? []).map(i => `- ${i}`).join('\n')
@@ -171,7 +177,7 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'relay_decline':
       return {
         subject: replySubject(f.threadSubject, `${line}: ${f.insurerName ?? 'insurer'} response`),
-        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has declined to offer terms for ${line}${f.quoted ? `, stating:\n\n"${f.quoted.trim()}"` : '.'}\n\nWe are approaching the other markets and will revert with any terms received.\n\n${SIGN}`,
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has declined to offer terms for ${line}${f.quoted ? `, for the reason below:\n\n${quoteBlock(f.quoted)}` : '.'}\n\nWe are approaching the other markets and will revert with any terms received.\n\n${SIGN}`,
       }
     case 'relay_documents':
       return {
@@ -181,13 +187,13 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'relay_decision':
       return {
         subject: replySubject(f.threadSubject, `${f.title}: update from ${f.insurerName ?? 'the insurer'}`),
-        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has responded on ${matterOf(f)}${refAfter(f)}${f.quoted ? `:\n\n"${f.quoted.trim()}"` : '.'}\n${attached(f.files)}\nPlease let us know how you would like to proceed, and we will respond to the insurer accordingly.\n\n${SIGN}`,
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has responded on ${matterOf(f)}${refAfter(f)}${f.quoted ? `:\n\n${quoteBlock(f.quoted)}` : '.'}\n${attached(f.files)}\nPlease let us know how you would like to proceed, and we will respond to the insurer accordingly.\n\n${SIGN}`,
       }
     case 'relay_question': {
-      const items = (f.asks ?? []).map(a => `- ${a}`).join('\n')
+      const items = numbered(f.asks ?? [])
       return {
         subject: replySubject(f.threadSubject, `${f.title}: information requested by ${f.insurerName ?? 'the insurer'}`),
-        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has asked for the following on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}:\n${items || (f.quoted ? `\n"${f.quoted.trim()}"` : '')}\n\nPlease send the details in reply to this email and we will pass them on.\n\n${SIGN}`,
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has asked for the following on ${matterOf(f)}${refAfter(f)}:\n\n${items || quoteBlock(f.quoted)}\n\n${items ? 'Could you reply against each number, and we will pass your answers on the same day.' : 'Please send the details in reply to this email and we will pass them on.'}\n\n${SIGN}`,
       }
     }
   }

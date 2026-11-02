@@ -6,6 +6,7 @@
  * work_item_events row, so the screens are not blocked on it; they can move into
  * src/lib/casework when that module gains them.
  */
+import { fillVoice } from '@/lib/admin/b/voice'
 import { sb, sbTry, enc, isInternal } from '@/lib/crm/db'
 import { groupOf, bridgeOf, laterFor, type TodayGroup, type LaterChoice, type Bridge } from './rules'
 import { pendingOf, sideOf, homeBridgeOf, cardOrder, LEVEL_RANK, type Pending, type PendingLevel, type Side, type HomeBridge, type PolicyLite } from './pending'
@@ -262,11 +263,10 @@ export async function editDraft(id: string, p: { to: string; cc: string | null; 
 
 /** Fills the signature with the approver's name and returns the id for /api/email/send. */
 export async function prepareDraft(id: string, actor: string): Promise<string> {
-  const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(id)}&select=id,body,status&limit=1`)
+  const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(id)}&select=id,body,status,thread_id&limit=1`)
   if (!d || !['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
-  const [me] = await sbTry<Row[]>(`contacts?email=eq.${enc(actor)}&select=first_name,last_name&limit=1`, [])
-  const name = [me?.first_name, me?.last_name].filter(Boolean).join(' ') || actor.split('@')[0]
-  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: String(d.body ?? '').replace(/\{owner_name\}/g, name) }) })
+  // The approver's own voice: greeting word, close, name, phone (src/lib/admin/b/voice.ts).
+  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: await fillVoice(String(d.body ?? ''), actor, d.thread_id) }) })
   return d.id
 }
 

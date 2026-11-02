@@ -6,6 +6,7 @@
  *
  * Only a reply on an existing thread is ever auto-sent; a new conversation needs a person.
  */
+import { fillVoice } from '@/lib/admin/b/voice'
 import { randomUUID } from 'node:crypto'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { getGmailToken } from '@/lib/gmail-send'
@@ -74,17 +75,12 @@ export async function autoSendRun(opts: { now?: Date; force?: boolean } = {}): P
   return out
 }
 
-async function ownerName(item: Row | undefined): Promise<string> {
-  const email = String(item?.owner_email ?? '').toLowerCase()
-  if (!email) return 'Trade Risk Solutions'
-  const [me] = await sbTry<Row[]>(`contacts?email=eq.${enc(email)}&select=first_name,last_name&limit=1`, [])
-  return [me?.first_name, me?.last_name].filter(Boolean).join(' ') || 'Trade Risk Solutions'
-}
 
 async function sendOne(d: Row, to: string[], cc: string[], item: Row | undefined, insurerDomains: Set<string>): Promise<void> {
   const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(d.thread_id)}&select=id,gmail_thread_id,subject&limit=1`, [])
   if (!thread) throw new Error('thread not found')
-  const body = String(d.body ?? '').replace(/\{owner_name\}/g, await ownerName(item))
+  // Sent in the owner's voice: greeting word, close, name, phone (src/lib/admin/b/voice.ts).
+  const body = await fillVoice(String(d.body ?? ''), item?.owner_email ?? null, d.thread_id)
   const subject = String(d.subject ?? '').trim() || (thread.subject ? `Re: ${String(thread.subject).replace(/^(re|fwd?):\s*/i, '')}` : 'Trade Risk Solutions')
 
   // Threading and the quoted history, as the send route does them.
