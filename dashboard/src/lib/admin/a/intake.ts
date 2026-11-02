@@ -151,11 +151,12 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     await enqueue({ agent: 'document_clerk', kind: 'attachments', idem_key: `docs:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id } })
     handed.push('document_clerk')
   }
+  if (kind === 'automated' || ooo || bulk) return { kind: bulk ? 'automated' : kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
+
   // The placement module reads every message once, from here: a reply on a request it sent, the
   // client's thread of an open placement, a forward of either. Cheap when the thread is not its own.
   await enqueue({ agent: 'placement', kind: 'inbound', idem_key: `pinbound:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id, thread_id: msg.thread_id, gmail_thread_id: thread?.gmail_thread_id ?? null, direction: msg.direction === 'outbound' ? 'outbound' : 'inbound' } })
   handed.push('placement.inbound')
-  if (kind === 'automated' || ooo || bulk) return { kind: bulk ? 'automated' : kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
 
   // "Come back later until the client / insurer replies" ends when that side writes on the case.
   if (kind === 'client' || kind === 'insurer') {
