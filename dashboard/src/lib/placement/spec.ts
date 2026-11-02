@@ -1,4 +1,4 @@
-import { SPEC_KEYS, SPEC_LABEL, type Spec } from './types'
+import { SPEC_KEYS, SPEC_LABEL, type Spec, type SpecText } from './types'
 
 const clean = (v: unknown): string => (typeof v === 'string' ? v.trim() : '').replace(/\s+/g, ' ')
 
@@ -10,10 +10,16 @@ export function normaliseSpec(raw: unknown): Spec {
     const v = clean((raw as Record<string, unknown>)[k])
     if (v) out[k] = v
   }
+  const fields = (raw as Record<string, unknown>).fields
+  if (fields && typeof fields === 'object') {
+    const kept: Record<string, string> = {}
+    for (const [k, v] of Object.entries(fields as Record<string, unknown>)) { const c = clean(v); if (c && /^[a-z_]{2,40}$/.test(k)) kept[k] = c }
+    if (Object.keys(kept).length) out.fields = kept
+  }
   return out
 }
 
-export type SpecChange = { field: keyof Spec; label: string; from: string | null; to: string | null }
+export type SpecChange = { field: SpecText; label: string; from: string | null; to: string | null }
 
 /** Field-by-field difference between two specs. Empty when nothing changed. */
 export function specDiff(prev: Spec, next: Spec): SpecChange[] {
@@ -22,6 +28,10 @@ export function specDiff(prev: Spec, next: Spec): SpecChange[] {
   for (const k of SPEC_KEYS) {
     const from = a[k] ?? null, to = b[k] ?? null
     if (from !== to) out.push({ field: k, label: SPEC_LABEL[k], from, to })
+  }
+  for (const k of new Set([...Object.keys(a.fields ?? {}), ...Object.keys(b.fields ?? {})])) {
+    const from = a.fields?.[k] ?? null, to = b.fields?.[k] ?? null
+    if (from !== to) out.push({ field: 'notes', label: k.replace(/_/g, ' '), from, to })
   }
   return out
 }
@@ -36,9 +46,11 @@ export function describeChanges(changes: SpecChange[]): string {
 }
 
 /** The spec as lines for an email or a prompt. Only filled fields appear. */
-export function specLines(spec: Spec): string[] {
+export function specLines(spec: Spec, labelOf: (key: string) => string = k => k.replace(/_/g, ' ')): string[] {
   const s = normaliseSpec(spec)
-  return SPEC_KEYS.filter(k => s[k]).map(k => `${SPEC_LABEL[k]}: ${s[k]}`)
+  const base = SPEC_KEYS.filter(k => s[k]).map(k => `${SPEC_LABEL[k]}: ${s[k]}`)
+  const extra = Object.entries(s.fields ?? {}).map(([k, v]) => `${labelOf(k)}: ${v}`)
+  return [...base, ...extra]
 }
 
 // ── Money read off a quote ──────────────────────────────────────────────────────────────────

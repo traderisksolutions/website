@@ -8,6 +8,7 @@ import { withVoice } from '@/lib/voice'
 import { productLineLabel, PRODUCT_LINES } from '@/lib/product-lines'
 import { parsePct, rateCheck, roleOf } from './figures'
 import { normaliseSpec, parseMoney, specLines } from './spec'
+import { LINE_SPECS, fieldHints, fieldLabel } from './lines'
 import type { Evidence, PlacementLogEntry, PlacementQuote, Spec } from './types'
 import type { MailAttachment, MailMessage } from './store'
 
@@ -57,10 +58,12 @@ List every policy the client is asking to be quoted, one per line, using ONLY th
 ${lines}
 
 For each line give the spec the insurers will be asked to price: insured (who and where), limit (limit of indemnity or sum insured, verbatim), excess, period, scope (activities, territory, what is included), extras (extensions asked for), notes (anything else the underwriter needs). Leave a field out if the client did not say.
+Some lines also take structured particulars under "fields" (an object of key: value strings, verbatim from the thread, keys exactly as listed, leave out what the thread does not say):
+${Object.keys(LINE_SPECS).filter(k => LINE_SPECS[k].fields.length).map(k => `- ${k}: ${fieldHints(k)}`).join('\n')}
 Also give: a short title for this placement ("PI and D&O for ${companyName ?? 'the client'}"), the inception date as YYYY-MM-DD if stated, and client_asks: the questions the client asked that are not a spec (e.g. "can we pay quarterly").
 Quote figures verbatim. Never invent a limit or a period. confidence is 0 to 1 for whether this line was really requested.
 Read the WHOLE thread, oldest to newest, and decide stage: "new" when the client has asked and the broker has not yet gone to insurers; "midway" when the broker has already approached insurers, relayed insurer questions or terms, sent the client quotes or a comparison, or is negotiating. insurers_approached: every insurer the thread says was asked or quoted, as named (e.g. "Great Eastern", "China Taiping"). project: the job, site or project name the parties use ("Dover Drive"), else null.
-Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ "product_line": slug, "label": string, "spec": {...}, "confidence": number }], "client_asks": string[], "stage": "new"|"midway", "insurers_approached": string[], "project": string|null }`
+Return JSON only: { "title": string, "inception_date": string|null, "lines": [{ "product_line": slug, "label": string, "spec": { ..., "fields": {...} }, "confidence": number }], "client_asks": string[], "stage": "new"|"midway", "insurers_approached": string[], "project": string|null }`
   const { text, error } = await callGemini({
     agent: 'placement', feature: 'placement_intake', model: GEMINI_DEEP, system, json: true, temperature: 0, maxOutputTokens: 16_000, thinkingShare: 0.3,
     parts: [{ text: `CLIENT: ${companyName ?? 'unknown'}\n\n${mailCorpus(msgs, atts)}` }],
@@ -91,11 +94,32 @@ export type DispatchDraftInput = {
   lines: { label: string; productLine: string; spec: Spec; tiers?: TierAsk[] }[]
   roundNo: number; changeSummary: string | null; previousPremium: string | null
   inceptionDate: string | null
+  /** The date insurers are asked to quote by (placement/lines.ts insurerDeadline). */
+  deadline?: string | null
   memory: string
+}
+
+/**
+ * Pure. A line with a fixed submission block (construction, bonds, financial lines) is written
+ * from the record, not by the model: the same block Nathan types, so every insurer in the round
+ * reads the same risk. Null when the line has no block or the request spans several lines.
+ */
+export function fixedSubmission(i: DispatchDraftInput): DraftText | null {
+  if (i.lines.length !== 1 || i.insurerName) return null
+  const l = i.lines[0]
+  const spec = LINE_SPECS[l.productLine]
+  if (!spec?.submission) return null
+  const body = spec.submission({ clientName: i.clientName, spec: l.spec, inceptionDate: i.inceptionDate, deadline: i.deadline ?? null, roundNo: i.roundNo, changeSummary: i.changeSummary })
+  const tiers = l.tiers?.length ? `\n\nPlease also price each of these options separately:\n${l.tiers.map(tierLine).join('\n')}` : ''
+  const project = l.spec.fields?.project ?? l.spec.fields?.contract_title ?? null
+  const subject = `(TRS) ${i.clientName} | ${l.label}${project ? ` | ${project}` : ''}${i.roundNo > 1 ? ' | revised' : ''}`.slice(0, 200)
+  return { subject, body: `Dear Underwriter,\n\n${body}${tiers}` }
 }
 export type DraftText = { subject: string; body: string }
 
 export async function draftToInsurer(i: DispatchDraftInput): Promise<DraftText | null> {
+  const fixed = fixedSubmission(i)
+  if (fixed) return fixed
   const reader = i.insurerName
     ? `Reader: ${i.contactName ?? 'the underwriter'} at ${i.insurerName}.`
     : 'Reader: the underwriter at each insurer being asked. The same email goes to several insurers, so name no insurer and no person; open with "Dear Underwriter," and write as to one reader.'
@@ -104,12 +128,12 @@ ${reader}
 Client: ${i.clientName}. Inception: ${i.inceptionDate ?? 'to be confirmed'}.
 ${i.roundNo > 1 ? `This is a REVISED request (round ${i.roundNo}). What changed: ${i.changeSummary ?? 'see spec'}. ${i.previousPremium ? `Their last quoted premium was ${i.previousPremium}.` : ''} Ask for a revised premium on the new terms and say the rest stays as previously submitted.` : 'This is the first request.'}
 Lines to quote (each with its spec):
-${i.lines.map(l => `• ${l.label} [${productLineLabel(l.productLine)}]\n  ${specLines(l.spec).join('\n  ') || '(spec to follow)'}${l.tiers?.length ? `\n  Also price each of these options separately:\n  ${l.tiers.map(tierLine).join('\n  ')}` : ''}`).join('\n')}
+${i.lines.map(l => `• ${l.label} [${productLineLabel(l.productLine)}]\n  ${specLines(l.spec, k => fieldLabel(l.productLine, k)).join('\n  ') || '(spec to follow)'}${l.tiers?.length ? `\n  Also price each of these options separately:\n  ${l.tiers.map(tierLine).join('\n  ')}` : ''}`).join('\n')}
 
 What we know so far about this client's placement (for your context, do not repeat it to the insurer):
 ${i.memory || '(nothing yet)'}
 
-Rules: plain text, short paragraphs, one blank line between them. Name every line and its spec exactly as given. Where options are listed, ask for a separate premium for each option, total and per head where it applies. Ask for premium, excess, limit, validity of the quote and any subjectivities. Ask them to reply within 3 working days. No greeting fluff, no sign-off block (the signature is added on send). Never mention other insurers or their prices.
+Rules: plain text, short paragraphs, one blank line between them. Name every line and its spec exactly as given. Where options are listed, ask for a separate premium for each option, total and per head where it applies. Ask for premium, excess, limit, validity of the quote and any subjectivities. Ask them to reply ${i.deadline ? `by ${i.deadline}` : 'within 5 working days'}. No greeting fluff, no sign-off block (the signature is added on send). Never mention other insurers or their prices.
 Return JSON only: { "subject": string, "body": string }`
   const { text, error } = await callGemini({
     agent: 'placement', feature: 'placement_dispatch_draft', model: GEMINI_DEEP, system: await withVoice(task, 'client'), json: true, temperature: 0.2, maxOutputTokens: 6_000,

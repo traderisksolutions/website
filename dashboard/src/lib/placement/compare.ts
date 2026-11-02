@@ -9,9 +9,10 @@
 import { quoteExpired } from './position'
 import { findTier } from './match'
 import type { LinePosition, PlacementQuote, PlacementShare } from './types'
+import { comparisonHead, familyOf, type LineFamily } from './lines'
 
 export type EmailQuote = { quote: PlacementQuote; insurer: string; product: string | null; option: string }
-export type EmailLine = { label: string; quotes: EmailQuote[]; pending: string[]; declined: string[] }
+export type EmailLine = { label: string; family: LineFamily; quotes: EmailQuote[]; pending: string[]; declined: string[] }
 
 const money = (n: number) => n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const cellText = (s: string) => s.replace(/\|/g, '/').replace(/\s+/g, ' ').trim()
@@ -26,7 +27,7 @@ export function optionLabel(pos: LinePosition, q: PlacementQuote): string {
  * Every current, unexpired quote per line, or only those in `include` when the broker picked a
  * partial set. Pending lists who is still to price which option, so a partial comparison says so.
  */
-export function emailLines(positions: LinePosition[], include: Set<string> | null, now = new Date()): EmailLine[] {
+export function emailLines(positions: LinePosition[], include: Set<string> | null, now = new Date(), declineReasons: Map<string, string> = new Map()): EmailLine[] {
   return positions.map(pos => {
     const quotes: EmailQuote[] = []
     for (const dp of pos.dispatches) {
@@ -48,8 +49,10 @@ export function emailLines(positions: LinePosition[], include: Set<string> | nul
       const missing = asked.filter(t => !dp.quotes.some(q => q.tier_id === t.id)).map(t => t.label)
       return missing.length ? [`${dp.dispatch.insurer_name} (${missing.join(', ')})`] : []
     })
-    const declined = pos.dispatches.filter(dp => dp.dispatch.status === 'declined').map(dp => dp.dispatch.insurer_name)
-    return { label: pos.line.label ?? pos.line.product_line, quotes: sortQuotes(quotes), pending, declined }
+    // Declines carry the insurer's reason, as Nathan reports them: "Liberty, Tokio Marine, Sompo
+    // (prefer not to write fidelity guarantee as a standalone)".
+    const declined = pos.dispatches.filter(dp => dp.dispatch.status === 'declined').map(dp => { const why = declineReasons.get(dp.dispatch.id); return why ? `${dp.dispatch.insurer_name} (${why})` : dp.dispatch.insurer_name })
+    return { label: pos.line.label ?? pos.line.product_line, family: familyOf(pos.line.product_line), quotes: sortQuotes(quotes), pending, declined }
   })
 }
 
@@ -65,17 +68,21 @@ export function comparisonTable(line: EmailLine): string {
   const fmtDate = (d: string | null) => d ? new Date(`${d}T00:00:00+08:00`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' }) : ''
   const fig = (n: number | null | undefined, text: string | null | undefined, cur: string | null) =>
     n != null ? `${cur && cur !== 'SGD' ? cur + ' ' : ''}${money(n)}` : (text ?? '')
-  const rows = line.quotes.map(({ quote: q, insurer, product, option }) => [
-    product ? `${insurer} · ${product}` : insurer,
-    option,
-    fig(q.premium_amount, q.premium_text, q.currency),
-    fig(q.premium_per_head_amount, q.premium_per_head_text, q.currency),
-    q.limit_text ?? '',
-    q.excess_text ?? '',
-    q.valid_until ? fmtDate(q.valid_until) : (q.validity_text ?? ''),
-    q.key_terms.slice(0, 3).join('; '),
-  ])
-  return [TABLE_HEAD, ...rows].map(r => `| ${r.map(cellText).join(' | ')} |`).join('\n')
+  const validity = (q: PlacementQuote) => q.valid_until ? fmtDate(q.valid_until) : (q.validity_text ?? '')
+  const share = (q: PlacementQuote) => [q.role === 'lead' ? 'Lead' : q.role === 'follow' ? 'Follow' : '', q.share_pct != null ? `${q.share_pct}%` : ''].filter(Boolean).join(' ')
+  const rows = line.quotes.map(({ quote: q, insurer, product, option }) => {
+    if (line.family === 'eb' || line.family === 'other') return [
+      product ? `${insurer} · ${product}` : insurer, option, fig(q.premium_amount, q.premium_text, q.currency), fig(q.premium_per_head_amount, q.premium_per_head_text, q.currency),
+      q.limit_text ?? '', q.excess_text ?? '', validity(q), q.key_terms.slice(0, 3).join('; '),
+    ]
+    if (line.family === 'financial') return [
+      insurer, option, fig(q.premium_amount, q.premium_text, q.currency), q.limit_text ?? '', q.excess_text ?? '', q.key_terms.slice(0, 3).join('; '), q.subjectivities.slice(0, 3).join('; '), validity(q),
+    ]
+    return [
+      insurer, share(q), q.rate_text ?? '', fig(q.premium_amount, q.premium_text, q.currency), q.limit_text ?? '', q.excess_text ?? '', q.subjectivities.slice(0, 3).join('; '), validity(q),
+    ]
+  })
+  return [comparisonHead(line.family), ...rows].map(r => `| ${r.map(cellText).join(' | ')} |`).join('\n')
 }
 
 /** The body: the model's opening, then per line a heading, the table and who is still to reply; then the model's close. */

@@ -12,10 +12,11 @@ import * as store from './store'
 import { isBrokerBlock } from '@/lib/letters/appointment'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
+import { pickPanel, insurerDeadline } from './lines'
 import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
 import { choosePolicyQuote } from '@/lib/policies/spine'
 import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
-import type { Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
+import type { PlacementLogEntry, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
 
 const now = () => new Date().toISOString()
 const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT', tier: 'PLACEMENT_TIER', confirm: 'PLACEMENT_CONFIRM' } as const
@@ -153,9 +154,18 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
       await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: a.line.id, round_id: roundOf.get(a.line.id)?.id ?? null, kind: 'info', actor, text: `No insurer chosen for ${label}` })
       continue
     }
+    // Nobody picked by hand: the line's panel, in the order the broker approaches it, cut to the
+    // number the line asks (placement/lines.ts), one default contact per insurer.
+    let picked = forLine
+    if (!chosen && !forAsk) {
+      const panel = new Set(pickPanel(a.line.product_line, a.spec, forLine.map(r => r.insurer_name)))
+      const perInsurer = new Map<string, store.InsurerRoute>()
+      for (const r of forLine) { if (!panel.has(r.insurer_name)) continue; const cur = perInsurer.get(r.insurer_name); if (!cur || (r.is_default && !cur.is_default)) perInsurer.set(r.insurer_name, r) }
+      picked = Array.from(perInsurer.values())
+    }
     // One dispatch per contact email: a person listed twice for the line is asked once.
     const seen = new Set<string>()
-    routed.push({ ask: a, recipients: forLine.filter(r => !seen.has(r.email) && seen.add(r.email)) })
+    routed.push({ ask: a, recipients: picked.filter(r => !seen.has(r.email) && seen.add(r.email)) })
   }
 
   // 3. One draft per line, one dispatch per (line, contact), all pointing at that draft.
@@ -167,6 +177,7 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
       insurerName: null, contactName: null, clientName: company?.company_name ?? 'the client',
       lines: [{ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec, tiers: tierAsks(tiers) }],
       roundNo: round.round_no, changeSummary: a.change_summary, previousPremium: null, inceptionDate: placement.inception_date, memory,
+      deadline: insurerDeadline(a.line.product_line, now().slice(0, 10), placement.inception_date),
     })
     let draftId: string | null = null
     if (text) {
@@ -694,7 +705,7 @@ export async function draftClientSummary(placementId: string, actor: string, quo
   if (!bundle || !p) return null
   const company = await store.company(p.company_id)
   const positions = derivePositions(bundle).filter(x => !lineFinished(x.line.status))
-  const lines = emailLines(positions, quoteIds?.length ? new Set(quoteIds) : null)
+  const lines = emailLines(positions, quoteIds?.length ? new Set(quoteIds) : null, new Date(), declineReasons(bundle.log))
   const included = lines.flatMap(l => l.quotes.map(q => q.quote.id))
   if (included.length === 0) throw new Error('None of the ticked quotes can be sent (expired or not chosen).')
   const contact = p.client_contact_id ? (await store.sbTryContact(p.client_contact_id)) : null
@@ -722,6 +733,17 @@ export async function draftClientSummary(placementId: string, actor: string, quo
   const partial = lines.some(l => l.pending.length > 0)
   await store.log({ company_id: p.company_id, placement_id: p.id, kind: 'decision', actor, text: `Comparison to the client drafted (${included.length} price${included.length === 1 ? '' : 's'}${partial ? ', more to come' : ''}) — awaiting approval`, detail: { ai_draft_id: draft.id, quote_ids: included } })
   return { draftId: draft.id }
+}
+
+/** Each declined dispatch's reason, from the log, so the client reads the insurer's own words. */
+function declineReasons(log: PlacementLogEntry[]): Map<string, string> {
+  const out = new Map<string, string>()
+  for (const e of log) {
+    if (e.kind !== 'declined' || !e.dispatch_id) continue
+    const m = /(?:declined|is blocked on) [\s\S]*?: ([\s\S]+)$/.exec(e.text)
+    if (m) out.set(e.dispatch_id, m[1].trim())
+  }
+  return out
 }
 
 /** After the comparison is sent: the share is kept as sent and the request waits on the client. */

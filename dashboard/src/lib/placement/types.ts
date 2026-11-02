@@ -26,9 +26,13 @@ export type Spec = {
   scope?: string          // territory, activities, what is included
   extras?: string         // extensions, endorsements asked for
   notes?: string          // anything else the insurer must know
+  /** Line-specific particulars (placement/lines.ts): contract value, principal, retro date … */
+  fields?: Record<string, string>
 }
-export const SPEC_KEYS: (keyof Spec)[] = ['insured', 'limit', 'excess', 'period', 'scope', 'extras', 'notes']
-export const SPEC_LABEL: Record<keyof Spec, string> = {
+/** The free-text spec fields; `fields` holds the line's structured particulars and is handled apart. */
+export type SpecText = Exclude<keyof Spec, 'fields'>
+export const SPEC_KEYS: SpecText[] = ['insured', 'limit', 'excess', 'period', 'scope', 'extras', 'notes']
+export const SPEC_LABEL: Record<SpecText, string> = {
   insured: 'Insured', limit: 'Limit', excess: 'Excess', period: 'Period', scope: 'Scope', extras: 'Extensions', notes: 'Notes',
 }
 

@@ -34,6 +34,7 @@ import { extractQuoteTerms, missingForQuote } from './terms'
 import { composeRelay, relayPairFor, CLASS_OF, PARTY_OF, type RelayKind, type RelayFacts } from './compose'
 import { syncRegister, markRequested } from '../documents/store'
 import { missingLines } from '../documents/gate'
+import { isBrokerBlock } from '@/lib/letters/appointment'
 
 type Row = Record<string, any>
 const ACTOR = 'relay'
@@ -246,7 +247,8 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       // The binding gate: the instruction goes to the insurer only when the file holds what the
       // insurer will ask for. Otherwise the client is thanked and asked for the rest, numbered.
       const today = day
-      const gate = await syncRegister(d, { line, today, startDate: policy?.start_date ?? null, instructedOn: today, expiry: d.item.case_type === 'renewal' ? policy?.end_date ?? null : null }, { instructionMessageId: msg.id })
+      const otherBrokerOnRisk = d.messages.some(m => m.side === 'insurer' && !m.rebuilt && isBrokerBlock(m.text.slice(0, 4000)))
+      const gate = await syncRegister(d, { line, today, startDate: policy?.start_date ?? null, instructedOn: today, expiry: d.item.case_type === 'renewal' ? policy?.end_date ?? null : null, otherBrokerOnRisk }, { instructionMessageId: msg.id })
       if (!gate.complete) {
         const c = await route('client', d, line)
         if (!c.ok) return ask(c.question)
