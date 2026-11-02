@@ -18,6 +18,7 @@
  */
 
 import { gmailTokenForMessage } from '@/lib/gmail/mailboxes'
+import { isNoise } from '@/lib/documents/taxonomy'
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil } from '@vercel/functions'
 import { ingestAttachment } from '@/lib/documents/ingest'
@@ -278,7 +279,8 @@ async function extractInnerBuffer(name: string, buf: Buffer, apiKey: string, thr
   if (['jpg', 'jpeg', 'png', 'webp', 'tiff', 'gif'].includes(ext)) {
     const imgMime = `image/${ext === 'jpg' ? 'jpeg' : ext}`
     await uploadToStorage(nested, buf, imgMime)
-    const desc = apiKey ? await describeImage(buf, imgMime, apiKey) : ''
+    // A logo or an inline picture is not a document: stored, not described.
+    const desc = apiKey && !isNoise(name, imgMime) ? await describeImage(buf, imgMime, apiKey) : ''
     return `[${name}: image${desc ? ` — ${desc.slice(0, 500)}` : ' stored'}]`
   }
   if (['csv', 'txt'].includes(ext)) return `${name}:\n${buf.toString('utf-8').slice(0, 6000)}`
@@ -362,7 +364,8 @@ async function processAttachment(
   // ── Images: store binary + AI description ────────────────────────────────
   else if (mime.startsWith('image/')) {
     storageUrl = await uploadToStorage(storagePath, data, mimeType)
-    parsedText = await describeImage(data, mimeType, apiKey)
+    // A logo or an inline picture is not a document: stored, not described (127 model calls on 2 Nov).
+    parsedText = isNoise(filename, mimeType) ? null : await describeImage(data, mimeType, apiKey)
     console.log(`[nexus/extract] image stored + described: ${filename}`)
   }
 

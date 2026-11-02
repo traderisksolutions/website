@@ -232,7 +232,7 @@ declined_lines: keys of lines they will not quote (empty if kind is decline for 
 Never compute or guess a figure. A figure with no excerpt must be null. Never put two prices in one entry.
 Return JSON only: { "kind": ..., "summary": one sentence, "questions": string[], "quotes": [...], "declined_lines": string[], "policy_number": string|null }`
   const { text, error } = await callGemini({
-    agent: 'placement', feature: 'placement_reply_read', model: GEMINI_DEEP, system, json: true, temperature: 0, maxOutputTokens: 16_000, thinkingShare: 0.3,
+    agent: 'placement', feature: 'placement_reply_read', model: GEMINI_DEEP, system, json: true, temperature: 0, maxOutputTokens: 8_000, thinkingShare: 0.25,
     metadata: { message_id: msg.id }, parts: [{ text: mailCorpus([msg], atts, 80_000) }],
   })
   if (error) console.error('[placement] reply read', error)

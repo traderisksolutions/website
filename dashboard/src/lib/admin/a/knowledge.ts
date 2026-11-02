@@ -170,6 +170,14 @@ export function verifiedFacts(raw: unknown, text: string): { topic: string; key:
     .slice(0, 20)
 }
 
+/** Pure. A short reply that only thanks, notes or confirms receipt states no fact worth a model call. */
+export function isAcknowledgement(text: string): boolean {
+  const body = text.replace(/^(hi|dear|hello)[^\n,]{0,40},?\s*/i, '').replace(/\s+/g, ' ').trim()
+  const words = body.split(' ').filter(Boolean).length
+  if (words > 15 || /\d|@|\$|%/.test(body)) return false
+  return /\b(thank(s| you)|noted|well received|received with thanks|got it|will revert|will do|ok(ay)?|appreciate)\b/i.test(body)
+}
+
 const AGENT = 'knowledge_keeper'
 const PER_RUN = 25
 
@@ -178,7 +186,7 @@ async function factsFromMessage(messageId: string, companyId: string): Promise<F
   const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,from_address,subject,body_text,sent_at`, [])
   if (!m || isInternal(bareEmail(m.from_address))) return []
   const own = readHistory(m.body_text ?? '', m.subject).top.slice(0, 6000)
-  if (own.length < 40) return []
+  if (own.length < 40 || isAcknowledgement(own)) return []
   const r = await callGemini({ agent: 'admin', feature: 'admin_fact_read', model: GEMINI_LITE, system: FACT_SYSTEM, parts: [{ text: `FROM: ${m.from_address}\nSUBJECT: ${m.subject ?? ''}\n\n${own}` }], json: true, maxOutputTokens: 4000, thinkingShare: 0, metadata: { company_id: companyId, message_id: messageId } })
   if (!r.text) throw new Error(r.error ?? 'no answer from the model')
   let parsed: unknown = null

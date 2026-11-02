@@ -116,3 +116,13 @@ describe('history on arrival', () => {
     expect(isHistory(null, now)).toBe(false)
   })
 })
+
+describe('the keeper skips acknowledgements', () => {
+  it('reads nothing from a thanks, everything from a fact', async () => {
+    const { isAcknowledgement } = await import('@/lib/admin/a/knowledge')
+    expect(isAcknowledgement('Hi Nathan, noted with thanks.')).toBe(true)
+    expect(isAcknowledgement('Thank you, well received. Will revert.')).toBe(true)
+    expect(isAcknowledgement('Thanks. Our headcount is now 48 from 1 December.')).toBe(false)
+    expect(isAcknowledgement('Please renew the policy as before; the new contact for claims is jane@example-client.sg.')).toBe(false)
+  })
+})

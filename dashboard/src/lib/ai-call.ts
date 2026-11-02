@@ -45,7 +45,7 @@ export type CallResult = { text: string | null; error?: string }
 
 /** The day's spend, in USD, from the ledger; cached a minute so the check costs one query per minute. */
 let spendCache: { at: number; usd: number } | null = null
-export const DAILY_CAP_USD = Number(process.env.AI_DAILY_CAP_USD ?? '7.5')
+export const DAILY_CAP_USD = Number(process.env.AI_DAILY_CAP_USD ?? '5')
 /** Features that keep running at the cap: the relay's intent check is what tells a claim from a thanks. */
 const ALWAYS: Set<string> = new Set(['admin_route'])
 async function todaySpendUsd(): Promise<number> {

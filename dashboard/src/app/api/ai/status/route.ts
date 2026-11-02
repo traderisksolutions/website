@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
       // Billing is terminal and nothing will work again until somebody acts; a spent quota
       // usually refills. The caller renders those at different severities.
       severity: affected.some(a => a.kind === 'billing') ? 'error' : affected.length ? 'warning' : 'ok',
-      cap_usd: affected.some(a => a.kind === 'cap') ? Number(process.env.AI_DAILY_CAP_USD ?? '7.5') : null,
+      cap_usd: affected.some(a => a.kind === 'cap') ? Number(process.env.AI_DAILY_CAP_USD ?? '5') : null,
       affected,
     })
   } catch (e) {

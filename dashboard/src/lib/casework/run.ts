@@ -9,7 +9,7 @@
  * keeps the record, so two agents never draft on one message. Nothing sends.
  */
 import { callGemini } from '@/lib/ai-call'
-import { GEMINI_DEEP } from '@/lib/gemini-models'
+import { GEMINI_LITE } from '@/lib/gemini-models'
 import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
 import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
@@ -156,7 +156,7 @@ export async function loadCase(companyId: string, today = new Date().toISOString
 
 export async function readCase(input: CaseInput): Promise<{ cases: CleanCase[]; dropped: number; error?: string }> {
   const r = await callGemini({
-    agent: 'housekeeping', feature: 'case_work', model: GEMINI_DEEP, system: CASE_SYSTEM,
+    agent: 'housekeeping', feature: 'case_work', model: GEMINI_LITE, system: CASE_SYSTEM,
     // Reads only, no drafts: a third of the old allowance. 244 reads cost S$27 on 2 Nov at 32,000
     // tokens with 40% thinking; the record a read produces needs a tenth of that.
     parts: [{ text: input.prompt }], json: true, maxOutputTokens: 12000, thinkingShare: 0.25,
@@ -198,7 +198,7 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
     waiting_since: c.waiting_since, last_activity_at: c.last_activity, summary: c.summary, next_action: c.next_action,
     deadline: c.deadline, deadline_basis: c.deadline_basis, insurer_name: c.insurer, policy_number: c.policy_number,
     suggested_owner: c.suggested_owner, owner_basis: c.owner_basis, needs_human: [owner.needsHuman, c.needs_human].filter(Boolean).join(' ') || null, confidence: c.confidence,
-    evidence: c.evidence, model: GEMINI_DEEP, read_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    evidence: c.evidence, model: GEMINI_LITE, read_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     closed_at: c.status === 'done' ? new Date().toISOString() : null, closed_by: c.status === 'done' ? ACTOR : null,
   }
   let id = c.item_id
