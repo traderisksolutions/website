@@ -1,11 +1,12 @@
 import type { DispatchPosition, LinePosition, PlacementBundle, PlacementDispatch, PlacementQuote } from './types'
 
+import { nextInsurerChase } from '@/lib/admin/b/cadence'
+
 export const DAY = 86_400_000
 
-/** First chase after 3 working days, then every 2 working days, up to the cap the caller sets. */
-export function nextChaseAt(from: Date, chaseCount: number): Date {
-  const days = chaseCount === 0 ? 3 : 2
-  return addWorkingDays(from, days)
+/** When a dispatch is next chased: the one cadence table (admin/b/cadence.ts), five working days. */
+export function nextChaseAt(from: Date, _chaseCount: number): Date {
+  return nextInsurerChase(from)
 }
 
 export function addWorkingDays(from: Date, days: number): Date {

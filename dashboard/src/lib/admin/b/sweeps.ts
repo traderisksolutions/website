@@ -10,6 +10,10 @@ import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
 import { laterActive, laterDue, clearLater } from './later'
 import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from './renewals/advice-agent'
+import { CHASE_AFTER_WORKING_DAYS, CHASE_CLIENT_AFTER_DAYS, NEAR_DEADLINE_DAYS, NEAR_DEADLINE_EVERY, URGENT_DAYS, MAX_CHASES, DOCUMENT_CHASE_DAYS } from './cadence'
+import { runChases as runPlacementChases } from '@/lib/placement/workflow'
+import { runMovementChases } from '@/lib/policies/movement-flow'
+import { chaseBatches } from './endorsements/sync'
 import { openRegisters, markRequested, syncRegister } from './documents/store'
 import { DOC_LABEL } from './documents/gate'
 import { loadCaseData } from './data'
@@ -18,18 +22,7 @@ import { familyOf } from '@/lib/placement/lines'
 
 type Row = Record<string, any>
 
-export const CHASE_AFTER_WORKING_DAYS = 5
-/** A client is chased after a calendar week; Nathan's own cadence is 7 to 14 days. */
-export const CHASE_CLIENT_AFTER_DAYS = 7
-/** Inside the last week before a deadline, every two days. */
-export const NEAR_DEADLINE_DAYS = 7
-export const NEAR_DEADLINE_EVERY = 2
-/** Five days out the chase asks for the answer today. */
-export const URGENT_DAYS = 5
-/** After three chases the matter goes to a person: the fourth email does not work, a call does. */
-export const MAX_CHASES = 3
-/** Signed forms, slips and letters are chased every 6 days, as Nathan does (6 to 7). */
-export const DOCUMENT_CHASE_DAYS = 6
+export { CHASE_AFTER_WORKING_DAYS, CHASE_CLIENT_AFTER_DAYS, NEAR_DEADLINE_DAYS, NEAR_DEADLINE_EVERY, URGENT_DAYS, MAX_CHASES, DOCUMENT_CHASE_DAYS } from './cadence'
 export const STALL_AFTER_DAYS = 7
 export const RENEWAL_BANDS = [60, 30, 14] as const
 /** Financial lines: the proposal form six weeks out, as Nathan sends it. */
@@ -151,7 +144,13 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
     documentChases++
   }
   await enqueue(tasks)
-  return { chases: tasks.length - documentChases, documentChases, stalled, released, escalated }
+  // The other open records with a party to chase, on the same table: quotation requests to
+  // insurers, member movements awaiting the insurer's note, endorsement batches.
+  const nowDate = new Date()
+  const placements = await runPlacementChases(nowDate).catch(e => { console.error('[chaser] placements', e instanceof Error ? e.message : e); return { drafted: 0, skipped: 0 } })
+  const movements = await runMovementChases(nowDate).catch(e => { console.error('[chaser] movements', e instanceof Error ? e.message : e); return { drafted: 0, skipped: 0 } })
+  const batches = await chaseBatches(nowDate).catch(e => { console.error('[chaser] batches', e instanceof Error ? e.message : e); return 0 })
+  return { chases: tasks.length - documentChases, documentChases, stalled, released, escalated, placements: placements.drafted, movements: movements.drafted, batches }
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

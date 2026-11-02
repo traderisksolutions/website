@@ -5,18 +5,17 @@
  * (a claim chased with QBE is filed under QBE), the policies on file and the work items already
  * open. The model groups the threads into cases and says, for each, where it stands and what TRS
  * does next; clean.ts decides what of that may be stored. Open items are updated in place, a new
- * case opens an item, and a ready reply goes into ai_drafts for a person to approve. Nothing sends.
+ * case opens an item. The reply itself is the relay agent's (src/lib/admin/b/relay): the case worker
+ * keeps the record, so two agents never draft on one message. Nothing sends.
  */
 import { callGemini } from '@/lib/ai-call'
 import { GEMINI_DEEP } from '@/lib/gemini-models'
 import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
-import { randomUUID } from 'node:crypto'
 import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
-import { contactIdFor } from '@/lib/admin/b/contact-id'
 import { twinOf } from './clean'
 import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
-import { cleanCase, parseAnswer, type CaseContext, type CaseDraft, type CleanCase } from './clean'
+import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clean'
 
 const ACTOR = 'case_worker'
 const WINDOW_DAYS = 90
@@ -31,8 +30,6 @@ Group the threads into CASES. A case is one piece of work for one client: a clai
 For each case decide:
 - status: done (nothing left for anyone), waiting_client, waiting_insurer, trs_to_act (TRS owes the next move), stalled (a TRS ask unanswered for more than 7 days, or a deadline passed).
 - next_action: one imperative line of what TRS does next. Waiting more than 5 working days means the next action is a chase.
-- draft, only when TRS must send something now: reply on one of the case threads, to and cc only from addresses on the thread, short, courteous, plain English in the tone of TRS's own messages, signed "{owner_name}". Attach only files that appear on the case, by exact file name. Say who it goes to in party: "insurer" or "client".
-- pair_draft, when the matter has two parties and both should hear from TRS now: the other party's email, same rules, the opposite party. Typical pairs: chase the insurer and tell the client it was chased; send the client's claim to the insurer and acknowledge it to the client. They are approved and sent together.
 - deadline: a real date from the mail or the policy (inception, expiry, a date someone stated), with its basis.
 - suggested_owner: the TRS colleague active on this case or client. Never someone who has left.
 - needs_human: any decision you must not make (coverage dispute, claim decline, payee or bank details, premium acceptance, cancelling cover). Say exactly what must be decided.
@@ -42,8 +39,8 @@ Messages marked REBUILT were read out of a forward or quoted history: TRS never 
 
 Never invent an amount, date, policy number, name or attachment. If it is not in the mail, say it is missing.
 
-Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"draft":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
-draft and pair_draft, when present: {"reply_in_thread":"","to":[""],"cc":[""],"subject":"","body":"","attach":[""],"party":"insurer|client"}`
+Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
+Write no email: the relay agent drafts replies from the case you keep.`
 
 /** Added to the prompt when the record read is a partner broker, not a client. */
 export const PARTNER_NOTE = `This record is a PARTNER BROKER that places work with TRS for its own clients; it is not TRS's client. For each case put the END CLIENT's company name (the policyholder named in the mail) in "client". Only TRS's own dealings with the partner (co-broking fees, agreements) use the partner's name as client, with case_type other. If the end client is not named, say so in needs_human.`
@@ -221,30 +218,9 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
     body: JSON.stringify(c.threads.map(t => ({ work_item_id: id, thread_id: t, side: input.threadSide.get(t) ?? 'other' }))),
   })
 
-  if (c.draft) {
-    // The previous unsent drafts for this item are replaced, never left beside the new ones.
-    await sbTry(`ai_drafts?work_item_id=eq.${enc(id)}&status=in.(pending,draft)`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'rejected', rejection_note: 'replaced by a newer read' }) })
-    const pairId = c.pair_draft ? randomUUID() : null
-    const draftId = await insertDraft(input, id, c.draft, pairId)
-    if (c.pair_draft) await insertDraft(input, id, c.pair_draft, pairId)
-    await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: draftId }) })
-  }
-  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action, draft: !!c.draft, pair: !!c.pair_draft, draft_withheld: c.draft_withheld, pair_withheld: c.pair_withheld } }) })
+  // Drafts are the relay agent's; a draft the model still returns is not stored.
+  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action } }) })
   return id
-}
-
-async function insertDraft(input: CaseInput, workItemId: string, d: CaseDraft, pairId: string | null): Promise<string> {
-  const contactId = await contactIdFor(d.to[0], input.companyId)
-  const [draft] = await sb<Row[]>('ai_drafts', {
-    method: 'POST', headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({
-      contact_id: contactId, thread_id: d.reply_in_thread, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
-      generated_by: 'gemini', to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body,
-      attachments: d.attach.map(f => input.files.get(f)).filter(Boolean).map(a => ({ filename: a!.filename, mime_type: a!.mime_type, storage_url: a!.storage_url })),
-      work_item_id: workItemId, pair_id: pairId, party: d.party,
-    }),
-  })
-  return draft.id as string
 }
 
 /** Reads one client and stores every case. Returns what happened, for logs and the dry run. */

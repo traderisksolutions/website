@@ -7,7 +7,7 @@
  *   eb_movements / close_batches   the batches whose window ended → one Today item each.
  *   eb_movements / close_batch     one batch, now (a person asked).
  *   eb_movements / sync            approved batches → sent; paid notes → settled.
- *   eb_movements / chase_sweep     quiet insurers → a chase draft on the case.
+ *   (chases run from the one chaser sweep, src/lib/admin/b/sweeps.ts)
  *   eb_movements / bill            a person accepted an insurer figure → the TRS note.
  *   endorsements / attach          an endorsement policy row → its master policy, by base number
  *                                  then by term and class. No match is a question for a person.
@@ -17,7 +17,7 @@ import { askHuman, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { handlePolicyInbound } from '@/lib/policies/inbound'
 import { findMasterPolicy, looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { closeDueBatches, closeBatchNow } from './endorsements/batches'
-import { syncSent, syncSettled, syncNotesSent, chaseBatches } from './endorsements/sync'
+import { syncSent, syncSettled, syncNotesSent } from './endorsements/sync'
 import { billTransaction } from './endorsements/notes'
 
 type Row = Record<string, any>
@@ -41,7 +41,6 @@ export async function handleEbMovements(task: AgentTask): Promise<Record<string,
       return r as Record<string, unknown>
     }
     case 'sync': return { sent: await syncSent(), notes_filed: await syncNotesSent(), settled: await syncSettled() }
-    case 'chase_sweep': return { chased: await chaseBatches() }
     case 'bill': {
       const id = (task.payload?.transaction_id ?? null) as string | null
       if (!id) { await skip(task.id, 'no transaction'); return 'handled' }
@@ -73,6 +72,5 @@ export function endorsementSweepTasks(today: string) {
   return [
     { agent: 'eb_movements' as const, kind: 'sync', idem_key: `eb:sync:${today}`, created_by_agent: 'system' as const, payload: { today } },
     { agent: 'eb_movements' as const, kind: 'close_batches', idem_key: `eb:close:${today}`, created_by_agent: 'system' as const, payload: { today } },
-    { agent: 'eb_movements' as const, kind: 'chase_sweep', idem_key: `eb:chase:${today}`, created_by_agent: 'system' as const, payload: { today } },
   ]
 }

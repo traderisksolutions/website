@@ -43,10 +43,10 @@ describe('addWorkingDays / nextChaseAt', () => {
     expect(d.toISOString().slice(0, 10)).toBe('2026-10-28')
   })
   it('does not move for zero days', () => { expect(addWorkingDays(friday, 0).getTime()).toBe(friday.getTime()) })
-  it('chases first after 3 working days, then every 2', () => {
-    expect(nextChaseAt(friday, 0).getTime()).toBe(addWorkingDays(friday, 3).getTime())
-    expect(nextChaseAt(friday, 2).getTime()).toBe(addWorkingDays(friday, 2).getTime())
-    expect(nextChaseAt(friday, 2).toISOString().slice(0, 10)).toBe('2026-10-27')
+  it('chases on the one cadence table: five working days, every time', () => {
+    expect(nextChaseAt(friday, 0).getTime()).toBe(addWorkingDays(friday, 5).getTime())
+    expect(nextChaseAt(friday, 2).getTime()).toBe(addWorkingDays(friday, 5).getTime())
+    expect(nextChaseAt(friday, 2).toISOString().slice(0, 10)).toBe('2026-10-30')
   })
 })
 

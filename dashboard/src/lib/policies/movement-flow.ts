@@ -120,11 +120,11 @@ export async function movementAttachments(policy: PolicyRow, movements: PolicyMo
 
 // ── Chasing the insurer ─────────────────────────────────────────────────────────────────────
 
-const MAX_CHASES = 3
+import { MAX_CHASES, nextInsurerChase } from '@/lib/admin/b/cadence'
 
 /**
- * Movements sent a week or more ago with no note from the insurer get one chaser per request
- * (draft, for a person to send), then every five days, up to three. `now` lets a test run against
+ * Movements sent with no note from the insurer get one chaser per request (draft, for a person
+ * to send) on the one cadence table (admin/b/cadence.ts): five working days, up to three. `now` lets a test run against
  * its own movements only.
  */
 export async function runMovementChases(now = new Date()): Promise<{ drafted: number; skipped: number }> {
@@ -153,7 +153,7 @@ export async function runMovementChases(now = new Date()): Promise<{ drafted: nu
     ].join('\n')
     const draft = await store.createDraft({ contact_id: original.contact_id, to_email: original.to_email, subject: `Follow-up: ${original.subject ?? 'member movement'}`, body, thread_id: original.thread_id, email_type: 'POLICY_MOVEMENT_CHASE' })
     if (!draft) { skipped++; continue }
-    await store.patchNoTs('policy_movements', `id=in.(${ms.map(m => m.id).join(',')})`, { chase_count: n + 1, last_chase_at: now.toISOString(), next_chase_at: new Date(now.getTime() + 5 * 86_400_000).toISOString() })
+    await store.patchNoTs('policy_movements', `id=in.(${ms.map(m => m.id).join(',')})`, { chase_count: n + 1, last_chase_at: now.toISOString(), next_chase_at: nextInsurerChase(now).toISOString() })
     await store.log({ company_id: ms[0].company_id, kind: 'chase', actor: 'system', text: `Chaser ${n + 1} drafted to the insurer: ${ms.length} movement${ms.length === 1 ? '' : 's'} sent ${sentOn}, no note yet`, detail: { ai_draft_id: draft.id, policy_id: ms[0].policy_id, movement_ids: ms.map(m => m.id) } })
     drafted++
   }

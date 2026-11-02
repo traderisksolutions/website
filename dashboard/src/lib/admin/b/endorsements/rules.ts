@@ -126,8 +126,10 @@ export function noteDecision(i: { variance: number | null; withinTolerance: bool
 export const gstRateFor = (line: string | null, className: string | null) => (/term life|\bgtl\b|critical|\bgci\b|\blife\b/i.test(`${line ?? ''} ${className ?? ''}`) ? 0 : 0.09)
 
 /** Chase an unbilled batch 5 working days after sending, then every 5 working days, up to three times. */
-export const CHASE_AFTER_DAYS = 7
-export const MAX_CHASES = 3
+import { INSURER_CHASE_CALENDAR_DAYS, MAX_CHASES as CADENCE_MAX } from '../cadence'
+/** The one cadence table (admin/b/cadence.ts): five working days as a calendar week. */
+export const CHASE_AFTER_DAYS = INSURER_CHASE_CALENDAR_DAYS
+export const MAX_CHASES = CADENCE_MAX
 export function chaseDue(b: { status: BatchStatus; sent_at: string | null; next_chase_at: string | null; chase_count: number; sub_state?: string | null }, now: Date): boolean {
   if (b.status !== 'sent' || !b.sent_at || b.chase_count >= MAX_CHASES) return false
   // The insurer's question is with the client: the clock is paused until the client answers.
