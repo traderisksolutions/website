@@ -3,7 +3,6 @@ import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
-import { readMessage as readFollowUps } from '@/lib/nexus/reader'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
 import { enqueue }              from '@/lib/agent-tasks/queue'
@@ -776,16 +775,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     body:    JSON.stringify(participants),
   })
 
-  // 4a. Placement: if this thread is a request to an insurer or the client thread of an open
-  //     placement, the agent reads the message (src/lib/placement/workflow.ts). Cheap when it
-  //     is neither; runs in its own function and never blocks ingest.
-  waitUntil(
-    fetch(`${origin}/api/placements/inbound`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-internal-secret': process.env.CRON_SECRET ?? '', ...internalHeaders() },
-      body:    JSON.stringify({ message_id: dbMsg.id, thread_id: thread.id, gmail_thread_id: gmailThreadId ?? null, direction }),
-    }).catch(() => {}),
-  )
+  // 4a. Placement and policy mail are read by the placement agent from the queue (intake hands
+  //     every message on); nothing here reads the message twice.
 
   // 4b. Still unfiled? Give the thread a company from its domain, creating the organisation if
   // we have not met it before (src/lib/crm/autofile.ts). Runs after the participants are stored
@@ -893,14 +884,6 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
         }).catch(() => {})
       )
     }
-  }
-
-  // ── NEXUS: follow-ups ─────────────────────────────────────────────────────
-  // Reads the message for who owes what, after the response. The hourly /api/cron/nexus reads
-  // anything this misses; follow_up_reads keeps each message to one model call either way.
-  if (dbMsg?.id) {
-    const messageId = dbMsg.id
-    waitUntil(readFollowUps(messageId).catch(e => console.warn('[ingest] follow-up read (non-fatal):', e instanceof Error ? e.message : e)))
   }
 
   // ── NEXUS: Siloed attachment extraction ───────────────────────────────────

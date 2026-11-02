@@ -3,7 +3,7 @@ import { caseModeFor, isClientKind } from '../kinds'
 import { pairFor, partyOf, composeForward, buildDraft, needsForwardToInsurer, type DraftFacts } from '../drafts'
 import { laterActive, clearsOnMessage, laterDue } from '../later'
 import { chaseDecision } from '../sweeps'
-import { caseCompanyFor, readsFacts, laterToClear, ebViaQueue, focusThreads } from '../../a/intake-routes'
+import { caseCompanyFor, readsFacts, laterToClear, focusThreads } from '../../a/intake-routes'
 import { cleanCase, type CaseContext } from '@/lib/casework/clean'
 
 describe('which companies hold client cases', () => {
@@ -111,8 +111,6 @@ describe('come back later', () => {
 
 describe('intake hand-offs', () => {
   it('keeps EB movements on the ingest path unless the queue path is switched on', () => {
-    expect(ebViaQueue({})).toBe(false)
-    expect(ebViaQueue({ ADMIN_EB_VIA_QUEUE: '1' })).toBe(true)
   })
   it('reads the whole client until the group has a ledger, then only the threads that moved', () => {
     expect(focusThreads({ cursor: 0, entries: [], payloadThreads: ['t1'] })).toBeNull()

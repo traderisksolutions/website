@@ -5,7 +5,6 @@
  */
 import { productLineLabel } from '@/lib/product-lines'
 import { createQuotingPolicy } from '@/lib/policies/spine'
-import { handlePolicyInbound } from '@/lib/policies/inbound'
 import { describeChanges, normaliseSpec, parseMoney, specDiff } from './spec'
 import { derivePositions, nextChaseAt } from './position'
 import * as store from './store'
@@ -302,7 +301,8 @@ export async function handleInbound(input: { message_id: string; thread_id: stri
     const placed = await placeElsewhere(msg, input.thread_id, input.direction)
     if (placed) return placed
   }
-  return handlePolicyInbound(input)
+  // Member movements and insurer notes are the eb_movements agent's, queued once by intake.
+  return { handled: 'none', detail: 'not placement mail' }
 }
 
 /**

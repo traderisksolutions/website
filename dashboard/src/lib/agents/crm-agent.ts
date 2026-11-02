@@ -39,13 +39,13 @@ function sbHeaders(prefer = 'return=representation') {
 }
 
 /**
- * Save the reply as a pending draft, superseding any earlier pending one on the thread.
+ * Save the reply as a pending draft, superseding this agent's own earlier one on the thread.
  * Mirrors what /api/engagement/draft did, because this replaces it and the rest of the
  * dashboard — approve, reject, the learning loop — keys off this row.
  */
 async function saveDraft(threadId: string, contactId: string | null, body: string, contextUsed: string[]): Promise<string | null> {
   try {
-    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${enc(threadId)}&status=eq.pending`, {
+    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${enc(threadId)}&status=eq.pending&generated_by=eq.crm_agent`, {
       method: 'PATCH', headers: sbHeaders('return=minimal'),
       body: JSON.stringify({ status: 'superseded' }),
     })

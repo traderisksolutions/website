@@ -167,8 +167,8 @@ Rules for draft_reply:
     const tRows     = tRes.ok ? await tRes.json() : []
     const contactId = Array.isArray(tRows) ? (tRows[0]?.contact_id ?? null) : null
 
-    // Supersede any existing pending drafts for this thread so only the latest is shown
-    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${thread_id}&status=eq.pending`, {
+    // Supersede only this path's own earlier draft: the agents' drafts on the thread stay.
+    await fetch(`${SB_URL}/rest/v1/ai_drafts?thread_id=eq.${thread_id}&status=eq.pending&generated_by=eq.auto`, {
       method:  'PATCH',
       headers: sbHeaders('return=minimal'),
       body:    JSON.stringify({ status: 'superseded' }),

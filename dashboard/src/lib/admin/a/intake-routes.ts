@@ -24,13 +24,6 @@ export function laterToClear(items: (LaterFields & { id: string })[], senderSide
   return items.filter(i => clearsOnMessage(i, senderSide)).map(i => i.id)
 }
 
-/**
- * EB member movements already run for every stored message through the ingest route
- * (/api/placements/inbound → handleInbound → handlePolicyInbound). Handing them to the
- * eb_movements agent as well would handle each message twice, so the hand-off is off until that
- * ingest call is removed and ADMIN_EB_VIA_QUEUE=1 is set.
- */
-export const ebViaQueue = (env: Record<string, string | undefined> = process.env) => env.ADMIN_EB_VIA_QUEUE === '1'
 
 /**
  * The threads a case read should look at. Null means the full read: the group has no ledger yet

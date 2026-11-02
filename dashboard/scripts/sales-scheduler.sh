@@ -5,6 +5,9 @@
 #
 #   campaign-sender   every 20 min, Mon–Fri 09:00–16:40 SGT  → /api/cron/campaign-sender
 #   sales-enrich      hourly, Mon–Fri 08:00–18:00 SGT         → /api/cron/sales-enrich
+#   agents-drain      every 10 min, 07:00–22:50 SGT daily     → /api/cron/agents (the task queue; a chase
+#                     decided at 01:10 no longer waits for the nightly drain)
+#   admin-sweep       hourly, 07:00–22:00 SGT daily            → /api/cron/admin-sweep (chaser, renewals, claims sync)
 #
 # Idempotent: creates the job if missing, else updates it. Needs gcloud signed in as
 # developer@trade-risksol.com with access to trs-ai-project.
@@ -26,4 +29,6 @@ upsert() {
 
 upsert campaign-sender '*/20 9-16 * * 1-5' /api/cron/campaign-sender
 upsert sales-enrich    '0 8-18 * * 1-5'    /api/cron/sales-enrich
+upsert agents-drain    '*/10 7-22 * * *'   /api/cron/agents
+upsert admin-sweep     '0 7-22 * * *'      /api/cron/admin-sweep
 gcloud scheduler jobs list --project "$PROJ" --location "$REGION" --account "$ACCT" --format='table(name.basename(),schedule,state)'

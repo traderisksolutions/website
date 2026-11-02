@@ -19,7 +19,7 @@ import { bestCase, debouncedRunAfter, type CaseCandidate, type CaseMatch, type J
 import { referencesIn, companyOfReferences, type RefTarget } from './references'
 import { gapsFor, leftOffTrs } from './gaps'
 import type { ClaimMailPayload, Gap, OpenMidwayPayload, ReadCasePayload } from './handoffs'
-import { caseCompanyFor, readsFacts, laterToClear, ebViaQueue, focusThreads } from './intake-routes'
+import { caseCompanyFor, readsFacts, laterToClear, focusThreads } from './intake-routes'
 import { clearLater } from '@/lib/admin/b/later'
 import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { readLedger, getCursor, setCursor } from '@/lib/admin/ledger'
@@ -138,7 +138,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   const messageId = String(task.payload.message_id ?? task.message_id ?? '')
   const [msg] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments`, [])
   if (!msg) { await skip(task.id, 'message not found'); return 'handled' }
-  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(msg.thread_id)}&select=id,subject,company_id`, [])
+  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(msg.thread_id)}&select=id,subject,company_id,gmail_thread_id`, [])
   const from = bareEmail(msg.from_address)
   const ins = await insurers()
   const kind = senderKind(from, { isInternal, isAutomated, insurerDomains: ins.domains })
@@ -151,6 +151,10 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     await enqueue({ agent: 'document_clerk', kind: 'attachments', idem_key: `docs:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id } })
     handed.push('document_clerk')
   }
+  // The placement module reads every message once, from here: a reply on a request it sent, the
+  // client's thread of an open placement, a forward of either. Cheap when the thread is not its own.
+  await enqueue({ agent: 'placement', kind: 'inbound', idem_key: `pinbound:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id, thread_id: msg.thread_id, gmail_thread_id: thread?.gmail_thread_id ?? null, direction: msg.direction === 'outbound' ? 'outbound' : 'inbound' } })
+  handed.push('placement.inbound')
   if (kind === 'automated' || ooo || bulk) return { kind: bulk ? 'automated' : kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
 
   // "Come back later until the client / insurer replies" ends when that side writes on the case.
@@ -195,7 +199,9 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
       handed.push('endorsements')
     }
   }
-  if (ebViaQueue() && kind !== 'internal') {
+  // Member movements, endorsement requests and insurer notes: one intake, queued once per message
+  // from here and nowhere else (the relay re-queues the same key, which dedupes).
+  if (kind === 'client' || kind === 'insurer') {
     await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: companyId, payload: { message_id: msg.id } })
     handed.push('eb_movements')
   }

@@ -141,15 +141,9 @@ function pickPolicy(policies: PolicyRow[], text: string): PolicyRow {
   return byInsurer.length === 1 ? byInsurer[0] : policies[0]
 }
 
-export const ebDirect = (env: Record<string, string | undefined> = process.env) => env.ADMIN_EB_DIRECT === '1'
-
-export async function handlePolicyInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }, opts: { direct?: boolean } = {}): Promise<InboundResult> {
+/** Run by the eb_movements agent, once per message (intake queues it with key eb:<message>). */
+export async function handlePolicyInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }, _opts: { direct?: boolean } = {}): Promise<InboundResult> {
   if (input.direction !== 'inbound') return { handled: 'none' }
-  if (!opts.direct && !ebDirect()) {
-    // Queued once per message, whoever asks (ingest, intake): the eb_movements agent runs it.
-    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${input.message_id}`, created_by_agent: 'system', message_id: input.message_id, thread_id: input.thread_id, payload: { message_id: input.message_id } })
-    return { handled: 'none', detail: 'queued' }
-  }
   const thread = await store.thread(input.thread_id)
   if (!thread) return { handled: 'none' }
   const client = await clientFor(input.thread_id, thread.company_id, thread.subject)

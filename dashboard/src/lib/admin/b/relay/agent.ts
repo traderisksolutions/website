@@ -36,6 +36,7 @@ import { syncRegister, markRequested } from '../documents/store'
 import { missingLines } from '../documents/gate'
 import { isBrokerBlock } from '@/lib/letters/appointment'
 import { explain } from '@/lib/admin/a/explanations'
+import { dispatchForThread, placementForClientThread } from '@/lib/placement/store'
 
 type Row = Record<string, any>
 const ACTOR = 'relay'
@@ -110,6 +111,9 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   const messageId = String(task.payload?.message_id ?? task.message_id ?? '')
   const [msg] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,from_address,subject,body_text,sent_at&limit=1`, [])
   if (!msg) { await skip(task.id, 'message not found'); return 'handled' }
+  // A thread the placement module sent a request on, or the client thread of an open placement,
+  // is answered by that module: one reader, one draft.
+  if (await dispatchForThread(msg.thread_id, null) || await placementForClientThread(msg.thread_id)) { await skip(task.id, 'placement module owns this thread'); return 'handled' }
   let workItemId = (task.payload?.work_item_id ?? task.work_item_id ?? null) as string | null
   if (!workItemId) {
     const [l] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(msg.thread_id)}&select=work_item_id&limit=1`, [])
@@ -168,15 +172,12 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
     await log({ status: 'trs_to_act' }); return result({ status: 'trs_to_act' })
   }
   if (intent === 'claim_notify') { await log({ handed: 'claims' }); return result({ handed: 'claims' }) }
-  if (intent === 'change_request') {
-    await enqueue({ agent: 'endorsements', kind: 'client_change', idem_key: `endorse:change:${msg.id}`, created_by_agent: 'relay', work_item_id: d.item.id, company_id: d.item.company_id, thread_id: msg.thread_id, message_id: msg.id, policy_id: policy?.id ?? null, payload: { message_id: msg.id, work_item_id: d.item.id, thread_id: msg.thread_id } })
-    await setItem({ status: 'trs_to_act', next_action: 'Send the change to the insurer' })
-    await log({ handed: 'endorsements' }); return result({ handed: 'endorsements' })
-  }
-  if (intent === 'insurer_note') {
-    await enqueue({ agent: 'endorsements', kind: 'insurer_note', idem_key: `endorse:note:${msg.id}`, created_by_agent: 'relay', work_item_id: d.item.id, company_id: d.item.company_id, thread_id: msg.thread_id, message_id: msg.id, policy_id: policy?.id ?? null, payload: { message_id: msg.id, work_item_id: d.item.id, policy_id: policy?.id ?? null } })
-    await setItem({ status: 'trs_to_act', next_action: 'Check the insurer note and bill the client' })
-    await log({ handed: 'endorsements' }); return result({ handed: 'endorsements' })
+  // A change request or an insurer's note is the policy intake's: the same task intake queued,
+  // same key, so it runs once however many agents notice it.
+  if (intent === 'change_request' || intent === 'insurer_note') {
+    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'relay', work_item_id: d.item.id, company_id: d.item.company_id, thread_id: msg.thread_id, message_id: msg.id, payload: { message_id: msg.id } })
+    await setItem({ status: 'trs_to_act', next_action: intent === 'change_request' ? 'Send the change to the insurer' : 'Check the insurer note and bill the client' })
+    await log({ handed: 'eb_movements' }); return result({ handed: 'eb_movements' })
   }
 
   // An item that already holds an unsent draft keeps it; the relay is logged so a person sees why.
