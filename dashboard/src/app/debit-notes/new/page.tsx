@@ -116,7 +116,7 @@ export default function NewDebitNotePage() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#0f1412' }}>
+    <div className="w-full min-w-0 max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#0f1412' }}>
       <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[13.5px] text-[#4a5550] hover:text-[#0f1412] no-underline mb-4"><ArrowLeft size={14} /> Debit Notes</Link>
       <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#0f1412] mb-2">Generate a new debit note</h1>
       <p className="m-0 text-[15px] text-[#4a5550] mb-6 max-w-[72ch]">

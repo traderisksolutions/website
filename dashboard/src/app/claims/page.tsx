@@ -70,7 +70,7 @@ export default function ClaimsPage() {
   }
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[1200px] mx-auto" style={{ color: INK }}>
+    <div className="w-full min-w-0 px-4 md:px-8 py-6 max-w-[1200px] mx-auto" style={{ color: INK }}>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">Claims</h1>
         <div className="flex flex-wrap gap-2">
@@ -130,7 +130,7 @@ export default function ClaimsPage() {
             {shown.map(r => {
               const st = statusOf(r)
               return (
-                <button key={r.id} type="button" onClick={() => select(r.id)} className="text-left rounded-[10px] bg-white px-4 py-3 border-0 cursor-pointer" style={{ boxShadow: selected === r.id ? 'inset 0 0 0 1.5px #132c1c' : 'var(--card-shadow)', color: INK }}>
+                <button key={r.id} type="button" onClick={() => select(r.id)} className="text-left rounded-[10px] bg-white px-4 py-3 border-0 cursor-pointer min-w-0 w-full" style={{ boxShadow: selected === r.id ? 'inset 0 0 0 1.5px #132c1c' : 'var(--card-shadow)', color: INK }}>
                   <div className="text-[12.5px] truncate" style={{ color: MUTED }}>{r.client ?? '—'} · {CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</div>
                   <div className="text-[15px] font-medium leading-snug">{r.title}</div>
                   <div className="flex flex-wrap gap-1.5 mt-2 items-center">

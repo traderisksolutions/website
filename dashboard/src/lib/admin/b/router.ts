@@ -32,6 +32,8 @@ export type RouteInput = {
   /** The insurer handler on the latest similar thread (same insurer, same scope), if any. */
   insurerLastHandler: string | null
   insurerDomains: string[]
+  /** Domains of partners, TPAs, vendors and other non-client companies: never the client's recipient. */
+  otherDomains?: string[]
   departed: string[]
   /** The case owner, cc'd so replies reach them as well as operations@. */
   owner: string | null
@@ -58,13 +60,14 @@ function scoped(list: ScopedContact[], scope: string, departed: Set<string>): st
 export function routeRecipients(i: RouteInput): Route {
   const departed = new Set(i.departed.map(norm))
   const insurer = new Set(i.insurerDomains.map(d => d.toLowerCase()))
-  const onSide = (a: string) => i.side === 'insurer' ? insurer.has(emailDomain(a)) : !insurer.has(emailDomain(a)) && !isInternal(a)
+  const other = new Set((i.otherDomains ?? []).map(d => d.toLowerCase()))
+  const onSide = (a: string) => i.side === 'insurer' ? insurer.has(emailDomain(a)) : !insurer.has(emailDomain(a)) && !other.has(emailDomain(a)) && !isInternal(a)
 
   let to: string[] = [], cc: string[] = [], basis = ''
 
   // 1. the last person on the case on this side, and whoever they copied on their side
   const sorted = [...i.messages].sort((a, b) => String(b.sent_at ?? '').localeCompare(String(a.sent_at ?? '')))
-  const last = sorted.find(m => m.side === i.side && usable(norm(m.from), departed))
+  const last = sorted.find(m => m.side === i.side && usable(norm(m.from), departed) && onSide(norm(m.from)))
   if (last) {
     to = [norm(last.from)]
     cc = [...last.to, ...last.cc].map(norm).filter(a => onSide(a) && usable(a, departed))

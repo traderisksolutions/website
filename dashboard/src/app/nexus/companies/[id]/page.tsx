@@ -68,7 +68,7 @@ export default function CompanyNexusPage({ params }: { params: Promise<{ id: str
   const a = view.analysis
 
   return (
-    <div className="px-4 sm:px-6 md:px-8 py-6 max-w-[1320px] mx-auto" style={{ color: INK }}>
+    <div className="w-full min-w-0 px-4 sm:px-6 md:px-8 py-6 max-w-[1320px] mx-auto" style={{ color: INK }}>
       <Link href="/nexus" className="text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Nexus</Link>
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-6">
         <div className="min-w-0">

@@ -17,6 +17,7 @@ import { latestText } from '@/lib/nexus/reader'
 import { askHuman, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { buildDraft, pairFor, partyOf, type DraftKind, type DraftFacts, type Party } from './drafts'
 import { routeRecipients, type Route } from './router'
+import { contactIdFor, greetingFor } from './contact-id'
 import { loadCaseData, toCaseMail, scopedContacts, groupFacts, itemEvent, insurerLastHandler, insurerClaimsDesk, type CaseData } from './data'
 
 type Row = Record<string, any>
@@ -26,11 +27,12 @@ type Attachment = { filename: string; mime_type: string | null; storage_url: str
 type NewDraft = { thread_id: string | null; to: string[]; cc: string[]; subject: string; body: string; kind: string; party: Party; pair_id?: string | null; attachments?: Attachment[] }
 
 export async function storeDraft(workItemId: string, d: NewDraft, opts: { primary?: boolean } = {}): Promise<string> {
-  const [contact] = await sbTry<Row[]>(`contacts?email=ilike.${enc(d.to[0])}&select=id&limit=1`, [])
+  const [item] = await sbTry<Row[]>(`work_items?id=eq.${enc(workItemId)}&select=company_id&limit=1`, [])
+  const contactId = await contactIdFor(d.to[0], item?.company_id ?? null)
   const [draft] = await sb<Row[]>('ai_drafts', {
     method: 'POST', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
-      contact_id: contact?.id ?? null, thread_id: d.thread_id, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
+      contact_id: contactId, thread_id: d.thread_id, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
       generated_by: 'template', to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body,
       attachments: d.attachments ?? [], work_item_id: workItemId, pair_id: d.pair_id ?? null, party: d.party,
       context_used: { agent: 'drafter', kind: d.kind },
@@ -101,10 +103,6 @@ function facts(kind: DraftKind, d: CaseData, claim: Row | undefined, greetingNam
   }
 }
 
-async function firstName(email: string): Promise<string | null> {
-  const [person] = await sbTry<Row[]>(`contacts?email=ilike.${enc(email)}&select=first_name&limit=1`, [])
-  return person?.first_name ?? null
-}
 
 export async function handleDrafter(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
   const kind = task.kind as DraftKind
@@ -124,14 +122,14 @@ export async function handleDrafter(task: AgentTask): Promise<Record<string, unk
     await askHuman(task.id, route.question, { work_item_id: d.item.id, kind, side })
     return 'handled'
   }
-  const main = facts(kind, d, claim, await firstName(route.to[0]), task, side)
+  const main = facts(kind, d, claim, await greetingFor(route.to[0]), task, side)
   const built = buildDraft(kind, main.f)
 
   const pairKind = pairFor(kind)
   let pair: { route: Route & { ok: true }; f: ReturnType<typeof facts> } | null = null
   if (pairKind) {
     const r = await routeSide('client', pairKind, d, claim)
-    if (r.ok) pair = { route: r, f: facts(pairKind, d, claim, await firstName(r.to[0]), task, 'client') }
+    if (r.ok) pair = { route: r, f: facts(pairKind, d, claim, await greetingFor(r.to[0]), task, 'client') }
   }
   const pairId = pair ? randomUUID() : null
   const draftId = await storeDraft(d.item.id, { thread_id: main.threadId, to: route.to, cc: route.cc, subject: built.subject, body: built.body, kind, party: side, pair_id: pairId, attachments: main.attachments })

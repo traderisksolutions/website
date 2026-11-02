@@ -67,6 +67,7 @@ export type RelayFacts = {
   waitingOn?: string | null
   lastSent?: string | null
   nextAction?: string | null
+  deadline?: string | null
 }
 
 const SIGN = 'Best regards,\n{owner_name}\nTrade Risk Solutions'
@@ -80,6 +81,20 @@ const quoted = (o: Original | null | undefined) => o ? [
 ].filter(l => l !== null).join('\n') : ''
 const attached = (files: string[] | undefined) => files?.length ? `\nAttached: ${files.join(', ')}.\n` : ''
 const policyRef = (f: RelayFacts) => [f.className, f.policyNumber ? `Policy No. ${f.policyNumber}` : null].filter(Boolean).join(', ')
+/** The reference after a title, unless the title already carries the policy number. */
+const refAfter = (f: RelayFacts) => { const r = policyRef(f); return r && !(f.policyNumber && f.title.includes(f.policyNumber)) ? ` (${r})` : '' }
+
+/** The client-facing name of the matter: the thread's subject, not the internal case title. */
+export function matterOf(f: Pick<RelayFacts, 'threadSubject' | 'title'>): string {
+  const s = String(f.threadSubject ?? '').replace(/^(\s*(re|fw|fwd|aw)\s*:\s*)+/i, '').replace(/^\(TRS\)\s*/i, '').replace(/\s+/g, ' ').trim()
+  return s.length >= 8 ? s : f.title
+}
+
+/** "Great Eastern General Insurance Ltd (fronting cedant); facultative reinsurers X and Y" → "Great Eastern General Insurance Ltd". */
+export function leadInsurer(raw: string): string {
+  const first = raw.split(/;|\band\b|,/)[0].replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim()
+  return first.length >= 3 ? first.slice(0, 80) : raw.slice(0, 80)
+}
 
 export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string; body: string } {
   const hi = `Dear ${f.greetingName?.trim() || 'Sir/Madam'},`
@@ -94,12 +109,12 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'forward_documents':
       return {
         subject: replySubject(f.threadSubject, `${client} | ${f.title}`),
-        body: `${hi}\n\nPlease find attached the documents from our client ${client} on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}.\n${attached(f.files)}\nPlease proceed and let us know if anything further is required.\n\n${SIGN}\n\n${quoted(f.original)}`,
+        body: `${hi}\n\nPlease find attached the documents from our client ${client} on ${matterOf(f)}${refAfter(f)}.\n${attached(f.files)}\nPlease proceed and let us know if anything further is required.\n\n${SIGN}\n\n${quoted(f.original)}`,
       }
     case 'forward_instruction':
       return {
         subject: replySubject(f.threadSubject, `${client} | ${f.title}: instruction`),
-        body: `${hi}\n\nOur client ${client} has instructed us to proceed on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}; their confirmation is below${(f.files ?? []).length ? ' and the signed documents are attached' : ''}.\n${attached(f.files)}\nPlease proceed and let us have the policy documents and your invoice.\n\n${SIGN}\n\n${quoted(f.original)}`,
+        body: `${hi}\n\nOur client ${client} has instructed us to proceed on ${matterOf(f)}${refAfter(f)}; their confirmation is below${(f.files ?? []).length ? ' and the signed documents are attached' : ''}.\n${attached(f.files)}\nPlease proceed and let us have the policy documents and your invoice.\n\n${SIGN}\n\n${quoted(f.original)}`,
       }
     case 'forward_question':
       return {
@@ -117,7 +132,7 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       const facts = (f.answers ?? []).map(a => `- ${a.fact} (${a.source})`).join('\n')
       return {
         subject: replySubject(f.threadSubject, `${f.title}: your query`),
-        body: `${hi}\n\nThank you for your query on ${policyRef(f) || line}.\n\nFrom the policy on file:\n${facts}\n${(f.files ?? []).length ? `\nThe ${f.files!.length === 1 ? 'document' : 'documents'} setting this out ${f.files!.length === 1 ? 'is' : 'are'} attached: ${f.files!.join(', ')}.\n` : ''}\nPlease let us know if you would like us to confirm any point with ${f.insurerName ?? 'the insurer'}.\n\n${SIGN}`,
+        body: `${hi}\n\nThank you for your query on ${policyRef(f) || (f.lineLabel ? line : 'your policy')}.\n\nFrom the policy on file:\n${facts}\n${(f.files ?? []).length ? `\nThe ${f.files!.length === 1 ? 'document' : 'documents'} setting this out ${f.files!.length === 1 ? 'is' : 'are'} attached: ${f.files!.join(', ')}.\n` : ''}\nPlease let us know if you would like us to confirm any point with ${f.insurerName ?? 'the insurer'}.\n\n${SIGN}`,
       }
     }
     case 'document_send':
@@ -127,10 +142,10 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       }
     case 'status_update': {
       const where = f.waitingOn === 'insurer' ? `We are waiting for ${f.insurerName ?? 'the insurer'} to revert${f.lastSent ? `; we last wrote to them on ${fmt(f.lastSent)} and have followed up today` : ' and have followed up today'}.`
-        : f.nextAction ? `The next step on our side is: ${f.nextAction}.` : 'We are working on it and will revert shortly.'
+        : f.deadline ? `We are working on it and will update you by ${fmt(f.deadline)}.` : 'We are working on it and will update you shortly.'
       return {
         subject: replySubject(f.threadSubject, `${f.title}: status`),
-        body: `${hi}\n\nThank you for following up on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}.\n\n${where}\n\nWe will update you as soon as we hear.\n\n${SIGN}`,
+        body: `${hi}\n\nThank you for following up on ${matterOf(f)}${refAfter(f)}.\n\n${where}\n\n${SIGN}`,
       }
     }
     case 'ack_client': {
@@ -166,7 +181,7 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
     case 'relay_decision':
       return {
         subject: replySubject(f.threadSubject, `${f.title}: update from ${f.insurerName ?? 'the insurer'}`),
-        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has responded on ${f.title}${policyRef(f) ? ` (${policyRef(f)})` : ''}${f.quoted ? `:\n\n"${f.quoted.trim()}"` : '.'}\n${attached(f.files)}\nPlease let us know how you would like to proceed, and we will respond to the insurer accordingly.\n\n${SIGN}`,
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has responded on ${matterOf(f)}${refAfter(f)}${f.quoted ? `:\n\n"${f.quoted.trim()}"` : '.'}\n${attached(f.files)}\nPlease let us know how you would like to proceed, and we will respond to the insurer accordingly.\n\n${SIGN}`,
       }
     case 'relay_question': {
       const items = (f.asks ?? []).map(a => `- ${a}`).join('\n')
@@ -176,4 +191,12 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       }
     }
   }
+}
+
+/** A picture the mail client embedded (a signature logo, a banner): never a document to forward. */
+export function isSignatureImage(filename: string | null | undefined, mime: string | null | undefined): boolean {
+  const f = String(filename ?? '').toLowerCase()
+  if (/^(image|outlook|oledata|att)\d{2,5}\.(png|gif|jpe?g|bmp)$/.test(f)) return true
+  if (/^(logo|signature|banner|icon)[\w-]*\.(png|gif|jpe?g|svg)$/.test(f)) return true
+  return false
 }

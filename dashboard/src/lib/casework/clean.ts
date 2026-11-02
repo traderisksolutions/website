@@ -189,3 +189,33 @@ export function queueRank(c: Pick<CleanCase, 'status' | 'deadline' | 'needs_huma
   if (due !== null && due < 0) base -= 400
   return base + (due ?? 365)
 }
+
+/** Words that carry a matter's identity: no reply/forward/reminder prefixes, refs or stop words. */
+export function titleTokens(title: string): Set<string> {
+  const t = title.toLowerCase().replace(/^(\s*(re|fw|fwd|aw|wg|\d+(st|nd|rd|th)?\s*reminder|reminder|urgent|final notice)\s*[:\-–]\s*)+/i, '')
+  const stop = new Set(['the', 'and', 'for', 'of', 'to', 'in', 'on', 'at', 'a', 'an', 'with', 'from', 'by', 'pte', 'ltd', 'llp', 'inc', 'co', 'claim', 'policy', 'insurance', 'renewal', 'quotation', 'quote', 'request', 'pending', 'further', 'action', 'update', 'status'])
+  return new Set(t.split(/[^a-z0-9]+/).filter(w => w.length > 2 && !stop.has(w)))
+}
+
+/**
+ * The open item a new case duplicates, if any: one sharing a thread, the policy number, or
+ * most of its title words. Pure; null when the case is new.
+ */
+export function twinOf(c: Pick<CleanCase, 'title' | 'policy_number' | 'threads'>, open: { id: string; title: string; policy_number: string | null; threads: string[] }[]): string | null {
+  const threads = new Set(c.threads)
+  const byThread = open.find(o => o.threads.some(t => threads.has(t)))
+  if (byThread) return byThread.id
+  const pn = (c.policy_number ?? '').replace(/\s+/g, '').toLowerCase()
+  if (pn.length >= 6) { const byPolicy = open.find(o => (o.policy_number ?? '').replace(/\s+/g, '').toLowerCase() === pn); if (byPolicy) return byPolicy.id }
+  const mine = titleTokens(c.title)
+  if (mine.size < 3) return null
+  let best: { id: string; score: number } | null = null
+  for (const o of open) {
+    const theirs = titleTokens(o.title)
+    if (theirs.size < 3) continue
+    let shared = 0; for (const w of mine) if (theirs.has(w)) shared++
+    const score = shared / Math.min(mine.size, theirs.size)
+    if (score >= 0.75 && (!best || score > best.score)) best = { id: o.id, score }
+  }
+  return best?.id ?? null
+}

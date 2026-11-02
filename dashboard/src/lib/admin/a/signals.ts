@@ -87,6 +87,14 @@ export function isOutOfOffice(subject: string | null | undefined, body: string |
     || /\b(i am|i'm|i will be) (currently )?(out of (the )?office|on (annual |medical )?leave|away from (the )?office)\b/i.test(b)
 }
 
+/** Calendar traffic and marketing: filed, never a case. */
+export function isBulkMail(subject: string | null | undefined, body: string | null | undefined, attachments: string[] = []): boolean {
+  const s = String(subject ?? ''), b = String(body ?? '')
+  if (/^(invitation|updated invitation|accepted|declined|tentatively accepted|canceled event|cancelled event|new event)\b.*@/i.test(s) || attachments.some(a => /\.ics$/i.test(a))) return true
+  if (/\b(newsletter|webinar|e-?invite|special offer|promo(tion)?s?)\b/i.test(s) && /unsubscribe|view (this|in) (email|browser)|manage (your )?preferences/i.test(b)) return true
+  return /unsubscribe/i.test(b.slice(-1500)) && /view (this|in) (email|browser)|manage (your )?(email )?preferences|you are receiving this/i.test(b)
+}
+
 /** Claim language. The subject alone is strong; the body needs two separate signals. */
 export function isClaimLike(subject: string | null | undefined, body: string | null | undefined): boolean {
   const strong = /\bclaims?\b|\bclaimant\b|notification of (loss|accident|incident)|\bWICA\b.*\b(accident|injur)|\baccident\b|\bincident report\b|\bloss adjust/i

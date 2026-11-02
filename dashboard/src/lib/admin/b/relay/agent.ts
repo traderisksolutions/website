@@ -24,6 +24,8 @@ import { getGroupFacts } from '@/lib/admin/a/knowledge'
 import { depositEvent } from '@/lib/admin/k/deposit'
 import { loadCaseData, toCaseMail, scopedContacts, insurerLastHandler, insurerClaimsDesk, type CaseData, type CaseMessage } from '../data'
 import { routeRecipients, OPERATIONS, type Route } from '../router'
+import { greetingFor } from '../contact-id'
+import { isSignatureImage, leadInsurer } from './compose'
 import { storeDraft } from '../drafter'
 import { buildDraft } from '../drafts'
 import { caseModeFor } from '../kinds'
@@ -81,10 +83,6 @@ export async function desksForLine(line: string, preferInsurer: string | null, n
   return all.slice(0, n)
 }
 
-async function firstName(email: string): Promise<string | null> {
-  const [person] = await sbTry<Row[]>(`contacts?email=ilike.${enc(email)}&select=first_name&limit=1`, [])
-  return person?.first_name ?? null
-}
 
 async function route(side: 'client' | 'insurer', d: CaseData, line: string | null, opts: { newToInsurer?: boolean } = {}): Promise<Route> {
   const company = d.item.company_id as string | null
@@ -97,7 +95,7 @@ async function route(side: 'client' | 'insurer', d: CaseData, line: string | nul
     messages: opts.newToInsurer ? toCaseMail(d).filter(m => m.side !== 'insurer') : toCaseMail(d),
     clientContacts: await scopedContacts(company), groupContacts: d.company?.parent_id ? await scopedContacts(d.company.parent_id) : [],
     insurerDesk: desk, insurerLastHandler: side === 'insurer' && !desk.length ? await insurerLastHandler(insurer, scope) : null,
-    insurerDomains: d.insurerDomains, departed: d.departed, owner: d.item.owner_email ?? null,
+    insurerDomains: d.insurerDomains, otherDomains: d.otherDomains, departed: d.departed, owner: d.item.owner_email ?? null,
   })
 }
 
@@ -117,13 +115,16 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   const d = await loadCaseData(workItemId)
   if (!d) { await skip(task.id, 'work item gone'); return 'handled' }
   if (d.item.closed_at) { await skip(task.id, 'work item closed'); return 'handled' }
-  if (caseModeFor(d.company?.kind ?? (await sbTry<Row[]>(`companies?id=eq.${enc(d.item.company_id ?? '')}&select=kind&limit=1`, []))[0]?.kind) === 'none') { await skip(task.id, 'not a client case'); return 'handled' }
+  const mode = caseModeFor(d.company?.kind ?? (await sbTry<Row[]>(`companies?id=eq.${enc(d.item.company_id ?? '')}&select=kind&limit=1`, []))[0]?.kind)
+  if (mode === 'none') { await skip(task.id, 'not a client case'); return 'handled' }
+  // A partner broker's own correspondence has no client and no insurer to relay between.
+  if (mode === 'partner') { await skip(task.id, 'partner case: nothing to relay'); return 'handled' }
 
   const from = bareEmail(msg.from_address)
   const side = await senderSide(from, new Set(d.insurerDomains))
   if (side === 'trs' || side === 'automated') { await skip(task.id, `${side} sender`); return 'handled' }
   const text = ownWords(latestText(msg.body_text, 6000))
-  const files = d.files.filter(f => f.message_id === msg.id)
+  const files = d.files.filter(f => f.message_id === msg.id && !isSignatureImage(f.filename, f.mime_type))
   let r: IntentResult = detectIntent({ side, subject: msg.subject, text, files: files.map(f => f.filename), caseType: d.item.case_type })
   let via: 'rule' | 'model' = 'rule'
   if ((r.intent === 'none' || r.confidence === 'low') && r.words >= 12) {
@@ -132,7 +133,7 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   }
   const day = String(msg.sent_at ?? new Date().toISOString()).slice(0, 10)
   const intent = r.intent
-  const insurerName = d.item.insurer_name ? displayName(d.item.insurer_name) : null
+  const insurerName = d.item.insurer_name ? displayName(leadInsurer(d.item.insurer_name)) : null
   const policy = d.policies.find(p => p.id === d.item.policy_id) ?? null
   const line = detectLine(`${msg.subject ?? ''}\n${text}`, policy?.product_line ?? null)
   const fromThread = d.threads.find(t => t.id === msg.thread_id)
@@ -183,7 +184,10 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   const made: Made[] = []
   const pairId = randomUUID()
   const store = async (kind: RelayKind, f: RelayFacts, rt: Route & { ok: true }, opts: { threadId: string | null; attachments?: Attachment[]; primary?: boolean }) => {
-    const built = composeRelay(kind, { ...f, greetingName: await firstName(rt.to[0]) })
+    const built = composeRelay(kind, { ...f, greetingName: await greetingFor(rt.to[0]) })
+    // One pending email of this kind per side of a case: a newer message on the case replaces
+    // the unsent draft it made, so two client emails in one morning do not become two forwards.
+    await sbTry(`ai_drafts?work_item_id=eq.${enc(d.item.id)}&status=eq.pending&party=eq.${PARTY_OF[kind]}&context_used->>kind=eq.${enc(kind)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'superseded', rejection_note: `replaced by the relay of a newer message (${msg.id})` }) })
     const id = await storeDraft(d.item.id, { thread_id: opts.threadId, to: rt.to, cc: rt.cc, subject: built.subject, body: built.body, kind, party: PARTY_OF[kind], pair_id: pairId, attachments: opts.attachments ?? [] }, { primary: opts.primary ?? made.length === 0 })
     await sbTry(`ai_drafts?id=eq.${enc(id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_class: CLASS_OF[kind], relay_intent: intent, context_used: { agent: ACTOR, kind, message_id: msg.id, intent, via, basis: rt.basis } }) })
     made.push({ kind, draftId: id, to: rt.to })
@@ -244,7 +248,8 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       break
     }
     case 'cover_question': {
-      const facts = (await getGroupFacts(d.item.company_id ?? '').catch(() => [])).filter(f => !policy?.id || !f.policy_id || f.policy_id === policy.id)
+      const POLICY_TOPICS = new Set(['cover', 'requirement', 'claims_handling', 'billing', 'members', 'insured'])
+      const facts = (await getGroupFacts(d.item.company_id ?? '').catch(() => [])).filter(f => POLICY_TOPICS.has(f.topic) && (!policy?.id || !f.policy_id || f.policy_id === policy.id))
       const qWords = new Set<string>(text.toLowerCase().match(/[a-z]{5,}/g) ?? [])
       const answers: { fact: string; source: string }[] = []
       if (policy) answers.push({ fact: `${policy.class_of_insurance ?? policy.product_line ?? 'Policy'}${policy.policy_number ? ` No. ${policy.policy_number}` : ''} with ${policy.insurer ?? insurerName ?? 'the insurer'}${policy.start_date && policy.end_date ? `, ${policy.start_date} to ${policy.end_date}` : ''}`, source: 'policy record' })
@@ -291,11 +296,11 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       const rt = await route('client', d, line)
       if (!rt.ok) return ask(rt.question)
       const lastTrs = [...d.messages].reverse().find(m => m.side === 'trs' && !m.rebuilt)
-      await store('status_update', { ...base(), status: d.item.status, waitingOn: d.item.status === 'waiting_insurer' ? 'insurer' : d.item.status === 'waiting_client' ? 'client' : null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, nextAction: d.item.next_action ?? null }, rt, { threadId: clientThread })
+      await store('status_update', { ...base(), status: d.item.status, waitingOn: d.item.status === 'waiting_insurer' ? 'insurer' : d.item.status === 'waiting_client' ? 'client' : null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, nextAction: d.item.next_action ?? null, deadline: d.item.deadline ?? null }, rt, { threadId: clientThread })
       if (d.item.status === 'waiting_insurer') {
         const ins = await route('insurer', d, line)
         if (ins.ok) {
-          const b = buildDraft('chase_insurer', { greetingName: await firstName(ins.to[0]), clientName: base().clientName, title: d.item.title, policyNumber: base().policyNumber, insurerName, insurerRef: null, claimant: null, lossDate: null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, threadSubject: d.threads.find(t => t.id === insurerThread)?.subject ?? null })
+          const b = buildDraft('chase_insurer', { greetingName: await greetingFor(ins.to[0]), clientName: base().clientName, title: d.item.title, policyNumber: base().policyNumber, insurerName, insurerRef: null, claimant: null, lossDate: null, lastSent: lastTrs?.sent_at ?? d.item.waiting_since ?? null, threadSubject: d.threads.find(t => t.id === insurerThread)?.subject ?? null })
           const id = await storeDraft(d.item.id, { thread_id: insurerThread, to: ins.to, cc: ins.cc, subject: b.subject, body: b.body, kind: 'chase_insurer', party: 'insurer', pair_id: pairId }, { primary: false })
           await sbTry(`ai_drafts?id=eq.${enc(id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_class: 'status', relay_intent: intent, context_used: { agent: ACTOR, kind: 'chase_insurer', message_id: msg.id, intent, via, basis: ins.basis } }) })
           made.push({ kind: 'forward_question', draftId: id, to: ins.to })

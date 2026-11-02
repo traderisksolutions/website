@@ -144,13 +144,28 @@ Only facts the email states. No opinions, no summaries of the request itself, no
 Each fact: topic (contact|business|requirement|preference|claims_handling|billing|members), key (dot.separated, lower case, e.g. "claims.contact", "fleet.vehicles", "headcount.total"), value (short), quote (the exact words from the email, under 200 characters).
 Answer JSON only: {"facts":[{"topic":"","key":"","value":"","quote":""}]}`
 
+const KEY_SYNONYMS: Record<string, string> = { company: 'business', client: 'business', firm: 'business', organisation: 'business', organization: 'business', hr: 'contact', person: 'contact', poc: 'contact', telephone: 'phone', mobile: 'phone', tel: 'phone', mail: 'email', e_mail: 'email', staff: 'headcount', employees: 'headcount', employee_count: 'headcount', office: 'address', location: 'address' }
+
+/**
+ * One spelling per fact key, so a later value supersedes the earlier one instead of sitting
+ * beside it: the topic is never repeated inside the key ("business.company.rebrand" and
+ * "business.business.rebrand" are both "business.rebrand"), synonyms collapse, and a key is at
+ * most three segments. Pure.
+ */
+export function canonicalKey(topic: string, raw: string): string {
+  const segs = raw.toLowerCase().replace(/[^a-z0-9_.]/g, '').split('.').filter(Boolean).map(s => KEY_SYNONYMS[s] ?? s)
+  const out: string[] = []
+  for (const s of segs) { if (s === topic || s === out[out.length - 1]) continue; out.push(s) }
+  return out.slice(0, 3).join('.').slice(0, 80)
+}
+
 /** Pure: keeps only facts whose quote is really in the text, with a sane key. */
 export function verifiedFacts(raw: unknown, text: string): { topic: string; key: string; value: string; quote: string }[] {
   const flat = text.replace(/\s+/g, ' ').toLowerCase()
   const list = Array.isArray((raw as Row)?.facts) ? (raw as Row).facts as Row[] : []
   const topics = new Set(['contact', 'business', 'requirement', 'preference', 'claims_handling', 'billing', 'members'])
   return list.filter(f => f && typeof f.quote === 'string' && typeof f.value === 'string' && typeof f.key === 'string')
-    .map(f => ({ topic: topics.has(f.topic) ? f.topic : 'business', key: String(f.key).toLowerCase().replace(/[^a-z0-9_.]/g, '').slice(0, 80), value: String(f.value).trim().slice(0, 300), quote: String(f.quote).trim().slice(0, 240) }))
+    .map(f => { const topic = topics.has(f.topic) ? f.topic : 'business'; return { topic, key: canonicalKey(topic, String(f.key)), value: String(f.value).trim().slice(0, 300), quote: String(f.quote).trim().slice(0, 240) } })
     .filter(f => f.key.length >= 3 && f.value && f.quote.length >= 8 && flat.includes(f.quote.replace(/\s+/g, ' ').toLowerCase()))
     .slice(0, 20)
 }

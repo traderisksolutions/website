@@ -53,6 +53,16 @@ export async function handleEbMovements(task: AgentTask): Promise<Record<string,
 }
 
 export async function handleEndorsements(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
+  // The relay hands over a client's change request and an insurer's note; both are read by the
+  // same policy intake that the inbound mail path uses (movements, amendments, notes to bill).
+  if (task.kind === 'client_change' || task.kind === 'insurer_note') {
+    const messageId = (task.message_id ?? task.payload?.message_id) as string | undefined
+    if (!messageId) { await skip(task.id, 'no message'); return 'handled' }
+    const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,email_threads(gmail_thread_id)&limit=1`, [])
+    if (!m) { await skip(task.id, 'message gone'); return 'handled' }
+    const r = await handlePolicyInbound({ message_id: m.id, thread_id: m.thread_id, gmail_thread_id: m.email_threads?.gmail_thread_id ?? null, direction: m.direction === 'outbound' ? 'outbound' : 'inbound' }, { direct: true })
+    return { kind: task.kind, result: r as unknown as Record<string, unknown> }
+  }
   if (task.kind !== 'attach') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
   const policyId = task.policy_id ?? task.payload?.policy_id
   if (!policyId) { await skip(task.id, 'no policy'); return 'handled' }

@@ -14,7 +14,7 @@ import { sb, sbTry, enc, inChunks, isInternal, isAutomated, bareEmail } from '@/
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { workCompany } from '@/lib/casework/run'
 import { readHistory, type HistoryMessage } from './history'
-import { isClaimLike, isOutOfOffice, refKey, senderKind, subjectCore, type SenderKind } from './signals'
+import { isClaimLike, isBulkMail, isOutOfOffice, refKey, senderKind, subjectCore, type SenderKind } from './signals'
 import { bestCase, debouncedRunAfter, type CaseCandidate, type CaseMatch, type JoinedBy } from './match'
 import { referencesIn, companyOfReferences, type RefTarget } from './references'
 import { gapsFor, leftOffTrs } from './gaps'
@@ -143,6 +143,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
   const ins = await insurers()
   const kind = senderKind(from, { isInternal, isAutomated, insurerDomains: ins.domains })
   const ooo = isOutOfOffice(msg.subject, msg.body_text)
+  const bulk = kind !== 'internal' && isBulkMail(msg.subject, msg.body_text)
   const handed: string[] = []
   const day = new Date().toISOString().slice(0, 10)
 
@@ -150,7 +151,7 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     await enqueue({ agent: 'document_clerk', kind: 'attachments', idem_key: `docs:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: thread?.company_id ?? null, payload: { message_id: msg.id } })
     handed.push('document_clerk')
   }
-  if (kind === 'automated' || ooo) return { kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
+  if (kind === 'automated' || ooo || bulk) return { kind: bulk ? 'automated' : kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
 
   // "Come back later until the client / insurer replies" ends when that side writes on the case.
   if (kind === 'client' || kind === 'insurer') {

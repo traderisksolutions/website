@@ -28,6 +28,7 @@ export type CaseData = {
   files: CaseFile[]
   namedButMissing: string[]
   insurerDomains: string[]
+  otherDomains: string[]
   departed: string[]
   policies: Row[]
 }
@@ -38,6 +39,13 @@ export type CaseData = {
  */
 export async function insurerDomains(): Promise<string[]> {
   const rows = await sbTry<Row[]>('companies?kind=in.(insurer,tpa)&select=domain,domains', [])
+  return Array.from(new Set(rows.flatMap(r => [r.domain, ...(r.domains ?? [])]).filter(Boolean).map((d: string) => d.toLowerCase())))
+}
+
+/** Domains of the companies that are neither the client nor an insurer: partner brokers, reinsurance
+ *  brokers, vendors. They write on a client's case without being the client. */
+export async function otherPartyDomains(): Promise<string[]> {
+  const rows = await sbTry<Row[]>('companies?kind=in.(partner,vendor,other)&select=domain,domains', [])
   return Array.from(new Set(rows.flatMap(r => [r.domain, ...(r.domains ?? [])]).filter(Boolean).map((d: string) => d.toLowerCase())))
 }
 
@@ -93,7 +101,7 @@ export async function loadCaseData(workItemId: string): Promise<CaseData | null>
   const held = new Set(files.map(f => f.filename.toLowerCase()))
   const namedButMissing = Array.from(new Set(rebuilt.flatMap(r => (r.attachments_named ?? []) as string[]).filter(n => !held.has(n.toLowerCase()))))
   const policies = item.company_id ? await sbTry<Row[]>(`policies?company_id=eq.${enc(item.company_id)}&select=id,policy_number,insurer,class_of_insurance,product_line,start_date,end_date,lifecycle&order=end_date.desc.nullslast&limit=50`, []) : []
-  return { item, company: company ?? null, threads, messages, files, namedButMissing, insurerDomains: ins, departed: await departedStaff(), policies }
+  return { item, company: company ?? null, threads, messages, files, namedButMissing, insurerDomains: ins, otherDomains: await otherPartyDomains(), departed: await departedStaff(), policies }
 }
 
 export function toMailLines(d: CaseData): MailLine[] {

@@ -13,6 +13,8 @@ import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
 import { randomUUID } from 'node:crypto'
 import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
+import { contactIdFor } from '@/lib/admin/b/contact-id'
+import { twinOf } from './clean'
 import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
 import { cleanCase, parseAnswer, type CaseContext, type CaseDraft, type CleanCase } from './clean'
 
@@ -180,6 +182,10 @@ async function caseCompany(input: CaseInput, c: CleanCase): Promise<{ companyId:
   if (!named) return { companyId: null, needsHuman: `Which end client is this for? ${partner} is a partner broker, not the client.` }
   if (input.companyName && companyCore(named) === companyCore(input.companyName)) return { companyId: input.companyId, needsHuman: null }
   const index = await getCompanyIndex()
+  // A client whose name is the named one, before any alias match: "Acme (Singapore) LLP" is the
+  // client, even when a partner "Acme Law" also answers to "Acme".
+  const core = companyCore(named)
+  for (const co of index.byId.values()) if (caseModeFor(co.kind) === 'client' && companyCore(co.name) === core) return { companyId: co.id, needsHuman: null }
   const hit = matchByName(named, index)
   const company = hit ? index.byId.get(hit.companyId) : null
   if (company && caseModeFor(company.kind) === 'client') return { companyId: company.id, needsHuman: null }
@@ -197,6 +203,12 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
     closed_at: c.status === 'done' ? new Date().toISOString() : null, closed_by: c.status === 'done' ? ACTOR : null,
   }
   let id = c.item_id
+  if (!id && owner.companyId) {
+    // The reader is shown the open items and names the one a case belongs to; when it misses
+    // (a "3rd Reminder" of a claim already on file), the same matter must not open twice.
+    const open = await sbTry<Row[]>(`work_items?company_id=eq.${enc(owner.companyId)}&case_type=eq.${enc(c.case_type)}&closed_at=is.null&select=id,title,policy_number,work_item_threads(thread_id)&limit=50`, [])
+    id = twinOf(c, open.map(o => ({ id: o.id, title: o.title, policy_number: o.policy_number, threads: (o.work_item_threads ?? []).map((t: Row) => t.thread_id) })))
+  }
   if (id) await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(row) })
   else {
     const [created] = await sb<Row[]>('work_items', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ ...row, owner_email: c.suggested_owner }) })
@@ -222,11 +234,11 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
 }
 
 async function insertDraft(input: CaseInput, workItemId: string, d: CaseDraft, pairId: string | null): Promise<string> {
-  const [contact] = await sbTry<Row[]>(`contacts?email=ilike.${enc(d.to[0])}&select=id&limit=1`, [])
+  const contactId = await contactIdFor(d.to[0], input.companyId)
   const [draft] = await sb<Row[]>('ai_drafts', {
     method: 'POST', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
-      contact_id: contact?.id ?? null, thread_id: d.reply_in_thread, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
+      contact_id: contactId, thread_id: d.reply_in_thread, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
       generated_by: 'gemini', to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body,
       attachments: d.attach.map(f => input.files.get(f)).filter(Boolean).map(a => ({ filename: a!.filename, mime_type: a!.mime_type, storage_url: a!.storage_url })),
       work_item_id: workItemId, pair_id: pairId, party: d.party,

@@ -120,3 +120,34 @@ describe('queueRank', () => {
     expect([late, decide, soon, wait, done]).toEqual([...[late, decide, soon, wait, done]].sort((a, b) => a - b))
   })
 })
+
+import { twinOf, titleTokens } from '@/lib/casework/clean'
+import { canonicalKey } from '@/lib/admin/a/knowledge'
+
+describe('twinOf', () => {
+  const open = [
+    { id: 'a', title: 'Claim Pending Further Action (EXAMPLE CLINIC PTE LTD-N0000001)', policy_number: 'N0000001', threads: ['t1'] },
+    { id: 'b', title: 'Addition of 2 staff (A. Lim, B. Tan) - Example Insurer', policy_number: null, threads: ['t2'] },
+  ]
+  it('joins a reminder of an open matter by title words', () => {
+    expect(twinOf({ title: '[External] 3rd Reminder: Claim Pending Further Action (EXAMPLE CLINIC PTE LTD-N0000001)', policy_number: null, threads: ['t9'] }, open)).toBe('a')
+  })
+  it('joins by shared thread and by policy number', () => {
+    expect(twinOf({ title: 'Something else entirely here', policy_number: null, threads: ['t2'] }, open)).toBe('b')
+    expect(twinOf({ title: 'Different words about a matter', policy_number: 'N000 0001', threads: [] }, open)).toBe('a')
+  })
+  it('leaves a new matter alone', () => {
+    expect(twinOf({ title: 'Removal of one staff member - credit note', policy_number: null, threads: ['t3'] }, open)).toBeNull()
+    expect(titleTokens('Re: Fwd: 2nd Reminder: Motor renewal SXX0000X').has('reminder')).toBe(false)
+  })
+})
+
+describe('canonicalKey', () => {
+  it('drops the repeated topic, collapses synonyms, caps depth', () => {
+    expect(canonicalKey('business', 'business.company.rebrand')).toBe('rebrand')
+    expect(canonicalKey('business', 'company.rebrand')).toBe('rebrand')
+    expect(canonicalKey('contact', 'contact.contact.phone')).toBe('phone')
+    expect(canonicalKey('contact', 'hr.contact.mobile')).toBe('phone')
+    expect(canonicalKey('members', 'headcount.total.current.extra')).toBe('headcount.total.current')
+  })
+})

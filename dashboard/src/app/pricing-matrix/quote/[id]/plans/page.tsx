@@ -219,7 +219,7 @@ export default function PlanBuilderPage() {
   const shownCovers = COVERS.filter(c => ranked.some(r => gridFor(r.rate_table_id).some(x => x.cover === c)))
 
   return (
-    <div className="px-6 md:px-8 py-6 max-w-[1320px] mx-auto">
+    <div className="w-full min-w-0 px-6 md:px-8 py-6 max-w-[1320px] mx-auto">
       <Link href={`/pricing-matrix/quote/${id}`} className="inline-flex items-center gap-1.5 text-[13px] no-underline hover:underline" style={{ color: MUTED }}><ArrowLeft size={14} /> Quotation</Link>
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-5">
         <div>

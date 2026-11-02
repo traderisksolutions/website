@@ -43,7 +43,7 @@ export default function MovementsPage() {
   const shown = (rows ?? []).filter(r => stage === 'all' || r.stage === stage)
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-[1320px] mx-auto min-w-0">
+    <div className="w-full px-4 sm:px-6 lg:px-8 py-6 max-w-[1320px] mx-auto min-w-0">
       <PageHeader className="mb-5" title="Member movements" meta={rows ? `${rows.length} open` : undefined}>
         <Segmented value={stage} onChange={v => setStage(v)} label="Stage" options={[
           { value: 'all', label: 'All', count: rows?.length ?? 0 },

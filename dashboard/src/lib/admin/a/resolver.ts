@@ -205,7 +205,8 @@ export async function resolveTask(task: AgentTask) {
   const parties = await linkInsurerParty(ev)
   const sender = ev.people[0] ?? (task.payload.sender as string | null) ?? 'this sender'
   const domain = emailDomain(sender)
-  await askHuman(task.id, `Which client is ${sender}?`, {
+  const insurerNamed = parties.length ? (await sbTry<Row[]>(`companies?id=eq.${enc(parties[0])}&select=company_name&limit=1`, []))[0]?.company_name ?? null : null
+  await askHuman(task.id, insurerNamed ? `Which client is this ${insurerNamed} mail about? "${ev.subject ?? ''}"` : `Which client is ${sender}?`, {
     sender, domain: domain && !PUBLIC_EMAIL_DOMAINS.has(domain) ? domain : null, subject: ev.subject,
     guess: task.payload.guess ?? null, people: ev.people.slice(0, 6), parties,
   })

@@ -19,6 +19,8 @@ export async function sb<T = Json[]>(path: string, init?: RequestInit): Promise<
     ...init,
     headers: { ...sbHeaders(init?.method && init.method !== 'GET' ? 'return=representation' : 'return=minimal'), ...(init?.headers as Record<string, string> ?? {}) },
     cache: 'no-store',
+    // A hung connection must not hold an agent worker forever; PostgREST answers in seconds.
+    signal: init?.signal ?? AbortSignal.timeout(90_000),
   })
   if (!res.ok) throw new Error(`Supabase ${path.split('?')[0]} failed (${res.status}): ${(await res.text()).slice(0, 300)}`)
   const text = await res.text()
@@ -41,7 +43,10 @@ export async function inChunks<T>(ids: string[], size: number, fn: (chunk: strin
 export const TRS_DOMAIN = 'trade-risksol.com'
 /** Our own addresses. The unhyphenated spelling is in use too, and without it TRS gets treated
  *  as an outside organisation and given a company record of its own. */
-export const TRS_DOMAINS = new Set([TRS_DOMAIN, 'traderisksol.com'])
+export const TRS_DOMAINS = new Set([TRS_DOMAIN, 'traderisksol.com',
+  // TRS finance works from the holding company's mailboxes: office tenancy, levies,
+  // remittances, bank reconciliation. Internal, never a client case.
+  'mtzholdings.com'])
 
 /**
  * Domains that must never become a client company: our sister company, and ISPs whose

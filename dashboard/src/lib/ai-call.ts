@@ -49,7 +49,7 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
 
   try {
     const res = await fetch(`${geminiUrl(opts.model)}?key=${key}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(240_000),
       body: JSON.stringify({
         ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
         contents: [{ parts: opts.parts }],
