@@ -108,7 +108,7 @@ describe('intake: a client forwards two emails TRS never received', () => {
 describe('intake: operations@ copied midway on an insurer conversation', () => {
   it('opens it midway from the quoted history when there is no record', async () => {
     db.email_threads = [{ id: 'th2', subject: 'FW: Enquiry on Claim Payment', company_id: null }]
-    db.email_messages = [{ id: 'm2', thread_id: 'th2', direction: 'inbound', from_address: 'low.kai@example-civil.com', subject: 'Re: Enquiry on Claim Payment - Claim No. GC26-004411', body_text: F.OUTLOOK_RECEIVED, sent_at: '2026-10-20T02:00:00Z', has_attachments: true }]
+    db.email_messages = [{ id: 'm2', thread_id: 'th2', direction: 'inbound', from_address: 'low.kai@example-civil.com', subject: 'Re: Enquiry on Claim Payment - Claim No. GC26-004411', body_text: F.OUTLOOK_RECEIVED, sent_at: '2026-10-20T02:00:00Z', created_at: '2026-10-20T02:05:00Z', has_attachments: true }]
     const r = await intakeMessage(task('m2')) as any
     expect(r.first_held).toBe(true)
     expect(r.rebuilt).toBeGreaterThanOrEqual(0)

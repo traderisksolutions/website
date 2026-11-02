@@ -106,3 +106,13 @@ describe('voice', () => {
     expect(signBlock(DEFAULT_VOICE, { firstContact: true })).toBe('Best regards,\nTrade Risk Solutions')
   })
 })
+
+describe('history on arrival', () => {
+  it('a message older than a week when it arrives is history, read by a sweep and not by the agents', async () => {
+    const { isHistory } = await import('@/lib/admin/a/intake')
+    const now = Date.parse('2026-11-03T00:00:00Z')
+    expect(isHistory('2026-10-20T10:00:00Z', now)).toBe(true)
+    expect(isHistory('2026-11-01T10:00:00Z', now)).toBe(false)
+    expect(isHistory(null, now)).toBe(false)
+  })
+})

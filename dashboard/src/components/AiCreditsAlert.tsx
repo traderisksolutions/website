@@ -24,12 +24,12 @@ type Affected = {
   agent: string
   label: string
   envKey: string | null
-  kind: 'billing' | 'quota'
+  kind: 'billing' | 'quota' | 'cap'
   failures: number
   since: string | null
   detail: string
 }
-type Payload = { ok: boolean; severity: 'ok' | 'warning' | 'error'; windowMinutes: number; affected: Affected[]; error?: string }
+type Payload = { ok: boolean; severity: 'ok' | 'warning' | 'error'; windowMinutes: number; affected: Affected[]; cap_usd?: number | null; error?: string }
 
 const BILLING_URL = 'https://aistudio.google.com/billing'
 
@@ -69,12 +69,19 @@ export function AiCreditsAlert() {
   if (!d || d.ok || hidden) return null
 
   const billing = d.affected.some(a => a.kind === 'billing')
+  const capped = !billing && d.affected.some(a => a.kind === 'cap')
   const failures = d.affected.reduce((n, a) => n + a.failures, 0)
   const earliest = d.affected.map(a => a.since).filter((s): s is string => !!s).sort()[0] ?? null
   const affected = names(d.affected.map(a => a.label))
   const impact = `${affected}: ${failures} call${failures === 1 ? '' : 's'} failed since ${when(earliest)}. Mail still arrives and is filed. Drafts and answers wait.`
 
-  const rows: AlertRow[] = billing
+  const rows: AlertRow[] = capped
+    ? [
+        { summary: `Today's AI spend reached the cap of US$${d.cap_usd ?? ''}. Reading and drafting resume tomorrow; mail still arrives and is filed.`, detail: [] },
+        { summary: impact, detail: [] },
+        { summary: 'To continue today, raise AI_DAILY_CAP_USD on Vercel and redeploy.', detail: [] },
+      ]
+    : billing
     ? [
         { summary: <>{buyLink}. Credit applies within a minute.</>, detail: [] },
         { summary: impact, detail: [] },
@@ -90,7 +97,7 @@ export function AiCreditsAlert() {
     <div className="px-4 pt-4 sm:px-6">
       <Alert
         variant={billing ? 'error' : 'warning'}
-        title={billing ? 'Gemini credit has run out' : 'Gemini quota is spent'}
+        title={capped ? 'Daily AI spend cap reached' : billing ? 'Gemini credit has run out' : 'Gemini quota is spent'}
         rows={rows}
         onDismiss={() => setHidden(true)}
         dataAttr="data-ai-credits-alert"

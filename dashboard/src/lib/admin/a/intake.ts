@@ -133,6 +133,10 @@ export async function scheduleRead(p: { companyId: string; threadId: string; mes
   return null
 }
 
+/** Older than a week on arrival: a backfill, read by a person-supervised sweep, not by the agents. */
+export const HISTORY_DAYS = 7
+export const isHistory = (sentAt: string | null | undefined, now = Date.now()) => !!sentAt && now - Date.parse(sentAt) > HISTORY_DAYS * 86_400_000
+
 export type IntakeResult = {
   kind: SenderKind; out_of_office: boolean; forward: boolean; first_held: boolean
   rebuilt: number; refs: string[]; matched: CaseMatch | null; hint: CaseMatch | null; handed: string[]
@@ -140,7 +144,7 @@ export type IntakeResult = {
 
 export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'handled'> {
   const messageId = String(task.payload.message_id ?? task.message_id ?? '')
-  const [msg] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments`, [])
+  const [msg] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,from_address,subject,body_text,sent_at,has_attachments,created_at`, [])
   if (!msg) { await skip(task.id, 'message not found'); return 'handled' }
   const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(msg.thread_id)}&select=id,subject,company_id,gmail_thread_id`, [])
   const from = bareEmail(msg.from_address)
@@ -156,6 +160,18 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     handed.push('document_clerk')
   }
   if (kind === 'automated' || ooo || bulk) return { kind: bulk ? 'automated' : kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed }
+
+  // History, not news: a message older than a week when it arrives came from a mailbox backfill.
+  // It is filed and deposited, its documents kept, and that is all. The one-off reading of a
+  // mailbox's history is done in a supervised sweep, not by the agents one message at a time:
+  // on 2 Nov 2026 a backfill of 3,000 messages cost S$50 in a day reading clients it had already read.
+  if (isHistory(msg.sent_at, msg.created_at ? Date.parse(msg.created_at) : Date.now())) {
+    if (!thread?.company_id && kind !== 'internal') {
+      await enqueue({ agent: 'resolver', kind: 'thread', idem_key: `resolve:${msg.thread_id}`, created_by_agent: 'intake', thread_id: msg.thread_id, message_id: msg.id, payload: { thread_id: msg.thread_id, sender: from || null, subject: msg.subject ?? null }, run_after: new Date(Date.now() + 120_000).toISOString() })
+      handed.push('resolver')
+    }
+    return { kind, out_of_office: ooo, forward: false, first_held: false, rebuilt: 0, refs: [], matched: null, hint: null, handed: [...handed, 'history'] }
+  }
 
   // The placement module reads every message once, from here: a reply on a request it sent, the
   // client's thread of an open placement, a forward of either. Cheap when the thread is not its own.

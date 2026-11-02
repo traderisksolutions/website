@@ -43,9 +43,33 @@ export type CallOptions = {
 
 export type CallResult = { text: string | null; error?: string }
 
+/** The day's spend, in USD, from the ledger; cached a minute so the check costs one query per minute. */
+let spendCache: { at: number; usd: number } | null = null
+export const DAILY_CAP_USD = Number(process.env.AI_DAILY_CAP_USD ?? '7.5')
+/** Features that keep running at the cap: the relay's intent check is what tells a claim from a thanks. */
+const ALWAYS: Set<string> = new Set(['admin_route'])
+async function todaySpendUsd(): Promise<number> {
+  if (spendCache && Date.now() - spendCache.at < 60_000) return spendCache.usd
+  try {
+    const { sbTry } = await import('./crm/db')
+    const since = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10)   // today, Singapore
+    const rows = await sbTry<{ cost_usd: number | null }[]>(`gemini_usage_log?created_at=gte.${since}T00:00:00%2B08:00&select=cost_usd&limit=5000`, [])
+    spendCache = { at: Date.now(), usd: rows.reduce((n, r) => n + Number(r.cost_usd ?? 0), 0) }
+  } catch { spendCache = { at: Date.now(), usd: 0 } }
+  return spendCache.usd
+}
+
 export async function callGemini(opts: CallOptions): Promise<CallResult> {
   const { key, via } = agentKey(opts.agent)
   if (!key) return { text: null, error: `No Gemini API key for the ${opts.agent} agent` }
+  // The cap: a runaway day stops at a known figure. The task fails and the queue keeps it for tomorrow.
+  if (DAILY_CAP_USD > 0 && !ALWAYS.has(opts.feature)) {
+    const usd = await todaySpendUsd()
+    if (usd >= DAILY_CAP_USD) {
+      void logError({ source: 'gemini', feature: opts.feature, statusCode: 429, message: `Daily AI spend cap reached: USD ${usd.toFixed(2)} of ${DAILY_CAP_USD} today. Raise AI_DAILY_CAP_USD or wait for tomorrow.`, metadata: { ...opts.metadata, agent: opts.agent, cap: true } })
+      return { text: null, error: `Daily AI spend cap reached (USD ${usd.toFixed(2)} of ${DAILY_CAP_USD})` }
+    }
+  }
 
   try {
     const res = await fetch(`${geminiUrl(opts.model)}?key=${key}`, {

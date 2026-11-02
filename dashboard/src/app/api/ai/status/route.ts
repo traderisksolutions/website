@@ -32,6 +32,8 @@ function sbHeaders() {
 }
 
 interface ErrRow { source: string; feature: string | null; status_code: number | null; message: string | null; created_at: string }
+/** The wrapper's own daily cap, logged as a 429 with this phrase; terminal for the day, not a blip. */
+const isCap = (r: ErrRow) => /daily ai spend cap/i.test(r.message ?? '')
 interface UseRow { feature: string | null; created_at: string }
 
 /** Terminal billing failure, read from the body rather than guessed from the status alone. */
@@ -66,14 +68,15 @@ export async function GET(req: NextRequest) {
       if (!lastOk.has(a)) lastOk.set(a, u.created_at)
     }
 
-    const byAgent = new Map<AgentId, { billing: ErrRow[]; rate: ErrRow[] }>()
+    const byAgent = new Map<AgentId, { billing: ErrRow[]; rate: ErrRow[]; cap: ErrRow[] }>()
     for (const e of errs) {
       if (e.status_code !== 429 && !isBilling(e)) continue
       const agent = agentOfFeature(e.feature)
       const ok = lastOk.get(agent)
-      if (ok && ok > e.created_at) continue          // it has worked since; this one is history
-      const slot = byAgent.get(agent) ?? { billing: [], rate: [] }
-      if (isBilling(e)) slot.billing.push(e)
+      if (ok && ok > e.created_at && !isCap(e)) continue          // it has worked since; this one is history
+      const slot = byAgent.get(agent) ?? { billing: [], rate: [], cap: [] }
+      if (isCap(e)) slot.cap.push(e)
+      else if (isBilling(e)) slot.billing.push(e)
       else slot.rate.push(e)
       byAgent.set(agent, slot)
     }
@@ -81,16 +84,17 @@ export async function GET(req: NextRequest) {
     const affected = Array.from(byAgent.entries())
       .map(([agent, v]) => {
         const terminal = v.billing.length > 0
-        const exhausted = terminal || v.rate.length >= RATE_LIMIT_TOLERANCE
+        const capped = v.cap.length > 0
+        const exhausted = terminal || capped || v.rate.length >= RATE_LIMIT_TOLERANCE
         if (!exhausted) return null
-        const newest = [...v.billing, ...v.rate].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+        const newest = [...v.billing, ...v.cap, ...v.rate].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
         const spec = agent === 'unattributed' ? null : AGENTS[agent]
         return {
           agent,
           label: spec?.label ?? 'Unattributed features',
           envKey: spec?.envKey ?? null,
-          kind: terminal ? ('billing' as const) : ('quota' as const),
-          failures: v.billing.length + v.rate.length,
+          kind: terminal ? ('billing' as const) : capped ? ('cap' as const) : ('quota' as const),
+          failures: v.billing.length + v.cap.length + v.rate.length,
           since: newest?.created_at ?? null,
           detail: (newest?.message ?? '').slice(0, 200),
         }
@@ -103,6 +107,7 @@ export async function GET(req: NextRequest) {
       // Billing is terminal and nothing will work again until somebody acts; a spent quota
       // usually refills. The caller renders those at different severities.
       severity: affected.some(a => a.kind === 'billing') ? 'error' : affected.length ? 'warning' : 'ok',
+      cap_usd: affected.some(a => a.kind === 'cap') ? Number(process.env.AI_DAILY_CAP_USD ?? '7.5') : null,
       affected,
     })
   } catch (e) {
