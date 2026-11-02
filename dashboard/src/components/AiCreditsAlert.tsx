@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Warns when an AI key has run out — of quota, or of credit.
+ * Warns when a Gemini key has run out — of credit, or of quota.
  *
  * Deliberately not dismissible to a stored mark, the way the housekeeping banner is. That one
  * reports something that already happened and is over; this reports a condition that is still
@@ -11,6 +11,10 @@
  *
  * Severity follows the cause, not the noise: a spent quota usually refills on its own and is a
  * warning; billing stopped does not re-enable itself and is an error.
+ *
+ * Three lines, each one thing the reader needs: what to do, what is affected, what happens next.
+ * The per-agent breakdown lives on the spend page; here it would only add rows to a page the
+ * reader came to for something else.
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -27,8 +31,22 @@ type Affected = {
 }
 type Payload = { ok: boolean; severity: 'ok' | 'warning' | 'error'; windowMinutes: number; affected: Affected[]; error?: string }
 
+const BILLING_URL = 'https://aistudio.google.com/billing'
+
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : 'recently'
+
+/** "Housekeeping and Placement", "Housekeeping, Placement and Ask AI". */
+const names = (xs: string[]) =>
+  xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`
+
+const buyLink = (
+  <a href={BILLING_URL} target="_blank" rel="noreferrer"
+     className="underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)]"
+     style={{ color: 'var(--trs-ink)' }}>
+    Buy credits in Google AI Studio
+  </a>
+)
 
 export function AiCreditsAlert() {
   const [d, setD] = useState<Payload | null>(null)
@@ -51,33 +69,34 @@ export function AiCreditsAlert() {
   if (!d || d.ok || hidden) return null
 
   const billing = d.affected.some(a => a.kind === 'billing')
+  const failures = d.affected.reduce((n, a) => n + a.failures, 0)
+  const earliest = d.affected.map(a => a.since).filter((s): s is string => !!s).sort()[0] ?? null
+  const affected = names(d.affected.map(a => a.label))
+  const impact = `${affected}: ${failures} call${failures === 1 ? '' : 's'} failed since ${when(earliest)}. Mail still arrives and is filed. Drafts and answers wait.`
 
-  const rows: AlertRow[] = d.affected.map(a => ({
-    summary: `${a.label} — ${a.failures} failure${a.failures === 1 ? '' : 's'} since ${when(a.since)}`,
-    detail: [
-      a.kind === 'billing'
-        ? 'Billing stopped. Nothing on this key will work until it is restored.'
-        : 'Quota spent. This usually clears on its own when the window resets.',
-      a.envKey ? `Key: ${a.envKey}` : 'Key: one of the shared keys',
-      a.detail || 'No further detail was returned.',
-    ].filter(Boolean),
-  }))
+  const rows: AlertRow[] = billing
+    ? [
+        { summary: <>{buyLink}. Credit applies within a minute.</>, detail: [] },
+        { summary: impact, detail: [] },
+        { summary: 'This notice clears on its own after the next successful call. Nothing to restart.', detail: [] },
+      ]
+    : [
+        { summary: 'No action yet. Quota refills on its own, usually within the hour.', detail: [] },
+        { summary: impact, detail: [] },
+        { summary: <>Still here after an hour: {buyLink}.</>, detail: [] },
+      ]
 
   return (
     <div className="px-4 pt-4 sm:px-6">
       <Alert
         variant={billing ? 'error' : 'warning'}
-        title={billing ? 'An AI key has no credit' : 'An AI key is out of quota'}
+        title={billing ? 'Gemini credit has run out' : 'Gemini quota is spent'}
         rows={rows}
         onDismiss={() => setHidden(true)}
         dataAttr="data-ai-credits-alert"
-        actionLabel="See AI spend"
+        actionLabel="AI spend"
         actionHref="/analytics/ai-usage"
-      >
-        {billing
-          ? 'Drafting and answers on the affected agent will fail until billing is restored. Mail still arrives and is still filed.'
-          : `No successful call on the affected agent in the last ${d.windowMinutes} minutes. Mail still arrives and is still filed.`}
-      </Alert>
+      />
     </div>
   )
 }

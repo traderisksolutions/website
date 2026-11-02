@@ -117,6 +117,15 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   // Nexus follow-ups: reading each email for who owes what.
   nexus_followup_read:   'housekeeping',
   case_work:             'housekeeping',
+  name_resolution:       'housekeeping',
+  // Filing documents into the archive and the data room; the model reads only what a rule cannot.
+  company_archive:       'housekeeping',
+  data_room_ingest:      'housekeeping',
+  data_room_file:        'housekeeping',
+  gdrive_knowledge_upload: 'housekeeping',
+  eb_company_folder:     'housekeeping',
+  housekeeping_log:      'housekeeping',
+  email_send_blocked:    'housekeeping',
 
   // ── Client relationships ──────────────────────────────────────────────────
   draft_reply:              'crm',
@@ -138,6 +147,16 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   chat_consultant:          'crm',
   rfq_recommend:            'crm',
   rfq_quote_decision:       'crm',
+  // Nexus: reading attachments, the timeline, and the step drafts that come off it.
+  nexus_attachment_pdf:            'crm',
+  nexus_attachment_describe_image: 'crm',
+  nexus_analysis_upload:           'crm',
+  nexus_timeline:                  'crm',
+  nexus_step_draft:                'crm',
+  nexus_draft_from_briefs:         'crm',
+  company_retrieval_search:        'crm',
+  rag_draft_embed:                 'crm',
+  inbound_auto_draft_embed:        'crm',
 
   // ── Ask AI ────────────────────────────────────────────────────────────────
   ask_ai:          'askai',
@@ -154,7 +173,9 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   gb_rules_extract:    'pricingmatrix',
 
   // ── Group benefits — per client request ──────────────────────────────────
+  gb_intake:           'group_benefit',
   gb_intake_extract:   'group_benefit',
+  gb_intake_handoff:   'group_benefit',
   gb_plan_match:       'group_benefit',
   gb_value_explain:    'group_benefit',
   gb_recommend:        'group_benefit',
@@ -179,6 +200,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   placement_client_summary: 'placement',
   placement_tier_ask:       'placement',
   placement_bind_confirm:   'placement',
+  placement_auto_handoff:   'placement',
 
   // ── Benefits admin ────────────────────────────────────────────────────────
   policy_movement_classify: 'benefits_admin',

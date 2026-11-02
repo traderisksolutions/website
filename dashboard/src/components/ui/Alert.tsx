@@ -75,8 +75,8 @@ const TOKENS: Record<AlertVariant, Tokens> = {
 }
 
 export interface AlertRow {
-  /** The one-line summary, always visible. */
-  summary: string
+  /** The one-line summary, always visible. A node when the line carries a link. */
+  summary: ReactNode
   /** Unfurled on click. Empty means the row is not expandable. */
   detail: string[]
 }
