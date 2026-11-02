@@ -157,7 +157,9 @@ export async function loadCase(companyId: string, today = new Date().toISOString
 export async function readCase(input: CaseInput): Promise<{ cases: CleanCase[]; dropped: number; error?: string }> {
   const r = await callGemini({
     agent: 'housekeeping', feature: 'case_work', model: GEMINI_DEEP, system: CASE_SYSTEM,
-    parts: [{ text: input.prompt }], json: true, maxOutputTokens: 32000, thinkingShare: 0.4,
+    // Reads only, no drafts: a third of the old allowance. 244 reads cost S$27 on 2 Nov at 32,000
+    // tokens with 40% thinking; the record a read produces needs a tenth of that.
+    parts: [{ text: input.prompt }], json: true, maxOutputTokens: 12000, thinkingShare: 0.25,
     metadata: { company_id: input.companyId },
   })
   if (!r.text) return { cases: [], dropped: 0, error: r.error }

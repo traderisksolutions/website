@@ -5,10 +5,6 @@
   "installCommand": "npm install",
   "crons": [
     {
-      "path": "/api/cron/inbound-draft-catchup",
-      "schedule": "0 5 * * *"
-    },
-    {
       "path": "/api/cron/gmail-watch",
       "schedule": "0 4 * * *"
     },
@@ -29,20 +25,8 @@
       "schedule": "30 17 * * 0"
     },
     {
-      "path": "/api/cron/thread-titles",
-      "schedule": "15 2 * * *"
-    },
-    {
       "path": "/api/cron/data-room",
       "schedule": "45 2 * * *"
-    },
-    {
-      "path": "/api/cron/insurer-threads",
-      "schedule": "50 2 * * *"
-    },
-    {
-      "path": "/api/cron/nexus",
-      "schedule": "20 0 * * *"
     },
     {
       "path": "/api/cron/agents",

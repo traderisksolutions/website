@@ -76,7 +76,10 @@ export function bestCase(m: MessageSignals, candidates: CaseCandidate[], thresho
 }
 
 /** Within a burst, a case read waits until this long after the last message. */
-export const DEBOUNCE_MS = 10 * 60_000
+/** A burst of mail on one client becomes one read; an hour, so a backfill of a mailbox does not read the client once per message. */
+export const DEBOUNCE_MS = 60 * 60_000
+/** A client already read inside this window is not read again for the same burst. */
+export const REREAD_AFTER_MS = 4 * 3600_000
 
 /** When the debounced read should run, given the burst's last message time. */
 export const debouncedRunAfter = (lastAt: number) => new Date(lastAt + DEBOUNCE_MS).toISOString()

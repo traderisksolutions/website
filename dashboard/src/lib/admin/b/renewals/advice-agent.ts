@@ -2,12 +2,12 @@
  * The renewals agent's two timed jobs beyond opening the case:
  *   advice     60 days out: the renewal report and its email on the case, for approval on Today;
  *              without a premium and period on file, the case asks a person instead.
- *   rfq_check  30 days out: no quote on file for this renewal → the relay agent is asked to
- *              send the request for terms (kind renewal_rfq; the relay side is not built here).
+ *   rfq_check  30 days out: no quote on file for this renewal → the case's next action says to
+ *              ask the insurer for terms, and the chaser carries it from there.
  * Idempotency keys carry the policy and expiry, so a sweep run twice makes one report.
  */
 import { sbTry, enc } from '@/lib/crm/db'
-import { enqueue, skip, type AgentTask, type NewTask } from '@/lib/agent-tasks/queue'
+import { skip, type AgentTask, type NewTask } from '@/lib/agent-tasks/queue'
 import { draftRenewalAdvice } from '@/lib/policies/ledger/advice'
 import { addDays } from '@/lib/policies/ledger/report-model'
 import { itemEvent } from '../data'
@@ -48,7 +48,9 @@ export async function handleRfqCheck(task: AgentTask): Promise<Record<string, un
   const quotes = await quotesOnFile(p as Parameters<typeof quotesOnFile>[0])
   if (quotes > 0) return { quotes, requested: false }
   const [item] = await sbTry<Row[]>(`work_items?policy_id=eq.${enc(policyId)}&case_type=eq.renewal&closed_at=is.null&select=id&limit=1`, [])
-  await enqueue({ agent: 'relay', kind: 'renewal_rfq', policy_id: policyId, company_id: p.company_id, work_item_id: item?.id ?? null, payload: { policy_id: policyId, expiry: p.end_date, insurer: p.insurer, product_line: p.product_line }, idem_key: `relay:renewal_rfq:${policyId}:${p.end_date}`, created_by_agent: 'renewals' })
-  if (item) await itemEvent(item.id, 'note', 'renewals', { kind: 'renewal_rfq', requested: true, days_to_expiry: RFQ_DAYS })
+  if (item) {
+    await sbTry(`work_items?id=eq.${enc(item.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'trs_to_act', next_action: `Ask ${p.insurer ?? 'the insurer'} for renewal terms: no quote on file ${RFQ_DAYS} days before expiry`, updated_at: new Date().toISOString() }) })
+    await itemEvent(item.id, 'note', 'renewals', { kind: 'renewal_rfq', requested: true, days_to_expiry: RFQ_DAYS })
+  }
   return { quotes: 0, requested: true }
 }

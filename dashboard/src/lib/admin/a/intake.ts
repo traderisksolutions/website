@@ -15,7 +15,7 @@ import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { workCompany } from '@/lib/casework/run'
 import { readHistory, type HistoryMessage } from './history'
 import { isClaimLike, isBulkMail, isOutOfOffice, refKey, senderKind, subjectCore, type SenderKind } from './signals'
-import { bestCase, debouncedRunAfter, type CaseCandidate, type CaseMatch, type JoinedBy } from './match'
+import { bestCase, debouncedRunAfter, REREAD_AFTER_MS, DEBOUNCE_MS, type CaseCandidate, type CaseMatch, type JoinedBy } from './match'
 import { referencesIn, companyOfReferences, type RefTarget } from './references'
 import { gapsFor, leftOffTrs } from './gaps'
 import type { ClaimMailPayload, Gap, OpenMidwayPayload, ReadCasePayload } from './handoffs'
@@ -110,7 +110,11 @@ async function candidates(opts: { companyIds: string[]; refItemIds: string[]; pe
 export async function scheduleRead(p: { companyId: string; threadId: string; messageId: string; mode: ReadCasePayload['opened_mode']; gaps: Gap[]; by: 'intake'; hint?: CaseMatch | null }) {
   const hints = p.hint ? [{ thread_id: p.threadId, work_item_id: p.hint.workItemId, joined_by: p.hint.joinedBy, evidence: p.hint.evidence }] : []
   const [open] = await sbTry<Row[]>(`agent_tasks?agent=eq.intake&kind=eq.read_case&company_id=eq.${enc(p.companyId)}&status=eq.queued&select=id,payload&limit=1`, [])
-  const runAfter = debouncedRunAfter(Date.now())
+  // A client read in the last four hours waits for that window to pass: on 2 Nov a mailbox
+  // backfill read some clients forty times in a day, at S$0.11 a read.
+  const [last] = await sbTry<Row[]>(`agent_tasks?agent=eq.intake&kind=eq.read_case&company_id=eq.${enc(p.companyId)}&status=eq.done&select=finished_at&order=finished_at.desc&limit=1`, [])
+  const lastAt = last?.finished_at ? Date.parse(last.finished_at) : 0
+  const runAfter = debouncedRunAfter(Math.max(Date.now(), lastAt + REREAD_AFTER_MS - DEBOUNCE_MS))
   if (open) {
     const was = open.payload as ReadCasePayload
     const payload: ReadCasePayload = {
