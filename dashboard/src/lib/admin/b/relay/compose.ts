@@ -143,9 +143,10 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       // the backdating, may I get your assistance to sign the attached Letter of Undertaking."
       const items = numbered(f.documents ?? [])
       const opener = f.instructed ? `Thank you for your instructions to proceed on ${matterOf(f)}${refAfter(f)}.` : `On ${matterOf(f)}${refAfter(f)}, ${f.insurerName ?? 'the insurer'} will need the following before cover can be bound.`
+      const letters = (f.files ?? []).length ? `\nThe ${f.files!.length === 1 ? 'letter is' : 'letters are'} attached, filled in from our file: please print on your letterhead, sign and stamp, and return the signed copy. The Word version is there in case anything needs changing.\n` : ''
       return {
         subject: replySubject(f.threadSubject, `${f.title}: documents before binding`),
-        body: `${hi}\n\n${opener}${f.instructed ? ` Before ${f.insurerName ?? 'the insurer'} can bind, we need:` : ''}\n\n${items}\n\nOnce we have these we will confirm with ${f.insurerName ?? 'the insurer'} the same day and ask for the cover note.\n\n${SIGN}`,
+        body: `${hi}\n\n${opener}${f.instructed ? ` Before ${f.insurerName ?? 'the insurer'} can bind, we need:` : ''}\n\n${items}\n${letters}\nOnce we have these we will confirm with ${f.insurerName ?? 'the insurer'} the same day and ask for the cover note.\n\n${SIGN}`,
       }
     }
     case 'answer_question': {

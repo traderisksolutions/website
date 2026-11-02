@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Btn, Chip, Segmented, Spinner, Empty } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
 import { ThreadModal, fmtWhen } from './shared'
+import type { NextStep } from '@/lib/today/data'
 
 type Entry = {
   id: string; occurred_at: string; kind: string; title: string; summary: string | null; party: string | null
@@ -27,6 +28,7 @@ const IN_FILTER: Record<Filter, (k: string) => boolean> = {
 
 export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const [entries, setEntries] = useState<Entry[] | null>(null)
+  const [steps, setSteps] = useState<NextStep[]>([])
   const [next, setNext] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
   const [busy, setBusy] = useState(false)
@@ -37,8 +39,9 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const page = useCallback(async (before: string | null) => {
     setBusy(true)
     try {
-      const d = await callApi<{ entries: Entry[]; next: string | null }>(`/api/today/knowledge/${companyId}${before ? `?before=${encodeURIComponent(before)}` : ''}`)
+      const d = await callApi<{ entries: Entry[]; next: string | null; next_steps?: NextStep[] }>(`/api/today/knowledge/${companyId}${before ? `?before=${encodeURIComponent(before)}` : ''}`)
       setEntries(e => before ? [...(e ?? []), ...d.entries] : d.entries); setNext(d.next)
+      if (!before) setSteps(d.next_steps ?? [])
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }, [companyId])
   useEffect(() => { void page(null) }, [page])
@@ -46,6 +49,26 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const shown = (entries ?? []).filter(e => IN_FILTER[filter](e.kind))
   return (
     <div className="flex flex-col gap-3 min-w-0">
+      {steps.length > 0 && (
+        <section className="flex flex-col gap-2 min-w-0 mb-2" aria-label="Next steps">
+          <h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">Next steps</h2>
+          <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
+            {steps.map(st => {
+              const lane = st.needs_human ? 'Decide' : st.has_draft ? 'Send' : st.status === 'trs_to_act' || st.status === 'stalled' ? 'Act' : 'Waiting'
+              return (
+                <li key={st.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-2 items-start text-[13px]">
+                  <Chip tone={lane === 'Decide' ? 'red' : lane === 'Send' ? 'green' : lane === 'Act' ? 'amber' : 'neutral'}>{lane}</Chip>
+                  <div className="min-w-0">
+                    <a href={`/today/${st.id}`} className="text-trs-ink no-underline hover:underline">{st.title}</a>
+                    <div className="text-trs-ink-2">{st.needs_human ?? st.next_action ?? 'No next action recorded'}</div>
+                    <div className="text-[12px] text-trs-muted">{[st.owner_email ? st.owner_email.split('@')[0] : 'unowned', st.deadline ? `due ${fmtWhen(st.deadline)}` : null, st.waiting_since ? `waiting since ${fmtWhen(st.waiting_since)}` : null].filter(Boolean).join(' · ')}</div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Segmented<Filter> value={filter} onChange={setFilter} label="Kind" options={[
           { value: 'all', label: 'All' }, { value: 'email', label: 'Email' }, { value: 'document', label: 'Documents' },

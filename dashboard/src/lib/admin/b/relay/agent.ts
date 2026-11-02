@@ -37,6 +37,11 @@ import { missingLines } from '../documents/gate'
 import { isBrokerBlock } from '@/lib/letters/appointment'
 import { explain } from '@/lib/admin/a/explanations'
 import { dispatchForThread, placementForClientThread } from '@/lib/placement/store'
+import { prepareUndertaking } from '@/lib/letters/undertaking-server'
+import { renderAppointmentPdf, buildAppointmentDocx } from '@/lib/letters/appointment-server'
+import { letterFileName, letterProblems } from '@/lib/letters/appointment'
+import { fileDocument } from '@/lib/documents/ingest'
+import * as docs from '@/lib/documents/store'
 
 type Row = Record<string, any>
 const ACTOR = 'relay'
@@ -105,6 +110,42 @@ async function route(side: 'client' | 'insurer', d: CaseData, line: string | nul
 }
 
 type Made = { kind: RelayKind; draftId: string; to: string[] }
+
+/**
+ * The letters the binding gate asks for, generated from the case and filed in the data room:
+ * the letter of undertaking when cover is backdated, the appointment letter when another broker
+ * is on risk. Returned as attachments for the ask. A letter that cannot be filled is left out.
+ */
+async function lettersFor(d: CaseData, missing: string[], ctx: { insurerName: string | null; line: string | null; policy: Row | null; today: string; clientName: string }): Promise<Attachment[]> {
+  const out: Attachment[] = []
+  const insurer = ctx.insurerName ? (await sbTry<Row[]>(`companies?kind=eq.insurer&company_name=ilike.*${enc(ctx.insurerName.split(' ')[0])}*&select=company_name,address&limit=1`, []))[0] ?? null : null
+  const title = d.item.title as string
+  if (missing.includes('lou_nil_claims') && ctx.policy?.start_date && ctx.insurerName && d.item.company_id) {
+    const period = ctx.policy.start_date && ctx.policy.end_date ? `${fmtLong(ctx.policy.start_date)} to ${fmtLong(ctx.policy.end_date)}` : `from ${fmtLong(ctx.policy.start_date)}`
+    const r = await prepareUndertaking(d.item.company_id, {
+      clientName: ctx.clientName, insurerName: insurer?.company_name ?? ctx.insurerName, insurerAddress: insurer?.address ? String(insurer.address).split(/\n|, /) : null,
+      classOfPolicy: lineLabel(ctx.line) ?? ctx.policy.class_of_insurance ?? ctx.policy.product_line ?? 'the policy', projectTitle: title, projectPeriod: period,
+      startDate: ctx.policy.start_date, date: ctx.today,
+    })
+    out.push(...r.attachments.map(a => ({ filename: a.filename, mime_type: a.mime_type, storage_url: a.storage_url, message_id: a.message_id })))
+  }
+  if (missing.includes('broker_appointment') && d.item.company_id) {
+    const letter = { clientName: ctx.clientName, projectTitle: title, programme: `${lineLabel(ctx.line) ?? 'insurance'} programme`, date: ctx.today }
+    if (!letterProblems(letter).length) {
+      const [pdf, docx] = await Promise.all([renderAppointmentPdf(letter), buildAppointmentDocx(letter)])
+      const now = new Date().toISOString()
+      for (const [format, bytes, mime] of [['pdf', pdf, 'application/pdf'], ['docx', docx, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']] as const) {
+        const filename = letterFileName(letter, format)
+        const row = await docs.insertDocument({ company_id: d.item.company_id, policy_id: null, doc_type: 'broker_appointment', title: `Appointment letter to sign · ${title}`.slice(0, 120), filename, mime_type: mime, size_bytes: bytes.length, source: 'generated', received_at: now, classified_by: 'broker', confidence: 1, needs_review: false, status: 'unfiled', uploaded_by: ACTOR })
+        if (!row) continue
+        const filed = await fileDocument(row, bytes)
+        if (filed.drive_file_id) out.push({ filename, mime_type: mime, storage_url: `drivefile:${filed.drive_file_id}`, message_id: '' })
+      }
+    }
+  }
+  return out
+}
+const fmtLong = (iso: string) => { const dt = new Date(iso.slice(0, 10) + 'T00:00:00Z'); return Number.isNaN(dt.getTime()) ? iso : dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) }
 
 export async function handleRelay(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
   if (task.kind !== 'message') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
@@ -254,7 +295,10 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       if (!gate.complete) {
         const c = await route('client', d, line)
         if (!c.ok) return ask(c.question)
-        await store('request_documents', { ...base(), documents: missingLines(gate.missing), instructed: true }, c, { threadId: clientThread })
+        // The letters the register asks for go with the ask, filled from the case, so the client
+        // signs rather than drafts: the letter of undertaking of nil claims, the appointment letter.
+        const letters = await lettersFor(d, gate.missing.map(m => m.kind), { insurerName, line, policy, today, clientName: d.company?.company_name ?? d.item.client_name ?? '' }).catch(e => { console.error('[relay] letters', e instanceof Error ? e.message : e); return [] as Attachment[] })
+        await store('request_documents', { ...base(), documents: missingLines(gate.missing), instructed: true, files: letters.map(a => a.filename) }, c, { threadId: clientThread, attachments: letters })
         await markRequested(d.item.id, gate.missing.map(m => m.kind))
         await setItem({ status: 'waiting_client', waiting_since: today, next_action: `Collect ${gate.missing.length === 1 ? 'the document' : `${gate.missing.length} documents`} before binding with ${insurerName ?? 'the insurer'}` })
         await log({ gate: 'withheld', missing: gate.missing.map(m => m.kind) })

@@ -236,12 +236,17 @@ export async function loadHome(now = new Date()): Promise<HomeData> {
 }
 
 /** A company's knowledge log, newest first, paged by occurred_at. */
+export type NextStep = { id: string; title: string; case_type: string; status: string; next_action: string | null; owner_email: string | null; deadline: string | null; needs_human: string | null; has_draft: boolean; waiting_since: string | null }
+
 export async function loadKnowledge(companyId: string, before: string | null, limit = 50) {
   const [c] = await sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=id,parent_id&limit=1`, [])
   if (!c) return null
   const rows = await sbTry<Row[]>(
     `company_ledger?company_id=eq.${enc(companyId)}${before ? `&occurred_at=lt.${enc(before)}` : ''}&select=id,occurred_at,kind,title,summary,party,actor,links,thread_id,policy_id,work_item_id&order=occurred_at.desc&limit=${limit}`, [])
-  return { entries: rows, next: rows.length === limit ? rows[rows.length - 1].occurred_at : null }
+  // The coordinator's view of this client: every open case, what happens next, who does it, by when.
+  const next_steps: NextStep[] = before ? [] : (await sbTry<Row[]>(`work_items?company_id=eq.${enc(companyId)}&closed_at=is.null&select=id,title,case_type,status,next_action,owner_email,deadline,needs_human,draft_id,waiting_since&order=deadline.asc.nullslast,waiting_since.asc.nullslast&limit=40`, []))
+    .map(w => ({ id: w.id, title: w.title, case_type: w.case_type, status: w.status, next_action: w.next_action ?? null, owner_email: w.owner_email ?? null, deadline: w.deadline ?? null, needs_human: w.needs_human ?? null, has_draft: !!w.draft_id, waiting_since: w.waiting_since ?? null }))
+  return { entries: rows, next: rows.length === limit ? rows[rows.length - 1].occurred_at : null, next_steps }
 }
 
 // ── Writes ────────────────────────────────────────────────────────────────────────────────────
