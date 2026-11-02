@@ -10,6 +10,8 @@ import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
 import { laterActive, laterDue, clearLater } from './later'
 import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from './renewals/advice-agent'
+import { openRegisters, markRequested } from './documents/store'
+import { DOC_LABEL } from './documents/gate'
 
 type Row = Record<string, any>
 
@@ -23,6 +25,8 @@ export const NEAR_DEADLINE_EVERY = 2
 export const URGENT_DAYS = 5
 /** After three chases the matter goes to a person: the fourth email does not work, a call does. */
 export const MAX_CHASES = 3
+/** Signed forms, slips and letters are chased every 6 days, as Nathan does (6 to 7). */
+export const DOCUMENT_CHASE_DAYS = 6
 export const STALL_AFTER_DAYS = 7
 export const RENEWAL_BANDS = [60, 30, 14] as const
 
@@ -115,8 +119,29 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
     }
     if (d.chase) tasks.push({ agent: 'drafter', kind: d.chase, work_item_id: i.id, company_id: i.company_id, payload: { round: d.round, urgent: d.urgent, deadline: i.deadline ?? null }, idem_key: `drafter:${d.chase}:${i.id}:${i.waiting_since}:${d.round}`, created_by_agent: 'chaser' })
   }
+  // The document register: items still waiting on the client for a signed form, slip or letter.
+  const open = new Map(items.map(i => [i.id, i]))
+  let documentChases = 0
+  for (const r of await openRegisters()) {
+    const i = open.get(r.work_item_id)
+    if (!i || (i.snoozed_until && i.snoozed_until > today) || laterActive(i, `${today}T23:59:59.999Z`)) continue
+    const since = (r.since ?? '').slice(0, 10)
+    const d = since ? daysBetween(since, today) : DOCUMENT_CHASE_DAYS
+    if (d < DOCUMENT_CHASE_DAYS) continue
+    const round = Math.floor(d / DOCUMENT_CHASE_DAYS)
+    if (round > MAX_CHASES) {
+      if (!i.needs_human) {
+        await sb(`work_items?id=eq.${enc(i.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `Documents still outstanding after ${MAX_CHASES} chases: ${r.kinds.map(k => DOC_LABEL[k]).join('; ')}. Call the client.`, updated_at: new Date().toISOString() }) })
+        escalated++
+      }
+      continue
+    }
+    tasks.push({ agent: 'drafter', kind: 'request_documents', work_item_id: i.id, company_id: i.company_id, payload: { items: r.kinds.map(k => DOC_LABEL[k]), round }, idem_key: `drafter:request_documents:${i.id}:${since}:${round}`, created_by_agent: 'chaser' })
+    await markRequested(i.id, r.kinds)
+    documentChases++
+  }
   await enqueue(tasks)
-  return { chases: tasks.length, stalled, released, escalated }
+  return { chases: tasks.length - documentChases, documentChases, stalled, released, escalated }
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

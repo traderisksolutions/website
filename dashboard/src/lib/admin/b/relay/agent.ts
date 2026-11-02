@@ -32,6 +32,8 @@ import { caseModeFor } from '../kinds'
 import { detectIntent, detectLine, listedAsks, ownWords, type IntentResult, type RelayIntent, type RelaySide } from './intent'
 import { extractQuoteTerms, missingForQuote } from './terms'
 import { composeRelay, relayPairFor, CLASS_OF, PARTY_OF, type RelayKind, type RelayFacts } from './compose'
+import { syncRegister, markRequested } from '../documents/store'
+import { missingLines } from '../documents/gate'
 
 type Row = Record<string, any>
 const ACTOR = 'relay'
@@ -227,6 +229,7 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       break
     }
     case 'docs_provided': {
+      await syncRegister(d, { line, today: day, startDate: policy?.start_date ?? null, expiry: d.item.case_type === 'renewal' ? policy?.end_date ?? null : null }).catch(() => null)
       const insurerOnCase = d.messages.some(m => m.side === 'insurer') || !!insurerName
       if (insurerOnCase) {
         const rt = await route('insurer', d, line)
@@ -240,11 +243,25 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
       break
     }
     case 'instruction': {
+      // The binding gate: the instruction goes to the insurer only when the file holds what the
+      // insurer will ask for. Otherwise the client is thanked and asked for the rest, numbered.
+      const today = day
+      const gate = await syncRegister(d, { line, today, startDate: policy?.start_date ?? null, instructedOn: today, expiry: d.item.case_type === 'renewal' ? policy?.end_date ?? null : null }, { instructionMessageId: msg.id })
+      if (!gate.complete) {
+        const c = await route('client', d, line)
+        if (!c.ok) return ask(c.question)
+        await store('request_documents', { ...base(), documents: missingLines(gate.missing), instructed: true }, c, { threadId: clientThread })
+        await markRequested(d.item.id, gate.missing.map(m => m.kind))
+        await setItem({ status: 'waiting_client', waiting_since: today, next_action: `Collect ${gate.missing.length === 1 ? 'the document' : `${gate.missing.length} documents`} before binding with ${insurerName ?? 'the insurer'}` })
+        await log({ gate: 'withheld', missing: gate.missing.map(m => m.kind) })
+        break
+      }
       const rt = await route('insurer', d, line)
       if (!rt.ok) return ask(rt.question)
       await store('forward_instruction', { ...base(), original, files: files.map(f => f.filename) }, rt, { threadId: insurerThread, attachments })
       await pair('forward_instruction', base())
       await setItem({ status: 'trs_to_act', next_action: `Pass the client's instruction to ${insurerName ?? 'the insurer'}` })
+      await log({ gate: 'complete' })
       break
     }
     case 'cover_question': {

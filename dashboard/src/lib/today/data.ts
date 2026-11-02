@@ -7,6 +7,7 @@
  * src/lib/casework when that module gains them.
  */
 import { fillVoice } from '@/lib/admin/b/voice'
+import { listRegister, type RegisterRow } from '@/lib/admin/b/documents/store'
 import { sb, sbTry, enc, isInternal } from '@/lib/crm/db'
 import { groupOf, bridgeOf, laterFor, type TodayGroup, type LaterChoice, type Bridge } from './rules'
 import { pendingOf, sideOf, homeBridgeOf, cardOrder, LEVEL_RANK, type Pending, type PendingLevel, type Side, type HomeBridge, type PolicyLite } from './pending'
@@ -124,6 +125,8 @@ export type ItemDetail = TodayItem & {
   ledger: { at: string; kind: string; title: string; links: { label: string; url: string }[] }[]
   documents: { id: string; title: string; doc_type: string; drive_url: string | null; received_at: string | null }[]
   contacts: { name: string; email: string; scope: string[] }[]
+  /** The document register: what the matter needs before binding, and what has arrived. */
+  register: RegisterRow[]
 }
 
 export async function loadItem(id: string, now = new Date()): Promise<ItemDetail | null> {
@@ -137,11 +140,12 @@ export async function loadItem(id: string, now = new Date()): Promise<ItemDetail
     id: t.email_threads.id, subject: t.email_threads.subject ?? null, side: t.side, joined_by: t.joined_by ?? null, messages: t.email_threads.message_count ?? 0,
   }))
   const threadIds = threads.map((t: { id: string }) => t.id)
-  const [events, ledger, documents, contacts] = await Promise.all([
+  const [events, ledger, documents, contacts, register] = await Promise.all([
     sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(id)}&select=kind,actor,detail,created_at&order=created_at.desc&limit=40`, []),
     sbTry<Row[]>(`company_ledger?or=(work_item_id.eq.${enc(id)}${threadIds.length ? `,thread_id.in.(${threadIds.join(',')})` : ''})&select=occurred_at,kind,title,links&order=occurred_at.desc&limit=40`, []),
     r.company_id ? sbTry<Row[]>(`policy_documents?company_id=eq.${enc(r.company_id)}&status=eq.filed&select=id,title,filename,doc_type,drive_url,received_at,policy_id&order=received_at.desc.nullslast&limit=40`, []) : Promise.resolve([] as Row[]),
     r.company_id ? sbTry<Row[]>(`company_contacts?company_id=eq.${enc(r.company_id)}&status=eq.active&select=scope,contacts(name,email,first_name,last_name)&limit=30`, []) : Promise.resolve([] as Row[]),
+    listRegister(id),
   ])
   // A policy's documents first, then the rest of the client's.
   const docs = documents.sort((a, b) => Number(b.policy_id === r.policy_id) - Number(a.policy_id === r.policy_id))
@@ -156,6 +160,7 @@ export async function loadItem(id: string, now = new Date()): Promise<ItemDetail
       name: c.contacts.name || [c.contacts.first_name, c.contacts.last_name].filter(Boolean).join(' ') || c.contacts.email,
       email: c.contacts.email, scope: c.scope ?? [],
     })),
+    register,
   }
 }
 

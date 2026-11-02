@@ -6,7 +6,7 @@
  * anything unknown is left out rather than guessed.
  */
 
-export type DraftKind = 'request_missing' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack'
+export type DraftKind = 'request_missing' | 'request_documents' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack'
 export type Party = 'client' | 'insurer'
 
 /**
@@ -93,6 +93,16 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
       return {
         subject: replySubject(f.threadSubject, `${f.title}: documents`),
         body: `${hi}\n\nThank you for your email on ${what}.\n\nTo take the claim forward with ${f.insurerName ?? 'the insurer'}, we still need:\n${items}\n\nPlease send them in reply to this email.\n\n${sign}`,
+      }
+    }
+    case 'request_documents': {
+      // The chase for the binding gate's missing documents: numbered, one reason, "Thank you!".
+      const r = f.round ?? 1
+      const items = (f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')
+      const lead = r <= 1 ? `May I kindly check in on the documents below for ${what}, for ${f.insurerName ?? 'the insurer'} to release the cover note?` : `Following up on the documents below for ${what}. ${f.insurerName ?? 'The insurer'} holds the terms until they are in.`
+      return {
+        subject: replySubject(f.threadSubject, `${f.title}: documents before binding`),
+        body: `${hi}\n\n${lead}\n\n${items}\n\nThank you!\n\n${sign}`,
       }
     }
     case 'chase_insurer': {

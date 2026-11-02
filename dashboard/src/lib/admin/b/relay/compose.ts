@@ -8,7 +8,7 @@ import { termsRows, type QuoteTerms } from './terms'
 
 export type RelayKind =
   | 'forward_quote_request' | 'forward_documents' | 'forward_instruction' | 'forward_question'
-  | 'request_info' | 'answer_question' | 'document_send' | 'status_update' | 'ack_client'
+  | 'request_info' | 'request_documents' | 'answer_question' | 'document_send' | 'status_update' | 'ack_client'
   | 'relay_quote' | 'relay_decline' | 'relay_documents' | 'relay_decision' | 'relay_question' | 'ack_insurer'
 
 /** How the autonomy ladder groups drafts: an ack can earn auto-send long before a relay can. */
@@ -16,13 +16,13 @@ export type DraftClass = 'ack' | 'forward' | 'relay' | 'answer' | 'request' | 's
 
 export const CLASS_OF: Record<RelayKind, DraftClass> = {
   forward_quote_request: 'forward', forward_documents: 'forward', forward_instruction: 'forward', forward_question: 'forward',
-  request_info: 'request', answer_question: 'answer', document_send: 'relay', status_update: 'status', ack_client: 'ack',
+  request_info: 'request', request_documents: 'request', answer_question: 'answer', document_send: 'relay', status_update: 'status', ack_client: 'ack',
   relay_quote: 'relay', relay_decline: 'relay', relay_documents: 'relay', relay_decision: 'relay', relay_question: 'relay', ack_insurer: 'ack',
 }
 
 export const PARTY_OF: Record<RelayKind, 'client' | 'insurer'> = {
   forward_quote_request: 'insurer', forward_documents: 'insurer', forward_instruction: 'insurer', forward_question: 'insurer', ack_insurer: 'insurer',
-  request_info: 'client', answer_question: 'client', document_send: 'client', status_update: 'client', ack_client: 'client',
+  request_info: 'client', request_documents: 'client', answer_question: 'client', document_send: 'client', status_update: 'client', ack_client: 'client',
   relay_quote: 'client', relay_decline: 'client', relay_documents: 'client', relay_decision: 'client', relay_question: 'client',
 }
 
@@ -54,6 +54,10 @@ export type RelayFacts = {
   files?: string[]
   /** request_info: what is still needed. */
   missing?: string[]
+  /** request_documents: the documents the binding gate still waits on, in the client's terms. */
+  documents?: string[]
+  /** request_documents: the client has instructed, so the ask thanks them for it first. */
+  instructed?: boolean
   /** relay_question: what the insurer asked, as listed. */
   asks?: string[]
   /** relay_quote */
@@ -132,6 +136,16 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       return {
         subject: replySubject(f.threadSubject, `${f.title}: information needed`),
         body: `${hi}\n\nThank you for your request on ${line}. To obtain terms from the insurers we still need:\n${items}\n\nPlease send them in reply to this email and we will approach the market the same day.\n\n${SIGN}`,
+      }
+    }
+    case 'request_documents': {
+      // Nathan's shape after an instruction: "Thank you for your binding instructions! In view of
+      // the backdating, may I get your assistance to sign the attached Letter of Undertaking."
+      const items = numbered(f.documents ?? [])
+      const opener = f.instructed ? `Thank you for your instructions to proceed on ${matterOf(f)}${refAfter(f)}.` : `On ${matterOf(f)}${refAfter(f)}, ${f.insurerName ?? 'the insurer'} will need the following before cover can be bound.`
+      return {
+        subject: replySubject(f.threadSubject, `${f.title}: documents before binding`),
+        body: `${hi}\n\n${opener}${f.instructed ? ` Before ${f.insurerName ?? 'the insurer'} can bind, we need:` : ''}\n\n${items}\n\nOnce we have these we will confirm with ${f.insurerName ?? 'the insurer'} the same day and ask for the cover note.\n\n${SIGN}`,
       }
     }
     case 'answer_question': {

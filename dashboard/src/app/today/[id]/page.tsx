@@ -40,6 +40,8 @@ export default function ReviewPage() {
   const [thread, setThread] = useState<string | null>(null)
   const [doc, setDoc] = useState<{ title: string; drive_url: string | null } | null>(null)
   const [editing, setEditing] = useState(false)
+  const [waiving, setWaiving] = useState<string | null>(null)
+  const [waiveNote, setWaiveNote] = useState('')
 
   const load = useCallback(() => {
     setItem(null); setError(null)
@@ -198,6 +200,36 @@ export default function ReviewPage() {
               </ol>
             )}
           </Card>
+          {item.register.length > 0 && (
+            <Card title="Documents before binding">
+              <ul className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]">
+                {item.register.map(r => (
+                  <li key={r.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                    <Chip tone={r.status === 'received' ? 'green' : r.status === 'waived' ? undefined : 'amber'}>{r.status === 'received' ? 'Received' : r.status === 'waived' ? 'Waived' : r.status === 'requested' ? 'Asked' : 'Needed'}</Chip>
+                    <span className="text-trs-ink min-w-0">{r.label}</span>
+                    {r.filename && <span className="text-trs-muted truncate max-w-full">{r.filename}</span>}
+                    {r.status !== 'received' && r.status !== 'waived' && waiving !== r.kind && (
+                      <button type="button" className="text-[12px] text-trs-muted underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0" onClick={() => { setWaiving(r.kind); setWaiveNote('') }}>Waive</button>
+                    )}
+                    {r.status === 'waived' && (
+                      <button type="button" className="text-[12px] text-trs-muted underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0"
+                        onClick={() => callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'needed' } }).then(load).catch(e => setError(errText(e)))}>
+                        Need it
+                      </button>
+                    )}
+                    {waiving === r.kind && (
+                      <form className="basis-full flex gap-1.5 items-center" onSubmit={e => { e.preventDefault(); if (!waiveNote.trim()) return; callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'waived', note: waiveNote.trim() } }).then(() => { setWaiving(null); load() }).catch(e => setError(errText(e))) }}>
+                        <input id={`waive-${r.kind}`} className={inputCls} placeholder="Why it is not needed" value={waiveNote} onChange={e => setWaiveNote(e.target.value)} />
+                        <Btn size="xs" level="secondary" type="submit">Waive</Btn>
+                        <Btn size="xs" level="tertiary" type="button" onClick={() => setWaiving(null)}>Cancel</Btn>
+                      </form>
+                    )}
+                    {r.basis && r.status !== 'received' && <span className="basis-full text-[12px] text-trs-muted">{r.basis}</span>}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title="Source">
             {item.threads.length === 0 && item.documents.length === 0 && <p className="m-0 text-[13px] text-trs-muted">No threads or files linked.</p>}
             {item.threads.map(t => (
