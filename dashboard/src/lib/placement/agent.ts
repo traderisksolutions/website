@@ -17,22 +17,43 @@ const parseJson = <T,>(text: string | null): T | null => {
   try { return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as T } catch { return null }
 }
 
+/**
+ * The thread as the model reads it. Each message contributes its own words (the quoted history
+ * under it is already in the earlier messages, or was rebuilt as one), with its real documents.
+ * When that still exceeds the budget the OLDEST messages are dropped, never the newest: on a long
+ * thread the latest instruction is the one that matters, and a forward that opened the case
+ * midway carries the earlier history inside it.
+ */
 const mailCorpus = (msgs: MailMessage[], atts: MailAttachment[] = [], budget = 60_000): string => {
-  let left = budget
-  const out: string[] = []
-  for (const m of msgs) {
+  const blocks = msgs.map(m => {
     const head = `--- ${m.direction.toUpperCase()} ${m.sent_at ?? ''} from ${m.from_address ?? '?'}\nSUBJECT: ${m.subject ?? ''}\n`
-    const body = (m.body_text ?? '').slice(0, Math.min(left, 12_000))
-    left -= body.length
-    out.push(head + body)
-    for (const a of atts.filter(a => a.message_id === m.id && (a.parsed_text ?? '').trim().length > 10)) {
-      const t = (a.parsed_text ?? '').slice(0, Math.min(left, 20_000))
-      left -= t.length
-      out.push(`--- ATTACHMENT ${a.filename}\n${t}`)
-    }
-    if (left <= 0) break
+    const own = ownWordsOf(m.body_text ?? '')
+    const body = (own.length >= 40 ? own : (m.body_text ?? '')).slice(0, 12_000)
+    const docs = atts.filter(a => a.message_id === m.id && (a.parsed_text ?? '').trim().length > 10)
+      .map(a => `--- ATTACHMENT ${a.filename}\n${(a.parsed_text ?? '').slice(0, 20_000)}`)
+    return [head + body, ...docs].join('\n\n')
+  })
+  const out: string[] = []
+  let left = budget
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (blocks[i].length > left) { if (out.length === 0) out.unshift(blocks[i].slice(0, left)); break }
+    out.unshift(blocks[i]); left -= blocks[i].length
   }
+  if (out.length < blocks.length) out.unshift(`[${blocks.length - out.length} earlier message${blocks.length - out.length === 1 ? '' : 's'} not shown]`)
   return out.join('\n\n')
+}
+
+/** A message's own words: everything above the first quoted-history marker, ">" lines dropped. */
+export function ownWordsOf(text: string): string {
+  const out: string[] = []
+  for (const raw of String(text ?? '').split(/\r?\n/)) {
+    const line = raw.trim()
+    if (/^>/.test(line)) continue
+    if (/^on .{5,160}wrote:?\s*$/i.test(line) || /^-{2,}\s*original message\s*-{2,}$/i.test(line) || /^-{3,}\s*forwarded message\s*-{3,}$/i.test(line)
+      || /^from:\s.+@.+/i.test(line) || /^_{10,}\s*$/.test(line) || /^(?:sent from my|get outlook for)/i.test(line)) break
+    out.push(raw)
+  }
+  return out.join('\n').trim()
 }
 
 /** The memory, as the agent reads it: newest last, one line each. */

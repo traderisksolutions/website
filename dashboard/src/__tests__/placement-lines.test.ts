@@ -112,3 +112,11 @@ describe('the comparison table', () => {
     expect(t.split('\n')[1]).toBe('| Example Insurer | Lead 50% | 0.085% | 12,000.00 | S$12,500,000 | S$5,000 each and every loss | Signed proposal form; Nil claims declaration | 30 Nov 2026 |')
   })
 })
+
+describe('the thread as the model reads it', () => {
+  it('keeps a message\'s own words and drops the quoted history under it', async () => {
+    const { ownWordsOf } = await import('@/lib/placement/agent')
+    expect(ownWordsOf('Please proceed with Plan B.\n\nOn Mon, 2 Nov 2026 at 10:00, Example <a@example-client.sg> wrote:\n> old instruction: proceed with Plan A')).toBe('Please proceed with Plan B.')
+    expect(ownWordsOf('Noted.\n\n-----Original Message-----\nFrom: x@example-client.sg\nold text')).toBe('Noted.')
+  })
+})
