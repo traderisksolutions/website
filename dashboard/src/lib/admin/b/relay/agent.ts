@@ -35,6 +35,7 @@ import { composeRelay, relayPairFor, CLASS_OF, PARTY_OF, type RelayKind, type Re
 import { syncRegister, markRequested } from '../documents/store'
 import { missingLines } from '../documents/gate'
 import { isBrokerBlock } from '@/lib/letters/appointment'
+import { explain } from '@/lib/admin/a/explanations'
 
 type Row = Record<string, any>
 const ACTOR = 'relay'
@@ -278,6 +279,9 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
         if (answers.length >= 7) break
       }
       const docs = policy ? await sbTry<Row[]>(`policy_documents?policy_id=eq.${enc(policy.id)}&status=eq.filed&doc_type=in.(policy_schedule,policy_wording,benefit_summary,certificate)&select=filename,mime_type,storage_url,message_id,drive_url&limit=3`, []) : []
+      // A question the house answers the same way every time (headcount basis, debit note, backdating …) is answered in those words.
+      const house = answers.length <= (policy ? 1 : 0) ? explain(text) : null
+      if (house) answers.push({ fact: house.text, source: 'TRS practice' })
       if (answers.length > (policy ? 1 : 0) || docs.length) {
         const rt = await route('client', d, line)
         if (!rt.ok) return ask(rt.question)

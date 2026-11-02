@@ -65,8 +65,8 @@ describe('paired drafts', () => {
   })
   it('writes the client side of each pair', () => {
     expect(buildDraft('client_update', f).body).toContain('we have asked Example Insurance for the status today')
-    expect(buildDraft('client_ack', f).body).toContain('We have notified Example Insurance of Damage at unit 3')
-    expect(buildDraft('client_ack', f).body).toContain('sent the documents you provided')
+    expect(buildDraft('client_ack', f).body).toContain('have informed Example Insurance as required')
+    expect(buildDraft('client_ack', f).body).toContain('with the documents you provided')
   })
   it('forwards a claim only when nothing has reached the insurer yet', () => {
     const client = { side: 'client' }

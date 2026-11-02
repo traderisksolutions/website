@@ -86,6 +86,14 @@ export async function refreshClaim(workItemId: string, extra: { gaps?: { item: s
   })
   const changed = prev ? (['stage', 'insurer_ref', 'amount_claimed', 'amount_settled', 'loss_date'] as const).filter(k => String(prev[k] ?? '') !== String(row[k] ?? '')) : ['opened']
   if (changed.length) await itemEvent(workItemId, 'note', ACTOR, { claim: changed, stage: row.stage })
+  // The stage moves and the client hears what comes next: the adjuster's access, then the
+  // settlement documents. One draft per stage per claim.
+  if (!closed && row.stage === 'adjuster' && prev?.stage !== 'adjuster') {
+    await enqueue({ agent: 'drafter', kind: 'adjuster_access', work_item_id: workItemId, company_id: row.company_id, idem_key: `drafter:adjuster_access:${workItemId}`, created_by_agent: 'claims' })
+  }
+  if (!closed && row.stage === 'offer' && prev?.stage !== 'offer') {
+    await enqueue({ agent: 'drafter', kind: 'settlement_pack', work_item_id: workItemId, company_id: row.company_id, idem_key: `drafter:settlement_pack:${workItemId}`, created_by_agent: 'claims' })
+  }
   // Forward only what the client's own words show is a claim: a quote request filed as a claim is not sent on.
   const clientWords = lines.filter(l => l.side === 'client').map(l => l.text).join('\n')
   return { ...row, needs_forward: !closed && isClaimLike(d.item.title, clientWords) && needsForwardToInsurer(lines, stage) }

@@ -21,7 +21,7 @@ import { contactIdFor, greetingFor } from './contact-id'
 import { loadCaseData, toCaseMail, scopedContacts, groupFacts, itemEvent, insurerLastHandler, insurerClaimsDesk, type CaseData } from './data'
 
 type Row = Record<string, any>
-const KINDS: DraftKind[] = ['request_missing', 'request_documents', 'chase_insurer', 'chase_client', 'renewal_notice', 'forward_to_insurer']
+const KINDS: DraftKind[] = ['request_missing', 'request_documents', 'chase_insurer', 'chase_client', 'renewal_notice', 'forward_to_insurer', 'adjuster_access', 'settlement_pack', 'request_claims_report']
 
 type Attachment = { filename: string; mime_type: string | null; storage_url: string | null; message_id: string }
 type NewDraft = { thread_id: string | null; to: string[]; cc: string[]; subject: string; body: string; kind: string; party: Party; pair_id?: string | null; attachments?: Attachment[] }

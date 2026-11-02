@@ -62,15 +62,15 @@ export async function setRegisterStatus(workItemId: string, kind: DocKind, statu
 }
 
 /** Open items whose register still waits on the client, with how long since the ask. */
-export async function openRegisters(): Promise<{ work_item_id: string; kinds: DocKind[]; since: string | null }[]> {
+export async function openRegisters(): Promise<{ work_item_id: string; kinds: DocKind[]; requested: string | null }[]> {
   const rows = await sbTry<Row[]>(`work_item_documents?status=in.(needed,requested)&owed_by=eq.client&select=work_item_id,kind,requested_at,created_at&limit=2000`, [])
-  const by = new Map<string, { kinds: DocKind[]; since: string | null }>()
+  const by = new Map<string, { kinds: DocKind[]; requested: string | null; anyUnasked: boolean }>()
   for (const r of rows) {
-    const cur = by.get(r.work_item_id) ?? { kinds: [], since: null }
+    const cur = by.get(r.work_item_id) ?? { kinds: [], requested: null, anyUnasked: false }
     cur.kinds.push(r.kind)
-    const at = r.requested_at ?? r.created_at ?? null
-    if (at && (!cur.since || at > cur.since)) cur.since = at
+    if (r.requested_at) { if (!cur.requested || r.requested_at > cur.requested) cur.requested = r.requested_at } else cur.anyUnasked = true
     by.set(r.work_item_id, cur)
   }
-  return Array.from(by.entries()).map(([work_item_id, v]) => ({ work_item_id, ...v }))
+  // A row never asked for makes the whole ask due now.
+  return Array.from(by.entries()).map(([work_item_id, v]) => ({ work_item_id, kinds: v.kinds, requested: v.anyUnasked ? null : v.requested }))
 }

@@ -10,8 +10,11 @@ import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
 import { laterActive, laterDue, clearLater } from './later'
 import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from './renewals/advice-agent'
-import { openRegisters, markRequested } from './documents/store'
+import { openRegisters, markRequested, syncRegister } from './documents/store'
 import { DOC_LABEL } from './documents/gate'
+import { loadCaseData } from './data'
+import { detectLine } from './relay/intent'
+import { familyOf } from '@/lib/placement/lines'
 
 type Row = Record<string, any>
 
@@ -29,6 +32,12 @@ export const MAX_CHASES = 3
 export const DOCUMENT_CHASE_DAYS = 6
 export const STALL_AFTER_DAYS = 7
 export const RENEWAL_BANDS = [60, 30, 14] as const
+/** Financial lines: the proposal form six weeks out, as Nathan sends it. */
+export const FORM_DAYS = 42
+/** Employee benefits: the claims experience is asked for 60 days out, before December's rush. */
+export const CLAIMS_REPORT_DAYS = 60
+/** With no renewal notice from the insurer by 30 days out, a person asks for terms; two policies lapsed waiting for one. */
+export const NOTICE_DAYS = 30
 
 export type ChaseDecision = {
   chase: 'chase_insurer' | 'chase_client' | null
@@ -125,10 +134,11 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
   for (const r of await openRegisters()) {
     const i = open.get(r.work_item_id)
     if (!i || (i.snoozed_until && i.snoozed_until > today) || laterActive(i, `${today}T23:59:59.999Z`)) continue
-    const since = (r.since ?? '').slice(0, 10)
+    // Never asked: the ask goes now (round 1). Asked: every 6 days after.
+    const since = (r.requested ?? '').slice(0, 10)
     const d = since ? daysBetween(since, today) : DOCUMENT_CHASE_DAYS
     if (d < DOCUMENT_CHASE_DAYS) continue
-    const round = Math.floor(d / DOCUMENT_CHASE_DAYS)
+    const round = since ? Math.floor(d / DOCUMENT_CHASE_DAYS) + 1 : 1
     if (round > MAX_CHASES) {
       if (!i.needs_human) {
         await sb(`work_items?id=eq.${enc(i.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `Documents still outstanding after ${MAX_CHASES} chases: ${r.kinds.map(k => DOC_LABEL[k]).join('; ')}. Call the client.`, updated_at: new Date().toISOString() }) })
@@ -152,7 +162,7 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   const today = (task.payload?.today as string) ?? new Date().toISOString().slice(0, 10)
   const max = Math.max(...RENEWAL_BANDS)
   const policies = await sbTry<Row[]>(`policies?end_date=gte.${today}&end_date=lte.${addDays(today, max)}&company_id=not.is.null&select=id,company_id,policy_number,insurer,class_of_insurance,product_line,end_date,lifecycle,description,companies(company_name,kind)&limit=1000`, [])
-  const open = await sbTry<Row[]>('work_items?case_type=eq.renewal&closed_at=is.null&select=policy_id,policy_number,company_id', [])
+  const open = await sbTry<Row[]>('work_items?case_type=eq.renewal&closed_at=is.null&select=id,policy_id,policy_number,company_id', [])
   const covered = new Set(open.flatMap(o => [o.policy_id, o.policy_number && `${o.company_id}:${o.policy_number}`]).filter(Boolean))
   let opened = 0
   const tasks: NewTask[] = []
@@ -182,9 +192,31 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
     // One report per renewal, from the first band the policy is seen in; one quote check inside 30 days.
     tasks.push(adviceTask(p.id, p.company_id, p.end_date))
     if (band <= RFQ_DAYS) tasks.push(rfqCheckTask(p.id, p.company_id, p.end_date))
+    // Lead times by line (placement/lines.ts families), as the broker keeps them.
+    const family = familyOf(detectLine(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`, null))
+    const left = daysBetween(today, p.end_date)
+    if (family === 'eb' && left <= CLAIMS_REPORT_DAYS) {
+      const item = itemId ?? open.find(o => o.policy_id === p.id)?.id ?? null
+      if (item) tasks.push({ agent: 'drafter', kind: 'request_claims_report', work_item_id: item, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date }, idem_key: `drafter:request_claims_report:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
+    }
+    if (family === 'financial' && left <= FORM_DAYS) {
+      // The register takes the proposal form from here; the chaser asks for it on the next sweep.
+      const item = itemId ?? open.find(o => o.policy_id === p.id)?.id ?? null
+      const d = item ? await loadCaseData(item) : null
+      if (d) await syncRegister(d, { caseType: 'renewal', line: detectLine(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''}`, null), today, expiry: p.end_date }).catch(() => null)
+    }
   }
   await enqueue(tasks)
-  return { policies: policies.length, opened, tasks: tasks.length }
+  // Inside 30 days with nothing from the insurer on the renewal: a person asks for terms.
+  let noNotice = 0
+  for (const o of await sbTry<Row[]>(`work_items?case_type=eq.renewal&closed_at=is.null&needs_human=is.null&deadline=lte.${addDays(today, NOTICE_DAYS)}&deadline=gte.${today}&select=id,insurer_name,work_item_threads(side)`, [])) {
+    const insurerSide = (o.work_item_threads ?? []).some((t: Row) => t.side === 'insurer')
+    if (insurerSide) continue
+    await sb(`work_items?id=eq.${enc(o.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `No renewal notice from ${o.insurer_name ?? 'the insurer'} with ${NOTICE_DAYS} days to expiry. Ask them for terms; do not wait for the notice.`, updated_at: new Date().toISOString() }) })
+    await itemEvent(o.id, 'note', 'renewals', { no_notice: true, days: NOTICE_DAYS })
+    noNotice++
+  }
+  return { policies: policies.length, opened, tasks: tasks.length, noNotice }
 }
 
 /** The tasks the daily sweep starts. Keys carry the day, so a second run the same day is a no-op. */

@@ -6,7 +6,7 @@
  * anything unknown is left out rather than guessed.
  */
 
-export type DraftKind = 'request_missing' | 'request_documents' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack'
+export type DraftKind = 'request_missing' | 'request_documents' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack' | 'adjuster_access' | 'settlement_pack' | 'request_claims_report'
 export type Party = 'client' | 'insurer'
 
 /**
@@ -20,7 +20,7 @@ export function pairFor(kind: DraftKind): DraftKind | null {
 }
 
 export function partyOf(kind: DraftKind): Party {
-  return kind === 'chase_insurer' || kind === 'forward_to_insurer' ? 'insurer' : 'client'
+  return kind === 'chase_insurer' || kind === 'forward_to_insurer' || kind === 'request_claims_report' ? 'insurer' : 'client'
 }
 
 /** The client's message a forward carries, quoted under the cover note. */
@@ -146,9 +146,28 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
         body: `${hi}\n\nAn update on ${what}: we have asked ${f.insurerName ?? 'the insurer'} for the status today and will let you know as soon as they reply.\n\n${sign}`,
       }
     case 'client_ack':
+      // Nathan's acknowledgement, within minutes of a notification: received, insurer told, documents when available.
       return {
         subject: replySubject(f.threadSubject, `${f.title}: received`),
-        body: `${hi}\n\nThank you. We have notified ${f.insurerName ?? 'the insurer'} of ${what}${(f.files ?? []).length ? ' and sent the documents you provided' : ''}. We will send you the claim reference and any further requirements once they reply.\n\n${sign}`,
+        body: `${hi}\n\nWe have received the notification and have informed ${f.insurerName ?? 'the insurer'} as required${(f.files ?? []).length ? ', with the documents you provided' : ''}. Do kindly help to provide any documents, reports and photographs, when available. We will send you the claim reference and any further requirements once the insurer replies.\n\nThank you!\n\n${sign}`,
+      }
+    case 'adjuster_access':
+      // The adjuster is appointed: the site contact, access, and nothing moved before the inspection.
+      return {
+        subject: replySubject(f.threadSubject, `${f.title}: loss adjuster's inspection`),
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has appointed a loss adjuster on ${what}. To arrange the inspection, could you let us have:\n\n1. The site contact's name and mobile number for the adjuster\n2. Any access clearance or safety briefing the adjuster needs on site\n3. Photographs of the damage as it stands, if not already sent\n\nPlease keep the damaged items as they are until the adjuster has inspected them; if anything must be moved for safety or to continue works, let us know first so the adjuster can agree it.\n\nThank you!\n\n${sign}`,
+      }
+    case 'settlement_pack':
+      // Settlement agreed: what closes the file. Payout goes to the policyholder, who pays the claimant.
+      return {
+        subject: replySubject(f.threadSubject, `${f.title}: settlement documents`),
+        body: `${hi}\n\n${f.insurerName ?? 'The insurer'} has agreed settlement on ${what}. To release payment they need:\n\n1. The settlement agreement or discharge voucher, signed and stamped\n2. The invoices and receipts the settlement covers\n3. The company's bank account details, with a contact we can call to verify them\n\nThe insurer pays the policyholder as the insured; any amount due to a third party or an employee is then paid on by the company. Once these are in we will send them to the insurer and confirm the payment date.\n\nThank you!\n\n${sign}`,
+      }
+    case 'request_claims_report':
+      // 60 days before an employee benefits renewal: the claims experience the renewal is priced on.
+      return {
+        subject: replySubject(f.threadSubject, `${f.clientName ?? 'Client'}${f.policyNumber ? ` ${f.policyNumber}` : ''}: claims experience for renewal`),
+        body: `${hi}\n\nAhead of the renewal of ${what}${f.expiry ? ` on ${fmt(f.expiry)}` : ''}, could you share the claims experience report for the current and past two policy years, with the paid and incurred figures by benefit?\n\nWe would like to review it with the client before the renewal terms, so a copy by the end of next week would help.\n\nThank you!\n\n${sign}`,
       }
     case 'forward_to_insurer':
       return composeForward(f)
