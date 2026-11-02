@@ -26,6 +26,7 @@ import { GEMINI_FLASH as GEMINI_FLASH_MODEL, GEMINI_PRO as GEMINI_PRO_MODEL } fr
 import { OPUS_MODEL, fetchOpus } from './anthropic-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 import { attachmentRefBytes, isDriveRef } from '@/lib/storage/attachment-bytes'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 // Model ids come from one place so an env override actually takes effect here too.
@@ -1023,8 +1024,8 @@ export async function runNexusAnalysisPhase1(
   state: NexusPhase1State
   preview: { stakeholders: number; timelineEvents: number; openQuestions: number; missingItems: number; caseSummary: string }
 }> {
-  const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  const geminiKey = agentKey('crm').key
+  if (!geminiKey) throw new Error('No Gemini key for the Client relationships agent')
 
   // 1. Fetch all case_threads with messages
   const ctRes = await fetch(
@@ -1699,8 +1700,8 @@ export async function runNexusAnalysisPhase3(
   triggeredBy: string | null | undefined,
   runStartedAtMs: number,
 ): Promise<{ analysis: NexusAnalysis; caseAnalysisId: string | null }> {
-  const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!geminiKey) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  const geminiKey = agentKey('crm').key
+  if (!geminiKey) throw new Error('No Gemini key for the Client relationships agent')
   const anthropicKey = process.env.ANTHROPIC_API_KEY
 
   const {

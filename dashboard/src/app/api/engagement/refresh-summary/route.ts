@@ -5,6 +5,7 @@ import { logError }                 from '@/lib/error-log'
 import { requireStaffOrCron }       from '@/lib/api-auth'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
@@ -30,8 +31,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'thread_id and message_id required' }, { status: 400 })
   }
 
-  const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
+  const key = agentKey('housekeeping').key
+  if (!key) return NextResponse.json({ error: 'No Gemini key for the Housekeeping agent' }, { status: 500 })
 
   // 1. Fetch thread messages
   const msgsRes = await fetch(

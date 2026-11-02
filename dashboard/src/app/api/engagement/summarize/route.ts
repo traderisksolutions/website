@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logError } from '@/lib/error-log'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -26,8 +27,8 @@ export async function POST(req: NextRequest) {
         messages:    MsgSnippet[]
       }
 
-    const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!key) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
+    const key = agentKey('housekeeping').key
+    if (!key) return NextResponse.json({ error: 'No Gemini key for the Housekeeping agent' }, { status: 500 })
 
     const thread = messages
       .map(m => {

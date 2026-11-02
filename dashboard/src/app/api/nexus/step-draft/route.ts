@@ -13,6 +13,7 @@ import { logError }                  from '@/lib/error-log'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
@@ -53,8 +54,8 @@ export async function POST(req: NextRequest) {
     }
     if (!action || !to_email) return NextResponse.json({ error: 'action and to_email required' }, { status: 400 })
 
-    const apiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!apiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
+    const apiKey = agentKey('crm').key
+    if (!apiKey) return NextResponse.json({ error: 'No Gemini key for the Client relationships agent' }, { status: 500 })
 
     // Case brief for grounding (from the latest stored analysis).
     let caseBrief: unknown = null

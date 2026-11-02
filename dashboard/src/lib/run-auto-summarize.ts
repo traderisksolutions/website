@@ -4,6 +4,7 @@ import { runRagDraft }           from '@/lib/run-rag-draft'
 import { fetchKnowledgeDocs }    from '@/lib/gdrive-knowledge'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 // Same model as the Refresh button. These two write the SAME thread_summaries row, so running
@@ -22,8 +23,8 @@ type SummaryRow  = { summary: string; next_action: string | null; created_at: st
 type FeedbackRow = { original_draft: string | null; final_sent: string | null }
 
 export async function runAutoSummarize(thread_id: string, message_id: string): Promise<void> {
-  const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  const key = agentKey('housekeeping').key
+  if (!key) throw new Error('No Gemini key for the Housekeeping agent')
 
   // 1. All messages in thread (oldest first)
   const msgsRes = await fetch(

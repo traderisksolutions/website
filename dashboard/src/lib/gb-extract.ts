@@ -125,8 +125,8 @@ export async function extractWithDeep(pdfBase64: string, profileHint: string): P
 
 // ── B. Gemini (inline PDF) ──────────────────────────────────────────────────────
 export async function extractWithGemini(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
-  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) return { data: EMPTY, raw: '', error: 'GEMINI key not set' }
+  const key = agentKey('pricingmatrix').key
+  if (!key) return { data: EMPTY, raw: '', error: 'No Gemini key for the Employment benefits agent' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_FLASH)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

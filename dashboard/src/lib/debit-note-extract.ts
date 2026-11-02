@@ -12,6 +12,7 @@
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 import { logAiUsage } from '@/lib/gemini-usage'
 import { toIsoDocumentDate } from '@/lib/dates/dob'
+import { agentKey } from '@/lib/ai-agents'
 
 export type DocType = 'client_invoice' | 'commission_statement' | 'trs_debit_note' | 'other'
 
@@ -119,8 +120,8 @@ function safeParse(text: string): ExtractedDebitNote | null {
 }
 
 export async function extractDebitNoteFromPdf(pdfBase64: string): Promise<{ data: ExtractedDebitNote; raw: string; error?: string }> {
-  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) return { data: EMPTY, raw: '', error: 'GEMINI key not set' }
+  const key = agentKey('housekeeping').key
+  if (!key) return { data: EMPTY, raw: '', error: 'No Gemini key for the Housekeeping agent' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_FLASH)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

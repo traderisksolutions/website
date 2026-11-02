@@ -25,6 +25,7 @@ import { parseEmlSmart }             from '@/lib/parse-eml'
 import { logError }                  from '@/lib/error-log'
 import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
+import { agentKey } from '@/lib/ai-agents'
 
 export const maxDuration = 300
 
@@ -504,9 +505,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: 'missing fields' })
     }
 
-    const apiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+    const apiKey = agentKey('crm').key
     if (!apiKey) {
-      console.warn('[nexus/extract] GEMINI_API_KEY_DRAFT_EMAIL not set — skipping image descriptions')
+      console.warn('[nexus/extract] no Gemini key for the Client relationships agent — skipping image descriptions')
     }
 
     // Idempotency: skip if already extracted for this message

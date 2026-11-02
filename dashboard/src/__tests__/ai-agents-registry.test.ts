@@ -73,3 +73,23 @@ describe('agent registry', () => {
     expect(AGENTS.pricingmatrix.model).toBe('gemini-3.8-flash')
   })
 })
+
+describe('key resolution', () => {
+  it('no call site reads a Gemini key variable directly; every one asks agentKey() for its agent', async () => {
+    // A direct read bypasses the per-agent key, so that agent's spend lands on the shared key no
+    // matter which keys are set. Only the resolver itself may read the variables.
+    const { readdirSync, readFileSync, statSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const offenders: string[] = []
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name)
+        if (statSync(p).isDirectory()) { if (name !== '__tests__') walk(p); continue }
+        if (!/\.tsx?$/.test(name) || p.endsWith('lib/ai-agents.ts')) continue
+        if (/process\.env\.GEMINI_API_KEY/.test(readFileSync(p, 'utf8'))) offenders.push(p)
+      }
+    }
+    walk(join(process.cwd(), 'src'))
+    expect(offenders).toEqual([])
+  })
+})

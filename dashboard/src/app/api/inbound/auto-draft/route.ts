@@ -6,6 +6,7 @@ import { sendGmailNotification } from '@/lib/gmail-send'
 import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
 import { logError } from '@/lib/error-log'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
@@ -99,8 +100,8 @@ export async function POST(req: NextRequest) {
     const { leadId, force } = await req.json() as { leadId: string; force?: boolean }
     if (!leadId) return NextResponse.json({ error: 'leadId required' }, { status: 400 })
 
-    const geminiKey = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!geminiKey) return NextResponse.json({ error: 'GEMINI_API_KEY_DRAFT_EMAIL not set' }, { status: 500 })
+    const geminiKey = agentKey('crm').key
+    if (!geminiKey) return NextResponse.json({ error: 'No Gemini key for the Client relationships agent' }, { status: 500 })
 
     // Fetch lead
     const leadRes = await fetch(

@@ -7,12 +7,13 @@
 import { GEMINI_FLASH, geminiUrl } from '@/lib/gemini-models'
 import { logGeminiUsage, logAnthropicUsage, type AiFeature } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
+import { agentKey } from '@/lib/ai-agents'
 
 export const OPUS_MODEL = 'claude-opus-4-8'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
 export function geminiKey(): string | null {
-  return process.env.GEMINI_API_KEY_DRAFT_EMAIL || process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY || null
+  return agentKey('crm').key
 }
 
 export function anthropicKey(): string | null {

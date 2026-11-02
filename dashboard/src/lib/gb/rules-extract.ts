@@ -17,6 +17,7 @@ import { logAiUsage } from '@/lib/gemini-usage'
 import { GEMINI_PRO, GEMINI_DEEP, GEMINI_LITE, geminiUrl } from '@/lib/gemini-models'
 import { callGemini, type Part } from '@/lib/ai-call'
 import { logError } from '@/lib/error-log'
+import { agentKey } from '@/lib/ai-agents'
 
 export type RuleStep =
   | { type: 'age_band_lookup'; id: string; coverage_code: string; plan_field: string; output: string; source_ref?: string }
@@ -160,8 +161,8 @@ async function deepExtract(dump: unknown, brochureBase64?: string): Promise<{ ru
 }
 
 async function geminiExtract(dump: unknown, brochureBase64?: string): Promise<{ rules: RuleStep[] | null; error?: string }> {
-  const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) return { rules: null, error: 'GEMINI key not set' }
+  const key = agentKey('pricingmatrix').key
+  if (!key) return { rules: null, error: 'No Gemini key for the Employment benefits agent' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_PRO)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

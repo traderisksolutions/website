@@ -25,6 +25,7 @@ import { fetchAttachmentContext } from '@/lib/thread-attachment-context'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { geminiUrl, GEMINI_FLASH, GEMINI_LITE, GEMINI_EMBED } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
+import { agentKey } from '@/lib/ai-agents'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -81,8 +82,8 @@ const VALID_TYPES = ['PRICING', 'COVERAGE', 'RENEWAL', 'DOCUMENT', 'CLAIMS', 'CO
 type EmailType = typeof VALID_TYPES[number]
 
 export async function runRagDraft(thread_id: string, message_id: string, contactName?: string | null): Promise<void> {
-  const key = process.env.GEMINI_API_KEY_DRAFT_EMAIL
-  if (!key) throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  const key = agentKey('crm').key
+  if (!key) throw new Error('No Gemini key for the Client relationships agent')
 
   // 1. Fetch thread messages
   const msgsRes = await fetch(

@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { GEMINI_FLASH, geminiUrl }   from '@/lib/gemini-models'
 import { parseCalendarDate } from '@/lib/dates/dob'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 function sbH() {
@@ -38,8 +39,8 @@ export async function POST(req: NextRequest) {
     const unique = sheets.filter(s => (seen.has(s.filename) ? false : (seen.add(s.filename), true)))
     if (unique.length === 0) return NextResponse.json({ members: [], files: [], error: 'No spreadsheet (xlsx/csv) census attachment found on this thread.' })
 
-    const key = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS || process.env.GEMINI_API_KEY_DRAFT_EMAIL
-    if (!key) return NextResponse.json({ error: 'GEMINI key not set' }, { status: 500 })
+    const key = agentKey('group_benefit').key
+    if (!key) return NextResponse.json({ error: 'No Gemini key for the Group benefits agent' }, { status: 500 })
 
     const corpus = unique.map(s => `# FILE: ${s.filename}\n${(s.parsed_text ?? '').slice(0, 20000)}`).join('\n\n')
     const prompt = `You are extracting a group-insurance employee census from spreadsheet data (already converted to CSV). Column names/order vary per client — map them yourself.

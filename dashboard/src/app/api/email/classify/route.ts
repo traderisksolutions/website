@@ -17,6 +17,7 @@ import { waitUntil } from '@vercel/functions'
 import { internalHeaders } from '@/lib/api-gate/internal'
 import { shouldAutoPlace, AUTO_PLACE_CONFIDENCE } from '@/lib/placement/auto'
 import { titleThreadIfNeeded } from '@/lib/crm/thread-title'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     const { thread_id, message_id } = await req.json().catch(() => ({})) as { thread_id?: string; message_id?: string }
     if (!thread_id) return NextResponse.json({ ok: true, skipped: 'no thread_id' })
 
-    const apiKey = process.env.GEMINI_API_KEY_EMAIL_ANALYSIS
+    const apiKey = agentKey('housekeeping').key
     if (!apiKey) return NextResponse.json({ ok: true, skipped: 'no key' })
 
     // Subject + latest inbound body for context.

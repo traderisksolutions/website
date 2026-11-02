@@ -6,6 +6,7 @@
 import { createSign }       from 'crypto'
 import { logEmbeddingUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
+import { agentKey } from '@/lib/ai-agents'
 
 const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const DRIVE_API = 'https://www.googleapis.com/drive/v3'
@@ -198,9 +199,9 @@ export type IndexResult = {
 }
 
 export async function runRagIndex(force = false, folderFilter?: string): Promise<IndexResult> {
-  const apiKey   = process.env.GEMINI_API_KEY_DRAFT_EMAIL
+  const apiKey   = agentKey('crm').key
   const embedKey = process.env.GEMINI_VECTOR_UPLOAD ?? apiKey
-  if (!apiKey)   throw new Error('GEMINI_API_KEY_DRAFT_EMAIL not set')
+  if (!apiKey)   throw new Error('No Gemini key for the Client relationships agent')
   if (!embedKey) throw new Error('GEMINI_VECTOR_UPLOAD not set')
 
   const result: IndexResult = { indexed: [], skipped: [], deleted: [], errors: [], totalChunks: 0 }
