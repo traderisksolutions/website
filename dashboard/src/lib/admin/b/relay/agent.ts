@@ -111,6 +111,13 @@ async function route(side: 'client' | 'insurer', d: CaseData, line: string | nul
 
 type Made = { kind: RelayKind; draftId: string; to: string[] }
 
+/** Pure. What the placement module's read of a message did: anything but a logged question or "other" is acting on it. */
+export function placementActed(detail: string | null | undefined): boolean {
+  if (!detail) return true
+  const kinds = String(detail).split(',').map(x => x.trim())
+  return kinds.some(k => ['quote', 'decline', 'confirmation', 'info_request', 'change', 'tiers', 'acceptance', 'quote linked', 'request copy linked', 'outbound noted', 'queued for a broker'].includes(k))
+}
+
 /**
  * The letters the binding gate asks for, generated from the case and filed in the data room:
  * the letter of undertaking when cover is backdated, the appointment letter when another broker
@@ -153,8 +160,14 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   const [msg] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,from_address,subject,body_text,sent_at&limit=1`, [])
   if (!msg) { await skip(task.id, 'message not found'); return 'handled' }
   // A thread the placement module sent a request on, or the client thread of an open placement,
-  // is answered by that module: one reader, one draft.
-  if (await dispatchForThread(msg.thread_id, null) || await placementForClientThread(msg.thread_id)) { await skip(task.id, 'placement module owns this thread'); return 'handled' }
+  // is answered by that module when it acted on the message: a quote, a decline, a change of ask,
+  // more options, an acceptance. What it only logged (a question, a signed form, "other") is the
+  // relay's to answer, or nothing would be. The module reads first; the relay waits for it.
+  if (await dispatchForThread(msg.thread_id, null) || await placementForClientThread(msg.thread_id)) {
+    const [p] = await sbTry<Row[]>(`agent_tasks?agent=eq.placement&kind=eq.inbound&message_id=eq.${enc(msg.id)}&select=status,result&limit=1`, [])
+    if (p && ['queued', 'running'].includes(p.status)) throw new Error('waiting for the placement module to read this message')
+    if (placementActed(p?.result?.detail)) { await skip(task.id, `placement module acted (${p?.result?.detail})`); return 'handled' }
+  }
   let workItemId = (task.payload?.work_item_id ?? task.work_item_id ?? null) as string | null
   if (!workItemId) {
     const [l] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(msg.thread_id)}&select=work_item_id&limit=1`, [])

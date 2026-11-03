@@ -58,3 +58,15 @@ describe('isBulkMail: insurer circulars to intermediaries', () => {
     expect(isBulkMail('Re: Quote slip', 'Dear Nathan, please find the slip attached. Regards')).toBe(false)
   })
 })
+
+describe('relay and placement', () => {
+  it('stands aside only when the placement module acted on the message', async () => {
+    const { placementActed } = await import('@/lib/admin/b/relay/agent')
+    expect(placementActed('quote')).toBe(true)
+    expect(placementActed('decline')).toBe(true)
+    expect(placementActed('acceptance')).toBe(true)
+    expect(placementActed('other')).toBe(false)
+    expect(placementActed('question')).toBe(false)
+    expect(placementActed('unread')).toBe(false)
+  })
+})

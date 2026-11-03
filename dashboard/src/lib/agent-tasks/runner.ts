@@ -10,6 +10,17 @@ const HANDLERS = new Map<AgentName, Handler>()
 
 export function register(agent: AgentName, handler: Handler) { HANDLERS.set(agent, handler) }
 
+/** Runs one task already chosen by the caller (a supervised run on named messages). */
+export async function runOne(t: AgentTask): Promise<'done' | 'other' | 'failed'> {
+  const h = HANDLERS.get(t.agent)
+  try {
+    if (!h) throw new Error(`no handler for ${t.agent}`)
+    const r = await h(t)
+    if (r === 'handled') return 'other'
+    await finish(t.id, r ?? {}); return 'done'
+  } catch (e) { await fail(t, e instanceof Error ? e.message : String(e)); return 'failed' }
+}
+
 /** Drains up to `budgetMs` of work. Returns counts for the cron log. */
 export async function drain(opts: { agents?: AgentName[]; budgetMs?: number; batch?: number } = {}) {
   const until = Date.now() + (opts.budgetMs ?? 240_000)
