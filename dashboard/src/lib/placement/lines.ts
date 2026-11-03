@@ -23,7 +23,7 @@ export type LineSpec = {
   /** How many insurers one round asks, by the size of the risk. */
   markets: (ctx: { contractValue: number | null }) => number
   /** Nathan's order of approach, as name fragments; insurers not listed come after, in file order. */
-  preferred: (ctx: { contractValue: number | null }) => string[]
+  preferred: (ctx: { contractValue: number | null; spec?: Spec }) => string[]
   /** Working days the insurers are given to quote. */
   deadlineWorkingDays: number
   /** What the client is asked for before the market is approached. */
@@ -325,6 +325,63 @@ function motorSubmission(i: SubmissionInput): string {
   ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
 }
 
+// ── Liability (Nathan's, Catherine's and Hasya's requests, Jun–Oct 2026) ──
+// Four flows behind one product: a contract or tender that names the cover (the clause decides the
+// limit, the insured parties and completed operations), a landlord or MCST that requires it, an
+// annual business policy (often an SME package with property and WICA), and product liability for
+// specialist risks, where most markets decline on appetite.
+const LIABILITY_FIELDS = [
+  f('purpose', 'Purpose', 'annual business cover, a project or contract, a landlord or MCST requirement, an event, or product liability'),
+  f('requirement', 'Requirement clause', 'the contract, tender, lease or MCST clause naming the cover, verbatim'),
+  f('business', 'Business activities', 'what the insured does, in two or three lines'),
+  f('limit', 'Limit of liability', 'per occurrence and in the aggregate, verbatim'),
+  f('insureds', 'Insured parties', 'principal, landlord, MCST or co-insureds the requirement names'),
+  f('location', 'Location of works or premises', 'address'),
+  f('period', 'Period', 'annual, or the project period plus any completed-operations period'),
+  f('turnover', 'Turnover', 'last financial year and the next 12 months'),
+  f('products', 'Products and export territories', 'for product liability: products, sales by country, any USA or Canada exposure'),
+  f('uen', 'UEN', 'the company registration number'),
+  f('claims_history', 'Claims history, last 3 years', 'or "nil"'),
+  f('existing_cover', 'Existing cover', 'expiring PL, or the CAR policy whose third party section the requirement does not accept'),
+  f('start_date', 'Inception', 'YYYY-MM-DD'),
+]
+
+function liabilitySubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : `Do let us know if you are keen to quote the following liability risk for ${i.clientName}:`,
+    '',
+    line('Insured', i.spec.insured ?? i.clientName),
+    line('UEN', x.uen),
+    line('Purpose', x.purpose),
+    line('Business activities', x.business ?? i.spec.scope),
+    line('Location', x.location),
+    line('Limit of liability', x.limit ?? i.spec.limit),
+    line('Period of insurance', x.period ?? `12 months from ${fmtDate(x.start_date ?? i.inceptionDate) ?? 'a date to be confirmed'}`),
+    line('Insured parties', x.insureds),
+    x.requirement ? `Insurance required:\n${x.requirement}` : null,
+    line('Turnover', x.turnover),
+    line('Products and territories', x.products),
+    line('Existing cover', x.existing_cover),
+    line('Claims history, last three years', x.claims_history),
+    i.spec.extras ? `Extensions requested: ${i.spec.extras}` : null,
+    i.spec.notes ? `Notes: ${i.spec.notes}` : null,
+    '',
+    x.requirement || x.insureds ? 'Kindly confirm the wording meets the requirement above and that the parties named can be included, with the estimated premium.' : 'Kindly advise the estimated premium and any further information you need.',
+    'The completed proposal form is attached.',
+    i.deadline ? `We would appreciate your terms by ${fmtDate(i.deadline)}.` : 'We would appreciate your terms within 5 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+/** Which liability flow a request is: decides the panel. */
+export function liabilityFlow(spec: Spec | undefined): 'contract' | 'products' | 'sme' {
+  const x = spec?.fields ?? {}
+  const t = `${x.purpose ?? ''} ${x.products ?? ''} ${x.business ?? ''}`.toLowerCase()
+  if (/product|export|usa|canada|medical device|life science|supplement|aviation|drone|autonomous|battery|chemical/.test(t)) return 'products'
+  if (x.requirement || /project|contract|tender|renovation|mcst|landlord|works|award/.test(t)) return 'contract'
+  return 'sme'
+}
+
 const bySize = (small: number, mid: number, large: number) => ({ contractValue }: { contractValue: number | null }) => contractValue == null ? small : contractValue >= 50_000_000 ? large : contractValue >= 10_000_000 ? mid : small
 
 const CONSTRUCTION_SMALL = ['EQ Insurance', 'India International', 'Zurich', 'Great American', 'Chubb', 'Tokio Marine', 'ECICS', 'Liberty', 'ERGO']
@@ -351,7 +408,18 @@ export const LINE_SPECS: Record<string, LineSpec> = {
   imi: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['BHSI', 'Chubb', 'Berkley'], documentsToAsk: ['Completed proposal form', 'Private placement memorandum', 'Audited accounts and interims', 'Expiring policy schedule'], submission: i => financialSubmission(i, 'investment management insurance') },
   cyber: { family: 'financial', fields: FINANCIAL_FIELDS, required: ['business', 'limit', 'revenue'], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Chubb', 'Delta', 'Allianz', 'MSIG', 'APRIL'], documentsToAsk: ['Completed cyber proposal form', 'Revenue and headcount', 'Expiring policy schedule'], submission: i => financialSubmission(i, 'cyber insurance') },
   medical_malpractice: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 2, deadlineWorkingDays: 5, preferred: () => ['Chubb'], documentsToAsk: ['Completed proposal form', 'Practitioner list', 'Claims history, 5 years'], submission: i => financialSubmission(i, 'medical malpractice insurance') },
-  general_liability: { family: 'liability', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['EQ Insurance', 'Chubb', 'Great American', 'Tokio Marine', 'Zurich', 'Berkley', 'Great Eastern', 'Allianz', 'Liberty'], documentsToAsk: ['Contract clause or tender requirement naming the limit', 'Turnover, last financial year', 'Claims history, 3 years'] },
+  general_liability: {
+    family: 'liability', fields: LIABILITY_FIELDS, deadlineWorkingDays: 5, required: ['purpose', 'business', 'limit'], submission: liabilitySubmission,
+    // Specialist product risks decline in most markets: ask more of them, the casualty specialists first.
+    markets: () => 3,
+    preferred: ({ spec }) => {
+      const flow = liabilityFlow(spec)
+      if (flow === 'products') return ['Chubb', 'AXA XL', 'BHSI', 'AIG', 'Berkley', 'Zurich']
+      if (flow === 'contract') return ['EQ Insurance', 'Chubb', 'Liberty', 'HLAS', 'Tokio Marine', 'Great American', 'Zurich', 'Great Eastern']
+      return ['Great Eastern', 'MSIG', 'Liberty', 'HLAS', 'EQ Insurance', 'Chubb', 'Allianz']
+    },
+    documentsToAsk: ['The contract, tender, lease or MCST clause that requires the cover, if any', 'Completed public liability proposal form', 'Business activities and turnover, last year and next 12 months', 'Claims history, last 3 years', 'For products: products, sales by country, any USA or Canada exposure'],
+  },
   iar_fire: { family: 'property', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Allianz', 'Great Eastern', 'China Taiping', 'ECICS', 'EQ Insurance', 'HLAS', 'Liberty', 'Sompo', 'ERGO'], documentsToAsk: ['Sums insured by location', 'Construction, occupancy and fire protection', 'Claims history, 3 years'] },
   wica: { family: 'workforce', fields: WICA_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Liberty', 'Allianz', 'EQ Insurance', 'Zurich', 'Chubb', 'Income', 'Great Eastern', 'MSIG'], documentsToAsk: ['Headcount by category of work, with estimated annual wages', 'Nature of business and UEN', 'Claims history, last 3 years'], required: ['business', 'categories', 'start_date'], submission: wicaSubmission },
   foreign_worker_medical: { family: 'workforce', fields: FWMI_FIELDS, markets: () => 3, deadlineWorkingDays: 3, preferred: () => ['Great Eastern', 'QBE', 'Income', 'Liberty', 'MSIG', 'Raffles Health', 'Tokiomarine Life'], documentsToAsk: ['Worker list with work permit numbers, nationality and date of birth', 'Plan: MOM minimum or enhanced', 'Whether a foreign worker bond is needed'], required: ['worker_count', 'worker_list', 'start_date'], submission: fwmiSubmission },
@@ -403,6 +471,7 @@ const ASK: Record<string, string> = {
   beneficiary: 'The letter of award and the bond wording the beneficiary requires',
   bond_type: 'The letter of award and the bond wording the beneficiary requires',
   limit: 'The limit of liability required',
+  purpose: 'Why the cover is needed: annual business cover, a project or contract (please send the clause that requires it), a landlord or MCST requirement, an event, or product liability',
   revenue: 'Revenue for the last financial year',
 }
 
@@ -436,7 +505,7 @@ export function pickPanel(productLine: string, spec: Spec, insurers: string[]): 
   const s = LINE_SPECS[productLine]
   const distinct = Array.from(new Set(insurers))
   if (!s) return distinct
-  const pref = s.preferred({ contractValue: contractValueOf(spec) }).map(p => p.toLowerCase())
+  const pref = s.preferred({ contractValue: contractValueOf(spec), spec }).map(p => p.toLowerCase())
   const rank = (name: string) => { const n = name.toLowerCase(); const i = pref.findIndex(p => n.includes(p)); return i < 0 ? pref.length : i }
   const ordered = distinct.map((name, i) => ({ name, r: rank(name), i })).sort((a, b) => a.r - b.r || a.i - b.i).map(x => x.name)
   return ordered.slice(0, s.markets({ contractValue: contractValueOf(spec) }))

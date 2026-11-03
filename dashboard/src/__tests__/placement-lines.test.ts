@@ -52,7 +52,7 @@ describe('the construction submission', () => {
   })
   it('is null for a line without a block, a named insurer, or several lines', () => {
     const base = { insurerName: null, contactName: null, clientName: 'X', roundNo: 1, changeSummary: null, previousPremium: null, inceptionDate: null, memory: '' }
-    expect(fixedSubmission({ ...base, lines: [{ label: 'PL', productLine: 'general_liability', spec: {} }] })).toBeNull()
+    expect(fixedSubmission({ ...base, lines: [{ label: 'IAR', productLine: 'iar_fire', spec: {} }] })).toBeNull()
     // WICA has its own block since 3 Nov 2026 (the format Catherine sent insurers).
     expect(fixedSubmission({ ...base, lines: [{ label: 'WICA', productLine: 'wica', spec: {} }] })).not.toBeNull()
     expect(fixedSubmission({ ...base, insurerName: 'Example Insurer', lines: [{ label: 'CAR', productLine: 'construction_car', spec: car }] })).toBeNull()

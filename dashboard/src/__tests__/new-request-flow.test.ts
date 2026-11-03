@@ -89,3 +89,29 @@ describe('the 90-day renewal data request', () => {
     expect(buildDraft('renewal_notice', { title: 'Renewal', className: 'Policy', expiry: '2026-12-31' } as never).body).toMatch(/Please confirm any changes since the last renewal/)
   })
 })
+
+describe('liability', () => {
+  it('tells the four flows apart and picks the panel by flow', async () => {
+    const { liabilityFlow, pickPanel } = await import('@/lib/placement/lines')
+    const contract = { fields: { purpose: 'MCST requires standalone PL for office renovation', requirement: 'Standalone PL S$2m', business: 'Renovation contractor', limit: 'S$2,000,000' } }
+    const products = { fields: { purpose: 'product liability', business: 'Health supplements, exported to the USA', limit: 'S$5,000,000' } }
+    const sme = { fields: { purpose: 'annual business cover', business: 'Retail mobile phone shop', limit: 'S$1,000,000' } }
+    expect(liabilityFlow(contract)).toBe('contract')
+    expect(liabilityFlow(products)).toBe('products')
+    expect(liabilityFlow(sme)).toBe('sme')
+    const all = ['Great Eastern General', 'MSIG Insurance', 'EQ Insurance', 'Chubb Insurance', 'AXA XL', 'BHSI', 'Liberty', 'HLAS']
+    expect(pickPanel('general_liability', contract, all)[0]).toBe('EQ Insurance')
+    expect(pickPanel('general_liability', products, all)).toEqual(['Chubb Insurance', 'AXA XL', 'BHSI'])
+    expect(pickPanel('general_liability', sme, all)[0]).toBe('Great Eastern General')
+  })
+  it('holds a request with no purpose, and asks why the cover is needed', () => {
+    expect(missingData('general_liability', { fields: { business: 'Events', limit: 'S$1m' } }, null)).toEqual(['Purpose'])
+    expect(missingAsks('general_liability', { fields: { business: 'Events', limit: 'S$1m' } }, null)[0]).toMatch(/^Why the cover is needed/)
+  })
+  it('quotes the requirement clause and asks the insurer to confirm the parties', () => {
+    const t = sub('general_liability', { purpose: 'Contract requirement', business: 'M&E works', limit: 'S$2 mil per occurrence', requirement: 'Commercial general liability of not less than $2,000,000 per occurrence', insureds: 'the Principal as additional insured', period: '1 Sep 2026 to 31 Aug 2027 + 24 months completed operations' })
+    expect(t).toMatch(/Insurance required:\nCommercial general liability/)
+    expect(t).toMatch(/Kindly confirm the wording meets the requirement above and that the parties named can be included/)
+    expect(t).toMatch(/Period of insurance: 1 Sep 2026 to 31 Aug 2027 \+ 24 months completed operations/)
+  })
+})
