@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, ThreadModal, DocModal, fmtDate, fmtWhen } from '@/components/assistant/shared'
 import { STAGES, STAGE_LABEL, isStage } from '@/lib/cases/stage'
+import { classify, defaultSchedule, expectsReply } from '@/lib/followups/rules'
 import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
@@ -25,6 +26,14 @@ const FLOW_TIP: Record<RenewalFlow, string> = {
   adjust: 'Adjust: between the thresholds, exposure moved, a claim with no amount, or always marketed. Ask the current insurer and two others. Open the renewal method.',
   increase: 'Increase: loss ratio over the increase threshold or an insurer rate note. Ask the full panel and warn the client. Open the renewal method.',
   no_data: 'No data: no premium or no claims experience on file. Ask the insurer for terms and the claims experience. Open the renewal method.',
+}
+const CHASE_DAYS = [0, 2, 3, 5, 7, 10, 14]
+/** The chase a draft gets unless the person changes it: the default for its party and type. */
+function chaseDefault(d: { party: string | null; kind: string | null; subject: string; body: string } | null): { days: number; auto: boolean } {
+  if (!d) return { days: 0, auto: false }
+  const party = d.party === 'insurer' ? 'insurer' : d.party === 'client' ? 'client' : 'other'
+  const type = classify({ subject: d.subject, body: d.body, party, draftKind: d.kind })
+  return { days: expectsReply(type, d.body) ? defaultSchedule(party, type).firstAfterDays : 0, auto: false }
 }
 const START_LABEL: Record<string, string> = { new_request: 'New request', midway: 'Picked up midway', renewal: 'Renewal' }
 
@@ -57,6 +66,8 @@ export default function ReviewPage() {
   const [thread, setThread] = useState<string | null>(null)
   const [doc, setDoc] = useState<{ title: string; drive_url: string | null } | null>(null)
   const [editing, setEditing] = useState(false)
+  // The chase a person sets before sending: days until the first chase (0 = none), and whether chases go out without asking again.
+  const [chase, setChase] = useState<{ days: number; auto: boolean } | null>(null)
   const [waiving, setWaiving] = useState<string | null>(null)
   const [waiveNote, setWaiveNote] = useState('')
 
@@ -107,8 +118,11 @@ export default function ReviewPage() {
     await saveAll()
     const sent: string[] = []
     const { draftId } = await work({ action: 'prepare_send' })
-    await callApi('/api/email/send', { method: 'POST', body: { draftId, ...recipients(main ?? item.draft), attachments: withRefs(item.draft.attachments) } })
+    const out = await callApi<{ gmailMessageId?: string }>('/api/email/send', { method: 'POST', body: { draftId, ...recipients(main ?? item.draft), attachments: withRefs(item.draft.attachments) } })
     sent.push(item.draft.to)
+    // The chase set here travels with the email; a failure to record it never undoes the send.
+    const c = chase ?? chaseDefault(item.draft)
+    if (out?.gmailMessageId) await callApi('/api/followups', { method: 'POST', body: { draft_id: draftId, gmail_message_id: out.gmailMessageId, days: c.days, auto: c.auto } }).catch(() => null)
     for (const p of item.paired.filter(x => include[x.id])) {
       try {
         const { draftId: pid } = await callApi<{ draftId: string }>(`/api/drafts/${p.id}`, { method: 'POST', body: { action: 'prepare' } })
@@ -187,6 +201,15 @@ export default function ReviewPage() {
             {item.draft
               ? <>
                   <Btn disabled={busy !== null} loading={busy === 'save'} onClick={() => void run('save', async () => { await saveAll(); load(); return 'Draft saved.' })}>Save draft</Btn>
+                  {(() => { const c = chase ?? chaseDefault(item.draft); return (
+                    <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">
+                      <label className="inline-flex items-center gap-1.5">Chase if no reply
+                        <select aria-label="Chase if no reply" value={c.days} onChange={e => setChase({ ...c, days: Number(e.target.value) })} className="h-8 rounded-[6px] border border-trs-line bg-white px-2 text-[13px] text-trs-ink">
+                          {CHASE_DAYS.map(d => <option key={d} value={d}>{d === 0 ? 'No chase' : `after ${d} ${item.draft?.party === 'insurer' ? 'working ' : ''}day${d === 1 ? '' : 's'}`}</option>)}
+                        </select>
+                      </label>
+                      {c.days > 0 && <label className="inline-flex items-center gap-1.5" title="Up to 3 chases on the same thread, weekdays 08:00 to 18:30, through the auto-sender's limits"><input type="checkbox" checked={c.auto} onChange={e => setChase({ ...c, auto: e.target.checked })} />Send chases without asking me</label>}
+                    </span>) })()}
                   <Btn level="primary" disabled={busy !== null} loading={busy === 'send'} onClick={() => void send()}>
                     {forward && item.insurer_name ? `Forward to ${item.insurer_name}` : `Send ${sending} email${sending === 1 ? '' : 's'}`}
                   </Btn>

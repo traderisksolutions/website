@@ -42,7 +42,7 @@ export function canSwitchOn(row: Pick<LadderRow, 'status' | 'approvals_unedited'
 export type DraftForSend = {
   id: string; status: string; channel: string | null; email_type: string | null; draft_class: string | null
   to_email: string | null; cc: string | null; thread_id: string | null; work_item_id: string | null
-  context_used: { kind?: string } | null; sent_by_agent?: boolean | null
+  context_used: { kind?: string; preapproved?: boolean } | null; sent_by_agent?: boolean | null
 }
 export type ItemForSend = { id: string; needs_human: string | null; closed_at: string | null; later_until: string | null; later_when: string | null } | null
 
@@ -62,9 +62,12 @@ export function eligibility(d: DraftForSend, item: ItemForSend, ladder: Map<stri
   if (d.channel && d.channel !== 'email') return { ok: false, reason: 'not an email' }
   if (d.sent_by_agent) return { ok: false, reason: 'already sent by an agent' }
   if (!d.draft_class) return { ok: false, reason: 'no draft class' }
+  // A follow-up chase the sender approved together with the original email (Today, chase set to
+  // send without asking): the person's approval stands in for the ladder. Every other check holds.
+  const preapproved = d.draft_class === 'followup_chase' && d.context_used?.kind === 'followup_chase' && d.context_used?.preapproved === true
   const row = ladder.get(d.draft_class)
-  if (!row || row.status !== 'auto') return { ok: false, reason: `class ${d.draft_class} is ${row?.status ?? 'unknown'}` }
-  if (d.context_used?.kind && NEVER_AUTO_KINDS.has(d.context_used.kind)) return { ok: false, reason: `kind ${d.context_used.kind} never auto-sends` }
+  if (!preapproved && (!row || row.status !== 'auto')) return { ok: false, reason: `class ${d.draft_class} is ${row?.status ?? 'unknown'}` }
+  if (!preapproved && d.context_used?.kind && NEVER_AUTO_KINDS.has(d.context_used.kind)) return { ok: false, reason: `kind ${d.context_used.kind} never auto-sends` }
   if (d.email_type && NEVER_AUTO_TYPES.has(d.email_type)) return { ok: false, reason: `type ${d.email_type} never auto-sends` }
   if (!d.thread_id) return { ok: false, reason: 'no thread: a new conversation needs a person' }
   if (!d.work_item_id || !item) return { ok: false, reason: 'no case' }

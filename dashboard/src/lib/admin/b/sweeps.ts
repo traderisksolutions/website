@@ -24,6 +24,7 @@ import { stageIndex, isStage } from '@/lib/cases/stage'
 import { getRenewalPack } from '@/lib/policies/ledger'
 import { syncAllStages } from '@/lib/cases/sync'
 import { renewalMethod, lineKey } from '@/lib/methods/method'
+import { runFollowups } from '@/lib/followups/monitor'
 
 const NO_RENEWAL = new Set(['car', 'bond'])
 
@@ -155,7 +156,9 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
   const placements = await runPlacementChases(nowDate).catch(e => { console.error('[chaser] placements', e instanceof Error ? e.message : e); return { drafted: 0, skipped: 0 } })
   const movements = await runMovementChases(nowDate).catch(e => { console.error('[chaser] movements', e instanceof Error ? e.message : e); return { drafted: 0, skipped: 0 } })
   const batches = await chaseBatches(nowDate).catch(e => { console.error('[chaser] batches', e instanceof Error ? e.message : e); return 0 })
-  return { chases: tasks.length - documentChases, documentChases, stalled, released, escalated, placements: placements.drafted, movements: movements.drafted, batches }
+  // Every email TRS sent that waits on a reply: registered, replies marked, chases drafted when due.
+  const followups = await runFollowups(nowDate).catch(e => { console.error('[chaser] followups', e instanceof Error ? e.message : e); return null })
+  return { chases: tasks.length - documentChases, documentChases, stalled, released, escalated, placements: placements.drafted, movements: movements.drafted, batches, followups }
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

@@ -42,9 +42,11 @@ export async function autoSendRun(opts: { now?: Date; force?: boolean } = {}): P
   const off = killSwitch()
   const ladder = ladderMap(await loadLadder())
   const autoClasses = Array.from(ladder.values()).filter(r => r.status === 'auto').map(r => r.draft_class)
-  if (!autoClasses.length || off) return { ...out, skipped: off ? 'AUTONOMY_AUTOSEND=off' : 'no class is on auto' }
+  if (off) return { ...out, skipped: 'AUTONOMY_AUTOSEND=off' }
+  // Follow-up chases a person approved with the original email go out on their schedule too.
+  const classes = Array.from(new Set([...autoClasses, 'followup_chase']))
 
-  const drafts = await sbTry<Row[]>(`ai_drafts?status=in.(pending,draft)&draft_class=in.(${autoClasses.map(enc).join(',')})&channel=eq.email&select=id,status,channel,email_type,draft_class,to_email,cc,subject,body,thread_id,work_item_id,context_used,sent_by_agent,attachments,contact_id&order=created_at.asc&limit=200`, [])
+  const drafts = await sbTry<Row[]>(`ai_drafts?status=in.(pending,draft)&draft_class=in.(${classes.map(enc).join(',')})&channel=eq.email&select=id,status,channel,email_type,draft_class,to_email,cc,subject,body,thread_id,work_item_id,context_used,sent_by_agent,attachments,contact_id&order=created_at.asc&limit=200`, [])
   out.considered = drafts.length
   if (!drafts.length) return out
   const departed = new Set((await sbTry<Row[]>('staff_departures?select=email', [])).map(r => String(r.email).toLowerCase()))

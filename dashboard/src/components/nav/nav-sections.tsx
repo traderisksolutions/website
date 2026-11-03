@@ -23,6 +23,7 @@ export const PLACES: Place[] = [
   { label: 'Today', href: '/today', icon: ListChecks, tabs: [
     { title: 'Today', href: '/today' },
     { title: 'Queue', href: '/work' },
+    { title: 'Follow-ups', href: '/followups' },
     { title: 'Home', href: '/' },
     { title: 'Board', href: '/board' },
     { title: 'Calendar', href: '/calendar' },
