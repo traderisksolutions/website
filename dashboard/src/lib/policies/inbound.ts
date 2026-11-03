@@ -4,15 +4,12 @@
  *   client mail  "X joined on 1 Nov, Y resigned"  → movements in the open batch (one Today item a week)
  *   insurer mail with a debit / credit note        → transaction → the movements it settles → TRS note
  *
- * Called from placement's handleInbound when the thread is not part of a placement, and from the
- * eb_movements agent. The ingest call only queues the work (one task per message, whoever asks);
- * the agent runs it with `direct`, so one code path handles every message once. Set
- * ADMIN_EB_DIRECT=1 to run inline instead (local tests). The reading itself lives in
+ * The routing of each email is the endorsement main agent's (src/lib/agents/endorsement/main.ts),
+ * which uses clientFor, insurerCompany and senderIsInsurer from here. The reading itself lives in
  * src/lib/admin/b/endorsements.
  */
-import { sbTry, bareEmail, emailDomain, isInternal } from '@/lib/crm/db'
+import { sbTry } from '@/lib/crm/db'
 import * as store from '@/lib/placement/store'
-import type { InboundResult } from '@/lib/placement/workflow'
 import { normInsurer } from '@/lib/insurers'
 import * as agent from './agent'
 import { liveEbPolicies, recordMovement } from './members'
@@ -20,17 +17,13 @@ import type { PolicyMovement, PolicyRow } from './types'
 import { estimateMovements, movementAttachments } from './movement-flow'
 import { movementSubject } from './movement-sheet'
 import { shortInsurer } from '@/lib/gb/insurer-names'
-import { enqueue } from '@/lib/agent-tasks/queue'
-import { intakeClientMail } from '@/lib/admin/b/endorsements/intake'
-import { intakeInsurerMail } from '@/lib/admin/b/endorsements/notes'
-import { detectInsurerIntent } from '@/lib/admin/b/endorsements/cues'
 import { livePolicies } from '@/lib/admin/b/endorsements/store'
 
 export const MOVEMENT_DRAFT_TYPE = 'POLICY_MOVEMENT'
 
 type InsurerCompanyRow = { id: string; company_name: string; domains: string[] | null; domain: string | null }
 
-async function insurerCompany(id: string | null): Promise<InsurerCompanyRow | null> {
+export async function insurerCompany(id: string | null): Promise<InsurerCompanyRow | null> {
   if (!id) return null
   const rows = await sbTry<InsurerCompanyRow[]>(`companies?id=eq.${id}&select=id,company_name,domains,domain&limit=1`, [])
   return rows[0] ?? null
@@ -112,7 +105,7 @@ export async function requestMovements(policy: PolicyRow, movements: PolicyMovem
  * live policy whose number appears in the subject, or whose client's name does (QBE's automated
  * "Customer <INSURED NAME>" mails).
  */
-async function clientFor(threadId: string, threadCompany: string | null, subject: string | null): Promise<{ companyId: string; policyId: string | null } | null> {
+export async function clientFor(threadId: string, threadCompany: string | null, subject: string | null): Promise<{ companyId: string; policyId: string | null } | null> {
   if (threadCompany && (await livePolicies(threadCompany)).length) return { companyId: threadCompany, policyId: null }
   const sent = await sbTry<{ id: string; work_item_id: string | null }[]>(`ai_drafts?thread_id=eq.${threadId}&or=(email_type.eq.${MOVEMENT_DRAFT_TYPE},context_used->>kind.eq.movement_batch)&select=id,work_item_id&limit=5`, [])
   if (sent.length) {
@@ -130,50 +123,6 @@ async function clientFor(threadId: string, threadCompany: string | null, subject
   const norm = (x: string) => x.toLowerCase().replace(/\b(pte|ltd|limited|private)\b\.?/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim()
   const hit = names.filter(c => norm(c.company_name).length >= 5 && norm(subj).includes(norm(c.company_name)))
   return hit.length === 1 ? { companyId: hit[0].id, policyId: null } : null
-}
-
-/** The policy a mail is about when the client has several: the one whose number or insurer the mail names. */
-function pickPolicy(policies: PolicyRow[], text: string): PolicyRow {
-  const t = text.toLowerCase()
-  const byNo = policies.filter(p => p.policy_number && t.includes(p.policy_number.toLowerCase()))
-  if (byNo.length === 1) return byNo[0]
-  const byInsurer = policies.filter(p => p.insurer && normInsurer(p.insurer).length >= 3 && t.replace(/[^a-z0-9]/g, '').includes(normInsurer(p.insurer)))
-  return byInsurer.length === 1 ? byInsurer[0] : policies[0]
-}
-
-/** Run by the eb_movements agent, once per message (intake queues it with key eb:<message>). */
-export async function handlePolicyInbound(input: { message_id: string; thread_id: string; gmail_thread_id: string | null; direction: 'inbound' | 'outbound' }, _opts: { direct?: boolean } = {}): Promise<InboundResult> {
-  if (input.direction !== 'inbound') return { handled: 'none' }
-  const thread = await store.thread(input.thread_id)
-  if (!thread) return { handled: 'none' }
-  const client = await clientFor(input.thread_id, thread.company_id, thread.subject)
-  if (!client) return { handled: 'none' }
-  const all = await livePolicies(client.companyId)
-  const policies = client.policyId ? [...all.filter(p => p.id === client.policyId), ...all.filter(p => p.id !== client.policyId)] : all
-  if (policies.length === 0) return { handled: 'none' }
-  const msg = await store.message(input.message_id)
-  if (!msg) return { handled: 'none' }
-  const sender = bareEmail(msg.from_address)
-  if (!sender || isInternal(sender)) return { handled: 'none' }
-  const domain = emailDomain(sender)
-
-  // The insurer writing in: its note settles movements. The policy its mail names, else the first whose insurer it is.
-  const insurerPolicies: PolicyRow[] = []
-  for (const p of policies) {
-    const insurer = await insurerCompany(p.chosen_insurer_company_id)
-    if (senderIsInsurer(domain, insurer, p.insurer)) insurerPolicies.push(p)
-  }
-  if (insurerPolicies.length) {
-    if (!msg.has_attachments && !/credit note|debit note|tax invoice|endorsement/i.test(`${msg.subject ?? ''}\n${msg.body_text ?? ''}`) && detectInsurerIntent(msg.subject, msg.body_text).intent === 'none') return { handled: 'none', detail: 'insurer mail without a note' }
-    const p = pickPolicy(insurerPolicies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}`)
-    const insurer = await insurerCompany(p.chosen_insurer_company_id)
-    const r = await intakeInsurerMail(p, insurer?.company_name ?? p.insurer ?? 'The insurer', msg, input.thread_id)
-    return { handled: 'insurer', detail: r.detail }
-  }
-
-  // The client writing in: a change request on one of its policies.
-  const r = await intakeClientMail(client.companyId, msg, input.thread_id)
-  return { handled: r.handled ? 'client' : 'none', detail: r.detail }
 }
 
 export { recordMovement }

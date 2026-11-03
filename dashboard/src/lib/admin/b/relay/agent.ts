@@ -229,9 +229,9 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
   // A change request or an insurer's note is the policy intake's: the same task intake queued,
   // same key, so it runs once however many agents notice it.
   if (intent === 'change_request' || intent === 'insurer_note') {
-    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'relay', work_item_id: d.item.id, company_id: d.item.company_id, thread_id: msg.thread_id, message_id: msg.id, payload: { message_id: msg.id } })
+    await enqueue({ agent: 'endorsement_main', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'relay', work_item_id: d.item.id, company_id: d.item.company_id, thread_id: msg.thread_id, message_id: msg.id, payload: { message_id: msg.id } })
     await setItem({ status: 'trs_to_act', next_action: intent === 'change_request' ? 'Send the change to the insurer' : 'Check the insurer note and bill the client' })
-    await log({ handed: 'eb_movements' }); return result({ handed: 'eb_movements' })
+    await log({ handed: 'endorsement_main' }); return result({ handed: 'endorsement_main' })
   }
 
   // An item that already holds an unsent draft keeps it; the relay is logged so a person sees why.

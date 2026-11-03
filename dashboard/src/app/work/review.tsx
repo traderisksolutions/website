@@ -15,7 +15,7 @@ import type { AgentTask } from '@/lib/agent-tasks/queue'
 
 const AGENT: Record<string, string> = {
   intake: 'Intake', resolver: 'Resolver', document_clerk: 'Document clerk', policy_reader: 'Policy reader', knowledge_keeper: 'Knowledge keeper',
-  claims: 'Claims', endorsements: 'Endorsements', eb_movements: 'EB movements', renewals: 'Renewals', placement: 'Placement', billing: 'Billing',
+  claims: 'Claims', endorsements: 'Endorsements', endorsement_main: 'Endorsement main', eb_movements: 'EB movements', renewals: 'Renewals', placement: 'Placement', billing: 'Billing',
   recipient_router: 'Recipient router', drafter: 'Drafter', chaser: 'Chaser',
 }
 

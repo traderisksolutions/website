@@ -1,9 +1,12 @@
 /**
  * The endorsement loop as queue-driven agents. One job each; hand-offs through agent_tasks.
  *
- *   eb_movements / inbound_mail    one message on a live policy: the client's change request →
- *                                  movements in the open batch; the insurer's note → transaction,
+ *   endorsement_main / inbound_mail  the main agent (src/lib/agents/endorsement/main.ts): reads one
+ *                                  message, a staff forward as its client, and runs every live
+ *                                  policy it touches at that line's desk; eb and motor desks read
+ *                                  movements into the open batch, an insurer's note → transaction,
  *                                  check, TRS note (src/lib/admin/b/endorsements).
+ *   eb_movements / inbound_mail    tasks queued before 4 Nov 2026: run through the main agent.
  *   eb_movements / close_batches   the batches whose window ended → one Today item each.
  *   eb_movements / close_batch     one batch, now (a person asked).
  *   eb_movements / sync            approved batches → sent; paid notes → settled.
@@ -14,7 +17,7 @@
  */
 import { sbTry, enc } from '@/lib/crm/db'
 import { askHuman, skip, type AgentTask } from '@/lib/agent-tasks/queue'
-import { handlePolicyInbound } from '@/lib/policies/inbound'
+import { routeEndorsementMail } from '@/lib/agents/endorsement/main'
 import { findMasterPolicy, looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { closeDueBatches, closeBatchNow } from './endorsements/batches'
 import { syncSent, syncSettled, syncNotesSent } from './endorsements/sync'
@@ -27,10 +30,7 @@ export async function handleEbMovements(task: AgentTask): Promise<Record<string,
     case 'inbound_mail': {
       const messageId = (task.message_id ?? task.payload?.message_id) as string | undefined
       if (!messageId) { await skip(task.id, 'no message'); return 'handled' }
-      const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id,direction,email_threads(gmail_thread_id)&limit=1`, [])
-      if (!m) { await skip(task.id, 'message gone'); return 'handled' }
-      const r = await handlePolicyInbound({ message_id: m.id, thread_id: m.thread_id, gmail_thread_id: m.email_threads?.gmail_thread_id ?? null, direction: m.direction === 'outbound' ? 'outbound' : 'inbound' }, { direct: true })
-      return { result: r as unknown as Record<string, unknown> }
+      return routeInbound(task, messageId)
     }
     case 'close_batches': return closeDueBatches()
     case 'close_batch': {
@@ -49,6 +49,20 @@ export async function handleEbMovements(task: AgentTask): Promise<Record<string,
     default:
       await skip(task.id, `unknown kind ${task.kind}`); return 'handled'
   }
+}
+
+async function routeInbound(task: AgentTask, messageId: string): Promise<Record<string, unknown> | 'handled'> {
+  const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,thread_id&limit=1`, [])
+  if (!m) { await skip(task.id, 'message gone'); return 'handled' }
+  return { result: await routeEndorsementMail({ message_id: m.id, thread_id: m.thread_id }) as unknown as Record<string, unknown> }
+}
+
+/** The endorsement main agent: one email, routed to the desks of the policies it touches. */
+export async function handleEndorsementMain(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
+  if (task.kind !== 'inbound_mail') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
+  const messageId = (task.message_id ?? task.payload?.message_id) as string | undefined
+  if (!messageId) { await skip(task.id, 'no message'); return 'handled' }
+  return routeInbound(task, messageId)
 }
 
 export async function handleEndorsements(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {

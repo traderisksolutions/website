@@ -10,7 +10,7 @@ import { sb, sbTry, enc } from '@/lib/crm/db'
 
 export const AGENT_NAMES = [
   'intake', 'resolver', 'document_clerk', 'policy_reader', 'knowledge_keeper', 'knowledge_depositor',
-  'claims', 'endorsements', 'eb_movements', 'renewals', 'placement',
+  'claims', 'endorsements', 'endorsement_main', 'eb_movements', 'renewals', 'placement',
   'drafter', 'chaser', 'relay',
 ] as const
 export type AgentName = typeof AGENT_NAMES[number]

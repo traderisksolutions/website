@@ -22,6 +22,7 @@ import { detectClientIntent, planClientAmendment, type Incoming } from './cues'
 import { applyClientPlan, asOnFile, awaitingClient, movementsOnFile, relayClientAnswer } from './amendments'
 import { prepareBatch } from './batches'
 import { dateGate, mailOpening, HOLD_TEXT } from './date-gate'
+import { fitsLine } from '@/lib/agents/desks'
 import type { ParsedMovement, Cadence } from './types'
 
 const LOOKS_LIKE_MOVEMENT = /\b(resign\w*|last day|leaver|joiner|new (?:staff|hire|employee)|onboard\w*|add(?:ition)?\b|delet\w*|remov\w*|terminat\w*|movement|endorse\w*|include|exclude|update (?:the )?(?:member|staff|list)|vehicle|registration)\b/i
@@ -69,16 +70,18 @@ export type IntakeResult = { handled: boolean; detail: string; policyId?: string
  * The client's mail on one of its policies. Records every movement read, puts it in the open
  * batch, prices it, and says what happened. Nothing is sent from here.
  */
-export async function intakeClientMail(companyId: string, msg: store.MailMessage, threadId: string, opts: { allowModel?: boolean } = {}): Promise<IntakeResult> {
+export async function intakeClientMail(companyId: string, msg: store.MailMessage, threadId: string, opts: { allowModel?: boolean; policyId?: string } = {}): Promise<IntakeResult> {
   const policies = await livePolicies(companyId)
   if (!policies.length) return { handled: false, detail: 'no live policy' }
   const atts = await store.attachmentsFor(msg.id, !!msg.has_attachments)
   const read = await readMovements(msg, atts)
   const wantType = read.movements.some(m => m.movement_type === 'vehicle') ? 'vehicle' : read.movements.length ? 'member' : 'any'
-  const policy = pickPolicy(policies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}\n${atts.map(a => a.filename).join('\n')}`, wantType)
+  // The main agent names the policy when one email touches several (src/lib/agents/endorsement/main.ts).
+  const policy = opts.policyId ? policies.find(p => p.id === opts.policyId) ?? null : pickPolicy(policies, `${msg.subject ?? ''}\n${msg.body_text ?? ''}\n${atts.map(a => a.filename).join('\n')}`, wantType)
   if (!policy) return { handled: false, detail: 'no policy matched' }
   const company = await store.company(companyId)
-  let movements = read.movements
+  // On a split email, a person on a list marked for another member line ("FWMI: …") is not this policy's.
+  let movements = opts.policyId ? read.movements.filter(m => fitsLine(`${m.quote} ${m.source}`, lineFor(policy))) : read.movements
   let readBy: string | null = read.readBy
 
   // Minds change. A withdrawal, a cancellation or a correction is settled against what is on file

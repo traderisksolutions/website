@@ -221,10 +221,11 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
     }
   }
   // Member movements, endorsement requests and insurer notes: one intake, queued once per message
-  // from here and nowhere else (the relay re-queues the same key, which dedupes).
-  if (kind === 'client' || kind === 'insurer') {
-    await enqueue({ agent: 'eb_movements', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: companyId, payload: { message_id: msg.id } })
-    handed.push('eb_movements')
+  // from here and nowhere else (the relay re-queues the same key, which dedupes). A staff forward
+  // goes too: the endorsement main agent reads it as the client it forwards.
+  if (kind === 'client' || kind === 'insurer' || (kind === 'internal' && forward)) {
+    await enqueue({ agent: 'endorsement_main', kind: 'inbound_mail', idem_key: `eb:${msg.id}`, created_by_agent: 'intake', message_id: msg.id, thread_id: msg.thread_id, company_id: companyId, payload: { message_id: msg.id } })
+    handed.push('endorsement_main')
   }
 
   const [link] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(msg.thread_id)}&select=work_item_id,joined_by,work_items(case_type,company_id)`, [])
