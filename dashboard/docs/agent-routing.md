@@ -24,8 +24,8 @@ The map lives in `src/lib/agents/desks.ts`.
 
 | Phase | Main agent | Sub-agents | Status |
 | --- | --- | --- | --- |
-| 1 | Endorsement | eb and motor (member and vehicle lists); others go to general | Building |
-| 2 | New request | eb, wica, liability; others go to general | Next |
+| 1 | Endorsement | eb and motor (member and vehicle lists); others go to general | Built 4 Nov |
+| 2 | New request | eb, wica, liability; others go to general | Building |
 | 3 | New request | car, financial, property, motor | |
 | 4 | Renewal and claim | All desks | |
 
@@ -50,3 +50,36 @@ Code: `src/lib/agents/endorsement/main.ts`. Queue: agent `endorsement_main`, kin
 
 Each run records its routing in the task result: `voice`, `policies`, `desks`, `per_policy`.
 Read the `agent_tasks` results to measure routing.
+
+## Phase 2: new-request main agent
+
+Code: `src/lib/agents/new-request/` (`main.ts` merges; `wica.ts`, `liability.ts`, `eb.ts` review).
+Called from `autoPlaceFromThread` (`src/lib/placement/auto.ts`) after the lines are read.
+
+Each sub-agent returns client questions, whether they block the market (the line is held),
+notes for the broker (placement log, actor `new_request_main`), and suggested extra lines put to
+the client as a question. The questions go out in the one data-request email the drafter writes.
+
+- **wica**:
+  - headcount and annual wages per category, checked by wage per head (a monthly or per-person
+    figure is held);
+  - job scope when categories are only "staff";
+  - claims including MOM reports;
+  - non-manual staff over S$2,600 a month flagged;
+  - FWMI and bonds suggested for work permit holders.
+- **liability**:
+  - flow by request; PL asked with a CAR or bond is contract cover;
+  - contract: the clause, the CAR third-party check, and WICA or PI suggested when the clause
+    names them;
+  - products: territories, USA or Canada flagged;
+  - event: dates, venue, attendance;
+  - any business giving advice or design: PI suggested.
+- **eb**:
+  - the considerations that decide the plan: budget, ward, dependants, outpatient;
+  - claims experience on a renewal;
+  - personal accident is left to its sums insured.
+  - Pricing: see the EB pricing model below.
+
+The lines already open as placements were checked in a dry run (no model calls, no writes),
+which caught two misreads now fixed: project PL read as small-business PL, and medical questions
+on personal accident.

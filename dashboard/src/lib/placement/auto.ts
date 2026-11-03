@@ -16,6 +16,8 @@ import { formsFor } from '@/lib/forms/library'
 import type { Spec } from './types'
 import { approvedInsurerNames } from './eb'
 import { clientThreadFor, placementForJob, priorInsurerThreads, recordMidway } from './adopt'
+import { ownWordsOf } from './agent'
+import { reviewRequest, type RequestReview } from '@/lib/agents/new-request/main'
 
 /** Below this the classifier is guessing, and a guess should not open a placement. */
 export const AUTO_PLACE_CONFIDENCE = 0.7
@@ -134,6 +136,11 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
     return { status: 'adopted', ...r }
   }
 
+  // The main agent: every line to its desk's sub-agent (eb, wica, liability), for the client
+  // questions, the broker's notes and the lines the client likely also needs (docs/agent-routing.md).
+  const clientWords = (await store.threadMessages(threadId)).filter(m => m.direction === 'inbound').map(m => ownWordsOf(m.body_text ?? '') || (m.body_text ?? '').slice(0, 4000)).join('\n\n').slice(-20_000)
+  const review = reviewRequest({ lines: proposed.map(l => ({ product_line: l.product_line, label: l.label, spec: l.spec })), text: `${thread.subject ?? ''}\n${clientWords}`, inception: proposal!.inception_date })
+
   const askedLines = [...new Set(proposed.map(l => l.product_line))]
   // A line with no insurer contacts of its own borrows a sibling line's until its products are set up.
   const fallbackLines = askedLines.flatMap(l => ROUTE_FALLBACK[l] ?? [])
@@ -144,10 +151,11 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
     : [{} as Awaited<ReturnType<typeof suggestInsurers>>, [] as store.InsurerRoute[]]
   const approved = proposed.some(l => l.product_line === EB_PRODUCT_LINE) ? await approvedInsurerNames() : []
   const routeLine = (pl: string) => routes.some(r => r.product_line === pl) ? pl : (ROUTE_FALLBACK[pl] ?? []).find(f => routes.some(r => r.product_line === f)) ?? pl
-  const lines: NewLine[] = proposed.map(l => ({
+  const lines: NewLine[] = proposed.map((l, i) => ({
     product_line: l.product_line, label: l.label, spec: l.spec,
-    // Data the insurers cannot price without holds the line; the client is asked first (lines.ts).
-    missing: missingData(l.product_line, l.spec, proposal!.inception_date),
+    // Data the insurers cannot price without holds the line; the client is asked first (lines.ts),
+    // and so do the sub-agent's blocking questions.
+    missing: [...missingData(l.product_line, l.spec, proposal!.inception_date), ...(review.held.includes(i) ? review.reviews[i].asks : [])],
     contact_ids: ebEmailContacts(l.product_line, suggested[l.product_line]?.some(s => s.picked && s.contact)
       ? suggested[l.product_line].filter(s => s.picked && s.contact).map(s => ({ contact_id: s.contact!.contact_id, insurer: s.product.insurer_name }))
       : routes.filter(r => pickDefaultContacts(routes, routeLine(l.product_line)).includes(r.contact_id)).map(r => ({ contact_id: r.contact_id, insurer: r.insurer_name })), approved),
@@ -171,21 +179,35 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
     // Rows come back in insert order, so line i was asked with lines[i].contact_ids.
     detail: { auto: true, lines: r.lines.map((l, i) => ({ id: l.id, product_line: l.product_line, contact_ids: lines[i]?.contact_ids ?? [] })) },
   })
-  await askForMissing(r.placement.id, r.placement.company_id, threadId, r.lines, lines, proposal!.inception_date)
+  await logReview(r.placement.id, r.placement.company_id, threadId, review)
+  await askForMissing(r.placement.id, r.placement.company_id, threadId, r.lines, lines, proposal!.inception_date, review.asks)
   return { status: 'created', placement_id: r.placement.id, lines: labels, dispatched: r.dispatched }
+}
+
+/** The sub-agents' notes for the broker and their suggested extra lines, on the placement log. */
+async function logReview(placementId: string, companyId: string, threadId: string, review: RequestReview): Promise<void> {
+  const notes = review.reviews.filter(r => r.notes.length).map(r => `${r.product_line}: ${r.notes.join('; ')}`)
+  const extra = review.companions.map(c => `${c.product_line} (${c.why})`)
+  if (!notes.length && !extra.length) return
+  await store.log({
+    company_id: companyId, placement_id: placementId, kind: 'note', actor: 'new_request_main', thread_id: threadId,
+    text: [...notes, ...(extra.length ? [`Suggested to the client: ${extra.join(', ')}`] : [])].join('\n'),
+    detail: { desks: review.reviews.map(r => ({ desk: r.desk, product_line: r.product_line, hold: r.hold, asks: r.asks.length })), companions: review.companions },
+  })
 }
 
 /**
  * Lines held for data: one numbered email to the client on the case, everything missing across
  * the lines at once. The drafter writes it for a person to send; the chaser follows it up.
  */
-export async function askForMissing(placementId: string, companyId: string, threadId: string | null, made: { id: string; product_line: string; label: string | null; spec: Spec }[], asked: NewLine[], inception: string | null): Promise<number> {
+export async function askForMissing(placementId: string, companyId: string, threadId: string | null, made: { id: string; product_line: string; label: string | null; spec: Spec }[], asked: NewLine[], inception: string | null, deskAsks: string[] = []): Promise<number> {
   const held = made.filter((_, i) => (asked[i]?.missing ?? []).length > 0)
-  if (!held.length) return 0
-  const items = Array.from(new Set(held.flatMap(l => missingAsks(l.product_line, l.spec, inception).map(a => held.length > 1 ? `${l.label ?? l.product_line}: ${a}` : a))))
+  if (!held.length && !deskAsks.length) return 0
+  // The required data first, then the sub-agents' questions and suggested extra lines.
+  const items = Array.from(new Set([...held.flatMap(l => missingAsks(l.product_line, l.spec, inception).map(a => held.length > 1 ? `${l.label ?? l.product_line}: ${a}` : a)), ...deskAsks]))
   const [w] = await sbTry<{ id: string }[]>(`work_items?placement_id=eq.${placementId}&closed_at=is.null&select=id&limit=1`, [])
   if (!w || !items.length) return 0
-  await sbTry(`work_items?id=eq.${w.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'trs_to_act', next_action: `Ask the client for the details to quote: ${items.length} item${items.length === 1 ? '' : 's'}` }) })
+  await sbTry(`work_items?id=eq.${w.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'trs_to_act', next_action: held.length ? `Ask the client for the details to quote: ${items.length} item${items.length === 1 ? '' : 's'}` : `Send the client ${items.length} question${items.length === 1 ? '' : 's'}; the insurers are being asked meanwhile` }) })
   // The forms the client fills in for those lines, from the library (Settings → Client forms).
   const attachments = (await Promise.all(held.map(l => formsFor(l.product_line, l.spec, 'new_request')))).flat()
     .filter((a, i, all) => all.findIndex(b => b.filename === a.filename) === i)
