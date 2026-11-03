@@ -228,17 +228,20 @@ export async function POST(req: NextRequest) {
     if (draft.status === 'sent') return NextResponse.json({ error: 'Already sent' }, { status: 409 })
     if (draft.channel !== 'email') return NextResponse.json({ error: 'Not an email draft' }, { status: 400 })
 
-    // 2. Load recipient email from contacts
-    const contactRes = await fetch(
+    // 2. Recipients. The draft's own To and Cc are what the person approved on Today; the
+    //    contact record is only the fallback for older drafts that carry neither. Agent drafts
+    //    to a new address have no contact row, and used to fail here with "Contact has no email".
+    const contacts = draft.contact_id ? await fetch(
       `${SB_URL}/rest/v1/contacts?id=eq.${draft.contact_id}&select=email&limit=1`,
       { headers: sbHeaders() }
-    )
-    const contacts = contactRes.ok ? await contactRes.json() : []
-    const contact  = Array.isArray(contacts) ? contacts[0] : null
-    if (!contact?.email) return NextResponse.json({ error: 'Contact has no email' }, { status: 400 })
-
-    // Use the overridden TO address if provided, otherwise fall back to the contact's email
-    const recipientEmail = (toEmail && toEmail.includes('@')) ? toEmail.trim().toLowerCase() : contact.email as string
+    ).then(r => r.ok ? r.json() : []).catch(() => []) : []
+    const contact  = Array.isArray(contacts) && contacts[0]?.email ? contacts[0] as { email: string } : null
+    const splitList = (v: unknown): string[] => String(v ?? '').split(/[,;]/).map(x => x.trim().toLowerCase()).filter(x => x.includes('@'))
+    const draftTo = splitList(draft.to_email)
+    const recipientEmail = (toEmail && toEmail.includes('@')) ? toEmail.trim().toLowerCase() : draftTo[0] ?? contact?.email?.toLowerCase() ?? ''
+    if (!recipientEmail) return NextResponse.json({ error: 'This draft has no recipient. Add one in the To field and send again.' }, { status: 400 })
+    // Further To addresses on the draft go as Cc, with the draft's own Cc, unless the caller sent its own list.
+    const draftCc = Array.from(new Set([...draftTo.slice(1), ...splitList(draft.cc)]))
 
     // 3. Load thread subject (for reply subject line) + conversation grouping context
     let subject = 'Re: Your enquiry | Trade Risk Solutions'
@@ -371,7 +374,7 @@ export async function POST(req: NextRequest) {
     // makes Gmail's API reject the ENTIRE send with "Invalid Cc header" — better to silently drop
     // the one bad entry than fail the whole message over it.
     const isValidEmail = (a: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a.trim())
-    const cleanCc  = (cc ?? []).filter(isValidEmail)
+    const cleanCc  = (cc && cc.length ? cc : draftCc).filter(isValidEmail).filter(c => c.toLowerCase() !== recipientEmail)
     const cleanBcc = (bcc ?? []).filter(isValidEmail)
 
     // Every non-ops send CC's operations@ so the shared mailbox (Engagement)
@@ -532,7 +535,7 @@ export async function POST(req: NextRequest) {
     }
 
     // If TO was overridden to a different external email, ensure it exists as a contact
-    const contactEmail = contact.email as string
+    const contactEmail = contact?.email ?? ''
     if (recipientEmail !== contactEmail.toLowerCase() && !recipientEmail.endsWith('@trade-risksol.com')) {
       const encoded = encodeURIComponent(recipientEmail)
       const existsRes = await fetch(
