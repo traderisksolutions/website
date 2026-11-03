@@ -12,6 +12,7 @@ import { suggestInsurers } from '@/lib/insurer-products'
 import { createPlacement, proposeFromThread, type NewLine } from './workflow'
 import { missingData, missingAsks } from './lines'
 import { enqueue } from '@/lib/agent-tasks/queue'
+import { formsFor } from '@/lib/forms/library'
 import type { Spec } from './types'
 import { approvedInsurerNames } from './eb'
 import { clientThreadFor, placementForJob, priorInsurerThreads, recordMidway } from './adopt'
@@ -185,7 +186,10 @@ export async function askForMissing(placementId: string, companyId: string, thre
   const [w] = await sbTry<{ id: string }[]>(`work_items?placement_id=eq.${placementId}&closed_at=is.null&select=id&limit=1`, [])
   if (!w || !items.length) return 0
   await sbTry(`work_items?id=eq.${w.id}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'trs_to_act', next_action: `Ask the client for the details to quote: ${items.length} item${items.length === 1 ? '' : 's'}` }) })
-  await enqueue({ agent: 'drafter', kind: 'request_quote_data', work_item_id: w.id, company_id: companyId, thread_id: threadId, payload: { items }, idem_key: `drafter:request_quote_data:${placementId}:${items.length}`, created_by_agent: 'placement' })
+  // The forms the client fills in for those lines, from the library (Settings → Client forms).
+  const attachments = (await Promise.all(held.map(l => formsFor(l.product_line, l.spec, 'new_request')))).flat()
+    .filter((a, i, all) => all.findIndex(b => b.filename === a.filename) === i)
+  await enqueue({ agent: 'drafter', kind: 'request_quote_data', work_item_id: w.id, company_id: companyId, thread_id: threadId, payload: { items, attachments }, idem_key: `drafter:request_quote_data:${placementId}:${items.length}`, created_by_agent: 'placement' })
   return items.length
 }
 

@@ -13,6 +13,7 @@
  */
 import { LINE_SPECS } from '@/lib/placement/lines'
 import { lineKey } from '@/lib/methods/method'
+import { formsFor, type DraftAttachment } from '@/lib/forms/library'
 import { randomUUID } from 'node:crypto'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
@@ -144,6 +145,15 @@ export async function handleDrafter(task: AgentTask): Promise<Record<string, unk
     return 'handled'
   }
   const main = facts(kind, d, claim, await greetingFor(route.to[0]), task, side)
+  // Data requests carry the forms the client fills in: given by the caller, or the library's for the policy's line.
+  if (kind === 'request_quote_data' || kind === 'renewal_notice') {
+    const given = Array.isArray(task.payload?.attachments) ? task.payload.attachments as DraftAttachment[] : []
+    const policy = d.policies.find(p => p.id === d.item.policy_id)
+    const slug = LINE_SLUG[lineKey(`${policy?.class_of_insurance ?? ''} ${policy?.product_line ?? ''}`) ?? '']
+    const forms = given.length ? given : kind === 'renewal_notice' && slug ? await formsFor(slug, undefined, 'renewal') : []
+    main.attachments.push(...forms.map(a => ({ filename: a.filename, mime_type: a.mime_type, storage_url: a.storage_url, message_id: null as unknown as string })))
+    main.f.files = forms.map(a => a.filename)
+  }
   const built = buildDraft(kind, main.f)
 
   const pairKind = pairFor(kind)

@@ -374,11 +374,12 @@ function liabilitySubmission(i: SubmissionInput): string {
 }
 
 /** Which liability flow a request is: decides the panel. */
-export function liabilityFlow(spec: Spec | undefined): 'contract' | 'products' | 'sme' {
+export function liabilityFlow(spec: Spec | undefined): 'contract' | 'products' | 'event' | 'sme' {
   const x = spec?.fields ?? {}
   const t = `${x.purpose ?? ''} ${x.products ?? ''} ${x.business ?? ''}`.toLowerCase()
   if (/product|export|usa|canada|medical device|life science|supplement|aviation|drone|autonomous|battery|chemical/.test(t)) return 'products'
   if (x.requirement || /project|contract|tender|renovation|mcst|landlord|works|award/.test(t)) return 'contract'
+  if (/event|party|festival|exhibition|concert|wedding|roadshow/.test(t)) return 'event'
   return 'sme'
 }
 

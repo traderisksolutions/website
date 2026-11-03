@@ -77,6 +77,13 @@ function refLine(f: DraftFacts): string {
   return parts.length ? ` (${parts.join(', ')})` : ''
 }
 
+/** The line naming the forms attached for the client to fill in, or nothing. */
+export function formsLine(files: string[] | undefined): string {
+  const names = (files ?? []).map(n => n.replace(/\.[a-z0-9]+$/i, ''))
+  if (!names.length) return ''
+  return names.length === 1 ? `Attached is the ${names[0]} for you to complete and return.\n\n` : `Attached for you to complete and return: ${names.join('; ')}.\n\n`
+}
+
 export function replySubject(threadSubject: string | null, fallback: string): string {
   const s = (threadSubject ?? '').trim()
   if (!s) return fallback
@@ -94,7 +101,7 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
       const items = (f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')
       return {
         subject: replySubject(f.threadSubject, `${f.title}: details for quotation`),
-        body: `${hi}\n\nThank you for your request. To obtain quotations from the insurers for ${f.title}, may we have:\n\n${items}\n\nIf another broker has already approached insurers on this, a signed letter appointing us lets those insurers quote through us; we can send the letter for your signature.\n\nOnce these are in, we will approach the insurers and come back to you with a comparison.\n\nThank you!\n\n${sign}`,
+        body: `${hi}\n\nThank you for your request. To obtain quotations from the insurers for ${f.title}, may we have:\n\n${items}\n\n${formsLine(f.files)}If another broker has already approached insurers on this, a signed letter appointing us lets those insurers quote through us; we can send the letter for your signature.\n\nOnce these are in, we will approach the insurers and come back to you with a comparison.\n\nThank you!\n\n${sign}`,
       }
     }
     case 'request_missing': {
@@ -148,7 +155,7 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
       return {
         subject: `Renewal: ${f.className ?? 'policy'}${f.policyNumber ? ` ${f.policyNumber}` : ''}${f.clientName ? `, ${f.clientName}` : ''}`,
         body: (f.items ?? []).length
-          ? `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nTo obtain renewal terms, may we have the following, updated for the coming year:\n\n${(f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')}\n\nWhere nothing has changed since last year, a short confirmation is enough.\n\nThank you!\n\n${sign}`.replace(/Your  policy/, 'Your policy')
+          ? `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nTo obtain renewal terms, may we have the following, updated for the coming year:\n\n${(f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')}\n\n${formsLine(f.files)}Where nothing has changed since last year, a short confirmation is enough.\n\nThank you!\n\n${sign}`.replace(/Your  policy/, 'Your policy')
           : `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nPlease confirm any changes since the last renewal (for example headcount, sums insured, vehicles or turnover) so that we can obtain renewal terms.\n\n${sign}`.replace(/Your  policy/, 'Your policy'),
       }
     case 'client_update':
