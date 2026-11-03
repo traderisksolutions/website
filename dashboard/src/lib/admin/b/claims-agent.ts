@@ -25,6 +25,8 @@ import { loadCaseData, toMailLines, itemEvent } from './data'
 import { settledFromAttachments } from '@/lib/documents/money-store'
 import { needsForwardToInsurer } from './drafts'
 import { caseModeFor } from './kinds'
+import { reviewClaim } from '@/lib/agents/claims/review'
+import { addDays } from './dates'
 
 type Row = Record<string, any>
 const ACTOR = 'claims'
@@ -53,7 +55,10 @@ export async function refreshClaim(workItemId: string, extra: { gaps?: { item: s
   const lines = toMailLines(d)
   const { stage } = inferStage(lines, (prev?.stage ?? 'notified') as ClaimStage)
   const docs = documentState(cls, d.files.map(f => f.filename))
-  const gapsBase = claimGaps(docs, d.namedButMissing, cls)
+  // The class's sub-agent: first actions and deadlines the checklist does not carry (src/lib/agents/claims).
+  const today = new Date().toISOString().slice(0, 10)
+  const desk = reviewClaim({ cls, text, lossDate: findLossDate(text)?.value ?? prev?.loss_date ?? null, today, policyLine: policy?.product_line ?? null })
+  const gapsBase = [...claimGaps(docs, d.namedButMissing, cls), ...desk.asks]
   const gaps = [...gapsBase, ...(extra.gaps ?? []).filter(g => !gapsBase.some(b => b.item === g.item))]
   const live = d.messages.filter(m => !m.rebuilt)
   const closed = ['settled', 'declined', 'withdrawn'].includes(stage)
@@ -85,7 +90,12 @@ export async function refreshClaim(workItemId: string, extra: { gaps?: { item: s
     body: JSON.stringify({ ...row, ...(extra.opened_mode && !prev ? { opened_mode: extra.opened_mode } : {}) }),
   })
   const changed = prev ? (['stage', 'insurer_ref', 'amount_claimed', 'amount_settled', 'loss_date'] as const).filter(k => String(prev[k] ?? '') !== String(row[k] ?? '')) : ['opened']
-  if (changed.length) await itemEvent(workItemId, 'note', ACTOR, { claim: changed, stage: row.stage })
+  if (changed.length) await itemEvent(workItemId, 'note', ACTOR, { claim: changed, stage: row.stage, ...(!prev ? { desk: desk.kind, desk_notes: desk.notes, deadline: desk.deadline } : {}) })
+  // A client deadline that can still be met and falls within two days: a person makes sure it is met.
+  // A deadline already past (an old claim read again) is history, not an alarm.
+  if (!closed && desk.deadline && desk.deadline.by >= today && desk.deadline.by <= addDays(today, 2) && !d.item.needs_human) {
+    await sbTry(`work_items?id=eq.${enc(workItemId)}&needs_human=is.null`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `${desk.deadline.what} is due by ${desk.deadline.by}. Check the client has done it.` }) })
+  }
   // The stage moves and the client hears what comes next: the adjuster's access, then the
   // settlement documents. One draft per stage per claim.
   if (!closed && row.stage === 'adjuster' && prev?.stage !== 'adjuster') {

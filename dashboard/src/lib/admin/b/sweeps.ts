@@ -25,6 +25,8 @@ import { getRenewalPack } from '@/lib/policies/ledger'
 import { syncAllStages } from '@/lib/cases/sync'
 import { renewalMethod, lineKey } from '@/lib/methods/method'
 import { runFollowups } from '@/lib/followups/monitor'
+import { reviewRenewal } from '@/lib/agents/renewal/review'
+import { lineFor } from './endorsements/rules'
 
 const NO_RENEWAL = new Set(['car', 'bond'])
 
@@ -177,9 +179,13 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   for (const p of policies) {
     if (looksLikeEndorsement(p) || (p.lifecycle && !['bound', 'live', 'renewal_due'].includes(p.lifecycle))) continue
     if (p.companies?.kind && p.companies.kind !== 'client') continue
-    // Project covers end with the project: construction all risks and bonds are extended on request, never renewed.
-    if (NO_RENEWAL.has(lineKey(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`) ?? '')) continue
     const left = daysBetween(today, p.end_date)
+    // Project covers end with the project: construction all risks and bonds are extended on request,
+    // never renewed. From 45 days out the CAR sub-agent asks whether the period must be extended.
+    if (NO_RENEWAL.has(lineKey(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`) ?? '')) {
+      if (left <= TERMS_DAYS && !covered.has(`ext:${p.id}`)) { await openExtensionCheck(p); covered.add(`ext:${p.id}`); opened++ }
+      continue
+    }
     const mark = dayMark(left)
     if (!mark) continue
     // 90 days: the case opens from TRS's own register, whatever the insurer has or has not sent.
@@ -201,10 +207,12 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
       covered.add(p.id)
       // Stage, start point and flow are written apart: until the case-stage migration is applied they are skipped, not fatal.
       await sbTry(`work_items?id=eq.${enc(item.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ stage: 'request', stage_at: new Date().toISOString(), start_point: 'renewal', renewal_flow: check.flow }) })
-      await itemEvent(item.id, 'note', 'renewals', { opened: `${mark}-day mark`, end_date: p.end_date, flow: check.flow, basis: check.basis, rules: check.rules, method_version: method.version })
+      // The line's renewal sub-agent: what to ask the client, and what the broker should know.
+      const desk = reviewRenewal({ line: lineFor(p), flow: check.flow, endDate: p.end_date, employees: pack?.current?.members_now ?? pack?.current?.members_inception ?? null })
+      await itemEvent(item.id, 'note', 'renewals', { opened: `${mark}-day mark`, end_date: p.end_date, flow: check.flow, basis: check.basis, rules: check.rules, method_version: method.version, desk: desk.desk, desk_notes: desk.notes })
       opened++
       // The data request, pre-filled from last year (headcount, wages, turnover, sum insured).
-      tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: item.id, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date, flow: check.flow }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
+      tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: item.id, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date, flow: check.flow, ...(desk.asks.length ? { items: desk.asks } : {}) }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
     }
     if (!itemId) continue
     const family = familyOf(detectLine(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`, null))
@@ -239,6 +247,26 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   // Every open quote case's stage, recomputed from its records.
   const stages = await syncAllStages().catch(() => 0)
   return { policies: policies.length, opened, tasks: tasks.length, noNotice, noDecision, stages, marks: [OPEN_DAYS, TERMS_DAYS, UPDATE_DAYS, DECISION_DAYS] }
+}
+
+/**
+ * Project cover near its end: one case to ask the client whether the works finish in time, so an
+ * extension is asked before the cover ends (the CAR sub-agent, src/lib/agents/renewal/review.ts).
+ */
+async function openExtensionCheck(p: Row): Promise<void> {
+  const [already] = await sbTry<Row[]>(`work_items?policy_id=eq.${enc(p.id)}&closed_at=is.null&title=like.${enc('Extension check*')}&select=id&limit=1`, [])
+  if (already) return
+  const r = reviewRenewal({ line: lineFor(p), flow: 'no_data', endDate: p.end_date })
+  const [item] = await sb<Row[]>('work_items', {
+    method: 'POST', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      company_id: p.company_id, client_name: p.companies?.company_name ?? null, case_type: 'endorsement',
+      title: `Extension check: ${p.class_of_insurance ?? p.product_line ?? 'policy'}${p.policy_number ? ` ${p.policy_number}` : ''}`.slice(0, 140),
+      status: 'trs_to_act', deadline: p.end_date, deadline_basis: 'policy end date', insurer_name: p.insurer, policy_id: p.id, policy_number: p.policy_number,
+      next_action: `Ask the client: ${r.asks.join('; ')}`.slice(0, 500), source: 'renewals', confidence: 'high',
+    }),
+  })
+  await itemEvent(item.id, 'note', 'renewals', { opened: 'extension check', end_date: p.end_date, desk: r.desk, desk_notes: r.notes })
 }
 
 /** The tasks the daily sweep starts. Keys carry the day, so a second run the same day is a no-op. */

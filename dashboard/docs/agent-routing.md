@@ -27,7 +27,7 @@ The map lives in `src/lib/agents/desks.ts`.
 | 1 | Endorsement | eb and motor (member and vehicle lists); others go to general | Built 4 Nov |
 | 2 | New request | eb, wica, liability; others go to general | Built 4 Nov |
 | 3 | New request | car, financial, property, motor | Built 4 Nov |
-| 4 | Renewal and claim | All desks | |
+| 4 | Renewal and claim | All desks | Built 4 Nov |
 
 ## Phase 1: endorsement main agent
 
@@ -112,6 +112,43 @@ The dry run on the open placements caught five misreads; four are fixed:
 
 The fifth was the backdated-cover ask showing on adopted cases. That is an artefact of the dry
 run: cases picked up midway skip the review.
+
+## Phase 4: renewals and claims
+
+**Renewals** (`src/lib/agents/renewal/review.ts`, called from the renewals sweep). At the 90-day
+mark the line's sub-agent writes the items of the client data request and notes for the broker:
+- **eb**: the updated member list and any change in benefits or serious conditions; the expected
+  load when the price check says increase; package cards to compare up to 100 employees.
+- **wica**: wages and headcount by category; injuries including those reported to MOM; a call
+  first when a claims loading is likely.
+- **financial**: the signed renewal proposal form, revenue by country, incidents; no gap in
+  claims-made cover.
+- **property**: sums insured at today's rebuilding cost (average clause); changes of use or location.
+- **motor**: vehicles added or sold, new drivers, accidents including those not claimed.
+- **liability**: turnover, contracts that now ask for cover or a higher limit, claims.
+- **Project cover (CAR, bonds)** is extended, not renewed. From 45 days out an **Extension
+  check** case asks whether the works finish in time and whether the maintenance period has started.
+- **General lines** keep the line's usual documents.
+
+**Claims** (`src/lib/agents/claims/review.ts`, called from the claims agent). The class's
+sub-agent adds its first actions to the claim's gaps and its notes to the case when it opens:
+- **wica**: MOM iReport within 10 days.
+- **motor**: report within 24 hours or the next working day, and no repair before the survey.
+- **property**: police report for theft, and keep damaged items.
+- **liability**: the third party's letter, and admit nothing.
+- **marine**: notice to the carrier.
+- **trade credit**, read from the words: unpaid invoices, chasing letters, and the overdue
+  notification limit.
+- **financial**: the letter of demand; notify within the policy period.
+
+A deadline that can still be met and falls within two days goes to a person. A past deadline on
+an old claim does not.
+
+**Dry run** (no writes):
+- 37 policies end in the next 90 days: 11 eb, 7 property, 5 financial, 4 wica, 4 car (extension
+  checks), 2 motor, 1 liability, 3 general.
+- 236 open claims: 37 asks added, no deadline alarms today.
+- The backfilled claims use a second class vocabulary (WICA, EB, PI…); the sub-agent reads both.
 
 ## EB pricing model (reverse-engineered 4 Nov 2026)
 
