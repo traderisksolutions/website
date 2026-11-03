@@ -23,7 +23,9 @@ import { DAY_MARKS, OPEN_DAYS, TERMS_DAYS, UPDATE_DAYS, DECISION_DAYS, dayMark, 
 import { stageIndex, isStage } from '@/lib/cases/stage'
 import { getRenewalPack } from '@/lib/policies/ledger'
 import { syncAllStages } from '@/lib/cases/sync'
-import { renewalMethod } from '@/lib/methods/method'
+import { renewalMethod, lineKey } from '@/lib/methods/method'
+
+const NO_RENEWAL = new Set(['car', 'bond'])
 
 type Row = Record<string, any>
 
@@ -172,6 +174,8 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   for (const p of policies) {
     if (looksLikeEndorsement(p) || (p.lifecycle && !['bound', 'live', 'renewal_due'].includes(p.lifecycle))) continue
     if (p.companies?.kind && p.companies.kind !== 'client') continue
+    // Project covers end with the project: construction all risks and bonds are extended on request, never renewed.
+    if (NO_RENEWAL.has(lineKey(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`) ?? '')) continue
     const left = daysBetween(today, p.end_date)
     const mark = dayMark(left)
     if (!mark) continue
