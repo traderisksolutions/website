@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
-import { Btn, Spinner } from '@/components/crm/primitives'
+import { Btn, Spinner, Segmented } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow, RegisterEmpty } from '@/components/ui/register'
 import { ProductEditor } from '@/components/insurers/ProductEditor'
 import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
 import type { InsurerProduct, ProductStats } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { DeclinesRegister } from './DeclinesRegister'
 
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
@@ -35,6 +36,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
   const [line, setLine] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [adding, setAdding] = useState<null | 'insurer' | 'product'>(null)
+  const [view, setView] = useState<'products' | 'declines'>('products')
 
   const load = useCallback(async () => {
     setError(null)
@@ -90,7 +92,9 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
         )}
 
         {error && <p className="mt-4 text-[13px]" style={{ color: ERROR }}>{error}</p>}
-        <div className="mt-6">
+        <div className="mt-5"><Segmented<'products' | 'declines'> value={view} onChange={setView} options={[{ value: 'products', label: 'Products' }, { value: 'declines', label: 'Declines' }]} /></div>
+        {view === 'declines' && <div className="mt-4"><DeclinesRegister q={q} line={line} /></div>}
+        <div className="mt-6" hidden={view !== 'products'}>
           {!rows ? <Spinner label="Loading insurers…" /> : (
             <>
             <Register label="Insurer products" minWidth={1240}>

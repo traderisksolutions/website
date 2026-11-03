@@ -472,6 +472,12 @@ async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, att
       await store.log({ ...base, kind: 'quote', text: `${insurer} quoted ${label}${via}: ${quoteSummary(qs)}${review ? ' — check the figures against the source' : ''}` })
     } else if ((read.kind === 'decline' && read.declined_lines.length === 0) || read.declined_lines.includes(key)) {
       await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'declined', last_inbound_at: at, next_chase_at: null })
+      // The register of declines (insurer page, panel memory): who declined what, and why.
+      await recordDecline({
+        insurerCompanyId: d.insurer_company_id ?? null, insurerName: insurer, blocked: isBrokerBlock(`${read.summary} ${msg.body_text ?? ''}`.slice(0, 4000)),
+        line: line?.product_line ?? null, risk: `${line?.spec?.fields?.business ?? line?.spec?.scope ?? ''}`.slice(0, 200) || null, reason: read.summary,
+        quote: String(msg.body_text ?? '').replace(/\s+/g, ' ').slice(0, 300), companyId: base.company_id ?? null, at, threadId, dispatchId: d.id,
+      })
       // "Already quoted through another broker": the market is blocked until the client signs the
       // appointment letter. The line says so, and the broker gets the letter from the placement.
       if (isBrokerBlock(`${read.summary} ${msg.body_text ?? ''}`.slice(0, 4000))) {
@@ -612,6 +618,15 @@ export async function releaseHeldLines(p: Placement, bundle: PlacementBundle, th
   return ready.length
 }
 
+/** One decline into the register. Idempotent per dispatch. Never throws. */
+export async function recordDecline(r: { insurerCompanyId: string | null; insurerName: string; blocked: boolean; line: string | null; risk: string | null; reason: string | null; quote: string | null; companyId: string | null; at: string; threadId: string | null; dispatchId: string | null }) {
+  const [c] = r.companyId ? await sbTry<{ company_name: string }[]>(`companies?id=eq.${enc(r.companyId)}&select=company_name&limit=1`, []) : []
+  await sbTry('insurer_declines?on_conflict=dispatch_id', null, { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify({
+    insurer_company_id: r.insurerCompanyId, insurer_name: r.insurerName, kind: r.blocked ? 'blocked' : 'appetite', line: r.line, risk: r.risk, reason: r.reason?.slice(0, 400) ?? null,
+    quote: r.quote, client_company_id: r.companyId, client_name: c?.company_name ?? null, declined_on: r.at.slice(0, 10), thread_id: r.threadId, dispatch_id: r.dispatchId, source: 'placement',
+  }) })
+}
+
 /**
  * Insurers that declined a similar risk on the same line in the last 365 days (lower-case names).
  * Declines because another broker had already approached them are about the client, not the
@@ -626,7 +641,18 @@ export async function declinedSimilar(productLine: string, spec: Spec, exceptLin
   const dec = await sbTry<{ insurer_name: string; line_id: string }[]>(`placement_dispatches?line_id=in.(${similar.join(',')})&status=eq.declined&select=insurer_name,line_id&limit=500`, [])
   const blocked = await sbTry<{ line_id: string; text: string }[]>(`placement_log?line_id=in.(${similar.join(',')})&kind=eq.declined&text=ilike.*another%20broker*&select=line_id,text&limit=500`, [])
   const isBlock = (d: { insurer_name: string; line_id: string }) => blocked.some(b => b.line_id === d.line_id && b.text.toLowerCase().startsWith(d.insurer_name.toLowerCase()))
-  return new Set(dec.filter(d => !isBlock(d)).map(d => d.insurer_name.toLowerCase()))
+  const out = new Set(dec.filter(d => !isBlock(d)).map(d => d.insurer_name.toLowerCase()))
+  // The register read from the mail too: appetite declines on the same line, for a similar risk.
+  for (const r of await sbTry<{ insurer_name: string; risk: string | null; line: string | null }[]>(`insurer_declines?kind=eq.appetite&declined_on=gte.${since.slice(0, 10)}&select=insurer_name,risk,line&limit=2000`, []))
+    if (sameLine(r.line, productLine) && similarRisk(business, r.risk)) out.add(r.insurer_name.toLowerCase())
+  return out
+}
+
+/** A register line (free text such as "CAR" or "liability") is the request's product line. */
+function sameLine(registerLine: string | null, productLine: string): boolean {
+  const k = String(registerLine ?? '').toLowerCase()
+  const map: Record<string, string[]> = { construction_car: ['car', 'construction_car'], general_liability: ['liability', 'product_liability', 'general_liability'], surety_bonds: ['bond', 'surety_bonds'], marine_cargo: ['marine', 'cargo', 'marine_liability', 'marine_cargo'], professional_indemnity: ['pi', 'professional_indemnity'], do: ['d&o', 'do'], cyber: ['cyber'], wica: ['wica'], foreign_worker_medical: ['fwmi', 'foreign_worker_medical'], employee_benefits: ['eb', 'gtl', 'employee_benefits'], group_personal_accident: ['gpa', 'group_personal_accident'], commercial_vehicle: ['motor', 'commercial_vehicle'], iar_fire: ['property', 'iar_fire'], trade_credit: ['trade_credit'] }
+  return (map[productLine] ?? [productLine]).includes(k)
 }
 
 // ── Tiers ───────────────────────────────────────────────────────────────────────────────────
