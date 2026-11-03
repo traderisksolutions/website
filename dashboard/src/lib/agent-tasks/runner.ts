@@ -3,6 +3,7 @@
  * means. A handler returns normally (done), calls askHuman/skip itself, or throws (retry).
  */
 import { claim, finish, fail, type AgentName, type AgentTask } from './queue'
+import { alertHeld, modelState, splitAgents } from './model-guard'
 
 export type Handler = (task: AgentTask) => Promise<Record<string, unknown> | void | 'handled'>
 
@@ -25,13 +26,17 @@ export async function runOne(t: AgentTask): Promise<'done' | 'other' | 'failed'>
  * Drains up to `budgetMs` of work, a few tasks from each agent in turn. Oldest-first across all
  * agents let one backlog hold the queue: on 4 Nov 2026, 2,116 document-clerk tasks from 1 Nov
  * would have kept 157 endorsement emails waiting about three hours. An agent with nothing queued
- * drops out of the rotation. Returns counts for the cron log.
+ * drops out of the rotation. Returns counts, the agents held for the model, and the model state.
  */
 export async function drain(opts: { agents?: AgentName[]; budgetMs?: number; batch?: number } = {}) {
   const until = Date.now() + (opts.budgetMs ?? 240_000)
-  let active = opts.agents ?? Array.from(HANDLERS.keys())
+  // The credit guard (model-guard.ts): with no model, the agents that read with it wait in the queue.
+  const model = await modelState()
+  const { run, held } = splitAgents(opts.agents ?? Array.from(HANDLERS.keys()), model.ok)
+  if (held.length) await alertHeld(held, model.reason)
+  let active = run
   const perAgent = Math.max(1, Math.min(opts.batch ?? 2, 5))
-  const counts = { done: 0, failed: 0, other: 0 }
+  const counts = { done: 0, failed: 0, other: 0, held, model: model.ok ? 'ok' : (model.reason ?? 'unavailable') }
   while (active.length && Date.now() < until) {
     const next: AgentName[] = []
     for (const agent of active) {
@@ -41,7 +46,7 @@ export async function drain(opts: { agents?: AgentName[]; budgetMs?: number; bat
       next.push(agent)
       for (const t of tasks) {
         const r = await runOne(t)
-        counts[r]++
+        counts[r === 'done' ? 'done' : r === 'failed' ? 'failed' : 'other']++
       }
     }
     active = next

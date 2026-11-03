@@ -108,6 +108,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   email_classify:    'housekeeping',
   thread_title:      'housekeeping',
   document_classify: 'housekeeping',
+  credit_probe: 'housekeeping',
   thread_policy_pick: 'housekeeping',
   outbound_search:   'housekeeping',
   email_analysis:    'housekeeping',

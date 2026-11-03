@@ -6,6 +6,11 @@ const queue: { id: string; agent: string }[] = [
   { id: 'e0', agent: 'endorsement_main' }, { id: 'e1', agent: 'endorsement_main' },
 ]
 const order: string[] = []
+let modelOk = true
+vi.mock('@/lib/agent-tasks/model-guard', async () => {
+  const real = await vi.importActual<typeof import('@/lib/agent-tasks/model-guard')>('@/lib/agent-tasks/model-guard')
+  return { ...real, modelState: async () => ({ ok: modelOk, reason: modelOk ? null : 'Gemini 429: Your prepayment credits are depleted', checkedAt: 0 }), alertHeld: async () => {} }
+})
 vi.mock('@/lib/agent-tasks/queue', () => ({
   claim: async (agents: string[], limit: number) => {
     const out = queue.filter(t => agents.includes(t.agent)).slice(0, limit)
@@ -24,5 +29,19 @@ describe('drain', () => {
     expect(r.done).toBe(22)
     // Both endorsement tasks run in the first round, not after the 20 clerk tasks.
     expect(order.indexOf('e1')).toBeLessThan(4)
+  })
+  it('with no model, holds the agents that read with it and runs the rule-based ones', async () => {
+    const { drain, register } = await import('@/lib/agent-tasks/runner')
+    queue.push({ id: 'k0', agent: 'knowledge_keeper' }, { id: 'h0', agent: 'chaser' })
+    register('knowledge_keeper' as never, async t => { order.push(t.id) })
+    register('chaser' as never, async t => { order.push(t.id) })
+    modelOk = false
+    const r = await drain({ agents: ['knowledge_keeper', 'chaser'] as never, budgetMs: 10_000 })
+    expect(r.held).toEqual(['knowledge_keeper'])
+    expect(r.model).toMatch(/prepayment credits/)
+    expect(order).toContain('h0')
+    expect(order).not.toContain('k0')
+    expect(queue.some(t => t.id === 'k0')).toBe(true)
+    modelOk = true
   })
 })
