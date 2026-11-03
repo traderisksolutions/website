@@ -156,8 +156,14 @@ by insurer and the reproduction table, is kept outside the repo (session scratch
     the mail run that check, and a mismatch (the Genscript term life slip) holds the quote for a
     person.
 
+- Insurer rates screen: on an EB line with a census, **Enter insurer rates**
+  (`src/components/placement/CustomRatesDialog.tsx`):
+  - shows the census by plan and family tier;
+  - takes each product's rates by method (family tier, per life, flat, per S$1,000);
+  - totals with GST as you type, and checks the insurer's stated total;
+  - files the result as a quote (source `custom_rates`) in the same comparison grid as the
+    engine's prices.
+
 **Still open:**
-1. A screen to enter an insurer's per-head rates for a custom case and compare totals across
-   insurers. The arithmetic is built; the entry screen is not.
-2. Cigna Care Connect: the 1.0 card prices 6.6% under the quote, and there is no 2.0 card on
+1. Cigna Care Connect: the 1.0 card prices 6.6% under the quote, and there is no 2.0 card on
    file. The 2.0 rate card is needed from Cigna.

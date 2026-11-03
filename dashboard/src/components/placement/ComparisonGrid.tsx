@@ -11,6 +11,7 @@ import type { LinePosition, PlacementQuote } from '@/lib/placement/types'
 import type { PolicyView } from '@/components/policies/types'
 import { callApi, errText, INK, MUTED, ERROR } from './shared'
 import { UploadListDialog, SendHrLinkDialog } from '@/components/policies/MembersPanel'
+import { CustomRatesDialog } from './CustomRatesDialog'
 
 /** Lines the employment-benefits rate engine prices from an employee list. */
 const EB_LINES = new Set(['employee_benefits', 'group_health'])
@@ -67,7 +68,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [ebDialog, setEbDialog] = useState<'upload' | 'hr' | null>(null)
+  const [ebDialog, setEbDialog] = useState<'upload' | 'hr' | 'rates' | null>(null)
 
   const proposed = pos.tiers.filter(t => t.status === 'proposed')
   const lineId = pos.line.id
@@ -110,6 +111,8 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
           <span style={{ color: INK }}>{listIn ? `${pos.engineQuotes.length} insurer${pos.engineQuotes.length === 1 ? '' : 's'} priced from the list` : 'none yet'}</span>
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('upload')}>{listIn ? 'Replace census' : 'Upload census'}</Btn>
           <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('hr')}>Send HR a link</Btn>
+          {listIn && <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('rates')}>Enter insurer rates</Btn>}
+          <CustomRatesDialog open={ebDialog === 'rates'} lineId={lineId} onClose={() => setEbDialog(null)} onDone={onChanged} />
           <UploadListDialog open={ebDialog === 'upload'} lineId={lineId} onClose={() => setEbDialog(null)} onDone={() => { setEbDialog(null); onChanged() }} />
           <SendHrLinkDialog open={ebDialog === 'hr'} lineId={lineId} onClose={() => setEbDialog(null)} onDone={() => { setEbDialog(null); onChanged() }} />
         </div>
@@ -161,7 +164,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
           <tbody>
             <XlRow>
               <XlCell label align="left" muted>Contact</XlCell>
-              {grid.insurers.map(ins => perInsurer(ins, i => i.dispatch ? <span style={{ color: MUTED }}>{clip(i.dispatch.dispatch.to_email, 30)}</span> : <span style={{ color: MUTED }}>Rate table</span>, ins.dispatch?.dispatch.to_email))}
+              {grid.insurers.map(ins => perInsurer(ins, i => i.dispatch ? <span style={{ color: MUTED }}>{clip(i.dispatch.dispatch.to_email, 30)}</span> : <span style={{ color: MUTED }}>{i.cells.some(c => c.quote?.source === 'custom_rates') ? 'Rates entered' : 'Rate table'}</span>, ins.dispatch?.dispatch.to_email))}
             </XlRow>
             <XlRow>
               <XlCell label align="left" muted>Status</XlCell>

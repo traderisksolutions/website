@@ -156,8 +156,8 @@ export interface PlacementQuote {
   round_id: string
   dispatch_id: string | null          // null for a rate-engine quote
   insurer_name: string
-  /** 'insurer' = read from a reply; 'rate_table' = priced by the employment-benefits engine. */
-  source?: 'insurer' | 'rate_table'
+  /** 'insurer' = read from a reply; 'rate_table' = priced by the employment-benefits engine; 'custom_rates' = the insurer's per-head rates entered by a broker. */
+  source?: 'insurer' | 'rate_table' | 'custom_rates'
   engine_run_id?: string | null       // gb_quotations.id
   plan_label?: string | null
   /** The tier this price is for; null = the line's own spec. tier_label is as the insurer wrote it. */

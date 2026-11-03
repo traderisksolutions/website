@@ -19,6 +19,7 @@ import { EB_PRODUCT_LINES } from '@/lib/policies/types'
 import type { HrSubmission } from '@/lib/hr/types'
 import type { Member } from '@/lib/gb-quote'
 import * as store from './store'
+import { censusCounts, checkStated, customQuoteTotal, type ArithmeticCheck, type CustomQuoteResult, type ProductRate } from '@/lib/gb/custom-quote'
 import { openRounds } from './workflow'
 import { normaliseSpec } from './spec'
 import type { PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, Spec } from './types'
@@ -266,6 +267,44 @@ export async function priceLine(lineId: string, input: PriceInput): Promise<Pric
   if (Object.keys(linePatch).length) await store.patch('placement_lines', `id=eq.${line.id}`, linePatch)
 
   return { quotationId: d.quotationId, quotes, partial: d.partial, notes: d.notes }
+}
+
+// ── Custom rates ────────────────────────────────────────────────────────────────────────────
+
+export type CustomQuoteInput = { insurerName: string; rates: ProductRate[]; statedTotal: number | null; actor: string }
+
+/**
+ * An insurer's custom rates for the line's census (large groups, src/lib/gb/custom-quote.ts),
+ * filed as a quote beside the engine's. A new entry for the same insurer supersedes the last.
+ * A stated total the rates do not give is noted and held for review.
+ */
+export async function fileCustomQuote(lineId: string, input: CustomQuoteInput): Promise<{ quote: PlacementQuote; result: CustomQuoteResult; check: ArithmeticCheck | null }> {
+  const line = await loadLine(lineId)
+  if (!line) throw new Error('Line not found')
+  const bundle = await store.loadPlacement(line.placement_id)
+  const placement = bundle?.placements[0]
+  if (!bundle || !placement) throw new Error('Placement not found')
+  const census = await censusForLine(line, bundle.quotes)
+  if (!census.length) throw new Error('No census on this line yet: upload the employee list first')
+  const counts = censusCounts(census)
+  const result = customQuoteTotal(input.rates, counts)
+  if (result.missing.length) throw new Error(`No rate for ${result.missing.join(', ')}`)
+  const check = input.statedTotal != null ? checkStated(input.statedTotal, result.total, `${input.insurerName}'s stated total`) : null
+  const round = await currentRound(line, bundle.rounds, input.actor)
+  await store.patchNoTs('placement_quotes', `line_id=eq.${line.id}&source=eq.custom_rates&insurer_name=eq.${enc(input.insurerName)}&status=eq.received`, { status: 'superseded' })
+  const [quote] = await store.insert<PlacementQuote>('placement_quotes', {
+    placement_id: line.placement_id, line_id: line.id, round_id: round.id, dispatch_id: null,
+    insurer_name: input.insurerName, source: 'custom_rates',
+    premium_text: `S$${result.total.toFixed(2)} per annum incl. GST`, premium_amount: result.total, currency: 'SGD',
+    plan_label: Object.keys(result.byProduct).join(' + ') || null,
+    summary: `${counts.total} lives (${counts.employees} employees), insurer's rates`,
+    evidence: { premium: { excerpt: Object.entries(result.byProduct).map(([k, v]) => `${k} S$${v.toFixed(2)}`).join('; '), source: 'rates entered' }, custom: { rates: input.rates, stated_total: input.statedTotal, result, check } },
+    key_terms: [], exclusions: [], subjectivities: check?.note ? [check.note] : [],
+    extracted_by: 'broker', status: 'received', needs_review: check?.ok === false,
+  })
+  await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, round_id: round.id, kind: 'quote', actor: input.actor,
+    text: `${input.insurerName} priced S$${money(result.total)} from its rates (${counts.total} lives)${check?.note ? `. ${check.note}` : ''}`, detail: { quote_id: quote.id, by_product: result.byProduct } })
+  return { quote, result, check }
 }
 
 // ── Tier C ──────────────────────────────────────────────────────────────────────────────────

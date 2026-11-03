@@ -36,3 +36,54 @@ describe('EB custom quotes (cases from TRS mail, Jun–Nov 2026)', () => {
     expect(yearEndAdjustment(50, 44, 190).net).toBe(-570)
   })
 })
+
+describe('custom rates entered for a census', () => {
+  const census = [
+    { category: 'Plan 1', relationship: 'self' }, { category: 'Plan 1', relationship: 'spouse' }, { category: 'Plan 1', relationship: 'child' },
+    { category: 'Plan 1', relationship: 'self' },
+    { category: 'Plan 2', relationship: 'self' }, { category: 'Plan 2', relationship: 'child' }, { category: 'Plan 2', relationship: 'child' },
+    { category: 'Plan 2', relationship: 'self' }, { category: 'Plan 2', relationship: 'spouse' },
+  ]
+  it('counts family tiers and lives per plan', async () => {
+    const { censusCounts } = await import('@/lib/gb/custom-quote')
+    const c = censusCounts(census)
+    expect(c.tiers['Plan 1']).toEqual({ EO: 1, ES: 0, EC: 0, EF: 1 })
+    expect(c.tiers['Plan 2']).toEqual({ EO: 0, ES: 1, EC: 1, EF: 0 })
+    expect(c.lives['Plan 2']).toEqual({ employee: 2, spouse: 1, child: 2 })
+    expect([c.employees, c.total]).toEqual([4, 9])
+  })
+  it('totals an Income-style and a QBE-style quote, GST on medical only', async () => {
+    const { censusCounts, customQuoteTotal } = await import('@/lib/gb/custom-quote')
+    const c = censusCounts(census)
+    const income = customQuoteTotal([
+      { product: 'GHS', method: 'tier', rates: { 'Plan 1': 579, 'Plan 2': 609 } },
+      { product: 'GTL', method: 'per_mille', ratePerThousand: 1, totalSumAssured: 400_000 },
+    ], c)
+    // Plan 1: 579 + 579×3.5 = 2,605.50; Plan 2: 609×2.5 × 2 = 3,045; GTL 400, no GST
+    expect(income.byProduct).toEqual({ GHS: 5650.5, GTL: 400 })
+    expect(income.gst).toBe(508.55)
+    expect(income.total).toBe(6559.05)
+    const qbe = customQuoteTotal([
+      { product: 'GHS', method: 'life', rates: { 'Plan 1': 471, 'Plan 2': 568 } },
+      { product: 'Dental', method: 'per_life', rate: 472 },
+    ], c)
+    // Plan 1: 3 adults... 2 employees + 1 spouse at 471 + 1 child at 376 = 1,789; Plan 2: 3 adults at 568 + 2 children at 454 = 2,612
+    expect(qbe.byProduct.GHS).toBe(4401)
+    expect(qbe.byProduct.Dental).toBe(4248)
+  })
+  it('names a plan with no rate', async () => {
+    const { censusCounts, customQuoteTotal } = await import('@/lib/gb/custom-quote')
+    expect(customQuoteTotal([{ product: 'GHS', method: 'tier', rates: { 'Plan 1': 579 } }], censusCounts(census)).missing).toEqual(['GHS Plan 2'])
+  })
+})
+
+describe('custom rates from the request', () => {
+  it('accepts each method and names what is wrong', async () => {
+    const { parseProductRate } = await import('@/lib/gb/custom-quote')
+    expect(parseProductRate({ product: 'GHS', method: 'tier', rates: { 'Plan 1': 579, 'Plan 2': 'x' } })).toEqual({ product: 'GHS', method: 'tier', rates: { 'Plan 1': 579 } })
+    expect(parseProductRate({ product: 'GTL', method: 'per_mille', rate_per_thousand: 1, total_sum_assured: 7_700_000 })).toEqual({ product: 'GTL', method: 'per_mille', ratePerThousand: 1, totalSumAssured: 7_700_000 })
+    expect(parseProductRate({ product: 'GP', method: 'per_employee', rate: -1 })).toBe('GP: enter the rate')
+    expect(parseProductRate({ product: 'GHS', method: 'tier', rates: {} })).toBe('GHS: enter a rate for each plan')
+    expect(parseProductRate({ product: 'GHS', method: 'guess' })).toBe('GHS: choose how it is priced')
+  })
+})
