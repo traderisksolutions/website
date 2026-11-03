@@ -15,6 +15,7 @@ import { attachmentRefBytes } from '@/lib/storage/attachment-bytes'
 import { parseMoney } from './spec'
 import * as store from './store'
 import type { Evidence } from './types'
+import { checkPerMilleText } from '@/lib/gb/custom-quote'
 
 export type QuoteKind = 'quotation' | 'indication' | 'bind_confirmation' | 'renewal_terms'
 
@@ -318,6 +319,10 @@ export async function captureQuoteFromMessage(messageId: string, opts: { dry?: b
   if (!companyId) { const [ti] = await sbTry<Row[]>(`thread_insurers?thread_id=eq.${enc(msg.thread_id)}&client_company_id=not.is.null&select=client_company_id&limit=1`, []); companyId = ti?.client_company_id ?? null }
   const product_line = inferProductLine(msg.subject, corpus)
   const excerptText = best.evidence.premium?.excerpt ?? best.evidence.policy_number?.excerpt ?? null
+  // An insurer's premium that its own rate per S$1,000 and total sum assured do not give (the
+  // Genscript term life slip: S$7,700 by its rate, S$28,962.50 billed) is held for a person.
+  const arithmetic = checkPerMilleText(corpus, best.premium_amount)
+  const conditions = arithmetic?.note ? [arithmetic.note, ...best.conditions] : best.conditions
   const result: CaptureResult = { captured: true, quoteId: null, kind: best.kind, premium: best.premium_amount ?? best.per_head_amount, currency: best.currency, product_line, read_by, confidence: best.confidence, source: bestDoc ? `attachment: ${bestDoc.filename}` : 'email body', excerpt: excerptText, dry: opts.dry }
   if (opts.dry) return result
 
@@ -328,10 +333,10 @@ export async function captureQuoteFromMessage(messageId: string, opts: { dry?: b
     gst_text: best.gst_text, gst_amount: best.gst_amount, limit_text: best.limit_text, limit_amount: best.limit_amount,
     excess_text: best.excess_text, period_text: best.period_text, period_from: best.period_from, period_to: best.period_to,
     validity_text: best.validity_text, valid_until: best.valid_until, policy_number: best.policy_number,
-    conditions: best.conditions.join('\n') || null, subjectivities: best.conditions, evidence: best.evidence,
+    conditions: conditions.join('\n') || null, subjectivities: best.conditions, evidence: arithmetic ? { ...best.evidence, arithmetic } : best.evidence,
     summary: `${best.kind.replace('_', ' ')} from ${party.company_name}${product_line ? ` · ${product_line}` : ''}${best.premium_text ? ` · ${best.premium_text}` : ''}`.slice(0, 300),
     source_message_id: messageId, source_document_id: bestDoc?.id ?? null, thread_id: msg.thread_id,
-    status: 'received', needs_review: best.confidence !== 'high', extracted_by: 'quote_capture', read_by, confidence: best.confidence, source: 'insurer',
+    status: 'received', needs_review: best.confidence !== 'high' || arithmetic?.ok === false, extracted_by: 'quote_capture', read_by, confidence: best.confidence, source: 'insurer',
   }
   const [made] = await sb<Row[]>('placement_quotes', {
     method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(row),

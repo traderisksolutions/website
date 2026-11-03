@@ -139,12 +139,25 @@ by insurer and the reproduction table, is kept outside the repo (session scratch
   - the pre-existing condition question;
   - the Singlife takeover rule.
 
-**Not built yet, in order:**
-1. Load the earlier QBE card (V11, Jan 2026) so renewals before 2 Sep 2026 price.
-2. Custom quotes: per-head rate by plan and member type (Income: spouse or children 2.5×,
-   family 3.5×; QBE: child 0.8×), held and compared like package quotes.
-3. Sum-assured products: rate per S$1,000, flat or as a salary multiple (GTL, GPA), with a check
-   of the insurer's own arithmetic.
-4. Movements and renewals: pro-rata by days/365 plus GST, year-end headcount adjustments,
-   renewal = expiring × (1 + load).
-5. Cigna Care Connect: the 1.0 card prices 6.6% under the quote; no 2.0 card is on file.
+**Built 4 Nov 2026, second pass:**
+- QBE MCare+ V11 (Jan 2026 card) loaded as its own approved card, from the Table_Jan26 sheet of
+  the Steadfast calculator:
+  - dated new business from 1 Jan 2026;
+  - 20% co-insurance plans derived as 0.8 × the full-cover rate;
+  - GP and specialist ages 66+ take the "Above 50" rate, since that card had no 66+ band.
+  - Check: Amazing Collective reproduces exactly (S$6,829.00 private and S$4,052.00 government
+    4-bed). The same census from 1 Jul moves to V12 (S$8,352.36).
+  - Undo: delete the rows in `scratchpad/eb/qbe-v11-undo.json`.
+- `src/lib/gb/custom-quote.ts`:
+  - Income family tiers (2.5× and 3.5×) and QBE per-life rates (child 0.8×);
+  - sum assured, flat or as a salary multiple, and the premium per S$1,000;
+  - the renewal load and the year-end headcount adjustment;
+  - a check of the insurer's stated premium against its own basis. Insurer quotes captured from
+    the mail run that check, and a mismatch (the Genscript term life slip) holds the quote for a
+    person.
+
+**Still open:**
+1. A screen to enter an insurer's per-head rates for a custom case and compare totals across
+   insurers. The arithmetic is built; the entry screen is not.
+2. Cigna Care Connect: the 1.0 card prices 6.6% under the quote, and there is no 2.0 card on
+   file. The 2.0 rate card is needed from Cigna.
