@@ -7,6 +7,7 @@
  * src/lib/casework when that module gains them.
  */
 import { fillVoice } from '@/lib/admin/b/voice'
+import { contactIdFor } from '@/lib/admin/b/contact-id'
 import { listRegister, type RegisterRow } from '@/lib/admin/b/documents/store'
 import { sb, sbTry, enc, isInternal } from '@/lib/crm/db'
 import { groupOf, bridgeOf, laterFor, type TodayGroup, type LaterChoice, type Bridge } from './rules'
@@ -266,10 +267,27 @@ export async function editDraft(id: string, p: { to: string; cc: string | null; 
   await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ to_email: p.to.trim(), cc: p.cc?.trim() || null, subject: p.subject, body: p.body }) })
 }
 
+/**
+ * The send route (/api/email/send, not to be changed) addresses a draft by its contact. A draft
+ * written by an agent to an address with no contact row gets one here, for its first recipient,
+ * before it is sent. Shared by both prepare steps (Today's Send and the paired draft).
+ */
+export async function ensureDraftContact(id: string): Promise<void> {
+  const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(id)}&select=id,contact_id,to_email,work_item_id&limit=1`)
+  if (!d || d.contact_id) return
+  const to = String(d.to_email ?? '').split(/[,;]/).map(x => x.trim()).find(x => x.includes('@'))
+  if (!to) throw new Error('This draft has no recipient. Add one in the To field and send again.')
+  const [w] = d.work_item_id ? await sbTry<Row[]>(`work_items?id=eq.${enc(d.work_item_id)}&select=company_id&limit=1`, []) : []
+  const contactId = await contactIdFor(to, w?.company_id ?? null)
+  if (!contactId) throw new Error(`Could not record ${to} as a contact, so the draft cannot be sent yet.`)
+  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ contact_id: contactId }) })
+}
+
 /** Fills the signature with the approver's name and returns the id for /api/email/send. */
 export async function prepareDraft(id: string, actor: string): Promise<string> {
   const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(id)}&select=id,body,status,thread_id&limit=1`)
   if (!d || !['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
+  await ensureDraftContact(id)
   // The approver's own voice: greeting word, close, name, phone (src/lib/admin/b/voice.ts).
   await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ body: await fillVoice(String(d.body ?? ''), actor, d.thread_id) }) })
   return d.id

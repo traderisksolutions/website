@@ -23,6 +23,13 @@ type Edit = { to: string; cc: string; subject: string; body: string }
 const asEdit = (d: TodayDraft): Edit => ({ to: d.to, cc: d.cc ?? '', subject: d.subject, body: d.body })
 const changed = (a: Edit, d: TodayDraft) => a.to !== d.to || a.cc !== (d.cc ?? '') || a.subject !== d.subject || a.body !== d.body
 const inputCls = 'w-full min-w-0 h-9 rounded-[7px] border border-trs-line-2 bg-white px-3 text-[14px] text-trs-ink outline-none focus:border-trs-ink'
+/** The To and Cc as saved on the draft (edits are saved before Send): the first To is the
+ *  recipient, the rest go as Cc with the draft's own Cc. The send route takes both as given. */
+const recipients = (d: { to: string; cc: string | null }) => {
+  const split = (v: string | null | undefined) => String(v ?? '').split(/[,;]/).map(x => x.trim()).filter(x => x.includes('@'))
+  const to = split(d.to)
+  return { toEmail: to[0], cc: Array.from(new Set([...to.slice(1), ...split(d.cc)])) }
+}
 /** The send route attaches only what the request names: every file on the draft that has a reference. */
 const withRefs = (a: TodayDraft['attachments']) => a.filter(x => x.storage_url).map(x => ({ filename: x.filename, mime_type: x.mime_type ?? undefined, storage_url: x.storage_url as string }))
 
@@ -90,12 +97,12 @@ export default function ReviewPage() {
     await saveAll()
     const sent: string[] = []
     const { draftId } = await work({ action: 'prepare_send' })
-    await callApi('/api/email/send', { method: 'POST', body: { draftId, attachments: withRefs(item.draft.attachments) } })
+    await callApi('/api/email/send', { method: 'POST', body: { draftId, ...recipients(main ?? item.draft), attachments: withRefs(item.draft.attachments) } })
     sent.push(item.draft.to)
     for (const p of item.paired.filter(x => include[x.id])) {
       try {
         const { draftId: pid } = await callApi<{ draftId: string }>(`/api/drafts/${p.id}`, { method: 'POST', body: { action: 'prepare' } })
-        await callApi('/api/email/send', { method: 'POST', body: { draftId: pid, attachments: withRefs(p.attachments) } })
+        await callApi('/api/email/send', { method: 'POST', body: { draftId: pid, ...recipients(pairs[p.id] ?? p), attachments: withRefs(p.attachments) } })
         sent.push(p.to)
       } catch (e) {
         // The main email is out; say exactly which one did not go.
