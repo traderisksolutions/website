@@ -10,6 +10,8 @@ export type RequestContext = {
   /** The client's own words on the thread, newest last. */
   text: string
   inception: string | null
+  /** The day the request is read (YYYY-MM-DD): cover starting before it is backdated. */
+  today?: string
 }
 
 /** A line the client did not ask for but likely needs, put to the client as a question. */

@@ -25,8 +25,8 @@ The map lives in `src/lib/agents/desks.ts`.
 | Phase | Main agent | Sub-agents | Status |
 | --- | --- | --- | --- |
 | 1 | Endorsement | eb and motor (member and vehicle lists); others go to general | Built 4 Nov |
-| 2 | New request | eb, wica, liability; others go to general | Building |
-| 3 | New request | car, financial, property, motor | |
+| 2 | New request | eb, wica, liability; others go to general | Built 4 Nov |
+| 3 | New request | car, financial, property, motor | Built 4 Nov |
 | 4 | Renewal and claim | All desks | |
 
 ## Phase 1: endorsement main agent
@@ -83,6 +83,35 @@ the client as a question. The questions go out in the one data-request email the
 The lines already open as placements were checked in a dry run (no model calls, no writes),
 which caught two misreads now fixed: project PL read as small-business PL, and medical questions
 on personal accident.
+
+## Phase 3: car, financial, property, motor
+
+Same shape as phase 2, in `src/lib/agents/new-request/{car,financial,property,motor}.ts`.
+
+- **car**:
+  - notes: tender (indicative) versus award; capacity planning from S$100m; EAR when the scope
+    is erection or installation;
+  - asks: the soil report and excavation for ground works; principal's existing property for
+    works on an existing building; the lender's clause;
+  - suggests PEL or WICA.
+- **financial**: revenue by country (packaged PI excludes the USA and Canada); known incidents;
+  the expiring schedule with the retroactive date; IPO notes for D&O; leverage notes for
+  investment managers.
+- **property**: the exact occupation and sums insured by item; the tenancy insurance clause;
+  the lender's clause; business interruption; open cover for portfolios; package plans for small
+  premises. Equipment and stock lines get their own questions.
+- **motor**: driver ages and licence pass dates; NCD per vehicle; expiry alignment and the
+  claims-by-vehicle note for fleets; specialist vehicles.
+- **All lines**: cover starting before today asks the signed nil-claims letter of undertaking, once.
+
+The dry run on the open placements caught five misreads; four are fixed:
+- "Contractors' Plant" read as erection;
+- "soil investigation" works read as ground works;
+- premises questions on equipment and stock;
+- the same question asked twice.
+
+The fifth was the backdated-cover ask showing on adopted cases. That is an artefact of the dry
+run: cases picked up midway skip the review.
 
 ## EB pricing model (reverse-engineered 4 Nov 2026)
 

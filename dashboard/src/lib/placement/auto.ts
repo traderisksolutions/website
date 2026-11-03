@@ -139,7 +139,7 @@ export async function autoPlaceFromThread(threadId: string): Promise<AutoPlaceRe
   // The main agent: every line to its desk's sub-agent (eb, wica, liability), for the client
   // questions, the broker's notes and the lines the client likely also needs (docs/agent-routing.md).
   const clientWords = (await store.threadMessages(threadId)).filter(m => m.direction === 'inbound').map(m => ownWordsOf(m.body_text ?? '') || (m.body_text ?? '').slice(0, 4000)).join('\n\n').slice(-20_000)
-  const review = reviewRequest({ lines: proposed.map(l => ({ product_line: l.product_line, label: l.label, spec: l.spec })), text: `${thread.subject ?? ''}\n${clientWords}`, inception: proposal!.inception_date })
+  const review = reviewRequest({ lines: proposed.map(l => ({ product_line: l.product_line, label: l.label, spec: l.spec })), text: `${thread.subject ?? ''}\n${clientWords}`, inception: proposal!.inception_date, today: new Date().toISOString().slice(0, 10) })
 
   const askedLines = [...new Set(proposed.map(l => l.product_line))]
   // A line with no insurer contacts of its own borrows a sibling line's until its products are set up.
