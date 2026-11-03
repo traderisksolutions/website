@@ -10,12 +10,13 @@ describe('appointment letter', () => {
     const p = letterParts(chec)
     expect(p.title).toBe('Appointment of Insurance Broker')
     expect(p.date).toBe('29 October 2026')
-    expect(p.body[0]).toBe("This is to confirm that with immediate effect, we have appointed Trade Risk Solutions Pte. Ltd. as our insurance broker with respect to negotiation, placement and administration of our Contractor's All Risks and Public Liability insurance for the Stevens Road project.")
+    expect(p.body[0]).toBe("This is to confirm that with immediate effect, we have appointed Trade Risk Solutions Pte. Ltd. as our insurance broker with respect to the negotiation, placement and administration of our Contractor's All Risks and Public Liability insurance for the Stevens Road project.")
     expect(p.body[1]).toBe('This letter and the authority contained herein shall remain in full force until cancelled by us in writing.')
     expect(p.name).toBe('[Name]')
   })
   it('says what is missing', () => {
-    expect(letterProblems({ clientName: 'X', date: '2026-10-29' })).toEqual(['Enter the project title.', 'Enter the insurance programme.'])
+    // The project line is optional since 4 Nov 2026: many appointments cover "our insurance policies" with no project.
+    expect(letterProblems({ clientName: 'X', date: '2026-10-29' })).toEqual(['Enter the insurance programme.'])
     expect(letterProblems(chec)).toEqual([])
   })
   it('names the file by client and project', () => {

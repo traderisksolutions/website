@@ -17,6 +17,7 @@ import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, ThreadModal, DocModal, fmtDate, fmtWhen } from '@/components/assistant/shared'
 import { STAGES, STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import { classify, defaultSchedule, expectsReply } from '@/lib/followups/rules'
+import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
@@ -68,6 +69,7 @@ export default function ReviewPage() {
   const [editing, setEditing] = useState(false)
   // The chase a person sets before sending: days until the first chase (0 = none), and whether chases go out without asking again.
   const [chase, setChase] = useState<{ days: number; auto: boolean } | null>(null)
+  const [letterOpen, setLetterOpen] = useState(false)
   const [waiving, setWaiving] = useState<string | null>(null)
   const [waiveNote, setWaiveNote] = useState('')
 
@@ -234,6 +236,14 @@ export default function ReviewPage() {
               {(item.pending.level === 'red' || item.pending.level === 'amber') && <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip>}
               {item.owner_email && <Chip>{item.owner_email.split('@')[0]}</Chip>}
             </div>
+            {item.company_id && <div className="mt-2"><Btn size="xs" level="secondary" onClick={() => setLetterOpen(true)}>Appointment letter</Btn></div>}
+            {item.company_id && (
+              <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={item.company_id}
+                onAttach={item.draft ? async (documentId: string) => {
+                  await callApi(`/api/work/${item.id}/edit`, { method: 'POST', body: { attachments: { draft_id: item.draft!.id, keep: item.draft!.attachments.map(a => a.filename), add: [documentId] } } })
+                  load()
+                } : undefined} />
+            )}
             {editing && <CaseEditor item={item} onSaved={m => { setNotice(m); setError(null); setEditing(false); load() }} onError={setError} />}
             {item.summary && <p className="m-0 text-[13.5px] text-trs-ink-2">{item.summary}</p>}
             {timeline.length > 0 && (

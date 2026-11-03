@@ -19,6 +19,9 @@ export function registerPdfFonts(base: string): void {
     { src: f('Geist-Regular.woff'), fontWeight: 400 },
     { src: f('Geist-Medium.woff'), fontWeight: 500 },
     { src: f('Geist-SemiBold.woff'), fontWeight: 600 },
+    // No italic face on file: italic text from the letter editor prints upright rather than failing.
+    { src: f('Geist-Regular.woff'), fontWeight: 400, fontStyle: 'italic' },
+    { src: f('Geist-SemiBold.woff'), fontWeight: 600, fontStyle: 'italic' },
   ] })
   Font.register({ family: 'EB Garamond', src: f('EBGaramond-Medium.woff'), fontWeight: 500 })
   Font.register({ family: 'Geist Mono', src: f('GeistMono-Medium.woff'), fontWeight: 500 })

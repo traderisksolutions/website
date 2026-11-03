@@ -3,6 +3,7 @@
  * Word file. Import only from API routes.
  */
 import { join } from 'node:path'
+import { readFile } from 'node:fs/promises'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { registerPdfFonts } from '@/lib/pdf-fonts'
 import { AppointmentLetterPdf } from './appointment-pdf'
@@ -11,7 +12,9 @@ import { letterParts, type AppointmentLetter } from './appointment'
 
 export async function renderAppointmentPdf(letter: AppointmentLetter): Promise<Buffer> {
   registerPdfFonts(join(process.cwd(), 'public', 'fonts'))
-  return renderToBuffer(<AppointmentLetterPdf letter={letter} />)
+  // The TRS logo (Oct 2026 identity), cropped, from public/letters.
+  const logo = await readFile(join(process.cwd(), 'public', 'letters', 'trs-logo.png')).catch(() => null)
+  return renderToBuffer(<AppointmentLetterPdf letter={letter} logoSrc={logo} />)
 }
 
 // ── Word (.docx) ────────────────────────────────────────────────────────────────────────────
@@ -20,6 +23,9 @@ const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const para = (text: string, o: { bold?: boolean; size?: number; after?: number; before?: number } = {}) =>
   `<w:p><w:pPr><w:spacing w:before="${o.before ?? 0}" w:after="${o.after ?? 0}" w:line="300" w:lineRule="auto"/></w:pPr><w:r><w:rPr>${o.bold ? '<w:b/>' : ''}<w:sz w:val="${o.size ?? 22}"/></w:rPr><w:t xml:space="preserve">${xml(text)}</w:t></w:r></w:p>`
 
+const runsPara = (runs: { text: string; b?: boolean; i?: boolean; u?: boolean }[], o: { before?: number; indent?: boolean } = {}) =>
+  `<w:p><w:pPr><w:spacing w:before="${o.before ?? 0}" w:after="0" w:line="300" w:lineRule="auto"/>${o.indent ? '<w:ind w:left="360" w:hanging="360"/>' : ''}</w:pPr>${runs.map(r => `<w:r><w:rPr>${r.b ? '<w:b/>' : ''}${r.i ? '<w:i/>' : ''}${r.u ? '<w:u w:val="single"/>' : ''}<w:sz w:val="22"/></w:rPr>${r.text.split('\t').map(x => `<w:t xml:space="preserve">${xml(x)}</w:t>`).join('<w:tab/>')}</w:r>`).join('')}</w:p>`
+
 /** The letter as a Word document: A4, top margin left free for the client's letterhead. */
 export async function buildAppointmentDocx(l: AppointmentLetter): Promise<Buffer> {
   const p = letterParts(l)
@@ -27,8 +33,9 @@ export async function buildAppointmentDocx(l: AppointmentLetter): Promise<Buffer
     ...p.addressee.map(a => para(a)),
     para(p.date, { before: 360 }),
     para(p.title, { bold: true, size: 26, before: 480 }),
-    para(`Re: ${p.re}`, { before: 80 }),
-    ...p.body.map((t, i) => para(t, { before: i === 0 ? 360 : 200 })),
+    ...(p.re ? [para(`Re: ${p.re}`, { bold: true, before: 80 })] : []),
+    ...p.blocks.map((b, i) => runsPara(b.kind === 'li' ? [{ text: `${b.ordered ? `${b.n}.` : '•'}\t` }, ...b.runs] : b.runs, { before: i === 0 ? 360 : b.kind === 'li' ? 80 : 200, indent: b.kind === 'li' })),
+    ...(p.entities.length ? [para('List of entities:', { before: 200 }), ...p.entities.map(e => runsPara([{ text: `•\t${e}` }], { before: 60, indent: true }))] : []),
     para(p.closing, { before: 200 }),
     para('', { before: 960 }),
     para('______________________________'),

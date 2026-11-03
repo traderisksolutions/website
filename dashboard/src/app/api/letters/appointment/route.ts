@@ -77,9 +77,17 @@ export async function POST(req: NextRequest) {
   const letter: AppointmentLetter = {
     clientName: str(b.client_name), projectTitle: str(b.project_title), programme: str(b.programme), date: str(b.date),
     signatoryName: str(b.signatory_name) || null, designation: str(b.designation) || null,
+    entities: Array.isArray(b.entities) ? (b.entities as unknown[]).map(str).filter(Boolean).slice(0, 40) : [],
+    bodyHtml: typeof b.body_html === 'string' ? b.body_html.slice(0, 20_000) : null,
+    letterhead: b.letterhead === 'trs' ? 'trs' : 'client',
   }
   const problems = letterProblems(letter)
   if (problems.length) return fail(problems.join(' '))
+  // Preview: the PDF exactly as it will be filed, nothing saved.
+  if (b.preview === true) {
+    const pdf = await renderAppointmentPdf(letter)
+    return new NextResponse(new Uint8Array(pdf), { status: 200, headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${letterFileName(letter, 'pdf').replace(/"/g, '')}"`, 'Cache-Control': 'no-store' } })
+  }
   try {
     const company = await companyOf(companyId)
     if (!company) return fail('Company not found', 404)
