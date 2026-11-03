@@ -147,7 +147,9 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
     case 'renewal_notice':
       return {
         subject: `Renewal: ${f.className ?? 'policy'}${f.policyNumber ? ` ${f.policyNumber}` : ''}${f.clientName ? `, ${f.clientName}` : ''}`,
-        body: `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nPlease confirm any changes since the last renewal (for example headcount, sums insured, vehicles or turnover) so that we can obtain renewal terms.\n\n${sign}`.replace(/Your  policy/, 'Your policy'),
+        body: (f.items ?? []).length
+          ? `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nTo obtain renewal terms, may we have the following, updated for the coming year:\n\n${(f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')}\n\nWhere nothing has changed since last year, a short confirmation is enough.\n\nThank you!\n\n${sign}`.replace(/Your  policy/, 'Your policy')
+          : `${hi}\n\nYour ${f.className ?? ''} policy${f.policyNumber ? ` No. ${f.policyNumber}` : ''}${f.insurerName ? ` with ${f.insurerName}` : ''} expires on ${fmt(f.expiry) ?? 'the date on the schedule'}.\n\nPlease confirm any changes since the last renewal (for example headcount, sums insured, vehicles or turnover) so that we can obtain renewal terms.\n\n${sign}`.replace(/Your  policy/, 'Your policy'),
       }
     case 'client_update':
       return {

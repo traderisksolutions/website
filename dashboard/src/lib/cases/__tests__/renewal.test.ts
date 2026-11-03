@@ -75,6 +75,13 @@ describe('price check', () => {
     expect(priceCheck(period({ insurer_experience: { loss_ratio: null, claims_paid: 0, claims_reserve: 0, claims_count: 0, as_of: '2026-10-01' } })).flow).toBe('hold')
     expect(priceCheck(period({ insurer_experience: { loss_ratio: null, claims_paid: 1_000, claims_reserve: 5_000, claims_count: 2, as_of: null } })).flow).toBe('adjust')
   })
+  it('an exposure swing beyond the premium is flagged, never acted on', () => {
+    const clean = { ...parseMethod(DEFAULT_RENEWAL_METHOD), noClaimsUnknown: false }
+    const r = priceCheck(period({ endorsements_count: 1, endorsements_net: 42_000 }), clean)
+    expect(r.flow).toBe('hold')
+    expect(r.rules.join(' ')).toMatch(/exposure reads \+420%: check the debit notes/)
+    expect(priceCheck(period({ members_inception: 1, members_now: 7 }), clean).flow).toBe('hold')
+  })
   it('sets who is asked', () => {
     expect(flowAction('hold', 'Chubb')).toBe('Ask Chubb for renewal terms on the same basis')
     expect(flowAction('increase', 'Chubb')).toMatch(/full panel/)

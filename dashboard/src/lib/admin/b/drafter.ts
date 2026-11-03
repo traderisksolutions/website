@@ -11,6 +11,8 @@
  * asked and nothing is drafted. An item that already holds an unsent draft keeps it. Nothing
  * here sends.
  */
+import { LINE_SPECS } from '@/lib/placement/lines'
+import { lineKey } from '@/lib/methods/method'
 import { randomUUID } from 'node:crypto'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
@@ -21,6 +23,8 @@ import { contactIdFor, greetingFor } from './contact-id'
 import { loadCaseData, toCaseMail, scopedContacts, groupFacts, itemEvent, insurerLastHandler, insurerClaimsDesk, type CaseData } from './data'
 
 type Row = Record<string, any>
+/** Method line family → the product line whose spec lists the documents to ask. */
+const LINE_SLUG: Record<string, string> = { wica: 'wica', fwmi: 'foreign_worker_medical', eb: 'employee_benefits', gpa: 'group_personal_accident', pi: 'professional_indemnity', do: 'do', cyber: 'cyber', motor: 'commercial_vehicle', property: 'iar_fire', liability: 'general_liability', marine: 'marine_cargo', bond: 'surety_bonds', car: 'construction_car' }
 const KINDS: DraftKind[] = ['request_quote_data', 'request_missing', 'request_documents', 'chase_insurer', 'chase_client', 'renewal_notice', 'forward_to_insurer', 'adjuster_access', 'settlement_pack', 'request_claims_report']
 
 type Attachment = { filename: string; mime_type: string | null; storage_url: string | null; message_id: string }
@@ -92,7 +96,9 @@ function facts(kind: DraftKind, d: CaseData, claim: Row | undefined, greetingNam
   const thread = sideThreads[0] ?? (side === 'client' ? d.threads.find(t => t.side !== 'insurer') : null) ?? d.threads[0] ?? null
   const lastTrs = [...d.messages].reverse().find(m => m.side === 'trs' && !m.rebuilt)
   const policy = d.policies.find(p => p.id === (claim?.policy_id ?? d.item.policy_id))
-  const items = Array.isArray(task.payload?.items) ? task.payload.items as string[] : (claim?.gaps ?? []).map((g: Row) => g.item)
+  const given = Array.isArray(task.payload?.items) ? task.payload.items as string[] : (claim?.gaps ?? []).map((g: Row) => g.item)
+  // The renewal data request lists what the policy's line needs, as the new-request specs ask it.
+  const items = given.length || kind !== 'renewal_notice' ? given : LINE_SPECS[LINE_SLUG[lineKey(`${policy?.class_of_insurance ?? ''} ${policy?.product_line ?? ''}`) ?? ''] ?? '']?.documentsToAsk ?? []
   const fromClient = d.messages.filter(m => m.side === 'client' && !m.rebuilt)
   const original = kind === 'forward_to_insurer' ? fromClient[fromClient.length - 1] ?? d.messages.find(m => m.side === 'client') ?? null : null
   const clientFiles = d.files.filter(f => fromClient.some(m => m.id === f.message_id))

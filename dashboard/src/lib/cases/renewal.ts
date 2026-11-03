@@ -63,8 +63,14 @@ export function priceCheck(c: PeriodFigures | null, m: Pick<RenewalMethod, 'hold
   if (!c || !premium || premium <= 0) {
     flow = 'no_data'; parts.push('no premium on file for the expiring year')
   } else {
-    if (c.members_inception && c.members_now != null) exposureShift = (c.members_now - c.members_inception) / c.members_inception
+    if (c.members_inception && c.members_inception >= 3 && c.members_now != null) exposureShift = (c.members_now - c.members_inception) / c.members_inception
     else if (c.endorsements_count > 0) exposureShift = c.endorsements_net / premium
+    // A swing beyond the whole premium is a record fault (a new-business note filed as an
+    // endorsement, a census of one), not exposure: flag it, never act on it.
+    if (exposureShift != null && Math.abs(exposureShift) > 1) {
+      rules.push(`exposure reads ${exposureShift >= 0 ? '+' : ''}${Math.round(exposureShift * 100)}%: check the debit notes and headcount on this policy`)
+      exposureShift = null
+    }
     const shift = Math.abs(exposureShift ?? 0)
     const earned = c.earned_premium > 0 ? c.earned_premium : premium
     const incurred = c.claims_paid > 0 ? c.claims_paid : c.claims_claimed

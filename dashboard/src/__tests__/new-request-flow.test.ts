@@ -78,3 +78,14 @@ describe('the data request to the client', () => {
     expect(d.body).toMatch(/come back to you with a comparison/)
   })
 })
+
+describe('the 90-day renewal data request', () => {
+  it('lists what the line needs, numbered', () => {
+    const d = buildDraft('renewal_notice', { title: 'Renewal', className: 'Work Injury Compensation', policyNumber: 'W1', insurerName: 'Liberty', expiry: '2026-12-31', items: LINE_SPECS.wica.documentsToAsk, greetingName: 'Mei' } as never)
+    expect(d.body).toMatch(/1\. Headcount by category of work, with estimated annual wages/)
+    expect(d.body).toMatch(/a short confirmation is enough/)
+  })
+  it('falls back to the general ask with no line items', () => {
+    expect(buildDraft('renewal_notice', { title: 'Renewal', className: 'Policy', expiry: '2026-12-31' } as never).body).toMatch(/Please confirm any changes since the last renewal/)
+  })
+})
