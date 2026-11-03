@@ -7,6 +7,7 @@
  * No model is called here. Plans are chosen by rule (plan-rules.ts), premiums by the quote
  * engine, the comparison by compare-quotation.ts.
  */
+import { cardsInForce, withinPackageLimits } from './table-version'
 import { fetchAllRows } from '../postgrest-all'
 import { normInsurer } from '../insurers'
 import { PRODUCT_BY_CODE } from './canon'
@@ -18,7 +19,7 @@ import {
   matchPlan, describeSpec, withDefaults, parseWard, parseHospital, parseSum, parseCoPay, isHospitalCover, isSumCover,
   type CoverSpec, type OfferedPlan,
 } from './plan-rules'
-import type { Member, QuoteResult } from '../gb-quote'
+import { employeeCount, type Member, type QuoteResult } from '../gb-quote'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbH(prefer = 'return=minimal') {
@@ -27,7 +28,7 @@ function sbH(prefer = 'return=minimal') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-type Table = { id: string; insurer_id: string | null; insurer_name: string | null; effective_date: string | null }
+type Table = { id: string; insurer_id: string | null; insurer_name: string | null; effective_date: string | null; renewal_effective_date?: string | null }
 type RateRow = { rate_table_id: string; product_code: string; plan_code: string; premium: number | null }
 type PlanRow = { rate_table_id: string; product_code: string; plan_code: string; plan_name: string | null
                  hospital_type: string | null; beds: string | null; co_payment: string | null; canon_codes: string[] | null }
@@ -84,18 +85,13 @@ export function offeredPlans(code: string, title: string, rates: RateRow[], plan
   })
 }
 
-/** Approved tables, newest per insurer — the same choice the quote wizard offers. */
-async function currentTables(): Promise<Table[]> {
-  const res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_id,insurer_name,effective_date`, { headers: sbH(), cache: 'no-store' })
+/** Approved tables, the card in force per insurer on the effective date for the basis (table-version.ts). */
+async function currentTables(effectiveDate: string, basis: 'new_business' | 'renewal'): Promise<{ cards: Table[]; notes: string[] }> {
+  let res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_id,insurer_name,effective_date,renewal_effective_date`, { headers: sbH(), cache: 'no-store' })
+  // Before the 20261107_rate_card_dates migration the renewal column does not exist.
+  if (res.status === 400) res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_id,insurer_name,effective_date`, { headers: sbH(), cache: 'no-store' })
   if (!res.ok) throw new Error(`rate tables: ${res.status}`)
-  const all = await res.json() as Table[]
-  const latest = new Map<string, Table>()
-  for (const t of all) {
-    const k = t.insurer_id ?? `name:${t.insurer_name ?? ''}`
-    const cur = latest.get(k)
-    if (!cur || (t.effective_date ?? '') > (cur.effective_date ?? '')) latest.set(k, t)
-  }
-  return Array.from(latest.values())
+  return cardsInForce(await res.json() as Table[], effectiveDate.slice(0, 10), basis)
 }
 
 const sameInsurer = (a: string | null | undefined, b: string | null | undefined) => {
@@ -138,8 +134,12 @@ export async function draftQuotation(input: DraftInput): Promise<DraftResult> {
   const covers = input.covers.filter(c => PRODUCT_BY_CODE[c.code])
   if (!covers.length) throw new DraftError('Choose at least one cover')
 
-  const tables = await currentTables()
-  if (!tables.length) throw new DraftError('No approved rate tables')
+  const inForce = await currentTables(input.effectiveDate, input.basis)
+  // A package priced beyond its size limit is not a price: the insurer quotes a custom rate.
+  const sized = withinPackageLimits(inForce.cards, employeeCount(census))
+  inForce.notes.push(...sized.notes)
+  const tables = sized.cards
+  if (!tables.length) throw new DraftError(`No approved rate tables in force on ${input.effectiveDate}`)
   const ids = tables.map(t => `"${t.id}"`).join(',')
   const [rates, plans, bens] = await Promise.all([
     fetchAllRows<RateRow>(`${SB_URL}/rest/v1/gb_rates?rate_table_id=in.(${ids})&select=rate_table_id,product_code,plan_code,premium`, sbH()),
@@ -162,7 +162,7 @@ export async function draftQuotation(input: DraftInput): Promise<DraftResult> {
   const categoryMap: Record<string, Record<string, Record<string, string>>> = {}
   const coveredOn = (tid: string) => new Set(Object.keys(categoryMap[tid] ?? {}).flatMap(t => resolveProduct(t).codes))
   const titlesUsed = new Set<string>()
-  const notes: string[] = []
+  const notes: string[] = [...inForce.notes]
 
   for (const cover of covers) {
     const cats = categoriesFor(cover.code)

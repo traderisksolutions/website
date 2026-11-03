@@ -181,3 +181,18 @@ describe('a day-first census prices every member', () => {
     expect(q.lines[0].premium).toBe(100)
   })
 })
+
+describe('employee-only personal accident (QBE MCare+, Raffles RCC)', () => {
+  it('a spouse on GPA is noted, not missing, so the insurer stays in the comparison', async () => {
+    const { computeQuote } = await import('@/lib/gb-quote')
+    const table = { rate_table_id: 't', insurer_name: 'QBE', age_basis: 'last_birthday' as const, rates: [
+      { product_code: 'GPA', member_type: 'employee', plan_code: 'P1', band_label: 'all', age_min: 16, age_max: 70, premium: 50 },
+      { product_code: 'GHS', member_type: null, plan_code: 'P1', band_label: 'all', age_min: 0, age_max: 70, premium: 300 },
+    ] }
+    const members = [{ name: 'A', category: 'Staff', relationship: 'self', age: 40 }, { name: 'B', category: 'Staff', relationship: 'spouse', age: 38 }]
+    const r = computeQuote(members, [table], { t: { GPA: { Staff: 'P1' }, GHS: { Staff: 'P1' } } }, ['GPA', 'GHS'], 0.09, '2026-12-01')
+    expect(r.per_insurer[0].missing).toBe(0)
+    expect(r.per_insurer[0].subtotal).toBe(650)
+    expect(r.lines.find(l => l.member_name === 'B' && l.product_code === 'GPA')?.note).toBe('employees only at this insurer')
+  })
+})

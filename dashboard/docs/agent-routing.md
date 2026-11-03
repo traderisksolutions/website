@@ -83,3 +83,39 @@ the client as a question. The questions go out in the one data-request email the
 The lines already open as placements were checked in a dry run (no model calls, no writes),
 which caught two misreads now fixed: project PL read as small-business PL, and medical questions
 on personal accident.
+
+## EB pricing model (reverse-engineered 4 Nov 2026)
+
+Source: 30 EB cases in the mail, Jun–Nov 2026, with 379 quoted figures. 295 reproduce exactly,
+51 within 2%, and 33 not at all. Of the 33, 12 are errors in TRS's own sheets, 9 are insurer lump
+sums, 5 used the wrong card version, 3 are Cigna and 4 lack data. The full model, with formulas
+by insurer and the reproduction table, is kept outside the repo (session scratchpad `eb/model.md`).
+
+**Two regimes, by employee count:**
+- **Up to 50 employees (QBE MCare+), or up to 100 (Income FlexCare, Singlife):** the package
+  card per age band and plan, priced in-house. It reproduces exactly on the card in force.
+- **Above that:** the insurer quotes a rate per head or per S$1,000 of sum assured, from the
+  fact-find and the claims history. The arithmetic reproduces; the rate is the underwriter's.
+
+**Built now:**
+- The card in force on the effective date, separately for new business and renewals
+  (`src/lib/gb/table-version.ts`, column `gb_rate_tables.renewal_effective_date`). The QBE V12
+  card is dated new business 1 Jul 2026 and renewals 2 Sep 2026.
+- Package size limits: an insurer whose package the headcount exceeds is left out with a note,
+  not priced on a card that does not apply.
+- Employee-only personal accident (QBE, Raffles RCC): a dependant on it no longer drops the insurer.
+- EB sub-agent:
+  - the regime;
+  - the fact-find, claims and renewal-notice asks for custom cases;
+  - the pre-existing condition question;
+  - the Singlife takeover rule.
+
+**Not built yet, in order:**
+1. Load the earlier QBE card (V11, Jan 2026) so renewals before 2 Sep 2026 price.
+2. Custom quotes: per-head rate by plan and member type (Income: spouse or children 2.5×,
+   family 3.5×; QBE: child 0.8×), held and compared like package quotes.
+3. Sum-assured products: rate per S$1,000, flat or as a salary multiple (GTL, GPA), with a check
+   of the insurer's own arithmetic.
+4. Movements and renewals: pro-rata by days/365 plus GST, year-end headcount adjustments,
+   renewal = expiring × (1 + load).
+5. Cigna Care Connect: the 1.0 card prices 6.6% under the quote; no 2.0 card is on file.

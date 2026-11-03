@@ -205,6 +205,11 @@ export function findRate(
  * Read from the canonical product, so a bundle label like AIA's "GTL + GACI" is recognised as life
  * cover without anybody maintaining a list per insurer.
  */
+/** A dependant with no rate on an accident product: the insurer covers employees only. */
+export function isEmployeeOnlyGap(productCode: string, note: string | null): boolean {
+  return !!note && /^no (spouse|child|dependant)\w* rates in this table$/.test(note) && resolveProduct(productCode).codes.includes('GPA')
+}
+
 const GST_EXEMPT = new Set(['GTL', 'GCI'])
 export function gstApplies(productCode: string): boolean {
   const codes = resolveProduct(productCode).codes
@@ -274,8 +279,11 @@ export function computeQuote(
             premium = round4(round2(gstApplies(product) ? netOfGst(premium, rules) : premium) * (groupFactorApplies(rules, product) ? gFactor : 1))
           }
         }
+        // Personal accident at QBE MCare+ and Raffles RCC covers employees only: a dependant on it is
+        // not a missing price, and must not drop the insurer from the comparison.
+        if (premium == null && memberTypeFor(m.relationship) !== 'employee' && isEmployeeOnlyGap(product, note)) note = 'employees only at this insurer'
         lines.push({ member_index: i, member_name: m.name, relationship: m.relationship, category: m.category, age, rate_table_id: table.rate_table_id, insurer_id: table.insurer_id ?? null, insurer_name: table.insurer_name, product_code: product, plan_code: plan, premium, note })
-        if (premium == null) { missing++; continue }
+        if (premium == null) { if (note !== 'employees only at this insurer') missing++; continue }
         byProduct[product] = (byProduct[product] ?? 0) + premium
         subtotal += premium
         if (gstApplies(product)) taxable += premium

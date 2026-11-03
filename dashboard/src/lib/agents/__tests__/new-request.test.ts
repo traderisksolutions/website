@@ -73,6 +73,20 @@ describe('EB sub-agent and the main merge', () => {
     expect(r.asks[0]).toMatch(/hospital ward/)
     expect(r.asks[0]).not.toMatch(/budget/)
   })
+  it('routes by employee count: packages to 50, Income and Singlife to 100, custom above', () => {
+    const eb = (n: string): RequestLine => ({ product_line: 'employee_benefits', spec: { fields: { member_count: n, census: 'attached', start_date: '2026-12-01' } } })
+    expect(reviewRequest(ctx([eb('40 staff')])).reviews[0].notes[0]).toMatch(/package cards priced in-house/)
+    expect(reviewRequest(ctx([eb('80')])).reviews[0].notes[0]).toMatch(/QBE MCare\+ takes up to 50/)
+    const big = reviewRequest(ctx([eb('300 employees')], 'renewal of our existing plan'))
+    expect(big.reviews[0].notes[0]).toMatch(/custom rates/)
+    expect(big.asks.some(a => /GIFF/.test(a))).toBe(true)
+    expect(big.asks.some(a => /renewal notice and the detailed claims/.test(a))).toBe(true)
+  })
+  it('asks about serious conditions unless the client already said', () => {
+    const eb: RequestLine = { product_line: 'employee_benefits', spec: { fields: { member_count: '20' } } }
+    expect(reviewRequest(ctx([eb])).asks.some(a => /pre-existing condition/.test(a))).toBe(true)
+    expect(reviewRequest(ctx([eb], 'one staff is on chemo')).asks.some(a => /pre-existing condition/.test(a))).toBe(false)
+  })
   it('personal accident filed as EB gets no medical questions', () => {
     const r = reviewRequest(ctx([{ product_line: 'employee_benefits', label: 'Group Personal Accident (GPA)', spec: {} }]))
     expect(r.asks).toEqual([])
