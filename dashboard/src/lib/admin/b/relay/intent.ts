@@ -70,7 +70,7 @@ const MONEY = /(?:S\$|SGD|USD|US\$|RM|\$)\s?\d[\d,]*(?:\.\d+)?/i
 const ASK = /\b(please|kindly|could you|can you|would you|appreciate if|we (?:need|require|would like|are looking)|i (?:need|would like)|let us have|let me have|send (?:us|me|over))\b/i
 const QUESTION = /\?|\b(is (?:it|this|that|he|she|the \w+) covered|does (?:the|our|this) polic|can we claim|what (?:is|are|does|would)|how (?:much|many|does|do)|are we covered|will (?:the|this) (?:policy|cover)|any (?:cover|coverage) for|(?:please|kindly) (?:advise|clarify|confirm)\b|wondering if)\b/i
 const BULK = /\b(unsubscribe|view (?:this )?(?:email )?in (?:your )?browser|dear (?:partners?|subcontractors|valued (?:partner|client)s?|brokers?|business partners?)|new enhancements?|webinar|newsletter|promotion|campaign|e-?invitation|register now)\b/i
-const INSTRUCTION = /\b(please proceed|proceed with|go ahead|confirm(?:ed)? (?:to )?(?:proceed|accept|bind|renew)|we (?:accept|confirm|agree)|accept(?:ed)? the (?:quot(?:e|ation)|terms|offer)|agreeable to|agree to proceed|bind (?:the )?(?:cover|policy)|incept|place the (?:cover|policy)|signed (?:copy|form|proposal|version|moa) (?:is )?attached|duly signed|take up the (?:quot|offer|policy)|hold off|please hold|put (?:this |it )?on hold|do not proceed|please withdraw|cancel the claim|withdraw the claim|will not be proceeding|not (?:be )?proceed(?:ing)? with|decided not to|no longer (?:require|need|wish)|please send (?:the |this |below )?(?:email|note|letter) to|please (?:send|forward) (?:this|the below|the attached) to)\b/i
+const INSTRUCTION = /\b(please proceed|proceed with (?:the |this |your |our )?(?:quot|policy|cover|renewal|option|plan|placement|insurance|binding|issuance|[A-Z][a-z]+ (?:quot|terms|offer))|go ahead|confirm(?:ed)? (?:to )?(?:proceed|accept|bind|renew)|we (?:accept|confirm|agree)|accept(?:ed)? the (?:quot(?:e|ation)|terms|offer)|agreeable to|agree to proceed|bind (?:the )?(?:cover|policy)|incept|place the (?:cover|policy)|signed (?:copy|form|proposal|version|moa) (?:is )?attached|duly signed|take up the (?:quot|offer|policy)|hold off|please hold|put (?:this |it )?on hold|do not proceed|please withdraw|cancel the claim|withdraw the claim|will not be proceeding|not (?:be )?proceed(?:ing)? with|decided not to|no longer (?:require|need|wish)|please send (?:the |this |below )?(?:email|note|letter) to|please (?:send|forward) (?:this|the below|the attached) to)\b/i
 const CHASE = /\b(expedite|urgent(?:ly)?|so far|follow-up on|update on the|how (?:things are|is it) progressing|any (?:news|response|reply)|if any (?:company|insurer) (?:is )?able|follow(?:ing)? up on|may i follow up|wish to follow up|any update|status (?:of|on) (?:the|this|my|our)|advise (?:any |the )?status|gentle reminder|still waiting|haven'?t heard|not heard back|awaiting your (?:reply|response|update)|it has been \d+ (?:days|weeks))\b/i
 
 /** Lines like "1. Description of equipment" or "- Site fencing": an insurer listing what it needs. */
@@ -82,6 +82,9 @@ export function listedAsks(text: string): string[] {
   }
   return out.slice(0, 12)
 }
+
+/** "Before we proceed", "once … we will proceed", "if … proceed": a condition, not an instruction. */
+const CONDITIONAL_PROCEED = /\b(before (?:we|i|you) (?:can )?proceed|once [^.\n]{0,80}(?:we|i) (?:will|can) proceed|if [^.\n]{0,60}proceed|prior to proceeding)\b/i
 
 export function detectIntent(i: IntentInput): IntentResult {
   const subject = String(i.subject ?? '')
@@ -132,7 +135,7 @@ export function detectIntent(i: IntentInput): IntentResult {
   const askVerb = ASK.test(text)
   const claimLike = isClaimLike(subject, text)
   // Instructions first: "please proceed with the quotation" is an instruction, not a quote request, and not a thanks.
-  if (hit('instruction', INSTRUCTION, text)) return done('instruction', 'high')
+  if (!CONDITIONAL_PROCEED.test(text) && hit('instruction', INSTRUCTION, text)) return done('instruction', 'high')
   if (n <= 18 && !QUESTION.test(text) && !askVerb && !docs.length && !CHASE.test(text) && hit('thanks', /\b(thank(?:s| you)|noted|received|well received|ok(?:ay)?|great|appreciate(?:d)?|perfect|sure)\b/i, text)) return done('thanks', 'high')
   if (!docs.length && n <= 150 && hit('chase phrase', CHASE, text)) return done('client_chase', 'high')
   // A tender or RFQ in the subject is a quote request even when the tender text talks of fire and injury.

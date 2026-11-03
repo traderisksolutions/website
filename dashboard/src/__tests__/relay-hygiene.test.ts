@@ -70,3 +70,13 @@ describe('relay and placement', () => {
     expect(placementActed('unread')).toBe(false)
   })
 })
+
+describe('instruction is an instruction', () => {
+  it('reads a condition to proceed as no instruction, and a real one as one', async () => {
+    const { detectIntent } = await import('@/lib/admin/b/relay/intent')
+    const nda = detectIntent({ side: 'client', subject: 'RE: Enquiry on insurance', text: 'Could you kindly assist in having your Legal Team review the revised copy and share their feedback before we proceed with the DocuSign process?', files: [], caseType: 'new_quote' })
+    expect(nda.intent).not.toBe('instruction')
+    const go = detectIntent({ side: 'client', subject: 'RE: Quotation', text: 'Thanks Nathan. Please proceed with the Chubb quotation, start date 1 December.', files: [], caseType: 'new_quote' })
+    expect(go.intent).toBe('instruction')
+  })
+})
