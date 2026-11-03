@@ -21,7 +21,7 @@ import { contactIdFor, greetingFor } from './contact-id'
 import { loadCaseData, toCaseMail, scopedContacts, groupFacts, itemEvent, insurerLastHandler, insurerClaimsDesk, type CaseData } from './data'
 
 type Row = Record<string, any>
-const KINDS: DraftKind[] = ['request_missing', 'request_documents', 'chase_insurer', 'chase_client', 'renewal_notice', 'forward_to_insurer', 'adjuster_access', 'settlement_pack', 'request_claims_report']
+const KINDS: DraftKind[] = ['request_quote_data', 'request_missing', 'request_documents', 'chase_insurer', 'chase_client', 'renewal_notice', 'forward_to_insurer', 'adjuster_access', 'settlement_pack', 'request_claims_report']
 
 type Attachment = { filename: string; mime_type: string | null; storage_url: string | null; message_id: string }
 type NewDraft = { thread_id: string | null; to: string[]; cc: string[]; subject: string; body: string; kind: string; party: Party; pair_id?: string | null; attachments?: Attachment[] }
@@ -130,7 +130,7 @@ export async function handleDrafter(task: AgentTask): Promise<Record<string, unk
 
   const side = partyOf(kind)
   const [claim] = d.item.case_type === 'claim' ? await sbTry<Row[]>(`claims?work_item_id=eq.${enc(d.item.id)}&select=*&limit=1`, []) : []
-  if ((kind === 'request_missing' || kind === 'request_documents') && !(Array.isArray(task.payload?.items) ? task.payload.items : claim?.gaps ?? []).length) { await skip(task.id, 'nothing missing'); return 'handled' }
+  if ((kind === 'request_missing' || kind === 'request_documents' || kind === 'request_quote_data') && !(Array.isArray(task.payload?.items) ? task.payload.items : claim?.gaps ?? []).length) { await skip(task.id, 'nothing missing'); return 'handled' }
 
   const route = await routeSide(side, kind, d, claim, task.payload?.human as Row | undefined)
   if (!route.ok) {

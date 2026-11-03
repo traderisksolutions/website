@@ -51,6 +51,7 @@ export const PRODUCT_LINES: ProductLine[] = [
   { slug: 'foreign_worker_medical', label: 'Foreign Worker Medical Insurance', group: 'workforce', section: 'Workers' },
   { slug: 'foreign_worker_bond',    label: 'Foreign Worker Bond Insurance',    group: 'workforce', section: 'Workers' },
   { slug: 'group_health',           label: 'Group Health Insurance',           group: 'workforce', section: 'Employees' },
+  { slug: 'group_personal_accident', label: 'Group Personal Accident (GPA)',    group: 'workforce', section: 'Employees' },
   { slug: 'group_travel',           label: 'Group Business Travel',            group: 'workforce', section: 'Employees' },
   { slug: 'employee_benefits',      label: 'Employee Benefits Insurance',      group: 'workforce', section: 'Employees' },
   { slug: 'keyman',                 label: 'Keyman Insurance',                 group: 'workforce', section: 'Executive' },

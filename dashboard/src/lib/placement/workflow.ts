@@ -11,7 +11,7 @@ import * as store from './store'
 import { isBrokerBlock } from '@/lib/letters/appointment'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
-import { pickPanel, insurerDeadline } from './lines'
+import { pickPanel, insurerDeadline, missingData } from './lines'
 import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
 import { choosePolicyQuote } from '@/lib/policies/spine'
 import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
@@ -31,6 +31,8 @@ export type NewLine = {
   product_line: string; label?: string | null; spec?: Spec
   /** The insurer contacts to ask on round 1. Absent = everyone on file; [] = nobody yet. */
   contact_ids?: string[] | null
+  /** Hold the line: the client still owes data the insurers cannot price without (lines.ts missingData). */
+  missing?: string[]
 }
 
 export async function createPlacement(input: {
@@ -38,7 +40,7 @@ export async function createPlacement(input: {
   lines: NewLine[]; actor: string; dispatch?: boolean
   /** How the work reached TRS: a client's new email, a conversation picked up midway, a renewal. */
   start_point?: StartPoint
-}): Promise<{ placement: Placement; lines: PlacementLine[]; dispatched: number }> {
+}): Promise<{ placement: Placement; lines: PlacementLine[]; dispatched: number; held: Record<string, string[]> }> {
   const company = await store.company(input.company_id)
   if (!company) throw new Error('Company not found')
   const thread = input.client_thread_id ? await store.thread(input.client_thread_id) : null
@@ -73,11 +75,20 @@ export async function createPlacement(input: {
     startPoint: input.start_point ?? 'new_request', inceptionDate: input.inception_date ?? null, actor: input.actor,
   })
   let dispatched = 0
-  if (input.dispatch !== false) {
-    const r = await openRounds(placement, lines.map(l => ({ line: l, spec: l.spec, reason: 'initial' as RoundReason, change_summary: null, contact_ids: contactIdsByLine.get(l.id) ?? null })), input.actor)
-    dispatched = r.dispatches.length
+  // A line still missing data is held: nobody is approached until the client has sent it.
+  const held = new Map<string, string[]>()
+  inserted.forEach((l, i) => { const m = input.lines[i]?.missing; if (m?.length) held.set(l.id, m) })
+  for (const [lineId, missing] of held) {
+    await store.patch('placement_lines', `id=eq.${lineId}`, { next_step: `Waiting on the client for: ${missing.join('; ')}` })
   }
-  return { placement, lines, dispatched }
+  if (input.dispatch !== false) {
+    const ready = lines.filter(l => !held.has(l.id))
+    if (ready.length) {
+      const r = await openRounds(placement, ready.map(l => ({ line: l, spec: l.spec, reason: 'initial' as RoundReason, change_summary: null, contact_ids: contactIdsByLine.get(l.id) ?? null })), input.actor)
+      dispatched = r.dispatches.length
+    }
+  }
+  return { placement, lines, dispatched, held: Object.fromEntries(held) }
 }
 
 /** The client's thread read into lines by the agent. Nothing is written. */
@@ -486,7 +497,9 @@ async function handleClientReply(p: Placement, messageId: string, threadId: stri
   const bundle = await store.loadPlacement(p.id)
   if (!msg || !bundle) return { handled: 'client', detail: 'missing' }
   const atts = await store.attachmentsFor(messageId, !!msg.has_attachments)
-  const positions = derivePositions(bundle)
+  // Lines held for data: the reply may carry it. Released lines get their requests drafted now.
+  const released = await releaseHeldLines(p, bundle, threadId, messageId)
+  const positions = derivePositions(released ? (await store.loadPlacement(p.id)) ?? bundle : bundle)
   const read = await agent.readClientReply(msg, atts, {
     lines: positions.map(x => ({
       label: x.line.label ?? x.line.product_line, spec: x.round?.spec ?? x.line.spec, bestPremium: x.best?.premium_text ?? null,
@@ -550,6 +563,36 @@ async function handleClientReply(p: Placement, messageId: string, threadId: stri
     await store.log({ ...base, kind: read.kind === 'question' ? 'ask' : 'reply', text: `Client${via}: ${read.summary}` })
   }
   return { handled: 'client', detail: read.kind }
+}
+
+/**
+ * A line held for data (no round yet, waiting on the client) is re-read from the whole client
+ * thread when the client writes. What the agent now finds is merged into the line; a line with
+ * nothing missing gets its requests drafted to the insurers picked when it opened. Returns the
+ * number of lines released.
+ */
+export async function releaseHeldLines(p: Placement, bundle: PlacementBundle, threadId: string, messageId: string | null): Promise<number> {
+  const held = bundle.lines.filter(l => l.status === 'open' && !l.current_round_id && /^Waiting on the client for/.test(l.next_step ?? ''))
+  if (!held.length) return 0
+  const proposal = await proposeFromThread(threadId)
+  if (!proposal) return 0
+  const opened = bundle.log.find(e => e.kind === 'opened' && (e.detail as { auto?: boolean } | null)?.auto)
+  const picks = new Map(((opened?.detail as { lines?: { id: string; contact_ids: string[] }[] } | null)?.lines ?? []).map(x => [x.id, x.contact_ids]))
+  const ready: RoundAsk[] = []
+  for (const l of held) {
+    const found = proposal.lines.find(x => x.product_line === l.product_line)
+    const spec: Spec = found ? { ...l.spec, ...found.spec, fields: { ...(l.spec.fields ?? {}), ...(found.spec.fields ?? {}) } } : l.spec
+    const missing = missingData(l.product_line, spec, proposal.inception_date ?? p.inception_date ?? null)
+    if (missing.length) {
+      await store.patch('placement_lines', `id=eq.${l.id}`, { spec: normaliseSpec(spec), next_step: `Waiting on the client for: ${missing.join('; ')}` })
+      continue
+    }
+    await store.patch('placement_lines', `id=eq.${l.id}`, { spec: normaliseSpec(spec) })
+    ready.push({ line: { ...l, spec }, spec, reason: 'initial', change_summary: null, contact_ids: picks.get(l.id) ?? null })
+    await store.log({ company_id: p.company_id, placement_id: p.id, line_id: l.id, thread_id: threadId, message_id: messageId, kind: 'info', actor: 'agent', text: `Data complete for ${l.label ?? l.product_line}: requests drafted to the insurers` })
+  }
+  if (ready.length) await openRounds(p, ready, 'agent')
+  return ready.length
 }
 
 // ── Tiers ───────────────────────────────────────────────────────────────────────────────────

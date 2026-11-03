@@ -6,7 +6,7 @@
  * anything unknown is left out rather than guessed.
  */
 
-export type DraftKind = 'request_missing' | 'request_documents' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack' | 'adjuster_access' | 'settlement_pack' | 'request_claims_report'
+export type DraftKind = 'request_quote_data' | 'request_missing' | 'request_documents' | 'chase_insurer' | 'chase_client' | 'renewal_notice' | 'forward_to_insurer' | 'client_update' | 'client_ack' | 'adjuster_access' | 'settlement_pack' | 'request_claims_report'
 export type Party = 'client' | 'insurer'
 
 /**
@@ -88,6 +88,15 @@ export function buildDraft(kind: DraftKind, f: DraftFacts): { subject: string; b
   const sign = 'Best regards,\n{owner_name}\nTrade Risk Solutions'
   const what = `${f.title}${refLine(f)}`
   switch (kind) {
+    case 'request_quote_data': {
+      // A new request the insurers cannot price yet: everything missing in one numbered email, the
+      // appointment letter offered, nobody approached until it is in.
+      const items = (f.items ?? []).map((i, n) => `${n + 1}. ${i}`).join('\n')
+      return {
+        subject: replySubject(f.threadSubject, `${f.title}: details for quotation`),
+        body: `${hi}\n\nThank you for your request. To obtain quotations from the insurers for ${f.title}, may we have:\n\n${items}\n\nIf another broker has already approached insurers on this, a signed letter appointing us lets those insurers quote through us; we can send the letter for your signature.\n\nOnce these are in, we will approach the insurers and come back to you with a comparison.\n\nThank you!\n\n${sign}`,
+      }
+    }
     case 'request_missing': {
       const items = (f.items ?? []).map(i => `- ${i}`).join('\n')
       return {

@@ -28,6 +28,8 @@ export type LineSpec = {
   deadlineWorkingDays: number
   /** What the client is asked for before the market is approached. */
   documentsToAsk: string[]
+  /** Field keys the insurers cannot price without. Missing any → the client is asked first, nobody is approached. */
+  required?: string[]
   /** A fixed submission block, when the line has one; lines without it are written by the model. */
   submission?: (i: SubmissionInput) => string
 }
@@ -167,6 +169,162 @@ function financialSubmission(i: SubmissionInput, label: string): string {
   ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
 }
 
+// ── Workforce: WICA, FWMI, foreign worker bond (Catherine's and Nathan's submissions, Jun–Oct 2026) ──
+const WICA_FIELDS = [
+  f('business', 'Nature of business', 'what the insured does, in one line'),
+  f('uen', 'UEN', 'the company registration number'),
+  f('address', 'Address', 'registered or operating address'),
+  f('categories', 'Employees by category', 'each category of work with headcount and estimated annual wages, e.g. "Office: 16, S$1,321,520; Site: 18, S$539,322"'),
+  f('total_wages', 'Total annual wages', 'verbatim with currency'),
+  f('start_date', 'Inception or renewal date', 'YYYY-MM-DD'),
+  f('claims_history', 'Claims history, last 3 years', 'or "nil"'),
+  f('incumbent', 'Expiring insurer and premium', 'for a renewal'),
+]
+
+function wicaSubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : 'We would like to present the following client for your quotation:',
+    '',
+    line('Name', i.spec.insured ?? i.clientName),
+    line('Address', x.address),
+    line('UEN No', x.uen),
+    line('Nature of business', x.business ?? i.spec.scope),
+    'Cover of insurance: Work Injury Compensation (WICA)',
+    line(x.incumbent ? 'Date of renewal' : 'Inception', fmtDate(x.start_date ?? i.inceptionDate)),
+    line('Employees by category of work and annual wages', x.categories),
+    line('Total annual wages', x.total_wages),
+    line('Claims history, last three years', x.claims_history),
+    line('Expiring insurer', x.incumbent),
+    i.spec.notes ? `Notes: ${i.spec.notes}` : null,
+    '',
+    "The employees' scope of work and wages are attached for your underwriting.",
+    i.deadline ? `We would appreciate your quotation by ${fmtDate(i.deadline)}.` : 'We would appreciate your quotation within 5 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+const FWMI_FIELDS = [
+  f('business', 'Nature of business', 'what the insured does'),
+  f('worker_count', 'Number of workers', 'work permit or S Pass holders to cover'),
+  f('worker_list', 'Worker list', '"attached" when a list with work permit numbers, nationality and dates of birth is attached'),
+  f('plan', 'Plan', 'MOM minimum (S$60,000 annual limit) or an enhanced plan'),
+  f('start_date', 'Inception', 'YYYY-MM-DD'),
+  f('with_bond', 'Foreign worker bond needed', 'yes or no; Malaysians are exempt'),
+  f('claims_history', 'Claims history', 'or "nil"'),
+]
+
+function fwmiSubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : `We would like to request your quotation for foreign worker medical insurance for ${i.clientName}:`,
+    '',
+    line('Insured', i.spec.insured ?? i.clientName),
+    line('Nature of business', x.business),
+    line('Number of workers', x.worker_count),
+    line('Plan', x.plan ?? 'MOM minimum requirement'),
+    line('Inception', fmtDate(x.start_date ?? i.inceptionDate)),
+    x.with_bond && /^y/i.test(x.with_bond) ? 'Foreign worker bond: required for the same workers, please quote together' : null,
+    line('Claims history', x.claims_history),
+    '',
+    'The worker list with work permit numbers is attached.',
+    i.deadline ? `We would appreciate your quotation by ${fmtDate(i.deadline)}.` : 'We would appreciate your quotation within 3 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+// ── Group personal accident (the bike-share and corporate GPA renewals, Jun–Oct 2026) ──
+const GPA_FIELDS = [
+  f('business', 'Nature of business', 'what the insured does'),
+  f('insured_persons', 'Insured persons or units', 'headcount, or units such as bikes or riders'),
+  f('basis', 'Basis', 'named or unnamed; per person or per unit'),
+  f('benefits', 'Benefits', 'death and permanent disablement sum insured, medical reimbursement and any extras'),
+  f('activities', 'Activities and occupations', 'what the insured persons do'),
+  f('start_date', 'Inception', 'YYYY-MM-DD'),
+  f('claims_history', 'Claims history, last 3 years', 'or "nil"'),
+  f('incumbent', 'Expiring insurer and premium', 'for a renewal'),
+]
+
+function gpaSubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : `We would like to request your terms for group personal accident insurance for ${i.clientName}:`,
+    '',
+    line('Insured', i.spec.insured ?? i.clientName),
+    line('Nature of business', x.business),
+    line('Insured persons or units', x.insured_persons),
+    line('Basis', x.basis),
+    line('Benefits', x.benefits ?? i.spec.limit),
+    line('Activities and occupations', x.activities),
+    line('Period of insurance', `12 months from ${fmtDate(x.start_date ?? i.inceptionDate) ?? 'a date to be confirmed'}`),
+    line('Claims history, last three years', x.claims_history),
+    line('Expiring insurer', x.incumbent),
+    i.spec.extras ? `Extensions requested: ${i.spec.extras}` : null,
+    i.spec.notes ? `Notes: ${i.spec.notes}` : null,
+    '',
+    i.deadline ? `We would appreciate your terms by ${fmtDate(i.deadline)}.` : 'We would appreciate your terms within 5 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+// ── Employee benefits (Tier C insurers by email; Tier A and B are priced by the rate engine) ──
+const EB_FIELDS = [
+  f('member_count', 'Members', 'employees to cover, and dependants if any'),
+  f('census', 'Member census', '"attached" when a list with date of birth, gender, plan and dependants is attached'),
+  f('benefits', 'Benefits wanted', 'GHS, GP, specialist, dental, GTL, GPA, and the plan levels'),
+  f('expiring_schedule', 'Expiring schedule of benefits', '"attached" when attached, or "new scheme"'),
+  f('start_date', 'Inception', 'YYYY-MM-DD'),
+  f('claims_experience', 'Claims experience', 'last 3 years from the expiring insurer, or "new scheme"'),
+  f('incumbent', 'Expiring insurer and premium', 'for a renewal'),
+]
+
+function ebSubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : `We are seeking quotations for the employee benefits programme of ${i.clientName}:`,
+    '',
+    line('Policyholder', i.spec.insured ?? i.clientName),
+    line('Members', x.member_count),
+    line('Benefits', x.benefits ?? i.spec.scope),
+    line('Inception', fmtDate(x.start_date ?? i.inceptionDate)),
+    line('Expiring insurer', x.incumbent),
+    line('Claims experience', x.claims_experience),
+    i.spec.notes ? `Notes: ${i.spec.notes}` : null,
+    '',
+    'The member census and the expiring schedule of benefits are attached.',
+    i.deadline ? `We would appreciate your quotation by ${fmtDate(i.deadline)}.` : 'We would appreciate your quotation within 5 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
+// ── Motor fleet (commercial vehicles; fleet quotes need 3 years of claims) ──
+const MOTOR_FIELDS = [
+  f('vehicle_count', 'Number of vehicles', 'how many'),
+  f('vehicle_list', 'Vehicle list', '"attached" when a list with registration, make, model, year, use and sum insured is attached'),
+  f('cover', 'Cover', 'comprehensive, third party fire and theft, or third party'),
+  f('drivers', 'Drivers', 'any authorised driver, or named drivers with ages and experience'),
+  f('ncd', 'No-claim discount', 'per vehicle or for the fleet'),
+  f('claims_history', 'Claims history, last 3 years', 'by vehicle, or "nil"'),
+  f('start_date', 'Inception', 'YYYY-MM-DD'),
+  f('incumbent', 'Expiring insurer and premium', 'for a renewal'),
+]
+
+function motorSubmission(i: SubmissionInput): string {
+  const x = i.spec.fields ?? {}
+  return [
+    i.roundNo > 1 ? `Further to our earlier submission, the basis has changed as follows: ${i.changeSummary ?? 'see below'}.` : `We would like to request your quotation for the motor fleet of ${i.clientName}:`,
+    '',
+    line('Insured', i.spec.insured ?? i.clientName),
+    line('Number of vehicles', x.vehicle_count),
+    line('Cover', x.cover ?? 'Comprehensive'),
+    line('Drivers', x.drivers),
+    line('No-claim discount', x.ncd),
+    line('Claims history, last three years', x.claims_history),
+    line('Inception', fmtDate(x.start_date ?? i.inceptionDate)),
+    line('Expiring insurer', x.incumbent),
+    i.spec.notes ? `Notes: ${i.spec.notes}` : null,
+    '',
+    'The vehicle list is attached.',
+    i.deadline ? `We would appreciate your quotation by ${fmtDate(i.deadline)}.` : 'We would appreciate your quotation within 3 working days.',
+  ].filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n')
+}
+
 const bySize = (small: number, mid: number, large: number) => ({ contractValue }: { contractValue: number | null }) => contractValue == null ? small : contractValue >= 50_000_000 ? large : contractValue >= 10_000_000 ? mid : small
 
 const CONSTRUCTION_SMALL = ['EQ Insurance', 'India International', 'Zurich', 'Great American', 'Chubb', 'Tokio Marine', 'ECICS', 'Liberty', 'ERGO']
@@ -178,26 +336,83 @@ export const LINE_SPECS: Record<string, LineSpec> = {
     family: 'construction', fields: CONSTRUCTION_FIELDS, markets: bySize(3, 4, 6), deadlineWorkingDays: 5,
     preferred: ({ contractValue }) => contractValue != null && contractValue >= 50_000_000 ? CONSTRUCTION_LARGE : CONSTRUCTION_SMALL,
     documentsToAsk: ['Letter of award or contract', 'Insurance specification or conditions of contract', 'Site and elevation plans', 'Soil investigation report', 'Scope of works and method statement', 'Piling plan and excavation depth'],
+    required: ['project', 'contract_value', 'period_months'],
     submission: constructionSubmission,
   },
   surety_bonds: {
     family: 'bond', fields: BOND_FIELDS, markets: () => 3, deadlineWorkingDays: 5,
     preferred: () => ['EQ Insurance', 'ECICS', 'ERGO', 'Tokio Marine', 'Allianz Trade', 'Great Eastern', 'Sompo', 'China Taiping'],
     documentsToAsk: ['Letter of award', 'Bond wording and the percentage required', 'ACRA business profile', 'Audited accounts, last two years', 'Track record of completed projects', "Directors' notices of assessment"],
+    required: ['beneficiary', 'contract_value', 'bond_type'],
     submission: bondSubmission,
   },
-  professional_indemnity: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => FINANCIAL, documentsToAsk: ['Completed proposal form', 'Audited accounts, latest', 'Expiring policy schedule', 'Claims history, 5 years'], submission: i => financialSubmission(i, 'professional indemnity insurance') },
-  do: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => FINANCIAL, documentsToAsk: ['Completed proposal form', 'Audited accounts, latest', 'Expiring policy schedule', 'Claims history, 5 years'], submission: i => financialSubmission(i, "directors' and officers' liability insurance") },
+  professional_indemnity: { family: 'financial', fields: FINANCIAL_FIELDS, required: ['business', 'limit', 'revenue'], markets: () => 3, deadlineWorkingDays: 5, preferred: () => FINANCIAL, documentsToAsk: ['Completed proposal form', 'Audited accounts, latest', 'Expiring policy schedule', 'Claims history, 5 years'], submission: i => financialSubmission(i, 'professional indemnity insurance') },
+  do: { family: 'financial', fields: FINANCIAL_FIELDS, required: ['business', 'limit', 'revenue'], markets: () => 3, deadlineWorkingDays: 5, preferred: () => FINANCIAL, documentsToAsk: ['Completed proposal form', 'Audited accounts, latest', 'Expiring policy schedule', 'Claims history, 5 years'], submission: i => financialSubmission(i, "directors' and officers' liability insurance") },
   imi: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['BHSI', 'Chubb', 'Berkley'], documentsToAsk: ['Completed proposal form', 'Private placement memorandum', 'Audited accounts and interims', 'Expiring policy schedule'], submission: i => financialSubmission(i, 'investment management insurance') },
-  cyber: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Chubb', 'Delta', 'Allianz', 'MSIG', 'APRIL'], documentsToAsk: ['Completed cyber proposal form', 'Revenue and headcount', 'Expiring policy schedule'], submission: i => financialSubmission(i, 'cyber insurance') },
+  cyber: { family: 'financial', fields: FINANCIAL_FIELDS, required: ['business', 'limit', 'revenue'], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Chubb', 'Delta', 'Allianz', 'MSIG', 'APRIL'], documentsToAsk: ['Completed cyber proposal form', 'Revenue and headcount', 'Expiring policy schedule'], submission: i => financialSubmission(i, 'cyber insurance') },
   medical_malpractice: { family: 'financial', fields: FINANCIAL_FIELDS, markets: () => 2, deadlineWorkingDays: 5, preferred: () => ['Chubb'], documentsToAsk: ['Completed proposal form', 'Practitioner list', 'Claims history, 5 years'], submission: i => financialSubmission(i, 'medical malpractice insurance') },
   general_liability: { family: 'liability', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['EQ Insurance', 'Chubb', 'Great American', 'Tokio Marine', 'Zurich', 'Berkley', 'Great Eastern', 'Allianz', 'Liberty'], documentsToAsk: ['Contract clause or tender requirement naming the limit', 'Turnover, last financial year', 'Claims history, 3 years'] },
   iar_fire: { family: 'property', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Allianz', 'Great Eastern', 'China Taiping', 'ECICS', 'EQ Insurance', 'HLAS', 'Liberty', 'Sompo', 'ERGO'], documentsToAsk: ['Sums insured by location', 'Construction, occupancy and fire protection', 'Claims history, 3 years'] },
-  wica: { family: 'workforce', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Liberty', 'Allianz', 'EQ Insurance', 'Zurich', 'Chubb', 'Income', 'Great Eastern', 'MSIG'], documentsToAsk: ['Headcount by occupation', 'Estimated annual wages', 'Claims history, 3 years'] },
-  commercial_vehicle: { family: 'motor', fields: [], markets: () => 3, deadlineWorkingDays: 3, preferred: () => ['ECICS', 'Liberty', 'Income', 'ERGO', 'China Taiping', 'Etiqa'], documentsToAsk: ['Vehicle list with registration, make, model and year', 'No-claim discount per vehicle', 'Driver details'] },
+  wica: { family: 'workforce', fields: WICA_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Liberty', 'Allianz', 'EQ Insurance', 'Zurich', 'Chubb', 'Income', 'Great Eastern', 'MSIG'], documentsToAsk: ['Headcount by category of work, with estimated annual wages', 'Nature of business and UEN', 'Claims history, last 3 years'], required: ['business', 'categories', 'start_date'], submission: wicaSubmission },
+  foreign_worker_medical: { family: 'workforce', fields: FWMI_FIELDS, markets: () => 3, deadlineWorkingDays: 3, preferred: () => ['Great Eastern', 'QBE', 'Income', 'Liberty', 'MSIG', 'Raffles Health', 'Tokiomarine Life'], documentsToAsk: ['Worker list with work permit numbers, nationality and date of birth', 'Plan: MOM minimum or enhanced', 'Whether a foreign worker bond is needed'], required: ['worker_count', 'worker_list', 'start_date'], submission: fwmiSubmission },
+  foreign_worker_bond: { family: 'workforce', fields: FWMI_FIELDS, markets: () => 2, deadlineWorkingDays: 3, preferred: () => ['Great Eastern', 'EQ Insurance', 'ECICS', 'Liberty'], documentsToAsk: ['Worker list with work permit numbers and nationality (Malaysians are exempt)'], required: ['worker_count', 'worker_list'], submission: fwmiSubmission },
+  group_personal_accident: { family: 'workforce', fields: GPA_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['Chubb', 'Zurich', 'Liberty', 'QBE', 'AIG', 'Allianz', 'MSIG'], documentsToAsk: ['Number of insured persons or units, and whether named', 'Benefits and sums insured wanted', 'Activities or occupations covered', 'Claims history, last 3 years'], required: ['insured_persons', 'benefits', 'start_date'], submission: gpaSubmission },
+  commercial_vehicle: { family: 'motor', fields: MOTOR_FIELDS, markets: () => 3, deadlineWorkingDays: 3, preferred: () => ['ECICS', 'Liberty', 'Income', 'EQ Insurance', 'ERGO', 'China Taiping', 'Etiqa'], documentsToAsk: ['Vehicle list with registration, make, model, year, use and sum insured', 'Driver details', 'Claims history by vehicle, last 3 years (fleet quotes need it)', 'No-claim discount per vehicle'], required: ['vehicle_list', 'claims_history', 'start_date'], submission: motorSubmission },
   marine_cargo: { family: 'marine', fields: [], markets: () => 4, deadlineWorkingDays: 5, preferred: () => ['Great American', 'QBE', 'Markel', 'Chubb', 'Sompo', 'AIG'], documentsToAsk: ['Commodities and packing', 'Annual turnover and maximum per conveyance', 'Routes and conveyances'] },
-  group_health: { family: 'eb', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['QBE', 'Income', 'Singlife', 'AIA', 'Cigna', 'Raffles Health'], documentsToAsk: ['Member list with date of birth and plan', 'Expiring schedule of benefits', 'Claims experience, 3 years'] },
-  employee_benefits: { family: 'eb', fields: [], markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['QBE', 'Income', 'Singlife', 'AIA', 'Cigna', 'Raffles Health'], documentsToAsk: ['Member list with date of birth and plan', 'Expiring schedule of benefits', 'Claims experience, 3 years'] },
+  group_health: { family: 'eb', fields: EB_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['QBE', 'Income', 'Singlife', 'AIA', 'Cigna', 'Raffles Health'], documentsToAsk: ['Member census with date of birth, gender, plan and dependants', 'Expiring schedule of benefits, or the benefits wanted', 'Claims experience, last 3 years, from the expiring insurer'], required: ['member_count', 'census', 'start_date'], submission: ebSubmission },
+  employee_benefits: { family: 'eb', fields: EB_FIELDS, markets: () => 3, deadlineWorkingDays: 5, preferred: () => ['QBE', 'Income', 'Singlife', 'AIA', 'Cigna', 'Raffles Health'], documentsToAsk: ['Member census with date of birth, gender, plan and dependants', 'Expiring schedule of benefits, or the benefits wanted', 'Claims experience, last 3 years, from the expiring insurer'], required: ['member_count', 'census', 'start_date'], submission: ebSubmission },
+}
+
+/**
+ * Pure. What the insurers cannot price without, for this line, from what the request holds.
+ * Returns the labels of the missing required fields, in the spec's order. A line with no required
+ * fields is never held.
+ */
+export function missingData(productLine: string, spec: Spec, inceptionDate: string | null = null): string[] {
+  const s = LINE_SPECS[productLine]
+  if (!s?.required?.length) return []
+  const x = spec.fields ?? {}
+  const has = (k: string) => {
+    const v = String(x[k] ?? '').trim()
+    if (!v || /^(unknown|not stated|tbc|to be confirmed|n\/?a|none given|missing)$/i.test(v)) return false
+    // A document field counts only when the file is said to be attached.
+    if (['census', 'worker_list', 'vehicle_list'].includes(k)) return /attach|enclos|provided|list of \d+/i.test(v) && !/\b(to be|will|pending|awaiting|not yet|later|tbc)\b/i.test(v)
+    return true
+  }
+  // The contract value may come from the limit; the start date from the inception date on the line.
+  const alt: Record<string, () => boolean> = { contract_value: () => !!contractValueOf(spec), start_date: () => !!inceptionDate || !!x.start_date || /\d{4}|\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(String(spec.period ?? '')) }
+  return s.required.filter(k => !(has(k) || alt[k]?.())).map(k => s.fields.find(f => f.key === k)?.label ?? k)
+}
+
+/** How each required item is asked of the client, in plain words. Identical asks are sent once. */
+const ASK: Record<string, string> = {
+  business: 'The nature of your business',
+  categories: 'Headcount by category of work, with the estimated annual wages for each category',
+  start_date: 'The date cover should start',
+  worker_count: 'The list of workers to cover, with work permit numbers, nationality and date of birth',
+  worker_list: 'The list of workers to cover, with work permit numbers, nationality and date of birth',
+  insured_persons: 'The number of persons (or units) to insure, and whether they are named',
+  benefits: 'The benefits and sums insured you would like',
+  member_count: 'The member census: date of birth, gender, plan and dependants for each member',
+  census: 'The member census: date of birth, gender, plan and dependants for each member',
+  vehicle_list: 'The vehicle list: registration, make, model, year, use and sum insured',
+  claims_history: 'The claims history for the last 3 years',
+  project: 'The letter of award or contract, with the project title, contract value and construction period',
+  contract_value: 'The letter of award or contract, with the project title, contract value and construction period',
+  period_months: 'The letter of award or contract, with the project title, contract value and construction period',
+  beneficiary: 'The letter of award and the bond wording the beneficiary requires',
+  bond_type: 'The letter of award and the bond wording the beneficiary requires',
+  limit: 'The limit of liability required',
+  revenue: 'Revenue for the last financial year',
+}
+
+/** Pure. The client-facing asks for what a line is missing, deduplicated, in the spec's order. */
+export function missingAsks(productLine: string, spec: Spec, inceptionDate: string | null = null): string[] {
+  const s = LINE_SPECS[productLine]
+  if (!s) return []
+  const missing = new Set(missingData(productLine, spec, inceptionDate))
+  const keys = (s.required ?? []).filter(k => missing.has(s.fields.find(f => f.key === k)?.label ?? k))
+  return Array.from(new Set(keys.map(k => ASK[k] ?? (s.fields.find(f => f.key === k)?.label ?? k))))
 }
 
 export const familyOf = (productLine: string | null | undefined): LineFamily => LINE_SPECS[productLine ?? '']?.family ?? 'other'
