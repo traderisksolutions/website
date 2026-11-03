@@ -485,6 +485,26 @@ export function missingAsks(productLine: string, spec: Spec, inceptionDate: stri
   return Array.from(new Set(keys.map(k => ASK[k] ?? (s.fields.find(f => f.key === k)?.label ?? k))))
 }
 
+const RISK_STOP = new Set(['company', 'services', 'service', 'business', 'singapore', 'limited', 'private', 'insurance', 'cover', 'their', 'with', 'from', 'that', 'this', 'which', 'other', 'works', 'work', 'general', 'provide', 'provides', 'products', 'product'])
+const riskWords = (t: string) => new Set(String(t).toLowerCase().replace(/[^a-z ]+/g, ' ').split(/\s+/).filter(w => w.length >= 4 && !RISK_STOP.has(w)))
+
+/**
+ * Pure. Two requests describe a similar risk: their business descriptions share two meaningful
+ * words, or half the words of the shorter one. Used to remember an insurer's appetite decline.
+ */
+export function similarRisk(a: string | null | undefined, b: string | null | undefined): boolean {
+  const x = riskWords(a ?? ''), y = riskWords(b ?? '')
+  if (!x.size || !y.size) return false
+  let shared = 0
+  for (const w of x) if (y.has(w)) shared++
+  return shared >= 2 || shared / Math.min(x.size, y.size) >= 0.5
+}
+
+/** The limit a request requires, as a number, from its fields or its limit text. */
+export function requiredLimit(spec: Spec): number | null {
+  return money(spec.fields?.limit) ?? money(spec.limit)
+}
+
 export const familyOf = (productLine: string | null | undefined): LineFamily => LINE_SPECS[productLine ?? '']?.family ?? 'other'
 
 /** The contract value or sum insured the line is for, read from the fields or the limit. */

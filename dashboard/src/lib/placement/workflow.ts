@@ -11,11 +11,12 @@ import * as store from './store'
 import { isBrokerBlock } from '@/lib/letters/appointment'
 import * as agent from './agent'
 import { cloneRows, pairClones, type FanoutClone, type FanoutText } from './fanout'
-import { pickPanel, insurerDeadline, missingData } from './lines'
+import { pickPanel, insurerDeadline, missingData, similarRisk, requiredLimit } from './lines'
 import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
 import { choosePolicyQuote } from '@/lib/policies/spine'
 import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
 import { caseForPlacement, touchPlacement } from '@/lib/cases/sync'
+import { sbTry, enc } from '@/lib/crm/db'
 import type { StartPoint } from '@/lib/cases/stage'
 import type { PlacementLogEntry, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
 
@@ -179,7 +180,15 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
     // number the line asks (placement/lines.ts), one default contact per insurer.
     let picked = forLine
     if (!chosen && !forAsk) {
-      const panel = new Set(pickPanel(a.line.product_line, a.spec, forLine.map(r => r.insurer_name)))
+      // Appetite memory: an insurer that declined a similar risk on this line in the last year is
+      // not asked again by default; a broker can still pick it by hand.
+      const declined = await declinedSimilar(a.line.product_line, a.spec, a.line.id)
+      const open = forLine.filter(r => !declined.has(r.insurer_name.toLowerCase()))
+      if (open.length < forLine.length) {
+        const skipped = Array.from(new Set(forLine.filter(r => declined.has(r.insurer_name.toLowerCase())).map(r => r.insurer_name)))
+        await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: a.line.id, kind: 'info', actor, text: `Not asked, declined a similar risk in the last year: ${skipped.join(', ')}` })
+      }
+      const panel = new Set(pickPanel(a.line.product_line, a.spec, (open.length ? open : forLine).map(r => r.insurer_name)))
       const perInsurer = new Map<string, store.InsurerRoute>()
       for (const r of forLine) { if (!panel.has(r.insurer_name)) continue; const cur = perInsurer.get(r.insurer_name); if (!cur || (r.is_default && !cur.is_default)) perInsurer.set(r.insurer_name, r) }
       picked = Array.from(perInsurer.values())
@@ -451,6 +460,14 @@ async function fileReply(group: PlacementDispatch[], msg: store.MailMessage, att
         await store.insert('placement_quotes', { ...row, ...rates }).catch(() => store.insert('placement_quotes', row))
       }
       const review = qs.some(q => agent.quoteFields(q).needs_review)
+      // The limit the request (or the contract clause behind it) requires, against what was quoted.
+      const need = line?.spec ? requiredLimit(line.spec) : null
+      const short = need ? qs.map(q => agent.quoteFields(q).limit_amount).filter((x): x is number => typeof x === 'number' && x > 0 && x < need) : []
+      if (need && short.length) {
+        await store.patchNoTs('placement_quotes', `dispatch_id=eq.${d.id}&status=eq.received`, { needs_review: true })
+        await store.patch('placement_lines', `id=eq.${d.line_id}`, { next_step: `${insurer} quoted a limit of ${short[0].toLocaleString('en-SG')}, below the ${need.toLocaleString('en-SG')} required. Ask for the required limit before comparing.` })
+        await store.log({ ...base, kind: 'info', text: `${insurer}'s limit ${short[0].toLocaleString('en-SG')} is below the ${need.toLocaleString('en-SG')} required on ${label}` })
+      }
       await store.patch('placement_dispatches', `id=eq.${d.id}`, { status: 'quoted', last_inbound_at: at, next_chase_at: null })
       await store.log({ ...base, kind: 'quote', text: `${insurer} quoted ${label}${via}: ${quoteSummary(qs)}${review ? ' — check the figures against the source' : ''}` })
     } else if ((read.kind === 'decline' && read.declined_lines.length === 0) || read.declined_lines.includes(key)) {
@@ -595,6 +612,23 @@ export async function releaseHeldLines(p: Placement, bundle: PlacementBundle, th
   return ready.length
 }
 
+/**
+ * Insurers that declined a similar risk on the same line in the last 365 days (lower-case names).
+ * Declines because another broker had already approached them are about the client, not the
+ * risk, and are not remembered.
+ */
+export async function declinedSimilar(productLine: string, spec: Spec, exceptLineId: string): Promise<Set<string>> {
+  const since = new Date(Date.now() - 365 * 86_400_000).toISOString()
+  const lines = await sbTry<{ id: string; spec: Spec | null }[]>(`placement_lines?product_line=eq.${enc(productLine)}&id=neq.${enc(exceptLineId)}&created_at=gte.${enc(since)}&select=id,spec&limit=500`, [])
+  const business = `${spec.fields?.business ?? ''} ${spec.scope ?? ''} ${spec.fields?.products ?? ''}`
+  const similar = lines.filter(l => similarRisk(business, `${l.spec?.fields?.business ?? ''} ${l.spec?.scope ?? ''} ${l.spec?.fields?.products ?? ''}`)).map(l => l.id)
+  if (!similar.length) return new Set()
+  const dec = await sbTry<{ insurer_name: string; line_id: string }[]>(`placement_dispatches?line_id=in.(${similar.join(',')})&status=eq.declined&select=insurer_name,line_id&limit=500`, [])
+  const blocked = await sbTry<{ line_id: string; text: string }[]>(`placement_log?line_id=in.(${similar.join(',')})&kind=eq.declined&text=ilike.*another%20broker*&select=line_id,text&limit=500`, [])
+  const isBlock = (d: { insurer_name: string; line_id: string }) => blocked.some(b => b.line_id === d.line_id && b.text.toLowerCase().startsWith(d.insurer_name.toLowerCase()))
+  return new Set(dec.filter(d => !isBlock(d)).map(d => d.insurer_name.toLowerCase()))
+}
+
 // ── Tiers ───────────────────────────────────────────────────────────────────────────────────
 
 /** Adds options to compare on a line. Labels already on the line are skipped (a dropped one comes back). */
@@ -725,6 +759,16 @@ export async function closeLineForDebitNote(debitNoteId: string, actor: string):
 // ── Chase ───────────────────────────────────────────────────────────────────────────────────
 
 /** Every dispatch whose chase date has passed gets a draft in the review queue. Up to three chases. */
+/** Pure. The fixed chase to an insurer, in Nathan's words, when the model cannot write one. */
+export function chaseTemplate(i: { insurerName: string; clientName: string; lineLabel: string; sentOn: string; chaseNo: number; inceptionDate: string | null }): string {
+  const sent = new Date(`${i.sentOn}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+  const by = i.inceptionDate ? ` Cover is needed from ${new Date(`${i.inceptionDate}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}.` : ''
+  const ask = i.chaseNo <= 1 ? `May I check on our request for ${i.lineLabel} for ${i.clientName}, sent on ${sent}?${by}`
+    : i.chaseNo === 2 ? `Following up on our request for ${i.lineLabel} for ${i.clientName}, sent on ${sent}. Our client is chasing on this.${by}`
+    : `Following up again on ${i.lineLabel} for ${i.clientName}. If you are not able to quote, do let us know so that we can inform the client.${by}`
+  return `Dear ${i.insurerName} team,\n\n${ask}\n\nThank you!\n\nBest regards,\n{owner_name}\nTrade Risk Solutions`
+}
+
 export async function runChases(nowDate = new Date()): Promise<{ drafted: number; skipped: number }> {
   const due = await store.sbDue(nowDate)
   let drafted = 0, skipped = 0
@@ -733,8 +777,10 @@ export async function runChases(nowDate = new Date()): Promise<{ drafted: number
     const bundle = await store.loadPlacement(d.placement_id)
     const line = bundle?.lines.find(l => l.id === d.line_id)
     const company = await store.company(d.company_id)
-    const body = await agent.draftChase({ insurerName: d.insurer_name, contactName: null, clientName: company?.company_name ?? 'our client', lineLabel: line?.label ?? d.insurer_name,
-      sentOn: (d.sent_at ?? d.created_at).slice(0, 10), chaseNo: d.chase_count + 1, inceptionDate: bundle?.placements[0]?.inception_date ?? null })
+    const chaseIn = { insurerName: d.insurer_name, contactName: null, clientName: company?.company_name ?? 'our client', lineLabel: line?.label ?? d.insurer_name,
+      sentOn: (d.sent_at ?? d.created_at).slice(0, 10), chaseNo: d.chase_count + 1, inceptionDate: bundle?.placements[0]?.inception_date ?? null }
+    // No model, no silence: the fixed chase when the model is out or fails.
+    const body = (await agent.draftChase(chaseIn).catch(() => null)) ?? chaseTemplate(chaseIn)
     if (!body || !d.insurer_contact_id) { skipped++; continue }
     const draft = await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: withRef(`Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), bundle?.placements[0]?.ref), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
     if (!draft) { skipped++; continue }

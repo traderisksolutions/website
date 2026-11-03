@@ -115,3 +115,25 @@ describe('liability', () => {
     expect(t).toMatch(/Period of insurance: 1 Sep 2026 to 31 Aug 2027 \+ 24 months completed operations/)
   })
 })
+
+describe('preventing the liability breaks', () => {
+  it('remembers a decline for a similar risk, not for any risk', async () => {
+    const { similarRisk } = await import('@/lib/placement/lines')
+    expect(similarRisk('Health supplements and nutraceutical products, exported', 'Nutraceutical health supplements distributor')).toBe(true)
+    expect(similarRisk('Senior companion and befriending services', 'Befriending and companion care for seniors')).toBe(true)
+    expect(similarRisk('Health supplements distributor', 'Mechanical and electrical contractor')).toBe(false)
+    expect(similarRisk('', 'anything')).toBe(false)
+  })
+  it('reads the required limit from the request', async () => {
+    const { requiredLimit } = await import('@/lib/placement/lines')
+    expect(requiredLimit({ fields: { limit: 'S$2,000,000 per occurrence' } })).toBe(2_000_000)
+    expect(requiredLimit({ limit: 'SGD 1 million' })).toBe(1_000_000)
+    expect(requiredLimit({})).toBeNull()
+  })
+  it('a chase is drafted without the model', async () => {
+    const { chaseTemplate } = await import('@/lib/placement/workflow')
+    const t = chaseTemplate({ insurerName: 'EQ Insurance', clientName: 'Example Pte Ltd', lineLabel: 'Public liability', sentOn: '2026-10-01', chaseNo: 1, inceptionDate: '2026-11-15' })
+    expect(t).toMatch(/May I check on our request for Public liability for Example Pte Ltd, sent on 1 Oct 2026\? Cover is needed from 15 Nov 2026\./)
+    expect(chaseTemplate({ insurerName: 'EQ', clientName: 'X', lineLabel: 'PL', sentOn: '2026-10-01', chaseNo: 3, inceptionDate: null })).toMatch(/If you are not able to quote, do let us know/)
+  })
+})
