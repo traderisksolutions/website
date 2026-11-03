@@ -5,7 +5,8 @@
  *
  * The wording is TRS's own template ("TRS - Letter of Broker Appointment.docx", July/Oct 2026);
  * only the client, the project title (Re: line), the insurance programme, the date and the
- * signatory change. Pure and browser-safe: the PDF (appointment-pdf.tsx) and the Word file
+ * signatory change. Layout: the client's letterhead band at the top (blank unless a logo or
+ * address is given), then the TRS logo, then the letter. Pure and browser-safe: the PDF (appointment-pdf.tsx) and the Word file
  * (appointment-server.tsx) both render from letterParts().
  */
 export type AppointmentLetter = {
@@ -21,8 +22,12 @@ export type AppointmentLetter = {
   entities?: string[]
   /** The letter text as edited in the editor (simple HTML: p, b, i, u, ul, ol, li). Absent = TRS's template. */
   bodyHtml?: string | null
-  /** 'client': top left free for the client's letterhead, TRS logo in the footer. 'trs': TRS logo at the top. */
-  letterhead?: 'client' | 'trs'
+  /** The client's logo for the letterhead band: a PNG or JPEG data URL. Absent = the band stays blank. */
+  clientLogo?: string | null
+  /** Address lines printed in the letterhead band beside the logo. */
+  clientAddress?: string[]
+  /** The "To" block. Absent = TRS's office address. */
+  addressee?: string[]
 }
 
 export type Run = { text: string; b?: boolean; i?: boolean; u?: boolean }
@@ -40,6 +45,19 @@ export const letterDate = (iso: string): string => {
 }
 
 const clean = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim()
+
+/** Largest logo accepted, as data-URL characters (about 600 KB of image). */
+export const LOGO_MAX_CHARS = 800_000
+
+/** The logo when it is a PNG or JPEG data URL within the size limit, else null. */
+export function letterLogo(v: unknown): string | null {
+  return typeof v === 'string' && v.length <= LOGO_MAX_CHARS && /^data:image\/(png|jpe?g);base64,[A-Za-z0-9+/=]+$/.test(v) ? v : null
+}
+
+/** Free text (one line per row) as clean address lines, at most 6. */
+export function addressLines(v: string | string[] | null | undefined): string[] {
+  return (Array.isArray(v) ? v : (v ?? '').split(/\r?\n/)).map(clean).filter(Boolean).slice(0, 6)
+}
 
 const templateBody = (programme: string) => [
   `This is to confirm that with immediate effect, we have appointed Trade Risk Solutions Pte. Ltd. as our insurance broker with respect to the negotiation, placement and administration of our ${programme}.`,
@@ -93,14 +111,15 @@ function runsOf(inner: string): Run[] {
 export function letterParts(l: AppointmentLetter) {
   const programme = clean(l.programme).replace(/\.$/, '')
   return {
-    addressee: TRS_ADDRESSEE,
+    addressee: addressLines(l.addressee).length ? addressLines(l.addressee) : TRS_ADDRESSEE,
+    clientLogo: letterLogo(l.clientLogo),
+    clientAddress: addressLines(l.clientAddress),
     date: letterDate(l.date),
     title: LETTER_TITLE,
     re: clean(l.projectTitle),
     body: templateBody(programme),
     blocks: (l.bodyHtml && clean(stripTags(l.bodyHtml)) ? htmlBlocks(l.bodyHtml) : templateBody(programme).map(t => ({ kind: 'p' as const, runs: [{ text: t }] as Run[] }))) as Block[],
     entities: (l.entities ?? []).map(clean).filter(Boolean),
-    letterhead: l.letterhead === 'trs' ? 'trs' as const : 'client' as const,
     closing: 'Yours sincerely,',
     name: clean(l.signatoryName) || '[Name]',
     designation: clean(l.designation) || '[Designation]',

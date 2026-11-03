@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { htmlBlocks, letterParts, letterProblems, templateHtml, letterFileName } from '@/lib/letters/appointment'
+import { TRS_ADDRESSEE, htmlBlocks, letterLogo, letterParts, letterProblems, templateHtml, letterFileName } from '@/lib/letters/appointment'
+import { imageSize } from '@/lib/letters/appointment-server'
 
 const base = { clientName: 'Example Pte Ltd', projectTitle: '', programme: 'insurance policies', date: '2026-11-04' }
 
@@ -15,11 +16,29 @@ describe('appointment letter editor', () => {
     const p = letterParts({ ...base, bodyHtml: '<p><br></p>' })
     expect(p.blocks[0].runs[0].text).toMatch(/^This is to confirm that with immediate effect/)
   })
-  it('lists the group entities and keeps the letterhead choice', () => {
-    const p = letterParts({ ...base, entities: ['A Pte Ltd', ' ', 'B Sdn Bhd'], letterhead: 'trs' })
-    expect(p.entities).toEqual(['A Pte Ltd', 'B Sdn Bhd'])
-    expect(p.letterhead).toBe('trs')
-    expect(letterParts(base).letterhead).toBe('client')
+  it('lists the group entities', () => {
+    expect(letterParts({ ...base, entities: ['A Pte Ltd', ' ', 'B Sdn Bhd'] }).entities).toEqual(['A Pte Ltd', 'B Sdn Bhd'])
+  })
+  it('the client letterhead stays blank unless a logo or address is given', () => {
+    const p = letterParts(base)
+    expect(p.clientLogo).toBeNull()
+    expect(p.clientAddress).toEqual([])
+    expect(p.addressee).toEqual(TRS_ADDRESSEE)
+    const q = letterParts({ ...base, clientLogo: 'data:image/png;base64,iVBORw0KGgo=', clientAddress: ['1 Example Road', ' ', 'Singapore 123456'], addressee: ['Trade Risk Solutions Pte. Ltd.', 'Attn: Nathan'] })
+    expect(q.clientLogo).toMatch(/^data:image\/png/)
+    expect(q.clientAddress).toEqual(['1 Example Road', 'Singapore 123456'])
+    expect(q.addressee).toEqual(['Trade Risk Solutions Pte. Ltd.', 'Attn: Nathan'])
+  })
+  it('accepts only a PNG or JPEG data URL under the size limit as the logo', () => {
+    expect(letterLogo('data:image/jpeg;base64,/9j/4AAQ')).not.toBeNull()
+    expect(letterLogo('data:image/svg+xml;base64,PHN2Zz4=')).toBeNull()
+    expect(letterLogo('https://example.com/logo.png')).toBeNull()
+    expect(letterLogo(`data:image/png;base64,${'A'.repeat(900_000)}`)).toBeNull()
+  })
+  it('reads a PNG size for the Word image', () => {
+    const png = Buffer.alloc(32); png.writeUInt32BE(0x89504e47, 0); png.writeUInt32BE(400, 16); png.writeUInt32BE(120, 20)
+    expect(imageSize(png)).toEqual({ w: 400, h: 120 })
+    expect(imageSize(Buffer.from('not an image'))).toBeNull()
   })
   it('the project line is optional; the programme is needed unless the text was edited', () => {
     expect(letterProblems(base)).toEqual([])

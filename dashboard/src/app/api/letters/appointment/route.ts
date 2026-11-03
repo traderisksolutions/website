@@ -2,16 +2,18 @@
  * GET  /api/letters/appointment?company_id=&placement_id= → the prefill for the form (client,
  *      project title and programme from the placement) and the company's letter status.
  * POST /api/letters/appointment { company_id, placement_id?, client_name, project_title,
- *      programme, date, signatory_name?, designation?, draft_email? }
+ *      programme, date, signatory_name?, designation?, entities?, body_html?, client_logo?,
+ *      client_address?, addressee?, preview?, draft_email? }
  *      → renders the letter as PDF and Word, files both in the company's data room (Drive,
  *        <Company>/Letters/), and, with draft_email, drafts the email to the client with both
- *        attached into Drafts to approve. Nothing is sent.
+ *        attached into Drafts to approve. Nothing is sent. The client's logo and letterhead
+ *        address are saved on the company, so its next letter starts with them.
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { enc, sb, sbTry } from '@/lib/crm/db'
 import { errorResponse, fail, gate, isUuid, readBody } from '@/lib/placement/api'
-import { LETTER_DRAFT_TYPE, letterFileName, letterProblems, letterStatus, type AppointmentLetter } from '@/lib/letters/appointment'
+import { LETTER_DRAFT_TYPE, addressLines, letterLogo, letterFileName, letterProblems, letterStatus, type AppointmentLetter } from '@/lib/letters/appointment'
 import { buildAppointmentDocx, renderAppointmentPdf } from '@/lib/letters/appointment-server'
 import { fileDocument } from '@/lib/documents/ingest'
 import * as docs from '@/lib/documents/store'
@@ -25,6 +27,12 @@ type Company = { id: string; company_name: string; address: string | null }
 
 async function companyOf(id: string) {
   return (await sbTry<Company[]>(`companies?id=eq.${enc(id)}&select=id,company_name,address&limit=1`, []))[0] ?? null
+}
+
+/** The saved letterhead; empty until the 20261107_company_letterhead migration is applied. */
+async function letterheadOf(id: string) {
+  const [r] = await sbTry<{ letterhead_logo: string | null; letterhead_address: string | null }[]>(`companies?id=eq.${enc(id)}&select=letterhead_logo,letterhead_address&limit=1`, [])
+  return { client_logo: letterLogo(r?.letterhead_logo), client_address: r?.letterhead_address ?? '' }
 }
 
 async function statusFor(companyId: string) {
@@ -57,7 +65,7 @@ export async function GET(req: NextRequest) {
       }
     }
     return NextResponse.json({
-      prefill: { client_name: company.company_name, project_title: projectTitle, programme, date: new Date().toISOString().slice(0, 10) },
+      prefill: { client_name: company.company_name, project_title: projectTitle, programme, date: new Date().toISOString().slice(0, 10), ...(await letterheadOf(companyId)) },
       status: await statusFor(companyId),
     })
   } catch (e) {
@@ -79,8 +87,11 @@ export async function POST(req: NextRequest) {
     signatoryName: str(b.signatory_name) || null, designation: str(b.designation) || null,
     entities: Array.isArray(b.entities) ? (b.entities as unknown[]).map(str).filter(Boolean).slice(0, 40) : [],
     bodyHtml: typeof b.body_html === 'string' ? b.body_html.slice(0, 20_000) : null,
-    letterhead: b.letterhead === 'trs' ? 'trs' : 'client',
+    clientLogo: letterLogo(b.client_logo),
+    clientAddress: addressLines(typeof b.client_address === 'string' ? b.client_address.slice(0, 600) : ''),
+    addressee: addressLines(typeof b.addressee === 'string' ? b.addressee.slice(0, 600) : ''),
   }
+  if (b.client_logo && !letter.clientLogo) return fail('The logo must be a PNG or JPEG under 600 KB')
   const problems = letterProblems(letter)
   if (problems.length) return fail(problems.join(' '))
   // Preview: the PDF exactly as it will be filed, nothing saved.
@@ -92,6 +103,7 @@ export async function POST(req: NextRequest) {
     const company = await companyOf(companyId)
     if (!company) return fail('Company not found', 404)
     const [pdf, docx] = await Promise.all([renderAppointmentPdf(letter), buildAppointmentDocx(letter)])
+    await sbTry(`companies?id=eq.${enc(companyId)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ letterhead_logo: letter.clientLogo ?? null, letterhead_address: (letter.clientAddress ?? []).join('\n') || null }) })
     const now = new Date().toISOString()
     const saved: { format: 'pdf' | 'docx'; id: string; url: string | null; drive_file_id: string | null; filename: string; mime: string }[] = []
     for (const [format, bytes, mime] of [['pdf', pdf, 'application/pdf'], ['docx', docx, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']] as const) {

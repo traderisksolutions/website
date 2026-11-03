@@ -6,15 +6,15 @@
  * the company's data room (Drive: <Company>/Letters/) the first time either is asked for.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Eye, FileText, Mail, Paperclip, RotateCcw } from 'lucide-react'
+import { Eye, FileText, ImagePlus, Mail, Paperclip, RotateCcw, X } from 'lucide-react'
 import { RichEditor } from '@/components/RichEditor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
 import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
-import { letterParts, letterProblems, templateHtml } from '@/lib/letters/appointment'
+import { LOGO_MAX_CHARS, TRS_ADDRESSEE, letterParts, letterProblems, templateHtml } from '@/lib/letters/appointment'
 
 type Saved = { format: 'pdf' | 'docx'; id: string; url: string | null }
-type Form = { client_name: string; project_title: string; programme: string; date: string; signatory_name: string; designation: string; entities: string; letterhead: 'client' | 'trs'; body_html: string | null }
+type Form = { client_name: string; project_title: string; programme: string; date: string; signatory_name: string; designation: string; entities: string; client_logo: string | null; client_address: string; addressee: string; body_html: string | null }
 
 export function AppointmentLetterDialog({ open, onClose, companyId, placementId, onDone, onAttach }: {
   open: boolean
@@ -37,18 +37,32 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
     if (!open) return
     setF(null); setSaved(null); setError(null); setNotice(null)
     const q = new URLSearchParams({ company_id: companyId, ...(placementId ? { placement_id: placementId } : {}) })
-    callApi<{ prefill: Omit<Form, 'signatory_name' | 'designation'> }>(`/api/letters/appointment?${q}`)
-      .then(r => setF({ ...r.prefill, signatory_name: '', designation: '', entities: '', letterhead: 'client', body_html: null }))
+    callApi<{ prefill: Pick<Form, 'client_name' | 'project_title' | 'programme' | 'date'> & { client_logo?: string | null; client_address?: string } }>(`/api/letters/appointment?${q}`)
+      .then(r => setF({ ...r.prefill, client_logo: r.prefill.client_logo ?? null, client_address: r.prefill.client_address ?? '', addressee: TRS_ADDRESSEE.join('\n'), signatory_name: '', designation: '', entities: '', body_html: null }))
       .catch(e => setError(errText(e)))
   }, [open, companyId, placementId])
 
   const letter = useMemo(() => f && ({ clientName: f.client_name, projectTitle: f.project_title, programme: f.programme, date: f.date, signatoryName: f.signatory_name, designation: f.designation,
-    entities: f.entities.split('\n').map(x => x.trim()).filter(Boolean), letterhead: f.letterhead, bodyHtml: f.body_html }), [f])
+    entities: f.entities.split('\n').map(x => x.trim()).filter(Boolean), clientLogo: f.client_logo, clientAddress: f.client_address.split('\n'), addressee: f.addressee.split('\n'), bodyHtml: f.body_html }), [f])
   const parts = letter ? letterParts(letter) : null
   const problems = letter ? letterProblems(letter) : []
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setF(v => v ? { ...v, [k]: e.target.value } : v); setSaved(null); setPdfUrl(null) }
-  const body = (k: 'body_html' | 'letterhead', v: string | null) => { setF(x => x ? { ...x, [k]: v } as Form : x); setSaved(null); setPdfUrl(null) }
+  const body = (k: 'body_html' | 'client_logo', v: string | null) => { setF(x => x ? { ...x, [k]: v } as Form : x); setSaved(null); setPdfUrl(null) }
   const payload = () => f && ({ company_id: companyId, placement_id: placementId ?? null, ...f, entities: f.entities.split('\n').map(x => x.trim()).filter(Boolean) })
+
+  function pickLogo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!/^image\/(png|jpeg)$/.test(file.type)) { setError('Choose a PNG or JPEG logo.'); return }
+    const r = new FileReader()
+    r.onload = () => {
+      const url = String(r.result ?? '')
+      if (url.length > LOGO_MAX_CHARS) { setError('The logo is over 600 KB. Use a smaller file.'); return }
+      setError(null); body('client_logo', url)
+    }
+    r.readAsDataURL(file)
+  }
 
   async function preview() {
     if (!f || problems.length) { setError(problems.join(' ')); return }
@@ -114,12 +128,18 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
               <Field label="Re: project or subject (optional)"><input className={inputCls} value={f.project_title} onChange={set('project_title')} placeholder="Proposed residential development at Stevens Road" /></Field>
               <Field label="Insurance programme"><textarea className={textareaCls} rows={3} value={f.programme} onChange={set('programme')} placeholder="insurance policies, or Contractor's All Risks and Public Liability insurance for …" /></Field>
               <Field label="Other entities covered (one per line)"><textarea className={textareaCls} rows={3} value={f.entities} onChange={set('entities')} placeholder="Leave blank for one company" /></Field>
-              <Field label="Letterhead">
-                <select className={inputCls} value={f.letterhead} onChange={e => body('letterhead', e.target.value)}>
-                  <option value="client">Client letterhead (TRS logo in the footer)</option>
-                  <option value="trs">TRS logo at the top</option>
-                </select>
+              <Field label="Client letterhead logo (optional)">
+                <div className="flex flex-wrap items-center gap-2">
+                  {f.client_logo && <img src={f.client_logo} alt="Client logo" className="h-9 max-w-[140px] object-contain rounded border border-[#e6e8e4] bg-white p-1" />}
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-[13px] underline underline-offset-2" style={{ color: INK }}>
+                    <ImagePlus size={14} /> {f.client_logo ? 'Replace logo' : 'Add logo'}
+                    <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={pickLogo} />
+                  </label>
+                  {f.client_logo && <Btn size="xs" level="tertiary" onClick={() => body('client_logo', null)}><X size={12} /> Remove</Btn>}
+                </div>
               </Field>
+              <Field label="Client letterhead address (optional)"><textarea className={textareaCls} rows={3} value={f.client_address} onChange={set('client_address')} placeholder="Leave blank to keep the letterhead space empty" /></Field>
+              <Field label="To (addressee)"><textarea className={textareaCls} rows={4} value={f.addressee} onChange={set('addressee')} /></Field>
               <Field label="Date"><input type="date" className={inputCls} value={f.date} onChange={set('date')} /></Field>
               <Field label="Signatory name"><input className={inputCls} value={f.signatory_name} onChange={set('signatory_name')} placeholder="Leave blank for the client to fill in" /></Field>
               <Field label="Designation"><input className={inputCls} value={f.designation} onChange={set('designation')} placeholder="Leave blank for the client to fill in" /></Field>
@@ -151,8 +171,13 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
                 <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded-[10px] border border-[#e6e8e4] bg-white" />
               </div>
             ) : (
-            <div className="min-w-0 rounded-[10px] border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-24 pb-10 text-[13px] leading-[1.6]" style={{ color: INK }} aria-label="Letter preview">
-              {f.letterhead === 'trs' && <img src="/letters/trs-logo.png" alt="TRS" className="w-[120px] -mt-16 mb-8" />}
+            <div className="min-w-0 rounded-[10px] border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-[13px] leading-[1.6]" style={{ color: INK }} aria-label="Letter preview">
+              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-[6px] border border-dashed border-[#d5d9d4] items-center justify-center text-[11.5px]'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
+                {parts.clientLogo || parts.clientAddress.length
+                  ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-[60px] max-w-[180px] object-contain" /> : <span />}<div className="text-right text-[11px] leading-[1.45]" style={{ color: MUTED }}>{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
+                  : 'Client letterhead (left blank)'}
+              </div>
+              <div className="flex justify-between items-start pb-3 mb-6 border-b border-[#e4e7e3]"><img src="/letters/trs-logo.png" alt="TRS" className="w-[120px]" /><div className="text-right text-[10.5px] leading-[1.45]" style={{ color: MUTED }}>Prepared by<br />Trade Risk Solutions Pte. Ltd.</div></div>
               <div>{parts.addressee.map(a => <div key={a}>{a}</div>)}</div>
               <div className="mt-5">{parts.date}</div>
               <div className="mt-6 font-semibold text-[14px]">{parts.title}</div>
@@ -168,7 +193,6 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
               <div className="mt-14 w-[200px] border-t border-[#0f1412] pt-1">
                 <div>{parts.name}</div><div>{parts.designation}</div><div className="font-semibold">{parts.company}</div>
               </div>
-              {f.letterhead === 'client' && <div className="mt-12 pt-2 border-t border-[#e6e8e4] flex items-center gap-3 text-[11px]" style={{ color: MUTED }}><img src="/letters/trs-logo.png" alt="" className="w-[44px]" />Template prepared by Trade Risk Solutions. Please print on your company letterhead, sign and return.</div>}
             </div>
             )}
           </div>

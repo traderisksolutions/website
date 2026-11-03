@@ -1,8 +1,9 @@
 /**
- * The appointment letter as a PDF, A4. Two layouts:
- *   client  the top 50 mm left free so the client prints it on its own letterhead; the TRS logo
- *           small in the footer (how the letter is used today: the client's letter to TRS)
- *   trs     the TRS logo at the top
+ * The appointment letter as a PDF, A4, top to bottom:
+ *   the client's letterhead band: its logo left, its address right; blank when neither is given,
+ *     so the client can print it on its own paper
+ *   the TRS logo and "Prepared by" line
+ *   the letter
  * Text comes from letterParts(): the template, or the letter text as edited in the editor.
  */
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
@@ -10,6 +11,9 @@ import { letterParts, type AppointmentLetter, type Block } from './appointment'
 
 const s = StyleSheet.create({
   page:   { paddingHorizontal: 72, paddingBottom: 90, fontFamily: 'Geist', fontSize: 10.5, lineHeight: 1.55, color: '#0f1412' },
+  band:   { height: 70, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
+  bandLogo: { maxHeight: 56, maxWidth: 170, objectFit: 'contain' },
+  bandAddr: { fontSize: 8.5, color: '#4a5550', textAlign: 'right', lineHeight: 1.45, maxWidth: 220 },
   head:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 26, paddingBottom: 14, borderBottom: '0.5pt solid #e4e7e3' },
   logo:   { width: 118 },
   prep:   { fontSize: 8, color: '#4a5550', textAlign: 'right', lineHeight: 1.45 },
@@ -21,9 +25,6 @@ const s = StyleSheet.create({
   bullet: { width: 16 },
   sign:   { marginTop: 56, width: 190, borderTop: '0.75pt solid #0f1412', paddingTop: 4 },
   bold:   { fontWeight: 600 },
-  foot:   { position: 'absolute', left: 72, right: 72, bottom: 36, flexDirection: 'row', alignItems: 'center', paddingTop: 8, borderTop: '0.5pt solid #e4e7e3' },
-  footLogo: { width: 46, marginRight: 10 },
-  footText: { fontSize: 7.5, color: '#7a847e' },
 })
 
 function Runs({ b }: { b: Block }) {
@@ -32,16 +33,17 @@ function Runs({ b }: { b: Block }) {
 
 export function AppointmentLetterPdf({ letter, logoSrc }: { letter: AppointmentLetter; logoSrc?: string | Buffer | null }) {
   const p = letterParts(letter)
-  const trs = p.letterhead === 'trs'
   return (
     <Document title={`${p.title} - ${p.company}`} author={p.company}>
-      <Page size="A4" style={{ ...s.page, paddingTop: trs ? 48 : 142 }}>
-        {trs && (
-          <View style={s.head}>
-            {logoSrc ? <Image src={logoSrc} style={s.logo} /> : <Text style={s.bold}>Trade Risk Solutions</Text>}
-            <Text style={s.prep}>Prepared by{'\n'}Trade Risk Solutions Pte. Ltd.</Text>
-          </View>
-        )}
+      <Page size="A4" style={{ ...s.page, paddingTop: 40 }}>
+        <View style={s.band}>
+          {p.clientLogo ? <Image src={p.clientLogo} style={s.bandLogo} /> : <View />}
+          {p.clientAddress.length > 0 && <Text style={s.bandAddr}>{p.clientAddress.join('\n')}</Text>}
+        </View>
+        <View style={s.head}>
+          {logoSrc ? <Image src={logoSrc} style={s.logo} /> : <Text style={s.bold}>Trade Risk Solutions</Text>}
+          <Text style={s.prep}>Prepared by{'\n'}Trade Risk Solutions Pte. Ltd.</Text>
+        </View>
         <View>{p.addressee.map((a, i) => <Text key={i}>{a}</Text>)}</View>
         <Text style={s.date}>{p.date}</Text>
         <Text style={s.title}>{p.title}</Text>
@@ -61,12 +63,6 @@ export function AppointmentLetterPdf({ letter, logoSrc }: { letter: AppointmentL
           <Text>{p.designation}</Text>
           <Text style={s.bold}>{p.company}</Text>
         </View>
-        {!trs && logoSrc && (
-          <View style={s.foot} fixed>
-            <Image src={logoSrc} style={s.footLogo} />
-            <Text style={s.footText}>Template prepared by Trade Risk Solutions. Please print on your company letterhead, sign and return.</Text>
-          </View>
-        )}
       </Page>
     </Document>
   )
