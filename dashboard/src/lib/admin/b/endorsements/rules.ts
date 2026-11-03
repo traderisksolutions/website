@@ -14,13 +14,16 @@ export function lineFor(p: { product_line?: string | null; class_of_insurance?: 
   const s = `${p.class_of_insurance ?? ''} ${p.label ?? ''} ${p.description ?? ''}`.toLowerCase()
   if (!s.trim()) return null
   if (/foreign worker|fwmi|\bhfw\b|work permit/.test(s)) return 'foreign_worker_medical'
-  if (/wica|work injury|workmen/.test(s)) return 'wica'
+  if (/wica|work(?:er|men)?'?s? injury|workmen|\bwic\b|\bwcodc\b/.test(s)) return 'wica'
   if (/group (hospital|health|medical)|\bghs\b|\bgp\b|outpatient|dental|employee benefit|\bgtl\b|term life|\bgpa\b|personal accident|group accident/.test(s)) return 'employee_benefits'
   if (/travel/.test(s)) return 'group_travel'
   if (/motor|vehicle|fleet|commercial auto/.test(s)) return 'commercial_vehicle'
   if (/marine|cargo/.test(s)) return 'marine_cargo'
   if (/contractor|\bcar\b|erection|construction/.test(s)) return 'construction_car'
-  if (/fire|industrial all risk|\biar\b|property|office|business pack|bizsupreme|shop/.test(s)) return 'iar_fire'
+  if (/electronic equipment/.test(s)) return 'electronic_equipment'
+  if (/asset manag\w* liability/.test(s)) return 'professional_indemnity'
+  if (/fire|industrial all risk|\biar\b|property|office|business (pack|insurance|supreme)|bizsupreme|shop|commercial all risk|clinic ?care|cafe ?care|food stall/.test(s)) return 'iar_fire'
+  if (/event liability|employer'?s'? liability/.test(s)) return 'general_liability'
   if (/public liability|general liability|\bpl\b|third party/.test(s)) return 'general_liability'
   if (/professional indemnity|\bpi\b|errors/.test(s)) return 'professional_indemnity'
   if (/directors|d&o|\bd ?& ?o\b/.test(s)) return 'do'
