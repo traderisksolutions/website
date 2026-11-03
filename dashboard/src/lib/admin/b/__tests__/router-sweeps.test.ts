@@ -56,9 +56,10 @@ describe('chaseDecision', () => {
 
 describe('renewalBand', () => {
   it('puts a policy in the smallest band it falls inside', () => {
-    expect(renewalBand('2026-11-10', '2026-11-01')).toBe(14)
+    expect(renewalBand('2026-11-10', '2026-11-01')).toBe(15)
     expect(renewalBand('2026-11-30', '2026-11-01')).toBe(30)
-    expect(renewalBand('2026-12-25', '2026-11-01')).toBe(60)
+    expect(renewalBand('2026-12-10', '2026-11-01')).toBe(45)
+    expect(renewalBand('2026-12-25', '2026-11-01')).toBe(90)
     expect(renewalBand('2027-03-01', '2026-11-01')).toBeNull()
     expect(renewalBand('2026-10-01', '2026-11-01')).toBeNull()
   })

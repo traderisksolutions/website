@@ -15,6 +15,8 @@ import { pickPanel, insurerDeadline } from './lines'
 import { comparisonBody, emailLines, optionLabel, resolvePick } from './compare'
 import { choosePolicyQuote } from '@/lib/policies/spine'
 import { findTier, isInternal, lineFinished, matchDispatches, parseRefs, placementFinished, readForward, withRef } from './match'
+import { caseForPlacement, touchPlacement } from '@/lib/cases/sync'
+import type { StartPoint } from '@/lib/cases/stage'
 import type { PlacementLogEntry, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
 
 const now = () => new Date().toISOString()
@@ -34,6 +36,8 @@ export type NewLine = {
 export async function createPlacement(input: {
   company_id: string; title?: string | null; client_thread_id?: string | null; inception_date?: string | null
   lines: NewLine[]; actor: string; dispatch?: boolean
+  /** How the work reached TRS: a client's new email, a conversation picked up midway, a renewal. */
+  start_point?: StartPoint
 }): Promise<{ placement: Placement; lines: PlacementLine[]; dispatched: number }> {
   const company = await store.company(input.company_id)
   if (!company) throw new Error('Company not found')
@@ -61,6 +65,13 @@ export async function createPlacement(input: {
     text: `Placement opened: ${placement.title} — ${lines.map(l => l.label).join(', ')}`, thread_id: thread?.id ?? null,
     detail: { policy_ids: lines.map(l => l.policy_id) } })
   await store.markQuoting(placement.company_id)
+  // One case per piece of work: the placement joins the case on its thread, an open renewal of the
+  // same line, or opens one. The case's stage then follows the lines (src/lib/cases).
+  await caseForPlacement({
+    placementId: placement.id, companyId: placement.company_id, clientName: company.company_name ?? null, threadId: thread?.id ?? null,
+    title: placement.title, productLines: lines.map(l => l.product_line), policyId: lines[0]?.policy_id ?? null,
+    startPoint: input.start_point ?? 'new_request', inceptionDate: input.inception_date ?? null, actor: input.actor,
+  })
   let dispatched = 0
   if (input.dispatch !== false) {
     const r = await openRounds(placement, lines.map(l => ({ line: l, spec: l.spec, reason: 'initial' as RoundReason, change_summary: null, contact_ids: contactIdsByLine.get(l.id) ?? null })), input.actor)

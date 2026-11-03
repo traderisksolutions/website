@@ -9,7 +9,7 @@ import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { addDays, daysBetween, workingDaysBetween } from './dates'
 import { itemEvent } from './data'
 import { laterActive, laterDue, clearLater } from './later'
-import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS } from './renewals/advice-agent'
+import { adviceTask, rfqCheckTask, handleAdvice, handleRfqCheck, RFQ_DAYS, ADVICE_DAYS } from './renewals/advice-agent'
 import { CHASE_AFTER_WORKING_DAYS, CHASE_CLIENT_AFTER_DAYS, NEAR_DEADLINE_DAYS, NEAR_DEADLINE_EVERY, URGENT_DAYS, MAX_CHASES, DOCUMENT_CHASE_DAYS } from './cadence'
 import { runChases as runPlacementChases } from '@/lib/placement/workflow'
 import { runMovementChases } from '@/lib/policies/movement-flow'
@@ -19,18 +19,23 @@ import { DOC_LABEL } from './documents/gate'
 import { loadCaseData } from './data'
 import { detectLine } from './relay/intent'
 import { familyOf } from '@/lib/placement/lines'
+import { DAY_MARKS, OPEN_DAYS, TERMS_DAYS, UPDATE_DAYS, DECISION_DAYS, dayMark, priceCheck, flowAction } from '@/lib/cases/renewal'
+import { stageIndex, isStage } from '@/lib/cases/stage'
+import { getRenewalPack } from '@/lib/policies/ledger'
+import { syncAllStages } from '@/lib/cases/sync'
 
 type Row = Record<string, any>
 
 export { CHASE_AFTER_WORKING_DAYS, CHASE_CLIENT_AFTER_DAYS, NEAR_DEADLINE_DAYS, NEAR_DEADLINE_EVERY, URGENT_DAYS, MAX_CHASES, DOCUMENT_CHASE_DAYS } from './cadence'
 export const STALL_AFTER_DAYS = 7
-export const RENEWAL_BANDS = [60, 30, 14] as const
-/** Financial lines: the proposal form six weeks out, as Nathan sends it. */
-export const FORM_DAYS = 42
-/** Employee benefits: the claims experience is asked for 60 days out, before December's rush. */
-export const CLAIMS_REPORT_DAYS = 60
-/** With no renewal notice from the insurer by 30 days out, a person asks for terms; two policies lapsed waiting for one. */
-export const NOTICE_DAYS = 30
+/** Renewal day marks, counted back from the policy end date (src/lib/cases/renewal.ts). */
+export const RENEWAL_BANDS = DAY_MARKS
+/** Financial lines: the proposal form goes with the 90-day data request; insurers give no terms without it. */
+export const FORM_DAYS = OPEN_DAYS
+/** Employee benefits: the claims experience is asked at 90 days, with the data request. */
+export const CLAIMS_REPORT_DAYS = OPEN_DAYS
+/** With no terms from the insurer by 30 days out, a person asks for them; two policies lapsed waiting for a notice. */
+export const NOTICE_DAYS = UPDATE_DAYS
 
 export type ChaseDecision = {
   chase: 'chase_insurer' | 'chase_client' | null
@@ -87,13 +92,10 @@ export function chaseDecision(i: ChaseItem, today: string): ChaseDecision {
   return none
 }
 
-/** Pure. The renewal band a policy is in today: the smallest band its expiry falls inside. */
+/** Pure. The renewal day mark a policy has reached today (90, 45, 30 or 15), or null outside 90 days. */
 export function renewalBand(endDate: string | null, today: string): number | null {
   if (!endDate) return null
-  const d = daysBetween(today, endDate)
-  if (d < 0) return null
-  for (const b of [...RENEWAL_BANDS].sort((a, b) => a - b)) if (d <= b) return b
-  return null
+  return dayMark(daysBetween(today, endDate))
 }
 
 export async function handleChaser(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
@@ -154,13 +156,12 @@ export async function handleChaser(task: AgentTask): Promise<Record<string, unkn
 }
 
 export async function handleRenewals(task: AgentTask): Promise<Record<string, unknown> | 'handled'> {
-  // The report at 60 days and the quote check at 30 days are the agent's other two jobs (renewals/advice-agent.ts).
+  // The renewal update at 30 days and the terms check at 45 days are the agent's other two jobs (renewals/advice-agent.ts).
   if (task.kind === 'advice') return handleAdvice(task)
   if (task.kind === 'rfq_check') return handleRfqCheck(task)
   if (task.kind !== 'sweep') { await skip(task.id, `unknown kind ${task.kind}`); return 'handled' }
   const today = (task.payload?.today as string) ?? new Date().toISOString().slice(0, 10)
-  const max = Math.max(...RENEWAL_BANDS)
-  const policies = await sbTry<Row[]>(`policies?end_date=gte.${today}&end_date=lte.${addDays(today, max)}&company_id=not.is.null&select=id,company_id,policy_number,insurer,class_of_insurance,product_line,end_date,lifecycle,description,companies(company_name,kind)&limit=1000`, [])
+  const policies = await sbTry<Row[]>(`policies?end_date=gte.${today}&end_date=lte.${addDays(today, OPEN_DAYS)}&company_id=not.is.null&select=id,company_id,policy_number,insurer,class_of_insurance,product_line,end_date,lifecycle,description,companies(company_name,kind)&limit=1000`, [])
   const open = await sbTry<Row[]>('work_items?case_type=eq.renewal&closed_at=is.null&select=id,policy_id,policy_number,company_id', [])
   const covered = new Set(open.flatMap(o => [o.policy_id, o.policy_number && `${o.company_id}:${o.policy_number}`]).filter(Boolean))
   let opened = 0
@@ -168,54 +169,66 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   for (const p of policies) {
     if (looksLikeEndorsement(p) || (p.lifecycle && !['bound', 'live', 'renewal_due'].includes(p.lifecycle))) continue
     if (p.companies?.kind && p.companies.kind !== 'client') continue
-    const band = renewalBand(p.end_date, today)
-    if (!band) continue
-    // One notice per renewal: drafted when the item opens. Later bands only raise its rank on /work by deadline.
-    let itemId: string | null = null
+    const left = daysBetween(today, p.end_date)
+    const mark = dayMark(left)
+    if (!mark) continue
+    // 90 days: the case opens from TRS's own register, whatever the insurer has or has not sent.
+    let itemId: string | null = open.find(o => o.policy_id === p.id)?.id ?? null
     if (!covered.has(p.id) && !covered.has(`${p.company_id}:${p.policy_number}`)) {
+      // The price check reads the expiring year: claims against premium, heads and endorsements.
+      const pack = await getRenewalPack(p.id, today).catch(() => null)
+      const check = priceCheck(pack?.current ?? null)
       const [item] = await sb<Row[]>('work_items', {
         method: 'POST', headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
           company_id: p.company_id, client_name: p.companies?.company_name ?? null, case_type: 'renewal',
           title: `Renewal: ${p.class_of_insurance ?? p.product_line ?? 'policy'}${p.policy_number ? ` ${p.policy_number}` : ''}`.slice(0, 140),
-          status: 'trs_to_act', deadline: p.end_date, deadline_basis: 'policy expiry', insurer_name: p.insurer, policy_id: p.id,
-          policy_number: p.policy_number, next_action: 'Ask the client for renewal changes, then request terms', source: 'renewals', confidence: 'high',
+          status: 'trs_to_act', deadline: p.end_date, deadline_basis: 'policy end date', insurer_name: p.insurer, policy_id: p.id,
+          policy_number: p.policy_number, next_action: flowAction(check.flow, p.insurer), source: 'renewals', confidence: 'high',
         }),
       })
       itemId = item.id
       covered.add(p.id)
-      await itemEvent(item.id, 'note', 'renewals', { opened: `${band}-day band`, expiry: p.end_date })
+      // Stage, start point and flow are written apart: until the case-stage migration is applied they are skipped, not fatal.
+      await sbTry(`work_items?id=eq.${enc(item.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ stage: 'request', stage_at: new Date().toISOString(), start_point: 'renewal', renewal_flow: check.flow }) })
+      await itemEvent(item.id, 'note', 'renewals', { opened: `${mark}-day mark`, end_date: p.end_date, flow: check.flow, basis: check.basis })
       opened++
+      // The data request, pre-filled from last year (headcount, wages, turnover, sum insured).
+      tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: item.id, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date, flow: check.flow }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
     }
-    if (itemId) tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: itemId, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
-    // One report per renewal, from the first band the policy is seen in; one quote check inside 30 days.
-    tasks.push(adviceTask(p.id, p.company_id, p.end_date))
-    if (band <= RFQ_DAYS) tasks.push(rfqCheckTask(p.id, p.company_id, p.end_date))
-    // Lead times by line (placement/lines.ts families), as the broker keeps them.
+    if (!itemId) continue
     const family = familyOf(detectLine(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''} ${p.description ?? ''}`, null))
-    const left = daysBetween(today, p.end_date)
-    if (family === 'eb' && left <= CLAIMS_REPORT_DAYS) {
-      const item = itemId ?? open.find(o => o.policy_id === p.id)?.id ?? null
-      if (item) tasks.push({ agent: 'drafter', kind: 'request_claims_report', work_item_id: item, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date }, idem_key: `drafter:request_claims_report:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
-    }
+    if (family === 'eb' && left <= CLAIMS_REPORT_DAYS) tasks.push({ agent: 'drafter', kind: 'request_claims_report', work_item_id: itemId, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date }, idem_key: `drafter:request_claims_report:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })
     if (family === 'financial' && left <= FORM_DAYS) {
       // The register takes the proposal form from here; the chaser asks for it on the next sweep.
-      const item = itemId ?? open.find(o => o.policy_id === p.id)?.id ?? null
-      const d = item ? await loadCaseData(item) : null
+      const d = await loadCaseData(itemId)
       if (d) await syncRegister(d, { caseType: 'renewal', line: detectLine(`${p.class_of_insurance ?? ''} ${p.product_line ?? ''}`, null), today, expiry: p.end_date }).catch(() => null)
     }
+    // 45 days: terms due. 30 days: the renewal update to the client. One task each per renewal.
+    if (left <= RFQ_DAYS) tasks.push(rfqCheckTask(p.id, p.company_id, p.end_date))
+    if (left <= ADVICE_DAYS) tasks.push(adviceTask(p.id, p.company_id, p.end_date))
   }
   await enqueue(tasks)
-  // Inside 30 days with nothing from the insurer on the renewal: a person asks for terms.
+  // 30 days with nothing from the insurer: a person asks for terms.
   let noNotice = 0
   for (const o of await sbTry<Row[]>(`work_items?case_type=eq.renewal&closed_at=is.null&needs_human=is.null&deadline=lte.${addDays(today, NOTICE_DAYS)}&deadline=gte.${today}&select=id,insurer_name,work_item_threads(side)`, [])) {
     const insurerSide = (o.work_item_threads ?? []).some((t: Row) => t.side === 'insurer')
     if (insurerSide) continue
-    await sb(`work_items?id=eq.${enc(o.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `No renewal notice from ${o.insurer_name ?? 'the insurer'} with ${NOTICE_DAYS} days to expiry. Ask them for terms; do not wait for the notice.`, updated_at: new Date().toISOString() }) })
+    await sb(`work_items?id=eq.${enc(o.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `No renewal terms from ${o.insurer_name ?? 'the insurer'} with ${NOTICE_DAYS} days to the end date. Ask them for terms; do not wait for the notice.`, updated_at: new Date().toISOString() }) })
     await itemEvent(o.id, 'note', 'renewals', { no_notice: true, days: NOTICE_DAYS })
     noNotice++
   }
-  return { policies: policies.length, opened, tasks: tasks.length, noNotice }
+  // 15 days: no decision from the client yet. A person calls; the bind instruction follows the decision.
+  let noDecision = 0
+  for (const o of await sbTry<Row[]>(`work_items?case_type=eq.renewal&closed_at=is.null&needs_human=is.null&deadline=lte.${addDays(today, DECISION_DAYS)}&deadline=gte.${today}&select=id,client_name,stage`, [])) {
+    if (isStage(o.stage) && stageIndex(o.stage) >= stageIndex('bind')) continue
+    await sb(`work_items?id=eq.${enc(o.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ needs_human: `Renewal ends within ${DECISION_DAYS} days and ${o.client_name ?? 'the client'} has not decided. Call them for the decision.`, updated_at: new Date().toISOString() }) })
+    await itemEvent(o.id, 'note', 'renewals', { no_decision: true, days: DECISION_DAYS })
+    noDecision++
+  }
+  // Every open quote case's stage, recomputed from its records.
+  const stages = await syncAllStages().catch(() => 0)
+  return { policies: policies.length, opened, tasks: tasks.length, noNotice, noDecision, stages, marks: [OPEN_DAYS, TERMS_DAYS, UPDATE_DAYS, DECISION_DAYS] }
 }
 
 /** The tasks the daily sweep starts. Keys carry the day, so a second run the same day is a no-op. */

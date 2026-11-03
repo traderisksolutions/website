@@ -16,6 +16,8 @@ import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
 import { twinOf } from './clean'
 import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
 import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clean'
+import { STAGED_TYPES, isStage, stageIndex, startPointFor } from '@/lib/cases/stage'
+import { syncStage } from '@/lib/cases/sync'
 
 const ACTOR = 'case_worker'
 const WINDOW_DAYS = 90
@@ -34,12 +36,13 @@ For each case decide:
 - suggested_owner: the TRS colleague active on this case or client. Never someone who has left.
 - needs_human: any decision you must not make (coverage dispute, claim decline, payee or bank details, premium acceptance, cancelling cover). Say exactly what must be decided.
 - evidence: verbatim quotes, under 160 characters, from the message that sets the status.
+- stage (new_quote and renewal only, else null): how far the work has got, from the LATEST substantive message, REBUILT history included: request (client asked), data_complete (TRS holds what the insurers need), sent_to_insurers (TRS asked insurers for terms), terms_received (an insurer quoted or declined), comparison_sent (TRS sent the client the options), client_decides (the client is choosing or has asked questions on the options), bind (the client chose; TRS instructs the insurer), policy_and_dn (policy or debit note issued), paid (premium paid). A conversation forwarded midway that ends with an insurer's quote is terms_received.
 
 Messages marked REBUILT were read out of a forward or quoted history: TRS never received them. Use them for the history of the case; reply only on a real thread; a file they name is not held unless it is listed as an attachment elsewhere — ask for it.
 
 Never invent an amount, date, policy number, name or attachment. If it is not in the mail, say it is missing.
 
-Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
+Answer JSON only: {"cases":[{"item_id":null,"client":"","case_type":"claim|renewal|new_quote|endorsement|member_movement|premium_billing|documents|enquiry|other","title":"","threads":[""],"insurer":null,"policy_number":null,"status":"","waiting_since":null,"last_activity":"YYYY-MM-DD","summary":"","next_action":null,"deadline":null,"deadline_basis":null,"suggested_owner":null,"owner_basis":"","needs_human":null,"stage":null,"evidence":[{"thread":"","quote":""}],"confidence":"high|medium|low"}]}
 Write no email: the relay agent drafts replies from the case you keep.`
 
 /** Added to the prompt when the record read is a partner broker, not a client. */
@@ -191,7 +194,7 @@ async function caseCompany(input: CaseInput, c: CleanCase): Promise<{ companyId:
   return { companyId: null, needsHuman: `End client "${named}" is not on file. Choose or add the client; ${partner} is a partner broker.` }
 }
 
-export async function storeCase(input: CaseInput, c: CleanCase): Promise<string> {
+export async function storeCase(input: CaseInput, c: CleanCase, openedMode: string | null = null): Promise<string> {
   const owner = await caseCompany(input, c)
   const row = {
     company_id: owner.companyId, client_name: c.client, case_type: c.case_type, title: c.title, status: c.status,
@@ -220,13 +223,25 @@ export async function storeCase(input: CaseInput, c: CleanCase): Promise<string>
     body: JSON.stringify(c.threads.map(t => ({ work_item_id: id, thread_id: t, side: input.threadSide.get(t) ?? 'other' }))),
   })
 
+  // Quote cases: the start point once, and the reader's stage only where no record decides it
+  // (no placement yet) and never backwards. Best-effort until the case-stage migration is applied.
+  if (STAGED_TYPES.has(c.case_type)) {
+    const [w] = await sbTry<Row[]>(`work_items?id=eq.${enc(id)}&select=stage,start_point,placement_id`, [])
+    const set: Record<string, unknown> = {}
+    if (w && !w.start_point) set.start_point = startPointFor({ caseType: c.case_type, openedMode })
+    if (w && c.stage && !w.placement_id && (!isStage(w.stage) || stageIndex(c.stage) > stageIndex(w.stage))) { set.stage = c.stage; set.stage_at = new Date().toISOString() }
+    if (w && !w.stage && !set.stage) set.stage = 'request'
+    if (Object.keys(set).length) await sbTry(`work_items?id=eq.${enc(id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(set) })
+    await syncStage(id)
+  }
+
   // Drafts are the relay agent's; a draft the model still returns is not stored.
   await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action } }) })
   return id
 }
 
 /** Reads one client and stores every case. Returns what happened, for logs and the dry run. */
-export async function workCompany(companyId: string, opts: { write: boolean; today?: string; focusThreadIds?: string[] } = { write: false }) {
+export async function workCompany(companyId: string, opts: { write: boolean; today?: string; focusThreadIds?: string[]; openedMode?: string | null } = { write: false }) {
   const [co] = await sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=kind&limit=1`, [])
   if (co && caseModeFor(co.kind) === 'none') return { companyId, cases: [] as CleanCase[], stored: 0, dropped: 0, note: `not a client (${co.kind})` }
   const input = await loadCase(companyId, opts.today, { focusThreadIds: opts.focusThreadIds })
@@ -234,6 +249,6 @@ export async function workCompany(companyId: string, opts: { write: boolean; tod
   const { cases, dropped, error } = await readCase(input)
   if (error) return { companyId, cases, stored: 0, dropped, note: error }
   let stored = 0
-  if (opts.write) for (const c of cases) { await storeCase(input, c); stored++ }
+  if (opts.write) for (const c of cases) { await storeCase(input, c, opts.openedMode ?? null); stored++ }
   return { companyId, cases, stored, dropped, note: null }
 }

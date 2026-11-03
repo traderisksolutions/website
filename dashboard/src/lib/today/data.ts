@@ -29,6 +29,8 @@ export type TodayItem = {
   owner_email: string | null; later_until: string | null; later_when: string | null
   draft: TodayDraft | null; paired: TodayDraft[]
   pending: PendingView; side: Side; bridge: HomeBridge; policy_id: string | null
+  /** Quote cases: the nine-stage position (src/lib/cases/stage.ts), how the work reached TRS, and the renewal flow. */
+  stage: string | null; start_point: string | null; renewal_flow: string | null
 }
 
 const DRAFT_COLS = 'id,to_email,cc,subject,body,attachments,thread_id,party,pair_id,status,context_used'
@@ -97,6 +99,7 @@ function shape(r: Row, group: TodayGroup, d: Row | undefined, paired: Row[], pol
     needs_human: r.needs_human, insurer_name: r.insurer_name, policy_number: r.policy_number, deadline: r.deadline,
     waiting_since: r.waiting_since, last_activity_at: r.last_activity_at, owner_email: r.owner_email,
     later_until: r.later_until ?? null, later_when: r.later_when ?? null,
+    stage: r.stage ?? null, start_point: r.start_point ?? null, renewal_flow: r.renewal_flow ?? null,
     draft: d ? toDraft(d) : null, paired: paired.map(toDraft),
   }
 }

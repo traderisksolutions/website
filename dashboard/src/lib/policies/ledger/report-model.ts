@@ -52,14 +52,14 @@ export function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** The dates TRS works to, counted back from expiry: quotes to market 45 days out, terms back 21, decision 14. */
+/** The dates TRS works to, counted back from the end date: the 45, 30 and 15 day marks (src/lib/cases/renewal.ts). */
 export function planDates(expiry: string | null, asOf: string): PlanRow[] {
-  if (!expiry) return [{ step: 'Quotes to market by', date: DASH }, { step: 'Terms back by', date: DASH }, { step: 'Decision by', date: DASH }, { step: 'Cover renews', date: DASH }]
+  if (!expiry) return [{ step: 'Terms back by', date: DASH }, { step: 'Comparison to you by', date: DASH }, { step: 'Decision by', date: DASH }, { step: 'Cover renews', date: DASH }]
   const later = (d: string) => (d < asOf ? asOf : d)
   return [
-    { step: 'Quotes to market by', date: fmtDate(later(addDays(expiry, -45))) },
-    { step: 'Terms back by', date: fmtDate(later(addDays(expiry, -21))) },
-    { step: 'Decision by', date: fmtDate(later(addDays(expiry, -14))) },
+    { step: 'Terms back by', date: fmtDate(later(addDays(expiry, -45))) },
+    { step: 'Comparison to you by', date: fmtDate(later(addDays(expiry, -30))) },
+    { step: 'Decision by', date: fmtDate(later(addDays(expiry, -15))) },
     { step: 'Cover renews', date: fmtDate(addDays(expiry, 1)) },
   ]
 }

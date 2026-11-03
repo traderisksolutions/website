@@ -28,7 +28,7 @@ export interface StageFacts {
   lastBillingDate?: string | null
 }
 
-const RENEWAL_WINDOW_DAYS = 60
+const RENEWAL_WINDOW_DAYS = 90
 /** No billing and no conversation for this long, with no active policy, reads as lapsed. */
 const DORMANT_DAYS = 550
 

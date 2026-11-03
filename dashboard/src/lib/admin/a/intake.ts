@@ -318,7 +318,7 @@ export async function readCase(task: AgentTask) {
   const cursor = await getCursor('case_builder', group)
   const entries = await readLedger(group, cursor, 500)
   const focus = focusThreads({ cursor, entries, payloadThreads: p.thread_ids ?? [] })
-  const r = await workCompany(p.company_id, { write: true, focusThreadIds: focus ?? undefined })
+  const r = await workCompany(p.company_id, { write: true, focusThreadIds: focus ?? undefined, openedMode: p.opened_mode })
   if (r.note && r.note !== 'no recent threads' && !r.note.startsWith('not a client')) throw new Error(r.note)
   if (entries.length) await setCursor('case_builder', group, Math.max(...entries.map(e => Number(e.seq))))
   // Where the reader put a thread on the case intake suggested, say how it was found.

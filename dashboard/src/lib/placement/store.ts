@@ -75,16 +75,34 @@ export async function loadPlacement(id: string): Promise<PlacementBundle | null>
 /** A read that comes back empty rather than failing. */
 export const rows = <T>(path: string): Promise<T[]> => sbTry<T[]>(path, [])
 
+// A write that can move a quote case's stage: a line's status, a request sent or answered, a quote
+// read. The linked case catches up (src/lib/cases/sync.ts); the hourly sweep heals a missed one.
+const STAGE_TABLES = new Set(['placement_lines', 'placement_dispatches', 'placement_quotes'])
+async function afterWrite(table: string, rows: unknown, row: Record<string, unknown> | Record<string, unknown>[], isInsert: boolean) {
+  if (!STAGE_TABLES.has(table)) return
+  if (!isInsert && !('status' in (Array.isArray(row) ? row[0] ?? {} : row))) return
+  const ids = new Set((Array.isArray(rows) ? rows : []).map(r => (r as { placement_id?: string }).placement_id).filter((x): x is string => !!x))
+  if (!ids.size) return
+  const { touchPlacement } = await import('@/lib/cases/sync')
+  for (const id of ids) await touchPlacement(id)
+}
+
 export async function insert<T>(table: string, row: Record<string, unknown> | Record<string, unknown>[]): Promise<T[]> {
-  return sb<T[]>(table, { method: 'POST', headers: SEL.prefer, body: JSON.stringify(row) })
+  const out = await sb<T[]>(table, { method: 'POST', headers: SEL.prefer, body: JSON.stringify(row) })
+  await afterWrite(table, out, row, true)
+  return out
 }
 
 export async function patch<T>(table: string, filter: string, row: Record<string, unknown>): Promise<T[]> {
-  return sb<T[]>(`${table}?${filter}`, { method: 'PATCH', headers: SEL.prefer, body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }) })
+  const out = await sb<T[]>(`${table}?${filter}`, { method: 'PATCH', headers: SEL.prefer, body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }) })
+  await afterWrite(table, out, row, false)
+  return out
 }
 
 export async function patchNoTs<T>(table: string, filter: string, row: Record<string, unknown>): Promise<T[]> {
-  return sb<T[]>(`${table}?${filter}`, { method: 'PATCH', headers: SEL.prefer, body: JSON.stringify(row) })
+  const out = await sb<T[]>(`${table}?${filter}`, { method: 'PATCH', headers: SEL.prefer, body: JSON.stringify(row) })
+  await afterWrite(table, out, row, false)
+  return out
 }
 
 /** One entry in the company memory. Never throws: a failed log line must not fail the work it records. */

@@ -5,6 +5,7 @@
  * on the case, attach a file the case does not hold, or rest on a quote that is not in the mail
  * is not stored as ready to send. Facts it cannot prove are dropped, never repaired.
  */
+import { isStage, type Stage } from '@/lib/cases/stage'
 
 export const CASE_TYPES = ['claim', 'renewal', 'new_quote', 'endorsement', 'member_movement', 'premium_billing', 'documents', 'enquiry', 'other'] as const
 export const STATUSES = ['trs_to_act', 'waiting_client', 'waiting_insurer', 'stalled', 'done'] as const
@@ -38,6 +39,8 @@ export type CleanCase = {
   suggested_owner: string | null
   owner_basis: string | null
   needs_human: string | null
+  /** Quote cases only: how far the case has got, read from the latest substantive message. Records override it (src/lib/cases). */
+  stage: Stage | null
   evidence: { thread: string; quote: string }[]
   confidence: 'high' | 'medium' | 'low'
 }
@@ -171,6 +174,7 @@ export function cleanCase(raw: unknown, ctx: CaseContext): CleanCase | null {
     suggested_owner: owner && ctx.staff.includes(owner) ? owner : null,
     owner_basis: str(r.owner_basis, 200),
     needs_human: str(r.needs_human, 400),
+    stage: isStage(r.stage) && ['new_quote', 'renewal'].includes(String(r.case_type)) ? r.stage : null,
     evidence,
     confidence,
   }

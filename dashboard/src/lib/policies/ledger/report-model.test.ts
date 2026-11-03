@@ -91,7 +91,7 @@ describe('report model', () => {
 
   it('counts the plan dates back from expiry and never before today', () => {
     expect(planDates('2026-12-31', '2026-11-01')).toEqual([
-      { step: 'Quotes to market by', date: '16 Nov 2026' }, { step: 'Terms back by', date: '10 Dec 2026' }, { step: 'Decision by', date: '17 Dec 2026' }, { step: 'Cover renews', date: '01 Jan 2027' },
+      { step: 'Terms back by', date: '16 Nov 2026' }, { step: 'Comparison to you by', date: '01 Dec 2026' }, { step: 'Decision by', date: '16 Dec 2026' }, { step: 'Cover renews', date: '01 Jan 2027' },
     ])
     expect(planDates('2026-11-20', '2026-11-10')[0].date).toBe('10 Nov 2026')
     expect(planDates(null, '2026-11-01').every(r => r.date === DASH)).toBe(true)
@@ -109,7 +109,7 @@ describe('report model', () => {
     const e = adviceEmail(m, { greeting: 'Mei', expiry: '2026-12-31' })
     expect(e.subject).toBe('Renewal of Group Hospital & Surgical · Example Assurance · expiring 31 Dec 2026')
     expect(e.body).toContain('Dear Mei,')
-    expect(e.body).toContain('by 17 Dec 2026')
+    expect(e.body).toContain('by 16 Dec 2026')
     expect(e.body).toContain('{owner_name}')
     expect(e.body.split('\n').filter(l => l.trim() && !/^(Dear|Best regards|\{owner_name\}|Trade Risk)/.test(l))).toHaveLength(3)
   })

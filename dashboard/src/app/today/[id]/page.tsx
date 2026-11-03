@@ -15,8 +15,12 @@ import { ActionBar } from '@/components/ui/action-bar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, ThreadModal, DocModal, fmtDate, fmtWhen } from '@/components/assistant/shared'
+import { STAGES, STAGE_LABEL, isStage } from '@/lib/cases/stage'
+import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
+
+const START_LABEL: Record<string, string> = { new_request: 'New request', midway: 'Picked up midway', renewal: 'Renewal' }
 
 type Staff = { email: string; name: string }
 type Edit = { to: string; cc: string; subject: string; body: string }
@@ -190,6 +194,9 @@ export default function ReviewPage() {
             <div className="flex flex-wrap gap-1.5">
               <Chip tone={st.tone}>{st.label}</Chip>
               <Chip>{CASE_TYPE[item.case_type] ?? item.case_type}</Chip>
+              {isStage(item.stage) && <Chip tone="blue">{STAGE_LABEL[item.stage]} · {STAGES.indexOf(item.stage) + 1} of {STAGES.length}</Chip>}
+              {item.start_point && <Chip>{START_LABEL[item.start_point] ?? item.start_point}</Chip>}
+              {item.renewal_flow && <Chip>Renewal flow: {FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow}</Chip>}
               {item.deadline && <Chip tone="amber">Due {fmtDate(item.deadline)}</Chip>}
               {(item.pending.level === 'red' || item.pending.level === 'amber') && <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip>}
               {item.owner_email && <Chip>{item.owner_email.split('@')[0]}</Chip>}

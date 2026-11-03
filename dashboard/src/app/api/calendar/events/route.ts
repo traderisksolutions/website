@@ -23,11 +23,11 @@ import { todaySGT }                  from '@/lib/crm/format'
 /** Days-before-end_date for each renewal warning, plus 0 for the end date itself ("D-Day"). Order
  *  matters only for readability — events are independently date-filtered below. Not exported: a
  *  Next.js route module may only export its HTTP handlers + a few known config values. */
-const MILESTONE_DAYS = [60, 30, 14, 0] as const
+const MILESTONE_DAYS = [90, 45, 30, 15, 0] as const
 type MilestoneDays = typeof MILESTONE_DAYS[number]
 
 const MILESTONE_LABEL: Record<MilestoneDays, string> = {
-  60: '60 days to renewal', 30: '30 days to renewal', 14: '14 days to renewal', 0: 'Renews today (D-Day)',
+  90: '90 days to renewal', 45: '45 days to renewal', 30: '30 days to renewal', 15: '15 days to renewal', 0: 'Renews today (D-Day)',
 }
 
 type PolicyRow = {

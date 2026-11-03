@@ -147,7 +147,7 @@ export async function recordMidway(input: { thread: ThreadRow; companyId: string
     if (!asked.some(a => a.product_line === n.product_line)) asked.push({ ...n, spec: {} })
   const { placement, lines } = await createPlacement({
     company_id: input.companyId, title: input.proposal.title, client_thread_id: input.thread.id, inception_date: input.proposal.inception_date,
-    lines: asked.map(l => ({ ...l, contact_ids: [] })), actor: input.actor, dispatch: false,
+    lines: asked.map(l => ({ ...l, contact_ids: [] })), actor: input.actor, dispatch: false, start_point: 'midway',
   })
   const rounds = await store.insert<{ id: string; line_id: string }>('placement_rounds', lines.map(l => ({
     placement_id: placement.id, line_id: l.id, round_no: 1, spec: l.spec, reason: 'initial', opened_by: input.actor,

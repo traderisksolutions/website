@@ -52,7 +52,7 @@ function eventKind(e: CalendarEvent): string {
 }
 
 const LEGEND: { dot: string; label: string }[] = [
-  { dot: INK,   label: 'Renewal (today, 14, 30 or 60 days out)' },
+  { dot: INK,   label: 'Renewal (today, 15, 30, 45 or 90 days out)' },
   { dot: FAINT, label: 'Policy ended · Payment due · Payment past due · Case step' },
 ]
 

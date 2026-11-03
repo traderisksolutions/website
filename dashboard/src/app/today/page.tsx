@@ -12,6 +12,7 @@ import { Btn, Chip, Segmented, Spinner, Empty, LinkBtn } from '@/components/crm/
 import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
+import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
 import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
 import type { TodayItem } from '@/lib/today/data'
@@ -145,6 +146,7 @@ function Row({ item: i, on, index, onFocus, onDone, onError }: { item: TodayItem
         <div className="flex flex-wrap items-center gap-1.5">
           {(i.pending.level === 'red' || i.pending.level === 'amber') && <span title={i.pending.reason} className={`inline-block w-2 h-2 rounded-full ${i.pending.level === 'red' ? 'bg-trs-neg' : 'bg-trs-warn'}`} />}
           <Chip>{CASE_TYPE[i.case_type] ?? i.case_type}</Chip>
+          {isStage(i.stage) && <Chip tone="blue">{STAGE_LABEL[i.stage]}</Chip>}
           <span className="text-[12.5px] text-trs-muted truncate">{i.client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}</span>
           {i.group === 'act' && <Chip tone={st.tone}>{st.label}</Chip>}
           {i.group === 'later' && <Chip>{i.later_when ? LATER_LABEL[i.later_when as LaterChoice] : `Back ${fmtDate(i.later_until)}`}</Chip>}
