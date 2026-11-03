@@ -68,7 +68,13 @@ export function priceCheck(c: PeriodFigures | null, m: Pick<RenewalMethod, 'hold
     const shift = Math.abs(exposureShift ?? 0)
     const earned = c.earned_premium > 0 ? c.earned_premium : premium
     const incurred = c.claims_paid > 0 ? c.claims_paid : c.claims_claimed
-    if (c.claims_count === 0) {
+    const xp = c.insurer_experience
+    if (xp && (xp.loss_ratio != null || xp.claims_paid != null || xp.claims_reserve != null || xp.claims_count === 0)) {
+      // The insurer's own statement outranks TRS's register: paid plus reserve over premium.
+      const xpIncurred = (xp.claims_paid ?? 0) + (xp.claims_reserve ?? 0)
+      lossRatio = xp.loss_ratio ?? (xp.claims_count === 0 ? 0 : xpIncurred / premium)
+      parts.push(`insurer's claims experience${xp.as_of ? ` of ${xp.as_of}` : ''}: loss ratio ${pctS(lossRatio)}`)
+    } else if (c.claims_count === 0) {
       lossRatio = m.noClaimsUnknown ? null : 0
       parts.push(m.noClaimsUnknown ? 'no claims on file, claims experience not confirmed' : 'no claims on file, read as clean')
     } else if (incurred > 0) {
@@ -76,7 +82,7 @@ export function priceCheck(c: PeriodFigures | null, m: Pick<RenewalMethod, 'hold
       parts.push(`loss ratio ${pctS(lossRatio)}`)
     } else parts.push(`${c.claims_count} claim${c.claims_count === 1 ? '' : 's'} on file with no amount`)
     if (exposureShift != null) parts.push(`exposure ${exposureShift >= 0 ? '+' : ''}${pctS(exposureShift)}`)
-    if (c.claims_count > 0 && lossRatio == null) { flow = 'adjust'; rules.push('a claim with no amount is never read as a clean year') }
+    if (!xp && c.claims_count > 0 && lossRatio == null) { flow = 'adjust'; rules.push('a claim with no amount is never read as a clean year') }
     else if (lossRatio == null) flow = shift > m.exposureShift ? 'adjust' : 'no_data'
     else if (lossRatio > m.increaseAbove) { flow = 'increase'; rules.push(`loss ratio over ${pctS(m.increaseAbove)}`) }
     else if (lossRatio < m.holdBelow && shift <= m.exposureShift) { flow = 'hold'; rules.push(`loss ratio under ${pctS(m.holdBelow)} and exposure within ${pctS(m.exposureShift)}`) }

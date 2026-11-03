@@ -7,7 +7,7 @@ const period = (o: Partial<PeriodFigures> = {}): PeriodFigures => ({
   policy_id: 'p', policy_number: 'X1', start_date: '2025-12-01', end_date: '2026-11-30', premium_inception: 10_000,
   endorsements_net: 0, endorsements_count: 0, premium_net: 10_000, gst: 900, earned_premium: 9_000,
   claims_count: 0, claims_open: 0, claims_paid: 0, claims_claimed: 0, loss_ratio: 0,
-  members_inception: null, members_now: null, joiners: 0, leavers: 0, rate_per_head: null, sum_insured: null, ...o,
+  insurer_experience: null, members_inception: null, members_now: null, joiners: 0, leavers: 0, rate_per_head: null, sum_insured: null, ...o,
 })
 
 describe('day marks', () => {
@@ -67,6 +67,13 @@ describe('price check', () => {
     const m = { ...parseMethod(DEFAULT_RENEWAL_METHOD.replace('Clients:', 'Clients: Example Bikes, Other Co')), noClaimsUnknown: false }
     expect(priceCheck(period(), m, { client: 'EXAMPLE BIKES PTE LTD' }).flow).toBe('adjust')
     expect(priceCheck(period(), m, { client: 'Someone Else Pte Ltd' }).flow).toBe('hold')
+  })
+  it("the insurer's claims experience outranks an empty register (the Keller case)", () => {
+    const r = priceCheck(period({ insurer_experience: { loss_ratio: 2.22, claims_paid: 0, claims_reserve: 10_000, claims_count: 1, as_of: '2026-10-01' } }))
+    expect(r.flow).toBe('increase')
+    expect(r.basis).toMatch(/insurer's claims experience of 2026-10-01: loss ratio 222%/)
+    expect(priceCheck(period({ insurer_experience: { loss_ratio: null, claims_paid: 0, claims_reserve: 0, claims_count: 0, as_of: '2026-10-01' } })).flow).toBe('hold')
+    expect(priceCheck(period({ insurer_experience: { loss_ratio: null, claims_paid: 1_000, claims_reserve: 5_000, claims_count: 2, as_of: null } })).flow).toBe('adjust')
   })
   it('sets who is asked', () => {
     expect(flowAction('hold', 'Chubb')).toBe('Ask Chubb for renewal terms on the same basis')

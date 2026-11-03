@@ -49,6 +49,8 @@ export type PeriodFigures = {
   earned_premium: number
   claims_count: number; claims_open: number; claims_paid: number; claims_claimed: number
   loss_ratio: number | null
+  /** The insurer's own claims experience for this period, when it sent one: it outranks the register. */
+  insurer_experience: { loss_ratio: number | null; claims_paid: number | null; claims_reserve: number | null; claims_count: number | null; as_of: string | null } | null
   members_inception: number | null; members_now: number | null; joiners: number; leavers: number
   rate_per_head: number | null
   sum_insured: number | null
@@ -243,11 +245,15 @@ async function periodFigures(policy: PolicyHead, asOf: string, window?: { start:
   const joiners = lines.filter(l => l.kind === 'movement' && l.label.startsWith('Joiner')).reduce((s, l) => s + (l.pax ?? 1), 0)
   const leavers = lines.filter(l => l.kind === 'movement' && l.label.startsWith('Leaver')).reduce((s, l) => s + (l.pax ?? 1), 0)
   const rate = num(facts['rate.per_head']) ?? (inception && membersInception ? r2(inception / membersInception) : null)
+  // The insurer's latest statement for this period (claims_experience; absent until its migration is applied).
+  const [xp] = await sbTry<Row[]>(`claims_experience?policy_id=eq.${enc(policy.id)}&select=loss_ratio,claims_paid,claims_reserve,claims_count,as_of,period_from&order=as_of.desc&limit=5`, [])
+    .then(rows => rows.filter(r => !start || !r.period_from || r.period_from >= shift(start, -31)))
+  const insurerExperience = xp ? { loss_ratio: num(xp.loss_ratio), claims_paid: num(xp.claims_paid), claims_reserve: num(xp.claims_reserve), claims_count: xp.claims_count == null ? null : Number(xp.claims_count), as_of: xp.as_of ?? null } : null
   return {
     policy_id: policy.id, policy_number: policy.policy_number, start_date: policy.start_date, end_date: policy.end_date,
     premium_inception: inception ?? null, endorsements_net: endorsementsNet, endorsements_count: endorsements.length, premium_net: premiumNet, gst,
     earned_premium: earned, claims_count: claims.length, claims_open: claimsOpen, claims_paid: claimsPaid, claims_claimed: claimsClaimed,
-    loss_ratio: lossRatio(claimsPaid, earned), members_inception: membersInception, members_now: membersNow ?? null, joiners, leavers,
+    loss_ratio: lossRatio(claimsPaid, earned), insurer_experience: insurerExperience, members_inception: membersInception, members_now: membersNow ?? null, joiners, leavers,
     rate_per_head: rate, sum_insured: policy.sum_insured ?? num(facts['sum_insured']),
   }
 }

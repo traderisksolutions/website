@@ -8,7 +8,7 @@ function figures(over: Partial<PeriodFigures> = {}): PeriodFigures {
     policy_id: 'p1', policy_number: 'GHS-100', start_date: '2026-01-01', end_date: '2026-12-31',
     premium_inception: 120000, endorsements_net: 4500, endorsements_count: 6, premium_net: 124500, gst: 0,
     earned_premium: 100000, claims_count: 3, claims_open: 1, claims_paid: 30000, claims_claimed: 42000,
-    loss_ratio: 0.3, members_inception: 100, members_now: 104, joiners: 9, leavers: 5, rate_per_head: 1200, sum_insured: null,
+    loss_ratio: 0.3, insurer_experience: null, members_inception: 100, members_now: 104, joiners: 9, leavers: 5, rate_per_head: 1200, sum_insured: null,
     ...over,
   }
 }
