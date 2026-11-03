@@ -18,6 +18,7 @@ import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
 import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clean'
 import { STAGED_TYPES, isStage, stageIndex, startPointFor } from '@/lib/cases/stage'
 import { syncStage } from '@/lib/cases/sync'
+import { renewalMethod } from '@/lib/methods/method'
 
 const ACTOR = 'case_worker'
 const WINDOW_DAYS = 90
@@ -140,6 +141,10 @@ export async function loadCase(companyId: string, today = new Date().toISOString
     blocks.push(lines.join('\n'))
   }
 
+  // The renewal method admins edit, only when this client has a renewal open or due within 90 days.
+  const soon = new Date(Date.parse(today) + 90 * 86_400_000).toISOString().slice(0, 10)
+  const renewalDue = items.some(i => i.case_type === 'renewal') || policies.some(p => p.end_date && p.end_date >= today && p.end_date <= soon)
+  const renewalText = renewalDue ? (await renewalMethod()).text : null
   const prompt = [
     `TODAY: ${today}`,
     `${mode === 'partner' ? 'PARTNER BROKER' : 'CLIENT'}: ${company.company_name}${aliases.length ? ` (also: ${aliases.map(a => a.alias).slice(0, 8).join('; ')})` : ''}`,
@@ -147,6 +152,7 @@ export async function loadCase(companyId: string, today = new Date().toISOString
     `TRS STAFF WHO CAN OWN WORK: ${staff.filter(s => !gone.has(s)).join(', ')}`,
     gone.size ? `LEFT TRS (reassign their work): ${Array.from(gone).join(', ')}` : '',
     policies.length ? `POLICIES ON FILE:\n${policies.map(p => `- ${p.insurer} ${p.class_of_insurance ?? p.product_line ?? ''} ${p.policy_number ?? '(no number)'} ${p.start_date ?? '?'} to ${p.end_date ?? '?'} [${p.lifecycle}]`).join('\n')}` : 'POLICIES ON FILE: none',
+    renewalText ? `RENEWAL METHOD (TRS's own rules for renewal cases; follow it for next_action, needs_human and what to ask):\n${renewalText}` : '',
     items.length ? `OPEN ITEMS:\n${items.map(i => `- ${i.id} | ${i.case_type} | ${i.title} | ${i.status} | next: ${i.next_action ?? '-'}`).join('\n')}` : 'OPEN ITEMS: none',
     `THREADS:\n\n${blocks.join('\n\n')}`,
   ].filter(Boolean).join('\n\n')

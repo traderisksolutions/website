@@ -23,6 +23,7 @@ import { DAY_MARKS, OPEN_DAYS, TERMS_DAYS, UPDATE_DAYS, DECISION_DAYS, dayMark, 
 import { stageIndex, isStage } from '@/lib/cases/stage'
 import { getRenewalPack } from '@/lib/policies/ledger'
 import { syncAllStages } from '@/lib/cases/sync'
+import { renewalMethod } from '@/lib/methods/method'
 
 type Row = Record<string, any>
 
@@ -166,6 +167,8 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
   const covered = new Set(open.flatMap(o => [o.policy_id, o.policy_number && `${o.company_id}:${o.policy_number}`]).filter(Boolean))
   let opened = 0
   const tasks: NewTask[] = []
+  // The method admins edit on /methods/renewal, read fresh for this run.
+  const method = await renewalMethod()
   for (const p of policies) {
     if (looksLikeEndorsement(p) || (p.lifecycle && !['bound', 'live', 'renewal_due'].includes(p.lifecycle))) continue
     if (p.companies?.kind && p.companies.kind !== 'client') continue
@@ -177,7 +180,7 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
     if (!covered.has(p.id) && !covered.has(`${p.company_id}:${p.policy_number}`)) {
       // The price check reads the expiring year: claims against premium, heads and endorsements.
       const pack = await getRenewalPack(p.id, today).catch(() => null)
-      const check = priceCheck(pack?.current ?? null)
+      const check = priceCheck(pack?.current ?? null, method, { client: p.companies?.company_name ?? null, insurer: p.insurer ?? null, line: `${p.class_of_insurance ?? ''} ${p.product_line ?? ''}` })
       const [item] = await sb<Row[]>('work_items', {
         method: 'POST', headers: { Prefer: 'return=representation' },
         body: JSON.stringify({
@@ -191,7 +194,7 @@ export async function handleRenewals(task: AgentTask): Promise<Record<string, un
       covered.add(p.id)
       // Stage, start point and flow are written apart: until the case-stage migration is applied they are skipped, not fatal.
       await sbTry(`work_items?id=eq.${enc(item.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ stage: 'request', stage_at: new Date().toISOString(), start_point: 'renewal', renewal_flow: check.flow }) })
-      await itemEvent(item.id, 'note', 'renewals', { opened: `${mark}-day mark`, end_date: p.end_date, flow: check.flow, basis: check.basis })
+      await itemEvent(item.id, 'note', 'renewals', { opened: `${mark}-day mark`, end_date: p.end_date, flow: check.flow, basis: check.basis, rules: check.rules, method_version: method.version })
       opened++
       // The data request, pre-filled from last year (headcount, wages, turnover, sum insured).
       tasks.push({ agent: 'drafter', kind: 'renewal_notice', work_item_id: item.id, company_id: p.company_id, policy_id: p.id, payload: { expiry: p.end_date, flow: check.flow }, idem_key: `drafter:renewal_notice:${p.id}:${p.end_date}`, created_by_agent: 'renewals' })

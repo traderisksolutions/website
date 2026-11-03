@@ -20,6 +20,12 @@ import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
 
+const FLOW_TIP: Record<RenewalFlow, string> = {
+  hold: 'Hold: loss ratio under the hold threshold and exposure steady. Ask the current insurer on the same basis. Open the renewal method.',
+  adjust: 'Adjust: between the thresholds, exposure moved, a claim with no amount, or always marketed. Ask the current insurer and two others. Open the renewal method.',
+  increase: 'Increase: loss ratio over the increase threshold or an insurer rate note. Ask the full panel and warn the client. Open the renewal method.',
+  no_data: 'No data: no premium or no claims experience on file. Ask the insurer for terms and the claims experience. Open the renewal method.',
+}
 const START_LABEL: Record<string, string> = { new_request: 'New request', midway: 'Picked up midway', renewal: 'Renewal' }
 
 type Staff = { email: string; name: string }
@@ -196,7 +202,11 @@ export default function ReviewPage() {
               <Chip>{CASE_TYPE[item.case_type] ?? item.case_type}</Chip>
               {isStage(item.stage) && <Chip tone="blue">{STAGE_LABEL[item.stage]} · {STAGES.indexOf(item.stage) + 1} of {STAGES.length}</Chip>}
               {item.start_point && <Chip>{START_LABEL[item.start_point] ?? item.start_point}</Chip>}
-              {item.renewal_flow && <Chip>Renewal flow: {FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow}</Chip>}
+              {item.renewal_flow && (
+                <Link href="/settings?section=renewal_method" className="no-underline" title={FLOW_TIP[item.renewal_flow as RenewalFlow] ?? 'How the renewal flow is chosen'}>
+                  <Chip>Renewal flow: {FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow} ↗</Chip>
+                </Link>
+              )}
               {item.deadline && <Chip tone="amber">Due {fmtDate(item.deadline)}</Chip>}
               {(item.pending.level === 'red' || item.pending.level === 'amber') && <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip>}
               {item.owner_email && <Chip>{item.owner_email.split('@')[0]}</Chip>}
