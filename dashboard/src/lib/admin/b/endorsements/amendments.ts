@@ -29,7 +29,7 @@ const today = () => now().slice(0, 10)
 
 /** Movements on the policy a new instruction can touch: everything not cancelled or settled. */
 export async function movementsOnFile(policyId: string): Promise<MovementRow[]> {
-  return sbTry<MovementRow[]>(`policy_movements?policy_id=eq.${enc(policyId)}&status=in.(reported,sent,noted,billed)&order=created_at.asc`, [])
+  return sbTry<MovementRow[]>(`policy_movements?policy_id=eq.${enc(policyId)}&status=in.(pending,reported,sent,noted,billed)&order=created_at.asc`, [])
 }
 
 export const asOnFile = (m: MovementRow): OnFile => ({ id: m.id, kind: m.kind, member_name: m.subject ?? m.member_name, effective_on: m.effective_on, last_day: m.last_day, status: m.status, batch_id: m.batch_id, version: (m as Row).version ?? 1, transaction_id: m.transaction_id })

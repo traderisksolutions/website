@@ -119,7 +119,7 @@ export type Action =
 export const normName = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 const same = (a: string, b: string) => { const x = normName(a), y = normName(b); return x === y || (x.length >= 6 && (x.includes(y) || y.includes(x))) }
 const live = (m: OnFile) => m.status !== 'cancelled' && m.status !== 'settled'
-const beforeInsurer = (m: OnFile) => m.status === 'reported'
+const beforeInsurer = (m: OnFile) => m.status === 'reported' || m.status === 'pending'
 const afterNote = (m: OnFile) => m.status === 'noted' || m.status === 'billed'
 
 /**

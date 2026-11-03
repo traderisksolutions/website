@@ -8,7 +8,7 @@
 import { sbTry, enc, bareEmail } from '@/lib/crm/db'
 import * as store from '@/lib/placement/store'
 import * as agent from '@/lib/policies/agent'
-import { listMembers, recordMovement, findMember } from '@/lib/policies/members'
+import { listMembers, recordMovement, findMember, releaseMovement } from '@/lib/policies/members'
 import { estimateMovements } from '@/lib/policies/movement-flow'
 import { attachmentRefBytes, gmailRef } from '@/lib/storage/attachment-bytes'
 import { isNoise } from '@/lib/documents/taxonomy'
@@ -21,6 +21,7 @@ import { batch as batchById, openBatchFor, patchMovements, livePolicies, type Mo
 import { detectClientIntent, planClientAmendment, type Incoming } from './cues'
 import { applyClientPlan, asOnFile, awaitingClient, movementsOnFile, relayClientAnswer } from './amendments'
 import { prepareBatch } from './batches'
+import { dateGate, mailOpening, HOLD_TEXT } from './date-gate'
 import type { ParsedMovement, Cadence } from './types'
 
 const LOOKS_LIKE_MOVEMENT = /\b(resign\w*|last day|leaver|joiner|new (?:staff|hire|employee)|onboard\w*|add(?:ition)?\b|delet\w*|remov\w*|terminat\w*|movement|endorse\w*|include|exclude|update (?:the )?(?:member|staff|list)|vehicle|registration)\b/i
@@ -132,7 +133,20 @@ export async function intakeClientMail(companyId: string, msg: store.MailMessage
   const batch = await openBatchFor(policy)
   const members = await listMembers(policy.id)
   const rows: PolicyMovement[] = []
+  const held: { name: string; why: string }[] = []
+  let released = 0
+  // Act only on a confirmed, dated movement: a heads-up or an undated instruction is held, and the
+  // mail that later gives the date releases it (date-gate.ts).
+  const opening = mailOpening(msg.subject, (msg.body_text ?? '').split(/\n(?:On .{10,120} wrote:|From: .+|-{3,} ?Original Message|_{10,})/)[0])
   for (const m of movements) {
+    const gate = dateGate(m, opening)
+    const [waiting] = await sbTry<PolicyMovement[]>(`policy_movements?policy_id=eq.${enc(policy.id)}&kind=eq.${m.kind}&member_name=ilike.${enc(m.name)}&status=eq.pending&order=created_at.desc&limit=1`, [])
+    if (waiting) {
+      if (!gate.act) { held.push({ name: m.name, why: 'still held, already on file' }); continue }
+      const row = await releaseMovement(waiting, { effective_on: m.effective_on, last_day: m.last_day, detail: m.detail, reported_thread_id: threadId, reported_message_id: msg.id }).catch(e => { console.error('[endorsements] release', e instanceof Error ? e.message : e); return null })
+      if (row) { rows.push(row); released++ }
+      continue
+    }
     // A leaver or change already reported on an open batch is not reported twice.
     const dup = await sbTry<{ id: string }[]>(`policy_movements?policy_id=eq.${enc(policy.id)}&kind=eq.${m.kind}&member_name=ilike.${enc(m.name)}&status=in.(reported,sent)&select=id&limit=1`, [])
     if (dup.length) continue
@@ -140,12 +154,20 @@ export async function intakeClientMail(companyId: string, msg: store.MailMessage
     try {
       const row = await recordMovement(policy.id, companyId, {
         kind: m.kind, member_name: matched?.member_name ?? m.name, relationship: m.relationship, effective_on: m.effective_on,
-        detail: { ...m.detail, ...(m.last_day ? { last_day: m.last_day } : {}) }, reported_thread_id: threadId, reported_message_id: msg.id,
+        detail: { ...m.detail, ...(m.last_day ? { last_day: m.last_day } : {}), ...(gate.act ? {} : { hold_cue: gate.cue }) }, reported_thread_id: threadId, reported_message_id: msg.id,
+        hold: gate.act ? null : gate.reason,
       })
-      rows.push(row)
+      if (gate.act) rows.push(row)
+      else held.push({ name: row.member_name, why: HOLD_TEXT[gate.reason] })
     } catch (e) { console.error('[endorsements] movement write', e instanceof Error ? e.message : e) }
   }
-  if (!rows.length) return { handled: true, detail: 'already on file', policyId: policy.id, batchId: batch.id, movements: 0 }
+  if (held.length) {
+    const noDate = held.filter(h => h.why === HOLD_TEXT.no_date).map(h => h.name)
+    await store.log({ company_id: companyId, thread_id: threadId, message_id: msg.id, kind: 'movement', actor: 'endorsements',
+      text: `Held ${held.length} change${held.length === 1 ? '' : 's'} on ${policy.label || policy.class_of_insurance || 'the policy'} until confirmed with a date: ${held.map(h => `${h.name} (${h.why})`).join('; ')}${noDate.length ? `. Ask the client for the effective date of ${noDate.join(', ')}` : ''}`,
+      detail: { policy_id: policy.id, held } })
+  }
+  if (!rows.length) return { handled: true, detail: held.length ? `held ${held.length} until dated` : 'already on file', policyId: policy.id, batchId: batch.id, movements: 0 }
   const type = movementTypeFor(lineFor(policy))
   await patchMovements(rows.map(r => r.id), { batch_id: batch.id, movement_type: type, read_by: readBy, quote: null })
   for (const r of rows) {
@@ -155,7 +177,7 @@ export async function intakeClientMail(companyId: string, msg: store.MailMessage
   await estimateMovements(policy, rows as MovementRow[]).catch(e => console.error('[endorsements] estimate', e instanceof Error ? e.message : e))
   const reporter = bareEmail(msg.from_address)
   await store.log({ company_id: companyId, thread_id: threadId, message_id: msg.id, kind: 'movement', actor: 'endorsements',
-    text: `Client reported ${rows.length} change${rows.length === 1 ? '' : 's'} on ${policy.label || policy.class_of_insurance || 'the policy'} (${readBy}); in the ${batch.cadence} batch from ${batch.window_start}`,
+    text: `Client ${released ? `confirmed ${released} held and ` : ''}reported ${rows.length} change${rows.length === 1 ? '' : 's'} on ${policy.label || policy.class_of_insurance || 'the policy'} (${readBy}); in the ${batch.cadence} batch from ${batch.window_start}`,
     detail: { policy_id: policy.id, batch_id: batch.id, movement_ids: rows.map(r => r.id), reporter } })
   return { handled: true, detail: `movements ${rows.length} (${readBy})`, policyId: policy.id, batchId: batch.id, movements: rows.length }
 }

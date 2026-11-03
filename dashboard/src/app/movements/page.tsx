@@ -13,7 +13,7 @@ import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shar
 import { fmtDate } from '@/lib/crm/format'
 import type { MovementBatch, MovementStage } from '@/app/api/policies/movements/route'
 
-const STAGE: Record<MovementStage, string> = { to_send: 'To send', insurer: 'With insurer', to_bill: 'To bill', billed: 'Awaiting payment' }
+const STAGE: Record<MovementStage, string> = { held: 'Awaiting date', to_send: 'To send', insurer: 'With insurer', to_bill: 'To bill', billed: 'Awaiting payment' }
 const money = (n: number | null) => (n == null ? '—' : `${n < 0 ? '-' : ''}S$${Math.abs(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
 const counts = (b: MovementBatch) => [b.joins ? `+${b.joins}` : null, b.leaves ? `−${b.leaves}` : null, b.changes ? `${b.changes} change${b.changes === 1 ? '' : 's'}` : null].filter(Boolean).join('  ')
 
@@ -47,6 +47,7 @@ export default function MovementsPage() {
       <PageHeader className="mb-5" title="Member movements" meta={rows ? `${rows.length} open` : undefined}>
         <Segmented value={stage} onChange={v => setStage(v)} label="Stage" options={[
           { value: 'all', label: 'All', count: rows?.length ?? 0 },
+          { value: 'held', label: STAGE.held, count: n('held') },
           { value: 'to_send', label: STAGE.to_send, count: n('to_send') },
           { value: 'insurer', label: STAGE.insurer, count: n('insurer') },
           { value: 'to_bill', label: STAGE.to_bill, count: n('to_bill') },
@@ -82,7 +83,7 @@ export default function MovementsPage() {
                     ? <Btn size="xs" level="secondary" loading={busy === b.key} disabled={busy !== null} onClick={() => void raise(b)}>Raise TRS note</Btn>
                     : b.stage === 'to_bill' && b.bundle_id
                       ? <Link href="/debit-notes/new" className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Review TRS note</Link>
-                      : <Link href={`/companies/${b.company_id}?tab=members`} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>{b.stage === 'to_send' ? (b.draft_id ? 'Review the request' : 'Request from insurer') : 'Open'}</Link>}
+                      : <Link href={`/companies/${b.company_id}?tab=members`} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>{b.stage === 'held' ? 'Ask the client for the date' : b.stage === 'to_send' ? (b.draft_id ? 'Review the request' : 'Request from insurer') : 'Open'}</Link>}
                 </RegisterCell>
               </RegisterRow>
             ))}

@@ -103,6 +103,8 @@ export type NewMovement = {
   detail?: Record<string, unknown>
   reported_thread_id?: string | null
   reported_message_id?: string | null
+  /** Held for a date (endorsements/date-gate.ts): recorded as 'pending', the member list untouched. */
+  hold?: string | null
 }
 
 /**
@@ -110,6 +112,7 @@ export type NewMovement = {
  *   join   → a new active member (joined_on = effective date)
  *   leave  → the matched active member gets left_on and status 'left'
  *   change → recorded in detail only; the member row is linked when the name matches
+ * A held movement (m.hold) is only recorded, status 'pending'; releaseMovement applies it later.
  */
 export async function recordMovement(policyId: string, companyId: string, m: NewMovement): Promise<PolicyMovement> {
   const name = m.member_name.trim().slice(0, 200)
@@ -120,7 +123,9 @@ export async function recordMovement(policyId: string, companyId: string, m: New
   const effective = isDate(m.effective_on) ? m.effective_on : null
   let memberId: string | null = matched?.id ?? null
 
-  if (m.kind === 'join') {
+  if (m.hold) {
+    // Nothing happens to the member list until the movement is confirmed with a date.
+  } else if (m.kind === 'join') {
     const rel = asRelationship(m.relationship ?? detail.relationship)
     const [member] = await insert<PolicyMember>('policy_members', {
       policy_id: policyId, company_id: companyId, member_name: name, relationship: rel,
@@ -136,14 +141,50 @@ export async function recordMovement(policyId: string, companyId: string, m: New
   const [row] = await insert<PolicyMovement>('policy_movements', {
     policy_id: policyId, company_id: companyId, kind: m.kind, member_id: memberId, member_name: name,
     relationship: m.relationship?.trim() || matched?.relationship || null, effective_on: effective,
-    pax: Math.max(1, Math.round(Number(m.pax ?? 1) || 1)), detail: matched ? detail : { ...detail, ...(m.kind !== 'join' ? { unmatched: true } : {}) },
-    reported_thread_id: m.reported_thread_id ?? null, reported_message_id: m.reported_message_id ?? null, status: 'reported',
+    pax: Math.max(1, Math.round(Number(m.pax ?? 1) || 1)), detail: { ...detail, ...(matched || m.kind === 'join' ? {} : { unmatched: true }), ...(m.hold ? { hold_reason: m.hold } : {}) },
+    reported_thread_id: m.reported_thread_id ?? null, reported_message_id: m.reported_message_id ?? null, status: m.hold ? 'pending' : 'reported',
     // Typed copies of what the client reported, for the insurer's sheet and for analytics.
     last_day: isDate(detail.last_day) ? detail.last_day : null, employment_date: isDate(detail.employment_date) ? detail.employment_date : null,
     category: typeof detail.category === 'string' ? detail.category.slice(0, 80) : matched?.category ?? null,
     plan_code: typeof detail.plan === 'string' ? detail.plan.slice(0, 80) : matched?.plan_code ?? null,
   })
   return row
+}
+
+/**
+ * A held movement confirmed with its date: the date and the confirming mail are written, the
+ * member list is changed as recordMovement would have, and the status becomes 'reported'.
+ */
+export async function releaseMovement(held: PolicyMovement, m: { effective_on: string | null; last_day?: string | null; detail?: Record<string, unknown>; reported_thread_id?: string | null; reported_message_id?: string | null }): Promise<PolicyMovement | null> {
+  const effective = isDate(m.effective_on) ? m.effective_on : held.effective_on
+  const lastDay = isDate(m.last_day) ? m.last_day : (held as PolicyMovement & { last_day?: string | null }).last_day ?? null
+  const detail = { ...(held.detail ?? {}), ...(m.detail ?? {}), released_from: (held.detail as Record<string, unknown> | null)?.hold_reason ?? 'pending' } as Record<string, unknown>
+  delete detail.hold_reason
+  delete detail.tentative
+  let memberId = held.member_id
+  if (held.kind === 'join') {
+    const [member] = await insert<PolicyMember>('policy_members', {
+      policy_id: held.policy_id, company_id: held.company_id, member_name: held.member_name, relationship: asRelationship(held.relationship ?? detail.relationship),
+      dob: isDate(detail.dob) ? detail.dob : null, category: typeof detail.category === 'string' ? detail.category : null,
+      plan_code: typeof detail.plan === 'string' ? detail.plan : null, employee_ref: typeof detail.employee_ref === 'string' ? detail.employee_ref : null,
+      joined_on: effective, status: 'active', source: 'movement',
+    })
+    memberId = member?.id ?? null
+  } else if (held.kind === 'leave') {
+    const matched = findMember(await listMembers(held.policy_id), held.member_name)
+    if (matched) { await patch('policy_members', `id=eq.${matched.id}`, { left_on: effective, status: 'left' }); memberId = matched.id }
+  }
+  const [row] = await sb<PolicyMovement[]>(`policy_movements?id=eq.${enc(held.id)}&status=eq.pending`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json', Prefer: 'return=representation' },
+    body: JSON.stringify({ status: 'reported', effective_on: effective, last_day: lastDay, member_id: memberId, detail,
+      reported_thread_id: m.reported_thread_id ?? held.reported_thread_id, reported_message_id: m.reported_message_id ?? held.reported_message_id }),
+  })
+  return row ?? null
+}
+
+/** Movements held for a date on a policy, oldest first. */
+export async function heldMovements(policyId: string): Promise<PolicyMovement[]> {
+  return sbTry<PolicyMovement[]>(`policy_movements?policy_id=eq.${enc(policyId)}&status=eq.pending&order=created_at.asc`, [])
 }
 
 /** Movements still waiting for the insurer's note, oldest first. */

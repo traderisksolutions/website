@@ -2,6 +2,7 @@
  * GET /api/policies/movements → { batches }
  * Every member movement not yet settled or cancelled, across all clients, grouped into the batch
  * it was reported or requested in, with the step it is waiting on:
+ *   held      reported ahead (a heads-up) or without a date; waits for the client's confirmed date
  *   to_send   reported by the client, request to the insurer not sent
  *   insurer   sent, waiting for the insurer's debit or credit note
  *   to_bill   insurer's note read, TRS note not issued
@@ -15,7 +16,7 @@ import type { PolicyMovement, PolicyTransaction } from '@/lib/policies/types'
 
 export const dynamic = 'force-dynamic'
 
-export type MovementStage = 'to_send' | 'insurer' | 'to_bill' | 'billed'
+export type MovementStage = 'held' | 'to_send' | 'insurer' | 'to_bill' | 'billed'
 export type MovementBatch = {
   key: string; stage: MovementStage; company_id: string; company_name: string; policy_id: string; policy_number: string | null; insurer: string | null
   joins: number; leaves: number; changes: number; names: string[]
@@ -23,13 +24,13 @@ export type MovementBatch = {
   expected: number | null; note_no: string | null; note_amount: number | null; transaction_id: string | null; bundle_id: string | null; can_raise: boolean
 }
 
-const stageOf = (m: PolicyMovement): MovementStage => (m.status === 'reported' ? 'to_send' : m.status === 'sent' ? 'insurer' : m.status === 'noted' ? 'to_bill' : 'billed')
+const stageOf = (m: PolicyMovement): MovementStage => (m.status === 'pending' ? 'held' : m.status === 'reported' ? 'to_send' : m.status === 'sent' ? 'insurer' : m.status === 'noted' ? 'to_bill' : 'billed')
 
 export async function GET(req: NextRequest) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
   try {
-    const ms = await sbTry<PolicyMovement[]>(`policy_movements?status=in.(reported,sent,noted,billed)&select=*&order=created_at.asc&limit=5000`, [])
+    const ms = await sbTry<PolicyMovement[]>(`policy_movements?status=in.(pending,reported,sent,noted,billed)&select=*&order=created_at.asc&limit=5000`, [])
     const policyIds = [...new Set(ms.map(m => m.policy_id))], companyIds = [...new Set(ms.map(m => m.company_id))], txIds = [...new Set(ms.map(m => m.transaction_id).filter(Boolean))] as string[]
     const [policies, companies, txs] = await Promise.all([
       policyIds.length ? sbTry<{ id: string; policy_number: string | null; insurer: string | null }[]>(`policies?id=in.(${policyIds.join(',')})&select=id,policy_number,insurer`, []) : [],
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
     const batches: MovementBatch[] = [...groups.entries()].map(([key, g]) => {
       const first = g[0], t = first.transaction_id ? tx.get(first.transaction_id) : undefined
       const stage = stageOf(first)
-      const since = stage === 'to_send' ? first.created_at : stage === 'insurer' ? (first.sent_at ?? first.created_at) : stage === 'to_bill' ? (first.noted_at ?? first.updated_at) : (first.billed_at ?? first.updated_at)
+      const since = stage === 'to_send' || stage === 'held' ? first.created_at : stage === 'insurer' ? (first.sent_at ?? first.created_at) : stage === 'to_bill' ? (first.noted_at ?? first.updated_at) : (first.billed_at ?? first.updated_at)
       const ests = g.map(m => m.estimate_amount).filter((x): x is number => x != null)
       return {
         key, stage, company_id: first.company_id, company_name: co.get(first.company_id) ?? 'Unknown company', policy_id: first.policy_id,

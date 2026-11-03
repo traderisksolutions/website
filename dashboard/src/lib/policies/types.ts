@@ -96,7 +96,8 @@ export type MemberRelationship = 'employee' | 'spouse' | 'child' | 'other'
 export type MemberStatus       = 'active' | 'left'
 export type MemberSource       = 'census' | 'movement' | 'manual'
 export type MovementKind       = 'join' | 'leave' | 'change'
-export type MovementStatus     = 'reported' | 'sent' | 'noted' | 'billed' | 'settled' | 'cancelled'
+/** pending: held for a date or confirmation (endorsements/date-gate.ts); nothing sent, member list untouched. */
+export type MovementStatus     = 'pending' | 'reported' | 'sent' | 'noted' | 'billed' | 'settled' | 'cancelled'
 export type TransactionKind    = 'debit' | 'credit'
 
 export const MEMBER_RELATIONSHIPS: MemberRelationship[] = ['employee', 'spouse', 'child', 'other']
