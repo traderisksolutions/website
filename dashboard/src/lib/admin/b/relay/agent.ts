@@ -111,6 +111,35 @@ async function route(side: 'client' | 'insurer', d: CaseData, line: string | nul
 
 type Made = { kind: RelayKind; draftId: string; to: string[] }
 
+const REWRITABLE_AGENTS = new Set([ACTOR, 'drafter'])
+const KEEPS_ITS_CONTENT = new Set(['renewal_notice'])
+const isAck = (kind: unknown) => kind === 'ack_client' || kind === 'ack_insurer'
+
+/** Pure. A draft whose words the relay may replace: its own and the case worker's, not a renewal's. */
+export function isRewritable(context: unknown): boolean {
+  const c = (context ?? {}) as { agent?: string; kind?: string }
+  return REWRITABLE_AGENTS.has(String(c.agent)) && !KEEPS_ITS_CONTENT.has(String(c.kind))
+}
+
+/**
+ * Pure. What a new relay draft does to the unsent ones on its side of the case. A client has one
+ * draft at a time; an insurer draft replaces only the one to the same address, so asking three
+ * desks stays three emails. A bare acknowledgement never replaces a fuller email: it is dropped.
+ * Drafts made for this same message are left alone.
+ */
+export function openDraftsFor(open: Row[], n: { kind: RelayKind; party: string; to: string; madeIds: string[] }): { replace: Row[]; keepExisting: boolean } {
+  const others = open.filter(x => !n.madeIds.includes(x.id) && isRewritable(x.context_used))
+    .filter(x => n.party === 'client' || String(x.to_email ?? '').trim().toLowerCase() === n.to.trim().toLowerCase())
+  if (isAck(n.kind) && others.some(x => !isAck((x.context_used as Row | null)?.kind))) return { replace: [], keepExisting: true }
+  return { replace: others, keepExisting: false }
+}
+
+/** Pure. New files first, then the ones the replaced draft carried, one of each name. */
+export function mergeFiles(fresh: Attachment[], carried: Attachment[]): Attachment[] {
+  const seen = new Set<string>()
+  return [...fresh, ...carried].filter(a => { const k = a.filename; if (!k || seen.has(k)) return false; seen.add(k); return true })
+}
+
 /** Pure. What the placement module's read of a message did: anything but a logged question or "other" is acting on it. */
 export function placementActed(detail: string | null | undefined): boolean {
   if (!detail) return true
@@ -234,19 +263,25 @@ export async function handleRelay(task: AgentTask): Promise<Record<string, unkno
     await log({ handed: 'endorsement_main' }); return result({ handed: 'endorsement_main' })
   }
 
-  // An item that already holds an unsent draft keeps it; the relay is logged so a person sees why.
+  // A case's unsent email from the relay or the case worker is rewritten by a newer message on the
+  // case (store, below). One from another agent keeps its own content: a renewal report, a movement
+  // batch and its sheet are not the relay's to rewrite.
   if (d.item.draft_id) {
-    const [open] = await sbTry<Row[]>(`ai_drafts?id=eq.${enc(d.item.draft_id)}&select=status&limit=1`, [])
-    if (open && ['pending', 'draft'].includes(open.status)) { await setItem({ status: 'trs_to_act' }); await log({ skipped: 'item already holds an unsent draft' }); return result({ skipped: 'open draft' }) }
+    const [open] = await sbTry<Row[]>(`ai_drafts?id=eq.${enc(d.item.draft_id)}&select=status,context_used&limit=1`, [])
+    if (open && ['pending', 'draft'].includes(open.status) && !isRewritable(open.context_used)) { await setItem({ status: 'trs_to_act' }); await log({ skipped: 'item holds another agent\'s unsent draft' }); return result({ skipped: 'open draft' }) }
   }
 
   const made: Made[] = []
   const pairId = randomUUID()
   const store = async (kind: RelayKind, f: RelayFacts, rt: Route & { ok: true }, opts: { threadId: string | null; attachments?: Attachment[]; primary?: boolean }) => {
     const built = composeRelay(kind, { ...f, greetingName: await greetingFor(rt.to[0]) })
-    // One pending email of this kind per side of a case: a newer message on the case replaces
-    // the unsent draft it made, so two client emails in one morning do not become two forwards.
-    await sbTry(`ai_drafts?work_item_id=eq.${enc(d.item.id)}&status=eq.pending&party=eq.${PARTY_OF[kind]}&context_used->>kind=eq.${enc(kind)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'superseded', rejection_note: `replaced by the relay of a newer message (${msg.id})` }) })
+    // One unsent email per person on a case: a newer message replaces the content of the last one,
+    // keeping the files it carried, so two emails in one morning do not become two drafts.
+    const open = await sbTry<Row[]>(`ai_drafts?work_item_id=eq.${enc(d.item.id)}&status=in.(pending,draft)&party=eq.${PARTY_OF[kind]}&select=id,to_email,attachments,context_used`, [])
+    const swap = openDraftsFor(open, { kind, party: PARTY_OF[kind], to: rt.to[0], madeIds: made.map(x => x.draftId) })
+    if (swap.keepExisting) return null
+    if (swap.replace.length) await sbTry(`ai_drafts?id=in.(${swap.replace.map(x => x.id).join(',')})`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'superseded', rejection_note: `Replaced by the relay after message ${msg.id}` }) })
+    opts = { ...opts, attachments: mergeFiles(opts.attachments ?? [], swap.replace.flatMap(x => Array.isArray(x.attachments) ? x.attachments as Attachment[] : [])) }
     const id = await storeDraft(d.item.id, { thread_id: opts.threadId, to: rt.to, cc: rt.cc, subject: built.subject, body: built.body, kind, party: PARTY_OF[kind], pair_id: pairId, attachments: opts.attachments ?? [] }, { primary: opts.primary ?? made.length === 0 })
     await sbTry(`ai_drafts?id=eq.${enc(id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_class: CLASS_OF[kind], relay_intent: intent, context_used: { agent: ACTOR, kind, message_id: msg.id, intent, via, basis: rt.basis } }) })
     made.push({ kind, draftId: id, to: rt.to })

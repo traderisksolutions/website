@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { detectIntent, detectLine, listedAsks, docTypesOf } from '../relay/intent'
 import { extractQuoteTerms, termsRows, missingForQuote } from '../relay/terms'
 import { composeRelay, relayPairFor, CLASS_OF, PARTY_OF } from '../relay/compose'
+import { isRewritable, mergeFiles, openDraftsFor } from '../relay/agent'
 
 const client = (subject: string, text: string, files: string[] = [], caseType: string | null = 'new_quote') => detectIntent({ side: 'client', subject, text, files, caseType })
 const market = (subject: string, text: string, files: string[] = [], caseType: string | null = 'new_quote') => detectIntent({ side: 'market', subject, text, files, caseType })
@@ -135,5 +136,36 @@ describe('composition', () => {
   it('an answer cites its sources and a status update says who is waited on', () => {
     expect(composeRelay('answer_question', { ...base, answers: [{ fact: 'WICA No. W123 with Zurich, 2026-01-01 to 2026-12-31', source: 'policy record' }], files: ['Schedule.pdf'] }).body).toContain('(policy record)')
     expect(composeRelay('status_update', { ...base, waitingOn: 'insurer', lastSent: '2026-10-20' }).body).toContain('waiting for Zurich to revert; we last wrote to them on 20 Oct 2026')
+  })
+})
+
+describe('a newer message rewrites the unsent draft', () => {
+  const draft = (id: string, kind: string, to = 'a@client.example', agent = 'relay') => ({ id, to_email: to, context_used: { agent, kind } })
+
+  it('replaces the draft to the client, whatever its kind', () => {
+    const r = openDraftsFor([draft('1', 'status_update')], { kind: 'relay_quote', party: 'client', to: 'b@client.example', madeIds: [] })
+    expect(r.replace.map(x => x.id)).toEqual(['1'])
+  })
+  it('three insurer desks stay three emails, and each desk keeps one', () => {
+    const open = [draft('1', 'forward_quote_request', 'x@eq.example'), draft('2', 'forward_quote_request', 'y@chubb.example')]
+    expect(openDraftsFor(open, { kind: 'forward_documents', party: 'insurer', to: 'x@eq.example', madeIds: [] }).replace.map(x => x.id)).toEqual(['1'])
+    expect(openDraftsFor(open, { kind: 'forward_quote_request', party: 'insurer', to: 'z@aig.example', madeIds: ['1', '2'] }).replace).toEqual([])
+  })
+  it('leaves a draft made for the same message', () => {
+    expect(openDraftsFor([draft('1', 'relay_quote')], { kind: 'status_update', party: 'client', to: 'a@client.example', madeIds: ['1'] }).replace).toEqual([])
+  })
+  it('an acknowledgement never replaces a fuller email', () => {
+    expect(openDraftsFor([draft('1', 'relay_quote')], { kind: 'ack_client', party: 'client', to: 'a@client.example', madeIds: [] })).toEqual({ replace: [], keepExisting: true })
+    expect(openDraftsFor([draft('1', 'ack_client')], { kind: 'ack_client', party: 'client', to: 'a@client.example', madeIds: [] }).replace.map(x => x.id)).toEqual(['1'])
+  })
+  it('keeps what another agent wrote', () => {
+    expect(isRewritable({ agent: 'endorsements', kind: 'movement_batch' })).toBe(false)
+    expect(isRewritable({ agent: 'drafter', kind: 'renewal_notice' })).toBe(false)
+    expect(isRewritable({ agent: 'drafter', kind: 'forward_to_insurer' })).toBe(true)
+    expect(openDraftsFor([draft('1', 'movement_batch', 'a@client.example', 'endorsements')], { kind: 'relay_quote', party: 'client', to: 'a@client.example', madeIds: [] }).replace).toEqual([])
+  })
+  it('carries the files of the replaced draft, one of each name', () => {
+    const f = (filename: string) => ({ filename, storage_url: 'u', mime_type: null, message_id: null }) as never
+    expect(mergeFiles([f('new.pdf')], [f('old.pdf'), f('new.pdf')]).map((a: { filename: string }) => a.filename)).toEqual(['new.pdf', 'old.pdf'])
   })
 })
