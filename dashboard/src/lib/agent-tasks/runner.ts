@@ -31,6 +31,7 @@ export async function runOne(t: AgentTask): Promise<'done' | 'other' | 'failed'>
  * Returns counts, the agents held for the model, and the model state.
  */
 const DRAIN_EVERY_MS = 10 * 60_000
+const AGENTS_AT_ONCE = 4
 
 /** Pure. The rotation with `turn` agents moved from the front to the back. */
 export function rotateAgents<T>(agents: T[], turn: number): T[] {
@@ -50,15 +51,18 @@ export async function drain(opts: { agents?: AgentName[]; budgetMs?: number; bat
   const counts = { done: 0, failed: 0, other: 0, held, model: model.ok ? 'ok' : (model.reason ?? 'unavailable') }
   while (active.length && Date.now() < until) {
     const next: AgentName[] = []
-    for (const agent of active) {
-      if (Date.now() >= until) { next.push(agent); continue }
-      const tasks = await claim([agent], perAgent)
-      if (!tasks.length) continue
-      next.push(agent)
-      for (const t of tasks) {
-        const r = await runOne(t)
-        counts[r === 'done' ? 'done' : r === 'failed' ? 'failed' : 'other']++
-      }
+    // A few agents side by side: one at a time managed about 65 tasks an hour on 6 Nov 2026.
+    for (let i = 0; i < active.length; i += AGENTS_AT_ONCE) {
+      await Promise.all(active.slice(i, i + AGENTS_AT_ONCE).map(async agent => {
+        if (Date.now() >= until) { next.push(agent); return }
+        const tasks = await claim([agent], perAgent)
+        if (!tasks.length) return
+        next.push(agent)
+        for (const t of tasks) {
+          const r = await runOne(t)
+          counts[r === 'done' ? 'done' : r === 'failed' ? 'failed' : 'other']++
+        }
+      }))
     }
     active = next
   }
