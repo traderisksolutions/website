@@ -43,6 +43,9 @@ export type CallOptions = {
 
 export type CallResult = { text: string | null; error?: string }
 
+/** The current models answer a budget of 0 with HTTP 400 (found 6 Nov 2026: every knowledge read failed), so none goes below this. */
+const MIN_THINKING_TOKENS = 100
+
 /** The day's spend, in USD, from the ledger; cached a minute so the check costs one query per minute. */
 let spendCache: { at: number; usd: number } | null = null
 /** Off by default (3 Nov 2026). Set AI_DAILY_CAP_USD to a figure to stop model calls for the day at that spend. */
@@ -83,7 +86,7 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
           maxOutputTokens: opts.maxOutputTokens ?? 32000,
           ...(opts.json ? { responseMimeType: 'application/json' } : {}),
           ...(opts.thinkingShare != null
-            ? { thinkingConfig: { thinkingBudget: Math.max(0, Math.round((opts.maxOutputTokens ?? 32000) * opts.thinkingShare)) } }
+            ? { thinkingConfig: { thinkingBudget: Math.max(MIN_THINKING_TOKENS, Math.round((opts.maxOutputTokens ?? 32000) * opts.thinkingShare)) } }
             : {}),
         },
       }),

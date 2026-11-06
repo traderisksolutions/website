@@ -3,7 +3,7 @@
  * and every client- or insurer-facing text is written under the house voice. Nothing here sends.
  */
 import { callGemini } from '@/lib/ai-call'
-import { GEMINI_DEEP } from '@/lib/gemini-models'
+import { GEMINI_DEEP, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice } from '@/lib/voice'
 import { productLineLabel, PRODUCT_LINES } from '@/lib/product-lines'
 import { parsePct, rateCheck, roleOf } from './figures'
@@ -343,7 +343,7 @@ export async function draftChase(i: { insurerName: string; contactName: string |
 Ask when the quote can be expected and whether anything is missing from our side. Three sentences at most. Plain text. No sign-off block.
 Return JSON only: { "body": string }`
   const { text } = await callGemini({
-    agent: 'placement', feature: 'placement_chase_draft', model: GEMINI_DEEP, system: await withVoice(task, 'client'), json: true, temperature: 0.2, maxOutputTokens: 2_000,
+    agent: 'placement', feature: 'placement_chase_draft', model: GEMINI_LITE, system: await withVoice(task, 'client'), json: true, temperature: 0.2, maxOutputTokens: 2_000,
     parts: [{ text: 'Write it now.' }],
   })
   return parseJson<{ body: string }>(text)?.body?.trim() ?? null

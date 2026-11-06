@@ -795,11 +795,28 @@ export function chaseTemplate(i: { insurerName: string; clientName: string; line
   return `Dear ${i.insurerName} team,\n\n${ask}\n\nThank you!\n\nBest regards,\n{owner_name}\nTrade Risk Solutions`
 }
 
+/** The contact row for an address, when one exists. */
+async function contactForAddress(email: string | null | undefined): Promise<string | null> {
+  const to = String(email ?? '').trim()
+  if (!to.includes('@')) return null
+  const [c] = await sbTry<{ id: string }[]>(`contacts?email=ilike.${encodeURIComponent(to)}&select=id&limit=1`, [])
+  return c?.id ?? null
+}
+
 export async function runChases(nowDate = new Date()): Promise<{ drafted: number; skipped: number }> {
   const due = await store.sbDue(nowDate)
   let drafted = 0, skipped = 0
   for (const d of due) {
     if (d.chase_count >= MAX_CHASES) { await store.patch('placement_dispatches', `id=eq.${d.id}`, { next_chase_at: null }); skipped++; continue }
+    // Who it goes to comes first: a request recorded from the mailbox can have no contact, and the
+    // model wrote a chase for those 100 times an hour on 6 Nov 2026 only for it to be thrown away.
+    const contactId = d.insurer_contact_id ?? await contactForAddress(d.to_email)
+    if (!contactId) {
+      await store.patch('placement_dispatches', `id=eq.${d.id}`, { next_chase_at: null })
+      await store.log({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, kind: 'info',
+        text: `No chase for ${d.insurer_name}: no insurer contact on file`, detail: { needs_contact: true }, thread_id: d.thread_id })
+      skipped++; continue
+    }
     const bundle = await store.loadPlacement(d.placement_id)
     const line = bundle?.lines.find(l => l.id === d.line_id)
     const company = await store.company(d.company_id)
@@ -807,8 +824,8 @@ export async function runChases(nowDate = new Date()): Promise<{ drafted: number
       sentOn: (d.sent_at ?? d.created_at).slice(0, 10), chaseNo: d.chase_count + 1, inceptionDate: bundle?.placements[0]?.inception_date ?? null }
     // No model, no silence: the fixed chase when the model is out or fails.
     const body = (await agent.draftChase(chaseIn).catch(() => null)) ?? chaseTemplate(chaseIn)
-    if (!body || !d.insurer_contact_id) { skipped++; continue }
-    const draft = await store.createDraft({ contact_id: d.insurer_contact_id, to_email: d.to_email, subject: withRef(`Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), bundle?.placements[0]?.ref), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
+    if (!body) { skipped++; continue }
+    const draft = await store.createDraft({ contact_id: contactId, to_email: d.to_email, subject: withRef(`Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), bundle?.placements[0]?.ref), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
     if (!draft) { skipped++; continue }
     await store.patch('placement_dispatches', `id=eq.${d.id}`, { chase_count: d.chase_count + 1, next_chase_at: nextChaseAt(nowDate, d.chase_count + 1).toISOString() })
     await store.log({ company_id: d.company_id, placement_id: d.placement_id, line_id: d.line_id, round_id: d.round_id, dispatch_id: d.id, kind: 'chase',
