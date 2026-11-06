@@ -11,6 +11,7 @@
  * asked and nothing is drafted. An item that already holds an unsent draft keeps it. Nothing
  * here sends.
  */
+import { oneRecipient } from '@/lib/email/recipients'
 import { LINE_SPECS } from '@/lib/placement/lines'
 import { lineKey } from '@/lib/methods/method'
 import { formsFor, type DraftAttachment } from '@/lib/forms/library'
@@ -33,14 +34,15 @@ type NewDraft = { thread_id: string | null; to: string[]; cc: string[]; subject:
 
 export async function storeDraft(workItemId: string, d: NewDraft, opts: { primary?: boolean } = {}): Promise<string> {
   const [item] = await sbTry<Row[]>(`work_items?id=eq.${enc(workItemId)}&select=company_id&limit=1`, [])
-  const contactId = await contactIdFor(d.to[0], item?.company_id ?? null)
+  const r = oneRecipient(d.to, d.cc)
+  const contactId = await contactIdFor(r.to, item?.company_id ?? null)
   const [draft] = await sb<Row[]>('ai_drafts', {
     method: 'POST', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({
       contact_id: contactId, thread_id: d.thread_id, channel: 'email', email_type: 'CASE_WORK', status: 'pending',
-      generated_by: 'template', to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body,
+      generated_by: 'template', to_email: r.to, cc: r.cc.join(', ') || null, subject: d.subject, body: d.body,
       attachments: d.attachments ?? [], work_item_id: workItemId, pair_id: d.pair_id ?? null, party: d.party,
-      context_used: { agent: 'drafter', kind: d.kind },
+      context_used: { agent: 'drafter', kind: d.kind, ...(r.removed.length ? { removed_recipients: r.removed } : {}) },
     }),
   })
   if (opts.primary !== false) await sb(`work_items?id=eq.${enc(workItemId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: draft.id, updated_at: new Date().toISOString() }) })

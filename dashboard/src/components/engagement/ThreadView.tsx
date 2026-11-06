@@ -14,6 +14,7 @@ import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { ThreadAgentBar } from '@/components/engagement/ThreadAgentBar'
+import { lastRealMessage } from '@/lib/threads/waiting'
 import { plainToHtml } from '@/components/RichEditor'
 import type { BoardPayload } from '@/lib/crm/board'
 
@@ -34,7 +35,7 @@ interface ThreadViewProps {
   onBack?:         () => void
 }
 
-const KEY_CONTEXT = 'engagement_context_open'
+const KEY_CONTEXT = 'engagement_context_rail'
 const INK = '#0f1412'
 const BODY = '#2a332f'
 const MUTED = '#4a5550'
@@ -74,11 +75,13 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   // remembered per browser, so the message keeps its measure until someone asks for context.
   const [wide, setWide] = useState(false)
   const [contextOpen, setContextOpen] = useState(false)
+  const [draftOpen, setDraftOpen] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
     const on = () => {
       setWide(mq.matches)
-      try { const v = localStorage.getItem(KEY_CONTEXT); setContextOpen(v === '1' && mq.matches) } catch { setContextOpen(false) }
+      // Open unless someone closed it: the next-actions bar lives here.
+      try { const v = localStorage.getItem(KEY_CONTEXT); setContextOpen(v !== '0' && mq.matches) } catch { setContextOpen(mq.matches) }
     }
     on(); mq.addEventListener('change', on)
     return () => mq.removeEventListener('change', on)
@@ -141,7 +144,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   const isOverriding  = !!activeThreadId && activeThreadId !== propThreadId
   const effectiveState = isOverriding && overrideState ? overrideState : threadState
   const { thread, messages, loading, error } = effectiveState
-  const lastDirection = messages.at(-1)?.direction ?? lead.lastDirection ?? null
+  const lastDirection = lastRealMessage(messages)?.direction ?? lead.lastDirection ?? null
   const needsReply = lastDirection === 'inbound'
 
   // Compose headers
@@ -313,7 +316,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
       onSelectThread={setActiveThreadId} onStatus={onStatus} onTransfer={onTransfer}
       onRestoreDraft={(body, generatedBy) => { setPendingRestore({ body, generatedBy, stamp: Date.now() }); setComposerOpen(true) }}
       summaries={summaries} summariesLoading={summariesLoading || analyzing} latestMessageId={latestMessageId} ragSources={ragDraft?.sources ?? []}
-      onRefreshSummaries={() => void runAnalysis()} taskRefresh={taskRefresh} onClose={toggleContext} onAddTask={() => setTaskOpen(true)} />
+      onRefreshSummaries={() => void runAnalysis()} taskRefresh={taskRefresh} onClose={toggleContext} onAddTask={() => setTaskOpen(true)} onDraftOpen={setDraftOpen} />
   )
   const measure = 'max-w-[min(760px,100%)] mx-auto'
   const latestMsg = messages.at(-1) ?? null
@@ -428,7 +431,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
       </EaWorkspaceColumn>
 
       {/* Context rail: a column from 1024px up, a sheet below */}
-      {wide ? (contextOpen && <div className="flex-shrink-0 h-full" style={{ width: 340 }}>{rail}</div>) : (
+      {wide ? (contextOpen && <div className="flex-shrink-0 h-full" style={{ width: draftOpen ? 480 : 340, transition: 'width 160ms ease' }}>{rail}</div>) : (
         <Sheet open={contextOpen} onOpenChange={o => { if (!o) toggleContext() }}>
           <SheetContent side="right" className="w-full sm:max-w-[380px] p-0 flex flex-col" showCloseButton={false}>
             <SheetHeader className="sr-only"><SheetTitle>Context</SheetTitle></SheetHeader>

@@ -12,6 +12,8 @@ export type Lead = {
   /** Direction of the newest message, from the conversations API — "inbound" means the client
    *  wrote last and nobody has answered. */
   lastDirection?: 'inbound' | 'outbound' | null
+  /** The day a chaser is due, when TRS wrote last. */
+  chaseDue?: string | null
   thread_id?: string | null
   category?: string | null
   /** Resolved companies-row link (email_threads.company_id) — distinct from the free-text

@@ -1,5 +1,6 @@
 'use client'
 
+import { lastRealMessage } from '@/lib/threads/waiting'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { fullName, timeAgo, leadNeedsReply } from './helpers'
@@ -34,10 +35,11 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
   const hasSubject = !!(lead.display_subject?.trim() || lead.subject?.trim())
   const subject = hasSubject ? threadTitle(lead) : (lead.topic ?? lead.snippet ?? '(no subject)')
   const timestamp = msgs.at(-1)?.sent_at ?? lead.created_at
-  const last = msgs.at(-1)
+  const last = lastRealMessage(msgs)
   const state = needs ? 'Needs your reply' : (last?.direction === 'outbound' || lead.lastDirection === 'outbound') ? 'Awaiting client' : null
   const type = lead.category ? TYPE_LABEL[lead.category] : null
-  const stateLine = [state, type].filter(Boolean).join(' · ')
+  const chase = !needs && lead.chaseDue ? `Chaser ${new Date(`${lead.chaseDue}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}` : null
+  const stateLine = [state, chase, type].filter(Boolean).join(' · ')
   const rowCls = cn('relative w-full text-left border-0 cursor-pointer transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
     PAD[density], isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]')

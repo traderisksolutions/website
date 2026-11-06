@@ -1,3 +1,4 @@
+import { needsOurReply } from '@/lib/threads/waiting'
 import type { Lead, RealMsg, ThreadState } from './types'
 import { PERSONAL_DOMAINS } from './types'
 
@@ -83,7 +84,7 @@ export function isPersonalDomain(email: string | null | undefined): boolean {
 }
 
 export function needsReply(messages: RealMsg[]): boolean {
-  return messages.at(-1)?.direction === 'inbound'
+  return needsOurReply(messages)
 }
 
 export function lastActivity(lead: Lead, messages: RealMsg[]): string {

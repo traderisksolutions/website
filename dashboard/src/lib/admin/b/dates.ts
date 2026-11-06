@@ -11,16 +11,36 @@ export function daysBetween(from: string, to: string): number {
 }
 
 /**
- * Monday to Friday between two dates, not counting `from`. Public holidays are not removed, so a
- * chase can come one day early in a holiday week; the person approving it sees the dates.
+ * Singapore public holidays that fall on a working day, with the Monday off when one falls on a
+ * Sunday. From MOM's lists; the Hari Raya dates stay provisional until MOM confirms them.
+ * Add each new year when MOM publishes it (June of the year before).
  */
+export const SG_PUBLIC_HOLIDAYS = new Set([
+  '2026-01-01', '2026-02-17', '2026-02-18', '2026-04-03', '2026-05-01', '2026-05-27', '2026-06-01', '2026-08-10', '2026-11-09', '2026-12-25',
+  '2027-01-01', '2027-02-08', '2027-03-10', '2027-03-26', '2027-05-17', '2027-05-20', '2027-08-09', '2027-10-28',
+])
+
+/** Monday to Friday, not a Singapore public holiday. */
+export function isWorkingDay(iso: string): boolean {
+  const day = iso.slice(0, 10)
+  const wd = new Date(`${day}T00:00:00Z`).getUTCDay()
+  return wd !== 0 && wd !== 6 && !SG_PUBLIC_HOLIDAYS.has(day)
+}
+
+/** The date itself when it is a working day, otherwise the next one. */
+export function rollToWorkingDay(iso: string): string {
+  let day = iso.slice(0, 10)
+  while (!isWorkingDay(day)) day = addDays(day, 1)
+  return day
+}
+
+/** Working days between two dates, not counting `from`. */
 export function workingDaysBetween(from: string, to: string): number {
   const start = Date.parse(from.slice(0, 10)), end = Date.parse(to.slice(0, 10))
   if (!(end > start)) return 0
   let n = 0
   for (let t = start + 86_400_000; t <= end; t += 86_400_000) {
-    const wd = new Date(t).getUTCDay()
-    if (wd !== 0 && wd !== 6) n++
+    if (isWorkingDay(new Date(t).toISOString())) n++
   }
   return n
 }

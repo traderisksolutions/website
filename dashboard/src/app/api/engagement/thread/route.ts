@@ -113,11 +113,18 @@ export async function GET(req: NextRequest) {
 
     // 3. Fetch all messages for this thread
     const msgRes = await fetch(
-      `${SB_URL}/rest/v1/email_messages?thread_id=eq.${thread.id}&order=sent_at.asc&select=*`,
+      `${SB_URL}/rest/v1/email_messages?thread_id=eq.${thread.id}&deleted_at=is.null&order=sent_at.asc&select=*`,
       { headers: sbHeaders() }
     )
     const rawMsgs = msgRes.ok ? await msgRes.json() : []
-    const msgs: Record<string, unknown>[] = Array.isArray(rawMsgs) ? rawMsgs : []
+    // One email reaching several mailboxes is one message: only the first copy shows.
+    const seenRfc = new Set<string>()
+    const msgs: Record<string, unknown>[] = (Array.isArray(rawMsgs) ? rawMsgs : []).filter((m: Record<string, unknown>) => {
+      const key = typeof m.rfc822_message_id === 'string' ? m.rfc822_message_id : null
+      if (!key) return true
+      if (seenRfc.has(key)) return false
+      seenRfc.add(key); return true
+    })
 
     // 4. Fetch to/cc participants for this thread
     const recipRes = await fetch(

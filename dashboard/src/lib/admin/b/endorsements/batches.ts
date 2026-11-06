@@ -3,6 +3,7 @@
  * one email to the insurer's desk, one note to the client, and ONE item in Today to approve.
  * Nothing is sent from here; approval in Today sends both emails.
  */
+import { oneRecipient } from '@/lib/email/recipients'
 import { randomUUID } from 'node:crypto'
 import { sb, sbTry, enc, bareEmail, isInternal } from '@/lib/crm/db'
 import * as store from '@/lib/placement/store'
@@ -61,11 +62,12 @@ async function reporters(ms: MovementRow[]): Promise<string[]> {
 }
 
 async function storeDraft(workItemId: string, d: { thread_id: string | null; to: string[]; cc: string[]; subject: string; body: string; kind: string; party: 'client' | 'insurer'; pair_id: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[]; contact_id?: string | null }, primary: boolean): Promise<string> {
-  const [contact] = d.contact_id ? [{ id: d.contact_id }] : await sbTry<Row[]>(`contacts?email=ilike.${enc(d.to[0])}&select=id&limit=1`, [])
+  const r = oneRecipient(d.to, d.cc)
+  const [contact] = d.contact_id ? [{ id: d.contact_id }] : await sbTry<Row[]>(`contacts?email=ilike.${enc(r.to)}&select=id&limit=1`, [])
   const [draft] = await sb<Row[]>('ai_drafts', { method: 'POST', headers: REP, body: JSON.stringify({
     contact_id: contact?.id ?? null, thread_id: d.thread_id, channel: 'email', email_type: 'CASE_WORK', status: 'pending', generated_by: 'template',
-    to_email: d.to.join(', '), cc: d.cc.join(', ') || null, subject: d.subject, body: d.body, attachments: d.attachments ?? [],
-    work_item_id: workItemId, pair_id: d.pair_id, party: d.party, context_used: { agent: 'endorsements', kind: d.kind },
+    to_email: r.to, cc: r.cc.join(', ') || null, subject: d.subject, body: d.body, attachments: d.attachments ?? [],
+    work_item_id: workItemId, pair_id: d.pair_id, party: d.party, context_used: { agent: 'endorsements', kind: d.kind, ...(r.removed.length ? { removed_recipients: r.removed } : {}) },
   }) })
   if (primary) await touchItem(workItemId, { draft_id: draft.id })
   return draft.id as string

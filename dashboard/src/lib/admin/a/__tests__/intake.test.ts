@@ -54,7 +54,9 @@ const { intakeMessage } = await import('../intake')
 const { clearReferenceCache } = await import('../references')
 const task = (message_id: string) => ({ id: 't1', agent: 'intake', kind: 'message', payload: { message_id }, attempts: 1, max_attempts: 3 } as any)
 
+// The fixtures are dated; a message older than a week on arrival is history, so the clock stays with them.
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-31T00:00:00Z'))
   for (const k of Object.keys(db)) delete db[k]
   writes.length = 0; enqueued.length = 0
   clearReferenceCache()

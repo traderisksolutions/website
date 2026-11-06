@@ -84,7 +84,7 @@ export function overlap(a: string[] | Set<string>, b: string[] | Set<string>): n
 export function isOutOfOffice(subject: string | null | undefined, body: string | null | undefined): boolean {
   const s = String(subject ?? ''), b = String(body ?? '').slice(0, 400)
   return /out of (the )?office|automatic reply|auto(matic)?[- ]?reply|autoreply|自动回复|balasan otomatis|abwesenheit/i.test(s)
-    || /\b(i am|i'm|i will be) (currently )?(out of (the )?office|on (annual |medical )?leave|away from (the )?office)\b/i.test(b)
+    || /\b(i am|i'm|i will be) (currently )?(out of (the )?office|on (annual |medical |sick |maternity |paternity )?leave|away from (the )?office)\b/i.test(b)
 }
 
 /** Calendar traffic and marketing: filed, never a case. */

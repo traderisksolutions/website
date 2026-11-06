@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { fetchAllRows } from '@/lib/postgrest-all'
+import { lastRealMessage } from '@/lib/threads/waiting'
+import { chaseDueOn } from '@/lib/admin/b/cadence'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
@@ -24,6 +27,41 @@ function sbHeaders() {
 
 // GET /api/engagement/conversations
 // Returns one entry per email thread (not per contact).
+/**
+ * The status of each thread from its last messages, skipping auto-replies and forwards inside TRS.
+ * Bodies and recipients are read only for the newest few messages of each thread.
+ */
+async function readStatus(
+  msgs: { id: string; thread_id: string; from_address: string | null; direction: string; subject: string | null; sent_at: string | null }[],
+  threads: { id: string; companies?: { kind?: string | null } | null }[],
+  lastDirection: Map<string, 'inbound' | 'outbound'>,
+  chaseDue: Map<string, string>,
+) {
+  const byThread = new Map<string, typeof msgs>()
+  for (const m of msgs) { const l = byThread.get(m.thread_id); if (l) l.push(m); else byThread.set(m.thread_id, [m]) }
+  const recent = Array.from(byThread.values()).flatMap(l => l.slice(-4))
+  const ids = recent.map(m => m.id)
+  const bodies = new Map<string, string | null>()
+  const to = new Map<string, string[]>()
+  for (let i = 0; i < ids.length; i += 200) {
+    const part = ids.slice(i, i + 200).join(',')
+    const [b, p] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/email_messages?id=in.(${part})&select=id,body_text`, { headers: sbHeaders(), cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+      fetch(`${SB_URL}/rest/v1/email_participants?message_id=in.(${part})&role=in.(to,cc)&select=message_id,email`, { headers: sbHeaders(), cache: 'no-store' }).then(r => r.ok ? r.json() : []),
+    ])
+    for (const x of b as { id: string; body_text: string | null }[]) bodies.set(x.id, (x.body_text ?? '').slice(0, 500))
+    for (const x of p as { message_id: string; email: string }[]) { const l = to.get(x.message_id); if (l) l.push(x.email); else to.set(x.message_id, [x.email]) }
+  }
+  const insurer = new Set(threads.filter(t => t.companies?.kind === 'insurer').map(t => t.id))
+  for (const [threadId, list] of byThread) {
+    const tail = list.slice(-4).map(m => ({ ...m, body_text: bodies.get(m.id) ?? null, to: to.get(m.id) ?? [], cc: [] as string[] }))
+    const last = lastRealMessage(tail) ?? tail.at(-1)
+    if (last?.direction !== 'inbound' && last?.direction !== 'outbound') continue
+    lastDirection.set(threadId, last.direction)
+    if (last.direction === 'outbound' && last.sent_at) chaseDue.set(threadId, chaseDueOn(last.sent_at, insurer.has(threadId) ? 'insurer' : 'client'))
+  }
+}
+
 export async function GET(req: NextRequest) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
@@ -33,10 +71,10 @@ export async function GET(req: NextRequest) {
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
     type ThreadRow = {
       id: string; subject: string | null; display_subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
-      company_id: string | null; companies: { id: string; name: string; owner_email?: string | null } | null
+      company_id: string | null; companies: { id: string; name: string; owner_email?: string | null; kind?: string | null } | null
     }
     const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
+      `${SB_URL}/rest/v1/email_threads?select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
     const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
@@ -47,7 +85,7 @@ export async function GET(req: NextRequest) {
     const include = req.nextUrl.searchParams.get('include')
     if (include && UUID.test(include) && !threads.some(t => t.id === include)) {
       const one = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email)&deleted_at=is.null&limit=1`,
+        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&limit=1`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
       const rows: ThreadRow[] = one.ok ? await one.json() : []
@@ -72,19 +110,16 @@ export async function GET(req: NextRequest) {
     //    — includes both inbound AND outbound because forwarded emails are stored as outbound
     const allThreadIds = threads.map(t => t.id)
     const threadSenderMap = new Map<string, string>() // thread_id -> best external email
-    const lastDirection = new Map<string, 'inbound' | 'outbound'>() // thread_id -> direction of the newest message
+    const lastDirection = new Map<string, 'inbound' | 'outbound'>() // thread_id -> direction of the last real message
+    const chaseDue = new Map<string, string>() // thread_id -> the day a chaser is due, when TRS wrote last
     if (allThreadIds.length > 0) {
-      // Prefer inbound messages first (direct client email)
-      const msgRes = await fetch(
-        `${SB_URL}/rest/v1/email_messages?thread_id=in.(${allThreadIds.join(',')})&select=thread_id,from_address,direction&order=sent_at.asc`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
-      const msgs: { thread_id: string; from_address: string | null; direction: string }[] =
-        msgRes.ok ? await msgRes.json() : []
-      // Messages arrive oldest-first, so the last write per thread is its newest message.
-      for (const m of (Array.isArray(msgs) ? msgs : [])) {
-        if (m.direction === 'inbound' || m.direction === 'outbound') lastDirection.set(m.thread_id, m.direction)
-      }
+      // Prefer inbound messages first (direct client email). Every row: the API stops at 1,000,
+      // which left the newest messages of the list unread and their status wrong.
+      const msgs = await fetchAllRows<{ id: string; thread_id: string; from_address: string | null; direction: string; subject: string | null; sent_at: string | null }>(
+        `${SB_URL}/rest/v1/email_messages?thread_id=in.(${allThreadIds.join(',')})&deleted_at=is.null&select=id,thread_id,from_address,direction,subject,sent_at&order=sent_at.asc`,
+        sbHeaders(),
+      ).catch(() => [])
+      await readStatus(msgs, threads, lastDirection, chaseDue)
       // First pass: inbound messages
       for (const m of (Array.isArray(msgs) ? msgs : [])) {
         if (m.direction === 'inbound' && !threadSenderMap.has(m.thread_id) &&
@@ -164,6 +199,7 @@ export async function GET(req: NextRequest) {
         companyName:      t.companies?.name ?? null,
         companyOwner:     t.companies?.owner_email ?? null,
         lastDirection:    lastDirection.get(t.id) ?? null,
+        chaseDue:         chaseDue.get(t.id) ?? null,
       }]
     })
 

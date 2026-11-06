@@ -751,6 +751,22 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   const dbMsg   = Array.isArray(msgRows) ? msgRows[0] : msgRows
   if (!dbMsg?.id) return 'already stored'
 
+  // Two mailboxes can store one email at the same moment, past the check above: the oldest copy stays.
+  if (rfc822MessageId) {
+    const copies = await fetch(`${SB_URL}/rest/v1/email_messages?rfc822_message_id=eq.${encodeURIComponent(rfc822MessageId)}&deleted_at=is.null&select=id,thread_id&order=created_at.asc,id.asc&limit=1`, { headers: sbHeaders(), cache: 'no-store' })
+    const oldest = copies.ok ? (await copies.json())[0] as { id: string; thread_id: string } | undefined : undefined
+    if (oldest && oldest.id !== dbMsg.id) {
+      const now = new Date().toISOString()
+      await fetch(`${SB_URL}/rest/v1/email_messages?id=eq.${dbMsg.id}`, { method: 'PATCH', headers: sbHeaders('return=minimal'), body: JSON.stringify({ deleted_at: now }) })
+      if (oldest.thread_id !== thread.id) {
+        if (gmailThreadId) await saveAlias(mailbox, gmailThreadId, oldest.thread_id)
+        const rest = await first<{ id: string }>(`email_messages?thread_id=eq.${thread.id}&deleted_at=is.null&select=id&limit=1`)
+        if (!rest) await fetch(`${SB_URL}/rest/v1/email_threads?id=eq.${thread.id}`, { method: 'PATCH', headers: sbHeaders('return=minimal'), body: JSON.stringify({ deleted_at: now }) })
+      }
+      return 'already stored'
+    }
+  }
+
   // 3b. Every real file gets its row now, from the MIME already in hand, whatever mailbox the
   // message came from. Readers fetch the bytes later with that mailbox's token.
   await captureAttachments({ messageId: dbMsg.id, threadId: thread.id, payload: msg.payload })

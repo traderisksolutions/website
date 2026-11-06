@@ -44,7 +44,7 @@ describe('chaseDecision', () => {
   it('chases after more than 5 working days, one per round', () => {
     expect(chaseDecision(item, '2026-10-30').chase).toBeNull()           // 5 working days
     expect(chaseDecision(item, '2026-11-02')).toEqual({ chase: 'chase_insurer', stall: false, round: 1, urgent: false, escalate: false })
-    expect(chaseDecision(item, '2026-11-09').round).toBe(2)
+    expect(chaseDecision(item, '2026-11-10').round).toBe(2)   // Mon 9 Nov is a public holiday
     expect(chaseDecision({ ...item, status: 'waiting_client' }, '2026-11-02').chase).toBe('chase_client')
     expect(chaseDecision({ ...item, snoozed_until: '2026-11-10' }, '2026-11-02').chase).toBeNull()
   })

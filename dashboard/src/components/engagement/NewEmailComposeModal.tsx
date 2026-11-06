@@ -1,5 +1,6 @@
 'use client'
 
+import { toProblem } from '@/lib/email/recipients'
 import React, { useEffect, useRef, useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
@@ -113,6 +114,8 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
 
   async function send() {
     if (!to.trim() || !body.trim()) { setError('Recipient and a message are required.'); return }
+    const toIssue = toProblem(to)
+    if (toIssue) { setError(toIssue); return }
     setSending(true); setError(null)
     try {
       // The original AI-drafted text (before any broker edits) — captured from `initial`,

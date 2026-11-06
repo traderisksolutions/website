@@ -7,6 +7,7 @@
  * client's contacts on file. Send sends every ticked draft through /api/email/send, records the
  * send on the case, and moves to the next item on Today.
  */
+import { oneRecipient } from '@/lib/email/recipients'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
@@ -46,9 +47,9 @@ const inputCls = 'w-full min-w-0 h-9 rounded-[7px] border border-trs-line-2 bg-w
 /** The To and Cc as saved on the draft (edits are saved before Send): the first To is the
  *  recipient, the rest go as Cc with the draft's own Cc. The send route takes both as given. */
 const recipients = (d: { to: string; cc: string | null }) => {
-  const split = (v: string | null | undefined) => String(v ?? '').split(/[,;]/).map(x => x.trim()).filter(x => x.includes('@'))
-  const to = split(d.to)
-  return { toEmail: to[0], cc: Array.from(new Set([...to.slice(1), ...split(d.cc)])) }
+  const r = oneRecipient(d.to, d.cc)
+  if (r.removed.length) throw new Error(`To takes one company. Send ${r.removed.join(', ')} their own email.`)
+  return { toEmail: r.to, cc: r.cc }
 }
 /** The send route attaches only what the request names: every file on the draft that has a reference. */
 const withRefs = (a: TodayDraft['attachments']) => a.filter(x => x.storage_url).map(x => ({ filename: x.filename, mime_type: x.mime_type ?? undefined, storage_url: x.storage_url as string }))

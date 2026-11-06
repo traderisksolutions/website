@@ -8,6 +8,7 @@
 // 1040 measure — top bar, To/Cc/Bcc/Subject rows, the grouped toolbar, the editor, the footer.
 
 import { uploadAttachment } from '@/lib/upload-attachment'
+import { toProblem } from '@/lib/email/recipients'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Paperclip, ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -298,6 +299,8 @@ export function EngagementComposePanel({
   async function handleSend() {
     const plainText = htmlToPlain(draftHtml)
     if (!plainText.trim()) { setError('Cannot send an empty message'); return }
+    const toIssue = toProblem(toAddress)
+    if (toIssue) { setError(toIssue); return }
 
     setLoading('send'); setError(null)
     try {

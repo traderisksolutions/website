@@ -10,6 +10,7 @@ import type { Policy } from '@/components/crm/PoliciesPanel'
 import { fmtMoney, fmtDate } from '@/lib/crm/format'
 import { daysUntil, isOpen, sortTasks } from '@/components/board/model'
 import { AddToCaseControl } from './AddToCaseControl'
+import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
@@ -42,7 +43,7 @@ const FIELD = { company: '#EAF2FF', work: '#fff4dc', policy: '#F1EEFF', calendar
 const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Partner', other: 'Company' }
 const CARD_LINK = 'inline-block mt-2.5 text-[13px] no-underline underline-offset-[3px] hover:underline decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer'
 
-export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask }: {
+export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask, onDraftOpen }: {
   lead: Lead
   messages: RealMsg[]
   threadId: string | null
@@ -63,6 +64,8 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   onClose?: () => void
   /** Opens the "New to-do" dialog owned by the thread view. */
   onAddTask?: () => void
+  /** A draft in the next-actions bar opened or closed; the rail widens while one is open. */
+  onDraftOpen?: (open: boolean) => void
 }) {
   const companyId = lead.companyId ?? null
   const [board, setBoard] = useState<BoardPayload | null>(null)
@@ -99,6 +102,8 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-5 flex flex-col gap-2.5">
+        {threadId && <ChiefBar threadId={threadId} refreshKey={latestMessageId} onOpenChange={onDraftOpen} />}
+
         {/* Company */}
         <Card field={FIELD.company} label="Company">
           {companyId ? (

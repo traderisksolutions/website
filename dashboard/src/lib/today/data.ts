@@ -6,6 +6,7 @@
  * work_item_events row, so the screens are not blocked on it; they can move into
  * src/lib/casework when that module gains them.
  */
+import { oneRecipient } from '@/lib/email/recipients'
 import { fillVoice } from '@/lib/admin/b/voice'
 import { contactIdFor } from '@/lib/admin/b/contact-id'
 import { listRegister, type RegisterRow } from '@/lib/admin/b/documents/store'
@@ -272,7 +273,10 @@ export async function editDraft(id: string, p: { to: string; cc: string | null; 
   if (!p.to.trim() || !p.body.trim()) throw new Error('A draft needs a recipient and a message.')
   const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(id)}&select=id,status&limit=1`)
   if (!d || !['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
-  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ to_email: p.to.trim(), cc: p.cc?.trim() || null, subject: p.subject, body: p.body }) })
+  const r = oneRecipient(p.to, p.cc)
+  if (!r.to) throw new Error('A draft needs a recipient and a message.')
+  if (r.removed.length) throw new Error(`To takes one company. Send ${r.removed.join(', ')} their own email.`)
+  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ to_email: r.to, cc: r.cc.join(', ') || null, subject: p.subject, body: p.body }) })
 }
 
 /**

@@ -4,6 +4,7 @@
  * the reviewer approved, so the send route can mail each insurer and markSent can file each
  * Gmail thread against its own dispatch. Pure shaping; the writes live in workflow.fanoutDraft.
  */
+import { addressesIn, isTrsAddress } from '@/lib/email/recipients'
 import type { PlacementDispatch } from './types'
 
 export type FanoutText = { subject: string; body: string }
@@ -14,7 +15,10 @@ export type CloneRow = {
 }
 export type CloneTarget = Pick<PlacementDispatch, 'id' | 'to_email' | 'insurer_contact_id' | 'insurer_name'>
 
-/** The clone rows, one per dispatch and in dispatch order, so the inserted rows line up with `dispatches`. */
+/**
+ * The clone rows, one per dispatch and in dispatch order, so the inserted rows line up with `dispatches`.
+ * One insurer in To, and only TRS on copy: no insurer sees who else was asked.
+ */
 export function cloneRows(source: FanoutSource, dispatches: CloneTarget[], text: FanoutText): CloneRow[] {
   const subject = text.subject.trim()
   const body = text.body.replace(/\r\n/g, '\n').trim()
@@ -22,13 +26,13 @@ export function cloneRows(source: FanoutSource, dispatches: CloneTarget[], text:
     contact_id: d.insurer_contact_id ?? source.contact_id,
     thread_id: source.thread_id,
     channel: 'email',
-    to_email: d.to_email.trim().toLowerCase(),
+    to_email: addressesIn(d.to_email)[0] ?? d.to_email.trim().toLowerCase(),
     subject,
     body,
     status: 'pending',
     generated_by: 'placement',
     email_type: 'PLACEMENT_REQUEST',
-    cc: Array.isArray(source.cc) ? source.cc : [],
+    cc: Array.isArray(source.cc) ? source.cc.filter(isTrsAddress) : [],
   }))
 }
 

@@ -10,6 +10,8 @@
  * the member-movement chase (policies/movement-flow.ts) and the endorsement batch chase
  * (endorsements/rules.ts). Change a number here and every chaser follows.
  */
+import { addDays, isoDay, isWorkingDay, rollToWorkingDay } from './dates'
+
 export const CHASE_AFTER_WORKING_DAYS = 5
 export const CHASE_CLIENT_AFTER_DAYS = 7
 export const NEAR_DEADLINE_DAYS = 7
@@ -27,10 +29,19 @@ export function addWorkingDays(from: Date, days: number): Date {
   let left = days
   while (left > 0) {
     d.setTime(d.getTime() + DAY)
-    const dow = d.getUTCDay()
-    if (dow !== 0 && dow !== 6) left--
+    if (isWorkingDay(d.toISOString())) left--
   }
   return d
+}
+
+/**
+ * When an email with no answer is due a chase. An insurer: five working days. A client: seven days,
+ * moved on to the next working day when that lands on a weekend or public holiday.
+ */
+export function chaseDueOn(sentAt: string, side: 'client' | 'insurer'): string {
+  const singapore = new Date(Date.parse(sentAt) + 8 * 3_600_000)
+  if (side === 'insurer') return isoDay(addWorkingDays(singapore, CHASE_AFTER_WORKING_DAYS))
+  return rollToWorkingDay(addDays(isoDay(singapore), CHASE_CLIENT_AFTER_DAYS))
 }
 
 /** When an insurer that has not answered is next chased: five working days from now, every time. */
