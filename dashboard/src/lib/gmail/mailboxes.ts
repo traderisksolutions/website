@@ -124,9 +124,34 @@ export async function gmailTokenForThread(threadId: string): Promise<{ token: st
   return null
 }
 
+/** Pure. Where to look for a message: mailboxes the thread is known in, then operations@, then the rest. */
+export function mailboxOrder(aliases: string[], active: string[]): string[] {
+  return Array.from(new Set([...aliases.filter(a => a !== OPERATIONS_MAILBOX), OPERATIONS_MAILBOX, ...active]))
+}
+
+/**
+ * A token whose mailbox holds this message. Knowing the thread is not enough: a thread can be known
+ * in Cheng's mailbox while this message id is Nathan's, and a thread with no alias was only tried
+ * in operations@. That answered 404 and left 1,018 documents unfiled (found 6 Nov 2026), so each
+ * mailbox is asked in turn until one has it.
+ */
 export async function gmailTokenForMessage(messageDbId: string): Promise<{ token: string; mailbox: string; gmailMessageId: string } | null> {
   const [m] = await sbTry<{ thread_id: string; gmail_message_id: string | null }[]>(`email_messages?id=eq.${enc(messageDbId)}&select=thread_id,gmail_message_id&limit=1`, [])
   if (!m?.gmail_message_id) return null
-  const t = await gmailTokenForThread(m.thread_id)
-  return t ? { ...t, gmailMessageId: m.gmail_message_id } : null
+  const aliases = await sbTry<{ mailbox: string }[]>(`email_thread_aliases?thread_id=eq.${enc(m.thread_id)}&select=mailbox`, [])
+  const active = (await listMailboxes().catch(() => [] as Mailbox[])).filter(b => b.status === 'active').map(b => b.email)
+  for (const mailbox of mailboxOrder(aliases.map(a => a.mailbox), active)) {
+    try {
+      let token: string
+      if (mailbox === OPERATIONS_MAILBOX) { const { getGmailToken } = await import('@/lib/gmail-send'); token = await getGmailToken() }
+      else {
+        const box = await getMailbox(mailbox)
+        if (!box || box.status !== 'active') continue
+        token = await accessTokenFor(box)
+      }
+      const res = await fetch(`${GMAIL_API}/messages/${encodeURIComponent(m.gmail_message_id)}?format=minimal`, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) return { token, mailbox, gmailMessageId: m.gmail_message_id }
+    } catch { /* try the next mailbox */ }
+  }
+  return null
 }
