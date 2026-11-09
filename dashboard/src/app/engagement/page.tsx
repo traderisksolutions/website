@@ -184,15 +184,9 @@ function EngagementPageInner() {
     load()
   }, [load])
 
-  // Background Gmail sync — fires immediately on mount (catches any emails missed while page was
-  // closed) then repeats every 90 s as a fallback when Pub/Sub is delayed or watch is stale.
-  useEffect(() => {
-    const sync = () => fetch('/api/email/ingest-trigger', { method: 'POST' }).catch(() => {})
-    sync()
-    const t = setInterval(sync, 90_000)
-    return () => clearInterval(t)
-  }, [])
-
+  // No background Gmail sync from the browser: Gmail pushes each new email to the server, a
+  // scheduled job re-reads the last half hour as the backup, and the Refresh button runs one read
+  // on demand. The 90-second poll from every open tab was most of the hosting bill (8 Nov 2026).
 
   // Load thread on selection
   useEffect(() => {

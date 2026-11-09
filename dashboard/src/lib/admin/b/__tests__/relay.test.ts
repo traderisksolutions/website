@@ -162,6 +162,10 @@ describe('a newer message rewrites the unsent draft', () => {
     expect(isRewritable({ agent: 'endorsements', kind: 'movement_batch' })).toBe(false)
     expect(isRewritable({ agent: 'drafter', kind: 'renewal_notice' })).toBe(false)
     expect(isRewritable({ agent: 'drafter', kind: 'forward_to_insurer' })).toBe(true)
+    expect(isRewritable({ agent: 'claude_sweep', kind: 'sweep_draft' }, 'claude')).toBe(true)
+    expect(isRewritable(null, 'gemini')).toBe(true)
+    expect(isRewritable(null, 'placement')).toBe(false)
+    expect(isRewritable({}, 'crm_agent')).toBe(false)
     expect(openDraftsFor([draft('1', 'movement_batch', 'a@client.example', 'endorsements')], { kind: 'relay_quote', party: 'client', to: 'a@client.example', madeIds: [] }).replace).toEqual([])
   })
   it('carries the files of the replaced draft, one of each name', () => {
