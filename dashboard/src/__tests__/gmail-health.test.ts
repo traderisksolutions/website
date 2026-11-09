@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { mailboxProblems } from '@/lib/gmail/health'
 
 const monday = new Date('2026-11-10T06:00:00Z')   // Tue 10 Nov, 14:00 SGT, a working day (Mon 9 Nov is Deepavali)
-const box = { email: 'n@trade-risksol.com', status: 'active', watch_expiration: '2026-11-14T04:29:39Z', last_ingest_at: '2026-11-09T05:30:00Z' }
+const box = { email: 'n@trade-risksol.com', status: 'active', watch_expiration: '2026-11-14T04:29:39Z', last_ingest_at: '2026-11-10T05:30:00Z' }
 
 describe('mailboxProblems', () => {
   it('a healthy mailbox has none', () => { expect(mailboxProblems(box, monday)).toEqual([]) })
