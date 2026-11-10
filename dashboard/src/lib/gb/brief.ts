@@ -19,7 +19,7 @@ type Row = Record<string, any>
 const COVERS: CoverKey[] = ['GHS', 'EMM', 'GOPC', 'GOSC', 'GD', 'GPA', 'GTL', 'GCI']
 const MUSTS = ['ward', 'no_copay', 'dependants', 'gp', 'sp', 'dental', 'pa', 'gtl', 'gci']
 
-export const BRIEF_SYSTEM = `You read a Singapore insurance broker's email thread with a client about group employee benefits (hospital & surgical, outpatient GP and specialist, dental, personal accident, term life, critical illness). Extract what the client HAS, WANTS, will NOT trade, has RULED OUT and has DECIDED. Facts only; never invent.
+export const BRIEF_SYSTEM = `You read a Singapore insurance broker's email threads with a client about group employee benefits (one conversation, sometimes split across threads) (hospital & surgical, outpatient GP and specialist, dental, personal accident, term life, critical illness). Extract what the client HAS, WANTS, will NOT trade, has RULED OUT and has DECIDED. Facts only; never invent.
 
 Return ONLY JSON:
 {
@@ -118,32 +118,39 @@ export function normaliseBrief(raw: RawBrief, employees = 0): Brief {
 const trim = (s: string | null | undefined, n: number) => String(s ?? '').replace(/\r/g, '').trim().slice(0, n)
 const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()
 
-/** The whole thread as text: every live message in order (own words, quoted history cut), then the
- *  files that read as text, spreadsheets excluded (the census is read by code elsewhere). */
-export async function threadCorpus(threadId: string): Promise<{ subject: string | null; company: string | null; text: string; messages: number }> {
-  const [thread] = await sb<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,subject,companies(company_name)&limit=1`)
-  if (!thread) throw new Error('This thread no longer exists.')
-  const msgs = await sbTry<Row[]>(`email_messages?thread_id=eq.${enc(threadId)}&deleted_at=is.null&select=id,direction,from_address,body_text,sent_at,has_attachments&order=sent_at.asc&limit=60`, [])
-  const atts = await sbTry<Row[]>(`email_attachments?thread_id=eq.${enc(threadId)}&parsed_text=not.is.null&select=filename,mime_type,parsed_text&order=created_at.desc&limit=20`, [])
+/** The conversation as text: every live message of each thread in order (own words, quoted history
+ *  cut), then the files that read as text, spreadsheets excluded (the census is read by code
+ *  elsewhere). Several threads when the client's benefits conversation is split across them. */
+export async function threadCorpus(threadIds: string[]): Promise<{ subject: string | null; company: string | null; text: string; messages: number }> {
+  const ids = Array.from(new Set(threadIds))
+  const threads = await sb<Row[]>(`email_threads?id=in.(${ids.map(enc).join(',')})&select=id,subject,last_message_at,companies(company_name)`)
+  if (!threads.length) throw new Error('This thread no longer exists.')
+  threads.sort((a, b) => String(a.last_message_at ?? '').localeCompare(String(b.last_message_at ?? '')))
+  const msgs = await sbTry<Row[]>(`email_messages?thread_id=in.(${ids.map(enc).join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,body_text,sent_at,has_attachments&order=sent_at.asc&limit=120`, [])
+  const atts = await sbTry<Row[]>(`email_attachments?thread_id=in.(${ids.map(enc).join(',')})&parsed_text=not.is.null&select=filename,mime_type,parsed_text&order=created_at.desc&limit=30`, [])
   const seen = new Set<string>()
   let budget = 24_000
   const files = atts.filter(a => !/sheet|excel|csv/i.test(a.mime_type ?? '') && !/\.(xlsx|xls|csv)$/i.test(a.filename) && !/\.(png|gif|jpe?g)$/i.test(a.filename) && !seen.has(a.filename) && seen.add(a.filename))
     .map(a => { const t = trim(a.parsed_text, Math.min(4_000, Math.max(0, budget))); budget -= t.length; return t ? `# FILE: ${a.filename}\n${t}` : '' }).filter(Boolean)
-  let msgBudget = 60_000
-  const lines = msgs.map(m => {
-    const who = isInternal(bare(m.from_address)) ? 'BROKER' : 'CLIENT/OTHER'
-    const t = trim(ownWords(m.body_text), Math.min(3_000, Math.max(0, msgBudget))); msgBudget -= t.length
-    return `--- ${String(m.sent_at).slice(0, 16)} ${who} ${m.from_address}${m.has_attachments ? ' (files attached)' : ''}\n${t}`
-  })
-  const text = [`THREAD: ${thread.subject ?? ''}`, `COMPANY ON FILE: ${thread.companies?.company_name ?? 'none'}`, `MESSAGES, oldest first:\n${lines.join('\n\n')}`, files.join('\n\n')].filter(Boolean).join('\n\n')
-  return { subject: thread.subject ?? null, company: thread.companies?.company_name ?? null, text, messages: msgs.length }
+  let msgBudget = 70_000
+  const section = (t: Row) => {
+    const lines = msgs.filter(m => m.thread_id === t.id).map(m => {
+      const who = isInternal(bare(m.from_address)) ? 'BROKER' : 'CLIENT/OTHER'
+      const x = trim(ownWords(m.body_text), Math.min(3_000, Math.max(0, msgBudget))); msgBudget -= x.length
+      return `--- ${String(m.sent_at).slice(0, 16)} ${who} ${m.from_address}${m.has_attachments ? ' (files attached)' : ''}\n${x}`
+    })
+    return `THREAD: ${t.subject ?? ''}\nMESSAGES, oldest first:\n${lines.join('\n\n')}`
+  }
+  const main = threads.find(t => t.id === ids[0]) ?? threads[0]
+  const text = [`COMPANY ON FILE: ${main.companies?.company_name ?? 'none'}`, ...threads.map(section), files.join('\n\n')].filter(Boolean).join('\n\n')
+  return { subject: main.subject ?? null, company: main.companies?.company_name ?? null, text, messages: msgs.length }
 }
 
-export async function readThreadBrief(threadId: string, employees: number, by: string | null): Promise<{ brief: Brief; model: string; messages: number }> {
-  const corpus = await threadCorpus(threadId)
+export async function readThreadBrief(threadIds: string[], employees: number, by: string | null): Promise<{ brief: Brief; model: string; messages: number }> {
+  const corpus = await threadCorpus(threadIds)
   const r = await callGemini({
     agent: 'group_benefit', feature: 'gb_brief', model: GEMINI_DEEP, system: BRIEF_SYSTEM, json: true, temperature: 0,
-    maxOutputTokens: 6_000, thinkingShare: 0.3, metadata: { thread_id: threadId, by, messages: corpus.messages },
+    maxOutputTokens: 6_000, thinkingShare: 0.3, metadata: { thread_id: threadIds[0], threads: threadIds.length, by, messages: corpus.messages },
     parts: [{ text: corpus.text }],
   })
   if (!r.text) throw new Error(r.error ?? 'The model returned nothing.')

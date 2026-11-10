@@ -14,7 +14,7 @@
 import { sbTry, enc } from '@/lib/crm/db'
 import { isInternal } from '@/lib/crm/db'
 import { runGroupBenefitIntake } from '@/lib/gb/intake'
-import { loadScenarios, packSummary, quotationForThread, runScenarios } from '@/lib/gb/scenario-run'
+import { benefitsThreads, loadScenarios, packSummary, quotationForThread, runScenarios } from '@/lib/gb/scenario-run'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { censusMembers, isSheetFile } from './census'
 import type { SuggestionKind } from './suggest-links'
@@ -112,8 +112,10 @@ async function fromAttachments(atts: Att[], dismissed: Set<string>): Promise<(Su
 async function scenarioSuggestion(thread: Row, dismissed: Set<string>): Promise<(Suggestion & { threadId: string; receivedAt: string }) | null> {
   const key = `eb_scenarios:${thread.id}`
   if (dismissed.has(key)) return null
-  const q = await quotationForThread(thread.id)
-  if (!q && thread.category !== 'group_benefits') return null
+  const conversation = thread.category === 'group_benefits' ? null : await benefitsThreads(thread.id)
+  if (conversation && !conversation.inConversation) return null
+  let q: Awaited<ReturnType<typeof quotationForThread>> = null
+  for (const id of conversation?.ids ?? [thread.id]) { q = await quotationForThread(id); if (q) break }
   const pack = q ? await loadScenarios(q.id) : null
   return {
     key, kind: 'eb_scenarios', messageId: '', textMessageId: '', attachment: '', rows: q?.member_count ?? 0, threadId: thread.id, receivedAt: thread.last_message_at ?? thread.created_at ?? '',
@@ -127,7 +129,7 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>): Promise<
 /** The suggestions for one thread. */
 export async function suggestionsFor(threadId: string, dismissed: readonly string[] = []): Promise<Suggestion[]> {
   const dis = new Set(dismissed)
-  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,category,last_message_at,created_at&limit=1`, [])
+  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,category,subject,company_id,last_message_at,created_at&limit=1`, [])
   const atts = await sbTry<Att[]>(`email_attachments?thread_id=eq.${enc(threadId)}&select=${ATT_COLS}&order=created_at.desc&limit=60`, [])
   const out: (Suggestion & { threadId: string; receivedAt: string })[] = await fromAttachments(atts, dis)
   const sc = thread ? await scenarioSuggestion(thread, dis) : null

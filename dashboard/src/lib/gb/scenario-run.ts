@@ -12,7 +12,7 @@ import { priceBuilder } from './builder'
 import { readThreadBrief } from './brief'
 import { runGroupBenefitIntake, normCompany } from './intake'
 import { cardsInForce } from './table-version'
-import { flagInsurers, headline, scenariosFor, type Brief, type Scenario, type ScenarioInsurer } from './scenarios'
+import { flagInsurers, headline, isEbSubject, scenariosFor, type Brief, type Scenario, type ScenarioInsurer } from './scenarios'
 import type { Member } from '../gb-quote'
 import type { Requirement } from './ladder'
 
@@ -22,6 +22,8 @@ export type ScenarioPack = {
   at: string
   by: string | null
   threadId: string | null
+  /** Every thread the brief read: this one and the company's related benefits threads. */
+  threadIds?: string[]
   quotationId: string
   model: string
   messages: number
@@ -55,6 +57,22 @@ export async function quotationForThread(threadId: string): Promise<Quotation | 
   return rows.find(q => (q.member_count ?? 0) > 0) ?? null
 }
 
+/**
+ * The client's benefits conversation: this thread plus the company's other benefits threads of the
+ * last 90 days (classed group_benefits, or a subject that reads as one), newest first, at most six.
+ * A renewal is often three threads: the request, the census, the claims history.
+ */
+export async function benefitsThreads(threadId: string): Promise<{ ids: string[]; companyId: string | null; inConversation: boolean }> {
+  const [t] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,company_id,category,subject&limit=1`, [])
+  if (!t?.company_id) return { ids: [threadId], companyId: null, inConversation: t?.category === 'group_benefits' }
+  const since = new Date(Date.now() - 90 * 86_400_000).toISOString()
+  const rows = await sbTry<Row[]>(`email_threads?company_id=eq.${enc(t.company_id)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,category,subject,last_message_at&order=last_message_at.desc&limit=40`, [])
+  const gb = rows.filter(r => r.category === 'group_benefits')
+  const related = rows.filter(r => r.id !== threadId && (r.category === 'group_benefits' || (isEbSubject(r.subject) && !['claim', 'rfq'].includes(r.category ?? '')))).slice(0, 5)
+  const inConversation = t.category === 'group_benefits' || (gb.length > 0 && isEbSubject(t.subject) && !['claim', 'rfq'].includes(t.category ?? ''))
+  return { ids: [threadId, ...related.map(r => r.id)], companyId: t.company_id, inConversation }
+}
+
 /** The company's newest quotation with members, in the last 180 days. The open
  *  request itself may hold no census (a request email with no file): the census is on the one
  *  priced from a file or an earlier email. */
@@ -71,9 +89,11 @@ async function latestPricedFor(companyName: string): Promise<Quotation | null> {
 /** A thread's tag on a quotation, from its notes; null for a quotation priced from a file. */
 export const threadOfQuotation = (notes: string | null | undefined): string | null => notes?.match(/\[thread:([0-9a-f-]{36})\]/i)?.[1] ?? null
 
-async function censusFor(threadId: string): Promise<{ quotation: Quotation; how: string } | { error: string }> {
-  const own = await quotationForThread(threadId)
-  if (own) return { quotation: own, how: 'quotation on this thread' }
+async function censusFor(threadId: string, threadIds: string[]): Promise<{ quotation: Quotation; how: string } | { error: string }> {
+  for (const id of threadIds) {
+    const own = await quotationForThread(id)
+    if (own) return { quotation: own, how: id === threadId ? 'the quotation on this thread' : 'the quotation on a related thread' }
+  }
   const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,company_id,companies(company_name)&limit=1`, [])
   const companyName = thread?.companies?.company_name as string | undefined
   if (companyName) {
@@ -97,6 +117,7 @@ async function censusFor(threadId: string): Promise<{ quotation: Quotation; how:
  * without it the thread's own quotation, the company's open request, or the thread's census file.
  */
 export async function runScenarios(threadId: string, by: string | null, quotationId?: string | null): Promise<{ ok: true; pack: ScenarioPack; how: string } | { ok: false; error: string }> {
+  const conversation = await benefitsThreads(threadId)
   let quotation: Quotation | null = null, how = ''
   if (quotationId) {
     const [q] = await sbTry<Quotation[]>(`gb_quotations?id=eq.${enc(quotationId)}&select=${Q_COLS}&limit=1`, [])
@@ -104,15 +125,16 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
     if (!(q.member_count > 0)) return { ok: false, error: 'This quotation has no member list yet.' }
     quotation = q; how = 'this quotation'
   } else {
-    const found = await censusFor(threadId)
+    const found = await censusFor(threadId, conversation.ids)
     if ('error' in found) return { ok: false, error: found.error }
     quotation = found.quotation; how = found.how
   }
   const members = (quotation.census ?? []).map(m => ({ ...m, category: 'All employees', occupation_class: m.occupation_class ?? '1' }))
   const employees = members.filter(m => !/spouse|child|dependa/i.test(m.relationship)).length
-  const { brief, model, messages } = await readThreadBrief(threadId, employees, by)
+  const { brief, model, messages } = await readThreadBrief(conversation.ids, employees, by)
   // What the thread does not say about the current plan, the quotation's saved requirement does
   // (the broker's or the intake agent's plan choice); the defaults fill the rest.
+  if (!brief.currentInsurer && typeof quotation.requirement?.current_insurer === 'string') brief.currentInsurer = quotation.requirement.current_insurer
   const saved = (quotation.requirement?.categories as { requirement?: Partial<Requirement> }[] | undefined)?.[0]?.requirement
   if (saved) for (const k of Object.keys(saved) as (keyof Requirement)[]) if (brief.current[k] === undefined && saved[k] !== undefined) (brief.current as Record<string, unknown>)[k] = saved[k]
   const basis = brief.basis ?? (quotation.basis === 'renewal' ? 'renewal' : 'new_business')
@@ -131,7 +153,7 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
     dependants = r.dependants
     priced.push({ ...s, insurers: flagInsurers(r.insurers, brief, inForceIds) })
   }
-  const pack: ScenarioPack = { at: new Date().toISOString(), by, threadId, quotationId: quotation.id, model, messages, brief, effectiveDate, basis, employees, dependants, scenarios: priced, notes }
+  const pack: ScenarioPack = { at: new Date().toISOString(), by, threadId, threadIds: conversation.ids, quotationId: quotation.id, model, messages, brief, effectiveDate, basis, employees, dependants, scenarios: priced, notes }
   await saveScenarios(pack)
   // The budget the thread states goes onto the quotation when the builder has none.
   if (brief.budget && !quotation.requirement?.budget) {

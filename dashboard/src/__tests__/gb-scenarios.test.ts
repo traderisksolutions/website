@@ -116,3 +116,13 @@ describe('normaliseBrief', () => {
       .toBe('Government 1-bed entry limit · GP $0 · specialist entry · PA S$150k · life S$100k · employees only')
   })
 })
+
+describe('isEbSubject', () => {
+  it('reads a benefits conversation from the subject the classifier filed elsewhere', async () => {
+    const { isEbSubject } = await import('@/lib/gb/scenarios')
+    expect(isEbSubject('Re: Medical history claim for SG')).toBe(true)
+    expect(isEbSubject('Re: Employee Census Listing')).toBe(true)
+    expect(isEbSubject('Re: Office Insurance - 10 July 2026 to 30 Sept 2027')).toBe(false)
+    expect(isEbSubject('Professional Indemnity Renewal 2026')).toBe(false)
+  })
+})

@@ -210,3 +210,8 @@ export function flagInsurers(priced: PricedInsurer[], brief: Brief, inForceIds: 
 export function headline(insurers: ScenarioInsurer[]): ScenarioInsurer | null {
   return insurers.filter(i => i.inForce && !i.excluded && i.missing === 0).sort((a, b) => a.total - b.total)[0] ?? null
 }
+
+/** A thread subject that belongs to a benefits conversation even when the classifier filed it
+ *  elsewhere: the claim history, the census, the member listing, the medical plan. */
+export const isEbSubject = (subject: string | null | undefined): boolean =>
+  /medical|benefit|census|member\s*list|employee\s*list|headcount|\bghs\b|\bgtl\b|dental|hospital|claim\s*(history|experience|report)|outpatient|\beb\b/i.test(String(subject ?? ''))
