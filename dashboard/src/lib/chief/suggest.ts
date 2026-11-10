@@ -5,20 +5,25 @@
  *   price_census   a client's spreadsheet reads as a member list and no quotation has been priced
  *                  from it → run the group benefits agent on that email (src/lib/gb/intake.ts),
  *                  which prices the Tier A insurers and opens the plan builder.
+ *   eb_scenarios   the thread is a group benefits request → read the whole thread for what the
+ *                  client has, wants and has ruled out, and price scenarios A, B, C
+ *                  (src/lib/gb/scenario-run.ts) on the census already on file.
  *
  * More rules go here as single cases: the shape stays one suggestion, one yes, one result.
  */
 import { sbTry, enc } from '@/lib/crm/db'
 import { isInternal } from '@/lib/crm/db'
 import { runGroupBenefitIntake } from '@/lib/gb/intake'
+import { loadScenarios, packSummary, quotationForThread, runScenarios } from '@/lib/gb/scenario-run'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { censusMembers, isSheetFile } from './census'
+import type { SuggestionKind } from './suggest-links'
 
 type Row = Record<string, any>
 
 export type Suggestion = {
   key: string
-  kind: 'price_census'
+  kind: SuggestionKind
   title: string
   detail: string
   yes: string
@@ -28,9 +33,10 @@ export type Suggestion = {
   textMessageId: string
   attachment: string
   rows: number
-  /** Already acted on from this file: where the result is. */
-  done: { quotationId: string; members: number } | null
+  /** Already acted on: where the result is, and what it says. */
+  done: { quotationId: string; members: number; summary?: string } | null
 }
+
 export type ThreadSuggestion = Suggestion & { threadId: string; subject: string | null; company: string | null; companyId: string | null; receivedAt: string }
 export type SuggestionOutcome = { ok: true; quotationId: string; summary: string } | { ok: false; error: string }
 
@@ -101,10 +107,32 @@ async function fromAttachments(atts: Att[], dismissed: Set<string>): Promise<(Su
   return out
 }
 
+/** A group benefits thread with a census on file (its own quotation, or the company's open
+ *  request): one line offering scenarios A, B, C. Done when a pack is saved on that quotation. */
+async function scenarioSuggestion(thread: Row, dismissed: Set<string>): Promise<(Suggestion & { threadId: string; receivedAt: string }) | null> {
+  const key = `eb_scenarios:${thread.id}`
+  if (dismissed.has(key)) return null
+  const q = await quotationForThread(thread.id)
+  if (!q && thread.category !== 'group_benefits') return null
+  const pack = q ? await loadScenarios(q.id) : null
+  return {
+    key, kind: 'eb_scenarios', messageId: '', textMessageId: '', attachment: '', rows: q?.member_count ?? 0, threadId: thread.id, receivedAt: thread.last_message_at ?? thread.created_at ?? '',
+    title: 'Benefits request: scenarios A, B, C from this thread',
+    detail: q ? `${q.member_count} members on file · like for like, lower cost, enhanced · every insurer` : 'Reads the thread; prices the census on file or the file on this thread',
+    yes: 'Read the thread and price 3 scenarios',
+    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: packSummary(pack) } : null,
+  }
+}
+
 /** The suggestions for one thread. */
 export async function suggestionsFor(threadId: string, dismissed: readonly string[] = []): Promise<Suggestion[]> {
+  const dis = new Set(dismissed)
+  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=id,category,last_message_at,created_at&limit=1`, [])
   const atts = await sbTry<Att[]>(`email_attachments?thread_id=eq.${enc(threadId)}&select=${ATT_COLS}&order=created_at.desc&limit=60`, [])
-  return (await fromAttachments(atts, new Set(dismissed))).map(({ threadId: _t, receivedAt: _r, ...s }) => s)
+  const out: (Suggestion & { threadId: string; receivedAt: string })[] = await fromAttachments(atts, dis)
+  const sc = thread ? await scenarioSuggestion(thread, dis) : null
+  if (sc) out.push(sc)
+  return out.map(({ threadId: _t, receivedAt: _r, ...s }) => s)
 }
 
 /** Suggestions across the viewer's threads for the home list: client threads, newest first. */
@@ -127,6 +155,15 @@ export async function recentSuggestions(viewer: string | null, days = 14): Promi
   }
   const kept = atts.filter(a => visible.has(a.thread_id) && threads.has(a.thread_id) && (threads.get(a.thread_id)!.companies?.kind ?? 'client') === 'client')
   const all = await fromAttachments(kept, new Set())
+  // Group benefits threads of the period: scenarios A, B, C offered once per thread.
+  const gbThreads = await sbTry<Row[]>(`email_threads?category=eq.group_benefits&last_message_at=gte.${enc(since)}&deleted_at=is.null&select=id,subject,company_id,category,last_message_at,created_at,companies(company_name,kind)&order=last_message_at.desc&limit=30`, [])
+  const gbVisible = await visibleThreadIds(gbThreads.map(t => t.id), viewer)
+  for (const t of gbThreads) {
+    if (!gbVisible.has(t.id) || (t.companies?.kind ?? 'client') !== 'client') continue
+    threads.set(t.id, t)
+    const sc = await scenarioSuggestion(t, holds.get(t.id) ?? new Set())
+    if (sc) all.push(sc)
+  }
   return all
     .filter(s => !holds.get(s.threadId)?.has(s.key))
     .map(s => {
@@ -137,8 +174,12 @@ export async function recentSuggestions(viewer: string | null, days = 14): Promi
 }
 
 /** Runs the action behind a suggestion. */
-export async function runSuggestion(threadId: string, key: string): Promise<SuggestionOutcome> {
+export async function runSuggestion(threadId: string, key: string, by: string | null = null): Promise<SuggestionOutcome> {
   const [kind, messageId, textMessageId] = key.split(':')
+  if (kind === 'eb_scenarios') {
+    const r = await runScenarios(threadId, by)
+    return r.ok ? { ok: true, quotationId: r.pack.quotationId, summary: `${packSummary(r.pack)} · census from ${r.how}` } : { ok: false, error: r.error }
+  }
   if (kind !== 'price_census' || !messageId) return { ok: false, error: 'Unknown suggestion.' }
   // The agent reads the copy whose files were parsed, so it does not wait on a parse that never comes.
   const r = await runGroupBenefitIntake(threadId, textMessageId || messageId)

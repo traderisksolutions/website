@@ -7,6 +7,23 @@ import { normaliseRead, defaultEffectiveDate } from '@/lib/gb/intake'
 import { titleFor, isForeignWorkerCategory } from '@/lib/gb/draft'
 
 describe('normaliseRead', () => {
+  it('reads the ward, hospital and sum from the requirement text when the model leaves the facts null', () => {
+    const r = normaliseRead({
+      is_group_benefits_request: true,
+      products: [
+        { code: 'GHS', requirement: 'GHS - 4 bed GRH APL $30K' },
+        { code: 'GOPC', requirement: 'GP outpatient without co-payment' },
+        { code: 'GPA', requirement: 'Group Personal Accident sum assured $150,000' },
+        { code: 'GD', requirement: 'Dental Plan 2' },
+      ],
+      members: [{ name: 'A', relationship: 'self', age: 40 }],
+    })
+    const by = Object.fromEntries(r.covers.map(c => [c.code, c]))
+    expect(by.GHS).toMatchObject({ hospital: 'government', ward: 4 })
+    expect(by.GOPC.coPay).toBe(false)
+    expect(by.GPA.sumAssured).toBe(150_000)
+    expect(by.GD.coPay).toBeNull()
+  })
   it('reads dates of birth day first, and lists the ones it cannot read rather than guessing', () => {
     const r = normaliseRead({
       is_group_benefits_request: true,

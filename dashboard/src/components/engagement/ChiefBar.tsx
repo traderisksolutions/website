@@ -15,6 +15,7 @@ import { toProblem } from '@/lib/email/recipients'
 import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
 import type { ReadPlan } from '@/lib/chief/read'
+import { doneHref, doneLabel, doneSummary } from '@/lib/chief/suggest-links'
 
 const INK = '#0f1412'
 const BODY = '#2a332f'
@@ -143,16 +144,16 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
       {(bar.suggestions?.length ?? 0) > 0 && (
         <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label="Suggested">
           {bar.suggestions.map(s => {
-            const done = outcome[s.key] ?? (s.done ? { summary: `Priced from this file · ${s.done.members} members`, quotationId: s.done.quotationId } : null)
+            const done = outcome[s.key] ?? (s.done ? { summary: doneSummary(s), quotationId: s.done.quotationId } : null)
             return (
               <li key={s.key} className="rounded-[10px] border px-3 py-2.5" style={{ borderColor: HAIR }}>
                 <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>{s.title}</p>
                 <p className="m-0 mt-0.5 text-[12.5px] break-words" style={{ color: MUTED }}>{s.detail}</p>
                 {done ? (
-                  <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: BODY }}>{done.summary} · <Link href={`/pricing-matrix/quote/${done.quotationId}/plans`} style={{ color: INK }}>Open plans</Link></p>
+                  <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: BODY }}>{done.summary} · <Link href={doneHref(s, done.quotationId)} style={{ color: INK }}>{doneLabel(s)}</Link></p>
                 ) : (
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? 'Pricing…' : `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}`}</button>
+                    <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}`}</button>
                     <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
                   </div>
                 )}

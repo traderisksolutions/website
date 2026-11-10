@@ -27,7 +27,7 @@ import { PRODUCT_BY_CODE } from './canon'
 import { draftQuotation, DraftError } from './draft'
 import { coversToRequirement } from './ladder'
 import { saveBuilder } from './builder'
-import type { CoverSpec, Hospital, Tier } from './plan-rules'
+import { isHospitalCover, isSumCover, parseCoPay, parseHospital, parseSum, parseWard, type CoverSpec, type Hospital, type Tier } from './plan-rules'
 import type { Member } from '../gb-quote'
 
 import { censusMembers } from '@/lib/chief/census'
@@ -149,16 +149,25 @@ export function normaliseRead(raw: RawRead): IntakeRead {
   const currentInsurer = raw.current_insurer?.trim() || null
   const covers: CoverSpec[] = (raw.products ?? [])
     .filter(p => p.code && CANON_CODES.includes(p.code) && !seen.has(p.code) && seen.add(p.code))
-    .map(p => ({
-      code: p.code!,
-      hospital: p.hospital === 'private' || p.hospital === 'government' ? p.hospital as Hospital : null,
-      ward: p.ward === 1 || p.ward === 2 || p.ward === 4 ? p.ward : null,
-      coPay: typeof p.co_payment === 'boolean' ? p.co_payment : null,
-      sumAssured: typeof p.sum_assured === 'number' && p.sum_assured >= 1000 ? p.sum_assured : null,
-      tier: p.tier === 'entry' || p.tier === 'top' ? p.tier as Tier : null,
-      sameAs: p.current_plan?.trim() && currentInsurer ? { insurer: currentInsurer, plan: p.current_plan.trim() } : null,
-      note: p.requirement?.trim() || null,
-    }))
+    .map(p => {
+      // The requirement as written backs the facts: "GHS - 4 bed GRH APL $30K" read as hospital
+      // null / ward null priced private 1-bed (Talent Trader, 2 Nov 2026). Text is parsed by code.
+      const words = p.requirement?.trim() || null
+      const hospital = p.hospital === 'private' || p.hospital === 'government' ? p.hospital as Hospital : isHospitalCover(p.code!) ? parseHospital(words) : null
+      const ward = p.ward === 1 || p.ward === 2 || p.ward === 4 ? p.ward : isHospitalCover(p.code!) ? parseWard(words) : null
+      const coPay = typeof p.co_payment === 'boolean' ? p.co_payment : !isSumCover(p.code!) && /co-?pay|co-?insur/i.test(words ?? '') ? parseCoPay(words) : null
+      const sum = typeof p.sum_assured === 'number' && p.sum_assured >= 1000 ? p.sum_assured : isSumCover(p.code!) ? parseSum(words) : null
+      return {
+        code: p.code!,
+        hospital,
+        ward: ward === 1 || ward === 2 || ward === 4 ? ward : null,
+        coPay,
+        sumAssured: sum != null && sum >= 1000 ? sum : null,
+        tier: p.tier === 'entry' || p.tier === 'top' ? p.tier as Tier : null,
+        sameAs: p.current_plan?.trim() && currentInsurer ? { insurer: currentInsurer, plan: p.current_plan.trim() } : null,
+        note: words,
+      }
+    })
   const eff = parseDocumentDate(raw.effective_date ?? null)
   const ren = parseDocumentDate(raw.renewal_date ?? null)
   const iso = (d: { y: number; m: number; d: number } | null) => d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null
@@ -385,7 +394,7 @@ export function normCompany(name: string | null | undefined): string {
 type OpenRow = { id: string; company_name: string | null; member_count: number; notes: string | null; requirement: Record<string, unknown> | null; created_at: string }
 
 /** The newest request for this company in the last 90 days that nothing has superseded. */
-async function openRequestFor(companyName: string): Promise<OpenRow | null> {
+export async function openRequestFor(companyName: string): Promise<OpenRow | null> {
   const key = normCompany(companyName)
   if (key.length < 3) return null
   const since = new Date(Date.now() - 90 * 86_400_000).toISOString()

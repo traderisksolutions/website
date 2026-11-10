@@ -117,7 +117,8 @@ export function parseSum(text: string | null | undefined): number | null {
 export function parseCoPay(text: string | null | undefined): boolean | null {
   const t = String(text ?? '').trim()
   if (!t) return null
-  if (/^\s*(nil|none|no\b|0\s*%)/i.test(t) || /no\s*co-?pay/i.test(t)) return false
+  // "no co-pay", "without co-payment", "0% co", "nil": none.
+  if (/^\s*(nil|none|no\b|0\s*%)/i.test(t) || /(no|without|zero|nil)\s*co-?pay/i.test(t) || /\b0\s*%\s*co/i.test(t)) return false
   // AIA's "GP COPAY S$0 + SP": a zero co-payment is none.
   if (/co-?pay\s*s?\$\s*0\b/i.test(t)) return false
   if (/co-?pay|co-?ins|\b[1-9]\d?\s*%|s?\$\s*[1-9]/i.test(t)) return true

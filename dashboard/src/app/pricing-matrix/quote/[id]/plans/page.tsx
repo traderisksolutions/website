@@ -5,15 +5,16 @@
  * update as the broker changes it. Tier A is always priced; Tier B (Cigna) only when included.
  * Any single plan can be changed by hand. Save writes the plans and prices onto this quotation.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh } from '@/components/ui/register'
 import { COVER_LABEL, DEFAULT_REQUIREMENT, type CategoryInput, type CoverKey, type GridCell, type Requirement } from '@/lib/gb/ladder'
 import type { BuilderInsurer, BuilderTable } from '@/lib/gb/builder'
 import type { OutreachInsurer } from '@/lib/gb/outreach'
+import type { ScenarioPack } from '@/lib/gb/scenario-run'
 
 type CensusMember = { name: string; category: string; relationship: string; dob: string | null; occupation_class: string | null; work_pass?: string | null }
 type Quotation = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; census: CensusMember[]; requirement: { categories?: CategoryInput[]; employee_categories?: Record<string, string>; budget?: number | null; tier_b?: boolean } | null }
@@ -79,8 +80,14 @@ function setVal(r: Requirement, key: Ctl['key'], v: string): Requirement {
 }
 
 export default function PlanBuilderPage() {
+  return <Suspense fallback={null}><PlanBuilder /></Suspense>
+}
+
+/** ?scenario=A|B|C opens the builder on that scenario's requirement (src/lib/gb/scenario-run.ts). */
+function PlanBuilder() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const scenarioKey = useSearchParams().get('scenario')
   const [q, setQ] = useState<Quotation | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [cats, setCats] = useState<CategoryInput[]>([])
@@ -116,7 +123,7 @@ export default function PlanBuilderPage() {
   }
 
   useEffect(() => {
-    fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' }).then(r => r.json()).then((d: { quotation?: Quotation; error?: string }) => {
+    fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' }).then(r => r.json()).then(async (d: { quotation?: Quotation; error?: string }) => {
       if (!d.quotation) { setLoadError(d.error ?? 'Quotation not found'); return }
       const quote = d.quotation
       setQ(quote)
@@ -127,7 +134,11 @@ export default function PlanBuilderPage() {
       setBudget(req?.budget ? String(req.budget) : '')
       const census = quote.census ?? []
       const names = [...new Set(census.filter(m => !isDep(m.relationship)).map(m => baseCategory(m.category || 'Staff')))]
-      const categories = req?.categories?.length ? req.categories : [{ name: names.length === 1 ? names[0] : 'All employees', requirement: { ...DEFAULT_REQUIREMENT }, overrides: {} }]
+      let categories: CategoryInput[] = req?.categories?.length ? req.categories : [{ name: names.length === 1 ? names[0] : 'All employees', requirement: { ...DEFAULT_REQUIREMENT }, overrides: {} }]
+      if (scenarioKey) {
+        const sc = await fetch(`/api/group-benefits/quote/${id}/scenarios`, { cache: 'no-store' }).then(r => r.json()).then((d: { pack?: ScenarioPack | null }) => d.pack?.scenarios.find(x => x.key === scenarioKey) ?? null).catch(() => null)
+        if (sc) categories = [{ name: 'All employees', requirement: sc.requirement, overrides: {} }]
+      }
       setCats(categories)
       const assign: Record<number, string> = {}
       census.forEach((m, i) => {
@@ -138,7 +149,7 @@ export default function PlanBuilderPage() {
       })
       setCatOf(assign)
     }).catch(e => setLoadError(e instanceof Error ? e.message : 'Could not load'))
-  }, [id])
+  }, [id, scenarioKey])
 
   /** The census with each life's category: employees by assignment, dependants by their employee's. */
   const members = useMemo(() => {

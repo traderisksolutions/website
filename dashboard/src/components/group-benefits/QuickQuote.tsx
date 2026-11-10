@@ -19,6 +19,7 @@ import { describeSpec, withDefaults, type CoverSpec, type Hospital, type Tier } 
 import { parseBirthDate } from '@/lib/dates/dob'
 import { useCoverNames } from './useCoverNames'
 import { Step } from './Step'
+import { CompanyField, type CompanyPick } from './CompanyField'
 
 export type Member = { name: string; category: string; relationship: string; dob?: string | null; age?: number | null; occupation_class?: string | null }
 type Read = { members: Member[]; unread: string[]; found: Record<string, string>; sheet: string | null; filename: string }
@@ -52,7 +53,8 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
   const [reading, setReading] = useState(false)
   // With a list from an HR link the upload step is skipped; the dropzone is one click away.
   const [showUpload, setShowUpload] = useState(!initialRead)
-  const [company, setCompany] = useState(initialCompany ?? initialRead?.company ?? '')
+  const [pick, setPick] = useState<CompanyPick>({ id: null, name: initialCompany ?? initialRead?.company ?? '' })
+  const company = pick.name
   const [effDate, setEffDate] = useState(initialRead?.effectiveDate || nextMonthFirst())
   const [basis, setBasis] = useState<'new_business' | 'renewal'>('new_business')
   const [specs, setSpecs] = useState<Record<string, CoverSpec>>({ GHS: withDefaults({ code: 'GHS' }) })
@@ -94,7 +96,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
     try {
       const res = await fetch('/api/group-benefits/quick-quote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ census: members, covers: Object.values(specs), company_name: company, effective_date: effDate, basis }),
+        body: JSON.stringify({ census: members, covers: Object.values(specs), company_name: company, company_id: pick.id, effective_date: effDate, basis }),
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.quotation_id) { setError(d.error ?? 'Pricing failed'); return }
@@ -113,10 +115,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
       <section className="flex flex-col gap-2">
         <Step n={1}>Company</Step>
         <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          <label htmlFor="qq-company" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
-            Company
-            <input id="qq-company" value={company} onChange={e => setCompany(e.target.value)} className={inp} placeholder="Acme Pte Ltd" />
-          </label>
+          <CompanyField value={pick} onChange={setPick} allowCreate listId="qq-company-options" />
           <label htmlFor="qq-eff" className="flex flex-col gap-1 text-[12px]" style={{ color: '#4a5550' }}>
             Policy start
             <input id="qq-eff" type="date" value={effDate} onChange={e => setEffDate(e.target.value)} className={inp} />

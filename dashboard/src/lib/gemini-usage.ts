@@ -118,6 +118,8 @@ export type AiFeature =
   | 'gb_value_explain'
   // The group benefits agent reading an inbound request: census, products, requirements.
   | 'gb_intake_extract'
+  // The thread brief behind scenarios A, B, C (10 Nov 2026): what the client has, wants, rules out.
+  | 'gb_brief'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

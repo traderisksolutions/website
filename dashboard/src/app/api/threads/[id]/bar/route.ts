@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (b?.action === 'chaser') return NextResponse.json({ draftId: await draftChaser(id) })
     if (b?.action === 'no_action') { await setHold(id, { noAction: true, by: actor.toLowerCase() }); return NextResponse.json({ ok: true }) }
     if (b?.action === 'clear') { await setHold(id, null); return NextResponse.json({ ok: true }) }
-    if (b?.action === 'suggest' && b.key) { const r = await runSuggestion(id, b.key); return r.ok ? NextResponse.json(r) : NextResponse.json({ error: r.error }, { status: 400 }) }
+    if (b?.action === 'suggest' && b.key) { const r = await runSuggestion(id, b.key, actor.toLowerCase()); return r.ok ? NextResponse.json(r) : NextResponse.json({ error: r.error }, { status: 400 }) }
     if (b?.action === 'dismiss' && b.key) { await dismissSuggestion(id, b.key, actor.toLowerCase()); return NextResponse.json({ ok: true }) }
     if (b?.action === 'read') return NextResponse.json({ read: await readThread(id, actor.toLowerCase()) })
     if (b?.action === 'execute' && Array.isArray(b.stepIds)) return NextResponse.json({ read: await executePlan(id, b.stepIds.map(String), actor.toLowerCase()) })

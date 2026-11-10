@@ -69,3 +69,31 @@ The weight set and the gates used are stored on the quotation (`gb_quotations.pr
 **Underwriting** (src/lib/gb/underwriting.ts). Health declaration: RCC term life > S$150k, CI > S$75k, age ≥ 66 with life cover; Income > S$150k / > S$100k, age ≥ 65 with life cover; AIA > S$180k / > S$90k, age ≥ 64; QBE age ≥ 70; Singlife term life > S$150k. Group: Income, QBE, Singlife, AIA need 2 employees; AIA package to 50 lives; RCC loads one employee by 50%.
 
 **Tiers.** Tier A (Income, AIA, RCC, QBE, Singlife) is priced for every request. Tier B (Cigna 1.0 priced when included; Cigna 2.0 and April on request) and Tier C (every other insurer with an employee-benefits product) only when the broker selects them on the plan builder; the request goes through the client's Employment Benefits placement line.
+
+## 10 Nov 2026 — Scenarios A, B, C from the client thread
+
+**What it does.** On a group benefits thread the bar offers one line, "Benefits request: scenarios A, B, C from this thread". Yes runs `src/lib/gb/scenario-run.ts`: find the census (the quotation tagged with this thread; else the company's newest quotation with members; else the census file on the thread, priced first by the intake agent), read the whole thread once (`src/lib/gb/brief.ts`, Gemini, feature `gb_brief`) into a brief, build three requirements (`src/lib/gb/scenarios.ts`, pure), price each with `priceBuilder`, flag, save in `app_settings` under `gb_scenarios:<quotationId>`. The quotation page shows the pack under Scenarios (one table, insurers down, A/B/C across, cards not in force folded); "Use in builder" opens the plan builder on that requirement (`/plans?scenario=A`). The same button sits on the quotation page for quotes priced from a file (it asks for the client thread).
+
+**The brief** (facts the model extracts, made safe by `normaliseBrief`): basis, current insurer, the current plan as a requirement (hospital, ward, limit tier, major medical, GP, specialist, dental, sums, dependants) plus the plan as written, expiring premium, budget (and whether it is net of GST; per-employee budgets become a total from the census), must-haves, wishes (cover, add/up/down/remove, detail, sum), optional covers, insurers ruled out and preferred, renewal and effective dates, decisions and open questions. Dates and sums are read by code. A ward the model leaves out is parsed from the written plan. The quotation's saved requirement fills what the thread does not say; the defaults fill the rest.
+
+**The three requirements.**
+
+| Scenario | Rule |
+| --- | --- |
+| A · Like for like (renewal) / As briefed (new business) | The current plan or the brief, over the defaults (private 1-bed entry, GP $0, specialist entry, dependants on medical covers). |
+| B · Lower cost | Covers the client called optional come off; then the hospital limit, specialist and dental step to the entry tier and major medical comes off. If A is already at entry everywhere, the ward steps down one notch (P1 → P2 → P4 → G1 → G4) unless the ward is a must-have; failing that, the first sum assured steps down. |
+| C · Enhanced | The client's wishes: a cover added at the entry tier (or the sum asked), a tier raised, a sum stepped up (PA 50k → 100k → 150k → 200k → 250k → 300k → 500k). With no wish, every tiered cover steps up and major medical is added. |
+
+**Insurer flags.** Every Tier A insurer (and Cigna when the thread names it) is priced in every scenario. The card in force on the effective date for the basis (`cardsInForce`) is the row shown; other cards fold under "cards not in force on this date". An insurer the client ruled out is priced and marked, never dropped. The current insurer and preferred insurers are marked. With a budget, each total is marked within or over on the budget's GST footing. The headline per scenario is the lowest complete, in-force, not-excluded total.
+
+**Verified 10 Nov 2026 on the engine** (net of GST, scenario A = the plan as the thread describes it):
+
+- Gembridge, renewal 24 Oct 2026, 15 lives, private 1-bed top, GP $0, specialist top, dental top, PA S$200k: Singlife 27,702 · Income 28,550 · RCC 37,800 equal the 15 Oct workbook to the dollar; QBE V12 47,933 against the workbook's 46,225 (the workbook used QBE specialist Plan 2, a middle tier the ladder does not have) and Nathan's "$46K excl GST" in the thread. The QBE V11 card at 30,664 is the pre-September price; the two rows together are the increase Nathan described to the client.
+- Aureus executives, new business 1 Dec 2026, 17 lives, budget S$20,000 excl GST: Singlife 15,983 and Income 17,532 within budget, the rest over, which is what Nathan told the client on 26 Aug.
+- QuantuPeak, new business 1 Aug 2026, 6 lives, mirroring Empyrion (government 1-bed, GP $0, specialist $0, PA S$150k, GTL S$100k): Singlife 5,354 · Income 5,952 · RCC 8,218; Catherine quoted Singlife 5,974 and RCC 8,755 (plan tiers chosen by hand differ from the ladder's entry picks).
+
+**Live dogfood, Gembridge EB renewals thread** (25 messages, 8–9 s end to end): the brief read QBE as current, dental S$500, PA S$200k, dependants medical; wishes dental up to S$1,000–1,500 and health screening; AIA ruled out; Singlife and Income preferred; decisions "remove AIA, add Cigna 2.0", "proceed with Singlife", "takeover clause for 11 insured"; open "inception 20 or 24 Oct", "PA for dependants". The thread does not state the hospital limit tier, so A priced the entry tier; the broker switches it in the builder. A S$18,235 · B S$17,646 · C S$20,584 (Singlife, incl. GST).
+
+**Limits.** One category per run (the builder splits categories by hand). Tiers are entry or top; an insurer's middle plan is an override in the builder. Health screening, wellness and vision are not package-plan covers and stay as a wish in the thread signals, not a priced line.
+
+**Also fixed.** The intake agent now parses the requirement text for a ward, hospital type, co-payment and sum when the model leaves the facts null ("GHS - 4 bed GRH APL $30K" priced private 1-bed for Talent Trader on 2 Nov; it now prices government 4-bed). Quick quote has a company picker (search, or add the company record) in place of the free-text name.

@@ -30,6 +30,7 @@ export type HousekeepingAction =
   | 'signature.read'        // a contact's title or direct line taken from a sign-off
   | 'thread.left'           // the agent declined to guess; a person must choose
   | 'gb.request_routed'     // a group benefits request handed to that agent, which opened a draft quotation
+  | 'gb.scenarios_priced'   // scenarios A, B, C read from a client thread and priced on a quotation
 
 export interface AgentAction {
   action:        HousekeepingAction

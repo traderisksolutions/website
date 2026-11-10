@@ -15,6 +15,7 @@ import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
 import { Step } from '@/components/group-benefits/Step'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
+import { Scenarios } from '@/components/group-benefits/Scenarios'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
@@ -175,6 +176,8 @@ export default function QuoteDetailPage() {
           </div>
         </section>
       )}
+
+      {priced && <Scenarios quotationId={id} hasCensus={q.member_count > 0} />}
 
       {priced && (
         <section className="mb-10">

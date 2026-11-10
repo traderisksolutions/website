@@ -18,6 +18,7 @@ import { classify, defaultSchedule, expectsReply } from '@/lib/followups/rules'
 import { todoSections, todoCount, TODO_SECTIONS, type TodoSection } from '@/lib/today/todo'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
 import type { ThreadSuggestion } from '@/lib/chief/suggest'
+import { doneHref, doneLabel, doneSummary } from '@/lib/chief/suggest-links'
 
 type Who = 'mine' | 'all'
 type Edit = { to: string; cc: string; subject: string; body: string }
@@ -119,7 +120,7 @@ export function TodoList() {
 /** One suggestion from the mail: the file, the client, and a Yes that runs the action in place. */
 function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; onThread: (id: string) => void; onDone: (m: string) => void; onError: (e: unknown) => void }) {
   const [busy, setBusy] = useState<string | null>(null)
-  const [result, setResult] = useState<{ summary: string; quotationId: string } | null>(s.done ? { summary: `Priced from this file · ${s.done.members} members`, quotationId: s.done.quotationId } : null)
+  const [result, setResult] = useState<{ summary: string; quotationId: string } | null>(s.done ? { summary: doneSummary(s), quotationId: s.done.quotationId } : null)
   const post = (body: unknown) => callApi<{ quotationId: string; summary: string }>(`/api/threads/${s.threadId}/bar`, { method: 'POST', body })
   const yes = () => { setBusy('yes'); post({ action: 'suggest', key: s.key }).then(r => { setResult(r); onDone(`${r.summary}: ${s.company ?? s.subject ?? ''}`) }).catch(onError).finally(() => setBusy(null)) }
   const notNow = () => { setBusy('no'); post({ action: 'dismiss', key: s.key }).then(() => onDone(`Not now: ${s.title}.`)).catch(onError).finally(() => setBusy(null)) }
@@ -133,7 +134,7 @@ function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; o
           </div>
           <p className="m-0 mt-1 text-[14.5px] font-medium leading-snug text-trs-ink">{s.title}</p>
           <p className="m-0 mt-0.5 text-[13px] text-trs-ink-2 break-words">{s.detail}{s.subject ? ` · ${s.subject}` : ''}</p>
-          {result && <p className="m-0 mt-1 text-[13px] text-trs-ink-2">{result.summary} · <Link href={`/pricing-matrix/quote/${result.quotationId}/plans`} className="text-trs-ink">Open plans</Link></p>}
+          {result && <p className="m-0 mt-1 text-[13px] text-trs-ink-2">{result.summary} · <Link href={doneHref(s, result.quotationId)} className="text-trs-ink">{doneLabel(s)}</Link></p>}
         </div>
         <div className="flex flex-wrap items-start md:justify-end gap-1.5">
           {!result && <Btn size="xs" level="primary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>}
