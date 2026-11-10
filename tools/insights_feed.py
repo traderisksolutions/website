@@ -8,7 +8,7 @@ hand-written posts only):  python3 tools/insights_feed.py
 Source: GET https://trs-dashboard-pi.vercel.app/api/public/blog?site=traderisksolutions.com.sg
 Only published articles are served, so nothing here needs a key.
 """
-import datetime, html, json, os, re, sys, urllib.request
+import datetime, html, json, os, re, subprocess, sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 from insights_content import POSTS  # noqa: E402
@@ -28,8 +28,9 @@ def e(x):
 
 
 def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': 'trs-insights-build'}), timeout=60) as r:
-        return json.load(r)
+    # curl rather than urllib: the Homebrew Python on the build machine has no CA bundle.
+    out = subprocess.run(['curl', '-sfL', '--max-time', '60', '-H', 'User-Agent: trs-insights-build', url], capture_output=True, text=True, check=True).stdout
+    return json.loads(out)
 
 
 def close_band():
