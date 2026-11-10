@@ -69,18 +69,23 @@ export function ComingUp() {
       .catch(e => setError(e instanceof Error ? e.message : String(e)))
   }, [today])
 
-  const rows = useMemo(() => events ? toRows(events, today).filter(r => r.days <= 90) : [], [events, today])
+  // Overdue stops at 30 days: a renewal a year past its date is register hygiene (Companies, Overdue), not this week's work.
+  const all = useMemo(() => events ? toRows(events, today).filter(r => r.days <= 90) : [], [events, today])
+  const rows = useMemo(() => all.filter(r => r.days >= -30), [all])
+  const older = all.length - rows.length
   const groups = HORIZONS.map(h => ({ ...h, rows: rows.filter(r => r.days >= h.from && r.days <= h.to) })).filter(g => g.rows.length > 0)
 
   if (error) return <p className="m-0 text-[13.5px] text-trs-neg">{error}</p>
   if (!events) return <Spinner label="Loading what is coming up…" />
-  if (rows.length === 0) return <Empty>Nothing due in the next 90 days.</Empty>
+  if (rows.length === 0 && older === 0) return <Empty>Nothing due in the next 90 days.</Empty>
 
   return (
     <div className="flex flex-col gap-3">
       <p className="m-0 text-[13px] text-trs-muted tabular-nums">
         {HORIZONS.map(h => `${rows.filter(r => r.days >= h.from && r.days <= h.to).length} ${h.label.toLowerCase()}`).join(' · ')}
+        {older > 0 && <> · <Link href="/companies?renewal=overdue" className="text-trs-ink">{older} overdue over 30 days</Link></>}
       </p>
+      {rows.length === 0 && <Empty>Nothing due in the next 90 days.</Empty>}
       <div className="rounded-[10px] border border-trs-line bg-white overflow-hidden">
         {groups.map(g => (
           <section key={g.key} aria-label={g.label}>
