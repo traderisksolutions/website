@@ -179,3 +179,13 @@ reads as "selected" without an invert-to-solid-black/blue look.
 | Table row | `bg-muted/40` |
 | Filter chip | `bg-muted` |
 | Button (outline) | shadcn default (slight bg tint) |
+
+---
+
+## Context rail (Inbox), 11 Nov 2026
+
+Three groups, each under a green pill title (`GroupPill` in `src/components/engagement/rail-bits.tsx`: green text, soft green fill, green hairline, 999px radius, 13.5px medium): **Actions**, **AI**, **Information**. White ground; spacing separates (26px between action items, 36px between groups); no tinted cards, no boxes, no rules.
+
+- **Actions**: one `ActionItem` per thing to do: an uppercase eyebrow for its kind (Waiting, Chaser due, Reply due, Suggested, Held), a 15px title, one muted meta line, then buttons with one primary. Drafts and the enquiry sender keep their editable boxes. To-do and case are a quiet link line at the end.
+- **AI**: one `AiRow` per capability: sparkle, title, one line saying what it reads and returns, one hairline button on the right. Results render under the row, indented 19px.
+- **Information**: `InfoRow` label-value pairs (92px label column), inline arrow links on the value, tabular figures. Status and notes fold under a `details`.
