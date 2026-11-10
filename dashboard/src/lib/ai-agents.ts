@@ -138,6 +138,8 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   outbound_reply_draft:     'crm',
   crm_brief:                'crm',
   crm_next_reply:           'crm',
+  thread_read:              'crm',
+  thread_read_draft:        'crm',
   crm_chat:                 'crm',
   company_retrieval_query:  'crm',
   company_retrieval_embed:  'crm',

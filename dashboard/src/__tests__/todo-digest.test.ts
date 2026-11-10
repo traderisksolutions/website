@@ -10,15 +10,16 @@ const base = (over: Partial<TodayItem>): TodayItem => ({
   side: 'trs', bridge: 'rfq', policy_id: null, stage: null, start_point: null, renewal_flow: null, ...over,
 })
 const now = new Date('2026-11-10T05:00:00Z')   // Tue 10 Nov 13:00 SGT
+const recent = '2026-11-09T02:00:00Z'
 
 describe('to-do digest', () => {
   it('lists my Send, Decide and To act items with links; counts the unowned; skips Read', () => {
     const d = buildDigest([
-      base({ id: 'a', group: 'send', title: 'WICA renewal', client: 'JGC', deadline: '2026-12-31' }),
-      base({ id: 'b', group: 'decide', title: 'GE question' }),
-      base({ id: 'c', group: 'act', owner_email: null }),
-      base({ id: 'd', group: 'read' }),
-      base({ id: 'e', group: 'send', owner_email: 'hasya@trade-risksol.com' }),
+      base({ id: 'a', group: 'send', title: 'WICA renewal', client: 'JGC', deadline: '2026-12-31', last_activity_at: recent }),
+      base({ id: 'b', group: 'decide', title: 'GE question', last_activity_at: recent }),
+      base({ id: 'c', group: 'act', owner_email: null, last_activity_at: recent }),
+      base({ id: 'd', group: 'read', last_activity_at: recent }),
+      base({ id: 'e', group: 'send', owner_email: 'hasya@trade-risksol.com', last_activity_at: recent }),
     ], me, 'https://x.test', now)!
     expect(d.count).toBe(2)
     expect(d.subject).toBe('To do · 2 items · Tue 10 Nov')
@@ -32,6 +33,19 @@ describe('to-do digest', () => {
   it('nothing to do → no email', () => {
     expect(buildDigest([base({ group: 'read' })], me, 'https://x.test', now)).toBeNull()
   })
+  it('an old item with no deadline in sight is counted, not listed; a near deadline or a lapse keeps it', () => {
+    const d = buildDigest([
+      base({ id: 'old', group: 'act', last_activity_at: '2026-09-01T00:00:00Z' }),
+      base({ id: 'due', group: 'act', last_activity_at: '2026-09-01T00:00:00Z', deadline: '2026-11-20' }),
+      base({ id: 'red', group: 'act', last_activity_at: '2026-09-01T00:00:00Z', pending: { level: 'red', reason: 'cover lapsed', since: null, due: null, override: null } }),
+      base({ id: 'fresh', group: 'send', last_activity_at: recent }),
+    ], me, 'https://x.test', now)!
+    expect(d.count).toBe(3)
+    expect(d.html).not.toContain('/today/old')
+    expect(d.html).toContain('/today/due')
+    expect(d.html).toContain('/today/red')
+    expect(d.html).toContain('1 older item with no deadline in the next 14 days')
+  })
   it('the afternoon digest keeps only what moved since 08:30 SGT', () => {
     expect(morningCutoff(now).toISOString()).toBe('2026-11-10T00:30:00.000Z')
     const d = buildDigest([
@@ -44,7 +58,7 @@ describe('to-do digest', () => {
     expect(d.html).not.toContain('/today/old')
   })
   it('escapes what the model wrote', () => {
-    const d = buildDigest([base({ id: 'a', group: 'act', title: 'a <b> & c' })], me, 'https://x.test', now)!
+    const d = buildDigest([base({ id: 'a', group: 'act', title: 'a <b> & c', last_activity_at: recent })], me, 'https://x.test', now)!
     expect(d.html).toContain('a &lt;b&gt; &amp; c')
   })
 })

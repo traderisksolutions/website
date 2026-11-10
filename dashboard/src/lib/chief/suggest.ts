@@ -12,7 +12,7 @@ import { sbTry, enc } from '@/lib/crm/db'
 import { isInternal } from '@/lib/crm/db'
 import { runGroupBenefitIntake } from '@/lib/gb/intake'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
-import { censusSignal, isSheetFile } from './census'
+import { censusMembers, isSheetFile } from './census'
 
 type Row = Record<string, any>
 
@@ -70,16 +70,16 @@ async function fromAttachments(atts: Att[], dismissed: Set<string>): Promise<(Su
   if (!textOf.size) return []
   const live = await inboundLive(Array.from(new Set(sheets.map(a => a.message_id))))
   const seen = new Set<string>()
-  const candidates: (Att & { textMessageId: string; rows: number; company: string | null; insurer: string | null })[] = []
+  const candidates: (Att & { textMessageId: string; rows: number; company: string | null; insurer: string | null; others: number })[] = []
   for (const a of sheets) {
     if (!live.has(a.message_id)) continue
     const k = `${a.message_id}|${a.filename}`
     if (seen.has(k)) continue
     seen.add(k)
     const text = (a.parsed_text ?? '').length > 40 ? a : textOf.get(`${a.filename}|${a.size_bytes ?? ''}`)
-    const sig = censusSignal(text?.parsed_text)
+    const sig = censusMembers(text?.parsed_text)
     if (!sig || !text) continue
-    candidates.push({ ...a, textMessageId: text.message_id, rows: sig.rows, company: sig.sheets[0]?.company ?? null, insurer: sig.sheets.find(s => s.insurer)?.insurer ?? null })
+    candidates.push({ ...a, textMessageId: text.message_id, rows: sig.members.length, company: sig.company, insurer: sig.insurer, others: sig.others.length })
   }
   if (!candidates.length) return []
   const priced = await quotationsByMessage(Array.from(new Set(candidates.flatMap(c => [c.message_id, c.textMessageId]))))
@@ -92,7 +92,7 @@ async function fromAttachments(atts: Att[], dismissed: Set<string>): Promise<(Su
     if (q && q.member_count === 0) continue
     out.push({
       key, kind: 'price_census', messageId: c.message_id, textMessageId: c.textMessageId, attachment: c.filename, rows: c.rows, threadId: c.thread_id, receivedAt: c.created_at,
-      title: `Census received: ${c.rows} member${c.rows === 1 ? '' : 's'}`,
+      title: `Census received: ${c.rows} member${c.rows === 1 ? '' : 's'}${c.others ? ` (+${c.others} other compan${c.others === 1 ? 'y' : 'ies'} in the file)` : ''}`,
       detail: [c.filename, c.company, c.insurer ? `current insurer ${c.insurer}` : null].filter(Boolean).join(' · '),
       yes: 'Price the Tier A insurers',
       done: q ? { quotationId: q.id, members: q.member_count } : null,

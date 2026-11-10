@@ -15,6 +15,7 @@ import { autoReplyAfter, isAutoReply, lastRealMessage, type WaitMessage } from '
 import * as store from '@/lib/placement/store'
 import { reviewQueue } from '@/lib/placement/workflow'
 import { suggestionsFor, type Suggestion } from './suggest'
+import { loadReadPlan, type ReadPlan } from './read'
 
 type Row = Record<string, any>
 export type Side = 'client' | 'insurer'
@@ -39,7 +40,7 @@ export type BarEnquiry = {
 }
 export type Bar = {
   threadId: string; companyId: string | null; state: BarState; autoReply: { from: string; at: string | null } | null
-  drafts: BarDraft[]; enquiry: BarEnquiry | null; suggestions: Suggestion[]; caseItem: { id: string; title: string; nextAction: string | null } | null
+  drafts: BarDraft[]; enquiry: BarEnquiry | null; suggestions: Suggestion[]; read: ReadPlan | null; caseItem: { id: string; title: string; nextAction: string | null } | null
   hold: { noAction?: boolean; until?: string } | null; today: string
 }
 
@@ -135,11 +136,12 @@ export async function loadBar(threadId: string): Promise<Bar | null> {
   }
 
   // Drafts on this thread, requests to insurers apart: those show under the enquiry.
-  const rawDrafts = await sbTry<Row[]>(`ai_drafts?thread_id=eq.${enc(threadId)}&status=in.(pending,draft)&deleted_at=is.null&or=(email_type.is.null,email_type.neq.PLACEMENT_REQUEST)&select=id,to_email,cc,subject,body,email_type,attachments,work_item_id,context_used&order=created_at.desc&limit=10`, [])
+  const rawDrafts = await sbTry<Row[]>(`ai_drafts?or=(thread_id.eq.${enc(threadId)},context_used->>thread_id.eq.${enc(threadId)})&status=in.(pending,draft)&deleted_at=is.null&or=(email_type.is.null,email_type.neq.PLACEMENT_REQUEST)&select=id,to_email,cc,subject,body,email_type,attachments,work_item_id,context_used&order=created_at.desc&limit=10`, [])
   const fallbackTo = 'email' in state ? state.email : null
   const shaped = rawDrafts.map(d => {
     const r = oneRecipient(d.to_email || fallbackTo, d.cc)
-    const label = (d.context_used as Row | null)?.kind === 'bar_chaser' ? 'Chaser' : DRAFT_LABEL[d.email_type as string] ?? 'Email'
+    const kind = (d.context_used as Row | null)?.kind
+    const label = kind === 'bar_chaser' ? 'Chaser' : kind === 'read_step' ? 'Next step' : DRAFT_LABEL[d.email_type as string] ?? 'Email'
     return { d, r, label }
   })
   const names = await peopleByEmail(shaped.map(x => x.r.to))
@@ -154,9 +156,10 @@ export async function loadBar(threadId: string): Promise<Bar | null> {
   const enquiry = await enquiryOf(threadId, thread, companyKind, withPeople)
   const held = await holdOf(threadId)
   const suggestions = await suggestionsFor(threadId, Array.isArray(held?.dismissed) ? held.dismissed : [])
+  const read = await loadReadPlan(threadId)
 
   return {
-    threadId, companyId: thread.company_id ?? null, state, drafts, enquiry, suggestions, today,
+    threadId, companyId: thread.company_id ?? null, state, drafts, enquiry, suggestions, read, today,
     autoReply: auto ? { from: bare(auto.from_address), at: auto.sent_at ?? null } : null,
     caseItem: item && !item.closed_at ? { id: item.id, title: item.title, nextAction: item.next_action ?? null } : null,
     hold: activeHold ? { noAction: !!activeHold.noAction, until: activeHold.until } : null,

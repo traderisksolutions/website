@@ -11,6 +11,8 @@ import { loadToday, type TodayItem } from './data'
 import { todoSections, TODO_SECTIONS, type TodoSection } from './todo'
 
 const MAX_LINES = 12
+/** Items older than this with no deadline in sight are counted, not listed: the morning email is for what moves. */
+const LIVE_DAYS = 14
 const esc = (s: string) => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
 const day = (iso: string | null) => iso ? new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-SG', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : null
 
@@ -28,7 +30,12 @@ export function morningCutoff(now: Date): Date {
  */
 export function buildDigest(items: readonly TodayItem[], owner: string, origin: string, now: Date, afternoon = false): Digest | null {
   const since = afternoon ? morningCutoff(now).toISOString() : null
-  const mine = items.filter(i => i.owner_email?.toLowerCase() === owner.toLowerCase() && (!since || (i.last_activity_at ?? '') >= since))
+  const liveFrom = new Date(now.getTime() - LIVE_DAYS * 86_400_000).toISOString()
+  const dueBy = new Date(now.getTime() + LIVE_DAYS * 86_400_000).toISOString().slice(0, 10)
+  const isLive = (i: TodayItem) => (i.last_activity_at ?? '') >= liveFrom || (!!i.deadline && i.deadline <= dueBy) || i.pending.level === 'red'
+  const owned = items.filter(i => i.owner_email?.toLowerCase() === owner.toLowerCase() && i.group !== 'read' && i.group !== 'later')
+  const mine = owned.filter(i => (!since || (i.last_activity_at ?? '') >= since) && isLive(i))
+  const older = afternoon ? 0 : owned.length - mine.length
   const sections = todoSections(mine, 'all', owner)
   const count = sections.send.length + sections.act.length + sections.decide.length
   if (count === 0) return null
@@ -53,6 +60,7 @@ export function buildDigest(items: readonly TodayItem[], owner: string, origin: 
     `<p style="margin:0;color:#6f7a74">Send, Edit, Ask AI and Later are on the <a href="${origin}/" style="color:#0f1412">home page</a>.</p>`,
     block('send'), block('decide'), block('act'),
     unowned ? `<p style="margin:18px 0 0;color:#6f7a74">${unowned} unassigned item${unowned === 1 ? '' : 's'} on <a href="${origin}/today" style="color:#0f1412">Today</a>.</p>` : '',
+    older > 0 ? `<p style="margin:8px 0 0;color:#6f7a74">${older} older item${older === 1 ? '' : 's'} with no deadline in the next ${LIVE_DAYS} days, on <a href="${origin}/today" style="color:#0f1412">Today</a>.</p>` : '',
     `</div>`,
   ].join('')
   return { to: owner, subject, html, count }

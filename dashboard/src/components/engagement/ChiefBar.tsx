@@ -8,11 +8,13 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Sparkles } from 'lucide-react'
 import { callApi, errText } from '@/components/placement/shared'
 import { draftBodyToHtml, emailReadyHtml } from '@/lib/email-body'
 import { toProblem } from '@/lib/email/recipients'
 import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
+import type { ReadPlan } from '@/lib/chief/read'
 
 const INK = '#0f1412'
 const BODY = '#2a332f'
@@ -85,6 +87,9 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
     setOutcome(o => ({ ...o, [key]: r }))
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
+  const read = () => run('read', async () => { await post({ action: 'read' }) })
+  const execute = (stepIds: string[]) => run('execute', async () => { await post({ action: 'execute', stepIds }) })
+  const step = (stepId: string, status: 'todo' | 'done') => run(`step:${stepId}`, async () => { await post({ action: 'step', stepId, status }) })
 
   if (error && !bar) return <Shell><p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p></Shell>
   if (!bar) return <Shell><p className="m-0 text-[13px]" style={{ color: MUTED }}>Loading…</p></Shell>
@@ -125,12 +130,15 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
               <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
             )}
             {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`} style={{ borderColor: HAIR, color: INK }}>Open case</Link>}
+            {!bar.read && <button type="button" className={`${SECOND} gap-1.5`} style={{ borderColor: HAIR, color: INK }} onClick={read} disabled={!!busy} title="The AI reads the whole thread and proposes the next steps"><Sparkles size={13} />{busy === 'read' ? 'Reading…' : 'Read thread'}</button>}
             {st.kind !== 'none' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={noAction} disabled={!!busy}>No action</button>}
           </div>
           {bar.hold?.until && <button type="button" onClick={clear} className="mt-1.5 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
         </>
       )}
       {error && <p className="m-0 mt-2 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
+
+      {bar.read && <ReadSteps plan={bar.read} busy={busy} onExecute={execute} onStep={step} onAgain={read} onOpenDraft={id => setOpen(id)} />}
 
       {(bar.suggestions?.length ?? 0) > 0 && (
         <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label="Suggested">
@@ -168,6 +176,51 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
         <Enquiry enquiry={bar.enquiry} from={from} open={open} setOpen={setOpen} reload={load} />
       )}
     </Shell>
+  )
+}
+
+/** The read plan: a checklist of emails (one person each) and actions; Draft writes the ticked emails. */
+function ReadSteps({ plan, busy, onExecute, onStep, onAgain, onOpenDraft }: {
+  plan: ReadPlan; busy: string | null; onExecute: (ids: string[]) => void; onStep: (id: string, status: 'todo' | 'done') => void; onAgain: () => void; onOpenDraft: (draftId: string) => void
+}) {
+  const proposed = plan.steps.filter(s => s.status === 'proposed')
+  const [picked, setPicked] = useState<Set<string>>(() => new Set(proposed.map(s => s.id)))
+  useEffect(() => { setPicked(new Set(plan.steps.filter(s => s.status === 'proposed').map(s => s.id))) }, [plan.at, plan.steps])
+  const chosen = proposed.filter(s => picked.has(s.id))
+  const emails = chosen.filter(s => s.kind === 'email').length, actions = chosen.length - emails
+  const who = (s: ReadPlan['steps'][number]) => s.kind === 'email' ? `Email · ${s.to?.name ?? s.to?.email ?? ''}${s.party === 'insurer' && s.insurer ? ` · ${s.insurer}` : s.party === 'client' ? ' · client' : ''}` : 'Action'
+  return (
+    <div className="mt-3 rounded-[10px] border px-3 py-2.5" style={{ borderColor: HAIR }} aria-label="Next steps">
+      <div className="flex items-center justify-between gap-2">
+        <p className="m-0 text-[13px] font-medium inline-flex items-center gap-1.5" style={{ color: INK }}><Sparkles size={13} />Next steps</p>
+        <button type="button" onClick={onAgain} disabled={!!busy} className="bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>{busy === 'read' ? 'Reading…' : 'Read again'}</button>
+      </div>
+      {plan.summary && <p className="m-0 mt-1 text-[13px]" style={{ color: BODY }}>{plan.summary}</p>}
+      {plan.situation && <p className="m-0 mt-1 text-[12.5px] whitespace-pre-line" style={{ color: MUTED }}>{plan.situation}</p>}
+      <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
+        {plan.steps.map(s => (
+          <li key={s.id} className="flex items-start gap-2 text-[13px]">
+            {s.status === 'proposed' && <input type="checkbox" className="mt-[3px]" checked={picked.has(s.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(s.id); else n.delete(s.id); return n })} aria-label={s.title} />}
+            {s.status === 'todo' && <input type="checkbox" className="mt-[3px]" checked={false} onChange={() => onStep(s.id, 'done')} aria-label={`Done: ${s.title}`} disabled={!!busy} />}
+            {s.status === 'done' && <input type="checkbox" className="mt-[3px]" checked readOnly onChange={() => onStep(s.id, 'todo')} aria-label={`Undo: ${s.title}`} disabled={!!busy} />}
+            {s.status === 'drafted' && <span className="mt-[3px] inline-block w-[13px] text-center text-[11px]" style={{ color: MUTED }} aria-hidden>✎</span>}
+            <div className="min-w-0">
+              <p className="m-0" style={{ color: INK, textDecoration: s.status === 'done' ? 'line-through' : undefined }}>{s.title}</p>
+              <p className="m-0 text-[12px]" style={{ color: MUTED }}>{who(s)}{s.detail ? ` — ${s.detail}` : ''}</p>
+              {s.status === 'drafted' && s.draftId && <button type="button" onClick={() => onOpenDraft(s.draftId!)} className="bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer" style={{ color: INK }}>Drafted · open</button>}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {proposed.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
+            {busy === 'execute' ? 'Drafting…' : [emails ? `Draft ${emails} email${emails === 1 ? '' : 's'}` : null, actions ? `${actions} action${actions === 1 ? '' : 's'} to do` : null].filter(Boolean).join(' · ') || 'Nothing ticked'}
+          </button>
+          <span className="text-[12px]" style={{ color: MUTED }}>Each email is its own draft, one address in To. Nothing sends.</span>
+        </div>
+      )}
+    </div>
   )
 }
 

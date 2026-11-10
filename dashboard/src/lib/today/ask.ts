@@ -15,7 +15,8 @@ const event = (id: string, kind: string, actor: string, detail: Row = {}) =>
 
 const SYSTEM = [
   'You edit a Singapore insurance broker’s outgoing email as instructed. Keep the facts, recipients and purpose unless the instruction changes them.',
-  'Plain, courteous business English. Short sentences. No exclamation marks. Keep any {owner_name} placeholder exactly as written.',
+  'Plain, courteous business English. Short sentences. No exclamation marks.',
+  '{owner_name} is the sender’s signature placeholder: keep it where it is in the sign-off if present, never add one, never use it as the greeting. Write no greeting line unless the draft has one.',
   'Answer with JSON only: {"subject": string, "body": string}. The body is plain text with blank lines between paragraphs.',
 ].join('\n')
 
@@ -64,7 +65,16 @@ export async function askOnItem(id: string, instruction: string | null, actor: s
     const r = await nextReply({ threadId })
     if (!r.draftId) throw new Error('The agent read the thread but did not produce a reply.')
     draftId = r.draftId
-    await sb(`ai_drafts?id=eq.${enc(draftId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id }) })
+    // The agent saves the body; the recipient and subject come from the thread when it left them empty.
+    const [d] = await sbTry<Row[]>(`ai_drafts?id=eq.${enc(draftId)}&select=to_email,subject&limit=1`, [])
+    const fill: Row = { work_item_id: id }
+    if (!d?.to_email || !d?.subject) {
+      const [last] = await sbTry<Row[]>(`email_messages?thread_id=eq.${enc(threadId)}&deleted_at=is.null&direction=eq.inbound&select=from_address,subject&order=sent_at.desc&limit=1`, [])
+      const from = (String(last?.from_address ?? '').match(/<(.+?)>/)?.[1] ?? String(last?.from_address ?? '')).trim().toLowerCase()
+      if (!d?.to_email && from) fill.to_email = from
+      if (!d?.subject && last?.subject) fill.subject = /^\s*re\s*:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`
+    }
+    await sb(`ai_drafts?id=eq.${enc(draftId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(fill) })
     await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: draftId, updated_at: new Date().toISOString() }) })
     await event(id, 'draft', actor, { asked: true, next_action: r.nextAction ?? null })
   }
