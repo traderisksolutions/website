@@ -61,7 +61,10 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
   const quoting = QUOTING.has(policy.lifecycle)
   const lineId = policy.placement_line_id
   const line = bundle?.lines.find(l => l.id === lineId) ?? null
-  const engineQuotes = useMemo(() => lineId ? (bundle?.quotes as SpineQuote[] | undefined ?? []).filter(q => q.line_id === lineId && q.source === 'rate_table' && q.status !== 'superseded').length : 0, [bundle, lineId])
+  const engineRows = useMemo(() => lineId ? (bundle?.quotes as SpineQuote[] | undefined ?? []).filter(q => q.line_id === lineId && q.source === 'rate_table' && q.status !== 'superseded') : [], [bundle, lineId])
+  const engineQuotes = engineRows.length
+  // The list the engine priced, when it came by email rather than an upload: the quote says "28 lives, …".
+  const engineLives = useMemo(() => { for (const q of engineRows) { const m = /^(\d+) lives\b/.exec((q as { summary?: string | null }).summary ?? ''); if (m) return Number(m[1]) } return null }, [engineRows])
   const txById = useMemo(() => new Map((data?.transactions ?? []).map(t => [t.id, t])), [data])
   const reported = (data?.movements ?? []).filter(m => m.status === 'reported').length
   const title = `${policy.label ?? policy.class_of_insurance ?? 'Employment benefits'}${policy.insurer ? ` · ${policy.insurer}` : ''}`
@@ -132,7 +135,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
             {!lineId && 'No placement line linked to this policy.'}
             {lineId && (
               <>
-                {census ? `${census.count} on the list` : (line as { census_submission_id?: string | null } | null)?.census_submission_id ? 'List received' : 'No list yet'}
+                {census ? `${census.count} on the list` : (line as { census_submission_id?: string | null } | null)?.census_submission_id ? 'List received' : engineLives ? `${engineLives} on the list, from the client's email` : 'No list yet'}
                 {' · '}
                 {`${census?.quotes ?? engineQuotes} engine quote${(census?.quotes ?? engineQuotes) === 1 ? '' : 's'}`}
               </>

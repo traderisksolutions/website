@@ -64,8 +64,8 @@ export function ComingUp() {
 
   useEffect(() => {
     fetch(`/api/calendar/events?from=${addDays(today, -90)}&to=${addDays(today, 90)}`, { cache: 'no-store' })
-      .then(async r => { if (!r.ok) throw new Error(`Could not load the dates (${r.status}).`); return r.json() as Promise<{ events: CalendarEvent[] }> })
-      .then(d => setEvents(d.events ?? []))
+      .then(async r => { if (!r.ok) throw new Error(`Could not load the dates (${r.status}).`); return r.json() as Promise<CalendarEvent[] | { events: CalendarEvent[] }> })
+      .then(d => setEvents(Array.isArray(d) ? d : d.events ?? []))
       .catch(e => setError(e instanceof Error ? e.message : String(e)))
   }, [today])
 

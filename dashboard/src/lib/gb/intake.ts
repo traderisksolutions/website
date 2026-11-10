@@ -30,7 +30,7 @@ import { saveBuilder } from './builder'
 import { isHospitalCover, isSumCover, parseCoPay, parseHospital, parseSum, parseWard, type CoverSpec, type Hospital, type Tier } from './plan-rules'
 import type { Member } from '../gb-quote'
 
-import { censusMembers } from '@/lib/chief/census'
+import { censusMembers, censusPlans } from '@/lib/chief/census'
 import { logError } from '@/lib/error-log'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -218,11 +218,13 @@ async function attachmentsFor(threadId: string, messageId: string | null, expect
 
 const isSheet = (f: string, m: string | null) => /sheet|excel|csv/i.test(m ?? '') || /\.(xlsx|xlsm|xls|csv)$/i.test(f)
 
-export async function runGroupBenefitIntake(threadId: string, messageId: string | null): Promise<IntakeResult> {
-  // ── Once per message. A re-run of the same email does not open a second draft. ──
+export async function runGroupBenefitIntake(threadId: string, messageId: string | null, opts: { force?: boolean } = {}): Promise<IntakeResult> {
+  // ── Once per message. A re-run of the same email does not open a second draft, unless forced
+  //    (a census read again after a reader fix); the earlier draft is then superseded. ──
   const tag = `[message:${messageId ?? 'none'}] [thread:${threadId}]`
-  const existing = await get<{ id: string }>(`gb_quotations?notes=like.*${encodeURIComponent(`[message:${messageId ?? 'none'}]`)}*&select=id&limit=1`)
-  if (existing[0]) return { status: 'skipped', reason: 'already drafted', quotationId: existing[0].id }
+  const existing = await get<{ id: string }>(`gb_quotations?notes=like.*${encodeURIComponent(`[message:${messageId ?? 'none'}]`)}*&superseded_by=is.null&select=id&order=created_at.desc&limit=1`)
+  if (existing[0] && !opts.force) return { status: 'skipped', reason: 'already drafted', quotationId: existing[0].id }
+  const replaces = opts.force ? existing[0]?.id ?? null : null
 
   const [thread] = await get<{ id: string; subject: string | null; company_id: string | null }>(
     `email_threads?id=eq.${threadId}&select=id,subject,company_id&limit=1`)
@@ -275,6 +277,20 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
   }
   const read = normaliseRead(raw)
   if (!read.isRequest) return { status: 'not_a_request' }
+  // The census sheet's plan columns: the covers the client holds and their facts, where the
+  // email states none ("maintain the current coverage").
+  const plans = coded ? censusPlans(coded.f.parsed_text) : null
+  if (plans) {
+    const have = new Set(read.covers.map(c => c.code))
+    for (const code of plans.covers) if (!have.has(code)) read.covers.push({ code, note: `From the census sheet: ${plans.sample[code]}` })
+    for (const c of read.covers) {
+      if (c.code === 'GHS' && c.hospital == null && c.ward == null && plans.current.ward) { c.hospital = plans.current.ward[0] === 'G' ? 'government' : 'private'; c.ward = Number(plans.current.ward[1]) as 1 | 2 | 4; c.note = c.note ?? `From the census sheet: ${plans.sample.GHS}` }
+      if (c.code === 'GOPC' && c.coPay == null && plans.current.gp) c.coPay = plans.current.gp === 'copay'
+      if (c.code === 'GTL' && c.sumAssured == null && plans.current.gtl) c.sumAssured = plans.current.gtl
+      if (c.code === 'GCI' && c.sumAssured == null && plans.current.gci) c.sumAssured = plans.current.gci
+      if (c.code === 'GPA' && c.sumAssured == null && plans.current.pa) c.sumAssured = plans.current.pa
+    }
+  }
 
   // The insured as the request names it; the thread's filed company is the sender's employer,
   // which for a group or an outsourced HR desk is not the policyholder.
@@ -295,6 +311,8 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
     read.budgetText ? `Budget: ${read.budgetText}.` : 'No budget stated.',
     read.renewalDate ? `Current policy renews ${read.renewalDate}.` : null,
     coded ? `Census read by code from ${coded.f.filename}: ${coded.read.members.length} members.` : null,
+    plans ? `Current plans from the census sheet: ${Object.entries(plans.sample).map(([k, v]) => `${k} ${v}`).join(' · ')}.` : null,
+    replaces ? `Read again; replaces the earlier draft.` : null,
     coded?.read.others.length ? `Also in the file, not priced here: ${coded.read.others.map(o => `${o.company ?? 'another company'} (${o.rows})`).join(', ')}.` : null,
   ].filter(Boolean) as string[]
 
@@ -358,6 +376,7 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
   }
   const { quotationId, complete: draftComplete, partial } = draft
   if (open) await supersede(open.id, quotationId)
+  if (replaces) await supersede(replaces, quotationId)
   // Price the draft on the requirement, as the plan builder does, so the broker opens the same
   // numbers the builder shows. The plan-rules draft stays if this fails.
   let result = draft.result, complete = draftComplete
@@ -381,6 +400,13 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
       `; ${read.members.length} members${partial ? `; ${partial} insurer${partial === 1 ? '' : 's'} partial` : ''}`,
     metadata: { thread_id: threadId },
   })
+  // The prices go onto the company's open employee-benefits line now; a failure here never undoes the draft.
+  try {
+    // Loaded here: placement/eb imports this module for defaultEffectiveDate.
+    const { attachQuotationToOpenLine } = await import('@/lib/placement/auto-attach')
+    const r = await attachQuotationToOpenLine(thread.company_id, quotationId, 'gb_agent')
+    if ('filed' in r) console.log(`[gb/intake] ${r.filed} engine prices filed on line ${r.lineId} from ${quotationId}`)
+  } catch (e) { console.warn('[gb/intake] could not file the prices on the line (non-fatal):', e instanceof Error ? e.message : e) }
   return { status: 'drafted', quotationId, insurers: result.per_insurer.length, complete: complete.length, cheapest, dearest }
 }
 
