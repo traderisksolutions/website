@@ -43,7 +43,8 @@ function CompaniesInner() {
   // ?kind=insurer opens Companies → Insurers directly; the rate-table and calculator pickers
   // link here when an insurer is missing.
   const [kind, setKind] = useState<'client' | 'insurer'>(search.get('kind') === 'insurer' ? 'insurer' : 'client')
-  const [f, setF] = useState<Filters>(EMPTY)
+  // ?renewal=overdue|w7|w30|w60|w90 opens the register on that window (Today's Coming up links here).
+  const [f, setF] = useState<Filters>(() => { const r = search.get('renewal'); return r && RENEWAL_WINDOWS.some(w => w.key === r) ? { ...EMPTY, renewal: r as RenewalWindow } : EMPTY })
   const [sort, setSort] = useState<Sort>(DEFAULT_SORT)
   const [creating, setCreating] = useState(false)
   const [filterOpen, setFilterOpen] = useState(false)
