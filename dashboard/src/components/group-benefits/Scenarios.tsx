@@ -30,6 +30,8 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
   const [error, setError] = useState<string | null>(null)
   const [pickThread, setPickThread] = useState(false)
   const [showOther, setShowOther] = useState(false)
+  const [drafting, setDrafting] = useState(false)
+  const [drafted, setDrafted] = useState<{ draftId: string; threadId: string; to: string } | null>(null)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/quote/${quotationId}/scenarios`, { cache: 'no-store' })
@@ -48,6 +50,17 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
     } finally { setBusy(false) }
   }
   const start = () => (threadId ? void run({ thread_id: threadId }) : setPickThread(true))
+
+  async function draftToClient() {
+    if (!threadId) { setPickThread(true); return }
+    setDrafting(true); setError(null)
+    try {
+      const res = await fetch(`/api/group-benefits/quote/${quotationId}/client-draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thread_id: threadId }) })
+      const d = await res.json().catch(() => ({})) as { draftId?: string; threadId?: string; to?: string; error?: string }
+      if (!res.ok || !d.draftId) { setError(d.error ?? `Draft failed (${res.status})`); return }
+      setDrafted({ draftId: d.draftId, threadId: d.threadId ?? threadId, to: d.to ?? '' })
+    } finally { setDrafting(false) }
+  }
 
   if (!loaded) return null
   const b = pack?.brief
@@ -83,6 +96,13 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             {busy ? 'Reading the thread…' : pack ? 'Read the thread again' : 'Price 3 options from the thread'}
           </button>
+          {pack && !drafted && (
+            <button onClick={() => void draftToClient()} disabled={drafting || busy} className={BTN1} title="Premium summary, derivation and suggestion, with the report attached. Waits in the thread; nothing sends.">
+              {drafting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {drafting ? 'Writing…' : 'Draft to client'}
+            </button>
+          )}
+          {drafted && <span className="text-[13px]"><span style={{ color: MUTED }}>Draft to {drafted.to} waits in the thread · </span><Link href={`/engagement?lead=${drafted.threadId}`} className="no-underline hover:underline" style={{ color: '#0f1412' }}>Open thread →</Link></span>}
         </div>
       </div>
       {error && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{error}</p>}

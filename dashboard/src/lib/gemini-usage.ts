@@ -120,6 +120,8 @@ export type AiFeature =
   | 'gb_intake_extract'
   // The thread brief behind scenarios A, B, C (10 Nov 2026): what the client has, wants, rules out.
   | 'gb_brief'
+  // The client email after pricing options (11 Nov 2026): a tone pass over a code-written draft.
+  | 'gb_client_draft'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

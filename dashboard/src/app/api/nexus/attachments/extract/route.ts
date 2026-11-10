@@ -357,7 +357,9 @@ async function processAttachment(
   // ── PDF: store binary AND extract text now (so it is always read) ────────
   if (mime === 'application/pdf' || filename.toLowerCase().endsWith('.pdf')) {
     storageUrl = await uploadToStorage(storagePath, data, 'application/pdf')
-    parsedText = await extractPdfText(data, apiKey)
+    // A PDF neither library nor model could read (image-only, protected, or one the model
+    // refuses with 400) is marked so, rather than left null to be read again on every pass.
+    parsedText = (await extractPdfText(data, apiKey)) ?? '[PDF stored; no readable text: image-only or protected. Open the file to read it.]'
     console.log(`[nexus/extract] PDF stored + read: ${filename} → ${storageUrl ?? 'FAILED'} (${parsedText?.length ?? 0} chars)`)
   }
 

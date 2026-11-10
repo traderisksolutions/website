@@ -89,6 +89,33 @@ function ReportDocument({ m, logo }: { m: ReportModel; logo: string | null }) {
           </View>
         )}
 
+        {m.options && (
+          <View wrap={false} style={s.table}>
+            <Text style={s.h2}>Pricing options</Text>
+            <View style={s.thRow}>
+              <Text style={[s.th, { width: '28%' }]}>INSURER</Text>
+              {m.options.names.map(n => <Text key={n} style={[s.th, s.num, { width: `${72 / m.options!.names.length}%` }]}>{n.toUpperCase()}</Text>)}
+            </View>
+            {m.options.rows.map(r => (
+              <View key={r.insurer} style={s.tr}>
+                <View style={[s.td, { width: '28%' }]}><Text style={s.bold}>{r.insurer}</Text>{r.current && <Text style={s.sub}>Current insurer, priced as a renewal</Text>}</View>
+                {r.totals.map((t, i) => (
+                  <View key={i} style={[s.td, { width: `${72 / r.totals.length}%` }]}>
+                    <Text style={[s.num, { color: t == null ? FAINT : INK }]}>{t == null ? '—' : sgd(t)}</Text>
+                    {r.unpriced[i] > 0 && <Text style={[s.sub, s.num]}>{r.unpriced[i]} line{r.unpriced[i] === 1 ? '' : 's'} not priced</Text>}
+                  </View>
+                ))}
+              </View>
+            ))}
+            {m.options.summaries.map((t, i) => (
+              <View key={i} style={s.li}><Text style={[s.small, { width: 8 }]}>•</Text><Text style={[s.small, { flex: 1, color: MUTED }]}><Text style={s.bold}>{m.options!.names[i]}</Text>: {t}</Text></View>
+            ))}
+            {m.options.notes.map((t, i) => (
+              <View key={`n${i}`} style={s.li}><Text style={[s.small, { width: 8 }]}>•</Text><Text style={[s.small, { flex: 1, color: MUTED }]}>{t}</Text></View>
+            ))}
+          </View>
+        )}
+
         <Text style={s.h2}>Annual premium by insurer</Text>
         <View style={s.table}>
           <View style={s.thRow}>

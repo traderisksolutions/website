@@ -31,6 +31,8 @@ export type BuilderInput = {
   basis?: QuoteBasis
   /** Include Tier B (Cigna Care Connect 1.0). */
   tier_b?: boolean
+  /** Price every approved card, not only the one in force per insurer (the pricing options show the expiring card beside the new one). */
+  all_cards?: boolean
 }
 
 export type BuilderTable = TableShape & { insurer: InsurerKey; tier: 'A' | 'B'; insurer_id: string | null; effective_date: string | null; renewal_effective_date: string | null }
@@ -92,7 +94,8 @@ export async function priceBuilder(raw: BuilderInput): Promise<BuilderResult & {
   const input = { ...raw, members: raw.members.map(m => (names.has(m.category) ? m : { ...m, category: raw.categories[0]?.name ?? m.category })) }
   // One card per insurer: the one in force on the effective date for the basis (QBE's V11 and
   // V12 were both priced and the quotation page summed them into one S$83k row, 11 Nov 2026).
-  const tables = cardsInForce(await builderTables(!!input.tier_b), input.effective_date.slice(0, 10), input.basis ?? 'new_business').cards
+  const every = await builderTables(!!input.tier_b)
+  const tables = input.all_cards ? every : cardsInForce(every, input.effective_date.slice(0, 10), input.basis ?? 'new_business').cards
   const built = categoryMapFor(input, tables)
   const rateTables = await loadRateTables(tables.map(t => t.id))
   const members = engineMembers(input.members)

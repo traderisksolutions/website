@@ -49,6 +49,7 @@ const singaporeToday = () => isoDay(new Date(Date.now() + 8 * 3_600_000))
 const nameOf = (c: Row | undefined) => c ? [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || null : null
 
 const DRAFT_LABEL: Record<string, string> = {
+  gb_client_options: 'Pricing options to client',
   CASE_WORK: 'Prepared email', CONVERSATION: 'Reply', RENEWAL: 'Renewal email', POLICY_MOVEMENT: 'Movement email', PLACEMENT_REQUEST: 'Request', NEXUS: 'Email',
 }
 

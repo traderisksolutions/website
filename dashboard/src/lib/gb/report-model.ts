@@ -34,7 +34,15 @@ export type ReportBenefitTable = {
   insurers: { tableId: string; insurer: string; plan: string }[]
   rows: { name: string; values: (string | null)[] }[]
 }
+/** The pricing options (like for like, lower cost, enhanced): insurers down, options across. */
+export type ReportOptions = {
+  names: string[]; summaries: string[]
+  rows: { insurer: string; current: boolean; totals: (number | null)[]; unpriced: number[] }[]
+  notes: string[]
+}
 export type ReportModel = {
+  /** The pricing options read from the client thread, when they were priced. */
+  options: ReportOptions | null
   /** What the client asked for, cover by cover, one column per employee category. */
   requested: { categories: string[]; rows: { cover: string; values: string[] }[] } | null
   company: string; effectiveDate: string | null; basis: string; prepared: string
@@ -50,7 +58,7 @@ const cellText = (c: Cell | undefined): string | null => {
   return k.kind === 'sgd' ? `S$${k.n.toLocaleString('en-SG')}` : k.kind === 'percent' ? `${k.n}%` : k.kind === 'as_charged' ? 'As charged' : null
 }
 
-export function buildReportModel(q: ReportQuotation, names: CoverNames = {}): ReportModel {
+export function buildReportModel(q: ReportQuotation, names: CoverNames = {}, options: ReportOptions | null = null): ReportModel {
   const profile = censusProfile(q.census ?? [], q.effective_date)
   const employees = profile.employees || q.member_count || 1
   // AIA files personal accident as GADD; on the client report it is personal accident.
@@ -116,8 +124,10 @@ export function buildReportModel(q: ReportQuotation, names: CoverNames = {}): Re
   const exempt = coverCodes.filter(c => !gstApplies(c)).map(c => (names[c] || PRODUCT_BY_CODE[c].name).replace(/\s*\([^)]*\)/g, '').toLowerCase())
   const cats = q.requirement?.categories ?? []
   const grids = cats.map(c => requirementRows(c.requirement))
-  const requested = cats.length ? { categories: cats.map(c => c.name), rows: grids[0].map((r, i) => ({ cover: r[0], values: grids.map(g => g[i]?.[1] ?? '') })) } : null
+  // A census with no dependants shows that, not the plan's dependant rule.
+  const requested = cats.length ? { categories: cats.map(c => c.name), rows: grids[0].map((r, i) => ({ cover: r[0], values: grids.map(g => (profile.dependants === 0 && /^dependant/i.test(r[0]) ? 'None on the list' : g[i]?.[1] ?? '')) })) } : null
   return {
+    options,
     requested,
     company: q.company_name || 'Untitled', effectiveDate: q.effective_date,
     basis: q.basis === 'renewal' ? 'Renewal' : 'New business', prepared: q.created_at.slice(0, 10),

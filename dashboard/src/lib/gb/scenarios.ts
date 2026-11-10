@@ -180,7 +180,7 @@ export function scenariosFor(brief: Brief): Scenario[] {
 
 // ── Insurer flags ────────────────────────────────────────────────────────────────────────────────
 
-export type PricedInsurer = { rate_table_id: string; insurer_name: string; insurer: InsurerKey; net: number; gst: number; total: number; missing: number; by_product: Record<string, number> }
+export type PricedInsurer = { rate_table_id: string; insurer_name: string; insurer: InsurerKey; net: number; gst: number; total: number; missing: number; by_product: Record<string, number>; gaps?: { member: string; product: string; note: string }[] }
 export type ScenarioInsurer = PricedInsurer & {
   /** The card that prices this effective date and basis; other cards of the same insurer are shown folded. */
   inForce: boolean

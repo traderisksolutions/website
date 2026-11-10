@@ -176,13 +176,13 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
   let dependants = 0
   for (const s of scenarios) {
     const cat = [{ name: 'All employees', requirement: s.requirement, overrides: {} }]
-    const r = await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis, tier_b: tierB })
-    const r2 = other === basis ? r : await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis: other, tier_b: tierB })
+    const r = await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis, tier_b: tierB, all_cards: true })
+    const r2 = other === basis ? r : await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis: other, tier_b: tierB, all_cards: true })
     dependants = r.dependants
     const mine = r.insurers.filter(i => i.insurer === current)
     const rest = r2.insurers.filter(i => i.insurer !== current)
     const ids = new Set([...inForceIds].filter(id => mine.some(i => i.rate_table_id === id)).concat([...inForceOther].filter(id => rest.some(i => i.rate_table_id === id))))
-    priced.push({ ...s, insurers: flagInsurers([...mine, ...rest], brief, ids) })
+    priced.push({ ...s, insurers: flagInsurers([...mine, ...rest].map(i => ({ ...i, gaps: i.gaps.slice(0, 40) })), brief, ids) })
   }
   if (other !== basis) notes.push(`${brief.currentInsurer} priced as a renewal; every other insurer as new business, which is how a switch is underwritten.`)
   if (plans) notes.push(`Current plans read from the census sheet: ${Object.entries(plans.sample).map(([k, v]) => `${k} ${v}`).join(' · ')}.`)
