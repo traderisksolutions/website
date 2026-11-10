@@ -12,7 +12,8 @@ import { Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { ThreadSelectorModal } from '@/components/group-benefits/ThreadSelectorModal'
-import { shortInsurer } from '@/lib/gb/insurer-names'
+import { shortInsurer, PRICE_DERIVATION } from '@/lib/gb/insurer-names'
+import { Tip } from '@/components/Tip'
 import type { ScenarioPack } from '@/lib/gb/scenario-run'
 import type { ScenarioInsurer } from '@/lib/gb/scenarios'
 
@@ -75,7 +76,7 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
   return (
     <section id="scenarios" className="mb-10">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="m-0 text-[16px] font-medium">Scenarios</h2>
+        <h2 className="m-0 text-[16px] font-medium">Scenarios <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></h2>
         <div className="flex flex-wrap items-center gap-2">
           {pack && <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>Read {new Date(pack.at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} · {pack.messages} messages · {pack.employees} employees, {pack.dependants} dependants</span>}
           <button onClick={start} disabled={busy || !hasCensus} className={pack ? BTN2 : BTN1} title={hasCensus ? undefined : 'Needs a member list first'}>

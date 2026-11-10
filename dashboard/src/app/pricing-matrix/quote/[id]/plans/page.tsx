@@ -15,6 +15,8 @@ import { COVER_LABEL, DEFAULT_REQUIREMENT, type CategoryInput, type CoverKey, ty
 import type { BuilderInsurer, BuilderTable } from '@/lib/gb/builder'
 import type { OutreachInsurer } from '@/lib/gb/outreach'
 import type { ScenarioPack } from '@/lib/gb/scenario-run'
+import { PRICE_DERIVATION } from '@/lib/gb/insurer-names'
+import { Tip } from '@/components/Tip'
 
 type CensusMember = { name: string; category: string; relationship: string; dob: string | null; occupation_class: string | null; work_pass?: string | null }
 type Quotation = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; census: CensusMember[]; requirement: { categories?: CategoryInput[]; employee_categories?: Record<string, string>; budget?: number | null; tier_b?: boolean } | null }
@@ -235,7 +237,7 @@ function PlanBuilder() {
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-5">
         <div>
           <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">{q.company_name || 'Untitled quote'}</h1>
-          <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>{priced ? `${priced.employees} employees · ${priced.dependants} dependants` : `${q.census.length} lives`}</p>
+          <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>{priced ? `${priced.employees} employees · ${priced.dependants} dependants` : `${q.census.length} lives`} <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <Segmented value={basis} onChange={v => setBasis(v)} options={[{ value: 'new_business', label: 'New business' }, { value: 'renewal', label: 'Renewal' }]} />

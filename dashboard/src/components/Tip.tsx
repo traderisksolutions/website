@@ -2,15 +2,17 @@
 import { Tooltip } from 'antd'
 import { HelpCircle } from 'lucide-react'
 
-export function Tip({ text, placement = 'top' }: {
+export function Tip({ text, placement = 'top', width = 260 }: {
   text:       string
   placement?: 'top' | 'bottom' | 'left' | 'right' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight'
+  /** Wider for a note of several sentences. */
+  width?:     number
 }) {
   return (
     <Tooltip
       title={text}
       placement={placement}
-      styles={{ container: { fontSize: 12, maxWidth: 260, lineHeight: 1.55 } }}
+      styles={{ container: { fontSize: 12, maxWidth: width, lineHeight: 1.55 } }}
     >
       <span style={{
         display: 'inline-flex', alignItems: 'center', cursor: 'help',

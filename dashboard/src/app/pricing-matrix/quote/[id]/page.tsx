@@ -11,7 +11,8 @@ import { ValueScore } from '@/components/group-benefits/ValueScore'
 import type { Comparison } from '@/lib/gb/compare'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
-import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
+import { shortInsurer, ON_REQUEST_PLANS, PRICE_DERIVATION } from '@/lib/gb/insurer-names'
+import { Tip } from '@/components/Tip'
 import { Step } from '@/components/group-benefits/Step'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
@@ -156,7 +157,7 @@ export default function QuoteDetailPage() {
 
       {priced && (
         <section className="mb-10">
-          <Step n={1} className="mb-4">Premiums</Step>
+          <Step n={1} className="mb-4">Premiums <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></Step>
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:[grid-template-columns:repeat(var(--n),minmax(0,1fr))]"
                style={{ '--n': Math.min(byInsurer.length, 5) } as React.CSSProperties}>
             {byInsurer.map((r, i) => (

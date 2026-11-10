@@ -28,3 +28,6 @@ export const ON_REQUEST_PLANS: OnRequestPlan[] = [
   { key: 'cigna-ccc-2', insurer: 'Cigna', label: 'Cigna Care Connect 2.0', rates: 'On request' },
   { key: 'april-myhealth', insurer: 'April', label: 'April MyHEALTH', rates: 'On request' },
 ]
+
+/** What derives a premium. Shown as a tooltip wherever a figure is priced (quotation, scenarios, plan builder). */
+export const PRICE_DERIVATION = 'Each figure follows from five things. The census: each life\u2019s age on the insurer\u2019s age basis at the effective date (RCC age next birthday; Income, QBE, Singlife, AIA age last birthday), employee or dependant, occupation class for accident cover. The effective date and basis: they pick the rate card in force (QBE V11 before 2 Sep 2026, V12 from then for renewals). One plan per cover per category: hospital type, ward, limit tier, co-payment, sum assured. The insurer\u2019s rules: GST-inclusive cards (Income, AIA) netted at \u00f7 1.09, RCC\u2019s group-size factor on medical covers, renewal-only age bands, foreign-worker plans. Package size limits: above them (QBE 50, Income and Singlife 100 employees) the insurer quotes a custom rate and the card is not a price.'
