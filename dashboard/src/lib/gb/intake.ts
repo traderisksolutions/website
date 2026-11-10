@@ -30,6 +30,9 @@ import { saveBuilder } from './builder'
 import type { CoverSpec, Hospital, Tier } from './plan-rules'
 import type { Member } from '../gb-quote'
 
+import { censusMembers } from '@/lib/chief/census'
+import { logError } from '@/lib/error-log'
+
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -230,21 +233,37 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
   const seen = new Set<string>()
   const files = atts.filter(a => (a.parsed_text ?? '').trim().length > 10 && !seen.has(a.filename) && seen.add(a.filename))
     .sort((a, b) => Number(isSheet(b.filename, b.mime_type)) - Number(isSheet(a.filename, a.mime_type)))
+  // A spreadsheet that reads as a member list is read by code (src/lib/chief/census.ts): the model
+  // is not asked to echo fifty rows, which is what hit its output cap on a 50-member file.
+  const coded = files.map(f => ({ f, read: isSheet(f.filename, f.mime_type) ? censusMembers(f.parsed_text) : null }))
+    .filter((x): x is { f: typeof files[number]; read: NonNullable<ReturnType<typeof censusMembers>> } => !!x.read)
+    .sort((a, b) => b.read.members.length - a.read.members.length)[0] ?? null
   let budget = 40_000
-  const corpus = files.map(f => {
+  const corpus = files.filter(f => f !== coded?.f).map(f => {
     const t = (f.parsed_text ?? '').slice(0, Math.max(0, Math.min(budget, 25_000)))
     budget -= t.length
     return t ? `# ATTACHMENT: ${f.filename}\n${t}` : ''
   }).filter(Boolean).join('\n\n')
+  const censusNote = coded
+    ? `# CENSUS: ${coded.f.filename} — ${coded.read.members.length} members${coded.read.company ? ` of ${coded.read.company}` : ''}${coded.read.insurer ? `, existing insurer ${coded.read.insurer}` : ''}, already read by code. Return "members": [] and read the rest of the request.\n\n`
+    : ''
 
   const { text, error } = await callGemini({
     agent: 'group_benefit', feature: 'gb_intake_extract', model: GEMINI_DEEP, system: SYSTEM, json: true,
-    temperature: 0, maxOutputTokens: 24_000, thinkingShare: 0.3, metadata: { thread_id: threadId, message_id: msg.id },
-    parts: [{ text: `SUBJECT: ${msg.subject ?? thread.subject ?? ''}\n\nEMAIL:\n${(msg.body_text ?? '').slice(0, 8000)}\n\n${corpus}` }],
+    temperature: 0, maxOutputTokens: coded ? 8_000 : 24_000, thinkingShare: 0.3, metadata: { thread_id: threadId, message_id: msg.id, census_by_code: coded?.read.members.length ?? 0 },
+    parts: [{ text: `SUBJECT: ${msg.subject ?? thread.subject ?? ''}\n\nEMAIL:\n${(msg.body_text ?? '').slice(0, 8000)}\n\n${censusNote}${corpus}` }],
   })
   if (!text) return { status: 'skipped', reason: error ?? 'model returned nothing' }
   let raw: RawRead
-  try { raw = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as RawRead } catch { return { status: 'skipped', reason: 'unreadable model output' } }
+  try { raw = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as RawRead } catch {
+    void logError({ source: 'gemini', feature: 'gb_intake', message: 'unreadable model output', threadId, metadata: { length: text.length, head: text.slice(0, 300), tail: text.slice(-300) } })
+    return { status: 'skipped', reason: 'unreadable model output' }
+  }
+  if (coded) {
+    raw.members = coded.read.members
+    if (!raw.current_insurer && coded.read.insurer) raw.current_insurer = coded.read.insurer
+    if (!raw.company_name && coded.read.company) raw.company_name = coded.read.company
+  }
   const read = normaliseRead(raw)
   if (!read.isRequest) return { status: 'not_a_request' }
 
@@ -266,6 +285,8 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
     read.unreadDates.length ? `Dates of birth not read, ages used where given: ${read.unreadDates.join('; ')}.` : null,
     read.budgetText ? `Budget: ${read.budgetText}.` : 'No budget stated.',
     read.renewalDate ? `Current policy renews ${read.renewalDate}.` : null,
+    coded ? `Census read by code from ${coded.f.filename}: ${coded.read.members.length} members.` : null,
+    coded?.read.others.length ? `Also in the file, not priced here: ${coded.read.others.map(o => `${o.company ?? 'another company'} (${o.rows})`).join(', ')}.` : null,
   ].filter(Boolean) as string[]
 
   // ── The same company already has an open request: a second email joins it. ──

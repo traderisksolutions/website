@@ -6,6 +6,7 @@
  * sends it through /api/email/send; Ask AI rewrites a draft as instructed, or writes the first
  * one from the case's thread; Nexus opens a case; Later holds the item. A case with paired drafts
  * (the client update beside the insurer email) opens the review page, where both are sent together.
+ * Above the sections, Suggested: what the mail makes possible (a census to price), one line and a Yes.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -16,6 +17,7 @@ import { oneRecipient } from '@/lib/email/recipients'
 import { classify, defaultSchedule, expectsReply } from '@/lib/followups/rules'
 import { todoSections, todoCount, TODO_SECTIONS, type TodoSection } from '@/lib/today/todo'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
+import type { ThreadSuggestion } from '@/lib/chief/suggest'
 
 type Who = 'mine' | 'all'
 type Edit = { to: string; cc: string; subject: string; body: string }
@@ -42,10 +44,13 @@ export function TodoList() {
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [more, setMore] = useState<Record<string, boolean>>({})
+  const [suggested, setSuggested] = useState<ThreadSuggestion[]>([])
 
-  const load = useCallback(() => callApi<{ items: TodayItem[]; me: string | null }>('/api/today')
-    .then(d => { setItems(d.items); setMe(d.me); if (d.me && !d.items.some(i => i.owner_email === d.me)) setWho('all') })
-    .catch(e => setError(errText(e))), [])
+  const load = useCallback(() => Promise.all([
+    callApi<{ items: TodayItem[]; me: string | null }>('/api/today')
+      .then(d => { setItems(d.items); setMe(d.me); if (d.me && !d.items.some(i => i.owner_email === d.me)) setWho('all') }),
+    callApi<{ items: ThreadSuggestion[] }>('/api/suggestions').then(d => setSuggested(d.items)).catch(() => setSuggested([])),
+  ]).catch(e => setError(errText(e))), [])
   useEffect(() => { void load() }, [load])
 
   const sections = useMemo(() => todoSections(items ?? [], who, me), [items, who, me])
@@ -72,7 +77,16 @@ export function TodoList() {
         <p className={`m-0 px-4 md:px-5 py-2 text-[13px] border-b border-trs-line ${error ? 'text-trs-neg' : 'text-trs-ink'}`} role={error ? 'alert' : 'status'}>{error ?? notice}</p>
       )}
       {!items && !error && <div className="px-5 py-4"><Spinner label="Loading the list…" /></div>}
-      {items && total === 0 && <p className="m-0 px-5 py-4 text-[13.5px] text-trs-muted">Nothing to do{who === 'mine' ? ' for you' : ''}.</p>}
+      {suggested.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between px-4 md:px-5 py-2 bg-trs-canvas border-b border-trs-line">
+            <h3 className="m-0 text-[12px] font-medium uppercase tracking-[0.06em] text-trs-ink-2">Suggested</h3>
+            <span className="font-mono text-[11.5px] text-trs-muted">{suggested.length}</span>
+          </div>
+          {suggested.map(s => <SuggestedRow key={`${s.threadId}:${s.key}`} s={s} onThread={setThread} onDone={done} onError={fail} />)}
+        </div>
+      )}
+      {items && total === 0 && suggested.length === 0 && <p className="m-0 px-5 py-4 text-[13.5px] text-trs-muted">Nothing to do{who === 'mine' ? ' for you' : ''}.</p>}
       {items && TODO_SECTIONS.map(s => {
         const rows = sections[s.key]
         if (!rows.length) return null
@@ -99,6 +113,35 @@ export function TodoList() {
       })}
       <ThreadModal threadId={thread} onClose={() => setThread(null)} />
     </section>
+  )
+}
+
+/** One suggestion from the mail: the file, the client, and a Yes that runs the action in place. */
+function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; onThread: (id: string) => void; onDone: (m: string) => void; onError: (e: unknown) => void }) {
+  const [busy, setBusy] = useState<string | null>(null)
+  const [result, setResult] = useState<{ summary: string; quotationId: string } | null>(s.done ? { summary: `Priced from this file · ${s.done.members} members`, quotationId: s.done.quotationId } : null)
+  const post = (body: unknown) => callApi<{ quotationId: string; summary: string }>(`/api/threads/${s.threadId}/bar`, { method: 'POST', body })
+  const yes = () => { setBusy('yes'); post({ action: 'suggest', key: s.key }).then(r => { setResult(r); onDone(`${r.summary}: ${s.company ?? s.subject ?? ''}`) }).catch(onError).finally(() => setBusy(null)) }
+  const notNow = () => { setBusy('no'); post({ action: 'dismiss', key: s.key }).then(() => onDone(`Not now: ${s.title}.`)).catch(onError).finally(() => setBusy(null)) }
+  return (
+    <div className="px-4 md:px-5 py-3 border-b border-trs-line">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Chip tone="blue">Employee benefits</Chip>
+            <span className="text-[12.5px] text-trs-muted truncate">{[s.company, fmtDate(s.receivedAt)].filter(Boolean).join(' · ')}</span>
+          </div>
+          <p className="m-0 mt-1 text-[14.5px] font-medium leading-snug text-trs-ink">{s.title}</p>
+          <p className="m-0 mt-0.5 text-[13px] text-trs-ink-2 break-words">{s.detail}{s.subject ? ` · ${s.subject}` : ''}</p>
+          {result && <p className="m-0 mt-1 text-[13px] text-trs-ink-2">{result.summary} · <Link href={`/pricing-matrix/quote/${result.quotationId}/plans`} className="text-trs-ink">Open plans</Link></p>}
+        </div>
+        <div className="flex flex-wrap items-start md:justify-end gap-1.5">
+          {!result && <Btn size="xs" level="primary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>}
+          {!result && <Btn size="xs" level="tertiary" loading={busy === 'no'} onClick={notNow}>Not now</Btn>}
+          <Btn size="xs" level="tertiary" onClick={() => onThread(s.threadId)}>Thread</Btn>
+        </div>
+      </div>
+    </div>
   )
 }
 

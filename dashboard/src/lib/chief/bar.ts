@@ -14,6 +14,7 @@ import { addressesIn, oneRecipient } from '@/lib/email/recipients'
 import { autoReplyAfter, isAutoReply, lastRealMessage, type WaitMessage } from '@/lib/threads/waiting'
 import * as store from '@/lib/placement/store'
 import { reviewQueue } from '@/lib/placement/workflow'
+import { suggestionsFor, type Suggestion } from './suggest'
 
 type Row = Record<string, any>
 export type Side = 'client' | 'insurer'
@@ -38,7 +39,7 @@ export type BarEnquiry = {
 }
 export type Bar = {
   threadId: string; companyId: string | null; state: BarState; autoReply: { from: string; at: string | null } | null
-  drafts: BarDraft[]; enquiry: BarEnquiry | null; caseItem: { id: string; title: string; nextAction: string | null } | null
+  drafts: BarDraft[]; enquiry: BarEnquiry | null; suggestions: Suggestion[]; caseItem: { id: string; title: string; nextAction: string | null } | null
   hold: { noAction?: boolean; until?: string } | null; today: string
 }
 
@@ -75,13 +76,20 @@ async function holdOf(threadId: string): Promise<(Row & { at?: string }) | null>
   try { return JSON.parse(r.value) } catch { return null }
 }
 
-export async function setHold(threadId: string, value: { noAction?: boolean; until?: string; by: string } | null): Promise<void> {
+export async function setHold(threadId: string, value: { noAction?: boolean; until?: string; dismissed?: string[]; by: string } | null): Promise<void> {
   const key = enc(`thread_bar:${threadId}`)
   if (!value) { await sb(`app_settings?key=eq.${key}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); return }
   await sb('app_settings?on_conflict=key', {
     method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
     body: JSON.stringify({ key: `thread_bar:${threadId}`, value: JSON.stringify({ ...value, at: new Date().toISOString() }), updated_at: new Date().toISOString() }),
   })
+}
+
+/** "Not now" on a suggestion: kept with the thread's hold, so it stays quiet on every screen. */
+export async function dismissSuggestion(threadId: string, key: string, by: string): Promise<void> {
+  const hold = (await holdOf(threadId)) ?? {}
+  const dismissed = Array.from(new Set([...(Array.isArray(hold.dismissed) ? hold.dismissed : []), key]))
+  await setHold(threadId, { ...(hold.noAction ? { noAction: true } : {}), ...(hold.until ? { until: hold.until } : {}), dismissed, by })
 }
 
 async function sideOf(email: string | null, companyKind: string | null): Promise<Side> {
@@ -144,9 +152,11 @@ export async function loadBar(threadId: string): Promise<Bar | null> {
   const [link] = await sbTry<Row[]>(`work_item_threads?thread_id=eq.${enc(threadId)}&select=work_items(id,title,next_action,closed_at)&limit=5`, [])
   const item = link?.work_items as Row | undefined
   const enquiry = await enquiryOf(threadId, thread, companyKind, withPeople)
+  const held = await holdOf(threadId)
+  const suggestions = await suggestionsFor(threadId, Array.isArray(held?.dismissed) ? held.dismissed : [])
 
   return {
-    threadId, companyId: thread.company_id ?? null, state, drafts, enquiry, today,
+    threadId, companyId: thread.company_id ?? null, state, drafts, enquiry, suggestions, today,
     autoReply: auto ? { from: bare(auto.from_address), at: auto.sent_at ?? null } : null,
     caseItem: item && !item.closed_at ? { id: item.id, title: item.title, nextAction: item.next_action ?? null } : null,
     hold: activeHold ? { noAction: !!activeHold.noAction, until: activeHold.until } : null,

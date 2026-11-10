@@ -46,6 +46,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
   const [busy, setBusy] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [from, setFrom] = useState(OPS_EMAIL)
+  const [outcome, setOutcome] = useState<Record<string, { summary: string; quotationId: string }>>({})
 
   const load = useCallback(async () => {
     try { setBar(await callApi<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
@@ -79,6 +80,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
   const snooze = () => run('snooze', async () => { await post({ action: 'snooze', until: addWorkingDays(new Date(`${bar!.today}T00:00:00Z`), 3).toISOString().slice(0, 10) }) })
   const noAction = () => run('none', async () => { await post({ action: 'no_action' }) })
   const clear = () => run('clear', async () => { await post({ action: 'clear' }) })
+  const suggest = (key: string) => run(key, async () => {
+    const r = await callApi<{ quotationId: string; summary: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body: { action: 'suggest', key } })
+    setOutcome(o => ({ ...o, [key]: r }))
+  })
+  const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
 
   if (error && !bar) return <Shell><p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p></Shell>
   if (!bar) return <Shell><p className="m-0 text-[13px]" style={{ color: MUTED }}>Loading…</p></Shell>
@@ -125,6 +131,28 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
         </>
       )}
       {error && <p className="m-0 mt-2 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
+
+      {(bar.suggestions?.length ?? 0) > 0 && (
+        <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label="Suggested">
+          {bar.suggestions.map(s => {
+            const done = outcome[s.key] ?? (s.done ? { summary: `Priced from this file · ${s.done.members} members`, quotationId: s.done.quotationId } : null)
+            return (
+              <li key={s.key} className="rounded-[10px] border px-3 py-2.5" style={{ borderColor: HAIR }}>
+                <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>{s.title}</p>
+                <p className="m-0 mt-0.5 text-[12.5px] break-words" style={{ color: MUTED }}>{s.detail}</p>
+                {done ? (
+                  <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: BODY }}>{done.summary} · <Link href={`/pricing-matrix/quote/${done.quotationId}/plans`} style={{ color: INK }}>Open plans</Link></p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? 'Pricing…' : `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}`}</button>
+                    <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
 
       {bar.drafts.length > 0 && (
         <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5">
