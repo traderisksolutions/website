@@ -709,6 +709,8 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   const threadRows = await threadUpsert.json()
   const thread     = Array.isArray(threadRows) ? threadRows[0] : threadRows
   if (!thread?.id) { console.error('[ingest] thread has no id'); return 'thread upsert returned no id' }
+  // The mailbox this copy was read from, every time: visibility (src/lib/mail/visibility.ts) reads it.
+  if (gmailThreadId) await saveAlias(mailbox, gmailThreadId, thread.id)
 
   // Ensure contact_id/company_id are set (merge-duplicates may have returned the old row without them)
   const threadPatch: Record<string, unknown> = {}

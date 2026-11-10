@@ -4,8 +4,7 @@ import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { canSeeThread } from '@/lib/mail/visibility'
-import { mailboxesByThread } from '@/lib/mail/visibility-server'
+import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
@@ -96,8 +95,9 @@ export async function GET(req: NextRequest) {
     }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
+    const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
+    threads = threads.filter(t => ok.has(t.id))
     const boxes = await mailboxesByThread(threads.map(t => t.id))
-    threads = threads.filter(t => canSeeThread(viewer, boxes.get(t.id) ?? []))
     if (threads.length === 0) return NextResponse.json([])
 
     // 2. Batch-fetch contacts for linked threads

@@ -27,6 +27,11 @@ describe('thread visibility', () => {
     expect(canSeeThread(CHENG, [NATHAN, CHENG])).toBe(true)
     expect(canSeeThread(HASYA, [NATHAN, CHENG])).toBe(false)
   })
+  it('a colleague who was on the email sees it', () => {
+    expect(canSeeThread(HASYA, [NATHAN], [HASYA])).toBe(true)
+    expect(canSeeThread(HASYA, [NATHAN], ['Hasya@Trade-RiskSol.com'])).toBe(true)
+    expect(canSeeThread(HASYA, [NATHAN], ['angela@trade-risksol.com'])).toBe(false)
+  })
   it('a cron or secret call sees everything', () => {
     expect(canSeeThread(null, [NATHAN])).toBe(true)
     expect(canSeeThread(undefined, [CHENG])).toBe(true)
