@@ -75,6 +75,7 @@ export function SiteHeader() {
             {trigger("ind", "Industries")}
             <Link href="/how-we-work" aria-current={current("/how-we-work")}>How it works</Link>
             <Link href="/about" aria-current={current("/about")}>Company</Link>
+            <Link href="/insights" aria-current={current("/insights")}>Insights</Link>
           </nav>
           <div className="right"><Link href="/contact" className="btn sm">Contact us</Link></div>
         </div>
@@ -115,7 +116,7 @@ export function SiteHeader() {
       <div className="drawer" hidden={!drawer}>
         <div className="top"><Link href="/" className="mark" aria-label={`${site.name} home`}><Mark /></Link><button type="button" className="burger" aria-label="Close menu" onClick={() => setDrawer(false)}><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden><path d="M5 5l10 10M15 5L5 15" /></svg></button></div>
         <div className="grp plain"><ul>
-          <li><Link href="/coverage">Coverage</Link></li><li><Link href="/industries">Industries</Link></li><li><Link href="/how-we-work">How it works</Link></li><li><Link href="/about">Company</Link></li><li><Link href="/contact">Contact</Link></li>
+          <li><Link href="/coverage">Coverage</Link></li><li><Link href="/industries">Industries</Link></li><li><Link href="/how-we-work">How it works</Link></li><li><Link href="/about">Company</Link></li><li><Link href="/insights">Insights</Link></li><li><Link href="/contact">Contact</Link></li>
         </ul></div>
         <div className="grp"><span className="mono">Coverage</span><ul>{LINES.map(l => <li key={l.slug}><Link href={`/coverage/${l.slug}`}>{l.name}</Link></li>)}<li><Link href="/appetite">Appetite</Link></li></ul></div>
         <div className="grp"><span className="mono">Industries</span><ul>{INDUSTRIES.map(i => <li key={i.slug}><Link href={`/industries/${i.slug}`}>{i.name}</Link></li>)}</ul></div>
