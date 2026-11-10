@@ -10,6 +10,9 @@ const SHARED: [string, MetadataRoute.Sitemap[number]["changeFrequency"], number]
 ];
 const langs = (path: string) => Object.fromEntries(MARKET_KEYS.map(k => [MARKETS[k].lang, `${site.url}${mpath(k, path)}`]));
 
+// Re-read the feed every five minutes so a newly published guide reaches the sitemap without a deploy.
+export const revalidate = 300;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: MetadataRoute.Sitemap = [];
   for (const k of MARKET_KEYS) {
