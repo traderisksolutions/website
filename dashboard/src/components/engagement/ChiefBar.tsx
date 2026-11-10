@@ -1,14 +1,13 @@
 'use client'
 
 /**
- * Next actions on a thread, at the top of the context rail: who it waits on, the chaser date, and
- * a button for each thing to do. A button opens its drafted email here on the page, so the thread
+ * The Actions and AI groups of the context rail: who the thread waits on, the chaser date, a
+ * button for each thing to do, the AI's suggestions, then what the AI can read and price. A button opens its drafted email here on the page, so the thread
  * stays scrollable beside it. A new policy enquiry lists one email per insurer per policy, each
  * with its own person; "Send" mails them one at a time, one address in To. Nothing sends without a click.
  */
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
 import { callApi, errText } from '@/components/placement/shared'
 import { draftBodyToHtml, emailReadyHtml } from '@/lib/email-body'
 import { toProblem } from '@/lib/email/recipients'
@@ -16,16 +15,9 @@ import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
 import type { ReadPlan } from '@/lib/chief/read'
 import { doneHref, doneLabel, doneSummary } from '@/lib/chief/suggest-links'
+import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, PRIMARY, SECOND, MAIN } from './rail-bits'
 
-const INK = '#0f1412'
-const BODY = '#2a332f'
-const MUTED = '#4a5550'
-const HAIR = '#e6e8e4'
-const ERROR = '#a1242f'
-const PRIMARY = '#1a2e26'
 const OPS_EMAIL = 'operations@trade-risksol.com'
-const SECOND = 'inline-flex items-center rounded-[9px] border px-2.5 py-1.5 text-[13px] bg-white cursor-pointer transition-colors hover:border-[#0f1412] disabled:opacity-50'
-const MAIN = 'inline-flex items-center rounded-[9px] border-0 px-3 py-1.5 text-[13px] text-white cursor-pointer disabled:opacity-50'
 const FIELD = 'w-full rounded-[7px] bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-[#0f1412]'
 
 const dayLabel = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
@@ -37,12 +29,16 @@ async function mail(draftId: string, to: string, subject: string, html: string, 
   return callApi<Sent>('/api/email/send', { method: 'POST', body: { draftId, toEmail: to, customSubject: subject, htmlBody: html, fromEmail: from, cc: cc?.length ? cc : undefined, attachments: attachments.length ? attachments : undefined } })
 }
 
-export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
+export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, aiExtras }: {
   threadId: string
   /** Changes when a new message arrives on the thread. */
   refreshKey?: string | null
   /** Tells the rail a draft is open, so it can widen. */
   onOpenChange?: (open: boolean) => void
+  /** The quiet link line at the end of Actions (add a to-do, add to a case). */
+  actionsFooter?: React.ReactNode
+  /** More AI rows from the rail (summary, draft reply), after Read thread. */
+  aiExtras?: React.ReactNode
 }) {
   const [bar, setBar] = useState<Bar | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -92,97 +88,100 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange }: {
   const execute = (stepIds: string[]) => run('execute', async () => { await post({ action: 'execute', stepIds }) })
   const step = (stepId: string, status: 'todo' | 'done') => run(`step:${stepId}`, async () => { await post({ action: 'step', stepId, status }) })
 
-  if (error && !bar) return <Shell><p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p></Shell>
-  if (!bar) return <Shell><p className="m-0 text-[13px]" style={{ color: MUTED }}>Loading…</p></Shell>
-
-  const st = bar.state
-  const chaseOpen = bar.drafts.some(d => d.label === 'Chaser')
+  const st = bar?.state ?? null
+  const chaseOpen = !!bar?.drafts.some(d => d.label === 'Chaser')
+  const doneOf = (s: Bar['suggestions'][number]) => outcome[s.key] ?? (s.done ? { summary: doneSummary(s), quotationId: s.done.quotationId } : null)
+  const pending = (bar?.suggestions ?? []).filter(s => !doneOf(s))
+  const finished = (bar?.suggestions ?? []).filter(s => doneOf(s))
+  const yesLabel = (s: Bar['suggestions'][number]) => busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : s.yes.length <= 8 ? `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}` : 'Yes'
 
   return (
-    <Shell>
-      {bar.hold?.noAction ? (
-        <div className="flex items-center justify-between gap-2">
-          <p className="m-0 text-[13px]" style={{ color: BODY }}>No action needed</p>
-          <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={clear} disabled={!!busy}>Undo</button>
-        </div>
-      ) : (
-        <>
-          {st.kind === 'reply' && <Status main={`Reply to ${st.person ?? st.email ?? 'sender'}`} sub={[st.side === 'insurer' ? 'Insurer' : 'Client', st.since ? dayLabel(st.since) : null].filter(Boolean).join(' · ')} />}
-          {st.kind === 'waiting' && (
-            <Status
-              main={`Waiting on ${st.person ?? st.email ?? 'the other side'}`}
-              sub={[st.sentAt ? `Sent ${dayLabel(st.sentAt)}` : null, st.side === 'insurer' ? 'Insurer' : 'Client'].filter(Boolean).join(' · ')}
-              timer={st.overdue ? `Chaser due ${dayLabel(st.chaseDue)}` : `Chaser ${dayLabel(st.chaseDue)} · ${st.workingDaysLeft} working day${st.workingDaysLeft === 1 ? '' : 's'}`}
-              alert={st.overdue}
-            />
-          )}
-          {st.kind === 'none' && <Status main="Nothing waiting" />}
-          {bar.autoReply && <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
-
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {st.kind === 'waiting' && !chaseOpen && (
-              <button type="button" className={st.overdue ? MAIN : SECOND} style={st.overdue ? { background: PRIMARY } : { borderColor: HAIR, color: INK }} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
-            )}
-            {st.kind === 'waiting' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={snooze} disabled={!!busy}>Snooze 3 days</button>}
-            {st.kind === 'reply' && bar.drafts.length === 0 && (
-              <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</button>
-            )}
-            {bar.enquiry?.stage === 'detected' && (
-              <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
-            )}
-            {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`} style={{ borderColor: HAIR, color: INK }}>Open case</Link>}
-            {!bar.read && <button type="button" className={`${SECOND} gap-1.5`} style={{ borderColor: HAIR, color: INK }} onClick={read} disabled={!!busy} title="The AI reads the whole thread and proposes the next steps"><Sparkles size={13} />{busy === 'read' ? 'Reading…' : 'Read thread'}</button>}
-            {st.kind !== 'none' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={noAction} disabled={!!busy}>No action</button>}
-          </div>
-          {bar.hold?.until && <button type="button" onClick={clear} className="mt-1.5 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
-        </>
-      )}
-      {error && <p className="m-0 mt-2 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
-
-      {bar.read && <ReadSteps plan={bar.read} busy={busy} onExecute={execute} onStep={step} onAgain={read} onOpenDraft={id => setOpen(id)} />}
-
-      {(bar.suggestions?.length ?? 0) > 0 && (
-        <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label="Suggested">
-          {bar.suggestions.map(s => {
-            const done = outcome[s.key] ?? (s.done ? { summary: doneSummary(s), quotationId: s.done.quotationId } : null)
-            return (
-              <li key={s.key} className="rounded-[10px] border px-3 py-2.5" style={{ borderColor: HAIR }}>
-                <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>{s.title}</p>
-                <p className="m-0 mt-0.5 text-[12.5px] break-words" style={{ color: MUTED }}>{s.detail}</p>
-                {done ? (
-                  <p className="m-0 mt-1.5 text-[12.5px]" style={{ color: BODY }}>{done.summary} · <Link href={doneHref(s, done.quotationId)} style={{ color: INK }}>{doneLabel(s)}</Link></p>
-                ) : (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}`}</button>
-                    <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
-                  </div>
+    <>
+      <Group label="Actions" ariaLabel="Next actions">
+        {error && !bar && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+        {!bar && !error && <p className="m-0 text-[13px]" style={{ color: MUTED }}>Loading…</p>}
+        {bar && st && (
+          bar.hold?.noAction ? (
+            <ActionItem eyebrow="Held" title="No action needed">
+              <Buttons><button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={clear} disabled={!!busy}>Undo</button></Buttons>
+            </ActionItem>
+          ) : (
+            <ActionItem
+              eyebrow={st.kind === 'reply' ? 'Reply due' : st.kind === 'waiting' ? (st.overdue ? 'Chaser due' : 'Waiting') : 'Status'}
+              title={st.kind === 'reply' ? `Reply to ${st.person ?? st.email ?? 'sender'}` : st.kind === 'waiting' ? `Waiting on ${st.person ?? st.email ?? 'the other side'}` : 'Nothing waiting'}
+              meta={st.kind === 'reply'
+                ? [st.side === 'insurer' ? 'Insurer' : 'Client', st.since ? dayLabel(st.since) : null].filter(Boolean).join(' · ')
+                : st.kind === 'waiting'
+                  ? [st.sentAt ? `Sent ${dayLabel(st.sentAt)}` : null, st.side === 'insurer' ? 'Insurer' : 'Client', st.overdue ? `chaser due ${dayLabel(st.chaseDue)}` : `chaser ${dayLabel(st.chaseDue)} · ${st.workingDaysLeft} working day${st.workingDaysLeft === 1 ? '' : 's'}`].filter(Boolean).join(' · ')
+                  : bar.autoReply ? `Auto-reply from ${bar.autoReply.from}` : null}
+              alert={st.kind === 'waiting' && st.overdue}>
+              {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-[12.5px]" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
+              <Buttons>
+                {st.kind === 'waiting' && !chaseOpen && (
+                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
                 )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                {st.kind === 'waiting' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={snooze} disabled={!!busy}>Snooze 3 days</button>}
+                {st.kind === 'reply' && bar.drafts.length === 0 && (
+                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</button>
+                )}
+                {bar.enquiry?.stage === 'detected' && (
+                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
+                )}
+                {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`} style={{ borderColor: HAIR, color: INK }}>Open case</Link>}
+                {st.kind !== 'none' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={noAction} disabled={!!busy}>No action</button>}
+              </Buttons>
+              {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
+            </ActionItem>
+          )
+        )}
+        {error && bar && <p className="m-0 mb-3 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
 
-      {bar.drafts.length > 0 && (
-        <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5">
-          {bar.drafts.map(d => (
-            <li key={d.id}>
-              <DraftRow draft={d} from={from} open={open === d.id} onToggle={() => setOpen(v => v === d.id ? null : d.id)} onDone={() => { setOpen(null); void load() }} />
-            </li>
-          ))}
-        </ul>
-      )}
+        {pending.map(s => (
+          <ActionItem key={s.key} eyebrow="Suggested" title={s.title} meta={s.detail}>
+            <Buttons>
+              <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</button>
+              <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
+            </Buttons>
+          </ActionItem>
+        ))}
 
-      {bar.enquiry && bar.enquiry.stage !== 'detected' && (
-        <Enquiry enquiry={bar.enquiry} from={from} open={open} setOpen={setOpen} reload={load} />
-      )}
-    </Shell>
+        {bar && bar.drafts.length > 0 && (
+          <div className="mb-6">
+            <p className="m-0 mb-1.5 text-[11.5px] uppercase" style={{ color: '#8c958f', letterSpacing: '0.06em' }}>Drafts</p>
+            <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
+              {bar.drafts.map(d => (
+                <li key={d.id}>
+                  <DraftRow draft={d} from={from} open={open === d.id} onToggle={() => setOpen(v => v === d.id ? null : d.id)} onDone={() => { setOpen(null); void load() }} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {bar?.enquiry && bar.enquiry.stage !== 'detected' && (
+          <Enquiry enquiry={bar.enquiry} from={from} open={open} setOpen={setOpen} reload={load} />
+        )}
+
+        {actionsFooter}
+      </Group>
+
+      <Group label="AI">
+        <AiRow title="Read thread" detail="Messages, files, policy → next steps as a checklist" action={bar?.read ? 'Read again' : 'Read'} onClick={read} busy={busy === 'read'} disabled={!bar}>
+          {bar?.read && <ReadSteps plan={bar.read} busy={busy} onExecute={execute} onStep={step} onOpenDraft={id => setOpen(id)} />}
+        </AiRow>
+        {finished.map(s => {
+          const d = doneOf(s)!
+          return <AiRow key={s.key} title={s.kind === 'eb_scenarios' ? 'Pricing options' : 'Census priced'} detail={d.summary} action="Open" href={doneHref(s, d.quotationId)} />
+        })}
+        {aiExtras}
+      </Group>
+    </>
   )
 }
 
 /** The read plan: a checklist of emails (one person each) and actions; Draft writes the ticked emails. */
-function ReadSteps({ plan, busy, onExecute, onStep, onAgain, onOpenDraft }: {
-  plan: ReadPlan; busy: string | null; onExecute: (ids: string[]) => void; onStep: (id: string, status: 'todo' | 'done') => void; onAgain: () => void; onOpenDraft: (draftId: string) => void
+function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
+  plan: ReadPlan; busy: string | null; onExecute: (ids: string[]) => void; onStep: (id: string, status: 'todo' | 'done') => void; onOpenDraft: (draftId: string) => void
 }) {
   const proposed = plan.steps.filter(s => s.status === 'proposed')
   const [picked, setPicked] = useState<Set<string>>(() => new Set(proposed.map(s => s.id)))
@@ -191,11 +190,8 @@ function ReadSteps({ plan, busy, onExecute, onStep, onAgain, onOpenDraft }: {
   const emails = chosen.filter(s => s.kind === 'email').length, actions = chosen.length - emails
   const who = (s: ReadPlan['steps'][number]) => s.kind === 'email' ? `Email · ${s.to?.name ?? s.to?.email ?? ''}${s.party === 'insurer' && s.insurer ? ` · ${s.insurer}` : s.party === 'client' ? ' · client' : ''}` : 'Action'
   return (
-    <div className="mt-3 rounded-[10px] border px-3 py-2.5" style={{ borderColor: HAIR }} aria-label="Next steps">
-      <div className="flex items-center justify-between gap-2">
-        <p className="m-0 text-[13px] font-medium inline-flex items-center gap-1.5" style={{ color: INK }}><Sparkles size={13} />Next steps</p>
-        <button type="button" onClick={onAgain} disabled={!!busy} className="bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>{busy === 'read' ? 'Reading…' : 'Read again'}</button>
-      </div>
+    <div className="mt-2.5 pl-[19px]" aria-label="Next steps">
+      <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>Next steps</p>
       {plan.summary && <p className="m-0 mt-1 text-[13px]" style={{ color: BODY }}>{plan.summary}</p>}
       {plan.situation && <p className="m-0 mt-1 text-[12.5px] whitespace-pre-line" style={{ color: MUTED }}>{plan.situation}</p>}
       <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
@@ -222,25 +218,6 @@ function ReadSteps({ plan, busy, onExecute, onStep, onAgain, onOpenDraft }: {
         </div>
       )}
     </div>
-  )
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <section className="rounded-[14px] px-4 py-3.5 bg-white" style={{ border: `1px solid ${INK}` }} aria-label="Next actions">
-      <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Next actions</p>
-      {children}
-    </section>
-  )
-}
-
-function Status({ main, sub, timer, alert }: { main: string; sub?: string; timer?: string; alert?: boolean }) {
-  return (
-    <>
-      <p className="m-0 text-[15px] font-medium leading-[1.3] break-words" style={{ color: INK }}>{main}</p>
-      {sub && <p className="m-0 mt-0.5 text-[13px]" style={{ color: BODY }}>{sub}</p>}
-      {timer && <p className="m-0 mt-1 text-[13px] tabular-nums" style={{ color: alert ? ERROR : BODY, fontWeight: alert ? 500 : 400 }}>{timer}</p>}
-    </>
   )
 }
 

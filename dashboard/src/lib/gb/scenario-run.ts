@@ -69,7 +69,12 @@ export async function benefitsThreads(threadId: string): Promise<{ ids: string[]
   const rows = await sbTry<Row[]>(`email_threads?company_id=eq.${enc(t.company_id)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,category,subject,last_message_at&order=last_message_at.desc&limit=40`, [])
   const gb = rows.filter(r => r.category === 'group_benefits')
   const related = rows.filter(r => r.id !== threadId && (r.category === 'group_benefits' || (isEbSubject(r.subject) && !['claim', 'rfq'].includes(r.category ?? '')))).slice(0, 5)
-  const inConversation = t.category === 'group_benefits' || (gb.length > 0 && isEbSubject(t.subject) && !['claim', 'rfq'].includes(t.category ?? ''))
+  // A client with an employee-benefits policy on file is in a benefits conversation whenever the
+  // subject reads as one, even before any thread was classed group_benefits (Empyrion, 11 Nov 2026).
+  const ebPolicy = gb.length === 0 && isEbSubject(t.subject)
+    ? (await sbTry<Row[]>(`policies?company_id=eq.${enc(t.company_id)}&status=eq.active&select=id,class_of_insurance&limit=50`, [])).some(p => /benefit|medical|hospital|\bghs\b|\bgtl\b|dental|\beb\b/i.test(String(p.class_of_insurance ?? '')))
+    : false
+  const inConversation = t.category === 'group_benefits' || ((gb.length > 0 || ebPolicy) && isEbSubject(t.subject) && !['claim', 'rfq'].includes(t.category ?? ''))
   return { ids: [threadId, ...related.map(r => r.id)], companyId: t.company_id, inConversation }
 }
 
@@ -167,5 +172,5 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
 
 export const packSummary = (pack: ScenarioPack): string => {
   const money = (n: number) => `S$${Math.round(n).toLocaleString('en-SG')}`
-  return pack.scenarios.map(s => { const h = headline(s.insurers); return `${s.key} ${h ? money(h.total) : '—'}` }).join(' · ')
+  return pack.scenarios.map(s => { const h = headline(s.insurers); return `${s.name} ${h ? money(h.total) : '—'}` }).join(' · ')
 }

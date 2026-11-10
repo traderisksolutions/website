@@ -50,7 +50,7 @@ describe('ChiefBar', () => {
     mockFetch(base)
     render(<ChiefBar threadId="t1" />)
     expect(await screen.findByText('Waiting on Serene Tan')).toBeTruthy()
-    expect(screen.getByText(/^Chaser Fri,? 13 Nov · 4 working days$/)).toBeTruthy()
+    expect(screen.getByText(/chaser Fri,? 13 Nov · 4 working days$/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Send chaser' })).toBeTruthy()
   })
 

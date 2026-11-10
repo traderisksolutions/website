@@ -76,25 +76,25 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
   return (
     <section id="scenarios" className="mb-10">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="m-0 text-[16px] font-medium">Scenarios <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></h2>
+        <h2 className="m-0 text-[16px] font-medium">Pricing options <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></h2>
         <div className="flex flex-wrap items-center gap-2">
           {pack && <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>Read {new Date(pack.at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} · {pack.messages} messages · {pack.employees} employees, {pack.dependants} dependants</span>}
           <button onClick={start} disabled={busy || !hasCensus} className={pack ? BTN2 : BTN1} title={hasCensus ? undefined : 'Needs a member list first'}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {busy ? 'Reading the thread…' : pack ? 'Read the thread again' : 'Price scenarios from the thread'}
+            {busy ? 'Reading the thread…' : pack ? 'Read the thread again' : 'Price 3 options from the thread'}
           </button>
         </div>
       </div>
       {error && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{error}</p>}
-      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not priced. Reads the client thread for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
+      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not priced. Reads the client's benefits threads for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
 
       {pack && (
         <>
-          <Register label="Scenarios" minWidth={760}>
+          <Register label="Pricing options" minWidth={760}>
             <RegisterHead>
               <RegisterTh first width={200}>Insurer</RegisterTh>
               {pack.scenarios.map((s, i) => (
-                <RegisterTh key={s.key} align="right" last={i === pack.scenarios.length - 1}>{s.key} · {s.name}</RegisterTh>
+                <RegisterTh key={s.key} align="right" last={i === pack.scenarios.length - 1}>{s.name}</RegisterTh>
               ))}
             </RegisterHead>
             <tbody>
@@ -113,7 +113,7 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
             {pack.scenarios.map(s => (
               <div key={s.key} className="min-w-0">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="m-0 text-[13px] font-semibold">{s.key} · {s.name}</p>
+                  <p className="m-0 text-[13px] font-semibold">{s.name}</p>
                   <Link href={`/pricing-matrix/quote/${quotationId}/plans?scenario=${s.key}`} className="text-[12.5px] font-medium no-underline hover:underline whitespace-nowrap" style={{ color: '#0f1412' }}>Use in builder</Link>
                 </div>
                 <p className="m-0 mt-1 text-[13px] leading-snug" style={{ color: MUTED }}>{s.summary}</p>
