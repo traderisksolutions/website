@@ -9,9 +9,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty, inputCls, textareaCls } from '@/components/crm/primitives'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PageHeader } from '@/components/page-header'
 import { ReviewList, useReview } from './review'
-import { callApi, errText, INK, MUTED, ERROR, selectCls } from '@/components/placement/shared'
+import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import type { WorkItem, Lane } from '@/lib/casework/queue'
 
 type Staff = { email: string; name: string }
@@ -127,11 +128,11 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
           </div>
           {due && <span className="shrink-0 text-[12.5px] font-medium" style={{ color: late ? ERROR : MUTED }}>{due}</span>}
         </div>
-        <div className="flex flex-wrap gap-1.5 mt-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-2">
           <Chip tone={st.tone}>{st.label}</Chip>
           <Chip>{TYPE[i.case_type] ?? i.case_type}</Chip>
-          {i.owner_left ? <Chip tone="red">Owner left</Chip> : ownerName ? <Chip>{ownerName}</Chip> : <Chip tone="amber">No owner</Chip>}
           {i.confidence === 'low' && <Chip tone="amber">Check facts</Chip>}
+          <span className="text-[12.5px]" style={{ color: i.owner_left || !ownerName ? ERROR : MUTED }}>Owner: {i.owner_left ? 'left TRS' : ownerName ?? 'none'}</span>
         </div>
       </button>
 
@@ -172,18 +173,19 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
             </div>
           )}
 
-          {/* Quiet moves far left, the one primary far right. */}
+          {/* One row, one shape: the moves that leave the item far left, the one primary far right. */}
           <div className="flex flex-wrap gap-2 items-center pt-3 border-t border-trs-line">
-            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('snooze', async () => { await post({ action: 'snooze', until: plusDays(3) }); return 'Back in 3 days.' })}>Not now</Btn>
-            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('close', async () => { await post({ action: 'close' }); return `Closed: ${i.title}.` })}>Done</Btn>
-            {i.draft && !editing && <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('discard', async () => { await post({ action: 'discard_draft' }); return 'Draft discarded.' })}>Discard draft</Btn>}
+            <Btn disabled={busy !== null} onClick={() => void run('snooze', async () => { await post({ action: 'snooze', until: plusDays(3) }); return 'Back in 3 days.' })}>Not now</Btn>
+            <Btn disabled={busy !== null} onClick={() => void run('close', async () => { await post({ action: 'close' }); return `Closed: ${i.title}.` })}>Done</Btn>
+            {i.draft && !editing && <Btn disabled={busy !== null} onClick={() => void run('discard', async () => { await post({ action: 'discard_draft' }); return 'Draft discarded.' })}>Discard draft</Btn>}
             <span className="flex-1" />
-            <select aria-label="Owner" className={`${selectCls} w-auto`} disabled={busy !== null} value={i.owner_left ? '' : i.owner_email ?? ''}
-              onChange={e => e.target.value && void run('assign', async () => { await post({ action: 'assign', owner: e.target.value }); return `Assigned to ${staff.find(s => s.email === e.target.value)?.name ?? e.target.value}.` })}>
-              <option value="">{i.owner_left || !i.owner_email ? 'Assign owner' : 'Change owner'}</option>
-              {staff.map(s => <option key={s.email} value={s.email}>{s.name}{s.email === i.suggested_owner ? ' (suggested)' : ''}</option>)}
-            </select>
-            {i.draft && <Btn level="secondary" disabled={busy !== null} onClick={() => setEditing(e => !e)}>{editing ? 'Cancel edit' : 'Edit'}</Btn>}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild><Btn disabled={busy !== null}>{i.owner_left || !i.owner_email ? 'Assign owner' : 'Reassign'}</Btn></DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {staff.map(s => <DropdownMenuItem key={s.email} onSelect={() => void run('assign', async () => { await post({ action: 'assign', owner: s.email }); return `Assigned to ${s.name}.` })}>{s.name}{s.email === i.suggested_owner ? ' · suggested' : ''}</DropdownMenuItem>)}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {i.draft && <Btn disabled={busy !== null} onClick={() => setEditing(e => !e)}>{editing ? 'Cancel edit' : 'Edit'}</Btn>}
             {i.draft && <Btn level="primary" loading={busy === 'send'} disabled={busy !== null} onClick={() => void send()}>{editing ? 'Save and send' : 'Approve and send'}</Btn>}
           </div>
         </div>

@@ -7,6 +7,7 @@
  */
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
+import { btnClass } from '@/components/crm/primitives'
 
 export const INK = '#0f1412'
 export const BODY = '#2a332f'
@@ -15,8 +16,9 @@ export const SUBTLE = '#8c958f'
 export const HAIR = '#e6e8e4'
 export const ERROR = '#a1242f'
 export const PRIMARY = '#1a2e26'
-export const SECOND = 'inline-flex items-center rounded-[9px] border px-2.5 py-1.5 text-[13px] bg-white cursor-pointer transition-colors hover:border-[#0f1412] disabled:opacity-50'
-export const MAIN = 'inline-flex items-center rounded-[9px] border-0 px-3 py-1.5 text-[13px] text-white cursor-pointer disabled:opacity-50'
+/** Buttons in a rail are the house ladder at row height (30px): outlined secondary, one green primary. */
+export const SECOND = btnClass('secondary', 'xs')
+export const MAIN = btnClass('primary', 'xs')
 
 export function GroupPill({ children }: { children: React.ReactNode }) {
   return (
@@ -57,8 +59,8 @@ export function AiRow({ title, detail, action, onClick, href, disabled, busy, ch
           <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{detail}</p>
         </div>
         {href
-          ? <Link href={href} className={`${SECOND} no-underline flex-shrink-0 whitespace-nowrap`} style={{ borderColor: HAIR, color: INK }}>{action}</Link>
-          : <button type="button" className={`${SECOND} flex-shrink-0 whitespace-nowrap`} style={{ borderColor: HAIR, color: INK }} onClick={onClick} disabled={disabled || busy}>{busy ? 'Working…' : action}</button>}
+          ? <Link href={href} className={`${SECOND} no-underline flex-shrink-0`}>{action}</Link>
+          : <button type="button" className={`${SECOND} flex-shrink-0`} onClick={onClick} disabled={disabled || busy}>{busy ? 'Working…' : action}</button>}
       </div>
       {children}
     </div>

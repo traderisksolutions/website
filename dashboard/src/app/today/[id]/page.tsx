@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { Btn, Chip, Spinner } from '@/components/crm/primitives'
+import { ActionItem, Arrow, Buttons, Group, InfoRow, Small } from '@/components/engagement/rail-bits'
 import { ActionBar } from '@/components/ui/action-bar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { callApi, errText } from '@/components/placement/shared'
@@ -148,6 +149,9 @@ export default function ReviewPage() {
   const st = STATUS[item.status] ?? STATUS.trs_to_act
   const title = forward && item.insurer_name ? `Forward to ${item.insurer_name}` : item.title
   const facts = [item.client, item.insurer_name, CASE_TYPE[item.case_type] ?? item.case_type, item.policy_number, item.waiting_since ? `waiting since ${fmtDate(item.waiting_since)}` : null].filter(Boolean).join(' · ')
+  const ownerName = item.owner_email ? (staff.find(s => s.email === item.owner_email)?.name ?? item.owner_email.split('@')[0]) : null
+  const received = item.register.filter(r => r.status === 'received' || r.status === 'waived').length
+  const quietLink = 'bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer text-trs-muted hover:text-trs-ink'
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto w-full min-w-0 flex flex-col gap-4">
@@ -193,9 +197,9 @@ export default function ReviewPage() {
             </div>
           )}
           <ActionBar left={<>
-            <LaterMenu itemId={item.id} label="Come back later" size="sm" onSet={l => { setNotice(`${l}.`); void next() }} onError={setError} />
+            <LaterMenu itemId={item.id} label="Come back later" level="secondary" size="sm" onSet={l => { setNotice(`${l}.`); void next() }} onError={setError} />
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Btn level="tertiary">Reassign</Btn></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Btn>Reassign</Btn></DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {staff.map(s => <DropdownMenuItem key={s.email} onSelect={() => void run('assign', async () => { await work({ action: 'assign', owner: s.email }); load(); return `Assigned to ${s.name}.` })}>{s.name}</DropdownMenuItem>)}
               </DropdownMenuContent>
@@ -221,23 +225,48 @@ export default function ReviewPage() {
           </ActionBar>
         </section>
 
-        <aside className="flex flex-col gap-3 min-w-0">
-          <Card title="Case" action={<Btn size="xs" level={editing ? 'secondary' : 'tertiary'} onClick={() => setEditing(v => !v)}>{editing ? 'Close editor' : 'Edit'}</Btn>}>
-            <div className="flex flex-wrap gap-1.5">
-              <Chip tone={st.tone}>{st.label}</Chip>
-              <Chip>{CASE_TYPE[item.case_type] ?? item.case_type}</Chip>
-              {isStage(item.stage) && <Chip tone="blue">{STAGE_LABEL[item.stage]} · {STAGES.indexOf(item.stage) + 1} of {STAGES.length}</Chip>}
-              {item.start_point && <Chip>{START_LABEL[item.start_point] ?? item.start_point}</Chip>}
-              {item.renewal_flow && (
-                <Link href="/settings?section=renewal_method" className="no-underline" title={FLOW_TIP[item.renewal_flow as RenewalFlow] ?? 'How the renewal flow is chosen'}>
-                  <Chip>Renewal flow: {FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow} ↗</Chip>
-                </Link>
-              )}
-              {item.deadline && <Chip tone="amber">Due {fmtDate(item.deadline)}</Chip>}
-              {(item.pending.level === 'red' || item.pending.level === 'amber') && <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip>}
-              {item.owner_email && <Chip>{item.owner_email.split('@')[0]}</Chip>}
-            </div>
-            {item.company_id && <div className="mt-2"><Btn size="xs" level="secondary" onClick={() => setLetterOpen(true)}>Appointment letter</Btn></div>}
+        {/* The right column in the rail format (docs/design-system.md, "Context rail"): green pill
+            per group, no boxes, spacing separates. Actions · Information · Source · Timeline. */}
+        <aside className="flex flex-col min-w-0 pt-1" aria-label="Case">
+          <Group label="Actions">
+            {item.needs_human && <ActionItem eyebrow="Decision" title={item.needs_human} alert />}
+            {item.register.length > 0 && (
+              <ActionItem eyebrow="Before binding" title={`${received} of ${item.register.length} documents in`}>
+                <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5 text-[13px]">
+                  {item.register.map(r => (
+                    <li key={r.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+                      <Chip tone={r.status === 'received' ? 'green' : r.status === 'waived' ? undefined : 'amber'}>{r.status === 'received' ? 'Received' : r.status === 'waived' ? 'Waived' : r.status === 'requested' ? 'Asked' : 'Needed'}</Chip>
+                      <span className="text-trs-ink min-w-0">{r.label}</span>
+                      {r.filename && <span className="text-trs-muted truncate max-w-full">{r.filename}</span>}
+                      {r.status !== 'received' && r.status !== 'waived' && waiving !== r.kind && (
+                        <button type="button" className={quietLink} onClick={() => { setWaiving(r.kind); setWaiveNote('') }}>Waive</button>
+                      )}
+                      {r.status === 'waived' && (
+                        <button type="button" className={quietLink}
+                          onClick={() => callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'needed' } }).then(load).catch(e => setError(errText(e)))}>
+                          Need it
+                        </button>
+                      )}
+                      {waiving === r.kind && (
+                        <form className="basis-full flex gap-1.5 items-center" onSubmit={e => { e.preventDefault(); if (!waiveNote.trim()) return; callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'waived', note: waiveNote.trim() } }).then(() => { setWaiving(null); load() }).catch(e => setError(errText(e))) }}>
+                          <input id={`waive-${r.kind}`} className={inputCls} placeholder="Why it is not needed" value={waiveNote} onChange={e => setWaiveNote(e.target.value)} />
+                          <Btn size="xs" type="submit">Waive</Btn>
+                          <Btn size="xs" type="button" onClick={() => setWaiving(null)}>Cancel</Btn>
+                        </form>
+                      )}
+                      {r.basis && r.status !== 'received' && <span className="basis-full text-[12px] text-trs-muted">{r.basis}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </ActionItem>
+            )}
+            <ActionItem eyebrow="Case record" title={item.title}>
+              <Buttons>
+                <Btn size="xs" onClick={() => setEditing(v => !v)} aria-expanded={editing}>{editing ? 'Close editor' : 'Edit case'}</Btn>
+                {item.company_id && <Btn size="xs" onClick={() => setLetterOpen(true)}>Appointment letter</Btn>}
+              </Buttons>
+              {editing && <div className="mt-3"><CaseEditor item={item} onSaved={m => { setNotice(m); setError(null); setEditing(false); load() }} onError={setError} /></div>}
+            </ActionItem>
             {item.company_id && (
               <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={item.company_id}
                 onAttach={item.draft ? async (documentId: string) => {
@@ -245,72 +274,65 @@ export default function ReviewPage() {
                   load()
                 } : undefined} />
             )}
-            {editing && <CaseEditor item={item} onSaved={m => { setNotice(m); setError(null); setEditing(false); load() }} onError={setError} />}
-            {item.summary && <p className="m-0 text-[13.5px] text-trs-ink-2">{item.summary}</p>}
-            {timeline.length > 0 && (
+          </Group>
+
+          <Group label="Information">
+            <InfoRow label="Status"><Chip tone={st.tone}>{st.label}</Chip>{(item.pending.level === 'red' || item.pending.level === 'amber') && <> <Chip tone={item.pending.level === 'red' ? 'red' : 'amber'}>{item.pending.reason}{item.pending.override ? ' · set by a person' : ''}</Chip></>}</InfoRow>
+            <InfoRow label="Owner">{ownerName ?? <span className="text-trs-warn">No owner</span>}</InfoRow>
+            <InfoRow label="Type">{CASE_TYPE[item.case_type] ?? item.case_type}{item.start_point && <Small> · {START_LABEL[item.start_point] ?? item.start_point}</Small>}</InfoRow>
+            {isStage(item.stage) && <InfoRow label="Stage">{STAGE_LABEL[item.stage]} <Small>· {STAGES.indexOf(item.stage) + 1} of {STAGES.length}</Small></InfoRow>}
+            {item.renewal_flow && (
+              <InfoRow label="Renewal flow">
+                <span title={FLOW_TIP[item.renewal_flow as RenewalFlow] ?? 'How the renewal flow is chosen'}><Arrow href="/settings?section=renewal_method">{FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow}</Arrow></span>
+              </InfoRow>
+            )}
+            {item.deadline && <InfoRow label="Due"><span className="tabular-nums text-trs-warn">{fmtDate(item.deadline)}</span></InfoRow>}
+            <InfoRow label="Client">{item.company_id ? <Arrow href={`/companies/${item.company_id}`}>{item.client}</Arrow> : item.client}</InfoRow>
+            {item.insurer_name && <InfoRow label="Insurer">{item.insurer_name}</InfoRow>}
+            {item.policy_number && <InfoRow label="Policy"><span className="tabular-nums">{item.policy_number}</span></InfoRow>}
+            {item.contacts.length > 0 && (
+              <InfoRow label="Contacts">
+                <ul className="m-0 p-0 list-none flex flex-col gap-1">
+                  {item.contacts.map(c => <li key={c.email} className="min-w-0 leading-[1.35]">{c.name}<br /><Small><span className="break-all">{c.email}</span>{c.scope.length > 0 && ` · ${c.scope.join(', ').replace(/_/g, ' ')}`}</Small></li>)}
+                </ul>
+              </InfoRow>
+            )}
+            {item.summary && <InfoRow label="Summary"><span className="text-trs-ink-2">{item.summary}</span></InfoRow>}
+          </Group>
+
+          <Group label="Source">
+            {item.threads.length === 0 && item.documents.length === 0 && <p className="m-0 text-[13px] text-trs-muted">No threads or files linked.</p>}
+            <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              {item.threads.map(t => (
+                <li key={t.id}>
+                  <button type="button" onClick={() => setThread(t.id)} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer min-w-0">
+                    <span className="block text-[13.5px] text-trs-ink truncate hover:underline">{t.subject ?? 'Thread'} <span className="text-trs-subtle">→</span></span>
+                    <span className="block text-[12.5px] text-trs-muted truncate">{t.side === 'insurer' ? 'Insurer' : t.side === 'client' ? 'Client' : 'Other'} · {t.messages} email{t.messages === 1 ? '' : 's'}{t.joined_by ? ` · joined by ${t.joined_by.replace('_', ' ')}` : ''}</span>
+                  </button>
+                </li>
+              ))}
+              {item.documents.slice(0, 8).map(d => (
+                <li key={d.id}>
+                  <button type="button" onClick={() => setDoc({ title: d.title, drive_url: d.drive_url })} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer min-w-0">
+                    <span className="block text-[13.5px] text-trs-ink truncate hover:underline">{d.title} <span className="text-trs-subtle">→</span></span>
+                    <span className="block text-[12.5px] text-trs-muted truncate">Data room · {d.doc_type.replace(/_/g, ' ')}{d.received_at ? ` · ${fmtDate(d.received_at)}` : ''}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </Group>
+
+          {timeline.length > 0 && (
+            <Group label="Timeline">
               <ol className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]">
                 {timeline.map((t, n) => (
-                  <li key={n} className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
-                    <span className="font-mono text-[11.5px] text-trs-muted pt-[2px]">{fmtWhen(t.at)}</span>
+                  <li key={n} className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-3">
+                    <span className="font-mono text-[11.5px] text-trs-muted pt-[2px] tabular-nums">{fmtWhen(t.at)}</span>
                     <span className="text-trs-ink-2 min-w-0 break-words">{t.text}{t.links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="ml-1.5 text-trs-muted">{l.label}</a>)}</span>
                   </li>
                 ))}
               </ol>
-            )}
-          </Card>
-          {item.register.length > 0 && (
-            <Card title="Documents before binding">
-              <ul className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]">
-                {item.register.map(r => (
-                  <li key={r.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
-                    <Chip tone={r.status === 'received' ? 'green' : r.status === 'waived' ? undefined : 'amber'}>{r.status === 'received' ? 'Received' : r.status === 'waived' ? 'Waived' : r.status === 'requested' ? 'Asked' : 'Needed'}</Chip>
-                    <span className="text-trs-ink min-w-0">{r.label}</span>
-                    {r.filename && <span className="text-trs-muted truncate max-w-full">{r.filename}</span>}
-                    {r.status !== 'received' && r.status !== 'waived' && waiving !== r.kind && (
-                      <button type="button" className="text-[12px] text-trs-muted underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0" onClick={() => { setWaiving(r.kind); setWaiveNote('') }}>Waive</button>
-                    )}
-                    {r.status === 'waived' && (
-                      <button type="button" className="text-[12px] text-trs-muted underline underline-offset-2 cursor-pointer bg-transparent border-0 p-0"
-                        onClick={() => callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'needed' } }).then(load).catch(e => setError(errText(e)))}>
-                        Need it
-                      </button>
-                    )}
-                    {waiving === r.kind && (
-                      <form className="basis-full flex gap-1.5 items-center" onSubmit={e => { e.preventDefault(); if (!waiveNote.trim()) return; callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'waived', note: waiveNote.trim() } }).then(() => { setWaiving(null); load() }).catch(e => setError(errText(e))) }}>
-                        <input id={`waive-${r.kind}`} className={inputCls} placeholder="Why it is not needed" value={waiveNote} onChange={e => setWaiveNote(e.target.value)} />
-                        <Btn size="xs" level="secondary" type="submit">Waive</Btn>
-                        <Btn size="xs" level="tertiary" type="button" onClick={() => setWaiving(null)}>Cancel</Btn>
-                      </form>
-                    )}
-                    {r.basis && r.status !== 'received' && <span className="basis-full text-[12px] text-trs-muted">{r.basis}</span>}
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
-          <Card title="Source">
-            {item.threads.length === 0 && item.documents.length === 0 && <p className="m-0 text-[13px] text-trs-muted">No threads or files linked.</p>}
-            {item.threads.map(t => (
-              <button key={t.id} type="button" onClick={() => setThread(t.id)}
-                className="text-left w-full min-w-0 rounded-[7px] border border-trs-line-2 bg-white px-2.5 py-1.5 text-[13px] text-trs-ink cursor-pointer hover:border-trs-ink-2">
-                <span className="block truncate">{t.subject ?? 'Thread'}</span>
-                <span className="block text-[12px] text-trs-muted">{t.side === 'insurer' ? 'Insurer' : t.side === 'client' ? 'Client' : 'Other'} · {t.messages} email{t.messages === 1 ? '' : 's'}{t.joined_by ? ` · joined by ${t.joined_by.replace('_', ' ')}` : ''}</span>
-              </button>
-            ))}
-            {item.documents.slice(0, 8).map(d => (
-              <button key={d.id} type="button" onClick={() => setDoc({ title: d.title, drive_url: d.drive_url })}
-                className="text-left w-full min-w-0 rounded-[7px] border border-trs-line-2 bg-white px-2.5 py-1.5 text-[13px] text-trs-ink cursor-pointer hover:border-trs-ink-2">
-                <span className="block truncate">{d.title}</span>
-                <span className="block text-[12px] text-trs-muted">Data room · {d.doc_type.replace(/_/g, ' ')}{d.received_at ? ` · ${fmtDate(d.received_at)}` : ''}</span>
-              </button>
-            ))}
-          </Card>
-          {item.contacts.length > 0 && (
-            <Card title="Client contacts on file">
-              <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[13px]">
-                {item.contacts.map(c => <li key={c.email} className="min-w-0"><span className="text-trs-ink">{c.name}</span> <span className="text-trs-muted break-all">{c.email}</span>{c.scope.length > 0 && <span className="text-trs-muted"> · {c.scope.join(', ').replace(/_/g, ' ')}</span>}</li>)}
-              </ul>
-            </Card>
+            </Group>
           )}
         </aside>
       </div>
@@ -335,15 +357,6 @@ function DraftFields({ value, onChange, files, compact, picker }: { value: Edit;
         className="block w-full border-0 px-4 py-3 text-[14px] leading-relaxed text-trs-ink outline-none resize-y bg-white font-sans" />
       {picker ?? (files.length > 0 && <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-t border-trs-line text-[12.5px] text-trs-muted">Attached {files.map(f => <Chip key={f}>{f}</Chip>)}</div>)}
     </div>
-  )
-}
-
-function Card({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
-  return (
-    <section className="rounded-[10px] border border-trs-line bg-white px-4 py-3 flex flex-col gap-2 min-w-0">
-      <div className="flex items-center justify-between gap-2"><h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">{title}</h2>{action}</div>
-      {children}
-    </section>
   )
 }
 

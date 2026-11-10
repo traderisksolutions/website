@@ -138,8 +138,8 @@ function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; o
         </div>
         <div className="flex flex-wrap items-start md:justify-end gap-1.5">
           {!result && <Btn size="xs" level="primary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>}
-          {!result && <Btn size="xs" level="tertiary" loading={busy === 'no'} onClick={notNow}>Not now</Btn>}
-          <Btn size="xs" level="tertiary" onClick={() => onThread(s.threadId)}>Thread</Btn>
+          {!result && <Btn size="xs" level="secondary" loading={busy === 'no'} onClick={notNow}>Not now</Btn>}
+          <Btn size="xs" level="secondary" onClick={() => onThread(s.threadId)}>Thread</Btn>
         </div>
       </div>
     </div>

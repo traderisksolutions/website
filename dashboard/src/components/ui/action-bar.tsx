@@ -2,10 +2,11 @@ import { cn } from '@/lib/utils'
 
 /**
  * The bar at the foot of a form or detail view. Placement is fixed so a person always finds the
- * same move in the same spot: quiet actions (Cancel, Back, Delete draft) far left, then the
- * secondaries, the one primary far right. Sticks to the bottom of its scroll container.
+ * same move in the same spot: the moves that leave the item (Cancel, Come back later, Discard)
+ * far left, then the secondaries, the one primary far right. Every button in the bar is the same
+ * outlined shape; only the primary is filled. Sticks to the bottom of its scroll container.
  *
- *   <ActionBar left={<Btn level="tertiary">Cancel</Btn>}>
+ *   <ActionBar left={<Btn>Cancel</Btn>}>
  *     <Btn>Save draft</Btn>
  *     <Btn level="primary">Send</Btn>
  *   </ActionBar>

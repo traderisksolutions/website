@@ -511,7 +511,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
           <span className="flex-1" />
           {!sent && (
             <>
-              <Btn level="tertiary" size="xs" disabled={busy} onClick={() => void discard(item)}>Discard</Btn>
+              <Btn level="secondary" size="xs" disabled={busy} onClick={() => void discard(item)}>Discard</Btn>
               <Btn level="primary" size="sm" disabled={busy || uploading} loading={item.state.phase === 'sending'} onClick={() => void sendSelected(item)}>{sendLabel}</Btn>
             </>
           )}

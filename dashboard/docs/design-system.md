@@ -182,10 +182,15 @@ reads as "selected" without an invert-to-solid-black/blue look.
 
 ---
 
-## Context rail (Inbox), 11 Nov 2026
+## Rail format (every right column), 11 Nov 2026
 
-Three groups, each under a green pill title (`GroupPill` in `src/components/engagement/rail-bits.tsx`: green text, soft green fill, green hairline, 999px radius, 13.5px medium): **Actions**, **AI**, **Information**. White ground; spacing separates (26px between action items, 36px between groups); no tinted cards, no boxes, no rules.
+Built for the Inbox context rail and applied to every right column since: the case page (`/today/[id]`: Actions · Information · Source · Timeline) and the drawers that follow. Three groups, each under a green pill title (`GroupPill` in `src/components/engagement/rail-bits.tsx`: green text, soft green fill, green hairline, 999px radius, 13.5px medium): **Actions**, **AI**, **Information**. White ground; spacing separates (26px between action items, 36px between groups); no tinted cards, no boxes, no rules.
 
 - **Actions**: one `ActionItem` per thing to do: an uppercase eyebrow for its kind (Waiting, Chaser due, Reply due, Suggested, Held), a 15px title, one muted meta line, then buttons with one primary. Drafts and the enquiry sender keep their editable boxes. To-do and case are a quiet link line at the end.
 - **AI**: one `AiRow` per capability: sparkle, title, one line saying what it reads and returns, one hairline button on the right. Results render under the row, indented 19px.
-- **Information**: `InfoRow` label-value pairs (92px label column), inline arrow links on the value, tabular figures. Status and notes fold under a `details`.
+- **Information**: `InfoRow` label-value pairs (92px label column), inline arrow links on the value, tabular figures. Status and notes fold under a `details`. A case always shows **Owner** as a row (the person's name, or "No owner"); on list cards it is the text `Owner: <name>`, never a chip.
+- **Source** and **Timeline** on a case: linked threads and data-room files as plain two-line links with a trailing arrow; the timeline as a mono timestamp column.
+
+### Buttons in a row
+
+One shape per row. Every button in an action row or bar is the outlined secondary (`Btn`, default level) at the same height; the one primary is filled green and sits far right. No text-only (tertiary) buttons beside other buttons, and no `<select>` as an action: a choice of person is a `Reassign` button with a menu. Tertiary stays for a lone Cancel in a dialog footer or a link-like move inside a sentence. The rail's `SECOND` and `MAIN` are the same ladder at row height (`btnClass('secondary' | 'primary', 'xs')`).

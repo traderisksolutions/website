@@ -102,7 +102,7 @@ function ReviewRow({ task: t, onDone, onError }: { task: AgentTask; onDone: (m: 
         <div className="flex flex-col gap-2">
           <textarea className={textareaCls} rows={3} value={note} onChange={e => setNote(e.target.value)} placeholder="Answer for the agent" aria-label="Answer for the agent" />
           <div className="flex items-center gap-2">
-            <Btn size="xs" level="tertiary" disabled={busy} onClick={() => { setNoting(false); setNote('') }} className="mr-auto">Cancel</Btn>
+            <Btn size="xs" level="secondary" disabled={busy} onClick={() => { setNoting(false); setNote('') }} className="mr-auto">Cancel</Btn>
             <Btn size="xs" level="primary" disabled={busy || !note.trim()} loading={busy} onClick={() => void resolve({ decision: 'answer', note: note.trim() }, true, 'Answer sent back to the agent.')}>Send answer</Btn>
           </div>
         </div>

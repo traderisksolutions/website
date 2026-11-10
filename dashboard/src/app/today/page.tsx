@@ -12,12 +12,14 @@ import { Btn, Chip, Segmented, Spinner, Empty, LinkBtn } from '@/components/crm/
 import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
+import { ComingUp } from '@/components/today/ComingUp'
 import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
 import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
 import type { TodayItem } from '@/lib/today/data'
 
 type Who = 'mine' | 'all'
+type View = 'list' | 'coming'
 type Group = 'send' | 'decide' | 'act' | 'read' | 'later'
 const GROUPS: { key: Group; label: string }[] = [
   { key: 'send', label: 'Ready to send' }, { key: 'decide', label: 'Decide' },
@@ -39,6 +41,7 @@ function TodayPage() {
   const [items, setItems] = useState<TodayItem[] | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [who, setWho] = useState<Who>('mine')
+  const [view, setView] = useState<View>(params.get('view') === 'coming' ? 'coming' : 'list')
   const [showLater, setShowLater] = useState(false)
   const [cursor, setCursor] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
@@ -83,18 +86,22 @@ function TodayPage() {
     <div className="px-4 md:px-8 py-6 max-w-[980px] mx-auto w-full min-w-0">
       <PageHeader className="mb-5" title="Today"
         meta={items ? `${active} to go through · ${count('send')} ready to send · ${count('decide')} decisions · ${count('act')} to act · ${count('read')} to read` : undefined}
-        actions={flat[0] && <LinkBtn level="primary" href={`/today/${flat[0].id}`}>Start</LinkBtn>}>
-        <Segmented<Who> value={who} onChange={setWho} label="Owner" options={[
+        actions={view === 'list' && flat[0] && <LinkBtn level="primary" href={`/today/${flat[0].id}`}>Start</LinkBtn>}>
+        <Segmented<View> value={view} onChange={setView} label="View" options={[
+          { value: 'list', label: 'To do', count: items ? active : undefined },
+          { value: 'coming', label: 'Coming up' },
+        ]} />
+        {view === 'list' && <Segmented<Who> value={who} onChange={setWho} label="Owner" options={[
           { value: 'mine', label: 'Mine', count: (items ?? []).filter(i => i.group !== 'later' && (i.owner_email === me || !i.owner_email)).length },
           { value: 'all', label: 'Everyone', count: (items ?? []).filter(i => i.group !== 'later').length },
-        ]} />
-        {(bridge || level || side) && <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">{[bridge && (BRIDGE_LABEL[bridge] ?? bridge), level && LEVEL_LABEL[level], side && SIDE_LABEL[side]].filter(Boolean).join(' · ')}<Link href="/today" className="text-trs-ink">Show all</Link></span>}
+        ]} />}
+        {view === 'list' && (bridge || level || side) && <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">{[bridge && (BRIDGE_LABEL[bridge] ?? bridge), level && LEVEL_LABEL[level], side && SIDE_LABEL[side]].filter(Boolean).join(' · ')}<Link href="/today" className="text-trs-ink">Show all</Link></span>}
       </PageHeader>
 
       {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
 
-      {!items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
+      {view === 'coming' ? <ComingUp /> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
         <div ref={listRef} className="rounded-[10px] border border-trs-line bg-white overflow-hidden">
           {GROUPS.map(g => {
             const rows = scoped.filter(i => i.group === g.key)
@@ -117,7 +124,7 @@ function TodayPage() {
           })}
         </div>
       )}
-      <p className="m-0 mt-3 text-[12px] text-trs-muted hidden md:block">j and k move · Enter opens</p>
+      {view === 'list' && <p className="m-0 mt-3 text-[12px] text-trs-muted hidden md:block">j and k move · Enter opens</p>}
     </div>
   )
 }

@@ -15,7 +15,7 @@ import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
 import type { ReadPlan } from '@/lib/chief/read'
 import { doneHref, doneLabel, doneSummary } from '@/lib/chief/suggest-links'
-import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, PRIMARY, SECOND, MAIN } from './rail-bits'
+import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, SECOND, MAIN } from './rail-bits'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 const FIELD = 'w-full rounded-[7px] bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-[#0f1412]'
@@ -103,7 +103,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         {bar && st && (
           bar.hold?.noAction ? (
             <ActionItem eyebrow="Held" title="No action needed">
-              <Buttons><button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={clear} disabled={!!busy}>Undo</button></Buttons>
+              <Buttons><button type="button" className={SECOND} onClick={clear} disabled={!!busy}>Undo</button></Buttons>
             </ActionItem>
           ) : (
             <ActionItem
@@ -118,17 +118,17 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
               {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-[12.5px]" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
               <Buttons>
                 {st.kind === 'waiting' && !chaseOpen && (
-                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
+                  <button type="button" className={MAIN} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
                 )}
-                {st.kind === 'waiting' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={snooze} disabled={!!busy}>Snooze 3 days</button>}
+                {st.kind === 'waiting' && <button type="button" className={SECOND} onClick={snooze} disabled={!!busy}>Snooze 3 days</button>}
                 {st.kind === 'reply' && bar.drafts.length === 0 && (
-                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</button>
+                  <button type="button" className={MAIN} onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</button>
                 )}
                 {bar.enquiry?.stage === 'detected' && (
-                  <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
+                  <button type="button" className={MAIN} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
                 )}
-                {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`} style={{ borderColor: HAIR, color: INK }}>Open case</Link>}
-                {st.kind !== 'none' && <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={noAction} disabled={!!busy}>No action</button>}
+                {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`}>Open case</Link>}
+                {st.kind !== 'none' && <button type="button" className={SECOND} onClick={noAction} disabled={!!busy}>No action</button>}
               </Buttons>
               {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
             </ActionItem>
@@ -139,8 +139,8 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         {pending.map(s => (
           <ActionItem key={s.key} eyebrow="Suggested" title={s.title} meta={s.detail}>
             <Buttons>
-              <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</button>
-              <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
+              <button type="button" className={MAIN} onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</button>
+              <button type="button" className={SECOND} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
             </Buttons>
           </ActionItem>
         ))}
@@ -211,7 +211,7 @@ function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
       </ul>
       {proposed.length > 0 && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
+          <button type="button" className={MAIN} onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
             {busy === 'execute' ? 'Drafting…' : [emails ? `Draft ${emails} email${emails === 1 ? '' : 's'}` : null, actions ? `${actions} action${actions === 1 ? '' : 's'} to do` : null].filter(Boolean).join(' · ') || 'Nothing ticked'}
           </button>
           <span className="text-[12px]" style={{ color: MUTED }}>Each email is its own draft, one address in To. Nothing sends.</span>
@@ -268,8 +268,8 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
           {draft.attachments.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Attached: {draft.attachments.map(a => a.filename).join(', ')}</p>}
           {error && <p className="m-0 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
           <div className="flex gap-1.5">
-            <button type="button" className={MAIN} style={{ background: PRIMARY }} onClick={send} disabled={!!busy}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
-            <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} onClick={discard} disabled={!!busy}>Discard</button>
+            <button type="button" className={MAIN} onClick={send} disabled={!!busy}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
+            <button type="button" className={SECOND} onClick={discard} disabled={!!busy}>Discard</button>
           </div>
         </div>
       )}
@@ -358,8 +358,8 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
                 ))}
               </ul>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <button type="button" className={SECOND} style={{ borderColor: HAIR, color: INK }} aria-expanded={open === key} onClick={() => setOpen(v => v === key ? null : key)}>{open === key ? 'Hide message' : 'See message'}</button>
-                <button type="button" className={MAIN} style={{ background: PRIMARY }} disabled={sendingAll || r.recipients.some(p => !p.email)} onClick={() => sendAll([r])}>Send {r.recipients.length} separately</button>
+                <button type="button" className={SECOND} aria-expanded={open === key} onClick={() => setOpen(v => v === key ? null : key)}>{open === key ? 'Hide message' : 'See message'}</button>
+                <button type="button" className={MAIN} disabled={sendingAll || r.recipients.some(p => !p.email)} onClick={() => sendAll([r])}>Send {r.recipients.length} separately</button>
               </div>
               {open === key && (
                 <div className="mt-2 flex flex-col gap-1.5">
@@ -374,7 +374,7 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
       </ul>
       {error && <p className="m-0 mt-2 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
       {ready.length > 1 && (
-        <button type="button" className={`${MAIN} mt-2`} style={{ background: PRIMARY }} disabled={sendingAll} onClick={() => sendAll(ready)}>
+        <button type="button" className={`${MAIN} mt-2`} disabled={sendingAll} onClick={() => sendAll(ready)}>
           {sendingAll ? 'Sending…' : `Send all ${enquiry.emails} separately`}
         </button>
       )}

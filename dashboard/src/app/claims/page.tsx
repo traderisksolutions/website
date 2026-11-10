@@ -359,7 +359,7 @@ function Drafts({ id, drafts, onDone, onError }: { id: string; drafts: ClaimDeta
             </>
           )}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Btn level="tertiary" disabled={busy !== null} onClick={() => void run('discard', async () => { await post({ action: 'discard_draft' }); return 'Draft discarded.' })}>Discard</Btn>
+            <Btn level="secondary" disabled={busy !== null} onClick={() => void run('discard', async () => { await post({ action: 'discard_draft' }); return 'Draft discarded.' })}>Discard</Btn>
             <span className="flex-1" />
             <Btn level="secondary" disabled={busy !== null} onClick={() => setEditing(e => !e)}>{editing ? 'Cancel edit' : 'Edit'}</Btn>
             <Btn level="primary" loading={busy === 'send'} disabled={busy !== null} onClick={() => void send()}>{editing ? 'Save and send' : 'Approve and send'}</Btn>

@@ -75,6 +75,8 @@ const BTN_LEVEL = {
   danger:    'border-trs-line-2 bg-white text-trs-neg hover:border-trs-neg',
 } as const
 export type BtnLevel = keyof typeof BTN_LEVEL
+/** The same ladder as a class string, for a plain <button> or <Link> that cannot be a Btn. */
+export const btnClass = (level: BtnLevel = 'secondary', size: 'sm' | 'xs' = 'sm') => cn(BTN_BASE, BTN_SIZE[size], BTN_LEVEL[level])
 
 /** The button ladder: one green primary per view, outlined secondary, quiet tertiary, outlined-red danger. */
 export function Btn({ level = 'secondary', size = 'sm', className, children, loading, type = 'button', ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { level?: BtnLevel; size?: 'sm' | 'xs'; loading?: boolean }) {
