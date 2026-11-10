@@ -673,6 +673,12 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   // 2. The thread. A conversation already stored under another mailbox's Gmail thread id is
   // found by this mailbox's alias, or by the message it replies to; else upsert by Gmail id.
   let knownThreadId: string | null = (await first<{ thread_id: string }>(`email_thread_aliases?mailbox=eq.${encodeURIComponent(mailbox)}&gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=thread_id`))?.thread_id ?? null
+  // The same Gmail thread id noted for another mailbox (one email reaching three inboxes) is the
+  // same conversation: 19 threads were born twice this way before 11 Nov 2026 and merged by hand.
+  if (!knownThreadId) {
+    const any = await first<{ thread_id: string }>(`email_thread_aliases?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=thread_id&limit=1`)
+    if (any) { knownThreadId = any.thread_id; await saveAlias(mailbox, gmailThreadId, any.thread_id) }
+  }
   if (!knownThreadId && !(await first<{ id: string }>(`email_threads?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=id`))) {
     for (const ref of [inReplyTo, ...references.reverse()].filter((r): r is string => !!r)) {
       const parent = await first<{ thread_id: string }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id&limit=1`)

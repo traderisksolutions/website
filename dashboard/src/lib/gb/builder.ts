@@ -15,6 +15,7 @@ import { buildCategoryMap, DEFAULT_REQUIREMENT, engineCategory, insurerKey, TIER
 import { loadRateTables } from './quotation'
 import { compareQuotation } from './compare-quotation'
 import { underwriting, type UwResult } from './underwriting'
+import { cardsInForce } from './table-version'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbH(prefer = 'return=minimal') {
@@ -32,7 +33,7 @@ export type BuilderInput = {
   tier_b?: boolean
 }
 
-export type BuilderTable = TableShape & { insurer: InsurerKey; tier: 'A' | 'B' }
+export type BuilderTable = TableShape & { insurer: InsurerKey; tier: 'A' | 'B'; insurer_id: string | null; effective_date: string | null; renewal_effective_date: string | null }
 
 export type BuilderInsurer = {
   rate_table_id: string
@@ -59,11 +60,13 @@ export type BuilderResult = {
 
 /** Approved rate tables by tier, with each product's plans (the override pickers' options). */
 export async function builderTables(tierB: boolean): Promise<BuilderTable[]> {
-  const res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_name`, { headers: sbH(), cache: 'no-store' })
+  let res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_id,insurer_name,effective_date,renewal_effective_date`, { headers: sbH(), cache: 'no-store' })
+  if (res.status === 400) res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?status=eq.approved&select=id,insurer_id,insurer_name,effective_date`, { headers: sbH(), cache: 'no-store' })
   if (!res.ok) throw new Error(`Rate tables not read: ${res.status}`)
-  const metas = (await res.json() as { id: string; insurer_name: string }[])
-    .map(m => ({ ...m, insurer: insurerKey(m.insurer_name) }))
-    .filter((m): m is { id: string; insurer_name: string; insurer: InsurerKey } => !!m.insurer && (TIER_A.includes(m.insurer) || (tierB && m.insurer === 'cigna')))
+  type Meta = { id: string; insurer_id: string | null; insurer_name: string; effective_date: string | null; renewal_effective_date?: string | null }
+  const metas = (await res.json() as Meta[])
+    .map(m => ({ ...m, renewal_effective_date: m.renewal_effective_date ?? null, insurer: insurerKey(m.insurer_name) }))
+    .filter((m): m is Meta & { renewal_effective_date: string | null; insurer: InsurerKey } => !!m.insurer && (TIER_A.includes(m.insurer) || (tierB && m.insurer === 'cigna')))
   if (!metas.length) return []
   const ids = metas.map(m => `"${m.id}"`).join(',')
   const plans = await fetchAllRows<{ rate_table_id: string; product_code: string; plan_code: string; sort_order: number | null }>(
@@ -71,7 +74,7 @@ export async function builderTables(tierB: boolean): Promise<BuilderTable[]> {
   return metas.map(m => {
     const by = new Map<string, string[]>()
     for (const p of plans) if (p.rate_table_id === m.id) by.set(p.product_code, [...(by.get(p.product_code) ?? []), p.plan_code])
-    return { id: m.id, insurer_name: m.insurer_name, insurer: m.insurer, tier: m.insurer === 'cigna' ? 'B' as const : 'A' as const, products: [...by].map(([code, plans]) => ({ code, plans })) }
+    return { id: m.id, insurer_name: m.insurer_name, insurer: m.insurer, tier: m.insurer === 'cigna' ? 'B' as const : 'A' as const, insurer_id: m.insurer_id, effective_date: m.effective_date, renewal_effective_date: m.renewal_effective_date, products: [...by].map(([code, plans]) => ({ code, plans })) }
   })
 }
 
@@ -87,7 +90,9 @@ export async function priceBuilder(raw: BuilderInput): Promise<BuilderResult & {
   // "Manager") that no category is named after go to the first category, or nothing is priced.
   const names = new Set(raw.categories.map(c => c.name))
   const input = { ...raw, members: raw.members.map(m => (names.has(m.category) ? m : { ...m, category: raw.categories[0]?.name ?? m.category })) }
-  const tables = await builderTables(!!input.tier_b)
+  // One card per insurer: the one in force on the effective date for the basis (QBE's V11 and
+  // V12 were both priced and the quotation page summed them into one S$83k row, 11 Nov 2026).
+  const tables = cardsInForce(await builderTables(!!input.tier_b), input.effective_date.slice(0, 10), input.basis ?? 'new_business').cards
   const built = categoryMapFor(input, tables)
   const rateTables = await loadRateTables(tables.map(t => t.id))
   const members = engineMembers(input.members)

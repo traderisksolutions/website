@@ -63,3 +63,24 @@ describe('census members', () => {
     expect(censusMembers('Sheet: Rates\nPlan,Age band,Annual premium\nPlan 1,0-30,350\n')).toBeNull()
   })
 })
+
+describe('censusPlans', () => {
+  it('reads the current programme from the plan columns of the calculator sheet', async () => {
+    const { censusPlans } = await import('@/lib/chief/census')
+    const text = [
+      'Sheet: Census',
+      'No.,Name,Category,Relationship,Date of Birth,Occ. Class,Age (Last B\'day),Age (Next B\'day),Hospital & Surgical,Major Medical,Outpatient GP,Outpatient Specialist,Dental,Term Life,Critical Illness,Personal Accident',
+      '1,"Yong Khai Si, Kay",,EE,1991-09-30,1,35,36,Plan 5 (GRH 1-bed),Plan 5,Plan 1B ($10 co-pay),Plan 4,,,,',
+      '2,Chan Pui Min,,EE,1991-05-08,1,35,36,Plan 5 (GRH 1-bed),Plan 5,Plan 1B ($10 co-pay),Plan 4,,,,',
+      '3,Michael Tang,,EE,1953-02-27,1,73,74,Plan 5 (GRH 1-bed),Plan 5,Plan 1B ($10 co-pay),Plan 4,,,,',
+    ].join('\n')
+    const p = censusPlans(text)!
+    expect(p.covers).toEqual(['GHS', 'EMM', 'GOPC', 'GOSC'])
+    expect(p.current).toMatchObject({ ward: 'G1', gmm: true, gp: 'copay', sp: 'entry', dental: null, deps: 'none' })
+    expect(p.sample.GHS).toBe('Plan 5 (GRH 1-bed)')
+  })
+  it('is null for a census with no plan columns', async () => {
+    const { censusPlans } = await import('@/lib/chief/census')
+    expect(censusPlans('Sheet: A\nName,Relationship,Date of Birth\nA B,Employee,01/02/1990\n')).toBeNull()
+  })
+})

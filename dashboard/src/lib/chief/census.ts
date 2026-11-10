@@ -124,3 +124,70 @@ export function censusMembers(text: string | null | undefined): CensusRead | nul
     others: read.filter(r => !same(r.company)).map(r => ({ company: r.company, rows: r.members.length })),
   }
 }
+
+// ── The plans a census sheet carries ──────────────────────────────────────────────────────────────
+
+import { parseCoPay, parseHospital, parseSum, parseWard } from '@/lib/gb/plan-rules'
+import type { CoverKey, Requirement, Ward } from '@/lib/gb/ladder'
+
+export type CensusPlans = { current: Partial<Requirement>; covers: CoverKey[]; sample: Record<string, string> }
+
+const PLAN_COLS: { key: CoverKey; re: RegExp }[] = [
+  { key: 'GHS', re: /hospital\s*&?\s*(and\s*)?surgical|^ghs\b|\bh&s\b/i },
+  { key: 'EMM', re: /major medical|\bemm\b|\bgmm\b/i },
+  { key: 'GOPC', re: /outpatient\s*gp|\bgp\b|primary care|\bgopc\b/i },
+  { key: 'GOSC', re: /specialist|\bsp\b|\bgosc\b/i },
+  { key: 'GD', re: /dental|\bgd\b/i },
+  { key: 'GTL', re: /term life|\bgtl\b/i },
+  { key: 'GCI', re: /critical illness|\bgci\b/i },
+  { key: 'GPA', re: /personal accident|\bgpa\b|\bpa\b/i },
+]
+
+/**
+ * TRS's own calculator sheet (and any census with a plan per cover) names the plan each member
+ * holds in a column per cover. The first such group of columns is the current programme: a ward
+ * and hospital type from the hospital plan's name ("Plan 5 (GRH 1-bed)" → government 1-bed), GP
+ * co-payment from the GP plan ("Plan 1B ($10 co-pay)"), a cover present when most members have a
+ * plan in its column. Null when the sheet has no plan columns. Pure.
+ */
+export function censusPlans(text: string | null | undefined): CensusPlans | null {
+  if (!text) return null
+  for (const block of text.split(/^Sheet:\s*/m)) {
+    const lines = block.split('\n')
+    const h = lines.findIndex(l => HEADER_WORDS.filter(re => re.test(l)).length >= 3 && cells(l).filter(Boolean).length >= 3)
+    if (h < 0) continue
+    const header = cells(lines[h])
+    const cols = new Map<CoverKey, number>()
+    header.forEach((c, i) => { for (const p of PLAN_COLS) if (!cols.has(p.key) && p.re.test(c) && !/age|birth|name|class|category/i.test(c)) cols.set(p.key, i) })
+    if (!cols.has('GHS')) continue
+    const members = sheetMembers(block)
+    if (!members.length) continue
+    // The commonest non-empty value per column across the member rows (employees only).
+    const rows = lines.slice(h + 1).map(cells).filter(c => c.some(Boolean))
+    const sample: Record<string, string> = {}
+    const covers: CoverKey[] = []
+    for (const [key, i] of cols) {
+      const counts = new Map<string, number>()
+      for (const r of rows) { const v = (r[i] ?? '').trim(); if (v && !/^(-|n\/?a|nil|none|no)$/i.test(v)) counts.set(v, (counts.get(v) ?? 0) + 1) }
+      const top = [...counts].sort((a, b) => b[1] - a[1])[0]
+      if (top && top[1] >= Math.max(1, Math.ceil(members.length / 2))) { sample[key] = top[0]; covers.push(key) }
+    }
+    if (!sample.GHS) continue
+    const hosp = parseHospital(sample.GHS), bed = parseWard(sample.GHS)
+    const ward = hosp || bed ? (`${hosp === 'government' ? 'G' : 'P'}${bed === 4 ? '4' : bed === 2 && hosp !== 'government' ? '2' : '1'}` as Ward) : undefined
+    const gpCo = sample.GOPC ? parseCoPay(sample.GOPC) : null
+    const current: Partial<Requirement> = {
+      ...(ward ? { ward } : {}),
+      gmm: !!sample.EMM,
+      gp: sample.GOPC ? (gpCo ? 'copay' : 'nil') : null,
+      sp: sample.GOSC ? 'entry' : null,
+      dental: sample.GD ? 'entry' : null,
+      gtl: sample.GTL ? parseSum(sample.GTL) ?? 100_000 : null,
+      gci: sample.GCI ? parseSum(sample.GCI) ?? 50_000 : null,
+      pa: sample.GPA ? parseSum(sample.GPA) ?? 100_000 : null,
+      deps: members.some(m => m.relationship !== 'self') ? 'medical' : 'none',
+    }
+    return { current, covers, sample }
+  }
+  return null
+}

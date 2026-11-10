@@ -21,11 +21,11 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   }
-  const { thread_id, message_id, wait } = await req.json().catch(() => ({})) as
-    { thread_id?: string; message_id?: string; wait?: boolean }
+  const { thread_id, message_id, wait, force } = await req.json().catch(() => ({})) as
+    { thread_id?: string; message_id?: string; wait?: boolean; force?: boolean }
   if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 
-  const run = runGroupBenefitIntake(thread_id, message_id ?? null).catch(e => {
+  const run = runGroupBenefitIntake(thread_id, message_id ?? null, { force: !!force && !internal }).catch(e => {
     void logError({ source: 'internal', feature: 'gb_intake', message: e instanceof Error ? e.message : String(e), threadId: thread_id })
     return { status: 'skipped' as const, reason: e instanceof Error ? e.message : String(e) }
   })

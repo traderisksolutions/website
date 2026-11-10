@@ -13,6 +13,8 @@ import { readThreadBrief } from './brief'
 import { runGroupBenefitIntake, normCompany } from './intake'
 import { cardsInForce } from './table-version'
 import { flagInsurers, headline, isEbSubject, scenariosFor, type Brief, type Scenario, type ScenarioInsurer } from './scenarios'
+import { censusPlans } from '@/lib/chief/census'
+import { insurerKey } from './ladder'
 import type { Member } from '../gb-quote'
 import type { Requirement } from './ladder'
 
@@ -91,6 +93,14 @@ async function latestPricedFor(companyName: string): Promise<Quotation | null> {
   return rows.find(r => normCompany(r.company_name) === key) ?? null
 }
 
+/** The plan columns of the census file the quotation was read from ("Census read by code from <file>"). */
+async function plansFromCensusFile(q: Quotation, threadIds: string[]) {
+  const file = q.notes?.match(/Census read by code from (.+?): \d+ members/)?.[1]?.trim()
+  if (!file) return null
+  const atts = await sbTry<Row[]>(`email_attachments?thread_id=in.(${threadIds.map(enc).join(',')})&filename=eq.${enc(file)}&parsed_text=not.is.null&select=parsed_text&order=created_at.desc&limit=1`, [])
+  return censusPlans(atts[0]?.parsed_text)
+}
+
 /** A thread's tag on a quotation, from its notes; null for a quotation priced from a file. */
 export const threadOfQuotation = (notes: string | null | undefined): string | null => notes?.match(/\[thread:([0-9a-f-]{36})\]/i)?.[1] ?? null
 
@@ -140,8 +150,13 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
   // What the thread does not say about the current plan, the quotation's saved requirement does
   // (the broker's or the intake agent's plan choice); the defaults fill the rest.
   if (!brief.currentInsurer && typeof quotation.requirement?.current_insurer === 'string') brief.currentInsurer = quotation.requirement.current_insurer
-  const saved = (quotation.requirement?.categories as { requirement?: Partial<Requirement> }[] | undefined)?.[0]?.requirement
-  if (saved) for (const k of Object.keys(saved) as (keyof Requirement)[]) if (brief.current[k] === undefined && saved[k] !== undefined) (brief.current as Record<string, unknown>)[k] = saved[k]
+  const layer = (src: Partial<Requirement> | null | undefined) => { if (src) for (const k of Object.keys(src) as (keyof Requirement)[]) if (brief.current[k] === undefined && src[k] !== undefined) (brief.current as Record<string, unknown>)[k] = src[k] }
+  // The census sheet's own plan columns (TRS's calculator names the plan each member holds) say
+  // what the client has today better than the email does; the quotation's saved requirement and
+  // then the defaults fill the rest.
+  const plans = await plansFromCensusFile(quotation, conversation.ids)
+  layer(plans?.current)
+  layer((quotation.requirement?.categories as { requirement?: Partial<Requirement> }[] | undefined)?.[0]?.requirement)
   const basis = brief.basis ?? (quotation.basis === 'renewal' ? 'renewal' : 'new_business')
   const effectiveDate = brief.effectiveDate ?? brief.renewalDate ?? quotation.effective_date ?? new Date().toISOString().slice(0, 10)
   const scenarios = scenariosFor(brief)
@@ -151,13 +166,26 @@ export async function runScenarios(threadId: string, by: string | null, quotatio
   const { cards: inForce, notes } = cardsInForce(cards as { id: string; insurer_id: string | null; insurer_name: string | null; effective_date: string | null; renewal_effective_date?: string | null }[], effectiveDate, basis)
   const inForceIds = new Set(inForce.map(c => c.id))
 
+  // A renewal is a renewal only at the current insurer. Every other insurer underwrites a switch
+  // as new business: its new-business card, and no renewal-only age bands (Income stops at 70).
+  const current = brief.currentInsurer ? insurerKey(brief.currentInsurer) : null
+  const other: 'new_business' | 'renewal' = basis === 'renewal' && current ? 'new_business' : basis
+  const inForceOther = other === basis ? inForceIds : new Set(cardsInForce(cards as Parameters<typeof cardsInForce>[0], effectiveDate, other).cards.map(c => c.id))
+  const tierB = brief.preferInsurers.some(n => /cigna/i.test(n))
   const priced: ScenarioPack['scenarios'] = []
   let dependants = 0
   for (const s of scenarios) {
-    const r = await priceBuilder({ members, categories: [{ name: 'All employees', requirement: s.requirement, overrides: {} }], effective_date: effectiveDate, basis, tier_b: brief.preferInsurers.some(n => /cigna/i.test(n)) })
+    const cat = [{ name: 'All employees', requirement: s.requirement, overrides: {} }]
+    const r = await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis, tier_b: tierB })
+    const r2 = other === basis ? r : await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis: other, tier_b: tierB })
     dependants = r.dependants
-    priced.push({ ...s, insurers: flagInsurers(r.insurers, brief, inForceIds) })
+    const mine = r.insurers.filter(i => i.insurer === current)
+    const rest = r2.insurers.filter(i => i.insurer !== current)
+    const ids = new Set([...inForceIds].filter(id => mine.some(i => i.rate_table_id === id)).concat([...inForceOther].filter(id => rest.some(i => i.rate_table_id === id))))
+    priced.push({ ...s, insurers: flagInsurers([...mine, ...rest], brief, ids) })
   }
+  if (other !== basis) notes.push(`${brief.currentInsurer} priced as a renewal; every other insurer as new business, which is how a switch is underwritten.`)
+  if (plans) notes.push(`Current plans read from the census sheet: ${Object.entries(plans.sample).map(([k, v]) => `${k} ${v}`).join(' · ')}.`)
   const pack: ScenarioPack = { at: new Date().toISOString(), by, threadId, threadIds: conversation.ids, quotationId: quotation.id, model, messages, brief, effectiveDate, basis, employees, dependants, scenarios: priced, notes }
   await saveScenarios(pack)
   // The budget the thread states goes onto the quotation when the builder has none.
