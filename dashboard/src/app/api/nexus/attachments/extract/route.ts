@@ -237,7 +237,7 @@ Return plain text only. If a value is unclear, write it as best you can read it 
       }),
     })
     if (!res.ok) {
-      void logError({ source: 'gemini', feature: 'nexus_attachment_pdf', statusCode: res.status, message: await res.text() })
+      void logError({ source: 'gemini', feature: 'nexus_attachment_pdf', statusCode: res.status, message: await res.text(), metadata: { bytes: data.length, pages_hint: 'scanned pdf sent inline' } })
       return ''
     }
     const d = await res.json()

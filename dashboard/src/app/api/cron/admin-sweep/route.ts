@@ -11,6 +11,7 @@ import { enqueue } from '@/lib/agent-tasks/queue'
 import { dailySweepTasks } from '@/lib/admin/b/sweeps'
 import { checkMailboxes } from '@/lib/gmail/health'
 import { todaySGT } from '@/lib/sgt-time'
+import { expirePolicies } from '@/lib/policies/expire'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -22,10 +23,11 @@ export async function GET(req: NextRequest) {
     const q = new URL(req.url).searchParams.get('today')
     const today = q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : todaySGT()
     const mail = await checkMailboxes().catch(() => [] as string[])
+    const expired = await expirePolicies(today).catch(() => ({ expired: -1 }))
     await enqueue(dailySweepTasks(today))
     const r = await drain({ agents: [...PHASE_B_AGENTS], budgetMs: 240_000 })
     console.log('[admin-sweep]', today, JSON.stringify(r))
-    return NextResponse.json({ ok: true, today, mail, ...r })
+    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, ...r })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
