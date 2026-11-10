@@ -85,6 +85,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
   const read = () => run('read', async () => { await post({ action: 'read' }) })
+  const draftToClient = (quotationId: string) => run('client-draft', async () => {
+    const r = await callApi<{ draftId?: string; error?: string }>(`/api/group-benefits/quote/${quotationId}/client-draft`, { method: 'POST', body: { thread_id: threadId } })
+    if (r.error) throw new Error(r.error)
+    if (r.draftId) setOpen(r.draftId)
+  })
   const execute = (stepIds: string[]) => run('execute', async () => { await post({ action: 'execute', stepIds }) })
   const step = (stepId: string, status: 'todo' | 'done') => run(`step:${stepId}`, async () => { await post({ action: 'step', stepId, status }) })
 
@@ -144,6 +149,21 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
             </Buttons>
           </ActionItem>
         ))}
+        {finished.map(s => {
+          const d = doneOf(s)!
+          const clientDrafted = bar?.drafts.some(x => x.label === 'EB pricing estimate to client')
+          return (
+            <ActionItem key={s.key} eyebrow="Done" title={s.title} meta={d.summary}>
+              <Buttons>
+                {s.kind === 'eb_scenarios' && !clientDrafted && (
+                  <button type="button" className={MAIN} onClick={() => draftToClient(d.quotationId)} disabled={!!busy} title="The premium summary, how the figures were derived and what TRS suggests, with the report attached. Waits here; nothing sends.">{busy === 'client-draft' ? 'Writing…' : 'Draft to client'}</button>
+                )}
+                <Link href={doneHref(s, d.quotationId)} className={`${SECOND} no-underline`}>{doneLabel(s)}</Link>
+                <button type="button" className={SECOND} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : s.kind === 'eb_scenarios' ? 'Estimate again' : 'Price again'}</button>
+              </Buttons>
+            </ActionItem>
+          )
+        })}
 
         {bar && bar.drafts.length > 0 && (
           <div className="mb-6">
@@ -169,10 +189,6 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         <AiRow title="Read thread" detail="Messages, files, policy → next steps as a checklist" action={bar?.read ? 'Read again' : 'Read'} onClick={read} busy={busy === 'read'} disabled={!bar}>
           {bar?.read && <ReadSteps plan={bar.read} busy={busy} onExecute={execute} onStep={step} onOpenDraft={id => setOpen(id)} />}
         </AiRow>
-        {finished.map(s => {
-          const d = doneOf(s)!
-          return <AiRow key={s.key} title={s.kind === 'eb_scenarios' ? 'Pricing options' : 'Census priced'} detail={d.summary} action="Open" href={doneHref(s, d.quotationId)} />
-        })}
         {aiExtras}
       </Group>
     </>

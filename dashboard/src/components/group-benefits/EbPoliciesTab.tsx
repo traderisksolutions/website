@@ -60,7 +60,7 @@ export function EbPoliciesTab({ onByHand }: { onByHand: () => void }) {
           { value: 'ended', label: 'Ended', count: count('ended') },
         ]} />
         <div className="flex items-center gap-2">
-          <Btn level="tertiary" onClick={onByHand}>By hand</Btn>
+          <Btn level="tertiary" onClick={onByHand}>Quote from a file</Btn>
           <Btn level="primary" onClick={() => setDialog(true)}>New quotation</Btn>
         </div>
       </div>

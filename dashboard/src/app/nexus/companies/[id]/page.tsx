@@ -7,6 +7,7 @@
  */
 import { use, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { useRouter } from 'next/navigation'
 import { Paperclip } from 'lucide-react'
 import { Btn, Chip, Empty, Segmented, Spinner } from '@/components/crm/primitives'
@@ -69,7 +70,7 @@ export default function CompanyNexusPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="w-full min-w-0 px-4 sm:px-6 md:px-8 py-6 max-w-[1320px] mx-auto" style={{ color: INK }}>
-      <Link href="/nexus" className="text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Nexus</Link>
+      <Breadcrumbs current={{ label: `Nexus · ${view.company.name}`, href: `/nexus/companies/${id}` }} fallback={{ label: 'Nexus', href: '/nexus' }} />
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-6">
         <div className="min-w-0">
           <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em] truncate">{view.company.name}</h1>

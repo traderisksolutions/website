@@ -50,7 +50,7 @@ describe('codeDraft + keepsFigures', () => {
   const f = clientFacts(q, pack)
   const d = codeDraft(f, 'Pearlin')
   it('writes the subject, summary, derivation, suggestion and sign-off with the placeholder', () => {
-    expect(d.subject).toBe('(TRS) Empyrion DC Pte Ltd - Employee Benefits Renewal 2027 - Pricing options')
+    expect(d.subject).toBe('(TRS) Empyrion DC Pte Ltd - Employee Benefits Renewal 2027 - EB pricing estimate')
     expect(d.body).toContain('Dear Pearlin,')
     expect(d.body).toContain('1. Like for like - Government 1-bed entry limit + major medical · GP co-pay · specialist entry · dental entry · employees only\n')
     expect(d.body).toContain('   - QBE (current insurer, renewal): $46,405')

@@ -91,7 +91,7 @@ function ReportDocument({ m, logo }: { m: ReportModel; logo: string | null }) {
 
         {m.options && (
           <View wrap={false} style={s.table}>
-            <Text style={s.h2}>Pricing options</Text>
+            <Text style={s.h2}>EB pricing estimate</Text>
             <View style={s.thRow}>
               <Text style={[s.th, { width: '28%' }]}>INSURER</Text>
               {m.options.names.map(n => <Text key={n} style={[s.th, s.num, { width: `${72 / m.options!.names.length}%` }]}>{n.toUpperCase()}</Text>)}

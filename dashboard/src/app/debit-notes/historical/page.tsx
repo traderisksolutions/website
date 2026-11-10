@@ -1,5 +1,7 @@
 'use client'
 
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import {
@@ -18,7 +20,7 @@ import { InsurerOptions, INSURER_OPTIONS_ID } from '@/components/insurers/Insure
 export default function HistoricalDebitNotePage() {
   return (
     <div className="w-full min-w-0 max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#0f1412' }}>
-      <Link href="/debit-notes" className="inline-flex items-center gap-1.5 text-[13.5px] text-[#4a5550] hover:text-[#0f1412] no-underline mb-4"><ArrowLeft size={14} /> Debit Notes</Link>
+      <Breadcrumbs className="mb-4" current={{ label: 'Historical debit notes', href: '/debit-notes/historical' }} fallback={{ label: 'Debit notes', href: '/debit-notes' }} />
       <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#0f1412] mb-2">Generate historical debit note</h1>
       <p className="m-0 text-[15px] text-[#4a5550] mb-6 max-w-[72ch]">
         For backfilling records from before this system existed — bulk-upload old PDFs (one .zip

@@ -157,7 +157,7 @@ export function suggestionLines(f: ClientFacts): string[] {
 /** Pure: the email as code writes it. The tone pass may rewrite the prose, never the figures. */
 export function codeDraft(f: ClientFacts, firstName: string | null): { subject: string; body: string } {
   const start = f.effectiveDate ? longDate(f.effectiveDate) : null
-  const subject = `(TRS) ${f.company} - Employee Benefits ${f.basis === 'renewal' ? 'Renewal' : 'Proposal'}${start ? ` ${start.slice(-4)}` : ''} - Pricing options`
+  const subject = `(TRS) ${f.company} - Employee Benefits ${f.basis === 'renewal' ? 'Renewal' : 'Proposal'}${start ? ` ${start.slice(-4)}` : ''} - EB pricing estimate`
   const anyStar = f.options.some(o => o.rows.some(r => r.unpriced > 0 && !r.current))
   const star = anyStar ? ' *' : ''
   const lines: string[] = []

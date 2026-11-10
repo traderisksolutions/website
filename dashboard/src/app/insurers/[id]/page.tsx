@@ -6,6 +6,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { useParams } from 'next/navigation'
 import { Btn, Chip, Segmented, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
@@ -62,7 +63,7 @@ export default function InsurerThreadsPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-        <Link href="/insurers" className="text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Insurers</Link>
+        <Breadcrumbs current={{ label: data.insurer.company_name, href: `/insurers/${data.insurer.id}` }} fallback={{ label: 'Insurers', href: '/insurers' }} />
         <h1 className="m-0 mt-3 text-[30px] leading-[1.15]">{data.insurer.company_name}</h1>
         <div className="mt-2 text-[14px]" style={{ color: MUTED }}>{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
         <div className="mt-6 mb-4">

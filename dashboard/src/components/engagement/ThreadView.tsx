@@ -10,6 +10,7 @@ import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
 import { ThreadHeader } from './ThreadHeader'
 import { MessageBlock } from './MessageBlock'
 import { ContextRail, loadBoard } from './ContextRail'
+import { pushCrumb } from '@/lib/nav/trail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -310,6 +311,9 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   // The raw From header often carries only the address; the thread knows the person's name.
   const nameFor = (m: RealMsg) => { const e = parseAddress(m.from_address).email?.toLowerCase(); return e && lead.email && e === lead.email.toLowerCase() ? (contactName || null) : null }
   const replyLabel = `Reply to ${contactName || lead.email || 'the client'}…`
+
+  // The thread is a step on the trail, so a page opened from it can come back to it.
+  useEffect(() => { if (threadId) pushCrumb({ label: thread?.display_subject ?? lead.display_subject ?? thread?.subject ?? lead.subject ?? 'Thread', href: `/engagement?lead=${threadId}` }) }, [threadId, thread?.subject, thread?.display_subject]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const rail = (
     <ContextRail lead={lead} messages={messages} threadId={threadId} conversationThreadId={propThreadId} activeThreadId={threadId}

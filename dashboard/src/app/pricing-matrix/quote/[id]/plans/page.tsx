@@ -8,7 +8,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh } from '@/components/ui/register'
 import { COVER_LABEL, DEFAULT_REQUIREMENT, type CategoryInput, type CoverKey, type GridCell, type Requirement } from '@/lib/gb/ladder'
@@ -17,6 +17,7 @@ import type { OutreachInsurer } from '@/lib/gb/outreach'
 import type { ScenarioPack } from '@/lib/gb/scenario-run'
 import { PRICE_DERIVATION } from '@/lib/gb/insurer-names'
 import { Tip } from '@/components/Tip'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 
 type CensusMember = { name: string; category: string; relationship: string; dob: string | null; occupation_class: string | null; work_pass?: string | null }
 type Quotation = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; census: CensusMember[]; requirement: { categories?: CategoryInput[]; employee_categories?: Record<string, string>; budget?: number | null; tier_b?: boolean } | null }
@@ -233,7 +234,7 @@ function PlanBuilder() {
 
   return (
     <div className="w-full min-w-0 px-6 md:px-8 py-6 max-w-[1320px] mx-auto">
-      <Link href={`/pricing-matrix/quote/${id}`} className="inline-flex items-center gap-1.5 text-[13px] no-underline hover:underline" style={{ color: MUTED }}><ArrowLeft size={14} /> Quotation</Link>
+      <Breadcrumbs current={{ label: 'Plan builder', href: `/pricing-matrix/quote/${id}/plans${scenarioKey ? `?scenario=${scenarioKey}` : ''}` }} fallback={{ label: 'Quotation', href: `/pricing-matrix/quote/${id}` }} />
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-5">
         <div>
           <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">{q.company_name || 'Untitled quote'}</h1>

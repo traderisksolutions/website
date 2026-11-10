@@ -119,9 +119,9 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>): Promise<
   const pack = q ? await loadScenarios(q.id) : null
   return {
     key, kind: 'eb_scenarios', messageId: '', textMessageId: '', attachment: '', rows: q?.member_count ?? 0, threadId: thread.id, receivedAt: thread.last_message_at ?? thread.created_at ?? '',
-    title: 'Price 3 options',
+    title: 'EB pricing estimate',
     detail: q ? `Benefits request · ${q.member_count} members on file · like for like, lower cost, enhanced · every insurer` : 'Benefits request · reads the thread; prices the census on file or the file on this thread',
-    yes: 'Price',
+    yes: 'Estimate',
     done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: packSummary(pack) } : null,
   }
 }

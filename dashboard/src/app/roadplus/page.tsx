@@ -1,5 +1,7 @@
 'use client'
 
+import { Segmented } from '@/components/crm/primitives'
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Loader2, Search, RefreshCw, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -384,25 +386,9 @@ export default function RoadplusReconPage() {
           </p>
         )}
 
-        {/* Tabs */}
-        <div className="mt-6 flex items-center gap-6" role="tablist" aria-label="RoadPlus views" style={{ borderBottom: HAIR }}>
-          {TABS.map((t) => {
-            const on = tab === t.key
-            return (
-              <button
-                key={t.key}
-                type="button"
-                role="tab"
-                aria-selected={on}
-                onClick={() => setTab(t.key)}
-                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px]', on ? 'font-medium' : 'hover:text-[#0f1412]')}
-                style={{ color: on ? INK : MUTED }}
-              >
-                {t.label}
-                <span className={cn('absolute left-0 right-0 -bottom-px h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: '#132c1c' }} aria-hidden />
-              </button>
-            )
-          })}
+        {/* Tabs: the house segmented control. */}
+        <div className="mt-6">
+          <Segmented size="sm" label="RoadPlus views" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t.key, label: t.label }))} />
         </div>
 
         {/* ── PAYMENTS ── */}

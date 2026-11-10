@@ -89,12 +89,12 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
   return (
     <section id="scenarios" className="mb-10">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h2 className="m-0 text-[16px] font-medium">Pricing options <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></h2>
+        <h2 className="m-0 text-[16px] font-medium">EB pricing estimate <Tip text={PRICE_DERIVATION} width={420} placement="bottomLeft" /></h2>
         <div className="flex flex-wrap items-center gap-2">
           {pack && <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>Read {new Date(pack.at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })} · {pack.messages} messages · {pack.employees} employees, {pack.dependants} dependants</span>}
           <button onClick={start} disabled={busy || !hasCensus} className={pack ? BTN2 : BTN1} title={hasCensus ? undefined : 'Needs a member list first'}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {busy ? 'Reading the thread…' : pack ? 'Read the thread again' : 'Price 3 options from the thread'}
+            {busy ? 'Reading the thread…' : pack ? 'Estimate again' : 'EB pricing estimate from the thread'}
           </button>
           {pack && !drafted && (
             <button onClick={() => void draftToClient()} disabled={drafting || busy} className={BTN1} title="Premium summary, derivation and suggestion, with the report attached. Waits in the thread; nothing sends.">
@@ -106,11 +106,11 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
         </div>
       </div>
       {error && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{error}</p>}
-      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not priced. Reads the client's benefits threads for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
+      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not estimated. Reads the client's benefits threads for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
 
       {pack && (
         <>
-          <Register label="Pricing options" minWidth={760}>
+          <Register label="EB pricing estimate" minWidth={760}>
             <RegisterHead>
               <RegisterTh first width={200}>Insurer</RegisterTh>
               {pack.scenarios.map((s, i) => (

@@ -2,7 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UploadCloud, Loader2, Clock, Plus, Mail, FolderOpen } from 'lucide-react'
+import { UploadCloud, Loader2, Clock, Mail, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQuote'
@@ -143,30 +143,15 @@ function PricingMatrix() {
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {driveUrl && (
-            <a href={driveUrl} target="_blank" rel="noreferrer" className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]">
-              <FolderOpen size={16} /> Drive
-            </a>
-          )}
+          {/* One action up here. New quotation is the primary on the Quotes tab; Drive is on each quotation. */}
           <button onClick={() => setEmailInsurer({ insurer: null })} className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
-          </button>
-          <button onClick={() => { setTab('quotes'); setNewQuote(false); setByHand(false) }} className="h-9 px-5 rounded-[7px] bg-[#132c1c] text-white text-[14px] font-medium border-0 inline-flex items-center gap-2 cursor-pointer hover:opacity-90">
-            <Plus size={16} /> Quotes
           </button>
         </div>
       </div>
 
-      {/* On a phone the bar scrolls sideways on its own instead of widening the page. The underline
-          sits inside the bar and the scrollbar is hidden, so a desktop never shows a scroll handle. */}
-      <div className="mt-8 mb-6 flex items-end gap-7 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ borderBottom: '1px solid #e6e8e4' }}>
-        {TABS.map(t => (
-          <button key={t} onClick={() => { setTab(t); if (t === 'quotes') setNewQuote(false) }}
-            className={cn('relative pb-3 text-[15px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', tab === t ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
-            {TAB_LABEL[t]}
-            {tab === t && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full bg-[#0f1412]" aria-hidden />}
-          </button>
-        ))}
+      <div className="mt-8 mb-6">
+        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'quotes') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
       </div>
 
       {tab === 'tables' && (

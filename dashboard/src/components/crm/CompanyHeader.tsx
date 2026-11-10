@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { FileText, FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
@@ -104,7 +105,7 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
 
   return (
     <div className="mb-8">
-      <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>← Companies</Link>
+      <Breadcrumbs current={{ label: company.name, href: `/companies/${company.id}` }} fallback={{ label: 'Companies', href: '/companies' }} />
 
       {/* The name takes the full width on one line; stage, people, domain, pin and the actions share the row beneath. */}
       <div className="mt-3">
