@@ -14,6 +14,7 @@ import { EngagementShell } from '@/components/engagement/shell'
 import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/components/engagement/EaLayout'
 import { useEngagementNav, type EngagementTab, type EngagementNavCounts } from '@/providers/engagement-nav-provider'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
+import { inMailbox } from '@/lib/mail/visibility'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -76,7 +77,7 @@ function EngagementPageInner() {
   // beside a separate list panel); this page owns fetching/realtime and mirrors its state up for
   // EngagementRail to render, same cross-component pattern as ChatDockProvider.
   const {
-    activeTab, search, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
+    activeTab, search, mailbox, setCounts, setRefreshing: setNavRefreshing, setOnRefresh,
     setLeads: setNavLeads, setVisible: setNavVisible, setThreadMap: setNavThreadMap,
     setSelectedId: setNavSelectedId, setLoading: setNavLoading, setOnSelect, setOnOpenDraft: setNavOnOpenDraft,
     setOnLinkCompany, navCollapsed, setNavCollapsed,
@@ -143,13 +144,13 @@ function EngagementPageInner() {
 
   // Sorted + filtered list
   const visible = useMemo(() => {
-    const filtered = leads.filter(l => inSection(l, activeTab)).filter(l => matchesSearch(l, search))
+    const filtered = leads.filter(l => inSection(l, activeTab)).filter(l => matchesSearch(l, search)).filter(l => inMailbox(mailbox, l.mailboxes ?? []))
     return [...filtered].sort((a, b) => {
       const ta = threadMap[a.id]?.messages.at(-1)?.sent_at ?? a.created_at
       const tb = threadMap[b.id]?.messages.at(-1)?.sent_at ?? b.created_at
       return new Date(tb).getTime() - new Date(ta).getTime()
     })
-  }, [leads, activeTab, search, threadMap, inSection])
+  }, [leads, activeTab, search, mailbox, threadMap, inSection])
   useEffect(() => { setNavVisible(visible) }, [visible, setNavVisible])
 
   // Load leads

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { loadThread } from '@/lib/today/data'
+import { currentUserEmail } from '@/lib/crm/auth'
+import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (unauthorized) return unauthorized
   const { id } = await params
   try {
+    if (!(await threadVisibleTo(id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
     const thread = await loadThread(id)
     if (!thread) return NextResponse.json({ error: 'Thread not found.' }, { status: 404 })
     return NextResponse.json({ thread })

@@ -56,6 +56,14 @@
     {
       "path": "/api/cron/autonomy-send?digest=1",
       "schedule": "30 9 * * 1-5"
+    },
+    {
+      "path": "/api/cron/todo-digest",
+      "schedule": "30 0 * * 1-5"
+    },
+    {
+      "path": "/api/cron/todo-digest?afternoon=1",
+      "schedule": "0 6 * * 1-5"
     }
   ]
 }

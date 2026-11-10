@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { AlignJustify, Clock, FileEdit, Inbox, Menu, MessageSquare, PanelLeftClose, PanelLeftOpen, PenLine, RefreshCw, Rows3, Search, Unlink, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEngagementNav, type EngagementTab } from '@/providers/engagement-nav-provider'
+import { Segmented } from '@/components/crm/primitives'
+import { personalMailboxes } from '@/lib/mail/visibility'
 import { ConversationList } from './ConversationList'
 import type { Density } from './ThreadRow'
 
@@ -70,8 +72,18 @@ function moveRowFocus(e: KeyboardEvent<HTMLDivElement>) {
 }
 
 export function ThreadListPane({ collapsible = false }: { collapsible?: boolean }) {
-  const { activeTab, setActiveTab, search, setSearch, counts, refreshing, onRefresh, leads, visible, threadMap, selectedId, loading, onSelect, onOpenDraft, setNavCollapsed } = useEngagementNav()
+  const { activeTab, setActiveTab, search, setSearch, mailbox, setMailbox, counts, refreshing, onRefresh, leads, visible, threadMap, selectedId, loading, onSelect, onOpenDraft, setNavCollapsed } = useEngagementNav()
   const { density, pick } = useDensity()
+  // The mailbox pill shows only to a viewer who may see a personal mailbox (its owner, or operations@).
+  const personal = personalMailboxes(leads)
+  const [staffNames, setStaffNames] = useState<Record<string, string>>({})
+  useEffect(() => {
+    if (!personal.length) return
+    fetch('/api/today/edit-options', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then((d: { staff?: { email: string; name: string }[] } | null) => { if (d?.staff) setStaffNames(Object.fromEntries(d.staff.map(s => [s.email.toLowerCase(), s.name]))) })
+      .catch(() => {})
+  }, [personal.length])
+  const firstName = (email: string) => (staffNames[email] ?? email.split('@')[0]).split(/[\s.]+/)[0].replace(/^./, c => c.toUpperCase())
   const searchRef = useRef<HTMLInputElement>(null)
   const n = activeTab === 'drafts' ? counts.drafts : visible.length
 
@@ -107,6 +119,16 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
           <PenLine size={14} />Compose
         </button>
       </div>
+
+      {/* Mailbox pill: the team's threads, or a person's own */}
+      {personal.length > 0 && (
+        <div className="mx-4 mb-2 flex-shrink-0">
+          <Segmented value={mailbox} onChange={setMailbox} label="Mailbox" options={[
+            { value: 'all', label: 'All' }, { value: 'operations', label: 'Operations' },
+            ...personal.map(m => ({ value: m, label: firstName(m) })),
+          ]} />
+        </div>
+      )}
 
       {/* Search */}
       <label role="search" className="relative flex items-center mx-4 mt-0.5 mb-2.5 h-8 rounded-[8px] border bg-white px-2.5 gap-2 focus-within:border-[#0f1412] transition-colors flex-shrink-0" style={{ borderColor: CTRL }}>

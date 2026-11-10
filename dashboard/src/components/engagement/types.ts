@@ -22,6 +22,8 @@ export type Lead = {
   companyName?: string | null
   /** The linked company's account owner (email); null when the company has no owner yet. */
   companyOwner?: string | null
+  /** The Gmail accounts this thread was read from (src/lib/mail/visibility.ts). Empty = the team's. */
+  mailboxes?: string[]
   segment?: string | null
   segment_note?: string | null
   campaign_context?: {

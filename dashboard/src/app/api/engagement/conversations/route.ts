@@ -3,6 +3,9 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
+import { currentUserEmail } from '@/lib/crm/auth'
+import { canSeeThread } from '@/lib/mail/visibility'
+import { mailboxesByThread } from '@/lib/mail/visibility-server'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
@@ -77,7 +80,7 @@ export async function GET(req: NextRequest) {
       `${SB_URL}/rest/v1/email_threads?select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
       { headers: sbHeaders(), cache: 'no-store' }
     )
-    const threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
+    let threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
     if (!Array.isArray(threads)) return NextResponse.json([])
 
     // A deep link (/engagement?lead=<thread id>) can point at a thread older than the newest 200.
@@ -91,6 +94,10 @@ export async function GET(req: NextRequest) {
       const rows: ThreadRow[] = one.ok ? await one.json() : []
       if (Array.isArray(rows) && rows[0]) threads.push(rows[0])
     }
+    // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
+    const viewer = await currentUserEmail()
+    const boxes = await mailboxesByThread(threads.map(t => t.id))
+    threads = threads.filter(t => canSeeThread(viewer, boxes.get(t.id) ?? []))
     if (threads.length === 0) return NextResponse.json([])
 
     // 2. Batch-fetch contacts for linked threads
@@ -198,6 +205,7 @@ export async function GET(req: NextRequest) {
         companyId:        t.company_id ?? null,
         companyName:      t.companies?.name ?? null,
         companyOwner:     t.companies?.owner_email ?? null,
+        mailboxes:        boxes.get(t.id) ?? [],
         lastDirection:    lastDirection.get(t.id) ?? null,
         chaseDue:         chaseDue.get(t.id) ?? null,
       }]
