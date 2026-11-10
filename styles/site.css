@@ -390,3 +390,14 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 .s-facts dt { font-weight: 500; font-size: 17px; margin: 0; }
 .s-facts dd { margin: 0; font-size: 16px; line-height: 1.6; color: var(--s-sub); }
 .s-facts dd + dd { font-weight: 500; color: inherit; }
+
+/* Insights articles from the dashboard feed: lists, sub-headings, tables and quotes inside the prose */
+.s-prose h3 { font-family: var(--s-serif); font-weight: 500; font-size: 21px; line-height: 1.3; margin: 28px 0 0; }
+.s-prose ul, .s-prose ol { margin: 14px 0 0; padding-left: 22px; font-size: 17px; line-height: 1.65; }
+.s-prose li { margin-top: 6px; }
+.s-prose li::marker { color: var(--s-sub); }
+.s-prose a { color: var(--s-g2); text-decoration: underline; text-underline-offset: 3px; }
+.s-prose blockquote { margin: 18px 0 0; padding-left: 18px; border-left: 2px solid var(--s-hair); color: var(--s-sub); }
+.s-prose table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
+.s-prose th, .s-prose td { border-bottom: 1px solid var(--s-hair); padding: 11px 10px; text-align: left; vertical-align: top; }
+.s-prose th { font-size: 12.5px; font-weight: 600; color: var(--s-sub); }
