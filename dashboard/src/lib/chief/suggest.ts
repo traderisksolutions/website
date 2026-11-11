@@ -172,9 +172,11 @@ export async function runSuggestion(threadId: string, key: string, by: string | 
   const q = found.quotation
   const plans = await plansFromCensusFile(q, conversation.ids).catch(() => null)
   const req = q.requirement as { current_insurer?: string | null; categories?: { requirement?: Partial<import('@/lib/gb/ladder').Requirement> }[] } | null
+  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=subject,display_subject&limit=1`, [])
   const pack = await runAnalysis({
     quotationId: q.id, members: q.census ?? [], effectiveDate: q.effective_date ?? new Date().toISOString().slice(0, 10), basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
     currentInsurer: req?.current_insurer ?? null, current: plans?.current ?? req?.categories?.[0]?.requirement ?? null, by,
+    source: { label: thread?.display_subject ?? thread?.subject ?? 'Thread', href: `/engagement?lead=${threadId}` },
   })
   return { ok: true, quotationId: pack.quotationId, summary: `${analysisSummary(pack)} · census from ${found.how}` }
 }

@@ -36,6 +36,8 @@ export type AnalysisPack = {
   employees: number; dependants: number
   suggested: PackageKey; because: string
   excluded: string[]
+  /** Where the run was started from: the thread, the register, an HR link, the company page. Back returns there. */
+  source?: { label: string; href: string } | null
   rungs: AnalysisRung[]
   custom?: CustomResult | null
   notes: string[]
@@ -94,7 +96,7 @@ async function priceOnce(members: Member[], req: Requirement, overrides: Categor
 
 export async function runAnalysis(input: {
   quotationId: string; members: Member[]; effectiveDate: string; basis: Basis
-  currentInsurer?: string | null; current?: Partial<Requirement> | null; suggested?: PackageKey | null; excluded?: string[]; by?: string | null
+  currentInsurer?: string | null; current?: Partial<Requirement> | null; suggested?: PackageKey | null; excluded?: string[]; source?: { label: string; href: string } | null; by?: string | null
 }): Promise<AnalysisPack> {
   const current = input.currentInsurer ? insurerKey(input.currentInsurer) : null
   const other: Basis = input.basis === 'renewal' && current ? 'new_business' : input.basis
@@ -129,7 +131,7 @@ export async function runAnalysis(input: {
   const pack: AnalysisPack = {
     at: new Date().toISOString(), by: input.by ?? null, quotationId: input.quotationId,
     effectiveDate: input.effectiveDate, basis: input.basis, currentInsurer: input.currentInsurer ?? null,
-    employees, dependants, suggested: input.suggested ?? s.key, because: input.suggested ? 'chosen by the broker' : s.because, excluded: input.excluded ?? [], rungs, custom: prev?.custom ?? null, notes,
+    employees, dependants, suggested: input.suggested ?? s.key, because: input.suggested ? 'chosen by the broker' : s.because, excluded: input.excluded ?? [], source: input.source ?? prev?.source ?? null, rungs, custom: prev?.custom ?? null, notes,
   }
   await saveAnalysis(pack)
   recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis', resourceType: 'gb_quotation', resourceId: input.quotationId, basis: `${analysisSummary(pack)}; five packages at every insurer`, metadata: { by: input.by ?? null } })

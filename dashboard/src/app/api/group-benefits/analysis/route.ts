@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const body = await req.json().catch(() => null) as
-    { census?: Member[]; company_name?: string; effective_date?: string; basis?: string; current_insurer?: string | null; excluded?: string[] } | null
+    { census?: Member[]; company_name?: string; company_id?: string | null; effective_date?: string; basis?: string; current_insurer?: string | null; excluded?: string[] } | null
   const census = (body?.census ?? []).filter(m => m && typeof m.name === 'string' && m.name.trim())
   const eff = parseDocumentDate(body?.effective_date ?? null)
   if (!census.length) return NextResponse.json({ error: 'The census is empty' }, { status: 400 })
@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
       census, covers: packageCovers(packageByKey(suggested.key)!), companyName, effectiveDate, basis, source: 'csv', createdBy: user.id,
       notesHead: [`EB analysis: five packages at every insurer; this quotation holds the ${suggested.key} package.`],
     })
-    const pack = await runAnalysis({ quotationId: d.quotationId, members: census, effectiveDate, basis, currentInsurer, excluded, by: user.email ?? null })
+    const source = body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=quotes` } : { label: 'EB', href: '/pricing-matrix' }
+    const pack = await runAnalysis({ quotationId: d.quotationId, members: census, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null })
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId, new_value: { company: companyName, members: census.length, via: 'analysis', suggested: pack.suggested } })
     fileEbCompanyFolder(companyName)
     return NextResponse.json({ quotation_id: d.quotationId, suggested: pack.suggested })
