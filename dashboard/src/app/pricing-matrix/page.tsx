@@ -11,6 +11,7 @@ import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbPoliciesTab } from '@/components/group-benefits/EbPoliciesTab'
 import { EbRegister } from '@/components/group-benefits/EbRegister'
+import { NewEb } from '@/components/group-benefits/NewEb'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
@@ -168,9 +169,12 @@ function PricingMatrix() {
       {tab === 'eb' && newQuote && !byHand && hrReadState === 'failed' && (
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
       )}
-      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && (
+      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && !hrRead && (
+        <NewEb initialCompany={company} />
+      )}
+      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && hrRead && (
         <div className="flex flex-col gap-10">
-          <QuickQuote key={hrRead ? hrLinkId ?? 'hr' : 'file'} initialCompany={company} initialRead={hrRead ?? undefined} onUseWizard={() => setByHand(true)} />
+          <QuickQuote key={hrLinkId ?? 'hr'} initialCompany={company} initialRead={hrRead} onUseWizard={() => setByHand(true)} />
           <section>
             <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]">Engine quotes</h2>
             <QuotesTab onNew={() => window.scrollTo({ top: 0 })} />

@@ -94,7 +94,7 @@ export function EbRegister({ onNew }: { onNew: () => void }) {
           const cats = r.requirement?.categories?.length ?? 0
           return (
             <RegisterRow key={r.id}>
-              <RegisterCell><Link href={`/pricing-matrix/quote/${r.id}`} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name || 'Untitled'}</Link></RegisterCell>
+              <RegisterCell><Link href={`/pricing-matrix/quote/${r.id}/analysis`} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name || 'Untitled'}</Link> <Link href={`/pricing-matrix/quote/${r.id}`} className="text-[12px] no-underline hover:underline" style={{ color: MUTED }}>quotation</Link></RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{r.member_count ?? 0}</RegisterCell>
               <RegisterCell>{r.effective_date ? fmtDate(r.effective_date) : '—'}</RegisterCell>
               <RegisterCell>{r.basis === 'renewal' ? 'Renewal' : r.basis ? 'New business' : '—'}</RegisterCell>

@@ -8,7 +8,8 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 - **Quotes opens on EB.** The Quotes place in the top bar lands on `/pricing-matrix`, its first tab is EB (was "Benefits calculator", third). Breadcrumbs name it EB.
 - **The EB register.** The page opens on every saved quotation, one row each: company, lives, start, basis, best price net and its insurer (lowest complete total, else lowest marked *), categories, source, last change; filters all, starting within 90 days, renewals, new business. **+ New EB** takes a census file (quick quote). The EB policies list moved to its own Policies tab.
-- Decision page for the EB layer (parameters as numbers, routes, charts A and C, per-quotation payout view, management and employee categories): the artifact of 12 Nov; build order in it.
+- **One census in, one analysis out.** + New EB reads a census file by rule, takes the company, start date, basis, current insurer and the insurers the client ruled out, and prices the five packages of the ladder (`src/lib/gb/packages.ts`: Essential, Standard, Enhanced, Executive, Premier, each a set of numbers resolved to a real plan at every insurer) at every insurer in one run (`src/lib/gb/analysis.ts`), co-insurance variants included. The report (`/pricing-matrix/quote/<id>/analysis`) shows the suggested package, insurer and premium, the rung above with the extra cost, the rung below with the saving, chart A (ladder across, premium up, a cross per insurer, the best price joined) and the full table; ruled-out insurers greyed and readable; a rung name makes it the suggestion. The current insurer is priced on its renewal card, the others as new business. No model.
+- Decision page for the EB layer: the artifact of 12 Nov; build order in it.
 
 ---
 
