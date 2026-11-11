@@ -37,7 +37,7 @@ export function parseDelimited(text: string): string[][] {
   return rows.filter(r => r.some(c => c !== ''))
 }
 
-type Col = 'name' | 'dob' | 'age' | 'relationship' | 'category' | 'occupation' | 'pass'
+type Col = 'name' | 'sn' | 'dob' | 'age' | 'relationship' | 'category' | 'occupation' | 'pass'
 
 const HEADERS: [Col, RegExp][] = [
   ['dob', /date\s*of\s*birth|^d\.?o\.?b\.?$|birth\s*date|\bdob\b/i],
@@ -45,7 +45,8 @@ const HEADERS: [Col, RegExp][] = [
   ['age', /^age\b|\bage\s*(last|next|as)/i],
   ['relationship', /relation|staff\s*\/\s*dep|member\s*type|^type$|dependant|dependent|^status$/i],
   ['pass', /foreign|work\s*permit|pass\s*type|wp\s*\/\s*sp|local\s*or/i],
-  ['category', /categor|grade|designation|^band$|^class$|plan\s*type|^tier$/i],
+  ['category', /categor|grade|designation|^band$|^class$|plan\s*type|^tier$|job\s*level|^level$/i],
+  ['sn', /^s\/?n\.?$|^no\.?$|^#$|^serial/i],
   // Last, so "Name of Company" and "Company name" do not win: a name column says whose name.
   ['name', /^(employee|staff|member|insured|full)?\s*'?s?\s*name$|^name\s*of\s*(employee|staff|member|insured)|^employee$|^name$/i],
 ]
@@ -54,7 +55,7 @@ function columnsOf(header: string[]): Partial<Record<Col, number>> {
   const out: Partial<Record<Col, number>> = {}
   header.forEach((h, i) => {
     const t = h.replace(/\s+/g, ' ').trim()
-    if (!t || /company/i.test(t)) return
+    if (!t || /company|nationality/i.test(t)) return
     for (const [col, re] of HEADERS) {
       if (out[col] == null && re.test(t)) { out[col] = i; break }
     }
@@ -95,17 +96,21 @@ export function censusFromRows(rows: string[][], today: CalendarDate = todaySGT(
   let h = -1, cols: Partial<Record<Col, number>> = {}
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const c = columnsOf(rows[i])
-    if (c.name != null && (c.dob != null || c.age != null)) { h = i; cols = c; break }
+    if ((c.name != null || c.sn != null) && (c.dob != null || c.age != null)) { h = i; cols = c; break }
   }
-  if (h < 0) return { members: [], unread: [], found: {}, error: 'No header row with a name and a date of birth (or age) column in the first 15 rows.' }
+  if (h < 0) return { members: [], unread: [], found: {}, error: 'No header row with a name (or S/N) and a date of birth (or age) column in the first 15 rows.' }
 
   const found = Object.fromEntries(Object.entries(cols).map(([k, i]) => [k, rows[h][i as number]])) as CensusRead['found']
   const members: Member[] = []
   const unread: string[] = []
-  let lastCategory = 'Default'
+  let lastCategory = 'Default', depCount = 0, lastSn = ''
   for (let r = h + 1; r < rows.length; r++) {
     const cell = (c: Col) => (cols[c] != null ? (rows[r][cols[c]!] ?? '').trim() : '')
-    const name = cell('name')
+    // No name column: the S/N numbers the people, and a D suffix marks a dependant of that number.
+    const sn = cols.name == null ? cell('sn') : ''
+    const depBySn = !!sn && /d$/i.test(sn)
+    if (sn && !depBySn && sn !== lastSn) { depCount = 0; lastSn = sn }
+    const name = cell('name') || (sn ? `Member ${sn.replace(/\s*d$/i, '')}${depBySn ? ` · dependant ${++depCount}` : ''}` : '')
     if (!name || /^(total|sub-?total|grand total)\b/i.test(name)) continue
 
     const rawDob = cell('dob')
@@ -113,7 +118,7 @@ export function censusFromRows(rows: string[][], today: CalendarDate = todaySGT(
     if (rawDob && !d) unread.push(`Row ${r + 1}, ${name}: "${rawDob}"`)
     const statedAge = cell('age') && /^\d{1,3}$/.test(cell('age')) ? Number(cell('age')) : null
     const ageNow = d ? ageLastBirthday(d, today) : statedAge
-    const relationship = relationshipOf(cell('relationship'), ageNow)
+    const relationship = relationshipOf(cell('relationship') || (depBySn ? 'dependant' : ''), ageNow)
 
     // Dependants take the employee's category above them. A work permit or S Pass is added to
     // the category ("Staff · WP") rather than replacing it: it decides foreign-worker cover, and

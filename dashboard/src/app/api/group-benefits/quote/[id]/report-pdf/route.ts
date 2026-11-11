@@ -11,6 +11,7 @@ import { buildReportModel, type ReportQuotation } from '@/lib/gb/report-model'
 import { renderReportPdf } from '@/lib/gb/report-pdf'
 import { COVER_NAMES_KEY, type CoverNames } from '@/lib/gb/cover-names'
 import { loadScenarios } from '@/lib/gb/scenario-run'
+import { analysisAsScenarios, loadAnalysis } from '@/lib/gb/analysis'
 import { reportOptions } from '@/lib/gb/client-draft'
 
 export const runtime = 'nodejs'
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let names: CoverNames = {}
     try { names = JSON.parse(((nRes.ok ? await nRes.json() : []) as { value: string }[])[0]?.value ?? '{}') } catch { /* canonical names */ }
 
-    const pack = await loadScenarios(id).catch(() => null)
+    const an = await loadAnalysis(id).catch(() => null)
+    const pack = an ? analysisAsScenarios(an, q.company_name) : await loadScenarios(id).catch(() => null)
     const pdf = await renderReportPdf(buildReportModel(q, names, pack ? reportOptions(pack) : null))
     const file = `${(q.company_name || 'Quotation').replace(/[^\w.\- ]+/g, '').trim().replace(/\s+/g, '-')}-group-benefits-comparison.pdf`
     return new NextResponse(new Uint8Array(pdf), {

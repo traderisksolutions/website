@@ -167,7 +167,7 @@ function PricingMatrix() {
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && !hrRead && (
-        <NewEb initialCompany={company} />
+        <NewEb initialCompany={company} initialCompanyId={companyId} />
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && hrRead && (
         <div className="flex flex-col gap-10">

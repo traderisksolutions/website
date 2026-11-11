@@ -11,7 +11,9 @@ import { sb, sbTry, enc } from '@/lib/crm/db'
 import { recordHousekeeping } from '../agent-activity'
 import { priceBuilder } from './builder'
 import { insurerKey, type CategoryInput, type InsurerKey, type Requirement } from './ladder'
-import { PACKAGES, suggestedRung, type PackageKey } from './packages'
+import { PACKAGES, packageByKey, suggestedRung, type PackageKey } from './packages'
+import type { ScenarioPack } from './scenario-run'
+import type { Brief, ScenarioInsurer } from './scenarios'
 import { customRequirement, customSummary, resolveCustom, type CustomSpec } from './custom'
 import { loadLimitFacts } from './limit-facts'
 import type { Member } from '../gb-quote'
@@ -30,6 +32,8 @@ export type AnalysisInsurer = {
 }
 export type AnalysisRung = { key: PackageKey; name: string; facts: string[]; insurers: AnalysisInsurer[]; best: { insurer_name: string; net: number; total: number } | null }
 export type CustomResult = { at: string; spec: CustomSpec; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best']; notes: Record<string, string[]> }
+/** Management on one rung, staff on another: each census category assigned a package, priced as one programme. */
+export type SplitResult = { at: string; assignments: Record<string, PackageKey>; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best'] }
 export type AnalysisPack = {
   at: string; by: string | null; quotationId: string
   effectiveDate: string; basis: 'new_business' | 'renewal'; currentInsurer: string | null
@@ -40,6 +44,7 @@ export type AnalysisPack = {
   source?: { label: string; href: string } | null
   rungs: AnalysisRung[]
   custom?: CustomResult | null
+  split?: SplitResult | null
   notes: string[]
 }
 
@@ -77,7 +82,8 @@ type Basis = 'new_business' | 'renewal'
 
 function rowsOf(r: Run, basis: Basis, keep: (k: InsurerKey) => boolean, variant: AnalysisInsurer['variant'], excludedKeys: Set<InsurerKey | null>): AnalysisInsurer[] {
   return r.insurers.filter(i => keep(i.insurer)).map(i => {
-    const cells = r.grids[i.rate_table_id]?.['All employees'] ?? []
+    const grid = r.grids[i.rate_table_id] ?? {}
+    const cells = grid['All employees'] ?? Object.values(grid)[0] ?? []
     return {
       rate_table_id: i.rate_table_id, insurer_name: i.insurer_name, insurer: i.insurer, basis, variant, excluded: excludedKeys.has(i.insurer),
       net: Math.round(i.net * 100) / 100, gst: i.gst, total: i.total, by_product: i.by_product, unpriced: i.gaps.length,
@@ -88,7 +94,11 @@ function rowsOf(r: Run, basis: Basis, keep: (k: InsurerKey) => boolean, variant:
 
 /** One requirement priced at every insurer: the current insurer on `basis`, the rest on `other`. */
 async function priceOnce(members: Member[], req: Requirement, overrides: CategoryInput['overrides'], effectiveDate: string, basis: Basis, other: Basis, current: InsurerKey | null, excludedKeys: Set<InsurerKey | null>, variant: AnalysisInsurer['variant'] = null): Promise<{ rows: AnalysisInsurer[]; employees: number; dependants: number }> {
-  const cat = [{ name: 'All employees', requirement: req, overrides: overrides ?? {} }]
+  return priceCategories(members, [{ name: 'All employees', requirement: req, overrides: overrides ?? {} }], effectiveDate, basis, other, current, excludedKeys, variant)
+}
+
+/** Several categories (management, staff), each with its own requirement, priced as one programme. */
+async function priceCategories(members: Member[], cat: CategoryInput[], effectiveDate: string, basis: Basis, other: Basis, current: InsurerKey | null, excludedKeys: Set<InsurerKey | null>, variant: AnalysisInsurer['variant'] = null): Promise<{ rows: AnalysisInsurer[]; employees: number; dependants: number }> {
   const main = await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis, tier_b: false })
   const rest = other === basis ? main : await priceBuilder({ members, categories: cat, effective_date: effectiveDate, basis: other, tier_b: false })
   return { rows: [...rowsOf(main, basis, k => k === current, variant, excludedKeys), ...rowsOf(rest, other, k => k !== current, variant, excludedKeys)], employees: main.employees, dependants: main.dependants }
@@ -161,4 +171,53 @@ export async function runCustom(quotationId: string, spec: CustomSpec, members: 
   await saveAnalysis(next)
   recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis · custom', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${customSummary(spec)}; ${next.custom?.best ? `${next.custom.best.insurer_name} S$${Math.round(next.custom.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
   return next
+}
+
+/** Each census category on a rung: the whole programme priced at every insurer, kept on the pack as Split. */
+export async function runSplit(quotationId: string, assignments: Record<string, PackageKey>, members: Member[], by: string | null): Promise<AnalysisPack> {
+  const pack = await loadAnalysis(quotationId)
+  if (!pack) throw new Error('Run the analysis first')
+  const current = pack.currentInsurer ? insurerKey(pack.currentInsurer) : null
+  const other: Basis = pack.basis === 'renewal' && current ? 'new_business' : pack.basis
+  const excludedKeys = new Set(pack.excluded.map(insurerKey))
+  const rungs = [...new Set(Object.values(assignments))].map(k => packageByKey(k)).filter((p): p is NonNullable<typeof p> => !!p)
+  if (!rungs.length) throw new Error('Assign at least one category to a package')
+  const categories: CategoryInput[] = rungs.map(p => ({ name: p.name, requirement: p.requirement, overrides: {} }))
+  const first = rungs[0]
+  const placed = members.map(m => ({ ...m, category: packageByKey(assignments[m.category] ?? first.key)?.name ?? first.name }))
+  const priced = await priceCategories(placed, categories, pack.effectiveDate, pack.basis, other, current, excludedKeys)
+  const insurers = priced.rows.sort((a, b) => a.net - b.net)
+  const summary = Object.entries(assignments).map(([c, k]) => `${c} on ${packageByKey(k)?.name ?? k}`).join(' · ')
+  const next: AnalysisPack = { ...pack, split: { at: new Date().toISOString(), assignments, summary, insurers, best: bestOnRung(insurers) } }
+  await saveAnalysis(next)
+  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis · split', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${summary}; ${next.split?.best ? `${next.split.best.insurer_name} S$${Math.round(next.split.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
+  return next
+}
+
+/**
+ * The analysis in the shape the client report and the client draft read (the older scenario
+ * pack): the suggested package first, then one up, then one down. A split or a custom run, when
+ * present, is the first column instead, since it is what the broker chose to present.
+ */
+export function analysisAsScenarios(pack: AnalysisPack, companyName: string | null): ScenarioPack {
+  const current = pack.currentInsurer ? insurerKey(pack.currentInsurer) : null
+  const rows = (ins: AnalysisInsurer[]): ScenarioInsurer[] => ins.filter(i => !i.variant).map(i => ({
+    rate_table_id: i.rate_table_id, insurer_name: i.insurer_name, insurer: i.insurer, net: i.net, gst: i.gst, total: i.total, missing: i.unpriced, by_product: i.by_product, gaps: [],
+    inForce: true, excluded: i.excluded, preferred: false, current: !!current && i.insurer === current, withinBudget: null,
+  }))
+  const i = pack.rungs.findIndex(r => r.key === pack.suggested)
+  const sug = pack.rungs[i], up = pack.rungs[i + 1], down = pack.rungs[i - 1]
+  const scenarios: ScenarioPack['scenarios'] = []
+  const push = (key: 'A' | 'B' | 'C', name: string, summary: string, insurers: AnalysisInsurer[], requirement: Requirement) => scenarios.push({ key, name, summary, requirement, changes: [], insurers: rows(insurers) })
+  if (pack.split) push('A', `Split · ${pack.split.summary}`, pack.split.summary, pack.split.insurers, sug?.key ? packageByKey(sug.key)!.requirement : PACKAGES[1].requirement)
+  else if (pack.custom) push('A', 'Custom', pack.custom.summary, pack.custom.insurers, customRequirement(pack.custom.spec))
+  else if (sug) push('A', `${sug.name}`, sug.facts.join(' · '), sug.insurers, packageByKey(sug.key)!.requirement)
+  if (up) push('C', `${up.name} (add a little)`, up.facts.join(' · '), up.insurers, packageByKey(up.key)!.requirement)
+  if (down) push('B', `${down.name} (save a little)`, down.facts.join(' · '), down.insurers, packageByKey(down.key)!.requirement)
+  const brief: Brief = {
+    company: companyName, basis: pack.basis, currentInsurer: pack.currentInsurer, current: {}, currentPlanText: null, expiringPremium: null,
+    budget: null, budgetText: null, budgetNetOfGst: null, mustHaves: [], wishes: [], optional: [], excludeInsurers: pack.excluded, preferInsurers: [],
+    renewalDate: null, effectiveDate: pack.effectiveDate, decisions: [], open: [],
+  }
+  return { at: pack.at, by: pack.by, threadId: null, quotationId: pack.quotationId, model: 'none', messages: 0, brief, effectiveDate: pack.effectiveDate, basis: pack.basis, employees: pack.employees, dependants: pack.dependants, scenarios, notes: pack.notes }
 }

@@ -25,11 +25,11 @@ function nextMonthFirst(): string {
   return `${y}-${String(m).padStart(2, '0')}-01`
 }
 
-export function NewEb({ initialCompany }: { initialCompany?: string }) {
+export function NewEb({ initialCompany, initialCompanyId }: { initialCompany?: string; initialCompanyId?: string | null }) {
   const router = useRouter()
   const [read, setRead] = useState<Read | null>(null)
   const [reading, setReading] = useState(false)
-  const [pick, setPick] = useState<CompanyPick>({ id: null, name: initialCompany ?? '' })
+  const [pick, setPick] = useState<CompanyPick>({ id: initialCompanyId ?? null, name: initialCompany ?? '' })
   const [effDate, setEffDate] = useState(nextMonthFirst())
   const [basis, setBasis] = useState<'new_business' | 'renewal'>('renewal')
   const [current, setCurrent] = useState('')

@@ -72,6 +72,17 @@ export function censusSignal(text: string | null | undefined): CensusSignal | nu
 }
 
 export type CensusMember = { name: string; category: string; relationship: 'self' | 'spouse' | 'child'; dob: string | null; age: number | null; occupation_class: string | null }
+
+/** Whole years from a date read day-first or ISO to today, by code; null when unreadable. */
+function ageFrom(raw: string): number | null {
+  const m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/) ?? raw.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})/)?.slice().reverse()
+  if (!m) return null
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3])
+  if (!y || !mo || !d) return null
+  const t = new Date(); let a = t.getFullYear() - y
+  if (t.getMonth() + 1 < mo || (t.getMonth() + 1 === mo && t.getDate() < d)) a -= 1
+  return a
+}
 export type CensusRead = { members: CensusMember[]; company: string | null; insurer: string | null; others: { company: string | null; rows: number }[] }
 
 const REL_SPOUSE = /\b(spouse|wife|husband|partner)\b/i
@@ -83,22 +94,33 @@ function sheetMembers(block: string): CensusMember[] {
   if (h < 0) return []
   const header = cells(lines[h]).map(c => c.toLowerCase())
   const col = (re: RegExp, not?: RegExp) => header.findIndex(c => re.test(c) && !(not && not.test(c)))
-  const nameCol = col(/name/, /company/), dateCol = col(/birth|dob/), ageCol = col(/^age\b/)
-  const relCol = col(/staff|employee|dependa?nt|relationship|member type/), catCol = col(/plan|category|grade|class|entitlement/, /occupation/)
+  const nameCol = col(/name/, /company|nationality|national/), dateCol = col(/birth|dob/), ageCol = col(/^age\b/)
+  const relCol = col(/staff|employee|dependa?nt|relationship|member type/), catCol = col(/plan|category|grade|class|entitlement|job level|level|designation/, /occupation|employment/)
   const occCol = col(/occupation/)
+  // A sheet with no name column numbers its people (S/N); a dependant carries the employee's number
+  // with a D (OUE: "3", "3D", "3D"). Nothing else in the row is a name: a nationality is not one.
+  const snCol = nameCol >= 0 ? -1 : col(/^s\/?n\.?$|^no\.?$|^#$|^serial/)
   const out: CensusMember[] = []
+  let lastCategory = 'Default', depCount = 0, lastSn = ''
   for (const line of lines.slice(h + 1)) {
     const c = cells(line)
     if (c.every(x => !x)) continue
-    const name = nameCol >= 0 ? c[nameCol] : c.find(x => /[a-z]{2,}\s+[a-z]{2,}/i.test(x))
-    if (!name || !/[a-z]{2}/i.test(name)) continue
+    const sn = snCol >= 0 ? (c[snCol] ?? '').trim() : ''
+    const name = nameCol >= 0 ? c[nameCol] : sn ? `Member ${sn.replace(/\s*d$/i, '')}${/d$/i.test(sn) ? ` · dependant ${++depCount}` : ''}` : undefined
+    if (!name || !/[a-z0-9]{2}/i.test(name)) continue
+    if (sn && !/d$/i.test(sn) && sn !== lastSn) { depCount = 0; lastSn = sn }
     const dobRaw = dateCol >= 0 ? c[dateCol] ?? '' : (line.match(DATE)?.[0] ?? '')
     const ageRaw = ageCol >= 0 ? c[ageCol] ?? '' : ''
     if (!DATE.test(dobRaw) && !AGE_ONLY.test(ageRaw)) continue
     const rel = relCol >= 0 ? c[relCol] ?? '' : ''
+    const age = AGE_ONLY.test(ageRaw) ? Number(ageRaw) : DATE.test(dobRaw) ? ageFrom(dobRaw.match(DATE)![0]) : null
+    const bySn = !rel && /d$/i.test(sn) ? (age != null && age <= 25 ? 'child' : 'spouse') : null
+    const relationship: CensusMember['relationship'] = REL_SPOUSE.test(rel) ? 'spouse' : REL_CHILD.test(rel) ? 'child' : bySn ?? 'self'
+    let category = (catCol >= 0 && c[catCol]) || ''
+    if (relationship === 'self') { if (category) lastCategory = category; else category = lastCategory } else if (!category) category = lastCategory
     out.push({
-      name, category: (catCol >= 0 && c[catCol]) || 'Default',
-      relationship: REL_SPOUSE.test(rel) ? 'spouse' : REL_CHILD.test(rel) ? 'child' : 'self',
+      name, category: category || 'Default',
+      relationship,
       dob: DATE.test(dobRaw) ? dobRaw.match(DATE)![0] : null,
       age: !DATE.test(dobRaw) && AGE_ONLY.test(ageRaw) ? Number(ageRaw) : null,
       occupation_class: occCol >= 0 && c[occCol] ? c[occCol] : null,

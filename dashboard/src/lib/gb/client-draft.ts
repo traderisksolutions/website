@@ -14,6 +14,7 @@ import { GEMINI_FLASH } from '../gemini-models'
 import { ownWords } from '@/lib/admin/b/relay/intent'
 import { storeUpload } from '@/lib/storage/drive-upload'
 import { loadScenarios, type ScenarioPack } from './scenario-run'
+import { analysisAsScenarios, loadAnalysis } from './analysis'
 import { headline, type ScenarioInsurer } from './scenarios'
 import { shortInsurer } from './insurer-names'
 import { buildReportModel, longDate, type ReportOptions, type ReportQuotation } from './report-model'
@@ -257,8 +258,9 @@ export async function clientOnThread(threadId: string): Promise<{ email: string;
 export async function composeClientDraft(quotationId: string, threadId: string, by: string | null): Promise<ClientDraft> {
   const [q] = await sb<(ReportQuotation & { census: Row[] | null })[]>(`gb_quotations?id=eq.${enc(quotationId)}&select=id,company_name,effective_date,basis,member_count,census,results,category_map,benefits_analysis,notes,created_at,priorities,requirement&limit=1`)
   if (!q) throw new Error('Quotation not found.')
-  const pack = await loadScenarios(quotationId)
-  if (!pack) throw new Error('Price the options first: the email is written from them.')
+  const an = await loadAnalysis(quotationId)
+  const pack = an ? analysisAsScenarios(an, q.company_name) : await loadScenarios(quotationId)
+  if (!pack) throw new Error('Run the analysis first: the email is written from it.')
   const client = await clientOnThread(threadId)
   if (!client) throw new Error('No client on this thread to write to.')
   const firstName = client.name ? client.name.split(/\s+/)[0] : null

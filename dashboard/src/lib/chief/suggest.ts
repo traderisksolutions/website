@@ -109,7 +109,7 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>, census: C
   return {
     key, kind: 'eb_scenarios', attachment: q ? '' : census?.filename ?? '', rows: q?.member_count ?? census?.rows ?? 0, threadId: thread.id, receivedAt: census?.receivedAt ?? thread.last_message_at ?? thread.created_at ?? '',
     title: 'EB analysis', detail, yes: 'Analyse',
-    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack), draftable: !!scen }
+    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack), draftable: true }
       : scen ? { quotationId: scen.quotationId, members: q?.member_count ?? 0, summary: packSummary(scen), draftable: true } : null,
   }
 }

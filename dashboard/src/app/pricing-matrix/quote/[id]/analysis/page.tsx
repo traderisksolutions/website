@@ -14,12 +14,12 @@ import { useParams } from 'next/navigation'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { Btn, Field, inputCls, Segmented } from '@/components/crm/primitives'
 import { shortInsurer } from '@/lib/gb/insurer-names'
-import { PACKAGES } from '@/lib/gb/packages'
+import { PACKAGES, type PackageKey } from '@/lib/gb/packages'
 import { DEFAULT_CUSTOM, type CustomSpec } from '@/lib/gb/custom'
 import type { AnalysisPack, AnalysisInsurer, AnalysisRung } from '@/lib/gb/analysis'
 import { fmtDate, money } from '@/lib/format'
 
-type Payload = { quotation: { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number }; pack: AnalysisPack | null; error?: string }
+type Payload = { quotation: { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number }; categories?: { name: string; members: number }[]; pack: AnalysisPack | null; error?: string }
 
 const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', HAIR = '#e6e8e4', GREEN = '#132c1c', FIELD = '#f1f2ee'
 const BTN2 = 'inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] bg-white text-[#0f1412] hover:bg-[#faf9f6] no-underline cursor-pointer'
@@ -34,6 +34,7 @@ export default function AnalysisPage() {
   const [open, setOpen] = useState<string | null>(null)
   const [showCoins, setShowCoins] = useState(true)
   const [customise, setCustomise] = useState(false)
+  const [splitting, setSplitting] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/group-benefits/quote/${id}/analysis`, { cache: 'no-store' })
@@ -72,6 +73,7 @@ export default function AnalysisPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Btn level="secondary" onClick={() => setCustomise(v => !v)} disabled={!pack}>{customise ? 'Close customise' : 'Customise'}</Btn>
+            <Btn level="secondary" onClick={() => setSplitting(v => !v)} disabled={!pack}>{splitting ? 'Close split' : 'Split by category'}</Btn>
             <Link href={`/pricing-matrix/quote/${id}`} className={BTN2}>Quotation</Link>
             <Btn level="secondary" onClick={() => post({ run: true }, 'run')} loading={busy === 'run'}>{pack ? 'Price again' : 'Run analysis'}</Btn>
           </div>
@@ -83,6 +85,7 @@ export default function AnalysisPage() {
         {pack && sug && (
           <>
             {customise && <Customise pack={pack} busy={busy === 'custom'} onRun={spec => post({ custom: spec }, 'custom')} />}
+            {splitting && <Split pack={pack} categories={data?.categories ?? []} busy={busy === 'split'} onRun={a => post({ split: a }, 'split')} />}
 
             {/* The fifteen numbers */}
             <section>
@@ -94,6 +97,7 @@ export default function AnalysisPage() {
                     <th className="text-left px-3 py-2" style={{ color: MUTED }}>Insurer</th>
                     {[down, sug, up].map((r, i) => r ? <th key={r.key} className="text-right px-3 py-2" style={{ background: i === 1 ? FIELD : undefined }}>{i === 0 ? 'Save a little · ' : i === 2 ? 'Add a little · ' : 'Suggested · '}{r.name}</th> : <th key={i} />)}
                     {pack.custom && <th className="text-right px-3 py-2">Custom</th>}
+                    {pack.split && <th className="text-right px-3 py-2">Split</th>}
                   </tr></thead>
                   <tbody>
                     {insurers.map(ins => {
@@ -105,6 +109,7 @@ export default function AnalysisPage() {
                           <td className="px-3 py-2" style={{ color: colour, textDecoration: excluded ? 'line-through' : 'none' }}>{shortInsurer(ins)}{excluded ? ' · ruled out' : ''}{pack.currentInsurer && shortInsurer(pack.currentInsurer) === shortInsurer(ins) ? ' · current' : ''}</td>
                           {cells.map((c, i) => { const r = [down, sug, up][i]; const best = !!r?.best && r.best.insurer_name === ins; return <td key={i} className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: i === 1 ? FIELD : undefined }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : r ? '—' : ''}</td> })}
                           {pack.custom && (() => { const c = pack.custom!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.custom!.best?.insurer_name === ins; return <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
+                          {pack.split && (() => { const c = pack.split!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.split!.best?.insurer_name === ins; return <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
                         </tr>
                       )
                     })}
@@ -112,6 +117,7 @@ export default function AnalysisPage() {
                 </table>
               </div>
               {pack.custom && <p className="m-0 mt-2 text-[12.5px]" style={{ color: MUTED }}>Custom: {pack.custom.summary}.</p>}
+              {pack.split && <p className="m-0 mt-1 text-[12.5px]" style={{ color: MUTED }}>Split: {pack.split.summary}.</p>}
             </section>
 
             <section className="mt-10 grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-x-10 gap-y-6 items-start">
@@ -120,6 +126,7 @@ export default function AnalysisPage() {
                 {up && <Step label="Add a little" rung={up} base={sug} employees={pack.employees} />}
                 {down && <Step label="Save a little" rung={down} base={sug} employees={pack.employees} />}
                 {pack.custom && <CustomCard custom={pack.custom} base={sug} employees={pack.employees} />}
+                {pack.split && <SplitCard split={pack.split} base={sug} employees={pack.employees} />}
               </div>
             </section>
 
@@ -145,6 +152,7 @@ export default function AnalysisPage() {
                         </th>
                       ))}
                       {pack.custom && <th className="text-right px-3 py-2">Custom</th>}
+                      {pack.split && <th className="text-right px-3 py-2">Split</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -245,6 +253,40 @@ function Customise({ pack, busy, onRun }: { pack: AnalysisPack; busy: boolean; o
   )
 }
 
+function SplitCard({ split, base, employees }: { split: NonNullable<AnalysisPack['split']>; base: AnalysisRung; employees: number }) {
+  const b = split.best, bb = base.best
+  const delta = b && bb ? b.net - bb.net : null
+  return (
+    <div>
+      <p className="m-0 text-[11.5px] uppercase" style={{ color: SUBTLE, letterSpacing: '0.06em' }}>Split</p>
+      <h3 className="m-0 mt-1 text-[17px] font-medium">{b ? `${shortInsurer(b.insurer_name)} lowest` : 'No price'}</h3>
+      {b && delta != null && <p className="m-0 mt-1 text-[15px] tabular-nums">{delta >= 0 ? '+' : '−'}{money(Math.abs(delta), { dp: 0 })} a year against the suggestion <span className="text-[13px]" style={{ color: MUTED }}>· {money(b.net, { dp: 0 })} net · {pepm(b.net, employees)} per employee a month</span></p>}
+      <p className="m-0 mt-2 text-[13px]" style={{ color: MUTED }}>{split.summary}</p>
+    </div>
+  )
+}
+
+/** Management on one rung, staff on another: each census category to a package, priced as one programme. */
+function Split({ pack, categories, busy, onRun }: { pack: AnalysisPack; categories: { name: string; members: number }[]; busy: boolean; onRun: (a: Record<string, PackageKey>) => void }) {
+  const [a, setA] = useState<Record<string, PackageKey>>(() => Object.fromEntries(categories.map(c => [c.name, pack.split?.assignments[c.name] ?? pack.suggested])))
+  return (
+    <section className="mb-10 rounded-[12px] p-5" style={{ background: FIELD }}>
+      <h2 className="m-0 mb-1 text-[16px] font-medium">Split by category</h2>
+      <p className="m-0 mb-4 text-[13px]" style={{ color: MUTED }}>{categories.length > 1 ? 'Each category of the census on its own package; dependants follow their employee. Priced as one programme, shown as Split beside the packages.' : 'The census carries one category. Give it a grade column (Management, Staff) to split it; dependants follow their employee.'}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {categories.map(c => (
+          <Field key={c.name} label={`${c.name} · ${c.members} employee${c.members === 1 ? '' : 's'}`}>
+            <select id={`split-${c.name}`} value={a[c.name] ?? pack.suggested} onChange={e => setA(x => ({ ...x, [c.name]: e.target.value as PackageKey }))} className={inputCls}>
+              {PACKAGES.map(p => <option key={p.key} value={p.key}>{p.name}</option>)}
+            </select>
+          </Field>
+        ))}
+      </div>
+      <div className="mt-4"><Btn level="primary" onClick={() => onRun(a)} loading={busy} disabled={!categories.length}>Price split</Btn></div>
+    </section>
+  )
+}
+
 function insurerOrder(pack: AnalysisPack): string[] {
   const seen = new Map<string, number>()
   for (const r of pack.rungs) for (const i of r.insurers) if (!i.variant) seen.set(i.insurer_name, Math.min(seen.get(i.insurer_name) ?? Infinity, i.net))
@@ -256,6 +298,7 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
   const plain = pack.rungs.map(r => cell(r, null))
   const coins = pack.rungs.map(r => cell(r, 'co-insurance'))
   const custom = pack.custom?.insurers.find(i => i.insurer_name === insurer && !i.variant) ?? null
+  const split = pack.split?.insurers.find(i => i.insurer_name === insurer && !i.variant) ?? null
   const excluded = plain.some(c => c?.excluded)
   const hasCoins = showCoins && coins.some(Boolean)
   const colour = excluded ? SUBTLE : INK
@@ -266,12 +309,14 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
         <td className="px-3 py-2"><button type="button" onClick={onToggle} aria-expanded={open} className="bg-transparent border-0 p-0 cursor-pointer text-[13px] text-left" style={{ color: colour, textDecoration: excluded ? 'line-through' : 'none' }}>{shortInsurer(insurer)}{excluded ? ' · ruled out' : ''}{pack.currentInsurer && shortInsurer(pack.currentInsurer) === shortInsurer(insurer) ? ' · current' : ''}</button></td>
         {plain.map((c, i) => { const best = pack.rungs[i].best?.insurer_name === insurer; return <td key={i} className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: bg(i) }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : '—'}</td> })}
         {pack.custom && <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: pack.custom.best?.insurer_name === insurer ? 600 : 400 }}>{custom ? money(custom.net, { dp: 0 }) : '—'}</td>}
+        {pack.split && <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: pack.split.best?.insurer_name === insurer ? 600 : 400 }}>{split ? money(split.net, { dp: 0 }) : '—'}</td>}
       </tr>
       {hasCoins && (
         <tr>
           <td className="px-3 py-1 text-[12.5px]" style={{ color: SUBTLE }}>with 20% co-insurance</td>
           {coins.map((c, i) => <td key={i} className="px-3 py-1 text-right tabular-nums text-[12.5px]" style={{ color: SUBTLE, background: bg(i) }}>{c ? money(c.net, { dp: 0 }) : '—'}</td>)}
           {pack.custom && <td />}
+          {pack.split && <td />}
         </tr>
       )}
       {open && (
@@ -279,6 +324,7 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
           <td className="px-3 py-2 text-[12.5px]" style={{ color: SUBTLE }}>plans</td>
           {plain.map((c, i) => <td key={i} className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED, background: bg(i) }}>{c ? Object.entries(c.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{c?.notes.length ? <div style={{ color: SUBTLE }}>{c.notes.join('; ')}</div> : null}</td>)}
           {pack.custom && <td className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED }}>{custom ? Object.entries(custom.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{custom && pack.custom.notes[custom.rate_table_id]?.length ? <div style={{ color: SUBTLE }}>{pack.custom.notes[custom.rate_table_id].join('; ')}</div> : null}</td>}
+          {pack.split && <td className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED }}>{split ? Object.entries(split.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}</td>}
         </tr>
       )}
     </>
@@ -288,7 +334,7 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
 /** Chart A: the package ladder across, premium up, a cross per insurer, the best price joined. */
 function Chart({ pack, employees }: { pack: AnalysisPack; employees: number }) {
   const W = 960, H = 380, L = 70, R = 30, T = 20, B = 44
-  const cols = pack.custom ? [...pack.rungs, { key: 'custom', name: 'Custom', insurers: pack.custom.insurers, best: pack.custom.best }] : pack.rungs
+  const cols = [...pack.rungs, ...(pack.custom ? [{ key: 'custom', name: 'Custom', insurers: pack.custom.insurers, best: pack.custom.best }] : []), ...(pack.split ? [{ key: 'split', name: 'Split', insurers: pack.split.insurers, best: pack.split.best }] : [])]
   const pts = useMemo(() => cols.flatMap((r, i) => r.insurers.filter(x => !x.variant).map(x => ({ i, x, best: r.best?.insurer_name === x.insurer_name }))), [cols])
   const nets = pts.map(p => p.x.net)
   const lo = Math.floor(Math.min(...nets) * 0.9 / 5000) * 5000, hi = Math.ceil(Math.max(...nets) * 1.05 / 5000) * 5000

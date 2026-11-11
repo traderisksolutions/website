@@ -1,5 +1,6 @@
 'use client'
 
+import { CompanyEb } from '@/components/companies/CompanyEb'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
@@ -61,6 +62,7 @@ type Detail = {
  */
 const MAIN_TABS = [
   { key: 'quotes',   label: 'Quotes' },
+  { key: 'eb',       label: 'EB' },
   { key: 'policies', label: 'Policies' },
   { key: 'documents', label: 'Data room' },
 ] as const
@@ -207,6 +209,7 @@ function CompanyWorkspace() {
       case 'quotes': return placementData === null ? null
         : placementData.bundle.placements.filter(p => p.status === 'open' || p.status === 'presented' || p.status === 'bound').length + quotingLoose.length
       case 'members': return policies ? policies.filter(p => p.is_eb).length : null
+      case 'eb': return quotes?.length ?? null
       case 'payments': return detail?.paymentSummary.openCount ?? null
       case 'threads': return threads?.length ?? null
       case 'log': return placementData === null && activity === null ? null : (placementData?.bundle.log.length ?? 0) + (activity?.length ?? 0)
@@ -322,6 +325,7 @@ function CompanyWorkspace() {
             onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 
+        {tab === 'eb' && <CompanyEb companyId={id} companyName={company.name} quotes={quotes} policies={policies} />}
         {tab === 'quotes' && (quotes && threads ? (
           <>
             <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />

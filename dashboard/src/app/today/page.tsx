@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
 import { ComingUp } from '@/components/today/ComingUp'
+import { EbRenewals } from '@/components/today/EbRenewals'
 import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
 import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
@@ -101,7 +102,7 @@ function TodayPage() {
       {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
 
-      {view === 'coming' ? <ComingUp /> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
+      {view === 'coming' ? <><EbRenewals /><ComingUp /></> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
         <div ref={listRef} className="rounded-[10px] border border-trs-line bg-white overflow-hidden">
           {GROUPS.map(g => {
             const rows = scoped.filter(i => i.group === g.key)

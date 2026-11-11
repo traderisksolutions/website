@@ -7,8 +7,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sbTry, enc } from '@/lib/crm/db'
-import { loadAnalysis, runAnalysis, runCustom, saveAnalysis } from '@/lib/gb/analysis'
-import { packageByKey } from '@/lib/gb/packages'
+import { loadAnalysis, runAnalysis, runCustom, runSplit, saveAnalysis } from '@/lib/gb/analysis'
+import { packageByKey, type PackageKey } from '@/lib/gb/packages'
 import type { CustomSpec } from '@/lib/gb/custom'
 import type { Member } from '@/lib/gb-quote'
 
@@ -29,14 +29,17 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
   if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
   const pack = await loadAnalysis(id)
-  return NextResponse.json({ quotation: { id: q.id, company_name: q.company_name, effective_date: q.effective_date, basis: q.basis, member_count: q.member_count }, pack })
+  const counts = new Map<string, number>()
+  for (const m of q.census ?? []) if (!/spouse|child|dependa/i.test(m.relationship)) counts.set(m.category || 'Default', (counts.get(m.category || 'Default') ?? 0) + 1)
+  const categories = [...counts].map(([name, members]) => ({ name, members })).sort((a, b) => b.members - a.members)
+  return NextResponse.json({ quotation: { id: q.id, company_name: q.company_name, effective_date: q.effective_date, basis: q.basis, member_count: q.member_count }, categories, pack })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   const { id } = await params
-  const body = await req.json().catch(() => ({})) as { run?: boolean; suggested?: string; custom?: CustomSpec; current_insurer?: string | null; excluded?: string[] }
+  const body = await req.json().catch(() => ({})) as { run?: boolean; suggested?: string; custom?: CustomSpec; split?: Record<string, string>; current_insurer?: string | null; excluded?: string[] }
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
   if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
   try {
@@ -61,6 +64,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         gtl: num(c.gtl, 10_000, 5_000_000), gci: num(c.gci, 10_000, 2_000_000), pa: num(c.pa, 10_000, 5_000_000), deps: c.deps === 'none' ? 'none' : 'medical',
       }
       const pack = await runCustom(id, spec, q.census, user.email ?? null)
+      return NextResponse.json({ pack })
+    }
+    if (body.split && typeof body.split === 'object') {
+      if (!q.census?.length) return NextResponse.json({ error: 'This quotation has no member list' }, { status: 422 })
+      const assignments: Record<string, PackageKey> = {}
+      for (const [cat, key] of Object.entries(body.split)) if (typeof cat === 'string' && cat.length <= 80 && packageByKey(key)) assignments[cat] = key as PackageKey
+      if (!Object.keys(assignments).length) return NextResponse.json({ error: 'Assign at least one category to a package' }, { status: 400 })
+      const pack = await runSplit(id, assignments, q.census, user.email ?? null)
       return NextResponse.json({ pack })
     }
     if (body.suggested) {
