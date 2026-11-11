@@ -4,6 +4,14 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-12 — EB register: one name, one place, one page
+
+- **Quotes opens on EB.** The Quotes place in the top bar lands on `/pricing-matrix`, its first tab is EB (was "Benefits calculator", third). Breadcrumbs name it EB.
+- **The EB register.** The page opens on every saved quotation, one row each: company, lives, start, basis, best price net and its insurer (lowest complete total, else lowest marked *), categories, source, last change; filters all, starting within 90 days, renewals, new business. **+ New EB** takes a census file (quick quote). The EB policies list moved to its own Policies tab.
+- Decision page for the EB layer (parameters as numbers, routes, charts A and C, per-quotation payout view, management and employee categories): the artifact of 12 Nov; build order in it.
+
+---
+
 ## 2026-11-11 (evening) — Back to basics: the client behind every thread, one EB action, breadcrumbs that survive a new tab
 
 - **One line under the top block.** The bar and the place tabs are one sticky block (`TopBar`) with one hairline under it; its height is measured into `--top-nav-h`, so the mail navigator and every page sit flush under it whether or not a tab row is there. The rule lines under the tab row, under the "Since you were away" strip and under the thread header are gone.

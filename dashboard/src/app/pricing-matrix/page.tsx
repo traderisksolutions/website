@@ -10,6 +10,7 @@ import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbPoliciesTab } from '@/components/group-benefits/EbPoliciesTab'
+import { EbRegister } from '@/components/group-benefits/EbRegister'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
@@ -43,9 +44,9 @@ const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extr
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
-type Tab = 'quotes' | 'hrlinks' | 'tables' | 'coverage' | 'activity'
-const TABS: readonly Tab[] = ['quotes', 'hrlinks', 'tables', 'coverage', 'activity']
-const TAB_LABEL: Record<Tab, string> = { quotes: 'Quotes', hrlinks: 'Employee lists', tables: 'Insurers', coverage: 'Coverage', activity: 'Activity' }
+type Tab = 'eb' | 'quotes' | 'hrlinks' | 'tables' | 'coverage' | 'activity'
+const TABS: readonly Tab[] = ['eb', 'quotes', 'hrlinks', 'tables', 'coverage', 'activity']
+const TAB_LABEL: Record<Tab, string> = { eb: 'EB', quotes: 'Policies', hrlinks: 'Employee lists', tables: 'Insurers', coverage: 'Coverage', activity: 'Activity' }
 
 
 /**
@@ -72,7 +73,8 @@ function PricingMatrix() {
   // Four tabs since 2 Oct 2026. Old links still land: ?tab=quote opens a new quote, and the retired
   // Source files and Calculators tabs open Rate tables, which now lists the Drive files too.
   const asked = params.get('tab')
-  const initialTab: Tab = asked === 'quote' ? 'quotes' : TABS.find(t => t === asked) ?? 'quotes'
+  // The register is the page (12 Nov 2026); ?tab=quote still opens a new one; ?tab=quotes is the policies list.
+  const initialTab: Tab = asked === 'quote' ? 'eb' : TABS.find(t => t === asked) ?? 'eb'
   const company = params.get('company') ?? undefined
   const companyId = params.get('companyId') ?? null
   const hrLinkId = params.get('hrLink') ?? null
@@ -143,7 +145,7 @@ function PricingMatrix() {
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* One action up here. New quotation is the primary on the Quotes tab; Drive is on each quotation. */}
+          {/* One primary action: + New EB on the register. Email insurer is secondary; Drive is on each quotation. */}
           <button onClick={() => setEmailInsurer({ insurer: null })} className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
           </button>
@@ -151,22 +153,22 @@ function PricingMatrix() {
       </div>
 
       <div className="mt-8 mb-6">
-        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'quotes') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
+        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'eb' || t === 'quotes') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
       </div>
 
       {tab === 'tables' && (
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
-      {tab === 'quotes' && newQuote && (
-        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← All quotes</button>
+      {tab === 'eb' && newQuote && (
+        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← EB register</button>
       )}
-      {tab === 'quotes' && newQuote && !byHand && hrReadState === 'loading' && (
+      {tab === 'eb' && newQuote && !byHand && hrReadState === 'loading' && (
         <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading the employee list…</p>
       )}
-      {tab === 'quotes' && newQuote && !byHand && hrReadState === 'failed' && (
+      {tab === 'eb' && newQuote && !byHand && hrReadState === 'failed' && (
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
       )}
-      {tab === 'quotes' && newQuote && !byHand && hrReadState !== 'loading' && (
+      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && (
         <div className="flex flex-col gap-10">
           <QuickQuote key={hrRead ? hrLinkId ?? 'hr' : 'file'} initialCompany={company} initialRead={hrRead ?? undefined} onUseWizard={() => setByHand(true)} />
           <section>
@@ -175,13 +177,14 @@ function PricingMatrix() {
           </section>
         </div>
       )}
-      {tab === 'quotes' && newQuote && byHand && (
+      {tab === 'eb' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
           <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← Quick quote</button>
           <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
         </div>
       )}
-      {tab === 'quotes' && !newQuote && <EbPoliciesTab onByHand={() => { setNewQuote(true); setByHand(false) }} />}
+      {tab === 'eb' && !newQuote && <EbRegister onNew={() => { setNewQuote(true); setByHand(false); window.scrollTo({ top: 0 }) }} />}
+      {tab === 'quotes' && <EbPoliciesTab onByHand={() => { setTab('eb'); setNewQuote(true); setByHand(false) }} />}
       {tab === 'coverage' && <CoverageTab />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
       {tab === 'activity' && <ActivityTab />}

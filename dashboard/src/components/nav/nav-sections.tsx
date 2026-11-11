@@ -38,10 +38,10 @@ export const PLACES: Place[] = [
     { title: 'Inbox', href: '/engagement' },
     { title: 'Inbound', href: '/inbound' },
   ] },
-  { label: 'Quotes', href: '/rfq', icon: Table2, tabs: [
+  { label: 'Quotes', href: '/pricing-matrix', icon: Table2, tabs: [
+    { title: 'EB', href: '/pricing-matrix' },
     { title: 'Requests for quotes', href: '/rfq' },
     { title: 'Insurers', href: '/insurers' },
-    { title: 'Benefits calculator', href: '/pricing-matrix' },
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
   { label: 'Claims', href: '/claims', icon: ShieldCheck, tabs: [
