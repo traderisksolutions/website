@@ -19,6 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog'
 import { CompaniesTab } from '@/components/contacts/CompaniesTab'
+import { fmtDate } from '@/lib/format'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -85,9 +86,6 @@ function groupByCompany(contacts: Contact[]): CompanyGroup[] {
   })
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 function SkeletonRows() {
   return (

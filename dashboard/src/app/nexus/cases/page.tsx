@@ -13,6 +13,7 @@ import { logClient } from '@/lib/log-client'
 import { relTime } from '@/lib/activity-labels'
 import { createClient } from '@/lib/supabase/client'
 import { usePolledRefresh } from '@/hooks/usePolledRefresh'
+import { fmtDate, timeAgo } from '@/lib/format'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -240,22 +241,7 @@ function contactName(c: Contact | null): string {
   return [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—'
 }
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
-function timeAgo(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (m < 1)   return 'just now'
-  if (m < 60)  return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24)  return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 30)  return `${d}d ago`
-  return fmtDate(iso)
-}
 
 const PARTY_TYPES = ['client', 'insurer', 'lawyer', 'regulator', 'other'] as const
 

@@ -23,11 +23,11 @@ import { correctionAmount, detectInsurerIntent, partialLine } from './cues'
 import { findSupersededTransaction, handleInsurerQuery } from './amendments'
 import { addDays } from '@/lib/admin/b/dates'
 import { randomUUID } from 'node:crypto'
+import { money } from '@/lib/format'
 
 type Row = Record<string, any>
 const REP = { Prefer: 'return=representation' }
 const MIN = { Prefer: 'return=minimal' }
-const money = (n: number) => `${n < 0 ? '-' : ''}S$${Math.abs(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 export type NoteOutcome = { transactions: number; billed: number; asked: number; detail: string }
 

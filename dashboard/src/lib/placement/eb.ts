@@ -23,6 +23,7 @@ import { censusCounts, checkStated, customQuoteTotal, type ArithmeticCheck, type
 import { openRounds } from './workflow'
 import { normaliseSpec } from './spec'
 import type { PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, Spec } from './types'
+import { num } from '@/lib/format'
 
 // ── Tiers ───────────────────────────────────────────────────────────────────────────────────
 
@@ -182,7 +183,6 @@ type EngineQuote = PlacementQuote & { source?: 'insurer' | 'rate_table'; engine_
 type LineRow = PlacementLine & { policy_id?: string | null; census_submission_id?: string | null }
 
 const AWAITING: PlacementDispatch['status'][] = ['drafted', 'sent', 'acknowledged', 'info_requested']
-const money = (n: number) => n.toLocaleString('en-SG', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
 export async function loadLine(lineId: string): Promise<LineRow | null> {
   const rows = await sbTry<LineRow[]>(`placement_lines?id=eq.${lineId}&limit=1`, [])
@@ -250,7 +250,7 @@ export async function priceLine(lineId: string, input: PriceInput): Promise<Pric
     })
     if (q) quotes.push(q)
     await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, round_id: round.id, kind: 'quote', actor: input.actor,
-      text: `${r.insurer_name} priced S$${money(r.total)} (rate table, ${census.length} lives)`, detail: { quotation_id: d.quotationId, rate_table_id: r.rate_table_id } })
+      text: `${r.insurer_name} priced S$${num(r.total, 0)} (rate table, ${census.length} lives)`, detail: { quotation_id: d.quotationId, rate_table_id: r.rate_table_id } })
   }
 
   const linePatch: Record<string, unknown> = {}
@@ -303,7 +303,7 @@ export async function fileCustomQuote(lineId: string, input: CustomQuoteInput): 
     extracted_by: 'broker', status: 'received', needs_review: check?.ok === false,
   })
   await store.log({ company_id: placement.company_id, placement_id: placement.id, line_id: line.id, round_id: round.id, kind: 'quote', actor: input.actor,
-    text: `${input.insurerName} priced S$${money(result.total)} from its rates (${counts.total} lives)${check?.note ? `. ${check.note}` : ''}`, detail: { quote_id: quote.id, by_product: result.byProduct } })
+    text: `${input.insurerName} priced S$${num(result.total, 0)} from its rates (${counts.total} lives)${check?.note ? `. ${check.note}` : ''}`, detail: { quote_id: quote.id, by_product: result.byProduct } })
   return { quote, result, check }
 }
 

@@ -4,6 +4,7 @@
  * own (rules.test.ts).
  */
 import type { Cadence, BatchStatus, MovementType } from './types'
+import { money } from '@/lib/format'
 
 /** Product lines whose mid-term changes are people joining or leaving. */
 export const MEMBER_LINES = new Set(['employee_benefits', 'group_health', 'group_travel', 'foreign_worker_medical', 'foreign_worker_bond', 'wica', 'keyman'])
@@ -83,7 +84,6 @@ export function estimateTotal(ms: { estimate_amount: number | null; kind: string
   return Math.round(priced.reduce((s, m) => s + Number(m.estimate_amount), 0) * 100) / 100
 }
 
-const money = (n: number) => `${n < 0 ? '-' : ''}S$${Math.abs(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
 
 /** The Today item's title: "Approve batch: 2 joins, 1 leave, est. S$312.40 · QBE N0018606". */

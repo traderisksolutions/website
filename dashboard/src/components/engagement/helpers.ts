@@ -1,22 +1,12 @@
 import { needsOurReply } from '@/lib/threads/waiting'
 import type { Lead, RealMsg, ThreadState } from './types'
 import { PERSONAL_DOMAINS } from './types'
+export { timeAgo } from '@/lib/format'
 
 export function fullName(l: Lead): string {
   return [l.first_name, l.last_name].filter(Boolean).join(' ') || l.email || '—'
 }
 
-export function timeAgo(iso: string | null): string {
-  if (!iso) return '—'
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (m < 1)  return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 7)  return `${d}d ago`
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-}
 
 export function fmtDateTime(iso: string | null): string {
   if (!iso) return '—'
@@ -26,9 +16,6 @@ export function fmtDateTime(iso: string | null): string {
   })
 }
 
-export function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 export function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)

@@ -1,4 +1,6 @@
 /** Client-safe formatting helpers shared by every CRM screen. No server imports here. */
+import { fmtDate } from '../format'
+export { fmtDate }
 
 export function fmtMoney(amount: number | null | undefined, currency = 'SGD', opts: { compact?: boolean } = {}): string {
   const n = Number(amount ?? 0)
@@ -8,12 +10,6 @@ export function fmtMoney(amount: number | null | undefined, currency = 'SGD', op
   return `${currency} ${n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
 
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'

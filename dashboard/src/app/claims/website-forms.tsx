@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Copy, Check, RefreshCw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Segmented } from '@/components/crm/primitives'
+import { timeAgo } from '@/lib/format'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -44,14 +45,6 @@ const STATUS_LABEL: Record<string, string> = {
 }
 const ALL_STATUSES = ['new', 'contacted', 'qualified', 'converted', 'dropped']
 
-function timeAgo(iso: string) {
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (m < 1)  return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-}
 
 function fullName(l: Lead) { return [l.first_name, l.last_name].filter(Boolean).join(' ') || '—' }
 function bodyText(l: Lead) { return l.details || l.message || '' }

@@ -10,6 +10,7 @@ import { DetailSection, DetailField } from '@/components/detail-section'
 import { StatusBadge } from '@/components/status-badge'
 import { Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { fmtDate } from '@/lib/format'
 
 /**
  * "Companies" tab on the Contacts page — insurance clients (companies/policies/debit
@@ -25,7 +26,6 @@ type CompanyContact = { id: string; first_name: string | null; last_name: string
 type Policy = { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; broker: string | null; currency: string | null; start_date: string | null; end_date: string | null; status: string | null }
 type DebitNote = { id: string; debit_note_no: string; issue_date: string; currency: string; gross_amount: number; status: 'unpaid' | 'partially_paid' | 'paid'; insurer: string | null }
 
-const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
 export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () => void }) {
   const [companies, setCompanies] = useState<CompanyRow[]>([])

@@ -11,6 +11,7 @@ import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, Regis
 import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
 import { DOC_TYPES, docLabel, type DataRoomStatus } from '@/lib/documents/taxonomy'
 import type { PolicyDocument } from '@/lib/documents/store'
+import { fmtDate } from '@/lib/format'
 
 type Room = {
   policy: { id: string; label: string | null; insurer: string | null; policy_number: string | null; lifecycle: string; start_date: string | null; end_date: string | null; drive_folder_url: string | null; is_eb: boolean }
@@ -20,7 +21,6 @@ type Room = {
 type Data = { rooms: Room[]; unsorted: PolicyDocument[]; letters?: PolicyDocument[]; total: number }
 
 const LIFECYCLE_WORD: Record<string, string> = { quoting: 'Quoting', presented: 'Presented', bound: 'Bound', live: 'In force', renewal_due: 'Renewal due', lapsed: 'Lapsed' }
-const fmtDate = (s: string | null) => s ? new Date(s).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
 const period = (a: string | null, b: string | null) => a || b ? `${fmtDate(a)} – ${fmtDate(b)}` : null
 const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-[12.5px] outline-none focus:border-[#0f1412] max-w-[190px]'
 

@@ -5,6 +5,7 @@ import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { Btn, Chip, Segmented, inputCls } from '@/components/crm/primitives'
 import { PersonTag } from '@/components/board/TodoEditor'
 import type { StaffMember } from '@/lib/crm/staff'
+import { timeAgo } from '@/lib/format'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,16 +68,6 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: '7', label: '7d' }, { value: '30', label: '30d' }, { value: '90', label: '90d' }, { value: '0', label: 'All' },
 ]
 
-function timeAgo(iso: string) {
-  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
-  if (m < 1)  return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 7)  return `${d}d ago`
-  return new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })
-}
 
 function fmtFull(iso: string) {
   return new Date(iso).toLocaleString('en-SG', {

@@ -12,9 +12,9 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import { fmtDate } from '@/lib/crm/format'
 import type { MovementBatch, MovementStage } from '@/app/api/policies/movements/route'
+import { money } from '@/lib/format'
 
 const STAGE: Record<MovementStage, string> = { held: 'Awaiting date', to_send: 'To send', insurer: 'With insurer', to_bill: 'To bill', billed: 'Awaiting payment' }
-const money = (n: number | null) => (n == null ? '—' : `${n < 0 ? '-' : ''}S$${Math.abs(n).toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
 const counts = (b: MovementBatch) => [b.joins ? `+${b.joins}` : null, b.leaves ? `−${b.leaves}` : null, b.changes ? `${b.changes} change${b.changes === 1 ? '' : 's'}` : null].filter(Boolean).join('  ')
 
 export default function MovementsPage() {

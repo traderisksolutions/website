@@ -18,6 +18,7 @@ import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, typ
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { Scenarios } from '@/components/group-benefits/Scenarios'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
+import { fmtDate } from '@/lib/format'
 
 type InsurerResult = { rate_table_id: string; insurer_id: string | null; insurer_name: string; by_product: Record<string, number>; subtotal: number; gst: number; total: number; missing: number }
 type Line = { member_name: string; relationship: string; category: string; age: number | null; insurer_name: string; product_code: string; plan_code: string | null; premium: number | null; note: string | null }
@@ -30,7 +31,6 @@ const isComparison = (a: unknown): a is Comparison =>
   !!a && typeof a === 'object' && Array.isArray((a as Comparison).groups) && Array.isArray((a as Comparison).premium)
 
 const money = (n: number) => n.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })
-const fmtDate = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
 const BTN2 = 'inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] bg-white text-[#0f1412] hover:bg-[#faf9f6] no-underline cursor-pointer'
 const BTN1 = 'inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 no-underline border-0 cursor-pointer'
 

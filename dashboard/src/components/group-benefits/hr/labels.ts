@@ -4,6 +4,8 @@
 // (src/lib/hr/links.ts). This file only names what they return and how the screens word it.
 
 import type { HrLink, HrLinkEvent, HrLinkStatus, HrSubmission, CensusMember } from '@/lib/hr/types'
+import { fmtDate } from '@/lib/format'
+export { fmtDate }
 
 /** A row in the HR links register. Counts are present only when the list route joins them. */
 export type HrLinkRow = HrLink & { employee_count?: number | null; dependant_count?: number | null; lives?: number | null }
@@ -41,13 +43,6 @@ export const RELATIONSHIP_LABEL: Record<string, string> = { self: 'Employee', sp
 
 export const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
-/** "20 Oct 2026", Singapore time. */
-export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' }).format(d)
-}
 
 /** "20 Oct 10:42", Singapore time. */
 export function fmtDateTime(iso: string | null | undefined): string {

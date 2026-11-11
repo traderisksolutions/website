@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-11 (later) — Refactor phase 1: lint on, dead code out, one formatter
+
+Baseline and the six phases: `docs/refactor-plan.md`.
+
+- **Lint.** ESLint configured (`next/core-web-vitals` + `next/typescript`); 11 errors fixed. Lint runs inside `next build`, so a lint error fails the deploy before Vercel.
+- **Dead code.** `knip` configured (`npm run knip`). 35 unused source files deleted (unused shadcn wrappers, the old nav config, the RAG index, the home catalogue, 8 orphan components); 15 unused dependencies and `@types/pg` removed; `jszip` declared.
+- **Checks.** `npm run check` = type-check + lint + tests. GitHub Actions `dashboard-check` runs the same on every push that touches `dashboard/`.
+- **Formatting.** `src/lib/format.ts` holds `money`, `num`, `fmtDate`, `fmtDay`, `fmtDateTime`, `timeAgo`, Singapore time, with tests. 19 files dropped their local copy where the output was identical; copies inside PDFs, emails and CSV exports stay until they have snapshot tests (phase 6).
+
+---
+
 ## 2026-11-11 — Functions in Singapore; links open in a new tab; insurer threads show their client
 
 - **Speed.** The API functions ran in Vercel's US east region while the database and the users are in Singapore. `vercel.json` pins them to `sin1`. Inbox list 10.6 s → 1.0 s, home board 17 s → 1.5 s.

@@ -10,11 +10,11 @@ import { quoteExpired } from './position'
 import { findTier } from './match'
 import type { LinePosition, PlacementQuote, PlacementShare } from './types'
 import { comparisonHead, familyOf, type LineFamily } from './lines'
+import { num } from '@/lib/format'
 
 export type EmailQuote = { quote: PlacementQuote; insurer: string; product: string | null; option: string }
 export type EmailLine = { label: string; family: LineFamily; quotes: EmailQuote[]; pending: string[]; declined: string[] }
 
-const money = (n: number) => n.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const cellText = (s: string) => s.replace(/\|/g, '/').replace(/\s+/g, ' ').trim()
 
 /** The option a quote prices, in words: its tier, else the line's limit, else "As asked". */
@@ -67,7 +67,7 @@ export const TABLE_HEAD = ['Insurer · plan', 'Option', 'Premium (S$)', 'Per hea
 export function comparisonTable(line: EmailLine): string {
   const fmtDate = (d: string | null) => d ? new Date(`${d}T00:00:00+08:00`).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Singapore' }) : ''
   const fig = (n: number | null | undefined, text: string | null | undefined, cur: string | null) =>
-    n != null ? `${cur && cur !== 'SGD' ? cur + ' ' : ''}${money(n)}` : (text ?? '')
+    n != null ? `${cur && cur !== 'SGD' ? cur + ' ' : ''}${num(n)}` : (text ?? '')
   const validity = (q: PlacementQuote) => q.valid_until ? fmtDate(q.valid_until) : (q.validity_text ?? '')
   const share = (q: PlacementQuote) => [q.role === 'lead' ? 'Lead' : q.role === 'follow' ? 'Follow' : '', q.share_pct != null ? `${q.share_pct}%` : ''].filter(Boolean).join(' ')
   const rows = line.quotes.map(({ quote: q, insurer, product, option }) => {

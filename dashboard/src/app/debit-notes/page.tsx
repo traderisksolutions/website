@@ -15,6 +15,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-notes/SendDocumentsModal'
 import { Register, RegisterHead, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
+import { fmtDate } from '@/lib/format'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -30,7 +31,6 @@ type Row = {
 }
 
 const fmt = (n: number, c: string) => `${c} ${Number(n ?? 0).toLocaleString('en-SG', { minimumFractionDigits: 2 })}`
-const fmtDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
 const STATUS_OPTIONS: PayStatus[] = ['unpaid', 'partially_paid', 'paid']
 const STATUS_LABEL: Record<PayStatus, string> = { unpaid: 'Unpaid', partially_paid: 'Partially paid', paid: 'Paid' }

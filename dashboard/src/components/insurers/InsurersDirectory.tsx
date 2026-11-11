@@ -10,13 +10,13 @@ import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
 import type { InsurerProduct, ProductStats } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import { DeclinesRegister } from './DeclinesRegister'
+import { num } from '@/lib/format'
 
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
 const COLS = 13
 const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const dash = <span style={{ color: '#8c958f' }}>—</span>
-const money = (n: number | null) => n == null ? dash : n.toLocaleString('en-SG', { maximumFractionDigits: 0 })
 const short = (xs: string[]) => xs.length === 0 ? dash : <span title={xs.join(', ')}>{xs.slice(0, 2).join(', ')}{xs.length > 2 ? ` +${xs.length - 2}` : ''}</span>
 
 /**
@@ -129,7 +129,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
                             <RegisterCell align="center">{productLineLabel(r.product_line)}</RegisterCell>
                             <RegisterCell align="center">{short(r.accepts)}</RegisterCell>
                             <RegisterCell align="center">{short(r.declines)}</RegisterCell>
-                            <RegisterCell align="center" className="tabular-nums">{money(r.min_premium)}</RegisterCell>
+                            <RegisterCell align="center" className="tabular-nums">{r.min_premium == null ? dash : num(r.min_premium, 0)}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.max_lives ?? dash}</RegisterCell>
                             <RegisterCell align="center">{def ? <span title={def.email}>{def.name ?? def.email}</span> : <span style={{ color: ERROR }}>No one</span>}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.contacts.length}</RegisterCell>
