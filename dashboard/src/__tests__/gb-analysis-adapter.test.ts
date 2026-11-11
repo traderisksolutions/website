@@ -14,7 +14,7 @@ const pack: AnalysisPack = {
 
 describe('the analysis feeds the report and the draft', () => {
   it('summarises as the rail reads it', () => {
-    expect(analysisSummary(pack)).toBe('Standard at Singapore S$33,219 · Enhanced +S$2,222 · Essential −S$10,299')
+    expect(analysisSummary(pack)).toBe('Standard at Singlife S$33,219 · Enhanced +S$2,222 · Essential −S$10,299')
   })
   it('becomes three scenario columns: suggested, add a little, save a little', () => {
     const s = analysisAsScenarios(pack, 'OUE Limited')

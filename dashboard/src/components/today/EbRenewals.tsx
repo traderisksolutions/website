@@ -11,9 +11,12 @@ import { useRouter } from 'next/navigation'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { Btn, Spinner } from '@/components/crm/primitives'
 import { fmtDate } from '@/lib/format'
+import { shortInsurer } from '@/lib/gb/insurer-names'
 import type { EbRenewalRow } from '@/app/api/today/eb-renewals/route'
 
 const MUTED = '#4a5550', INK = '#0f1412'
+/** The insurer as the house writes it, or its first two words. */
+const insurerWord = (name: string) => { const s = shortInsurer(name); return s !== name ? s : name.split(/\s+/).slice(0, 2).join(' ') }
 
 export function EbRenewals() {
   const router = useRouter()
@@ -47,31 +50,27 @@ export function EbRenewals() {
       <h2 className="m-0 mb-1 text-[16px] font-medium">EB renewals</h2>
       <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Employee-benefits policies ending in the next 120 days. Analyse prices the last census on file at every insurer; with none, + New EB takes a file.</p>
       {error && <p className="m-0 mb-2 text-[13px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
-      <Register label="EB renewals" minWidth={760}>
+      <Register label="EB renewals" minWidth={640}>
         <RegisterHead>
           <RegisterTh>Client</RegisterTh>
           <RegisterTh>Policy</RegisterTh>
-          <RegisterTh>Insurer</RegisterTh>
           <RegisterTh>Ends</RegisterTh>
-          <RegisterTh align="right">Days</RegisterTh>
           <RegisterTh align="right">Census</RegisterTh>
           <RegisterTh></RegisterTh>
         </RegisterHead>
-        {rows.length === 0 && <RegisterEmpty colSpan={7}>No employee-benefits policy ends in the next 120 days.</RegisterEmpty>}
+        {rows.length === 0 && <RegisterEmpty colSpan={5}>No employee-benefits policy ends in the next 120 days.</RegisterEmpty>}
         {rows.map(r => (
           <RegisterRow key={r.policy_id}>
-            <RegisterCell>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline" style={{ color: INK }}>{r.company}</Link> : r.company}</RegisterCell>
-            <RegisterCell>{r.policy}{r.policy_number ? <span style={{ color: MUTED }}> · {r.policy_number}</span> : null}</RegisterCell>
-            <RegisterCell>{r.insurer ?? '—'}</RegisterCell>
-            <RegisterCell>{fmtDate(r.end_date)}</RegisterCell>
-            <RegisterCell align="right" className="tabular-nums"><span style={{ color: r.days < 0 ? '#a1242f' : undefined }}>{r.days}</span></RegisterCell>
+            <RegisterCell><div className="max-w-[220px] truncate" title={r.company}>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline" style={{ color: INK }}>{r.company}</Link> : r.company}</div></RegisterCell>
+            <RegisterCell><div className="max-w-[260px] truncate" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}>{r.policy}</div><div className="text-[12px]" style={{ color: MUTED }}>{r.insurer ? insurerWord(r.insurer) : '—'}</div></RegisterCell>
+            <RegisterCell><span className="whitespace-nowrap">{fmtDate(r.end_date)}</span><div className="text-[12px] tabular-nums" style={{ color: r.days < 0 ? '#a1242f' : MUTED }}>{r.days < 0 ? `${-r.days} days ago` : `in ${r.days} days`}</div></RegisterCell>
             <RegisterCell align="right" className="tabular-nums">{r.members ?? <span style={{ color: MUTED }}>none</span>}</RegisterCell>
             <RegisterCell>
               {r.quotation_id
                 ? r.analysed
-                  ? <Link href={`/pricing-matrix/quote/${r.quotation_id}/analysis`} className="no-underline hover:underline text-[13px]" style={{ color: INK }}>Open analysis</Link>
+                  ? <Link href={`/pricing-matrix/quote/${r.quotation_id}/analysis`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>Open analysis</Link>
                   : <Btn size="xs" level="primary" onClick={() => analyse(r)} loading={busy === r.policy_id}>Analyse</Btn>
-                : <Link href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="no-underline hover:underline text-[13px]" style={{ color: INK }}>+ New EB</Link>}
+                : <Link href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>+ New EB</Link>}
             </RegisterCell>
           </RegisterRow>
         ))}

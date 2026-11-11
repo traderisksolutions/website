@@ -17,6 +17,7 @@ import type { Brief, ScenarioInsurer } from './scenarios'
 import { customRequirement, customSummary, resolveCustom, type CustomSpec } from './custom'
 import { loadLimitFacts } from './limit-facts'
 import type { Member } from '../gb-quote'
+import { shortInsurer } from './insurer-names'
 
 export type AnalysisInsurer = {
   rate_table_id: string; insurer_name: string; insurer: InsurerKey; basis: 'new_business' | 'renewal'
@@ -56,8 +57,29 @@ export async function loadAnalysis(quotationId: string): Promise<AnalysisPack | 
   try { return JSON.parse(r.value) as AnalysisPack } catch { return null }
 }
 
+export type AnalysisSummary = { quotationId: string; at: string; suggested: PackageKey; package: string; best_insurer: string | null; best_net: number | null; best_total: number | null; source: AnalysisPack['source'] }
+const SUMMARY_KEY = (quotationId: string) => `gb_analysis_summary:${quotationId}`
+
+/** The line a list shows for an analysis: the suggested package, its best insurer and premium. */
+export function summaryOf(pack: AnalysisPack): AnalysisSummary {
+  const r = pack.rungs.find(x => x.key === pack.suggested)
+  return { quotationId: pack.quotationId, at: pack.at, suggested: pack.suggested, package: r?.name ?? pack.suggested, best_insurer: r?.best?.insurer_name ?? null, best_net: r?.best?.net ?? null, best_total: r?.best?.total ?? null, source: pack.source ?? null }
+}
+
 export async function saveAnalysis(pack: AnalysisPack): Promise<void> {
-  await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify({ key: KEY(pack.quotationId), value: JSON.stringify(pack), updated_at: new Date().toISOString() }) })
+  const now = new Date().toISOString()
+  await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify([
+    { key: KEY(pack.quotationId), value: JSON.stringify(pack), updated_at: now },
+    { key: SUMMARY_KEY(pack.quotationId), value: JSON.stringify(summaryOf(pack)), updated_at: now },
+  ]) })
+}
+
+/** The summaries of every analysis, keyed by quotation id, one read. */
+export async function loadAnalysisSummaries(): Promise<Map<string, AnalysisSummary>> {
+  const rows = await sbTry<{ key: string; value: string }[]>(`app_settings?key=like.gb_analysis_summary:*&select=key,value&limit=5000`, [])
+  const out = new Map<string, AnalysisSummary>()
+  for (const r of rows) { try { const s = JSON.parse(r.value) as AnalysisSummary; out.set(s.quotationId, s) } catch { /* skip */ } }
+  return out
 }
 
 /** The lowest net total on a rung among the plain, not ruled-out rows. Unpriced lines are shown beside it, not hidden by it. */
@@ -71,7 +93,7 @@ export function analysisSummary(pack: AnalysisPack): string {
   const money = (n: number) => `S$${Math.round(n).toLocaleString('en-SG')}`
   const i = pack.rungs.findIndex(r => r.key === pack.suggested)
   const s = pack.rungs[i], up = pack.rungs[i + 1], down = pack.rungs[i - 1]
-  const parts = [s?.best ? `${s.name} at ${s.best.insurer_name.split(' ')[0]} ${money(s.best.net)}` : 'no complete price']
+  const parts = [s?.best ? `${s.name} at ${shortInsurer(s.best.insurer_name)} ${money(s.best.net)}` : 'no complete price']
   if (s?.best && up?.best) parts.push(`${up.name} +${money(up.best.net - s.best.net)}`)
   if (s?.best && down?.best) parts.push(`${down.name} −${money(s.best.net - down.best.net)}`)
   return parts.join(' · ')

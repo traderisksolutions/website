@@ -68,3 +68,10 @@ export function timeAgo(iso: string | null | undefined, empty = DASH, now = Date
   if (days < 7) return `${days}d ago`
   return fmtDay(iso)
 }
+
+/** "Talent Trader Group Pte Ltd" and "TALENT TRADERS GROUP PTE. LTD" are one company. Client-safe. */
+export function companyKey(name: string | null | undefined): string {
+  return String(name ?? '').toLowerCase()
+    .replace(/\b(pte|ltd|limited|private|sdn|bhd|berhad|llp|inc|co|company|the|group|holdings?|singapore|sg)\b\.?/g, ' ')
+    .replace(/s\b/g, '').replace(/[^a-z0-9]+/g, '')
+}

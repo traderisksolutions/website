@@ -10,6 +10,7 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { fileEbCompanyFolder }       from '@/lib/company-drive'
 import { createQuotation, QuotationInputError, type QuotationInput } from '@/lib/gb/quotation'
+import { loadAnalysisSummaries } from '@/lib/gb/analysis'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 function sbH(prefer = 'return=minimal') {
@@ -26,8 +27,12 @@ async function requireUser() {
 export async function GET() {
   try {
     if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    const res = await fetch(`${SB_URL}/rest/v1/gb_quotations?superseded_by=is.null&select=id,company_name,effective_date,basis,product_codes,member_count,results,source,requirement,created_at,updated_at&order=created_at.desc&limit=200`, { headers: sbH(), cache: 'no-store' })
-    return NextResponse.json(res.ok ? await res.json() : [])
+    const [res, summaries] = await Promise.all([
+      fetch(`${SB_URL}/rest/v1/gb_quotations?superseded_by=is.null&select=id,company_name,effective_date,basis,product_codes,member_count,results,source,requirement,created_at,updated_at&order=created_at.desc&limit=200`, { headers: sbH(), cache: 'no-store' }),
+      loadAnalysisSummaries().catch(() => new Map()),
+    ])
+    const rows = (res.ok ? await res.json() : []) as { id: string }[]
+    return NextResponse.json(rows.map(r => ({ ...r, analysis: summaries.get(r.id) ?? null })))
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

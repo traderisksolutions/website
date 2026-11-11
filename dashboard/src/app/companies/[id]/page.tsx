@@ -325,7 +325,7 @@ function CompanyWorkspace() {
             onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 
-        {tab === 'eb' && <CompanyEb companyId={id} companyName={company.name} quotes={quotes} policies={policies} />}
+        {tab === 'eb' && <CompanyEb companyId={id} companyName={company.name} policies={policies} />}
         {tab === 'quotes' && (quotes && threads ? (
           <>
             <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />

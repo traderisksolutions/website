@@ -32,6 +32,7 @@ import type { Member } from '../gb-quote'
 
 import { censusMembers, censusPlans } from '@/lib/chief/census'
 import { logError } from '@/lib/error-log'
+import { companyKey } from '@/lib/format'
 import { ensureClientForRequest } from '@/lib/crm/client-link'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
@@ -416,11 +417,7 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
 }
 
 /** "Talent Trader Group Pte Ltd" and "TALENT TRADERS GROUP PTE. LTD" are one company. */
-export function normCompany(name: string | null | undefined): string {
-  return String(name ?? '').toLowerCase()
-    .replace(/\b(pte|ltd|limited|private|sdn|bhd|berhad|llp|inc|co|company|the|group|holdings?|singapore|sg)\b\.?/g, ' ')
-    .replace(/s\b/g, '').replace(/[^a-z0-9]+/g, '')
-}
+export function normCompany(name: string | null | undefined): string { return companyKey(name) }
 
 type OpenRow = { id: string; company_name: string | null; member_count: number; notes: string | null; requirement: Record<string, unknown> | null; created_at: string }
 
