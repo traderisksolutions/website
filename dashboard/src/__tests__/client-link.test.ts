@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { acronym, clientByName, matchClient, nameWords, type ClientRef } from '@/lib/crm/client-link'
+import { acronym, clientByName, matchClient, nameWords, plausibleClientName, type ClientRef } from '@/lib/crm/client-link'
 
 const aas: ClientRef = { id: 'aas', company_name: 'AUTOMOBILE ASSOCIATION OF SINGAPORE', domain: 'aas.com.sg', domains: ['aas.com.sg', 'legacyfa-asia.com'] }
 const oue: ClientRef = { id: 'oue', company_name: 'OUE Limited', domain: null, domains: [] }
@@ -48,5 +48,12 @@ describe('clientByName', () => {
     expect(clientByName('OUE LIMITED', clients)).toBe(oue)
     expect(clientByName('Talent Traders Group Pte. Ltd', clients)).toBe(talent)
     expect(clientByName('Mednefits', clients)).toBeNull()
+  })
+})
+
+describe('plausibleClientName', () => {
+  it('refuses the broker, Kyn, domains and projects; keeps company names', () => {
+    for (const bad of ['trade risk solutions pte ltd', 'TRS', 'kyn.com.sg', 'Project Nusa', 'weixian@mednefits.com', 'ab']) expect(plausibleClientName(bad)).toBe(false)
+    for (const ok of ['OUE Limited', 'CCCC Chencharu Close', 'STT GDC Malaysia 2 Sdn. Bhd', 'Flower Chimp']) expect(plausibleClientName(ok)).toBe(true)
   })
 })

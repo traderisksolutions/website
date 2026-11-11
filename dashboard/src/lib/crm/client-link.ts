@@ -25,6 +25,16 @@ import { linkThreadToCompany } from './triage'
 import { recordHousekeeping } from '@/lib/agent-activity'
 
 export type ClientRef = { id: string; company_name: string; domain?: string | null; domains?: string[] | null }
+
+/** A name the model gave that cannot be a client: the broker itself, Kyn, a bare domain, a project. Pure. */
+export function plausibleClientName(name: string): boolean {
+  const n = name.trim()
+  if (n.length < 3 || n.length > 120) return false
+  if (/trade risk|\btrs\b|\bkyn\b|secondhuman/i.test(n)) return false
+  if (/\.(com|sg|net|org|co|io|my|id)\b/i.test(n) || /@/.test(n)) return false
+  if (/^(project|the project|renewal|policy|quotation|claim)\b/i.test(n)) return false
+  return true
+}
 export type ClientMatch = { client: ClientRef; how: 'name' | 'acronym' | 'domain' }
 
 /** Legal forms and articles: never part of what identifies a name. */
@@ -137,7 +147,7 @@ async function readClientName(thread: ThreadRow): Promise<{ name: string | null;
     const r = JSON.parse((text ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')) as { client?: unknown; confidence?: unknown }
     const name = typeof r.client === 'string' ? r.client.trim().slice(0, 120) : ''
     const conf = typeof r.confidence === 'number' ? Math.max(0, Math.min(1, r.confidence)) : 0
-    return { name: name.length >= 3 && conf >= 0.5 ? name : null, confidence: conf }
+    return { name: plausibleClientName(name) && conf >= 0.5 ? name : null, confidence: conf }
   } catch { return { name: null, confidence: 0 } }
 }
 
