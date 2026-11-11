@@ -1,12 +1,21 @@
 {
   "framework": "nextjs",
+  "regions": [
+    "sin1"
+  ],
   "buildCommand": "next build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "functions": {
-    "src/app/api/cron/**/route.ts": { "memory": 1024 },
-    "src/app/api/email/ingest/route.ts": { "memory": 1024 },
-    "src/app/api/placements/endorsements/sweep/route.ts": { "memory": 1024 }
+    "src/app/api/cron/**/route.ts": {
+      "memory": 1024
+    },
+    "src/app/api/email/ingest/route.ts": {
+      "memory": 1024
+    },
+    "src/app/api/placements/endorsements/sweep/route.ts": {
+      "memory": 1024
+    }
   },
   "crons": [
     {
