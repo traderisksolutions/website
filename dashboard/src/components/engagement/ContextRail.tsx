@@ -64,7 +64,11 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   /** A draft in the Actions group opened or closed; the rail widens while one is open. */
   onDraftOpen?: (open: boolean) => void
 }) {
-  const companyId = lead.companyId ?? null
+  // A thread linked to an insurer or partner is about a client: the rail shows that client where it
+  // is known, and never lists the insurer's other conversations as this thread's (the AAS WIC request
+  // to Chubb listed Chubb's Bangkok itinerary deck, 11 Nov 2026).
+  const counterparty = lead.companyKind === 'insurer' || lead.companyKind === 'partner'
+  const companyId = lead.clientCompanyId ?? (counterparty ? null : lead.companyId ?? null)
   const [board, setBoard] = useState<BoardPayload | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [related, setRelated] = useState<CompanyThread[] | null>(null)
@@ -143,7 +147,13 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
             {companyId ? (
               <>
                 <Arrow href={`/companies/${companyId}`}>{company?.name ?? lead.companyName ?? 'Company'}</Arrow>
-                {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner yet'].filter(Boolean).join(' · ')}</Small></>}
+                {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner yet', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ')}</Small></>}
+              </>
+            ) : counterparty && lead.companyId ? (
+              <>
+                <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
+                <br /><Small>{KIND_LABEL[lead.companyKind ?? ''] ?? 'Company'} · client not linked</Small>
+                {threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}
               </>
             ) : (
               <>Not linked{threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}</>

@@ -9,6 +9,7 @@ import { ChatDockProvider } from '@/providers/chat-dock-provider'
 import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
 import { EngagementNavProvider, useEngagementNav } from '@/providers/engagement-nav-provider'
 import { RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
+import { NewTabLinks } from '@/components/nav/NewTabLinks'
 
 function MainContent({ children }: { children: React.ReactNode }) {
   // /engagement renders its conversation list as a fixed left rail (see EngagementRail) instead
@@ -55,6 +56,7 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
     // /engagement/page.tsx pushes into it — mounted app-wide (cheap, no data fetching) rather
     // than gated by pathname so it never has to special-case "no provider mounted".
     <EngagementNavProvider>
+      <NewTabLinks />
       <TopNavbar />
       <PlaceTabs />
       <EngagementRail />

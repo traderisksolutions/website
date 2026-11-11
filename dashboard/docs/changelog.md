@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-11 — Functions in Singapore; links open in a new tab; insurer threads show their client
+
+- **Speed.** The API functions ran in Vercel's US east region while the database and the users are in Singapore. `vercel.json` pins them to `sin1`. Inbox list 10.6 s → 1.0 s, home board 17 s → 1.5 s.
+- **Links.** A link inside a page opens in a new tab, so the thread or list a person is on stays put. The top bar, place tabs, breadcrumbs, pagination, hash links and links that only change this page's query keep the tab (`NewTabLinks`).
+- **Prepare insurer emails.** When an open placement already exists for the client, the endpoint answers 200 with the placement and the thread it lives on, and the bar links there, instead of failing with 409.
+- **Context rail.** A thread linked to an insurer or partner shows the client it is about (from `thread_insurers`) in Company and lists that client's threads; with no client known it shows the insurer and nothing else, rather than the insurer's unrelated conversations. 88 insurer-request threads had their client filled in from the placement dispatch; 4 thread shells with no live message were removed.
+
+---
+
 ## 2026-10-28 (later) — App at true size; Notion-style inbox; slim away banner
 
 - **Global zoom off.** `--ui-zoom` goes from 1.15 to 1 (it had been 1.15 since July after "everything reads too small"). Every page renders at its stated pixel sizes. Companies shows 16 rows in a 900px window, up from 9.

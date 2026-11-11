@@ -46,12 +46,14 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const [open, setOpen] = useState<string | null>(null)
   const [from, setFrom] = useState(OPS_EMAIL)
   const [outcome, setOutcome] = useState<Record<string, { summary: string; quotationId: string }>>({})
+  /** After Prepare insurer emails: the open placement already lives on another thread of this client. */
+  const [elsewhere, setElsewhere] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try { setBar(await callApi<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
   }, [threadId])
 
-  useEffect(() => { setBar(null); setOpen(null); void load() }, [load, refreshKey])
+  useEffect(() => { setBar(null); setOpen(null); setElsewhere(null); void load() }, [load, refreshKey])
   useEffect(() => { onOpenChange?.(open !== null) }, [open, onOpenChange])
   useEffect(() => {
     fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
@@ -72,9 +74,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     if (r.draftId) setOpen(r.draftId)
   })
   const prepare = () => run('prepare', async () => {
-    const r = await callApi<{ status: string }>('/api/placements/auto', { method: 'POST', body: { thread_id: threadId } })
+    const r = await callApi<{ status: string; placement_id?: string; client_thread_id?: string | null }>('/api/placements/auto', { method: 'POST', body: { thread_id: threadId } })
     if (r.status === 'no_lines') throw new Error('No policy found in this email. Open Quotes to set it up.')
     if (r.status === 'no_company' || r.status === 'no_request') throw new Error('Link this thread to a client first.')
+    // An open placement for this client already exists. On this thread the reload shows it; on another, link there.
+    if (r.status === 'exists' && r.client_thread_id && r.client_thread_id !== threadId) setElsewhere(r.client_thread_id)
   })
   const snooze = () => run('snooze', async () => { await post({ action: 'snooze', until: addWorkingDays(new Date(`${bar!.today}T00:00:00Z`), 3).toISOString().slice(0, 10) }) })
   const noAction = () => run('none', async () => { await post({ action: 'no_action' }) })
@@ -135,6 +139,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                 {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`}>Open case</Link>}
                 {st.kind !== 'none' && <button type="button" className={SECOND} onClick={noAction} disabled={!!busy}>No action</button>}
               </Buttons>
+              {elsewhere && <p className="m-0 mt-2 text-[12.5px]" style={{ color: MUTED }}>The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px]" style={{ color: INK }}>Open that thread →</Link></p>}
               {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
             </ActionItem>
           )

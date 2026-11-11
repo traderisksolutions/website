@@ -104,13 +104,20 @@ export async function GET(req: NextRequest) {
     const contactIds = Array.from(new Set(threads.filter(t => t.contact_id).map(t => t.contact_id!)))
     type ContactRow = { id: string; first_name: string | null; last_name: string | null; email: string | null }
     const contactMap = new Map<string, ContactRow>()
-    if (contactIds.length > 0) {
-      const cRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
+    // A thread linked to an insurer or partner is about a client: thread_insurers names it where known.
+    const clientOf = new Map<string, string>()
+    const counterpartyIds = threads.filter(t => t.companies?.kind === 'insurer' || t.companies?.kind === 'partner').map(t => t.id)
+    const [cRes, tiRes] = await Promise.all([
+      contactIds.length > 0 ? fetch(`${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`, { headers: sbHeaders(), cache: 'no-store' }) : null,
+      counterpartyIds.length > 0 ? fetch(`${SB_URL}/rest/v1/thread_insurers?thread_id=in.(${counterpartyIds.join(',')})&client_company_id=not.is.null&select=thread_id,client_company_id&order=last_message_at.desc.nullslast`, { headers: sbHeaders(), cache: 'no-store' }) : null,
+    ])
+    if (cRes) {
       const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
       for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
+    }
+    if (tiRes) {
+      const rows: { thread_id: string; client_company_id: string }[] = tiRes.ok ? await tiRes.json() : []
+      for (const r of (Array.isArray(rows) ? rows : [])) if (!clientOf.has(r.thread_id)) clientOf.set(r.thread_id, r.client_company_id)
     }
 
     // 3. For all threads, look up sender email from email_messages as fallback
@@ -205,6 +212,8 @@ export async function GET(req: NextRequest) {
         companyId:        t.company_id ?? null,
         companyName:      t.companies?.name ?? null,
         companyOwner:     t.companies?.owner_email ?? null,
+        companyKind:      t.companies?.kind ?? null,
+        clientCompanyId:  clientOf.get(t.id) ?? null,
         mailboxes:        boxes.get(t.id) ?? [],
         lastDirection:    lastDirection.get(t.id) ?? null,
         chaseDue:         chaseDue.get(t.id) ?? null,

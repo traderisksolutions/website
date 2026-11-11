@@ -22,6 +22,10 @@ export type Lead = {
   companyName?: string | null
   /** The linked company's account owner (email); null when the company has no owner yet. */
   companyOwner?: string | null
+  /** The linked company's kind (client, insurer, partner, prospect, other). */
+  companyKind?: string | null
+  /** When the linked company is an insurer or partner: the client the conversation is about, if known. */
+  clientCompanyId?: string | null
   /** The Gmail accounts this thread was read from (src/lib/mail/visibility.ts). Empty = the team's. */
   mailboxes?: string[]
   segment?: string | null
