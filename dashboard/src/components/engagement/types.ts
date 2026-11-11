@@ -26,6 +26,8 @@ export type Lead = {
   companyKind?: string | null
   /** When the linked company is an insurer or partner: the client the conversation is about, if known. */
   clientCompanyId?: string | null
+  /** The client the thread names when no company on file matches it (the agent's read of the subject and mail). */
+  clientNamed?: string | null
   /** The Gmail accounts this thread was read from (src/lib/mail/visibility.ts). Empty = the team's. */
   mailboxes?: string[]
   segment?: string | null

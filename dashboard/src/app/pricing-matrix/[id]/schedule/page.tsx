@@ -13,6 +13,7 @@
  * one already live, the old value sits under the new one — that is the thing being decided.
  */
 
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Loader2, RefreshCw, Check, X } from 'lucide-react'
@@ -99,9 +100,7 @@ export default function SchedulePage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
       <div className="mx-auto max-w-[1280px] px-6 sm:px-12 pt-12 pb-20">
-        <button onClick={() => router.push(`/pricing-matrix/${id}`)}
-                className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3"
-                style={{ color: '#4a5550' }}>← Rate table</button>
+        <Breadcrumbs className="mb-3" current={{ label: 'Benefit schedule', href: `/pricing-matrix/${id}/schedule` }} fallback={{ label: t?.insurerName ? `Rate table · ${t.insurerName}` : 'Rate table', href: `/pricing-matrix/${id}` }} />
 
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>

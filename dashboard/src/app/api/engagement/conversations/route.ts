@@ -106,18 +106,22 @@ export async function GET(req: NextRequest) {
     const contactMap = new Map<string, ContactRow>()
     // A thread linked to an insurer or partner is about a client: thread_insurers names it where known.
     const clientOf = new Map<string, string>()
+    const namedOf = new Map<string, string>()
     const counterpartyIds = threads.filter(t => t.companies?.kind === 'insurer' || t.companies?.kind === 'partner').map(t => t.id)
     const [cRes, tiRes] = await Promise.all([
       contactIds.length > 0 ? fetch(`${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`, { headers: sbHeaders(), cache: 'no-store' }) : null,
-      counterpartyIds.length > 0 ? fetch(`${SB_URL}/rest/v1/thread_insurers?thread_id=in.(${counterpartyIds.join(',')})&client_company_id=not.is.null&select=thread_id,client_company_id&order=last_message_at.desc.nullslast`, { headers: sbHeaders(), cache: 'no-store' }) : null,
+      counterpartyIds.length > 0 ? fetch(`${SB_URL}/rest/v1/thread_insurers?thread_id=in.(${counterpartyIds.join(',')})&select=thread_id,client_company_id,reason&order=last_message_at.desc.nullslast`, { headers: sbHeaders(), cache: 'no-store' }) : null,
     ])
     if (cRes) {
       const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
       for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
     }
     if (tiRes) {
-      const rows: { thread_id: string; client_company_id: string }[] = tiRes.ok ? await tiRes.json() : []
-      for (const r of (Array.isArray(rows) ? rows : [])) if (!clientOf.has(r.thread_id)) clientOf.set(r.thread_id, r.client_company_id)
+      const rows: { thread_id: string; client_company_id: string | null; reason: string | null }[] = tiRes.ok ? await tiRes.json() : []
+      for (const r of (Array.isArray(rows) ? rows : [])) {
+        if (r.client_company_id && !clientOf.has(r.thread_id)) clientOf.set(r.thread_id, r.client_company_id)
+        else if (!r.client_company_id && r.reason?.startsWith('named: ') && !namedOf.has(r.thread_id)) namedOf.set(r.thread_id, r.reason.slice('named: '.length))
+      }
     }
 
     // 3. For all threads, look up sender email from email_messages as fallback
@@ -214,6 +218,7 @@ export async function GET(req: NextRequest) {
         companyOwner:     t.companies?.owner_email ?? null,
         companyKind:      t.companies?.kind ?? null,
         clientCompanyId:  clientOf.get(t.id) ?? null,
+        clientNamed:      clientOf.has(t.id) ? null : namedOf.get(t.id) ?? null,
         mailboxes:        boxes.get(t.id) ?? [],
         lastDirection:    lastDirection.get(t.id) ?? null,
         chaseDue:         chaseDue.get(t.id) ?? null,

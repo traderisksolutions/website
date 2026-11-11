@@ -134,6 +134,7 @@ export type AiFeature =
   | 'document_classify'
   | 'credit_probe'
   | 'thread_policy_pick'
+  | 'thread_client_name'
   | 'company_retrieval_query'
   | 'company_retrieval_embed'
   | 'ask_ai'

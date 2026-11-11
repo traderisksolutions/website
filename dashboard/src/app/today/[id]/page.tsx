@@ -7,6 +7,7 @@
  * client's contacts on file. Send sends every ticked draft through /api/email/send, records the
  * send on the case, and moves to the next item on Today.
  */
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { oneRecipient } from '@/lib/email/recipients'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -155,12 +156,12 @@ export default function ReviewPage() {
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto w-full min-w-0 flex flex-col gap-4">
+      <Breadcrumbs current={{ label: item.title, href: `/today/${item.id}` }} fallback={{ label: 'Today', href: '/today' }} />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
           <div className="mt-1 text-[13.5px] text-trs-muted">{forward ? `${item.title} · ${facts}` : facts}</div>
         </div>
-        <Link href="/today" className="text-[13.5px] text-trs-muted no-underline hover:underline">Back to Today</Link>
       </header>
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}

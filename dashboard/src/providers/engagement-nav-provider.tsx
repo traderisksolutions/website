@@ -63,8 +63,8 @@ interface EngagementNavContextValue {
   setOnOpenDraft: Dispatch<SetStateAction<((draft: NewEmailDraft) => void) | null>>
   /** Manually link a thread to a company from the "Unlinked" tab's inline picker — registered by
    *  page.tsx (which owns the real `leads` state) so the row updates without a full refetch. */
-  onLinkCompany: ((threadId: string, companyId: string, companyName: string) => void) | null
-  setOnLinkCompany: Dispatch<SetStateAction<((threadId: string, companyId: string, companyName: string) => void) | null>>
+  onLinkCompany: ((threadId: string, companyId: string | null, companyName: string) => void) | null
+  setOnLinkCompany: Dispatch<SetStateAction<((threadId: string, companyId: string | null, companyName: string) => void) | null>>
   /** Navigator collapsed to the 64px icon rail (desktop only). Persisted under KEY_NAV_COLLAPSED;
    *  EngagementRail renders the icon rail and ConditionalShell narrows its margin to match. */
   navCollapsed: boolean
@@ -94,7 +94,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [onSelect, setOnSelect] = useState<((id: string) => void) | null>(null)
   const [onOpenDraft, setOnOpenDraft] = useState<((draft: NewEmailDraft) => void) | null>(null)
-  const [onLinkCompany, setOnLinkCompany] = useState<((threadId: string, companyId: string, companyName: string) => void) | null>(null)
+  const [onLinkCompany, setOnLinkCompany] = useState<((threadId: string, companyId: string | null, companyName: string) => void) | null>(null)
 
   // Collapsed state: render expanded on first paint, correct from localStorage in a client-only
   // effect (same SSR-safe pattern as useResizableDimension), then persist every change.

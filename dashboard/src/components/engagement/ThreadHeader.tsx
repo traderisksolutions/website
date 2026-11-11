@@ -77,7 +77,7 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
   }
 
   return (
-    <header className="flex-shrink-0 bg-white px-5 sm:px-10 pt-4 pb-3" style={{ borderBottom: `1px solid ${HAIR}` }}>
+    <header className="flex-shrink-0 bg-white px-5 sm:px-10 pt-4 pb-2">
       <div className="max-w-[min(760px,100%)] mx-auto">
         {onBack && <button type="button" onClick={onBack} className="lg:hidden inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer mb-3 hover:underline underline-offset-[3px]" style={{ color: MUTED }}><ArrowLeft size={13} /> All conversations</button>}
 

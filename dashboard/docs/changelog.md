@@ -4,6 +4,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-11 (evening) — Back to basics: the client behind every thread, one EB action, breadcrumbs that survive a new tab
+
+- **One line under the top block.** The bar and the place tabs are one sticky block (`TopBar`) with one hairline under it; its height is measured into `--top-nav-h`, so the mail navigator and every page sit flush under it whether or not a tab row is there. The rule lines under the tab row, under the "Since you were away" strip and under the thread header are gone.
+- **The client behind insurer and partner threads.** `src/lib/crm/client-link.ts` names the client an insurer or partner thread is about: from the subject by code (the company name, its acronym "AAS", a domain label "keller"), then, where that finds nothing, a model reads the subject and the latest mail and names the insured, which code matches to the clients on file. A name with no company on file is kept on the row and the rail offers "Create <name> and link" in one click. Runs nightly in the admin sweep over the last three days and once over the backlog today. Link company on a counterparty thread now sets its client instead of re-filing the thread.
+- **A referral names its insured.** When a benefits request reaches TRS through a partner or an insurer (OUE through Mednefits), the intake agent puts the insured on file as a client (created when new) and links the thread to it, so the quotation, the census and the thread meet on one company page.
+- **One EB action.** A benefits thread offers one item, "EB pricing estimate", naming the census file it will read; the separate "Census received" item is gone, and a file forwarded four times is one file. The done item keeps Draft to client, Open estimate and Estimate again.
+- **Breadcrumbs that survive a new tab.** A link opened in a new tab carries the trail in its hash, so the quotation opened from a thread shows "← the thread" in its own tab. Back has a new-tab control. The pages of the top bar put themselves on the trail. Breadcrumbs added to the policy, the Today case, the rate table and the benefit schedule; the quotation's parent is named as the bar names it, Benefits calculator.
+
+---
+
 ## 2026-11-11 (later) — Refactor phase 1: lint on, dead code out, one formatter
 
 Baseline and the six phases: `docs/refactor-plan.md`.

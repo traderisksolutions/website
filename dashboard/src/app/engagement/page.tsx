@@ -325,14 +325,19 @@ function EngagementPageInner() {
   // PATCHes the thread then updates local state in place so the row leaves Unlinked without a
   // full refetch. Only threads (thread_id set, or a 'thread'-sourced lead whose own id is the
   // thread id) can be linked this way; other lead sources have no email_threads row to patch.
-  const handleLinkCompany = useCallback((threadId: string, companyId: string, companyName: string) => {
+  // A thread filed under an insurer or partner keeps that filing; the pick becomes the client it is
+  // about (thread_insurers). A company named but not on file is created by the route.
+  const handleLinkCompany = useCallback((threadId: string, companyId: string | null, companyName: string) => {
     fetch(`/api/engagement/thread/${threadId}/company`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ companyId }),
-    }).then(res => {
+      body: JSON.stringify({ companyId, name: companyName }),
+    }).then(async res => {
       if (!res.ok) return
+      const r = await res.json() as { companyId?: string; clientCompanyId?: string; companyName?: string }
       setLeads(prev => prev.map(l =>
-        (l.thread_id === threadId || l.id === threadId) ? { ...l, companyId, companyName } : l
+        (l.thread_id === threadId || l.id === threadId)
+          ? r.clientCompanyId ? { ...l, clientCompanyId: r.clientCompanyId, clientNamed: null } : { ...l, companyId: r.companyId ?? companyId, companyName: r.companyName ?? companyName, companyKind: 'client' }
+          : l
       ))
     }).catch(() => {})
   }, [])

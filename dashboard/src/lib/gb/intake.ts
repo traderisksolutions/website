@@ -32,6 +32,7 @@ import type { Member } from '../gb-quote'
 
 import { censusMembers, censusPlans } from '@/lib/chief/census'
 import { logError } from '@/lib/error-log'
+import { ensureClientForRequest } from '@/lib/crm/client-link'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbH(prefer = 'return=minimal') {
@@ -295,6 +296,10 @@ export async function runGroupBenefitIntake(threadId: string, messageId: string 
   // The insured as the request names it; the thread's filed company is the sender's employer,
   // which for a group or an outsourced HR desk is not the policyholder.
   const companyName = read.companyName ?? company ?? thread.subject ?? 'Group benefits request'
+  // A request that reaches TRS through a partner or an insurer, or from nobody on file, names its
+  // insured: that company goes on file as a client and the thread is linked to it (OUE through
+  // Mednefits, 11 Nov 2026), so the quotation, the census and the thread meet on one company page.
+  if (read.companyName) await ensureClientForRequest(threadId, read.companyName, `Named as the insured in the benefits request on "${thread.subject ?? 'an email'}"`).catch(e => logError({ source: 'system', feature: 'gb_intake', message: `client link: ${e instanceof Error ? e.message : String(e)}`, threadId }))
   const effectiveDate = read.effectiveDate ?? defaultEffectiveDate()
   const requirement = {
     categories: [{ name: 'All employees', requirement: coversToRequirement(read.covers), overrides: {} }],

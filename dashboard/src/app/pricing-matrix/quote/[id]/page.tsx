@@ -123,7 +123,7 @@ export default function QuoteDetailPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-      <Breadcrumbs className="mb-3" current={{ label: `Quotation · ${company || 'Untitled'}`, href: `/pricing-matrix/quote/${id}` }} fallback={{ label: 'Quotes', href: '/pricing-matrix' }} />
+      <Breadcrumbs className="mb-3" current={{ label: `${company || 'Untitled'} · quotation`, href: `/pricing-matrix/quote/${id}` }} fallback={{ label: 'Benefits calculator', href: '/pricing-matrix' }} />
 
       <div className="mb-10">
         <div className="flex flex-wrap items-start justify-between gap-3">

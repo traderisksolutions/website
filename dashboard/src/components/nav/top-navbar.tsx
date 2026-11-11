@@ -44,7 +44,7 @@ export function TopNavbar() {
   async function signOut() { await createClient().auth.signOut(); router.push('/login') }
 
   return (
-    <header className="sticky top-0 z-50 w-full h-[52px] flex-shrink-0 bg-white border-b border-trs-line">
+    <header className="w-full h-[52px] flex-shrink-0 bg-white">
       <div className="flex h-full items-center gap-1 px-4 md:px-6 min-w-0">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -121,13 +121,37 @@ export function TopNavbar() {
   )
 }
 
+/**
+ * The bar and the current place's tabs as one sticky block, one line under it. Its height is
+ * measured into --top-nav-h, which the fixed mail navigator and every page's minimum height read,
+ * so nothing is ever offset for a tab row that is not there.
+ */
+export function TopBar() {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const set = () => document.documentElement.style.setProperty('--top-nav-h', `${el.getBoundingClientRect().height}px`)
+    set()
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    return () => { ro.disconnect(); document.documentElement.style.removeProperty('--top-nav-h') }
+  }, [])
+  return (
+    <div ref={ref} className="sticky top-0 z-50 w-full bg-white border-b border-trs-line">
+      <TopNavbar />
+      <PlaceTabs />
+    </div>
+  )
+}
+
 /** The current place's pages, under the bar. Nothing when the place has one page. */
 export function PlaceTabs() {
   const pathname = usePathname()
   const { place, tab } = locate(pathname)
   if (!place || place.tabs.length < 2) return null
   return (
-    <nav aria-label={place.label} className="trs-place-tabs hidden min-[980px]:flex items-center gap-0.5 px-4 md:px-6 h-11 border-b border-trs-line bg-white overflow-x-auto [scrollbar-width:none]">
+    <nav aria-label={place.label} className="trs-place-tabs hidden min-[980px]:flex items-center gap-0.5 px-4 md:px-6 h-10 bg-white overflow-x-auto [scrollbar-width:none]">
       {place.tabs.map(t => (
         <Link key={t.href} href={t.href} aria-current={tab?.href === t.href ? 'page' : undefined} className="trs-subtab">{t.title}</Link>
       ))}

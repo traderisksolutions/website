@@ -1,5 +1,6 @@
 'use client'
 
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import Link from 'next/link'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -95,7 +96,6 @@ export default function GbReviewPage() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
-  function leave() { if (dirty && !confirm('You have unsaved changes. Leave without saving?')) return; router.push('/pricing-matrix') }
 
   // Single source of truth for kicking extraction: if the table is still a fresh draft
   // (upload succeeded but extraction never started), start it here. Ref guards double-fire.
@@ -202,7 +202,7 @@ export default function GbReviewPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
-      <button onClick={leave} className="inline-flex items-center gap-1.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer hover:underline mb-3" style={{ color: '#4a5550' }}>← Rate tables</button>
+      <Breadcrumbs className="mb-3" current={{ label: `Rate table · ${insurerLabel}`, href: `/pricing-matrix/${id}` }} fallback={{ label: 'Benefits calculator', href: '/pricing-matrix' }} />
 
       <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">

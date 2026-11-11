@@ -25,6 +25,7 @@ export const HOUSEKEEPING_NAME  = 'Filing agent'
 export type HousekeepingAction =
   | 'thread.filed'          // a conversation given a company
   | 'company.created'       // a company created for a domain or name not seen before
+  | 'thread.client_linked'  // the client an insurer or partner thread is about, named and filed
   | 'domain.attached'       // an existing company learned a new domain
   | 'company.merged'        // two records for one company joined
   | 'signature.read'        // a contact's title or direct line taken from a sign-off

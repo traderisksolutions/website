@@ -11,6 +11,7 @@ import { daysUntil, isOpen, sortTasks } from '@/components/board/model'
 import { AddToCaseControl } from './AddToCaseControl'
 import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
+import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 import { AiRow, Arrow, Group, InfoRow, Small, INK, BODY, MUTED, HAIR } from './rail-bits'
@@ -69,6 +70,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   // to Chubb listed Chubb's Bangkok itinerary deck, 11 Nov 2026).
   const counterparty = lead.companyKind === 'insurer' || lead.companyKind === 'partner'
   const companyId = lead.clientCompanyId ?? (counterparty ? null : lead.companyId ?? null)
+  const { onLinkCompany } = useEngagementNav()
   const [board, setBoard] = useState<BoardPayload | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [related, setRelated] = useState<CompanyThread[] | null>(null)
@@ -152,7 +154,8 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
             ) : counterparty && lead.companyId ? (
               <>
                 <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
-                <br /><Small>{KIND_LABEL[lead.companyKind ?? ''] ?? 'Company'} · client not linked</Small>
+                <br /><Small>{KIND_LABEL[lead.companyKind ?? ''] ?? 'Company'}{lead.clientNamed ? ` · about ${lead.clientNamed}, not on file` : ' · client not linked'}</Small>
+                {threadId && lead.clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, lead.clientNamed!)} className={QUIET_LINK} style={{ color: INK }}>Create {lead.clientNamed} and link</button></>}
                 {threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}
               </>
             ) : (

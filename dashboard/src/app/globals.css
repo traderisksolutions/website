@@ -691,7 +691,6 @@ table.register td .mt-0\.5 { margin-top: 0; }
 .trs-place:focus-visible, .trs-subtab:focus-visible { outline: 2px solid var(--trs-green); outline-offset: 2px; }
 .trs-place .cnt { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; color: var(--trs-muted); }
 .trs-place[aria-current="page"] .cnt { color: var(--trs-select-fg); }
-@media (min-width: 980px) { :root:has(.trs-place-tabs) { --top-nav-h: 96px; } }
 .trs-subtab { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: var(--trs-muted); white-space: nowrap; text-decoration: none; }
 .trs-subtab:hover { color: var(--trs-ink); background: var(--trs-canvas); }
 .trs-subtab[aria-current="page"] { color: var(--trs-ink); font-weight: 500; background: var(--trs-field); }

@@ -54,7 +54,7 @@ export function HousekeepingBanner() {
   const period = d.firstRun ? 'last 7 days' : `since ${when(d.since)}`
 
   return (
-    <div data-housekeeping-banner role="status" aria-live="polite" className="border-b border-[#e6e8e4] bg-[#f8fafd] text-[13px]" style={{ color: '#2a332f' }}>
+    <div data-housekeeping-banner role="status" aria-live="polite" className="bg-[#f8fafd] text-[13px]" style={{ color: '#2a332f' }}>
       <div className="flex items-center gap-2.5 h-9 px-4 sm:px-6 min-w-0">
         <Info size={14} className="flex-shrink-0" style={{ color: '#1f4e3a' }} aria-hidden />
         <span className="font-medium flex-shrink-0" style={{ color: '#0f1412' }}>Since you were away</span>

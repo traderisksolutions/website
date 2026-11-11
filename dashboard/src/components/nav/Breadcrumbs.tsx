@@ -6,8 +6,8 @@
  * Back goes to the page's parent.
  */
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { useTrail, type Crumb } from '@/lib/nav/trail'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { readTrail, useTrail, withTrail, type Crumb } from '@/lib/nav/trail'
 
 const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f'
 const short = (s: string, n = 44) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
@@ -18,6 +18,7 @@ export function Breadcrumbs({ current, fallback, className }: { current: Crumb |
   return (
     <nav aria-label="Breadcrumb" className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] ${className ?? ''}`}>
       <Link href={back.href} className="inline-flex items-center gap-1.5 no-underline hover:underline" style={{ color: INK }}><ArrowLeft size={14} /> {short(back.label)}</Link>
+      <a href={back.href} target="_blank" rel="noopener" onClick={e => { e.preventDefault(); window.open(withTrail(back.href, readTrail().slice(0, -1)), '_blank', 'noopener') }} aria-label={`Open ${back.label} in a new tab`} title="Open in a new tab" className="inline-flex items-center no-underline" style={{ color: SUBTLE }}><ExternalLink size={12} /></a>
       {trail.length > 1 && (
         <span className="inline-flex items-center gap-1.5" style={{ color: MUTED }}>
           <span style={{ color: SUBTLE }}>·</span>

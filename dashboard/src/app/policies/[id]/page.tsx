@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
@@ -33,6 +34,8 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
+      <Breadcrumbs current={{ label: `${policy.company_name ?? 'Policy'} · ${policy.class ?? (policy.product_line ? productLineLabel(policy.product_line) : 'Policy')}`, href: `/policies/${id}` }}
+        fallback={policy.company_id ? { label: policy.company_name ?? 'Client', href: `/companies/${policy.company_id}?tab=policies` } : { label: 'Policies', href: '/policies' }} />
       <PageHeader
         title={title}
         meta={<>
