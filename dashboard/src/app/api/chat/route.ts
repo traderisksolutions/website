@@ -354,7 +354,7 @@ export async function POST(req: NextRequest) {
     const ctx = effCaseId ? await caseContext(effCaseId) : effCompanyId ? await companyContext(effCompanyId) : ''
 
     // Learned improvements distilled nightly from past chats.
-    let learned = ''
+    const learned = ''
     try {
     } catch { /* optional */ }
 

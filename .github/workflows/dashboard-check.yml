@@ -1,0 +1,28 @@
+# Dashboard checks: type-check, lint, tests. Runs on every push and pull request that touches
+# dashboard/. Vercel builds the deploy; this is the gate that tells us before the build does.
+name: dashboard-check
+
+on:
+  push:
+    paths: ['dashboard/**', '.github/workflows/dashboard-check.yml']
+  pull_request:
+    paths: ['dashboard/**', '.github/workflows/dashboard-check.yml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit -p tsconfig.json
+      - run: npx next lint --dir src
+      - run: npx vitest run

@@ -191,7 +191,7 @@ export default function AutonomyPage() {
         </header>
 
         <p className="pt-3 text-[12px]" style={{ color: FAINT }}>
-          Share = messages sent from an agent's draft over all outgoing messages; internal mail and the agent mailboxes are left out. Effort weights each message by its own words plus 40 per file. Unedited = less than a tenth of the draft changed. {d ? `${d.excluded} messages excluded.` : ''}
+          Share = messages sent from an agent&apos;s draft over all outgoing messages; internal mail and the agent mailboxes are left out. Effort weights each message by its own words plus 40 per file. Unedited = less than a tenth of the draft changed. {d ? `${d.excluded} messages excluded.` : ''}
         </p>
 
         {err && <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #d5d9d4', color: INK }}>{err}</div>}

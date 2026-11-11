@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["scripts/**/*.{ts,mts,mjs}", "src/test/setup.ts"],
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mts,mjs}"],
+  "ignoreDependencies": ["server-only"]
+}

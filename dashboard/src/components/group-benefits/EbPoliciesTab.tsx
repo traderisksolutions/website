@@ -171,7 +171,7 @@ function NewQuotationDialog({ open, onClose }: { open: boolean; onClose: () => v
             </ul>
           )}
         </Field>
-        <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>One line, Employment benefits. Employee list and pricing follow on the company's Members tab.</p>
+        <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>One line, Employment benefits. Employee list and pricing follow on the company&apos;s Members tab.</p>
         {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
         <div className="flex items-center justify-end gap-2 pt-1">
           <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>

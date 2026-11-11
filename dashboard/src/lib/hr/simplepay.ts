@@ -87,7 +87,7 @@ export async function fetchSimplePay(apiKey: string, companyId?: string | null, 
   const key = String(apiKey ?? '').trim()
   const companies = await listSimplePayCompanies(key, fetchImpl)
   if (!companies.length) throw new HrConnectorError('This SimplePay key has access to no company. Give the API user access to the company in SimplePay.', 403)
-  let company = companyId ? companies.find(c => c.id === String(companyId)) : companies.length === 1 ? companies[0] : undefined
+  const company = companyId ? companies.find(c => c.id === String(companyId)) : companies.length === 1 ? companies[0] : undefined
   if (!company) {
     if (companyId) throw new HrConnectorError('That company is not available to this key.', 404)
     throw new SimplePayChooseCompany(companies)

@@ -146,7 +146,7 @@ const LINE_WORDS = /\b(wic|wica|pi|d\s?&\s?o|car|cgl|pl|gpa|ghs|gtl|fwmi|eb|cybe
  */
 export function clientSegment(subject: string | null | undefined): string | null {
   if (!subject) return null
-  let s = subject.replace(/^(?:\s*(?:re|fw|fwd)\s*:\s*|\s*\[external\]\s*)+/i, '').trim()
+  const s = subject.replace(/^(?:\s*(?:re|fw|fwd)\s*:\s*|\s*\[external\]\s*)+/i, '').trim()
   let m = s.match(/\(TRS\)\s*([^|–:]+?)\s*[-–:]\s*(.+)$/i)
   let rest: string | null = null
   if (m) rest = m[2]

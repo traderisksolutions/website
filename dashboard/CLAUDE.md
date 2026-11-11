@@ -15,9 +15,9 @@ The dashboard replaces inbox-and-spreadsheet broking with one system: every emai
 | Code | this folder (`dashboard/` of the public `website` repo, org `traderisksolutions`) |
 | Working branch | `build/integrate`; releases are also pushed to `rfq-golive-2026-10-29` and `main` with the same sha |
 | Live | https://trs-dashboard-pi.vercel.app (Vercel project `trs-dashboard`); `/login` answers 200 when healthy |
-| Stack | Next.js 16, React, Tailwind, PostgREST over Cloud SQL (`src/lib/crm/db.ts`: `sb`, `sbTry`, `enc`), Gemini for reads |
+| Stack | Next.js 15.5, React 19, Tailwind, PostgREST over Cloud SQL (`src/lib/crm/db.ts`: `sb`, `sbTry`, `enc`), Gemini for reads |
 | Env | `.env.local`: `SUPABASE_SERVICE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `AUTH_SECRET`, `GEMINI_API_KEY_*`, `GMAIL_REFRESH_TOKEN` (prod only) |
-| Tests | `npx vitest run` (about 1,700 tests); `npx tsc --noEmit -p tsconfig.json` |
+| Checks | `npm run check` = `tsc --noEmit` + `next lint --dir src` + `vitest run` (about 1,700 tests). `npm run knip` lists unused files, exports and dependencies. `.github/workflows/dashboard-check.yml` runs the same three on every push that touches `dashboard/`. Lint errors fail `next build`, so a red lint is a failed deploy. |
 
 ### Modules, in the order staff use them
 
@@ -44,7 +44,7 @@ Every model call goes through `callGemini` (`src/lib/ai-call.ts`) with an `agent
 
 ## 4. How to work here
 
-**Before changing code**: read the module's doc in `docs/`, reuse the primitives (`src/components/crm/primitives.tsx`: `Btn`, `Chip`, `Segmented`, `Field`), reuse `rail-bits.tsx` for the rail and `Breadcrumbs` (`src/components/nav/Breadcrumbs.tsx`) on any page with a back link.
+**Before changing code**: read `docs/refactor-plan.md` (the phases, what is done, what is next) and the module's doc in `docs/`, reuse the primitives (`src/components/crm/primitives.tsx`: `Btn`, `Chip`, `Segmented`, `Field`), format money, dates and ages with `src/lib/format.ts` (never a local `money`/`fmtDate`/`timeAgo`), reuse `rail-bits.tsx` for the rail and `Breadcrumbs` (`src/components/nav/Breadcrumbs.tsx`) on any page with a back link.
 
 **UI rules** (`docs/design-system.md` and Jarod's standing feedback): white ground, hairlines only inside tables, no tinted panels, no boxes around tiles, no rules between sections, no row of KPI tiles, no explanatory sentences under figures, tabs and filters are the segmented control, one primary button per view, group titles on the rail are green pills, headers name the thing, numbers over adjectives. Copy is courteous and plain where a client reads it.
 
@@ -77,4 +77,5 @@ Known limits: one category per estimate; tiers are entry or top (an insurer's mi
 - `docs/gb-pricing-method.md`: pricing proofs (Gembridge to the cent), the estimate rules, the client draft.
 - `docs/design-system.md`: tokens, borders, chips, the rail.
 - `docs/agent-routing.md`, `docs/placement.md`, `docs/ontology.md`: agents, placements, data model.
+- `docs/refactor-plan.md`: baseline numbers (11 Nov 2026), the phases, the rules for each.
 - `docs/changelog.md`: what shipped when.

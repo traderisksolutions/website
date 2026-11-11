@@ -106,7 +106,7 @@ export function Scenarios({ quotationId, hasCensus }: { quotationId: string; has
         </div>
       </div>
       {error && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{error}</p>}
-      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not estimated. Reads the client's benefits threads for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
+      {!pack && !busy && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not estimated. Reads the client&apos;s benefits threads for the current plan, budget, must-haves, wishes and insurers ruled out, then prices like for like, lower cost and enhanced at every insurer.</p>}
 
       {pack && (
         <>

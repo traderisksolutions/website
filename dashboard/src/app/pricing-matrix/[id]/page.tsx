@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Loader2, CheckCircle2, AlertTriangle, Save, FileText, RefreshCw, Trash2, Pencil, X, Plus, ListChecks, MoreHorizontal, Download } from 'lucide-react'
@@ -310,7 +311,7 @@ export default function GbReviewPage() {
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
               {!insurerCompanyId && meta.insurer_name && (
-                <a href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#4a5550' }}>Add this insurer in Companies</a>
+                <Link href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#4a5550' }}>Add this insurer in Companies</Link>
               )}
             </div>
             <div>

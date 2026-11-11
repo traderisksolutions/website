@@ -153,7 +153,7 @@ function Sender({ site, ready, pendingUnsent, post, onChanged }: { site: Payload
             <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder={site.name} />
           </label>
         </div>
-        <p className="m-0 text-[13px]" style={{ color: MUTED }}>Must be a verified "Send mail as" address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
+        <p className="m-0 text-[13px]" style={{ color: MUTED }}>Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
         <div className="flex items-center gap-3 flex-wrap">
           <Btn onClick={() => run('save')} loading={busy === 'save'}>Save sender</Btn>
           {ready && pendingUnsent > 0 && <Btn onClick={() => run('confirm')} loading={busy === 'confirm'}>Send {pendingUnsent} pending confirmation{pendingUnsent === 1 ? '' : 's'}</Btn>}

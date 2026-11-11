@@ -61,7 +61,7 @@ export function ProductEditor({ product, onSaved, onClose }: {
           </select>
         </label>
         <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Takes (comma separated)</span><input id={`p-acc-${id}`} className={cell} value={accepts} onChange={e => setAccepts(e.target.value)} placeholder="Blank = no stated limit" /></label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Won't take</span><input id={`p-dec-${id}`} className={cell} value={declines} onChange={e => setDeclines(e.target.value)} placeholder="e.g. Construction, Marine" /></label>
+        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Won&apos;t take</span><input id={`p-dec-${id}`} className={cell} value={declines} onChange={e => setDeclines(e.target.value)} placeholder="e.g. Construction, Marine" /></label>
         <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Min premium (S$)</span><input id={`p-min-${id}`} className={cell} inputMode="decimal" value={minPremium} onChange={e => setMinPremium(e.target.value)} /></label>
         <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Max lives</span><input id={`p-max-${id}`} className={cell} inputMode="numeric" value={maxLives} onChange={e => setMaxLives(e.target.value)} /></label>
       </div>

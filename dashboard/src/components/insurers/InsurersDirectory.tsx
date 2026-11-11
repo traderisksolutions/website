@@ -102,7 +102,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
                 <RegisterTh first>Product</RegisterTh>
                 <RegisterTh align="center">Line</RegisterTh>
                 <RegisterTh align="center">Takes</RegisterTh>
-                <RegisterTh align="center">Won't take</RegisterTh>
+                <RegisterTh align="center">Won&apos;t take</RegisterTh>
                 <RegisterTh align="center">Min premium</RegisterTh>
                 <RegisterTh align="center">Max lives</RegisterTh>
                 <RegisterTh align="center">Gets the request</RegisterTh>
