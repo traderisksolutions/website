@@ -28,7 +28,7 @@ export default function QuoteReportPage() {
     <div className="bg-[#faf9f6] min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col" style={{ color: '#0f1412' }}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
         <div className="flex items-center gap-4 min-w-0">
-          <Breadcrumbs className="flex-shrink-0" current={{ label: 'Client report', href: `/pricing-matrix/quote/${id}/report` }} fallback={{ label: 'Quotation', href: `/pricing-matrix/quote/${id}` }} />
+          <Breadcrumbs className="flex-shrink-0" current={{ label: 'Client report', href: `/pricing-matrix/quote/${id}/report` }} fallback={{ label: 'Analysis', href: `/pricing-matrix/quote/${id}/analysis` }} />
           <h1 className="m-0 text-[15px] font-medium truncate">{company ? `${company} · Client report` : 'Client report'}</h1>
         </div>
         <a href={`${src}?download=1`}

@@ -102,7 +102,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const doneOf = (s: Bar['suggestions'][number]) => outcome[s.key] ?? (s.done ? { summary: doneSummary(s), quotationId: s.done.quotationId } : null)
   const pending = (bar?.suggestions ?? []).filter(s => !doneOf(s))
   const finished = (bar?.suggestions ?? []).filter(s => doneOf(s))
-  const yesLabel = (s: Bar['suggestions'][number]) => busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : s.yes.length <= 8 ? `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}` : 'Yes'
+  const yesLabel = (s: Bar['suggestions'][number]) => busy === s.key ? 'Pricing…' : s.yes.length <= 8 ? `Yes, ${s.yes.charAt(0).toLowerCase()}${s.yes.slice(1)}` : 'Yes'
 
   return (
     <>
@@ -160,11 +160,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
           return (
             <ActionItem key={s.key} eyebrow="Done" title={s.title} meta={d.summary}>
               <Buttons>
-                {s.kind === 'eb_scenarios' && !clientDrafted && (
+                {s.kind === 'eb_scenarios' && s.done?.draftable && !clientDrafted && (
                   <button type="button" className={MAIN} onClick={() => draftToClient(d.quotationId)} disabled={!!busy} title="The premium summary, how the figures were derived and what TRS suggests, with the report attached. Waits here; nothing sends.">{busy === 'client-draft' ? 'Writing…' : 'Draft to client'}</button>
                 )}
                 <Link href={doneHref(s, d.quotationId)} className={`${SECOND} no-underline`}>{doneLabel(s)}</Link>
-                <button type="button" className={SECOND} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? (s.kind === 'eb_scenarios' ? 'Reading the thread…' : 'Pricing…') : s.kind === 'eb_scenarios' ? 'Estimate again' : 'Price again'}</button>
+                <button type="button" className={SECOND} onClick={() => suggest(s.key)} disabled={!!busy}>{busy === s.key ? 'Pricing…' : 'Analyse again'}</button>
               </Buttons>
             </ActionItem>
           )

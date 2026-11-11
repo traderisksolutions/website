@@ -16,7 +16,6 @@ import { Tip } from '@/components/Tip'
 import { Step } from '@/components/group-benefits/Step'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
-import { Scenarios } from '@/components/group-benefits/Scenarios'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { fmtDate } from '@/lib/format'
 
@@ -123,7 +122,7 @@ export default function QuoteDetailPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-      <Breadcrumbs className="mb-3" current={{ label: `${company || 'Untitled'} · quotation`, href: `/pricing-matrix/quote/${id}` }} fallback={{ label: 'EB', href: '/pricing-matrix' }} />
+      <Breadcrumbs className="mb-3" current={{ label: `${company || 'Untitled'} · quotation`, href: `/pricing-matrix/quote/${id}` }} fallback={{ label: `${company || 'Untitled'} · analysis`, href: `/pricing-matrix/quote/${id}/analysis` }} />
 
       <div className="mb-10">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -180,7 +179,6 @@ export default function QuoteDetailPage() {
         </section>
       )}
 
-      {priced && <Scenarios quotationId={id} hasCensus={q.member_count > 0} />}
 
       {priced && (
         <section className="mb-10">

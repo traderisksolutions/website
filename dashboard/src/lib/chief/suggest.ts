@@ -16,7 +16,8 @@
  */
 import { sbTry, enc } from '@/lib/crm/db'
 import { isInternal } from '@/lib/crm/db'
-import { benefitsThreads, loadScenarios, packSummary, quotationForThread, runScenarios } from '@/lib/gb/scenario-run'
+import { benefitsThreads, censusFor, loadScenarios, packSummary, plansFromCensusFile, quotationForThread } from '@/lib/gb/scenario-run'
+import { analysisSummary, loadAnalysis, runAnalysis } from '@/lib/gb/analysis'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { censusMembers, isSheetFile } from './census'
 import type { SuggestionKind } from './suggest-links'
@@ -32,8 +33,8 @@ export type Suggestion = {
   /** The census file on the thread the estimate will read, when there is one and no quotation yet. */
   attachment: string
   rows: number
-  /** Already acted on: where the result is, and what it says. */
-  done: { quotationId: string; members: number; summary?: string } | null
+  /** Already acted on: where the result is, and what it says. `draftable` when the older scenario pack exists, which the client draft still reads. */
+  done: { quotationId: string; members: number; summary?: string; draftable?: boolean } | null
 }
 
 export type ThreadSuggestion = Suggestion & { threadId: string; subject: string | null; company: string | null; companyId: string | null; receivedAt: string }
@@ -99,7 +100,7 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>, census: C
   if (conversation && !conversation.inConversation && !census) return null
   let q: Awaited<ReturnType<typeof quotationForThread>> = null
   for (const id of conversation?.ids ?? [thread.id]) { q = await quotationForThread(id); if (q) break }
-  const pack = q ? await loadScenarios(q.id) : null
+  const [pack, scen] = q ? await Promise.all([loadAnalysis(q.id), loadScenarios(q.id)]) : [null, null]
   const detail = q
     ? `${q.member_count} members on file · like for like, lower cost, enhanced · every insurer`
     : census
@@ -107,8 +108,9 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>, census: C
       : 'Reads the thread; prices the census on file or the file on this thread'
   return {
     key, kind: 'eb_scenarios', attachment: q ? '' : census?.filename ?? '', rows: q?.member_count ?? census?.rows ?? 0, threadId: thread.id, receivedAt: census?.receivedAt ?? thread.last_message_at ?? thread.created_at ?? '',
-    title: 'EB pricing estimate', detail, yes: 'Estimate',
-    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: packSummary(pack) } : null,
+    title: 'EB analysis', detail, yes: 'Analyse',
+    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack), draftable: !!scen }
+      : scen ? { quotationId: scen.quotationId, members: q?.member_count ?? 0, summary: packSummary(scen), draftable: true } : null,
   }
 }
 
@@ -162,6 +164,17 @@ export async function recentSuggestions(viewer: string | null, days = 14): Promi
 export async function runSuggestion(threadId: string, key: string, by: string | null = null): Promise<SuggestionOutcome> {
   const [kind] = key.split(':')
   if (kind !== 'eb_scenarios') return { ok: false, error: 'Unknown suggestion.' }
-  const r = await runScenarios(threadId, by)
-  return r.ok ? { ok: true, quotationId: r.pack.quotationId, summary: `${packSummary(r.pack)} · census from ${r.how}` } : { ok: false, error: r.error }
+  // The census: the quotation on this conversation, the company's latest priced one, or the file on
+  // this thread priced first by the intake agent. Then every package at every insurer, one run.
+  const conversation = await benefitsThreads(threadId)
+  const found = await censusFor(threadId, conversation.ids)
+  if ('error' in found) return { ok: false, error: found.error }
+  const q = found.quotation
+  const plans = await plansFromCensusFile(q, conversation.ids).catch(() => null)
+  const req = q.requirement as { current_insurer?: string | null; categories?: { requirement?: Partial<import('@/lib/gb/ladder').Requirement> }[] } | null
+  const pack = await runAnalysis({
+    quotationId: q.id, members: q.census ?? [], effectiveDate: q.effective_date ?? new Date().toISOString().slice(0, 10), basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
+    currentInsurer: req?.current_insurer ?? null, current: plans?.current ?? req?.categories?.[0]?.requirement ?? null, by,
+  })
+  return { ok: true, quotationId: pack.quotationId, summary: `${analysisSummary(pack)} · census from ${found.how}` }
 }

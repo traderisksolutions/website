@@ -1,14 +1,15 @@
 /**
  * GET  /api/group-benefits/quote/[id]/analysis   → the saved analysis pack and the quotation's header
- * POST /api/group-benefits/quote/[id]/analysis   { run?: true; suggested?: PackageKey; current_insurer?; excluded? }
+ * POST /api/group-benefits/quote/[id]/analysis   { run?: true; suggested?: PackageKey; custom?: CustomSpec; current_insurer?; excluded? }
  *   run: prices every package at every insurer again on the quotation's census, in one run.
  *   suggested: moves the suggested rung (the broker's call); the rest of the pack is kept.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sbTry, enc } from '@/lib/crm/db'
-import { loadAnalysis, runAnalysis, saveAnalysis } from '@/lib/gb/analysis'
+import { loadAnalysis, runAnalysis, runCustom, saveAnalysis } from '@/lib/gb/analysis'
 import { packageByKey } from '@/lib/gb/packages'
+import type { CustomSpec } from '@/lib/gb/custom'
 import type { Member } from '@/lib/gb-quote'
 
 export const maxDuration = 300
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   const { id } = await params
-  const body = await req.json().catch(() => ({})) as { run?: boolean; suggested?: string; current_insurer?: string | null; excluded?: string[] }
+  const body = await req.json().catch(() => ({})) as { run?: boolean; suggested?: string; custom?: CustomSpec; current_insurer?: string | null; excluded?: string[] }
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
   if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
   try {
@@ -47,6 +48,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         currentInsurer: body.current_insurer ?? prev?.currentInsurer ?? q.requirement?.current_insurer ?? null,
         excluded: body.excluded ?? prev?.excluded ?? [], suggested: prev?.suggested ?? null, by: user.email ?? null,
       })
+      return NextResponse.json({ pack })
+    }
+    if (body.custom) {
+      if (!q.census?.length) return NextResponse.json({ error: 'This quotation has no member list' }, { status: 422 })
+      const c = body.custom
+      const num = (v: unknown, lo: number, hi: number) => (typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi ? v : null)
+      const spec: CustomSpec = {
+        hospital: c.hospital === 'government' ? 'government' : 'private', beds: c.beds === 1 || c.beds === 2 ? c.beds : 4,
+        limitKind: c.limitKind === 'annual' ? 'annual' : 'per_disability', limit: num(c.limit, 5_000, 1_000_000) ?? 15_000, coins: c.coins === 20 || c.coins === 25 ? c.coins : 0,
+        gmm: num(c.gmm, 10_000, 500_000), gpCopay: num(c.gpCopay, 0, 100), spLimit: num(c.spLimit, 100, 50_000), gdLimit: num(c.gdLimit, 100, 10_000),
+        gtl: num(c.gtl, 10_000, 5_000_000), gci: num(c.gci, 10_000, 2_000_000), pa: num(c.pa, 10_000, 5_000_000), deps: c.deps === 'none' ? 'none' : 'medical',
+      }
+      const pack = await runCustom(id, spec, q.census, user.email ?? null)
       return NextResponse.json({ pack })
     }
     if (body.suggested) {

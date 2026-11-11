@@ -234,7 +234,7 @@ function PlanBuilder() {
 
   return (
     <div className="w-full min-w-0 px-6 md:px-8 py-6 max-w-[1320px] mx-auto">
-      <Breadcrumbs current={{ label: 'Plan builder', href: `/pricing-matrix/quote/${id}/plans${scenarioKey ? `?scenario=${scenarioKey}` : ''}` }} fallback={{ label: 'Quotation', href: `/pricing-matrix/quote/${id}` }} />
+      <Breadcrumbs current={{ label: 'Plan builder', href: `/pricing-matrix/quote/${id}/plans${scenarioKey ? `?scenario=${scenarioKey}` : ''}` }} fallback={{ label: 'Analysis', href: `/pricing-matrix/quote/${id}/analysis` }} />
       <div className="flex items-end justify-between gap-4 flex-wrap mt-3 mb-5">
         <div>
           <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">{q.company_name || 'Untitled quote'}</h1>

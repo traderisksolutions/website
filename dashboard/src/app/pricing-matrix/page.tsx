@@ -6,10 +6,8 @@ import { UploadCloud, Loader2, Clock, Mail, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
 import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQuote'
-import { CoverageTab } from '@/components/group-benefits/CoverageTab'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
-import { EbPoliciesTab } from '@/components/group-benefits/EbPoliciesTab'
 import { EbRegister } from '@/components/group-benefits/EbRegister'
 import { NewEb } from '@/components/group-benefits/NewEb'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
@@ -38,16 +36,15 @@ type RateTable = {
   calculator_filename?: string | null; rules_status?: string | null; rules_updated_at?: string | null
   verification?: { status?: string; basis?: string } | null
 }
-type Activity = { id: string; created_at: string; user_name: string | null; action: string; new_value: Record<string, unknown> | null }
 
 // Every status is the same neutral chip; the label carries the meaning.
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
-type Tab = 'eb' | 'quotes' | 'hrlinks' | 'tables' | 'coverage' | 'activity'
-const TABS: readonly Tab[] = ['eb', 'quotes', 'hrlinks', 'tables', 'coverage', 'activity']
-const TAB_LABEL: Record<Tab, string> = { eb: 'EB', quotes: 'Policies', hrlinks: 'Employee lists', tables: 'Insurers', coverage: 'Coverage', activity: 'Activity' }
+type Tab = 'eb' | 'hrlinks' | 'tables'
+const TABS: readonly Tab[] = ['eb', 'hrlinks', 'tables']
+const TAB_LABEL: Record<Tab, string> = { eb: 'EB', hrlinks: 'Employee lists', tables: 'Insurers' }
 
 
 /**
@@ -154,7 +151,7 @@ function PricingMatrix() {
       </div>
 
       <div className="mt-8 mb-6">
-        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'eb' || t === 'quotes') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
+        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'eb') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
       </div>
 
       {tab === 'tables' && (
@@ -188,10 +185,7 @@ function PricingMatrix() {
         </div>
       )}
       {tab === 'eb' && !newQuote && <EbRegister onNew={() => { setNewQuote(true); setByHand(false); window.scrollTo({ top: 0 }) }} />}
-      {tab === 'quotes' && <EbPoliciesTab onByHand={() => { setTab('eb'); setNewQuote(true); setByHand(false) }} />}
-      {tab === 'coverage' && <CoverageTab />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
-      {tab === 'activity' && <ActivityTab />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan} onClose={() => setEmailInsurer(null)} />
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onDone={() => { setShowUpload(false); load() }} />}
@@ -386,27 +380,6 @@ function QuotesTab({ onNew }: { onNew: () => void }) {
           })}
         </tbody>
       </Register>
-    </div>
-  )
-}
-
-function ActivityTab() {
-  const [rows, setRows] = useState<Activity[]>([])
-  useEffect(() => {
-    fetch('/api/activity?resource_type=gb_rate_table&limit=100', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : []).then(setRows).catch(() => {})
-  }, [])
-  if (rows.length === 0) return <p className="text-sm text-muted-foreground">No activity yet.</p>
-  return (
-    <div className="flex flex-col gap-1.5">
-      {rows.map(r => (
-        <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 text-[13.5px]" style={{ borderBottom: '1px solid #e6e8e4' }}>
-          <Clock size={12} className="text-muted-foreground/40 flex-shrink-0" />
-          <span className="font-medium text-foreground/80">{r.action.replace('gb.', '').replace(/_/g, ' ')}</span>
-          <span className="text-muted-foreground/60 truncate flex-1">{r.new_value ? JSON.stringify(r.new_value) : ''}</span>
-          <span className="text-muted-foreground/50 flex-shrink-0">{r.user_name ?? ''} · {new Date(r.created_at).toLocaleString('en-SG')}</span>
-        </div>
-      ))}
     </div>
   )
 }
