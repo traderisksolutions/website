@@ -8,6 +8,7 @@
  * readable; co-insurance rows show on a toggle; a rung name makes it the suggestion. Back is the
  * EB register, the stage before this one.
  */
+import { anchorRows, LAST_YEAR_COVER_WORD } from '@/lib/gb/last-year'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -405,6 +406,39 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
   return (
     <>
       {customise && <Customise pack={pack} busy={busy === 'custom'} onRun={onCustom} />}
+      {pack.lastYear && (() => {
+        const row = cur?.insurers.find(i => isCurrentInsurer(i.insurer_name) && !i.variant) ?? null
+        const a = anchorRows(pack.lastYear, row?.by_product)
+        const pc = (n: number | null) => n == null ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n * 100).toFixed(1)}%`
+        const tone = (n: number | null) => n == null || Math.abs(n) < 0.0005 ? MUTED : n > 0 ? '#a1242f' : '#1f7a3a'
+        return (
+          <section className="mb-10" aria-labelledby="anchor">
+            <h2 id="anchor" className="m-0 mb-3 text-[16px] font-medium">Anchor</h2>
+            <div className="flex flex-wrap gap-x-10 gap-y-3 mb-4">
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Last year{pack.lastYear.product ? `, ${pack.lastYear.product}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{a.lastYear != null ? money(a.lastYear, { dp: 0 }) : '—'}</p></div>
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Same cover this year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{row ? money(row.net, { dp: 0 }) : '—'}</p></div>
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Change</p><p className="m-0 text-[24px] tabular-nums" style={{ color: tone(row && a.lastYear ? (row.net - a.lastYear) / a.lastYear : null) }}>{row && a.lastYear ? pc((row.net - a.lastYear) / a.lastYear) : '—'}</p></div>
+            </div>
+            {a.rows.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="trs-table text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
+                  <thead><tr><th className="text-left px-3 py-2">Cover</th><th className="text-right px-3 py-2">Last year</th><th className="text-right px-3 py-2">This year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</th><th className="text-right px-3 py-2">Change</th></tr></thead>
+                  <tbody>
+                    {a.rows.map(r => (
+                      <tr key={r.cover} style={{ borderTop: `1px solid ${HAIR}` }}>
+                        <td className="px-3 py-2">{LAST_YEAR_COVER_WORD[r.cover]}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{r.lastYear != null ? money(r.lastYear, { dp: 0 }) : '—'}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{r.thisYear != null ? money(r.thisYear, { dp: 0 }) : '—'}</td>
+                        <td className="px-3 py-2 text-right tabular-nums" style={{ color: tone(r.change) }}>{pc(r.change)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )
+      })()}
       <section>
         <h2 className="m-0 mb-1 text-[16px] font-medium">Current cover</h2>
         <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>As confirmed from the census{pack.currentInsurer ? `; with ${pack.currentInsurer} today` : ''}.</p>

@@ -71,3 +71,18 @@ describe('helpers', () => {
     expect(amount('nil')).toBeNull()
   })
 })
+
+import { anchorRows, coverOfProduct } from '@/lib/gb/last-year'
+describe('anchorRows', () => {
+  it('sets last year beside this year per cover, by product code', () => {
+    expect(coverOfProduct('Group Hospital and Surgical (GHS)')).toBe('GHS')
+    expect(coverOfProduct('Group Outpatient Primary Care (GOPC)')).toBe('GOPC')
+    const ly = normaliseLastYear({ premiumByCover: { GHS: 1000, GOPC: 500 }, total: 1500 })
+    const a = anchorRows(ly, { 'Group Hospital and Surgical (GHS)': 1100, 'Group Outpatient Primary Care (GOPC)': 550, 'Group Dental (GD)': 100 })
+    expect(a.lastYear).toBe(1500)
+    expect(a.thisYear).toBe(1750)
+    expect(a.change).toBeCloseTo(1 / 6)
+    expect(a.rows.find(r => r.cover === 'GHS')).toEqual({ cover: 'GHS', lastYear: 1000, thisYear: 1100, change: 0.1 })
+    expect(a.rows.find(r => r.cover === 'GD')).toMatchObject({ lastYear: null, thisYear: 100, change: null })
+  })
+})

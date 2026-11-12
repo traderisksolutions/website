@@ -207,3 +207,31 @@ export async function readLastYear(files: { name: string; mime: string; bytes: B
   if (!raw) return { error: 'The read did not come back in the expected shape. Try again.' }
   return { read: normaliseLastYear(raw) }
 }
+
+/** The cover a priced product line belongs to: "Group Hospital and Surgical (GHS)" → GHS. */
+export function coverOfProduct(name: string): LastYearCover | null {
+  const code = (name.match(/\(([A-Z+\- ]+)\)\s*$/)?.[1] ?? name).toUpperCase()
+  if (/GHS|HOSPITAL/.test(code)) return 'GHS'
+  if (/GMM|EMM|MAJOR/.test(code)) return 'EMM'
+  if (/GOPC|\bGP\b|PRIMARY/.test(code)) return 'GOPC'
+  if (/GOSC|\bSP\b|SPECIALIST/.test(code)) return 'GOSC'
+  if (/\bGD\b|DENTAL/.test(code)) return 'GD'
+  if (/GTL|TERM LIFE/.test(code)) return 'GTL'
+  if (/GCI|GACI|CRITICAL/.test(code)) return 'GCI'
+  if (/GPA|ACCIDENT/.test(code)) return 'GPA'
+  return null
+}
+
+export type AnchorRow = { cover: LastYearCover; lastYear: number | null; thisYear: number | null; change: number | null }
+
+/** Last year's premium per cover beside the same cover this year at the current insurer. Pure. */
+export function anchorRows(ly: LastYear, byProduct: Record<string, number> | null | undefined): { rows: AnchorRow[]; lastYear: number | null; thisYear: number | null; change: number | null } {
+  const now: Partial<Record<LastYearCover, number>> = {}
+  for (const [name, v] of Object.entries(byProduct ?? {})) { const c = coverOfProduct(name); if (c) now[c] = (now[c] ?? 0) + v }
+  const covers = LAST_YEAR_COVERS.filter(c => ly.premiumByCover[c] != null || now[c] != null)
+  const pct = (a: number | null, b: number | null) => a != null && b != null && a > 0 ? (b - a) / a : null
+  const rows = covers.map(c => ({ cover: c, lastYear: ly.premiumByCover[c] ?? null, thisYear: now[c] != null ? Math.round(now[c]! * 100) / 100 : null, change: pct(ly.premiumByCover[c] ?? null, now[c] ?? null) }))
+  const lastYear = ly.total ?? (Object.keys(ly.premiumByCover).length ? Object.values(ly.premiumByCover).reduce((a, b) => a + (b ?? 0), 0) : null)
+  const thisYear = byProduct ? Object.values(byProduct).reduce((a, b) => a + b, 0) : null
+  return { rows, lastYear, thisYear, change: pct(lastYear, thisYear) }
+}
