@@ -417,11 +417,11 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
           <section className="mb-10" aria-labelledby="anchor">
             <h2 id="anchor" className="m-0 mb-3 text-[16px] font-medium">Anchor</h2>
             <div className="flex flex-wrap gap-x-10 gap-y-3 mb-4">
-              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Last year{pack.lastYear.product ? `, ${pack.lastYear.product}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{a.lastYear != null ? money(a.lastYear, { dp: 0 }) : '—'}</p></div>
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Last year{pack.lastYear.product ? `, ${pack.lastYear.product}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{a.lastYear != null ? money(a.lastYear, { dp: 0 }) : <span className="text-[16px]" style={{ color: MUTED }}>Not stated</span>}</p></div>
               <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Same cover this year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{thisYearFigure != null ? money(thisYearFigure, { dp: 0 }) : '—'}</p></div>
               <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Change{gross ? ', with GST' : ', net of GST'}</p><p className="m-0 text-[24px] tabular-nums" style={{ color: tone(a.change) }}>{pc(a.change)}</p></div>
             </div>
-            {a.rows.length > 0 && (
+            {a.rows.some(r => r.lastYear != null) && (
               <div className="overflow-x-auto">
                 <table className="trs-table text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
                   <thead><tr><th className="text-left px-3 py-2">Cover</th><th className="text-right px-3 py-2">Last year</th><th className="text-right px-3 py-2">This year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</th><th className="text-right px-3 py-2">Change</th></tr></thead>
@@ -551,7 +551,7 @@ function PlansAndPremium({ pack, order, curOf, isCurrentInsurer, lowest }: { pac
               <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Co-insurance</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.ghs ? `${x.plan.ghs.coins}%` : '\u2014'}</td>)}</tr>
               <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">GP co-pay</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.gopcCopay == null ? '\u2014' : x.plan.gopcCopay === 0 ? 'None' : money(x.plan.gopcCopay, { dp: 0 })}</td>)}</tr>
               <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Specialist limit</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.goscLimit != null ? money(x.plan.goscLimit, { dp: 0 }) : '\u2014'}</td>)}</tr>
-              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Dental limit</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.gdLimit != null ? money(x.plan.gdLimit, { dp: 0 }) : '\u2014'}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Dental limit</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.gdLimit == null ? '\u2014' : x.plan.gdLimit < 100 ? 'Schedule of allowances' : money(x.plan.gdLimit, { dp: 0 })}</td>)}</tr>
             </>)}
           </tbody>
         </table>

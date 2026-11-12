@@ -17,7 +17,7 @@ test('+ New quotation opens its own page: company search first, census and last 
   await expect(page.getByRole('heading', { name: 'Census' })).toBeVisible()
   await expect(page.getByRole('heading', { name: "Last year's policy and premium" })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Brochures' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'Steadfast MCare+' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Steadfast MCare+', exact: true })).toBeVisible()
   const company = page.getByRole('combobox', { name: 'Company' })
   await expect(company).toBeVisible()
   await company.fill('Zzq Journey Test Co')
