@@ -4,6 +4,19 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Refactor steps 1 and 2; New quotation from the client's own documents
+
+- **Behaviours register** (`docs/behaviours.md`): 300 behaviours asked for, by place, each with its source. A refactored page keeps every behaviour listed for it; a pull request names the IDs it touches.
+- **Components inventory** (`docs/components-inventory.md`): every UI job built more than once (company picker 7, composer 5, buttons, money formatting) and the one to keep.
+- **Journey tests** (`npm run journeys`, Playwright with local Chrome, `tests/journeys/`): every top-bar place and tab opens without an error; Employment Benefits under Quotes; New quotation's company search, census, last year's policy and brochures; the company tab; the inbox rail; no hand-made back link or button; the census reader counts every tab. Read-only, against a production build on the live database (`API_GATE_MODE=log-only npx next start -p 3118`). Run before every deploy. They found Home's hydration error (today's date formatted during render), fixed with `useToday`.
+- **New quotation has its own page** (`/pricing-matrix/new`), so Back and breadcrumbs return to where it was opened; old `?tab=quote` links land there; + New quotation stays in the same tab. The hand-made "← Quotations" and "← Quick quote" buttons are gone.
+- **Documents:** company first (the shared search: pick or + Add as a new company), then Census and Last year's policy and premium side by side, each listing the files on the company's emails, then the brochure and rate file of the five house products (RCC Enhanced III, Income FlexCare, Steadfast MCare+, Singlife MyBenefits Plus, AIA Flexi Vital Care Plus) opening in Drive (`/api/group-benefits/brochures`).
+- **Last year's policy read from the documents** (`src/lib/gb/last-year.ts`, `/api/group-benefits/last-year/read`): one deep-model call reads the schedule, endorsements and debit note into plans per category, what they mean as numbers, premium per cover, the changes endorsements made and any conflicts; code bounds it, checks premium by cover against the total, records whether it includes GST, refuses to run on no files and empties a read that cites none of the files sent. Checked on Ferrari Logistics (QBE schedule and endorsement: S$25,000 per disability, 4-bed government ward after the endorsement, major medical S$60,000) and Healthway's debit note (S$232,774.95).
+- **Review:** census tabs, last year's policy with every premium editable, details filled from the policy (start the day after it ends, renewal, current insurer), and the current cover filled from last year's plans where the plan numbers match.
+- **The report opens on the anchor:** last year's premium beside the same cover this year at the current insurer, per cover, with the change, like with like on GST.
+
+---
+
 ## 2026-11-12 — EB register: one name, one place, one page
 
 - **Quotes opens on EB.** The Quotes place in the top bar lands on `/pricing-matrix`, its first tab is EB (was "Benefits calculator", third). Breadcrumbs name it EB.

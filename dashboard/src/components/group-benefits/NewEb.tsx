@@ -269,9 +269,9 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
                   {brochures.map(b => (
                     <tr key={b.product} style={{ borderTop: `1px solid ${LINE}` }}>
                       <td className="px-3 py-1.5">{b.product}</td>
-                      <td className="px-3 py-1.5">{b.brochure?.url ? <a href={b.brochure.url} target="_blank" rel="noopener" style={{ color: INK }}>{b.brochure.name}</a> : <span style={{ color: MUTED }}>Not in Drive</span>}</td>
+                      <td className="px-3 py-1.5">{b.brochure?.url ? <a href={b.brochure.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.brochure.name}</a> : <span style={{ color: MUTED }}>Not in Drive</span>}</td>
                       <td className="px-3 py-1.5">{b.brochure?.year ?? '—'}</td>
-                      <td className="px-3 py-1.5">{b.rates?.url ? <a href={b.rates.url} target="_blank" rel="noopener" style={{ color: INK }}>{b.rates.name}</a> : <span style={{ color: MUTED }}>Brochure rate table</span>}</td>
+                      <td className="px-3 py-1.5">{b.rates?.url ? <a href={b.rates.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.rates.name}</a> : <span style={{ color: MUTED }}>Brochure rate table</span>}</td>
                     </tr>
                   ))}
                 </tbody>

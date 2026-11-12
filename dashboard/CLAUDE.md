@@ -17,7 +17,7 @@ The dashboard replaces inbox-and-spreadsheet broking with one system: every emai
 | Live | https://trs-dashboard-pi.vercel.app (Vercel project `trs-dashboard`); `/login` answers 200 when healthy |
 | Stack | Next.js 15.5, React 19, Tailwind, PostgREST over Cloud SQL (`src/lib/crm/db.ts`: `sb`, `sbTry`, `enc`), Gemini for reads |
 | Env | `.env.local`: `SUPABASE_SERVICE_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `AUTH_SECRET`, `GEMINI_API_KEY_*`, `GMAIL_REFRESH_TOKEN` (prod only) |
-| Checks | `npm run check` = `tsc --noEmit` + `next lint --dir src` + `vitest run` (about 1,700 tests). `npm run knip` lists unused files, exports and dependencies. `.github/workflows/dashboard-check.yml` runs the same three on every push that touches `dashboard/`. Lint errors fail `next build`, so a red lint is a failed deploy. |
+| Checks | `npm run check` = `tsc --noEmit` + `next lint --dir src` + `vitest run` (about 1,700 tests). `npm run knip` lists unused files, exports and dependencies. `.github/workflows/dashboard-check.yml` runs the same three on every push that touches `dashboard/`. Lint errors fail `next build`, so a red lint is a failed deploy. `npm run journeys` walks the user journeys in Chrome against a local production build (`tests/journeys/`); run it before every deploy, and add a journey for every behaviour a client asks for (`docs/behaviours.md`). |
 
 ### Modules, in the order staff use them
 
@@ -52,7 +52,7 @@ Every model call goes through `callGemini` (`src/lib/ai-call.ts`) with an `agent
 
 **Integrity sweeps** (run after any data-touching change): live policies past end date (hourly roll exists), duplicate threads (same Gmail id aliased elsewhere, or the same RFC 822 message in two threads), duplicate companies by normalised name, quotations with an employee under 16, `error_logs` grouped by feature for the last 7 days.
 
-**Deploy routine**:
+**Deploy routine** (journeys green first):
 ```
 git worktree add --detach <scratch>/clean <sha>; ln -s <node_modules> …; cp .env.local …; npx next build
 git push origin "<sha>:main" "<sha>:rfq-golive-2026-10-29" "<sha>:build/integrate"
@@ -63,14 +63,15 @@ Quote `"${sha}:branch"`; zsh mangles `$sha:branch`. If `main` moved under you, m
 
 **Reporting**: lead with what is live and what was verified; separate facts from assumptions; if a step was skipped, say so; show the figures in a table, not in prose.
 
-## 5. The EB flow, end to end (the one Jarod tests most)
+## 5. The Employment Benefits flow, end to end (the one Jarod tests most)
 
-1. Client email with a census arrives → classifier marks `group_benefits` → intake agent reads the email (one model call), reads the census by code (`src/lib/chief/census.ts`, including the calculator sheet's plan columns), prices every Tier A insurer, opens a draft quotation.
-2. The insured the request names goes on file as a client and the thread is linked to it when the thread sits under a partner, an insurer or nothing (`ensureClientForRequest`). On every thread of that client's benefits conversation, and on any thread carrying a census, the rail offers one item, **EB pricing estimate**, naming the census file. Yes → the brief reads the company's benefits threads together, builds Like for like / Lower cost / Enhanced by rule, prices each (current insurer as renewal, others as new business), saves the pack. The item stays in Actions with Open, Draft to client, Estimate again.
-3. **Draft to client** writes the email from the pack by code (premium summary, derivation, suggestion), passes the prose through TRS's own past emails for tone, attaches the client report with its pricing-estimate page, and leaves it in the bar. A person edits and sends.
-4. The plan builder (`/pricing-matrix/quote/<id>/plans?scenario=A`) is where a broker changes a single plan; Save prices on the card in force per insurer.
+1. **Routes in:** Quotes › Employment Benefits › + New quotation (`/pricing-matrix/new`); the company page's Employment Benefits tab; a thread's rail item "Employment benefits analysis" › Open census; Today › Coming up › renewals due. Each opens New quotation with what it knows filled.
+2. **Documents** (`NewEb.tsx`): company (shared `CompanyField`), Census box (upload or a file from the company's emails, every tab read, password asked when protected), Last year's policy and premium box (schedule, endorsements, debit note), Brochures (five house products, Drive links).
+3. **Reading:** the census by code (`census-parse.ts`); last year's policy by one deep-model call bounded by `last-year.ts`.
+4. **Review:** tabs to price, last year's policy (editable premiums, sum check, endorsement changes, conflicts), details, current cover as numbers filled from last year's plans. Confirm runs `POST /api/group-benefits/analysis`.
+5. **Report** (`/pricing-matrix/quote/<id>/analysis`): Anchor (last year beside the same cover this year), the current cover at every insurer, one change at a time (`runCurrent`, `current.ts`), client report and Draft to client. No model prices anything.
 
-Known limits: one category per estimate; tiers are entry or top (an insurer's middle plan is a builder override); health screening and wellness are not package-plan covers; the waiting-state heuristic still offers a chaser after TRS delivers something (open).
+Target screens (prototype of 13 Nov, built on Nathan's Gembridge workbook): Compare in Nathan's layout (plan selection per insurer per cover, premium per cover, benefit schedule rows from the brochures), cover steps with cover-per-premium and a running total, tiers one plan down and up per insurer, Options A to D, census workbook export with prices. Not built yet.
 
 ## 6. Where to look
 
