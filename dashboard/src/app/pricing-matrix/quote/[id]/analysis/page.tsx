@@ -8,7 +8,7 @@
  * readable; co-insurance rows show on a toggle; a rung name makes it the suggestion. Back is the
  * EB register, the stage before this one.
  */
-import { anchorRows, LAST_YEAR_COVER_WORD } from '@/lib/gb/last-year'
+import { anchorRows, coverOfProduct, LAST_YEAR_COVERS, LAST_YEAR_COVER_WORD, type LastYearCover } from '@/lib/gb/last-year'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
@@ -17,7 +17,7 @@ import { Btn, Field, inputCls, Segmented } from '@/components/crm/primitives'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { PACKAGES, type PackageKey } from '@/lib/gb/packages'
 import { DEFAULT_CUSTOM, type CustomSpec } from '@/lib/gb/custom'
-import type { AnalysisPack, AnalysisInsurer, AnalysisRung } from '@/lib/gb/analysis'
+import type { AnalysisPack, AnalysisInsurer, AnalysisRung, CurrentPlan } from '@/lib/gb/analysis'
 import { fmtDate, money } from '@/lib/format'
 import { COVER_WORD, SCHEDULE_COVERS, type Schedule } from '@/lib/gb/current'
 
@@ -455,30 +455,7 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
         {pack.unscheduled && pack.unscheduled.length > 0 && <p className="m-0 mt-2 text-[12.5px]" style={{ color: '#a1242f' }}>{pack.unscheduled.length} lives left out: their hospital plan is not stated.</p>}
       </section>
 
-      <section className="mt-8">
-        <h2 className="m-0 mb-1 text-[16px] font-medium">The current cover at every insurer</h2>
-        <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Annual premium net of GST. Bold is the lowest.</p>
-        <div className="overflow-x-auto">
-          <table className="trs-table w-full text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 640 }}>
-            <thead><tr>
-              <th className="text-left px-3 py-2" style={{ color: MUTED }}>Insurer</th>
-              <th className="text-right px-3 py-2">Premium, net</th><th className="text-right px-3 py-2">With GST</th>
-              <th className="text-right px-3 py-2">Per employee a month</th><th className="text-right px-3 py-2">Lines not priced</th>
-            </tr></thead>
-            <tbody>
-              {order.map(ins => { const c = curOf(ins)!; const grey = c.excluded; return (
-                <tr key={ins} style={{ borderTop: `1px solid ${HAIR}`, color: grey ? SUBTLE : INK }}>
-                  <td className="px-3 py-2" style={{ textDecoration: grey ? 'line-through' : 'none' }}>{shortInsurer(ins)}{isCurrentInsurer(ins) ? ' · current, renewal card' : ''}{grey ? ' · ruled out' : ''}</td>
-                  <td className="px-3 py-2 text-right tabular-nums" style={{ fontWeight: ins === lowestCur ? 600 : 400 }}>{money(c.net, { dp: 0 })}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{money(c.total, { dp: 0 })}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{pepm(c.net, pack.employees)}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{c.unpriced || '—'}</td>
-                </tr>
-              ) })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <PlansAndPremium pack={pack} order={order} curOf={curOf} isCurrentInsurer={isCurrentInsurer} lowest={lowestCur} />
 
       <section className="mt-10">
         <h2 className="m-0 mb-1 text-[16px] font-medium">One change at a time</h2>
@@ -525,5 +502,60 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
 
       <ul className="m-0 mt-6 pl-4 text-[12.5px]" style={{ color: MUTED }}>{pack.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
     </>
+  )
+}
+
+
+/**
+ * Nathan's layout (TRS EB Package Calculator): one column per insurer; per cover, the plan that
+ * insurer sells for the current cover and its premium; then totals, the change against last
+ * year, and what the hospital, outpatient and dental plans give, from the brochure facts.
+ */
+function PlansAndPremium({ pack, order, curOf, isCurrentInsurer, lowest }: { pack: AnalysisPack; order: string[]; curOf: (ins: string) => AnalysisInsurer | null; isCurrentInsurer: (ins: string) => boolean; lowest: string | undefined }) {
+  const cols = order.map(ins => { const c = curOf(ins)!; const byCover: Partial<Record<LastYearCover, number>> = {}; for (const [k, v] of Object.entries(c.by_product ?? {})) { const cv = coverOfProduct(k); if (cv) byCover[cv] = (byCover[cv] ?? 0) + v } return { ins, c, plan: pack.currentPlans?.[c.rate_table_id] ?? null, byCover } })
+  const covers = LAST_YEAR_COVERS.filter(cv => cols.some(x => x.byCover[cv] != null))
+  const ly = pack.lastYear ? (pack.lastYear.total ?? null) : null
+  const gross = pack.lastYear?.gst === 'included'
+  const cell = 'px-3 py-2 text-right tabular-nums align-top'
+  const pc = (n: number) => `${n > 0 ? '+' : n < 0 ? '\u2212' : ''}${Math.abs(n * 100).toFixed(1)}%`
+  const ward = (g: CurrentPlan['ghs']) => !g ? '\u2014' : `${g.hospital === 'government' ? 'Government' : g.hospital === 'private' ? 'Private' : ''} ${g.beds ? `${g.beds}-bed` : ''}`.trim() || '\u2014'
+  const limit = (g: CurrentPlan['ghs']) => !g || g.limit == null ? '\u2014' : `${money(g.limit, { dp: 0 })} ${g.kind === 'annual' ? 'a year' : g.kind === 'per_disability' ? 'per disability' : ''}`.trim()
+  const head = (ins: string, c: AnalysisInsurer) => <th key={ins} className="px-3 py-2 text-right" style={{ color: c.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}{isCurrentInsurer(ins) ? <div className="text-[11.5px] font-normal" style={{ color: MUTED }}>current, renewal card</div> : null}{c.excluded ? <div className="text-[11.5px] font-normal">ruled out</div> : null}</th>
+  return (
+    <section className="mt-8" aria-labelledby="plans-premium">
+      <h2 id="plans-premium" className="m-0 mb-3 text-[16px] font-medium">Plans and premium</h2>
+      <div className="overflow-x-auto">
+        <table className="trs-table w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 760 }}>
+          <thead><tr><th className="text-left px-3 py-2">Cover</th>{cols.map(x => head(x.ins, x.c))}</tr></thead>
+          <tbody>
+            {covers.map(cv => (
+              <tr key={cv} style={{ borderTop: `1px solid ${HAIR}` }}>
+                <td className="px-3 py-2 align-top">{LAST_YEAR_COVER_WORD[cv]}</td>
+                {cols.map(x => (
+                  <td key={x.ins} className={cell} style={{ color: x.c.excluded ? SUBTLE : INK }}>
+                    {x.byCover[cv] != null ? money(x.byCover[cv]!, { dp: 0 }) : '\u2014'}
+                    {x.plan?.plans[cv] && <div className="text-[11.5px]" style={{ color: SUBTLE }}>{x.plan.plans[cv]}</div>}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            <tr style={{ borderTop: `1px solid ${HAIR}`, fontWeight: 600 }}><td className="px-3 py-2">Total, net of GST</td>{cols.map(x => <td key={x.ins} className={cell} style={{ color: x.c.excluded ? SUBTLE : INK, fontWeight: x.ins === lowest ? 700 : 600 }}>{money(x.c.net, { dp: 0 })}</td>)}</tr>
+            <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">With GST</td>{cols.map(x => <td key={x.ins} className={cell}>{money(x.c.total, { dp: 0 })}</td>)}</tr>
+            {ly != null && ly > 0 && <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Against last year</td>{cols.map(x => { const d = ((gross ? x.c.total : x.c.net) - ly) / ly; return <td key={x.ins} className={cell} style={{ color: Math.abs(d) < 0.0005 ? MUTED : d > 0 ? '#a1242f' : '#1f7a3a' }}>{pc(d)}</td> })}</tr>}
+            <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Per employee a month</td>{cols.map(x => <td key={x.ins} className={cell}>{pepm(x.c.net, pack.employees)}</td>)}</tr>
+            {cols.some(x => x.c.unpriced) && <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Lines not priced</td>{cols.map(x => <td key={x.ins} className={cell}>{x.c.unpriced || '\u2014'}</td>)}</tr>}
+            {pack.currentPlans && (<>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 pt-4 pb-1 text-[12px] font-semibold" style={{ color: MUTED }} colSpan={cols.length + 1}>What the plans give</td></tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Hospital limit</td>{cols.map(x => <td key={x.ins} className={cell}>{limit(x.plan?.ghs ?? null)}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Ward</td>{cols.map(x => <td key={x.ins} className={cell}>{ward(x.plan?.ghs ?? null)}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Co-insurance</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.ghs ? `${x.plan.ghs.coins}%` : '\u2014'}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">GP co-pay</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.gopcCopay == null ? '\u2014' : x.plan.gopcCopay === 0 ? 'None' : money(x.plan.gopcCopay, { dp: 0 })}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Specialist limit</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.goscLimit != null ? money(x.plan.goscLimit, { dp: 0 }) : '\u2014'}</td>)}</tr>
+              <tr style={{ borderTop: `1px solid ${HAIR}` }}><td className="px-3 py-2">Dental limit</td>{cols.map(x => <td key={x.ins} className={cell}>{x.plan?.gdLimit != null ? money(x.plan.gdLimit, { dp: 0 }) : '\u2014'}</td>)}</tr>
+            </>)}
+          </tbody>
+        </table>
+      </div>
+    </section>
   )
 }

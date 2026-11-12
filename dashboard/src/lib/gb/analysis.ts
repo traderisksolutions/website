@@ -37,6 +37,13 @@ export type AnalysisRung = { key: string; name: string; facts: string[]; insurer
 export type CustomResult = { at: string; spec: CustomSpec; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best']; notes: Record<string, string[]> }
 /** Management on one rung, staff on another: each census category assigned a package, priced as one programme. */
 export type SplitResult = { at: string; assignments: Record<string, PackageKey>; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best'] }
+/** One insurer's plan per cover for the current cover, with the plan's own numbers from its brochure. */
+export type CurrentPlan = {
+  plans: Partial<Record<string, string>>
+  ghs: { plan: string; hospital: string | null; beds: number | null; coins: number; kind: 'annual' | 'per_disability' | null; limit: number | null } | null
+  gopcCopay: number | null; goscLimit: number | null; gdLimit: number | null
+  notes: string[]
+}
 export type AnalysisPack = {
   at: string; by: string | null; quotationId: string
   effectiveDate: string; basis: 'new_business' | 'renewal'; currentInsurer: string | null
@@ -53,6 +60,8 @@ export type AnalysisPack = {
   /** Where the run was started from: the thread, the register, an HR link, the company page. Back returns there. */
   source?: { label: string; href: string } | null
   rungs: AnalysisRung[]
+  /** Per rate table, the plan each insurer sells for the largest group's current cover, and what it gives (13 Nov 2026). */
+  currentPlans?: Record<string, CurrentPlan>
   /** Last year's policy as the broker confirmed it: the anchor every price is measured against (13 Nov 2026). */
   lastYear?: LastYear | null
   custom?: CustomResult | null
@@ -291,6 +300,25 @@ export async function runCurrent(input: {
   const facts = await loadLimitFacts(tables)
   const rungs: AnalysisRung[] = []
   let employees = 0, dependants = 0
+  // The plan each insurer sells for the largest group's current cover, shown in the report's plan table.
+  const currentPlans: Record<string, CurrentPlan> = {}
+  {
+    const base = (groupsFor(input.members, input.schedule, CHANGES[0]) ?? []).filter(g => !g.foreignWorker).sort((a, b) => b.members.length - a.members.length)[0]
+    if (base) for (const t of tables) {
+      const f = facts.get(t); if (!f) continue
+      const r = resolveCustom(base.spec, f)
+      const pick = <T extends { plan: string }>(list: T[], plan: string | undefined) => plan ? list.find(x => x.plan === plan) ?? null : null
+      const g = pick(f.ghs, r.overrides.GHS)
+      currentPlans[t] = {
+        plans: r.overrides as Partial<Record<string, string>>,
+        ghs: g ? { plan: g.plan, hospital: g.hospital, beds: g.beds, coins: g.coins, kind: g.kind, limit: g.limit } : null,
+        gopcCopay: pick(f.gopc, r.overrides.GOPC)?.copay ?? null,
+        goscLimit: pick(f.gosc, r.overrides.GOSC)?.limit ?? null,
+        gdLimit: pick(f.gd, r.overrides.GD)?.limit ?? null,
+        notes: r.notes,
+      }
+    }
+  }
   for (const change of CHANGES) {
     const groups = groupsFor(input.members, input.schedule, change)
     if (!groups) continue
@@ -322,7 +350,7 @@ export async function runCurrent(input: {
     unscheduled: left.map(m => m.name), planCounts: planValues(input.members), effectiveDate: input.effectiveDate, basis: input.basis, currentInsurer: input.currentInsurer ?? null,
     employees, dependants, suggested: 'current', because: 'the cover the client holds today', excluded: input.excluded ?? [],
     source: input.source ?? prev?.source ?? null, rungs, custom: null, split: null, notes,
-    lastYear: input.lastYear !== undefined ? input.lastYear : prev?.lastYear ?? null,
+    lastYear: input.lastYear !== undefined ? input.lastYear : prev?.lastYear ?? null, currentPlans,
   }
   await saveAnalysis(pack)
   const c = rungs[0]

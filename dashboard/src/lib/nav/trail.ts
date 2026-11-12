@@ -37,6 +37,16 @@ export function pushCrumb(c: Crumb): Crumb[] {
   return next
 }
 
+/**
+ * Takes a finished form off the trail: once New quotation has run, Back from the report goes to
+ * where the form was opened (the company, the register), never to an emptied form.
+ */
+export function dropCrumb(path: string): Crumb[] {
+  const next = readTrail().filter(c => c.href.split(/[?#]/)[0] !== path)
+  writeTrail(next)
+  return next
+}
+
 /** The trail as a hash fragment for a link that opens elsewhere. Pure. */
 export function encodeTrail(trail: Crumb[]): string {
   try { return `${HASH_KEY}=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(trail.slice(-8))))))}` } catch { return '' }

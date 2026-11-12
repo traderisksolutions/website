@@ -126,7 +126,8 @@ export function normaliseLastYear(raw: unknown, files?: string[]): LastYear {
 /** The plan number in a label: "Plan 3 · Private 1-bed · 0%" → "3", "GHS 2A" → "2a", "3" → "3". */
 export const planKey = (s: string | null | undefined): string | null => {
   const m = String(s ?? '').match(/(?:plan|ghs|gtl|gmm|emm|gp|sp|gd|dental)?\s*([0-9]+[a-z]?)\b/i)
-  return m ? m[1].toLowerCase() : null
+  // "Plan 002" on a QBE schedule is Plan 2 on the census.
+  return m ? m[1].toLowerCase().replace(/^0+(?=\d)/, '') : null
 }
 
 const COVER_OF: Record<ScheduleCover, LastYearCover> = { GHS: 'GHS', EMM: 'EMM', GOPC: 'GOPC', GOSC: 'GOSC', GD: 'GD', GTL: 'GTL' }

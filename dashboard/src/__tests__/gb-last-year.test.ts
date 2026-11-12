@@ -67,6 +67,7 @@ describe('helpers', () => {
     expect(planKey('Plan 3 · Private 1-bed · 0%')).toBe('3')
     expect(planKey('Plan 2A (PTE 1-bed)')).toBe('2a')
     expect(planKey('GHS 4')).toBe('4')
+    expect(planKey('Plan 002')).toBe('2')
     expect(amount('S$1,234.50')).toBe(1234.5)
     expect(amount('nil')).toBeNull()
   })

@@ -26,6 +26,7 @@ import type { Member } from '@/lib/gb-quote'
 import type { SheetRead } from '@/lib/gb/census-parse'
 import type { CensusSource } from '@/app/api/group-benefits/census/sources/route'
 import type { BrochureRow } from '@/lib/gb/brochures'
+import { dropCrumb } from '@/lib/nav/trail'
 
 const INSURERS = ['AIA', 'Income', 'QBE', 'Raffles Health', 'Singlife']
 const MUTED = '#4a5550', INK = '#0f1412', FIELD = '#f1f2ee', LINE = '#e6e8e4', GREEN = '#132c1c', PILL = '#e3efe6', PILL_FG = '#1d4a2c'
@@ -203,7 +204,9 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
       })
       const d = await res.json().catch(() => ({})) as { quotation_id?: string; error?: string }
       if (!res.ok || !d.quotation_id) { setError(d.error ?? `The analysis did not run (${res.status}).`); setBusy(false); return }
-      router.push(`/pricing-matrix/quote/${d.quotation_id}/analysis`)
+      // The form is done: off the trail and out of history, so Back from the report skips it.
+      dropCrumb('/pricing-matrix/new')
+      router.replace(`/pricing-matrix/quote/${d.quotation_id}/analysis`)
     } catch (e) { setError(e instanceof Error ? e.message : 'The analysis did not run.'); setBusy(false) }
   }
 
@@ -387,7 +390,7 @@ function LastYearPanel({ ly, onChange }: { ly: LastYear; onChange: (ly: LastYear
             ))}
             <tr style={{ borderTop: `1px solid ${LINE}`, fontWeight: 600 }}>
               <td className="px-3 py-1.5">Total</td>{ly.categories.map(k => <td key={k.name} />)}
-              <td className="px-3 py-1.5 text-right tabular-nums">{money(ly.total ?? sum)}{' '}
+              <td className="px-3 py-1.5 text-right tabular-nums">{ly.total != null || sum > 0 ? money(ly.total ?? sum) : <span className="font-normal" style={{ color: MUTED }}>Not stated</span>}{' '}
                 {ly.sumMatches === true && <span className="text-[11.5px] px-2 py-0.5 rounded-full font-normal" style={{ background: PILL, color: PILL_FG }}>= debit note</span>}
                 {ly.sumMatches === false && <span className="text-[11.5px] px-2 py-0.5 rounded-full font-normal" style={{ background: '#fbf1dc', color: '#8a5a00' }}>covers add to {money(sum)}</span>}
               </td>
