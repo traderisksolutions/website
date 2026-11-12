@@ -48,6 +48,8 @@ export type LastYear = {
   categories: LastYearCategory[]
   premiumByCover: Partial<Record<LastYearCover, number>>
   total: number | null
+  /** Whether the premiums include GST: a debit note's gross figure does, an insurer's net quote does not. */
+  gst: 'included' | 'excluded' | null
   /** True when premium by cover adds up to the total (within S$1 a cover); null when either is missing. */
   sumMatches: boolean | null
   documents: LastYearDoc[]
@@ -84,8 +86,12 @@ function facts(raw: Record<string, unknown> | null | undefined): CategoryFacts {
   }
 }
 
-/** Bounds and parses the model's read. Pure. */
-export function normaliseLastYear(raw: unknown): LastYear {
+/**
+ * Bounds and parses the model's read. Pure. With `files`, the names of the documents actually sent,
+ * a read that cites none of them is treated as invented and emptied: a model given no usable page
+ * has returned a complete, fictional policy (13 Nov 2026).
+ */
+export function normaliseLastYear(raw: unknown, files?: string[]): LastYear {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   const premiumByCover: Partial<Record<LastYearCover, number>> = {}
   const pbc = (r.premiumByCover ?? {}) as Record<string, unknown>
@@ -100,10 +106,17 @@ export function normaliseLastYear(raw: unknown): LastYear {
     return { name: str(c?.name, 80) ?? 'All employees', lives: amount(c?.lives, 100_000), plans, facts: facts(c?.facts as Record<string, unknown>) }
   })
   const kinds = ['schedule', 'endorsement', 'debit_note', 'invoice', 'other'] as const
+  if (files) {
+    const sent = new Set(files.map(f => f.trim().toLowerCase()))
+    const cited = (Array.isArray(r.documents) ? r.documents : []).map((d: Record<string, unknown>) => String(d?.file ?? '').trim().toLowerCase())
+    if (!cited.some(c => sent.has(c))) return normaliseLastYear({})
+    r.documents = (r.documents as Record<string, unknown>[]).filter(d => sent.has(String(d?.file ?? '').trim().toLowerCase()))
+    if (Array.isArray(r.changes)) r.changes = (r.changes as Record<string, unknown>[]).filter(d => sent.has(String(d?.file ?? '').trim().toLowerCase()))
+  }
   return {
     insurer: str(r.insurer, 80), product: str(r.product, 80), policyNumber: str(r.policyNumber, 60),
     periodFrom: iso(r.periodFrom), periodTo: iso(r.periodTo), lives: amount(r.lives, 100_000),
-    categories, premiumByCover, total, sumMatches,
+    categories, premiumByCover, total, sumMatches, gst: oneOf(r.gst, ['included', 'excluded'] as const),
     documents: (Array.isArray(r.documents) ? r.documents : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Document', kind: oneOf(d?.kind, kinds) ?? 'other', date: iso(d?.date) })),
     changes: (Array.isArray(r.changes) ? r.changes : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Endorsement', date: iso(d?.date), what: str(d?.what, 240) ?? '' })).filter(c => c.what),
     conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map(x => str(x, 240)).filter((x): x is string => !!x).slice(0, 20),
@@ -177,35 +190,43 @@ Return ONLY a JSON object, no prose:
   } ],
   "premiumByCover": { "GHS": number, "EMM": number, "GOPC": number, "GOSC": number, "GD": number, "GTL": number, "GCI": number, "GPA": number },
   "total": number | null,
-  "documents": [ { "file": "file name", "kind": "schedule" | "endorsement" | "debit_note" | "invoice" | "other", "date": "YYYY-MM-DD" | null } ],
+  "gst": "included" | "excluded" | null,
+  "documents": [ { "file": "the file name exactly as given", "kind": "schedule" | "endorsement" | "debit_note" | "invoice" | "other", "date": "YYYY-MM-DD" | null } ],
   "changes": [ { "file": "Endorsement 2.pdf", "date": "YYYY-MM-DD", "what": "Staff dental Plan 3 to Plan 2" } ],
   "conflicts": [ "Specialist limit: schedule S$1,500, Endorsement 2 S$2,000; newest used" ]
 }
 
 Rules:
 - Covers: GHS hospital and surgical, EMM major medical, GOPC outpatient GP, GOSC outpatient specialist, GD dental, GTL term life, GCI critical illness, GPA personal accident. Leave a cover out when the policy does not have it.
-- Plan names exactly as the insurer writes them.
-- "limit" is the hospital and surgical overall limit: per disability or an annual policy limit, as the schedule states. "beds" is the ward entitlement. "coins" is the co-insurance percent on hospital bills.
+- Insurer, product and plan names exactly as the documents write them ("Comprehensive Group Plan", "Plan 002"); never a product name the documents do not state.
+- The limit basis follows the row label: "Overall Max Limit / Disability" is per_disability even when the amount says "per year"; "Annual Policy Limit" or "per policy year" with no disability in the label is annual.
+- Read the main benefit schedule. Ignore tables for temporary cover (new members on quarantine or stay-home notice, In-Principle Approval holders, COVID clauses): they are not the plan.
+- "limit" is the hospital and surgical overall maximum limit of the main schedule: per disability or an annual policy limit, as the schedule states. "beds" is the ward entitlement. "coins" is the co-insurance percent on hospital bills.
 - "gpCopay" in S$ per visit (0 for none). "spLimit" and "dentalLimit" are annual limits in S$.
 - Life cover: a multiple of monthly salary as {"kind":"multiple","n":24}; a fixed sum as {"kind":"sum","n":100000}.
-- Premiums: the annual premium for the policy period, in S$, net of GST when the document shows both. Copy figures exactly; never compute or estimate one. null when not stated.
+- Premiums: the annual premium for the policy period, in S$, net of GST when the document shows both. "gst" says whether the figures you copied include GST ("Gross Premium" on a broker's debit note usually does; say "included" only when the document shows GST or calls it gross or inclusive). Copy figures exactly; never compute or estimate one. null when not stated.
 - Endorsements: apply them in date order; the newest wins for each value it changes. List each change in "changes"; list any disagreement between documents in "conflicts".
 - If a value is not on the documents, use null. Do not guess.`
 
 /** Reads the documents with one model call. Server only. Null text from the model is an error, never an empty read. */
 export async function readLastYear(files: { name: string; mime: string; bytes: Buffer }[]): Promise<{ read: LastYear } | { error: string }> {
+  if (!files.length || files.some(f => !f.bytes.length)) return { error: 'No document to read.' }
   const { callGemini } = await import('@/lib/ai-call')
   const { GEMINI_DEEP } = await import('@/lib/gemini-models')
   const { parseJsonLoose } = await import('@/lib/crm/ai')
   const parts = files.flatMap(f => [{ text: `File: ${f.name}` }, { inline_data: { mime_type: f.mime, data: f.bytes.toString('base64') } }])
   const { text, error } = await callGemini({
     agent: 'group_benefit', feature: 'gb_last_year_read', model: GEMINI_DEEP, system: LAST_YEAR_PROMPT,
-    parts: [...parts, { text: 'Read these documents and return the JSON.' }], maxOutputTokens: 16_000, thinkingShare: 0.3, temperature: 0,
+    // The deep model: the fast one read a quarantine-cover table as the plan's limit (Ferrari, 13 Nov 2026).
+    // A small thinking share keeps it near a minute; the default spent two.
+    parts: [...parts, { text: 'Read these documents and return the JSON.' }], maxOutputTokens: 8_000, thinkingShare: 0.12, temperature: 0,
   })
   if (!text) return { error: error ?? 'The documents could not be read.' }
   const raw = parseJsonLoose<unknown>(text)
   if (!raw) return { error: 'The read did not come back in the expected shape. Try again.' }
-  return { read: normaliseLastYear(raw) }
+  const read = normaliseLastYear(raw, files.map(f => f.name))
+  if (!read.documents.length) return { error: 'The read did not cite the documents sent. Try again, or type last year\u2019s figures on Review.' }
+  return { read }
 }
 
 /** The cover a priced product line belongs to: "Group Hospital and Surgical (GHS)" → GHS. */
@@ -225,13 +246,15 @@ export function coverOfProduct(name: string): LastYearCover | null {
 export type AnchorRow = { cover: LastYearCover; lastYear: number | null; thisYear: number | null; change: number | null }
 
 /** Last year's premium per cover beside the same cover this year at the current insurer. Pure. */
-export function anchorRows(ly: LastYear, byProduct: Record<string, number> | null | undefined): { rows: AnchorRow[]; lastYear: number | null; thisYear: number | null; change: number | null } {
+export function anchorRows(ly: LastYear, byProduct: Record<string, number> | null | undefined, gstRate = 0): { rows: AnchorRow[]; lastYear: number | null; thisYear: number | null; change: number | null } {
+  // This year's figures are net; when last year's include GST, this year's are grossed up to match.
+  const k = ly.gst === 'included' ? 1 + gstRate : 1
   const now: Partial<Record<LastYearCover, number>> = {}
-  for (const [name, v] of Object.entries(byProduct ?? {})) { const c = coverOfProduct(name); if (c) now[c] = (now[c] ?? 0) + v }
+  for (const [name, v] of Object.entries(byProduct ?? {})) { const c = coverOfProduct(name); if (c) now[c] = (now[c] ?? 0) + v * k }
   const covers = LAST_YEAR_COVERS.filter(c => ly.premiumByCover[c] != null || now[c] != null)
   const pct = (a: number | null, b: number | null) => a != null && b != null && a > 0 ? (b - a) / a : null
   const rows = covers.map(c => ({ cover: c, lastYear: ly.premiumByCover[c] ?? null, thisYear: now[c] != null ? Math.round(now[c]! * 100) / 100 : null, change: pct(ly.premiumByCover[c] ?? null, now[c] ?? null) }))
   const lastYear = ly.total ?? (Object.keys(ly.premiumByCover).length ? Object.values(ly.premiumByCover).reduce((a, b) => a + (b ?? 0), 0) : null)
-  const thisYear = byProduct ? Object.values(byProduct).reduce((a, b) => a + b, 0) : null
+  const thisYear = byProduct ? Math.round(Object.values(byProduct).reduce((a, b) => a + b, 0) * k * 100) / 100 : null
   return { rows, lastYear, thisYear, change: pct(lastYear, thisYear) }
 }

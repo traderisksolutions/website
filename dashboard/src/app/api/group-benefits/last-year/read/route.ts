@@ -14,7 +14,7 @@ import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import { readLastYear } from '@/lib/gb/last-year'
 import { workbookSheets } from '@/lib/xlsx-text'
 
-export const maxDuration = 120
+export const maxDuration = 300
 const MAX_BYTES = 20 * 1024 * 1024
 const MIME: Record<string, string> = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', heic: 'image/heic' }
 

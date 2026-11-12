@@ -86,3 +86,22 @@ describe('anchorRows', () => {
     expect(a.rows.find(r => r.cover === 'GD')).toMatchObject({ lastYear: null, thisYear: 100, change: null })
   })
 })
+
+describe('invented reads', () => {
+  it('empties a read that cites none of the files sent, and keeps only sent files', () => {
+    expect(normaliseLastYear({ ...read, documents: [{ file: 'QBE GHS schedule.pdf', kind: 'schedule' }] }, ['Policy Schedule.pdf']).categories).toEqual([])
+    const ok = normaliseLastYear({ ...read, documents: [{ file: 'Policy Schedule.pdf', kind: 'schedule' }, { file: 'Other.pdf', kind: 'other' }] }, ['Policy Schedule.pdf'])
+    expect(ok.categories).toHaveLength(2)
+    expect(ok.documents.map(d => d.file)).toEqual(['Policy Schedule.pdf'])
+  })
+})
+
+describe('anchor and GST', () => {
+  it('grosses this year up when last year includes GST', () => {
+    const ly = normaliseLastYear({ total: 1090, gst: 'included' })
+    expect(ly.gst).toBe('included')
+    const a = anchorRows(ly, { 'Group Hospital and Surgical (GHS)': 1100 }, 0.09)
+    expect(a.thisYear).toBe(1199)
+    expect(a.change).toBeCloseTo(0.1)
+  })
+})

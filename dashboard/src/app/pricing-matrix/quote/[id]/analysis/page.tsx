@@ -408,7 +408,9 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
       {customise && <Customise pack={pack} busy={busy === 'custom'} onRun={onCustom} />}
       {pack.lastYear && (() => {
         const row = cur?.insurers.find(i => isCurrentInsurer(i.insurer_name) && !i.variant) ?? null
-        const a = anchorRows(pack.lastYear, row?.by_product)
+        const gross = pack.lastYear.gst === 'included'
+        const a = anchorRows(pack.lastYear, row?.by_product, row && row.net > 0 ? row.total / row.net - 1 : 0)
+        const thisYearFigure = row ? (gross ? row.total : row.net) : null
         const pc = (n: number | null) => n == null ? '—' : `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n * 100).toFixed(1)}%`
         const tone = (n: number | null) => n == null || Math.abs(n) < 0.0005 ? MUTED : n > 0 ? '#a1242f' : '#1f7a3a'
         return (
@@ -416,8 +418,8 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
             <h2 id="anchor" className="m-0 mb-3 text-[16px] font-medium">Anchor</h2>
             <div className="flex flex-wrap gap-x-10 gap-y-3 mb-4">
               <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Last year{pack.lastYear.product ? `, ${pack.lastYear.product}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{a.lastYear != null ? money(a.lastYear, { dp: 0 }) : '—'}</p></div>
-              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Same cover this year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{row ? money(row.net, { dp: 0 }) : '—'}</p></div>
-              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Change</p><p className="m-0 text-[24px] tabular-nums" style={{ color: tone(row && a.lastYear ? (row.net - a.lastYear) / a.lastYear : null) }}>{row && a.lastYear ? pc((row.net - a.lastYear) / a.lastYear) : '—'}</p></div>
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Same cover this year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</p><p className="m-0 text-[24px] tabular-nums">{thisYearFigure != null ? money(thisYearFigure, { dp: 0 }) : '—'}</p></div>
+              <div><p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Change{gross ? ', with GST' : ', net of GST'}</p><p className="m-0 text-[24px] tabular-nums" style={{ color: tone(a.change) }}>{pc(a.change)}</p></div>
             </div>
             {a.rows.length > 0 && (
               <div className="overflow-x-auto">
