@@ -209,7 +209,10 @@ function Shell({ company, id, children }: { company: string | null; id: string; 
         <Breadcrumbs className="mb-4" current={{ label: `${company ?? 'Quotation'} · compare`, href: `/pricing-matrix/quote/${id}/compare` }} fallback={{ label: 'Employment Benefits', href: '/pricing-matrix' }} />
         <div className="flex items-end justify-between gap-4 flex-wrap mb-2">
           <h1 className="m-0 text-[32px] font-medium tracking-[-0.02em]">{company ?? 'Compare cover'}</h1>
-          <Link href={`/pricing-matrix/quote/${id}/analysis`} data-same-tab className="text-[13px] underline" style={{ color: MUTED }}>One change at a time</Link>
+          <div className="flex items-center gap-4">
+            <Link href={`/pricing-matrix/quote/${id}/analysis`} data-same-tab className="text-[13px] underline" style={{ color: MUTED }}>One change at a time</Link>
+            <Link href={`/pricing-matrix/quote/${id}/plans`} data-same-tab className="inline-flex items-center h-9 px-4 rounded-[7px] text-[14px] font-medium no-underline" style={{ background: '#132c1c', color: 'white' }}>Ask insurers</Link>
+          </div>
         </div>
         {children}
       </div>

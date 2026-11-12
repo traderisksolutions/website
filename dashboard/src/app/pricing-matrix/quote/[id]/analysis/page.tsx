@@ -76,6 +76,7 @@ export default function AnalysisPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <Btn level="secondary" onClick={() => setCustomise(v => !v)} disabled={!pack}>{customise ? 'Close customise' : 'Customise'}</Btn>
             {pack?.mode !== 'current' && <Btn level="secondary" onClick={() => setSplitting(v => !v)} disabled={!pack}>{splitting ? 'Close split' : 'Split by category'}</Btn>}
+            <Link href={`/pricing-matrix/quote/${id}/compare`} data-same-tab className={BTN2}>Compare cover</Link>
             <Link href={`/pricing-matrix/quote/${id}`} className={BTN2}>Quotation</Link>
             <Btn level="secondary" onClick={() => post({ run: true }, 'run')} loading={busy === 'run'}>{pack ? 'Price again' : 'Run analysis'}</Btn>
           </div>

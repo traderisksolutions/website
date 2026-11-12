@@ -144,7 +144,7 @@ export default function ReviewPage() {
     return `Sent ${sent.length} email${sent.length === 1 ? '' : 's'}.`
   })
 
-  if (error && !item) return <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto"><p className="m-0 text-[14px] text-trs-neg">{error}</p><Link href="/today" className="text-[13.5px]">Back to Today</Link></div>
+  if (error && !item) return <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto"><p className="m-0 text-[14px] text-trs-neg">{error}</p><Link href="/today" className="text-[13.5px]">Today</Link></div>
   if (!item) return <div className="px-4 md:px-8 py-6"><Spinner label="Loading the case…" /></div>
 
   const st = STATUS[item.status] ?? STATUS.trs_to_act

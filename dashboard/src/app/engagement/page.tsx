@@ -69,7 +69,8 @@ async function fetchThread(
 
 function EngagementPageInner() {
   const searchParams = useSearchParams()
-  const initLeadId   = searchParams.get('lead')
+  // ?thread= is what claims, the policy ledger and the queue link with; it means the same as ?lead=.
+  const initLeadId   = searchParams.get('lead') ?? searchParams.get('thread')
 
   // Tab/search/group-by-company filter state AND the list feed itself live in
   // EngagementNavProvider now — EngagementRail.tsx renders the actual conversation list (see

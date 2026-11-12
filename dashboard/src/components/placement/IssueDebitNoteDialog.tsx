@@ -19,7 +19,7 @@ export function boundQuote(pos: LinePosition, policy: PolicyView | null): Placem
   return all.find(q => q.id === policy?.chosen_quote_id) ?? all.find(q => q.id === pos.line.picked_quote_id) ?? all.find(q => q.status === 'selected') ?? null
 }
 
-type Issued = { debitNoteNo: string; downloadUrl: string | null; driveFolderUrl: string | null }
+type Issued = { debitNoteNo: string; debitNoteId?: string | null; downloadUrl: string | null; driveFolderUrl: string | null }
 
 /**
  * The debit note for a bound line, prefilled from the chosen quote and the policy: insurer,
@@ -107,6 +107,7 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           <div className="flex flex-col gap-3 text-[14px]" style={{ color: INK }}>
             <p className="m-0">{issued.debitNoteNo} issued{issued.driveFolderUrl ? ' and filed in Drive. The line is done.' : '. It is not in Drive yet, so the line stays open until it is filed.'}</p>
             <div className="flex gap-3">
+              {issued.debitNoteId && <a href={`/debit-notes?open=${issued.debitNoteId}`} data-same-tab style={{ color: INK }}>Open debit note</a>}
               {issued.downloadUrl && <a href={issued.downloadUrl} target="_blank" rel="noreferrer" style={{ color: INK }}>Open PDF ↗</a>}
               {issued.driveFolderUrl && <a href={issued.driveFolderUrl} target="_blank" rel="noreferrer" style={{ color: INK }}>Drive folder ↗</a>}
             </div>

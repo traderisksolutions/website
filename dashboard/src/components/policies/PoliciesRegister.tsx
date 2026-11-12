@@ -126,7 +126,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                   { key: 'dns', label: `Debit notes & payments · ${dns.length}` },
                 ]
                 return (
-                  <PolicyRows key={p.id} expanded={expanded} onToggle={() => setOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
+                  <PolicyRows key={p.id} href={`/policies/${p.id}`} expanded={expanded} onToggle={() => setOpen(o => ({ ...o, [p.id]: !o[p.id] }))}
                     row={
                       <>
                         <RegisterCell first primary={line} title={under} />
@@ -270,13 +270,13 @@ function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
 }
 
 /** A policy row and, when opened, one full-width detail row beneath it. */
-function PolicyRows({ row, detail, expanded, onToggle }: { row: React.ReactNode; detail: React.ReactNode; expanded: boolean; onToggle: () => void }) {
+function PolicyRows({ row, detail, expanded, onToggle, href }: { row: React.ReactNode; detail: React.ReactNode; expanded: boolean; onToggle: () => void; href: string }) {
   return (
     <>
       <RegisterRow onClick={onToggle} selected={expanded}>{row}</RegisterRow>
       {expanded && (
         <tr style={{ borderBottom: '1px solid #e6e8e4', background: '#fafafa' }}>
-          <td colSpan={COLS} className="px-[10px] py-2">{detail}</td>
+          <td colSpan={COLS} className="px-[10px] py-2">{detail}<a href={href} className="mt-2 inline-block text-[13px] underline underline-offset-[3px]" style={{ color: '#0f1412' }}>Open policy</a></td>
         </tr>
       )}
     </>

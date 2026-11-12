@@ -175,7 +175,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : positions.map(pos => (
                 <div key={pos.line.id} className="mt-2.5">
                   <LineHeader pos={pos} label={lineLabel(pos.line)} onNewRound={() => openNewRound(p, pos)} onOpenPending={() => openPendingRound(p, pos)}
-                    onIssueDn={() => setDnFor({ pos, placement: p, policy: policyForLine(pos.line) })} />
+                    onIssueDn={() => setDnFor({ pos, placement: p, policy: policyForLine(pos.line) })} policyId={policyForLine(pos.line)?.id ?? null} />
                   <ComparisonGrid pos={pos} policy={policyForLine(pos.line)} shared={shared} leftOut={leftOut} onToggleEmail={toggleEmail} onChanged={onChanged} onOpenDrafts={onOpenDrafts} />
                 </div>
               ))}
@@ -208,8 +208,10 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
  * The line's heading, one line tall: label · round · limit · quoted of asked, the agent's next
  * step in muted text, and on the right New round plus Open round when a client change is waiting.
  */
-function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn }: {
+function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId }: {
   pos: LinePosition; label: string; onNewRound: () => void; onOpenPending: () => void; onIssueDn: () => void
+  /** The policy this line became, once bound: the next step of the journey. */
+  policyId: string | null
 }) {
   const l = pos.line
   const finished = l.status === 'done' || !!l.done_at
@@ -236,6 +238,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn }: {
             title={l.insurer_confirmed_at ? undefined : 'The insurer has not confirmed cover yet'}>Issue debit note</Btn>
         )}
         {!finished && l.status !== 'bound' && <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>}
+        {policyId && <Link href={`/policies/${policyId}`} className="text-[12.5px] underline underline-offset-[3px]" style={{ color: INK }}>Policy</Link>}
       </span>
     </div>
   )

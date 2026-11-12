@@ -100,7 +100,7 @@ export function QuickQuote({ initialCompany, initialRead, onUseWizard }: { initi
       })
       const d = await res.json().catch(() => ({}))
       if (!res.ok || !d.quotation_id) { setError(d.error ?? 'Pricing failed'); return }
-      router.push(`/pricing-matrix/quote/${d.quotation_id}`)
+      router.push(`/pricing-matrix/quote/${d.quotation_id}/compare`)
     } finally { setPricing(false) }
   }
 

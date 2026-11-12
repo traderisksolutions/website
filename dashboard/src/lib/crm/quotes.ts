@@ -22,6 +22,6 @@ export async function listCompanyQuotes(company: Company): Promise<QuoteRow[]> {
     id: g.id, kind: 'pricing_matrix', title: 'Pricing Matrix quotation',
     status: 'Prepared', isOpen: new Date(g.created_at).getTime() > freshCutoff,
     created_at: g.created_at, effective_date: g.effective_date, productLine: 'group_benefits', memberCount: g.member_count,
-    href: `/pricing-matrix/quote/${g.id}`,
+    href: `/pricing-matrix/quote/${g.id}/compare`,
   }))
 }
