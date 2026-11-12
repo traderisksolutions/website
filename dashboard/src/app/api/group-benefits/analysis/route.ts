@@ -41,9 +41,9 @@ export async function POST(req: NextRequest) {
     const suggested = suggestedRung(basis, null)
     const d = await draftQuotation({
       census, covers: packageCovers(packageByKey(suggested.key)!), companyName, effectiveDate, basis, source: 'csv', createdBy: user.id,
-      notesHead: [`EB analysis: five packages at every insurer; this quotation holds the ${suggested.key} package.`],
+      notesHead: [`Employment benefits analysis: five packages at every insurer; this quotation holds the ${suggested.key} package.`],
     })
-    const source = body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=quotes` } : { label: 'EB', href: '/pricing-matrix' }
+    const source = body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=quotes` } : { label: 'Employment Benefits', href: '/pricing-matrix' }
     const pack = await runAnalysis({ quotationId: d.quotationId, members: census, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null })
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId, new_value: { company: companyName, members: census.length, via: 'analysis', suggested: pack.suggested } })
     fileEbCompanyFolder(companyName)

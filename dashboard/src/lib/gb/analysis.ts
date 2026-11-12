@@ -166,7 +166,7 @@ export async function runAnalysis(input: {
     employees, dependants, suggested: input.suggested ?? s.key, because: input.suggested ? 'chosen by the broker' : s.because, excluded: input.excluded ?? [], source: input.source ?? prev?.source ?? null, rungs, custom: prev?.custom ?? null, notes,
   }
   await saveAnalysis(pack)
-  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis', resourceType: 'gb_quotation', resourceId: input.quotationId, basis: `${analysisSummary(pack)}; five packages at every insurer`, metadata: { by: input.by ?? null } })
+  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'Employment benefits analysis', resourceType: 'gb_quotation', resourceId: input.quotationId, basis: `${analysisSummary(pack)}; five packages at every insurer`, metadata: { by: input.by ?? null } })
   return pack
 }
 
@@ -191,7 +191,7 @@ export async function runCustom(quotationId: string, spec: CustomSpec, members: 
   const insurers = priced.rows.sort((a, b) => a.net - b.net)
   const next: AnalysisPack = { ...pack, custom: { at: new Date().toISOString(), spec, summary: customSummary(spec), insurers, best: bestOnRung(insurers), notes } }
   await saveAnalysis(next)
-  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis · custom', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${customSummary(spec)}; ${next.custom?.best ? `${next.custom.best.insurer_name} S$${Math.round(next.custom.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
+  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'Employment benefits analysis · custom', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${customSummary(spec)}; ${next.custom?.best ? `${next.custom.best.insurer_name} S$${Math.round(next.custom.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
   return next
 }
 
@@ -212,7 +212,7 @@ export async function runSplit(quotationId: string, assignments: Record<string, 
   const summary = Object.entries(assignments).map(([c, k]) => `${c} on ${packageByKey(k)?.name ?? k}`).join(' · ')
   const next: AnalysisPack = { ...pack, split: { at: new Date().toISOString(), assignments, summary, insurers, best: bestOnRung(insurers) } }
   await saveAnalysis(next)
-  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'EB analysis · split', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${summary}; ${next.split?.best ? `${next.split.best.insurer_name} S$${Math.round(next.split.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
+  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'Employment benefits analysis · split', resourceType: 'gb_quotation', resourceId: quotationId, basis: `${summary}; ${next.split?.best ? `${next.split.best.insurer_name} S$${Math.round(next.split.best.net).toLocaleString('en-SG')}` : 'no price'}`, metadata: { by } })
   return next
 }
 

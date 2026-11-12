@@ -72,7 +72,7 @@ export function NewEb({ initialCompany, initialCompanyId }: { initialCompany?: s
   return (
     <div className="flex flex-col gap-6 max-w-[760px]">
       <div>
-        <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">New EB</h2>
+        <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">New quotation</h2>
         <p className="m-0 mt-1 text-[13.5px]" style={{ color: MUTED }}>A census file, a company and a start date. Every package is priced at every insurer in one run.</p>
       </div>
 

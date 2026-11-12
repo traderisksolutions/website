@@ -67,7 +67,7 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        {company ? <h2 className="m-0 text-[16px] font-medium">EB quotations</h2> : (
+        {company ? <h2 className="m-0 text-[16px] font-medium">Quotations</h2> : (
           <Segmented value={filter} onChange={setFilter} options={[
             { value: 'all', label: 'All', count: rows.length },
             { value: 'soon', label: 'Starting within 90 days', count: count('soon') },
@@ -76,11 +76,11 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
           ]} />
         )}
         {newHref
-          ? <Link href={newHref} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:opacity-90" style={{ background: '#132c1c' }}>+ New EB</Link>
-          : <button type="button" onClick={onNew} className="h-9 px-4 rounded-[7px] border-0 text-white text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:opacity-90" style={{ background: '#132c1c' }}>+ New EB</button>}
+          ? <Link href={newHref} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:opacity-90" style={{ background: '#132c1c' }}>+ New quotation</Link>
+          : <button type="button" onClick={onNew} className="h-9 px-4 rounded-[7px] border-0 text-white text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:opacity-90" style={{ background: '#132c1c' }}>+ New quotation</button>}
       </div>
       {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
-      <Register label="EB quotations" minWidth={company ? 760 : 880}>
+      <Register label="Employment benefits quotations" minWidth={company ? 760 : 880}>
         <RegisterHead>
           {!company && <RegisterTh>Company</RegisterTh>}
           <RegisterTh align="right">Lives</RegisterTh>
@@ -93,7 +93,7 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
           <RegisterTh>Last change</RegisterTh>
         </RegisterHead>
         {loading && <RegisterEmpty colSpan={cols}>Loading…</RegisterEmpty>}
-        {!loading && shown.length === 0 && <RegisterEmpty colSpan={cols}>{rows.length === 0 ? 'No quotation yet. + New EB takes a census file.' : 'Nothing in this filter.'}</RegisterEmpty>}
+        {!loading && shown.length === 0 && <RegisterEmpty colSpan={cols}>{rows.length === 0 ? 'No quotation yet. + New quotation takes a census file.' : 'Nothing in this filter.'}</RegisterEmpty>}
         {!loading && shown.map(r => {
           const a = r.analysis && r.analysis.best_net != null ? r.analysis : null
           const low = a ? null : lowestOf(r.results)

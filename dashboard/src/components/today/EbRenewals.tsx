@@ -44,13 +44,13 @@ export function EbRenewals() {
     } finally { setBusy(null) }
   }
 
-  if (!rows) return <Spinner label="Loading EB renewals…" />
+  if (!rows) return <Spinner label="Loading employment benefits renewals…" />
   return (
     <section className="mb-8">
-      <h2 className="m-0 mb-1 text-[16px] font-medium">EB renewals</h2>
-      <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Employee-benefits policies ending in the next 120 days. Analyse prices the last census on file at every insurer; with none, + New EB takes a file.</p>
+      <h2 className="m-0 mb-1 text-[16px] font-medium">Employment benefits renewals</h2>
+      <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Employee-benefits policies ending in the next 120 days. Analyse prices the last census on file at every insurer; with none, + New quotation takes a file.</p>
       {error && <p className="m-0 mb-2 text-[13px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
-      <Register label="EB renewals" minWidth={640}>
+      <Register label="Employment benefits renewals" minWidth={640}>
         <RegisterHead>
           <RegisterTh>Client</RegisterTh>
           <RegisterTh>Policy</RegisterTh>
@@ -70,7 +70,7 @@ export function EbRenewals() {
                 ? r.analysed
                   ? <Link href={`/pricing-matrix/quote/${r.quotation_id}/analysis`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>Open analysis</Link>
                   : <Btn size="xs" level="primary" onClick={() => analyse(r)} loading={busy === r.policy_id}>Analyse</Btn>
-                : <Link href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>+ New EB</Link>}
+                : <Link href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>+ New quotation</Link>}
             </RegisterCell>
           </RegisterRow>
         ))}

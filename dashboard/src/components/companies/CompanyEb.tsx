@@ -20,9 +20,9 @@ export function CompanyEb({ companyId, companyName, policies }: { companyId: str
     <div className="flex flex-col gap-8">
       <EbRegister company={companyName} newHref={newHref} />
       <section>
-        <h2 className="m-0 mb-3 text-[16px] font-medium">EB policies</h2>
+        <h2 className="m-0 mb-3 text-[16px] font-medium">Employment benefits policies</h2>
         {!policies ? <Spinner label="Loading…" /> : eb.length === 0 ? <Empty compact>No employee-benefits policy on file.</Empty> : (
-          <Register label="EB policies" minWidth={640}>
+          <Register label="Employment benefits policies" minWidth={640}>
             <RegisterHead>
               <RegisterTh>Policy</RegisterTh>
               <RegisterTh>Insurer</RegisterTh>

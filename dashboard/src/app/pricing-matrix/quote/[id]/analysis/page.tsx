@@ -65,7 +65,7 @@ export default function AnalysisPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-10 pb-20">
-        <Breadcrumbs className="mb-3" current={{ label: `${company} · analysis`, href: `/pricing-matrix/quote/${id}/analysis` }} fallback={pack?.source ?? { label: 'EB', href: '/pricing-matrix' }} />
+        <Breadcrumbs className="mb-3" current={{ label: `${company} · analysis`, href: `/pricing-matrix/quote/${id}/analysis` }} fallback={pack?.source ?? { label: 'Employment Benefits', href: '/pricing-matrix' }} />
         <div className="flex items-end justify-between gap-6 flex-wrap mb-8">
           <div className="min-w-0">
             <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">{company}</h1>

@@ -44,7 +44,7 @@ const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f]
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
 type Tab = 'eb' | 'hrlinks' | 'tables'
 const TABS: readonly Tab[] = ['eb', 'hrlinks', 'tables']
-const TAB_LABEL: Record<Tab, string> = { eb: 'EB', hrlinks: 'Employee lists', tables: 'Insurers' }
+const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee lists', tables: 'Insurers' }
 
 
 /**
@@ -143,7 +143,7 @@ function PricingMatrix() {
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* One primary action: + New EB on the register. Email insurer is secondary; Drive is on each quotation. */}
+          {/* One primary action: + New quotation on the register. Email insurer is secondary; Drive is on each quotation. */}
           <button onClick={() => setEmailInsurer({ insurer: null })} className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
             <Mail size={16} /> Email insurer
           </button>
@@ -158,7 +158,7 @@ function PricingMatrix() {
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
       {tab === 'eb' && newQuote && (
-        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← EB register</button>
+        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← Quotations</button>
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState === 'loading' && (
         <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading the employee list…</p>

@@ -202,7 +202,7 @@ export default function GbReviewPage() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
-      <Breadcrumbs className="mb-3" current={{ label: `Rate table · ${insurerLabel}`, href: `/pricing-matrix/${id}` }} fallback={{ label: 'EB', href: '/pricing-matrix' }} />
+      <Breadcrumbs className="mb-3" current={{ label: `Rate table · ${insurerLabel}`, href: `/pricing-matrix/${id}` }} fallback={{ label: 'Employment Benefits', href: '/pricing-matrix' }} />
 
       <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">

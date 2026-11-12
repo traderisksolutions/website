@@ -62,7 +62,7 @@ type Detail = {
  */
 const MAIN_TABS = [
   { key: 'quotes',   label: 'Quotes' },
-  { key: 'eb',       label: 'EB' },
+  { key: 'eb',       label: 'Employment Benefits' },
   { key: 'policies', label: 'Policies' },
   { key: 'documents', label: 'Data room' },
 ] as const

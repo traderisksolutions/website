@@ -156,7 +156,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         ))}
         {finished.map(s => {
           const d = doneOf(s)!
-          const clientDrafted = bar?.drafts.some(x => x.label === 'EB pricing estimate to client')
+          const clientDrafted = bar?.drafts.some(x => x.label === 'Employment benefits pricing to client')
           return (
             <ActionItem key={s.key} eyebrow="Done" title={s.title} meta={d.summary}>
               <Buttons>
