@@ -6,6 +6,7 @@
  * The pinned-company board moved to /board.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { useToday } from '@/lib/use-today'
 import Link from 'next/link'
 import { LinkBtn, Spinner } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
@@ -24,13 +25,13 @@ export function HomeMap() {
   const [notice, setNotice] = useState<string | null>(null)
   const load = useCallback(() => callApi<Home>('/api/today/home').then(setData).catch(e => setError(errText(e))), [])
   useEffect(() => { void load(); callApi<{ staff: Staff[] }>('/api/today/edit-options').then(d => setStaff(d.staff)).catch(() => {}) }, [load])
-  const today = new Date().toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Singapore' })
+  const today = useToday(d => d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Singapore' }))
   const c = data?.canvas
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto w-full min-w-0 flex flex-col gap-5">
       <PageHeader title="Home"
-        meta={c ? `${c.open} open · ${c.drafts} drafts ready · ${c.decisions} decisions · ${c.red} lapsed · ${today}` : today}
+        meta={c ? `${c.open} open · ${c.drafts} drafts ready · ${c.decisions} decisions · ${c.red} lapsed${today ? ` · ${today}` : ''}` : today}
         actions={<LinkBtn level="primary" href="/today">Start today’s list</LinkBtn>} />
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}

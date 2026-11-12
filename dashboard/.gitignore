@@ -20,3 +20,8 @@ tsconfig.tsbuildinfo
 
 # A symlinked node_modules (git worktrees) is a file, not a directory; this line catches it too.
 node_modules
+
+# Journey tests
+/tests/journeys/.auth.json
+/test-results/
+/playwright-report/

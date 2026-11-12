@@ -2,6 +2,7 @@
 
 import { PageHeader } from '@/components/page-header'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useToday } from '@/lib/use-today'
 import Link from 'next/link'
 import { Pin } from 'lucide-react'
 import type { StaffMember } from '@/lib/crm/staff'
@@ -26,6 +27,7 @@ function longDate(d: Date): string {
 }
 
 export function Board() {
+  const today = useToday(longDate)
   const [data, setData] = useState<HomeBoardPayload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -64,7 +66,7 @@ export function Board() {
     <div className="bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
 
-        <PageHeader className="mb-2" title="Companies to work on" meta={<>{longDate(new Date())}{data ? ` · ${total} pinned` : ''}</>} />
+        <PageHeader className="mb-2" title="Companies to work on" meta={<>{today}{data ? ` · ${total} pinned` : ''}</>} />
 
         {error && <p className="mt-10 text-[14px] text-center" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void load()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
 
