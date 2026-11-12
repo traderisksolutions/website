@@ -150,7 +150,7 @@ export default function QuoteDetailPage() {
             <p className="m-0 mt-1 text-[14px]" style={{ color: '#4a5550' }}>Not received. Pricing starts when it arrives.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a href={`/pricing-matrix?tab=quote&company=${enc}`} className={BTN2}><UploadCloud size={14} /> Upload employee list</a>
+            <a href={`/pricing-matrix/new?company=${enc}`} className={BTN2}><UploadCloud size={14} /> Upload employee list</a>
             <a href={`/pricing-matrix?tab=hrlinks&company=${enc}&quote=${id}${q.effective_date ? `&start=${q.effective_date}` : ''}`} className={BTN1}><Link2 size={14} /> Send HR a link</a>
           </div>
         </section>

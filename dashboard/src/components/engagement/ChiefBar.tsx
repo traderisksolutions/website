@@ -150,7 +150,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
           <ActionItem key={s.key} eyebrow="Suggested" title={s.title} meta={s.detail}>
             <Buttons>
               {s.kind === 'eb_scenarios'
-                ? <Link href={`/pricing-matrix?tab=quote&thread=${threadId}`} className={`${MAIN} no-underline`}>Open census</Link>
+                ? <Link href={`/pricing-matrix/new?thread=${threadId}`} className={`${MAIN} no-underline`}>Open census</Link>
                 : <button type="button" className={MAIN} onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</button>}
               <button type="button" className={SECOND} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
             </Buttons>
@@ -166,7 +166,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                   <button type="button" className={MAIN} onClick={() => draftToClient(d.quotationId)} disabled={!!busy} title="The premium summary, how the figures were derived and what TRS suggests, with the report attached. Waits here; nothing sends.">{busy === 'client-draft' ? 'Writing…' : 'Draft to client'}</button>
                 )}
                 <Link href={doneHref(s, d.quotationId)} className={`${SECOND} no-underline`}>{doneLabel(s)}</Link>
-                <Link href={`/pricing-matrix?tab=quote&thread=${threadId}`} className={`${SECOND} no-underline`}>New analysis</Link>
+                <Link href={`/pricing-matrix/new?thread=${threadId}`} className={`${SECOND} no-underline`}>New analysis</Link>
               </Buttons>
             </ActionItem>
           )

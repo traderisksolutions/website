@@ -7,6 +7,7 @@
  * The current insurer, when named, is priced on its renewal card; every other insurer as new
  * business, which is how a switch is underwritten. Nothing here calls a model.
  */
+import type { LastYear } from './last-year'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { recordHousekeeping } from '../agent-activity'
 import { priceBuilder } from './builder'
@@ -52,6 +53,8 @@ export type AnalysisPack = {
   /** Where the run was started from: the thread, the register, an HR link, the company page. Back returns there. */
   source?: { label: string; href: string } | null
   rungs: AnalysisRung[]
+  /** Last year's policy as the broker confirmed it: the anchor every price is measured against (13 Nov 2026). */
+  lastYear?: LastYear | null
   custom?: CustomResult | null
   split?: SplitResult | null
   notes: string[]
@@ -279,6 +282,7 @@ export function analysisAsScenarios(pack: AnalysisPack, companyName: string | nu
 export async function runCurrent(input: {
   quotationId: string; members: Member[]; schedule: Schedule; effectiveDate: string; basis: Basis
   currentInsurer?: string | null; excluded?: string[]; source?: { label: string; href: string } | null; by?: string | null
+  lastYear?: LastYear | null
 }): Promise<AnalysisPack> {
   const current = input.currentInsurer ? insurerKey(input.currentInsurer) : null
   const other: Basis = input.basis === 'renewal' && current ? 'new_business' : input.basis
@@ -318,6 +322,7 @@ export async function runCurrent(input: {
     unscheduled: left.map(m => m.name), planCounts: planValues(input.members), effectiveDate: input.effectiveDate, basis: input.basis, currentInsurer: input.currentInsurer ?? null,
     employees, dependants, suggested: 'current', because: 'the cover the client holds today', excluded: input.excluded ?? [],
     source: input.source ?? prev?.source ?? null, rungs, custom: null, split: null, notes,
+    lastYear: input.lastYear !== undefined ? input.lastYear : prev?.lastYear ?? null,
   }
   await saveAnalysis(pack)
   const c = rungs[0]

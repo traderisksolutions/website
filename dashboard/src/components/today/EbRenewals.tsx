@@ -56,7 +56,7 @@ export function EbRenewals() {
             <RegisterCell>
               {r.analysed && r.quotation_id
                 ? <Link href={`/pricing-matrix/quote/${r.quotation_id}/analysis`} className="no-underline hover:underline text-[13px] whitespace-nowrap" style={{ color: INK }}>Open analysis</Link>
-                : <Link href={`/pricing-matrix?tab=quote&company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="inline-flex items-center h-[26px] px-2.5 rounded-[6px] text-white text-[12.5px] font-medium no-underline whitespace-nowrap" style={{ background: '#132c1c' }}>Open census</Link>}
+                : <Link href={`/pricing-matrix/new?company=${encodeURIComponent(r.company)}${r.company_id ? `&companyId=${r.company_id}` : ''}`} className="inline-flex items-center h-[26px] px-2.5 rounded-[6px] text-white text-[12.5px] font-medium no-underline whitespace-nowrap" style={{ background: '#132c1c' }}>Open census</Link>}
             </RegisterCell>
           </RegisterRow>
         ))}

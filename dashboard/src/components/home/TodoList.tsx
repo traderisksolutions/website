@@ -138,7 +138,7 @@ function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; o
         </div>
         <div className="flex flex-wrap items-start md:justify-end gap-1.5">
           {!result && (s.kind === 'eb_scenarios'
-            ? <Link href={`/pricing-matrix?tab=quote&thread=${s.threadId}`} className="inline-flex items-center h-[26px] px-2.5 rounded-[6px] text-white text-[12.5px] font-medium no-underline" style={{ background: '#132c1c' }}>Open census</Link>
+            ? <Link href={`/pricing-matrix/new?thread=${s.threadId}`} className="inline-flex items-center h-[26px] px-2.5 rounded-[6px] text-white text-[12.5px] font-medium no-underline" style={{ background: '#132c1c' }}>Open census</Link>
             : <Btn size="xs" level="primary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>)}
           {!result && <Btn size="xs" level="secondary" loading={busy === 'no'} onClick={notNow}>Not now</Btn>}
           <Btn size="xs" level="secondary" onClick={() => onThread(s.threadId)}>Thread</Btn>

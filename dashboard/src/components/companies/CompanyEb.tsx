@@ -15,7 +15,7 @@ const MUTED = '#4a5550', INK = '#0f1412'
 
 export function CompanyEb({ companyId, companyName, policies }: { companyId: string; companyName: string; policies: PolicyView[] | null }) {
   const eb = (policies ?? []).filter(p => p.is_eb || /benefit|medical|hospital|\bghs\b|\bgtl\b|dental|\beb\b/i.test(`${p.class_of_insurance ?? ''} ${p.label ?? ''}`))
-  const newHref = `/pricing-matrix?tab=quote&company=${encodeURIComponent(companyName)}&companyId=${companyId}`
+  const newHref = `/pricing-matrix/new?company=${encodeURIComponent(companyName)}&companyId=${companyId}`
   return (
     <div className="flex flex-col gap-8">
       <EbRegister company={companyName} newHref={newHref} />

@@ -182,6 +182,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   gb_intake_handoff:   'group_benefit',
   gb_brief:            'group_benefit',
   gb_client_draft:     'group_benefit',
+  gb_last_year_read:   'group_benefit',
   gb_plan_match:       'group_benefit',
   gb_value_explain:    'group_benefit',
   gb_recommend:        'group_benefit',

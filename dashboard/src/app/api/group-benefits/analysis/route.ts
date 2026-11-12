@@ -1,6 +1,6 @@
 /**
  * POST /api/group-benefits/analysis
- *   { census, company_name, company_id?, effective_date, basis, current_insurer?, excluded?: string[] }
+ *   { census, schedule, company_name, company_id?, effective_date, basis, current_insurer?, excluded?: string[], last_year? }
  *
  * One census in, one analysis out. Saves the census as a quotation priced at the suggested
  * package (the same draft the quick quote makes), then prices every package at every insurer in
@@ -16,6 +16,7 @@ import { parseDocumentDate } from '@/lib/dates/dob'
 import { runCurrent } from '@/lib/gb/analysis'
 import { CHANGES, groupsFor, type Schedule } from '@/lib/gb/current'
 import { specCovers } from '@/lib/gb/custom'
+import { normaliseLastYear } from '@/lib/gb/last-year'
 import { sb, enc } from '@/lib/crm/db'
 import type { Member } from '@/lib/gb-quote'
 
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const body = await req.json().catch(() => null) as
-    { census?: Member[]; schedule?: Schedule; company_name?: string; company_id?: string | null; effective_date?: string; basis?: string; current_insurer?: string | null; excluded?: string[]; source?: { label: string; href: string } | null } | null
+    { census?: Member[]; schedule?: Schedule; company_name?: string; company_id?: string | null; effective_date?: string; basis?: string; current_insurer?: string | null; excluded?: string[]; source?: { label: string; href: string } | null; last_year?: unknown } | null
   const census = (body?.census ?? []).filter(m => m && typeof m.name === 'string' && m.name.trim())
   const eff = parseDocumentDate(body?.effective_date ?? null)
   if (!census.length) return NextResponse.json({ error: 'The census is empty' }, { status: 400 })
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
   const excluded = Array.isArray(body?.excluded) ? body!.excluded!.filter(x => typeof x === 'string').slice(0, 10) : []
   const effectiveDate = `${eff.y}-${String(eff.m).padStart(2, '0')}-${String(eff.d).padStart(2, '0')}`
   const companyName = body?.company_name?.trim() || 'Untitled quote'
+  // Last year's policy as confirmed on Review; bounded again here, never trusted as sent.
+  const lastYear = body?.last_year ? normaliseLastYear(body.last_year) : null
 
   try {
     // The quotation holds the census and the largest group's current cover; the analysis holds the rest.
@@ -50,9 +53,9 @@ export async function POST(req: NextRequest) {
       census, covers: specCovers(largest.spec), companyName, effectiveDate, basis, source: 'csv', createdBy: user.id,
       notesHead: ['Employment benefits analysis: the current cover as scheduled, then one change at a time, at every insurer.'],
     })
-    await sb(`gb_quotations?id=eq.${enc(d.quotationId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ requirement: { current_schedule: schedule, current_insurer: currentInsurer, categories: [], employee_categories: {}, budget: null, tier_b: false } }) })
+    await sb(`gb_quotations?id=eq.${enc(d.quotationId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ requirement: { current_schedule: schedule, current_insurer: currentInsurer, last_year: lastYear, categories: [], employee_categories: {}, budget: null, tier_b: false } }) })
     const source = body?.source ?? (body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=eb` } : { label: 'Employment Benefits', href: '/pricing-matrix' })
-    const pack = await runCurrent({ quotationId: d.quotationId, members: census, schedule, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null })
+    const pack = await runCurrent({ quotationId: d.quotationId, members: census, schedule, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null, lastYear })
     void logActivity({ action: 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId, new_value: { company: companyName, members: census.length, via: 'analysis', changes: pack.rungs.length - 1 } })
     fileEbCompanyFolder(companyName)
     return NextResponse.json({ quotation_id: d.quotationId })

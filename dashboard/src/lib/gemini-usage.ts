@@ -122,6 +122,8 @@ export type AiFeature =
   | 'gb_brief'
   // The client email after pricing options (11 Nov 2026): a tone pass over a code-written draft.
   | 'gb_client_draft'
+  // Last year's policy read from the client's schedule, endorsements and debit note (13 Nov 2026).
+  | 'gb_last_year_read'
   // Companies-first CRM (10 Sep 2026)
   | 'crm_brief'
   | 'crm_triage'

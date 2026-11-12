@@ -9,7 +9,6 @@ import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQ
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbRegister } from '@/components/group-benefits/EbRegister'
-import { NewEb } from '@/components/group-benefits/NewEb'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
@@ -99,6 +98,13 @@ function PricingMatrix() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
+  // New quotation has its own address (13 Nov 2026); older links with ?tab=quote or ?thread land there.
+  useEffect(() => {
+    if (hrLinkId || !(asked === 'quote' || params.get('thread'))) return
+    const q = new URLSearchParams()
+    for (const k of ['company', 'companyId', 'thread']) { const v = params.get(k); if (v) q.set(k, v) }
+    router.replace(`/pricing-matrix/new${q.size ? `?${q}` : ''}`)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetch('/api/group-benefits/folder', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
       .then((d: { url?: string } | null) => setDriveUrl(d?.url ?? null)).catch(() => {})
@@ -157,17 +163,11 @@ function PricingMatrix() {
       {tab === 'tables' && (
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
-      {tab === 'eb' && newQuote && (
-        <button onClick={() => setNewQuote(false)} className="mb-4 text-[13px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← Quotations</button>
-      )}
       {tab === 'eb' && newQuote && !byHand && hrReadState === 'loading' && (
         <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading the employee list…</p>
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState === 'failed' && (
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
-      )}
-      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && !hrRead && (
-        <NewEb initialCompany={company} initialCompanyId={companyId} threadId={params.get('thread')} />
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && hrRead && (
         <div className="flex flex-col gap-10">
@@ -180,11 +180,11 @@ function PricingMatrix() {
       )}
       {tab === 'eb' && newQuote && byHand && (
         <div className="flex flex-col gap-3">
-          <button onClick={() => setByHand(false)} className="self-start text-[12.5px] bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: '#4a5550' }}>← Quick quote</button>
+          <Segmented size="sm" label="Quote by" value="hand" onChange={v => { if (v === 'quick') setByHand(false) }} options={[{ value: 'quick', label: 'Quick quote' }, { value: 'hand', label: 'By hand' }]} />
           <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
         </div>
       )}
-      {tab === 'eb' && !newQuote && <EbRegister onNew={() => { setNewQuote(true); setByHand(false); window.scrollTo({ top: 0 }) }} />}
+      {tab === 'eb' && !newQuote && <EbRegister newHref="/pricing-matrix/new" />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan} onClose={() => setEmailInsurer(null)} />
