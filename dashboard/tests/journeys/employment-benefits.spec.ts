@@ -50,5 +50,6 @@ test('a quotation opens Compare cover: today and the five products, every cover,
   for (const p of ['Steadfast MCare+', 'RCC Enhanced III', 'Income FlexCare', 'Singlife MyBenefits Plus', 'AIA Flexi Vital Care Plus']) await expect(page.getByText(p, { exact: true }).first()).toBeVisible()
   for (const c of ['Hospital & Surgical', 'Outpatient Specialist', 'Personal Accident']) await expect(page.getByRole('heading', { name: c })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Draft email' })).toHaveCount(5)
+  await expect(page.getByRole('link', { name: 'Ask insurers' })).toHaveAttribute('href', /\/plans$/)
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Employment Benefits')
 })
