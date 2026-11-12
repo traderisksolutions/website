@@ -222,7 +222,8 @@ export async function tonePass(draft: string, by: string | null, quotationId: st
     parts: [{ text: `EMAIL TO REWRITE:\n\n${draft}` }], temperature: 0.3, maxOutputTokens: 3_000, thinkingShare: 0.15, metadata: { quotation_id: quotationId, by },
   }).catch(() => ({ text: null as string | null, error: 'tone pass failed' }))
   const text = (r.text ?? '').replace(/^```[a-z]*\s*|\s*```$/g, '').trim()
-  return text && keepsFigures(text, draft) ? { body: text, rewritten: true } : { body: draft, rewritten: false }
+  // A rewrite that leaves a template slot ("{owner_name}") from a sample email is not used.
+  return text && keepsFigures(text, draft) && !/\{[a-z_ ]+\}|\[[A-Z][a-z]+ ?[A-Za-z]*\]/.test(text) ? { body: text, rewritten: true } : { body: draft, rewritten: false }
 }
 
 const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()

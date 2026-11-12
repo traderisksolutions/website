@@ -144,13 +144,24 @@ export function categoriesOf(members: Member[], schedule: Schedule | null): { ke
     .sort((a, b) => b.members.length - a.members.length)
 }
 
-function targetFor(key: string, schedule: Schedule | null): Target {
-  const s = schedule, v = key
-  const h = s?.GHS[v] ?? (v === ALL ? Object.values(s?.GHS ?? {})[0] : null) ?? null
-  const one = <T>(m: Record<string, T | null> | undefined) => m ? (m[v] ?? (Object.keys(m).length === 1 ? Object.values(m)[0] : null)) : null
+/**
+ * Today's cover for a category, as numbers: each cover's plan is the one most of the category's
+ * employees hold on the census (OUE: hospital plan 6 with GP plan 2), read through the schedule.
+ */
+function targetFor(key: string, members: Member[], schedule: Schedule | null): Target {
+  const s = schedule
+  const mode = (cover: 'GHS' | 'EMM' | 'GOPC' | 'GOSC' | 'GD') => {
+    if (!s) return null
+    const map = s[cover] as Record<string, unknown>
+    const counts = new Map<string, number>()
+    for (const m of members) { if (m.relationship !== 'self') continue; const v = planValue(m.plans?.[cover]) ?? (m.plans && Object.keys(m.plans).length ? null : ALL); if (v && v in map) counts.set(v, (counts.get(v) ?? 0) + 1) }
+    const top = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (cover === 'GHS' ? key : null)
+    return top != null && top in map ? map[top] : Object.keys(map).length === 1 ? Object.values(map)[0] : null
+  }
+  const h = mode('GHS') as Schedule['GHS'][string] | null
   return {
     hosp: h ? { hospital: h.hospital, beds: h.beds, limit: h.limit, basis: h.limitKind, coins: h.coins } : null,
-    gmm: one(s?.EMM) ?? null, gpCopay: one(s?.GOPC) ?? null, spLimit: one(s?.GOSC) ?? null, dental: one(s?.GD) ?? null,
+    gmm: (mode('EMM') as number | null) ?? null, gpCopay: (mode('GOPC') as number | null) ?? null, spLimit: (mode('GOSC') as number | null) ?? null, dental: (mode('GD') as number | null) ?? null,
   }
 }
 
@@ -184,7 +195,7 @@ export function buildCompare(input: {
   for (const p of PRODUCTS) {
     picks[p] = {}; why[p] = []
     for (const cat of cats) {
-      const t = targetFor(cat.key, input.schedule)
+      const t = targetFor(cat.key, cat.members, input.schedule)
       picks[p][cat.key] = {}
       for (const c of COVERS) {
         const m = matchPlan(benefitsOf(p), options[p][c], c, t)

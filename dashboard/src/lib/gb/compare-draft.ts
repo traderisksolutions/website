@@ -12,6 +12,7 @@ import type { CompareData, Picks } from './compare-cover'
 const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Personal Accident']
 const sg = (t: string) => t.replace(/(^|[^S])\$/g, '$1S$')
 const money = (n: number) => `S$${Math.round(n).toLocaleString('en-SG')}`
+const day = (iso: string) => { const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`); return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) }
 const signed = (n: number) => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${money(Math.abs(n))}`
 
 export type Highlight = { cover: string; label: string; today: string; theirs: string; change: string; weight: number }
@@ -45,7 +46,7 @@ export function compareFacts(d: CompareData & { company: string | null }, produc
     const tb = d.today.product ? d.benefits[`${d.today.product}|${cv}|${tp}`] ?? {} : {}
     const pb = d.benefits[`${product}|${cv}|${pp}`] ?? {}
     const premium = price(product, cat, cv, pp), base = price(d.today.product, cat, cv, tp)
-    return { cover: cv, today: d.today.product ? coverWords(cv, tp, tb) : 'As scheduled', theirs: coverWords(cv, pp, pb), premium, delta: premium != null && base != null ? premium - base : null }
+    return { cover: cv, today: d.today.product ? coverWords(cv, tp, tb) : 'As scheduled', theirs: coverWords(cv, pp, pb), premium, delta: premium != null && base != null && base > 0 ? premium - base : null }
   }).filter(c => c.theirs !== 'None' || c.today !== 'None')
   const more: Highlight[] = [], less: Highlight[] = []
   for (const id of Object.keys(d.labels)) {
@@ -73,7 +74,7 @@ export function codeEmail(f: CompareFacts, firstName: string | null): { subject:
   const line = (h: Highlight) => `- ${h.label}: ${h.theirs}, against ${h.today} today (${h.change})`
   const lines = [
     `Dear ${firstName ?? 'Sir or Madam'},`, '',
-    `Here is ${f.product} for ${f.company}, ${f.lives} lives from ${f.effectiveDate}: ${money(f.total)} a year, net of GST${pct}.`, '',
+    `Here is ${f.product} for ${f.company}, ${f.lives} lives from ${day(f.effectiveDate)}: ${money(f.total)} a year, net of GST${pct}.`, '',
   ]
   if (f.more.length) lines.push('Where it pays more than your current plan:', ...f.more.map(line), '')
   if (f.less.length) lines.push('Where it pays less:', ...f.less.map(line), '')
