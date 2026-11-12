@@ -37,7 +37,7 @@ export function parseDelimited(text: string): string[][] {
   return rows.filter(r => r.some(c => c !== ''))
 }
 
-type Col = 'name' | 'sn' | 'dob' | 'age' | 'relationship' | 'category' | 'occupation' | 'pass'
+type Col = 'name' | 'sn' | 'dob' | 'age' | 'relationship' | 'category' | 'occupation' | 'pass' | 'salary'
 
 const HEADERS: [Col, RegExp][] = [
   ['dob', /date\s*of\s*birth|^d\.?o\.?b\.?$|birth\s*date|\bdob\b/i],
@@ -47,6 +47,7 @@ const HEADERS: [Col, RegExp][] = [
   ['pass', /foreign|work\s*permit|pass\s*type|wp\s*\/\s*sp|local\s*or/i],
   ['category', /categor|grade|designation|^band$|^class$|plan\s*type|^tier$|job\s*level|^level$/i],
   ['sn', /^s\/?n\.?$|^no\.?$|^#$|^serial/i],
+  ['salary', /basic\s*salary|monthly\s*salary|^salary/i],
   // Last, so "Name of Company" and "Company name" do not win: a name column says whose name.
   ['name', /^(employee|staff|member|insured|full)?\s*'?s?\s*name$|^name\s*of\s*(employee|staff|member|insured)|^employee$|^name$/i],
 ]
@@ -91,6 +92,28 @@ export type CensusRead = {
   error?: string
 }
 
+/** Plan columns a census carries for the programme the client holds today: "GP", "SP", "H&S*", "GMM", "Dental", "GTL". */
+const PLAN_HEADERS: [string, RegExp][] = [
+  ['GHS', /^h\s*&\s*s\*?$|hospital\s*(&|and)?\s*surgical|^ghs\b/i],
+  ['EMM', /^gmm$|^emm$|major medical/i],
+  ['GOPC', /^gp$|outpatient\s*gp|primary care|^gopc$/i],
+  ['GOSC', /^sp$|specialist|^gosc$/i],
+  ['GD', /^dental$|^gd$/i],
+  ['GTL', /^gtl$|term life/i],
+  ['GCI', /^gci$|critical illness/i],
+  ['GPA', /^gpa$|personal accident|^pa$/i],
+]
+
+function planColumnsOf(header: string[], taken: Set<number>): Record<string, number> {
+  const out: Record<string, number> = {}
+  header.forEach((h, i) => {
+    if (taken.has(i)) return
+    const t = h.replace(/\s+/g, ' ').trim()
+    for (const [cover, re] of PLAN_HEADERS) if (out[cover] == null && re.test(t)) { out[cover] = i; break }
+  })
+  return out
+}
+
 export function censusFromRows(rows: string[][], today: CalendarDate = todaySGT()): CensusRead {
   // The header is the first row, among the first 15, naming both a person and a birth date or age.
   let h = -1, cols: Partial<Record<Col, number>> = {}
@@ -101,6 +124,7 @@ export function censusFromRows(rows: string[][], today: CalendarDate = todaySGT(
   if (h < 0) return { members: [], unread: [], found: {}, error: 'No header row with a name (or S/N) and a date of birth (or age) column in the first 15 rows.' }
 
   const found = Object.fromEntries(Object.entries(cols).map(([k, i]) => [k, rows[h][i as number]])) as CensusRead['found']
+  const planCols = planColumnsOf(rows[h], new Set(Object.values(cols) as number[]))
   const members: Member[] = []
   const unread: string[] = []
   let lastCategory = 'Default', depCount = 0, lastSn = ''
@@ -135,8 +159,26 @@ export function censusFromRows(rows: string[][], today: CalendarDate = todaySGT(
       dob: d ? `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}` : null,
       age: d ? null : statedAge,
       occupation_class: cell('occupation') || null,
+      ...(cell('salary') && Number(cell('salary').replace(/[^0-9.]/g, '')) > 0 ? { salary: Number(cell('salary').replace(/[^0-9.]/g, '')) } : {}),
+      ...(Object.keys(planCols).length ? { plans: Object.fromEntries(Object.entries(planCols).map(([cover, i]) => [cover, (rows[r][i] ?? '').trim()]).filter(([, v]) => v)) } : {}),
     })
   }
   if (!members.length) return { members, unread, found, error: 'A header row was found but no people under it.' }
   return { members, unread, found }
+}
+
+export type SheetRead = { sheet: string; members: Member[]; employees: number; dependants: number; unread: string[]; found: CensusRead['found']; error?: string; planCovers: string[] }
+
+/**
+ * Every sheet of a workbook read on its own: who is on it, how many, and the plan columns it
+ * carries. The broker picks the sheets that make up the census; nothing is chosen for them.
+ */
+export function workbookCensus(sheets: { name: string; text: string }[], today: CalendarDate = todaySGT()): SheetRead[] {
+  return sheets.map(s => {
+    const r = censusFromRows(parseDelimited(s.text), today)
+    const members = r.members.map(m => ({ ...m, entity: s.name }))
+    const employees = members.filter(m => m.relationship === 'self').length
+    const covers = new Set<string>(); for (const m of members) for (const k of Object.keys(m.plans ?? {})) covers.add(k)
+    return { sheet: s.name, members, employees, dependants: members.length - employees, unread: r.unread, found: r.found, error: r.error, planCovers: [...covers] }
+  })
 }

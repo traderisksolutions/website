@@ -8,7 +8,13 @@ import { parseCalendarDate, ageLastBirthday } from '@/lib/dates/dob'
 import { resolveProduct } from '@/lib/gb/resolve'
 
 export type Relationship = 'self' | 'spouse' | 'child' | string
-export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null; work_pass?: string | null }
+export type Member = { name: string; category: string; relationship: Relationship; dob?: string | null; age?: number | null; occupation_class?: string | null; work_pass?: string | null
+  /** The tab or subsidiary the person was read from (OUE: one tab per entity). */
+  entity?: string | null
+  /** The plan the person holds today, per cover, as the census writes it ("4", "Plan 2", "12"). */
+  plans?: Partial<Record<string, string>> | null
+  /** Monthly basic salary in S$, when the census carries it; life cover set as a multiple of it. */
+  salary?: number | null }
 
 export type RateRow = {
   product_code: string; member_type?: string | null; plan_code: string; band_label: string

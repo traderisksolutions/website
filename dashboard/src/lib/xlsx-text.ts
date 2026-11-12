@@ -40,3 +40,37 @@ export function xlsxSheetsAsText(buf: Buffer | Uint8Array, maxPerSheet = 10_000)
     return { name, text: XLSX.utils.sheet_to_csv(wb.Sheets[name]).slice(0, maxPerSheet) }
   })
 }
+
+// ── Password-protected workbooks ────────────────────────────────────────────────────────────────
+// Clients send the census encrypted with the password in the email body (Empyrion, 3 Nov 2026).
+// A protected file is an OLE container that the spreadsheet library cannot open; it is decrypted
+// first, with the password the broker types or the one found in the email.
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const officeCrypto = require('officecrypto-tool') as typeof import('officecrypto-tool')
+
+export class WorkbookPasswordError extends Error {
+  constructor(public readonly reason: 'needed' | 'wrong') { super(reason === 'needed' ? 'This file is password-protected.' : 'That password does not open this file.') }
+}
+
+export function isEncryptedWorkbook(buf: Buffer): boolean {
+  try { return officeCrypto.isEncrypted(buf) } catch { return false }
+}
+
+/** The workbook's bytes, decrypted when protected. Throws WorkbookPasswordError when a password is needed or wrong. */
+export async function openWorkbookBytes(buf: Buffer, password?: string | null): Promise<Buffer> {
+  if (!isEncryptedWorkbook(buf)) return buf
+  if (!password) throw new WorkbookPasswordError('needed')
+  try { return await officeCrypto.decrypt(buf, { password }) } catch { throw new WorkbookPasswordError('wrong') }
+}
+
+/** A password written in an email body: "PW: 048619", "Password : abc123", "pwd - x9". */
+export function passwordInText(text: string | null | undefined): string | null {
+  const m = String(text ?? '').match(/\b(?:pw|pwd|password|passcode)\s*[:：\-–=]\s*([^\s,;]{3,40})/i)
+  return m ? m[1].replace(/[.)]+$/, '') : null
+}
+
+/** Every sheet of a workbook as text, in full, decrypted when protected. */
+export async function workbookSheets(buf: Buffer, password?: string | null): Promise<{ name: string; text: string }[]> {
+  return xlsxSheetsAsText(await openWorkbookBytes(buf, password), 5_000_000)
+}

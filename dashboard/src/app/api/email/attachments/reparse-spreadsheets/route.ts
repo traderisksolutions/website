@@ -16,7 +16,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
-import { xlsxSheetsAsText } from '@/lib/xlsx-text'
+import { isEncryptedWorkbook, xlsxSheetsAsText } from '@/lib/xlsx-text'
 import { logActivity } from '@/lib/log-activity'
 
 export const maxDuration = 300
@@ -46,7 +46,7 @@ type Row = { id: string; filename: string; message_id: string; gmail_attachment_
 
 /** Same shape the extraction route writes, so a re-read row is indistinguishable from a fresh one. */
 const render = (buf: Buffer) =>
-  xlsxSheetsAsText(buf, 10000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n').slice(0, 30000)
+  isEncryptedWorkbook(buf) ? '[ENCRYPTED — password-protected workbook]' : xlsxSheetsAsText(buf, 200_000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n').slice(0, 400_000)
 
 /** The month-first, two-digit-year form the old rendering produced. */
 const OLD_FORM = /(?<![\d/])\d{1,2}\/\d{1,2}\/\d{2}(?![\d/])/

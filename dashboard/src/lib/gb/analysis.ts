@@ -18,6 +18,7 @@ import { customRequirement, customSummary, resolveCustom, type CustomSpec } from
 import { loadLimitFacts } from './limit-facts'
 import type { Member } from '../gb-quote'
 import { shortInsurer } from './insurer-names'
+import { CHANGES, groupsFor, planValues, unscheduled, type Schedule } from './current'
 
 export type AnalysisInsurer = {
   rate_table_id: string; insurer_name: string; insurer: InsurerKey; basis: 'new_business' | 'renewal'
@@ -31,7 +32,7 @@ export type AnalysisInsurer = {
   plans: Record<string, string | null>
   notes: string[]
 }
-export type AnalysisRung = { key: PackageKey; name: string; facts: string[]; insurers: AnalysisInsurer[]; best: { insurer_name: string; net: number; total: number } | null }
+export type AnalysisRung = { key: string; name: string; facts: string[]; insurers: AnalysisInsurer[]; best: { insurer_name: string; net: number; total: number } | null }
 export type CustomResult = { at: string; spec: CustomSpec; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best']; notes: Record<string, string[]> }
 /** Management on one rung, staff on another: each census category assigned a package, priced as one programme. */
 export type SplitResult = { at: string; assignments: Record<string, PackageKey>; summary: string; insurers: AnalysisInsurer[]; best: AnalysisRung['best'] }
@@ -39,7 +40,14 @@ export type AnalysisPack = {
   at: string; by: string | null; quotationId: string
   effectiveDate: string; basis: 'new_business' | 'renewal'; currentInsurer: string | null
   employees: number; dependants: number
-  suggested: PackageKey; because: string
+  /** 'current': the client's current cover, then one change at a time (12 Nov 2026). Absent: the package ladder. */
+  mode?: 'current' | 'packages'
+  schedule?: Schedule | null
+  /** Lives the schedule left out (hospital plan not stated), by name. */
+  unscheduled?: string[]
+  /** People holding each plan value, per cover, for the schedule shown on the report. */
+  planCounts?: Record<string, { value: string; people: number }[]>
+  suggested: string; because: string
   excluded: string[]
   /** Where the run was started from: the thread, the register, an HR link, the company page. Back returns there. */
   source?: { label: string; href: string } | null
@@ -57,7 +65,7 @@ export async function loadAnalysis(quotationId: string): Promise<AnalysisPack | 
   try { return JSON.parse(r.value) as AnalysisPack } catch { return null }
 }
 
-export type AnalysisSummary = { quotationId: string; at: string; suggested: PackageKey; package: string; best_insurer: string | null; best_net: number | null; best_total: number | null; source: AnalysisPack['source'] }
+export type AnalysisSummary = { quotationId: string; at: string; suggested: string; package: string; best_insurer: string | null; best_net: number | null; best_total: number | null; source: AnalysisPack['source'] }
 const SUMMARY_KEY = (quotationId: string) => `gb_analysis_summary:${quotationId}`
 
 /** The line a list shows for an analysis: the suggested package, its best insurer and premium. */
@@ -91,6 +99,10 @@ export function bestOnRung(insurers: AnalysisInsurer[]): AnalysisRung['best'] {
 /** "Standard at Singlife S$33,219 · Enhanced +S$2,222 · Essential −S$10,299". */
 export function analysisSummary(pack: AnalysisPack): string {
   const money = (n: number) => `S$${Math.round(n).toLocaleString('en-SG')}`
+  if (pack.mode === 'current') {
+    const c = pack.rungs[0], cur = pack.currentInsurer ? c?.insurers.find(x => insurerKey(x.insurer_name) === insurerKey(pack.currentInsurer)) : null
+    return [c?.best ? `Current cover: ${shortInsurer(c.best.insurer_name)} ${money(c.best.net)}` : 'Current cover not priced', cur ? `${shortInsurer(cur.insurer_name)} renewal ${money(cur.net)}` : null, `${pack.rungs.length - 1} changes priced`].filter(Boolean).join(' · ')
+  }
   const i = pack.rungs.findIndex(r => r.key === pack.suggested)
   const s = pack.rungs[i], up = pack.rungs[i + 1], down = pack.rungs[i - 1]
   const parts = [s?.best ? `${s.name} at ${shortInsurer(s.best.insurer_name)} ${money(s.best.net)}` : 'no complete price']
@@ -223,13 +235,29 @@ export async function runSplit(quotationId: string, assignments: Record<string, 
  */
 export function analysisAsScenarios(pack: AnalysisPack, companyName: string | null): ScenarioPack {
   const current = pack.currentInsurer ? insurerKey(pack.currentInsurer) : null
-  const rows = (ins: AnalysisInsurer[]): ScenarioInsurer[] => ins.filter(i => !i.variant).map(i => ({
+  const rows = rowsFor
+  void rows
+  function rowsFor(ins: AnalysisInsurer[]): ScenarioInsurer[] { return ins.filter(i => !i.variant).map(i => ({
     rate_table_id: i.rate_table_id, insurer_name: i.insurer_name, insurer: i.insurer, net: i.net, gst: i.gst, total: i.total, missing: i.unpriced, by_product: i.by_product, gaps: [],
     inForce: true, excluded: i.excluded, preferred: false, current: !!current && i.insurer === current, withinBudget: null,
-  }))
+  })) }
+  const scenarios: ScenarioPack['scenarios'] = []
+  if (pack.mode === 'current') {
+    const cur = pack.rungs[0]
+    const changes = pack.rungs.slice(1).filter(r => r.best && cur?.best)
+    const cheaper = changes.filter(r => r.best!.net < cur!.best!.net).sort((a, b) => b.best!.net - a.best!.net)[0]
+    const dearer = changes.filter(r => r.best!.net > cur!.best!.net).sort((a, b) => a.best!.net - b.best!.net)[0]
+    const req = PACKAGES[1].requirement
+    if (cur) scenarios.push({ key: 'A', name: 'Current cover', summary: 'The cover held today', requirement: req, changes: [], insurers: [] })
+    if (dearer) scenarios.push({ key: 'C', name: dearer.name, summary: dearer.name, requirement: req, changes: [], insurers: [] })
+    if (cheaper) scenarios.push({ key: 'B', name: cheaper.name, summary: cheaper.name, requirement: req, changes: [], insurers: [] })
+    const by = new Map([[cur?.key, cur], [dearer?.key, dearer], [cheaper?.key, cheaper]])
+    for (const sc of scenarios) { const r = [...by.values()].find(x => x && x.name === sc.name); sc.insurers = r ? rowsFor(r.insurers) : [] }
+    const brief0: Brief = { company: companyName, basis: pack.basis, currentInsurer: pack.currentInsurer, current: {}, currentPlanText: null, expiringPremium: null, budget: null, budgetText: null, budgetNetOfGst: null, mustHaves: [], wishes: [], optional: [], excludeInsurers: pack.excluded, preferInsurers: [], renewalDate: null, effectiveDate: pack.effectiveDate, decisions: [], open: [] }
+    return { at: pack.at, by: pack.by, threadId: null, quotationId: pack.quotationId, model: 'none', messages: 0, brief: brief0, effectiveDate: pack.effectiveDate, basis: pack.basis, employees: pack.employees, dependants: pack.dependants, scenarios, notes: pack.notes }
+  }
   const i = pack.rungs.findIndex(r => r.key === pack.suggested)
   const sug = pack.rungs[i], up = pack.rungs[i + 1], down = pack.rungs[i - 1]
-  const scenarios: ScenarioPack['scenarios'] = []
   const push = (key: 'A' | 'B' | 'C', name: string, summary: string, insurers: AnalysisInsurer[], requirement: Requirement) => scenarios.push({ key, name, summary, requirement, changes: [], insurers: rows(insurers) })
   if (pack.split) push('A', `Split · ${pack.split.summary}`, pack.split.summary, pack.split.insurers, sug?.key ? packageByKey(sug.key)!.requirement : PACKAGES[1].requirement)
   else if (pack.custom) push('A', 'Custom', pack.custom.summary, pack.custom.insurers, customRequirement(pack.custom.spec))
@@ -242,4 +270,65 @@ export function analysisAsScenarios(pack: AnalysisPack, companyName: string | nu
     renewalDate: null, effectiveDate: pack.effectiveDate, decisions: [], open: [],
   }
   return { at: pack.at, by: pack.by, threadId: null, quotationId: pack.quotationId, model: 'none', messages: 0, brief, effectiveDate: pack.effectiveDate, basis: pack.basis, employees: pack.employees, dependants: pack.dependants, scenarios, notes: pack.notes }
+}
+
+/**
+ * The current cover, then one change at a time: every column priced at every insurer in one run.
+ * People with the same numbers price as one category; the current insurer on its renewal card.
+ */
+export async function runCurrent(input: {
+  quotationId: string; members: Member[]; schedule: Schedule; effectiveDate: string; basis: Basis
+  currentInsurer?: string | null; excluded?: string[]; source?: { label: string; href: string } | null; by?: string | null
+}): Promise<AnalysisPack> {
+  const current = input.currentInsurer ? insurerKey(input.currentInsurer) : null
+  const other: Basis = input.basis === 'renewal' && current ? 'new_business' : input.basis
+  const excludedKeys = new Set((input.excluded ?? []).map(insurerKey))
+  const tables = (await builderTablesFor(input.effectiveDate)).map(t => t.id)
+  const facts = await loadLimitFacts(tables)
+  const rungs: AnalysisRung[] = []
+  let employees = 0, dependants = 0
+  for (const change of CHANGES) {
+    const groups = groupsFor(input.members, input.schedule, change)
+    if (!groups) continue
+    const cats: CategoryInput[] = []
+    const placed: Member[] = []
+    groups.forEach((g, i) => {
+      const name = `Group ${i + 1}`
+      const overrides: Record<string, string> = {}
+      if (!g.foreignWorker) for (const t of tables) { const f = facts.get(t); if (!f) continue; for (const [cover, plan] of Object.entries(resolveCustom(g.spec, f).overrides)) if (plan) overrides[`${t}|${cover}`] = plan }
+      cats.push({ name, requirement: g.foreignWorker ? { ...customRequirement(g.spec), ward: 'G4', wardLevel: 'entry' } : customRequirement(g.spec), overrides })
+      for (const m of g.members) placed.push({ ...m, category: name, work_pass: g.foreignWorker ? 'WP' : m.work_pass ?? null })
+    })
+    const priced = await priceCategories(placed, cats, input.effectiveDate, input.basis, other, current, excludedKeys)
+    employees = priced.employees; dependants = priced.dependants
+    const insurers = priced.rows.sort((a, b) => a.net - b.net)
+    // A change that moves no price at any insurer (the limit is tied to the ward there) is left out.
+    const base = rungs[0]
+    if (base && insurers.every(i => Math.abs(i.net - (base.insurers.find(b => b.rate_table_id === i.rate_table_id && b.variant === i.variant)?.net ?? NaN)) < 1)) continue
+    rungs.push({ key: change.key, name: change.name, facts: [change.group], insurers, best: bestOnRung(insurers) })
+  }
+  const notes: string[] = []
+  if (other !== input.basis) notes.push(`${input.currentInsurer} priced as a renewal; every other insurer as new business, which is how a switch is underwritten.`)
+  notes.push('Changes that move no price at any insurer are left out: at most insurers the per-stay limit comes with the ward, so a limit change alone selects the same plan.')
+  notes.push('Net of GST. Each change applies to everyone at once; foreign-worker cover stays as it is. Unpriced lines are members a card does not price (age outside the plan, or a cover it does not sell).')
+  const left = unscheduled(input.members, input.schedule)
+  const prev = await loadAnalysis(input.quotationId)
+  const pack: AnalysisPack = {
+    at: new Date().toISOString(), by: input.by ?? null, quotationId: input.quotationId, mode: 'current', schedule: input.schedule,
+    unscheduled: left.map(m => m.name), planCounts: planValues(input.members), effectiveDate: input.effectiveDate, basis: input.basis, currentInsurer: input.currentInsurer ?? null,
+    employees, dependants, suggested: 'current', because: 'the cover the client holds today', excluded: input.excluded ?? [],
+    source: input.source ?? prev?.source ?? null, rungs, custom: null, split: null, notes,
+  }
+  await saveAnalysis(pack)
+  const c = rungs[0]
+  recordHousekeeping({ action: 'gb.scenarios_priced', subject: 'Employment benefits analysis · current cover', resourceType: 'gb_quotation', resourceId: input.quotationId, basis: `current cover ${c?.best ? `${shortInsurer(c.best.insurer_name)} S$${Math.round(c.best.net).toLocaleString('en-SG')}` : 'not priced'}; ${rungs.length - 1} changes at every insurer`, metadata: { by: input.by ?? null } })
+  return pack
+}
+
+async function builderTablesFor(effectiveDate: string) {
+  const { builderTables } = await import('./builder')
+  const { cardsInForce } = await import('./table-version')
+  const every = await builderTables(false)
+  const ids = new Set([...cardsInForce(every, effectiveDate.slice(0, 10), 'new_business').cards, ...cardsInForce(every, effectiveDate.slice(0, 10), 'renewal').cards].map(c => c.id))
+  return every.filter(t => ids.has(t.id))
 }

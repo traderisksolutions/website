@@ -108,7 +108,7 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>, census: C
       : 'Reads the thread; prices the census on file or the file on this thread'
   return {
     key, kind: 'eb_scenarios', attachment: q ? '' : census?.filename ?? '', rows: q?.member_count ?? census?.rows ?? 0, threadId: thread.id, receivedAt: census?.receivedAt ?? thread.last_message_at ?? thread.created_at ?? '',
-    title: 'Employment benefits analysis', detail, yes: 'Analyse',
+    title: 'Employment benefits analysis', detail, yes: 'Open census',
     done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack), draftable: true }
       : scen ? { quotationId: scen.quotationId, members: q?.member_count ?? 0, summary: packSummary(scen), draftable: true } : null,
   }
@@ -161,22 +161,9 @@ export async function recentSuggestions(viewer: string | null, days = 14): Promi
 }
 
 /** Runs the action behind a suggestion. */
-export async function runSuggestion(threadId: string, key: string, by: string | null = null): Promise<SuggestionOutcome> {
-  const [kind] = key.split(':')
-  if (kind !== 'eb_scenarios') return { ok: false, error: 'Unknown suggestion.' }
-  // The census: the quotation on this conversation, the company's latest priced one, or the file on
-  // this thread priced first by the intake agent. Then every package at every insurer, one run.
-  const conversation = await benefitsThreads(threadId)
-  const found = await censusFor(threadId, conversation.ids)
-  if ('error' in found) return { ok: false, error: found.error }
-  const q = found.quotation
-  const plans = await plansFromCensusFile(q, conversation.ids).catch(() => null)
-  const req = q.requirement as { current_insurer?: string | null; categories?: { requirement?: Partial<import('@/lib/gb/ladder').Requirement> }[] } | null
-  const [thread] = await sbTry<Row[]>(`email_threads?id=eq.${enc(threadId)}&select=subject,display_subject&limit=1`, [])
-  const pack = await runAnalysis({
-    quotationId: q.id, members: q.census ?? [], effectiveDate: q.effective_date ?? new Date().toISOString().slice(0, 10), basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
-    currentInsurer: req?.current_insurer ?? null, current: plans?.current ?? req?.categories?.[0]?.requirement ?? null, by,
-    source: { label: thread?.display_subject ?? thread?.subject ?? 'Thread', href: `/engagement?lead=${threadId}` },
-  })
-  return { ok: true, quotationId: pack.quotationId, summary: `${analysisSummary(pack)} · census from ${found.how}` }
+export async function runSuggestion(threadId: string, key: string, _by: string | null = null): Promise<SuggestionOutcome> {
+  // The analysis starts from a census the broker picks and a current cover the broker confirms
+  // (12 Nov 2026): it is never run unattended from a thread. The rail and Today link to the picker.
+  void threadId; void key
+  return { ok: false, error: 'Open the census for this thread: pick the file and tabs, confirm the current cover, then analyse.' }
 }

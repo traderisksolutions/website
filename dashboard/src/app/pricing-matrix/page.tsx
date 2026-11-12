@@ -78,7 +78,7 @@ function PricingMatrix() {
   const hrLinkId = params.get('hrLink') ?? null
   const [tab, setTab]   = useState<Tab>(initialTab)
   const [byHand, setByHand] = useState(false)
-  const [newQuote, setNewQuote] = useState(asked === 'quote')
+  const [newQuote, setNewQuote] = useState(asked === 'quote' || !!params.get('thread'))
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
@@ -167,7 +167,7 @@ function PricingMatrix() {
         <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && !hrRead && (
-        <NewEb initialCompany={company} initialCompanyId={companyId} />
+        <NewEb initialCompany={company} initialCompanyId={companyId} threadId={params.get('thread')} />
       )}
       {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && hrRead && (
         <div className="flex flex-col gap-10">

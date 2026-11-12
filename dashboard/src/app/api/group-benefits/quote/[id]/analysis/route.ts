@@ -7,14 +7,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sbTry, enc } from '@/lib/crm/db'
-import { loadAnalysis, runAnalysis, runCustom, runSplit, saveAnalysis } from '@/lib/gb/analysis'
+import { loadAnalysis, runCurrent, runCustom, runSplit, saveAnalysis } from '@/lib/gb/analysis'
+import type { Schedule } from '@/lib/gb/current'
+import { sb } from '@/lib/crm/db'
 import { packageByKey, type PackageKey } from '@/lib/gb/packages'
 import type { CustomSpec } from '@/lib/gb/custom'
 import type { Member } from '@/lib/gb-quote'
 
 export const maxDuration = 300
 
-type Q = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number; census: Member[] | null; requirement: { current_insurer?: string | null } | null }
+type Q = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number; census: Member[] | null; requirement: { current_insurer?: string | null; current_schedule?: Schedule | null } | null }
 const Q_COLS = 'id,company_name,effective_date,basis,member_count,census,requirement'
 
 async function requireUser() {
@@ -39,17 +41,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const user = await requireUser()
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   const { id } = await params
-  const body = await req.json().catch(() => ({})) as { run?: boolean; suggested?: string; custom?: CustomSpec; split?: Record<string, string>; current_insurer?: string | null; excluded?: string[] }
+  const body = await req.json().catch(() => ({})) as { run?: boolean; schedule?: Schedule; suggested?: string; custom?: CustomSpec; split?: Record<string, string>; current_insurer?: string | null; excluded?: string[] }
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
   if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
   try {
     if (body.run) {
       if (!q.census?.length || !q.effective_date) return NextResponse.json({ error: 'This quotation has no member list or start date' }, { status: 422 })
       const prev = await loadAnalysis(id)
-      const pack = await runAnalysis({
-        quotationId: id, members: q.census, effectiveDate: q.effective_date, basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
+      const schedule = body.schedule ?? prev?.schedule ?? q.requirement?.current_schedule ?? null
+      if (!schedule) return NextResponse.json({ error: 'State the current cover first: what each plan on the census means.', needsSchedule: true }, { status: 422 })
+      if (body.schedule) await sb(`gb_quotations?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ requirement: { ...(q.requirement ?? {}), current_schedule: body.schedule, current_insurer: body.current_insurer ?? q.requirement?.current_insurer ?? null } }) })
+      const pack = await runCurrent({
+        quotationId: id, members: q.census, schedule, effectiveDate: q.effective_date, basis: q.basis === 'renewal' ? 'renewal' : 'new_business',
         currentInsurer: body.current_insurer ?? prev?.currentInsurer ?? q.requirement?.current_insurer ?? null,
-        excluded: body.excluded ?? prev?.excluded ?? [], suggested: prev?.suggested ?? null, by: user.email ?? null,
+        excluded: body.excluded ?? prev?.excluded ?? [], by: user.email ?? null,
       })
       return NextResponse.json({ pack })
     }

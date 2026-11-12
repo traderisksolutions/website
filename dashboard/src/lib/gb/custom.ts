@@ -110,3 +110,16 @@ export function customSummary(s: CustomSpec): string {
   ]
   return parts.filter(Boolean).join(' · ')
 }
+
+/** The covers a spec asks for, in the intake agent's shape, so a quotation can be drafted from it. */
+export function specCovers(s: CustomSpec): import('./plan-rules').CoverSpec[] {
+  const covers: import('./plan-rules').CoverSpec[] = [{ code: 'GHS', hospital: s.hospital, ward: s.beds, coPay: s.coins > 0, tier: s.limitKind === 'annual' ? 'top' : 'entry' }]
+  if (s.gmm) covers.push({ code: 'EMM', tier: 'entry' })
+  if (s.gpCopay != null) covers.push({ code: 'GOPC', coPay: s.gpCopay > 0 })
+  if (s.spLimit != null) covers.push({ code: 'GOSC', tier: s.spLimit >= 2_000 ? 'top' : 'entry' })
+  if (s.gdLimit != null) covers.push({ code: 'GD', tier: s.gdLimit >= 800 ? 'top' : 'entry' })
+  if (s.gtl) covers.push({ code: 'GTL', sumAssured: s.gtl })
+  if (s.gci) covers.push({ code: 'GCI', sumAssured: s.gci })
+  if (s.pa) covers.push({ code: 'GPA', sumAssured: s.pa })
+  return covers
+}

@@ -18,6 +18,7 @@ import { PACKAGES, type PackageKey } from '@/lib/gb/packages'
 import { DEFAULT_CUSTOM, type CustomSpec } from '@/lib/gb/custom'
 import type { AnalysisPack, AnalysisInsurer, AnalysisRung } from '@/lib/gb/analysis'
 import { fmtDate, money } from '@/lib/format'
+import { COVER_WORD, SCHEDULE_COVERS, type Schedule } from '@/lib/gb/current'
 
 type Payload = { quotation: { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number }; categories?: { name: string; members: number }[]; pack: AnalysisPack | null; error?: string }
 
@@ -73,7 +74,7 @@ export default function AnalysisPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Btn level="secondary" onClick={() => setCustomise(v => !v)} disabled={!pack}>{customise ? 'Close customise' : 'Customise'}</Btn>
-            <Btn level="secondary" onClick={() => setSplitting(v => !v)} disabled={!pack}>{splitting ? 'Close split' : 'Split by category'}</Btn>
+            {pack?.mode !== 'current' && <Btn level="secondary" onClick={() => setSplitting(v => !v)} disabled={!pack}>{splitting ? 'Close split' : 'Split by category'}</Btn>}
             <Link href={`/pricing-matrix/quote/${id}`} className={BTN2}>Quotation</Link>
             <Btn level="secondary" onClick={() => post({ run: true }, 'run')} loading={busy === 'run'}>{pack ? 'Price again' : 'Run analysis'}</Btn>
           </div>
@@ -82,7 +83,9 @@ export default function AnalysisPage() {
         {!data && !error && <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p>}
         {data && !pack && <p className="m-0 text-[14px]" style={{ color: MUTED }}>No analysis on this quotation yet. Run analysis prices every package at every insurer on its census, in one run.</p>}
 
-        {pack && sug && (
+        {pack && pack.mode === 'current' && <CurrentView pack={pack} customise={customise} busy={busy} onCustom={spec => post({ custom: spec }, 'custom')} />}
+
+        {pack && pack.mode !== 'current' && sug && (
           <>
             {customise && <Customise pack={pack} busy={busy === 'custom'} onRun={spec => post({ custom: spec }, 'custom')} />}
             {splitting && <Split pack={pack} categories={data?.categories ?? []} busy={busy === 'split'} onRun={a => post({ split: a }, 'split')} />}
@@ -268,7 +271,7 @@ function SplitCard({ split, base, employees }: { split: NonNullable<AnalysisPack
 
 /** Management on one rung, staff on another: each census category to a package, priced as one programme. */
 function Split({ pack, categories, busy, onRun }: { pack: AnalysisPack; categories: { name: string; members: number }[]; busy: boolean; onRun: (a: Record<string, PackageKey>) => void }) {
-  const [a, setA] = useState<Record<string, PackageKey>>(() => Object.fromEntries(categories.map(c => [c.name, pack.split?.assignments[c.name] ?? pack.suggested])))
+  const [a, setA] = useState<Record<string, PackageKey>>(() => Object.fromEntries(categories.map(c => [c.name, (pack.split?.assignments[c.name] ?? pack.suggested) as PackageKey])))
   return (
     <section className="mb-10 rounded-[12px] p-5" style={{ background: FIELD }}>
       <h2 className="m-0 mb-1 text-[16px] font-medium">Split by category</h2>
@@ -354,13 +357,137 @@ function Chart({ pack, employees }: { pack: AnalysisPack; employees: number }) {
         const side = n % 2 === 0 ? 1 : -1
         return (
           <g key={n}>
+            <title>{`${shortInsurer(p.x.insurer_name)} · ${cols[p.i].name} · ${money(p.x.net, { dp: 0 })}`}</title>
             <path d={`M${x - 5} ${y - 5}L${x + 5} ${y + 5}M${x - 5} ${y + 5}L${x + 5} ${y - 5}`} stroke={c} strokeWidth="2.2" fill="none" />
-            <text x={x + side * 9} y={y + 4} textAnchor={side > 0 ? 'start' : 'end'} fontSize="11" fill={p.x.excluded ? '#c3c8c1' : p.best ? INK : MUTED} fontWeight={p.best ? 600 : 400}>{shortInsurer(p.x.insurer_name)}{p.best ? ` ${k(p.x.net)}` : ''}</text>
+            {p.best && <text x={x + 9} y={y + 4} textAnchor="start" fontSize="11" fill={INK} fontWeight={600}>{shortInsurer(p.x.insurer_name)} {k(p.x.net)}</text>}
+            {void side}
           </g>
         )
       })}
       <text transform={`translate(16 ${(T + H - B) / 2}) rotate(-90)`} textAnchor="middle" fontSize="11.5" fill={MUTED}>Annual premium, net of GST, S$</text>
       <text x={W - R} y={H - 4} textAnchor="end" fontSize="11" fill={SUBTLE}>{employees} employees · per employee a month at the suggested rung: {pack.rungs[idx]?.best ? pepm(pack.rungs[idx].best!.net, employees) : '—'}</text>
     </svg>
+  )
+}
+
+const SHORT: Record<string, string> = {
+  current: 'Current', beds_more: '+1 bed', beds_fewer: '−1 bed', type: 'Hospital type', limit_down: 'Limit ↓', limit_up: 'Limit ↑', annual: 'Annual limit',
+  coins: '20% co-ins', gmm_off: 'No major medical', gmm_on: 'Add major medical', life_down: 'Life ↓', life_up: 'Life ↑',
+}
+
+/** The schedule as a client's HR reads it: one line per plan. */
+function scheduleLines(s: Schedule, counts: AnalysisPack['planCounts']): { cover: string; lines: string[] }[] {
+  const n = (v: number) => `S$${v.toLocaleString('en-SG')}`
+  const label = (v: string) => v === '*' ? 'Everyone' : /^\d+$/.test(v) ? `Plan ${v}` : v
+  const people = (c: string, v: string) => counts?.[c]?.find(x => x.value === v)?.people
+  return SCHEDULE_COVERS.map(c => {
+    const map = s[c] as Record<string, unknown>
+    const lines = Object.entries(map).map(([v, f]) => {
+      const who = `${label(v)}${people(c, v) != null ? ` (${people(c, v)})` : ''}`
+      if (f == null) return `${who}: not covered`
+      if (c === 'GHS') { const h = f as Schedule['GHS'][string] & object; return `${who}: ${h.foreignWorker ? 'foreign workers, ' : ''}${h.hospital === 'private' ? 'private' : 'government'} ${h.beds}-bed, ${n(h.limit)} ${h.limitKind === 'annual' ? 'a year' : 'per stay'}${h.coins ? `, ${h.coins}% co-insurance` : ''}` }
+      if (c === 'GTL') { const l = f as { kind: string; n: number }; return `${who}: ${l.kind === 'multiple' ? `${l.n} × monthly salary` : n(l.n)}` }
+      if (c === 'GOPC') return `${who}: co-pay S$${f} per visit`
+      return `${who}: ${n(f as number)}${c === 'EMM' ? '' : ' a year'}`
+    })
+    return { cover: COVER_WORD[c], lines }
+  }).filter(x => x.lines.length)
+}
+
+function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; customise: boolean; busy: string | null; onCustom: (s: CustomSpec) => void }) {
+  const cur = pack.rungs[0]
+  const changes = pack.rungs.slice(1)
+  const order = cur ? cur.insurers.filter(i => !i.variant).map(i => i.insurer_name) : []
+  const curOf = (ins: string) => cur?.insurers.find(i => i.insurer_name === ins && !i.variant) ?? null
+  const isCurrentInsurer = (ins: string) => !!pack.currentInsurer && shortInsurer(pack.currentInsurer) === shortInsurer(ins)
+  const lowestCur = cur?.best?.insurer_name
+  const lines = pack.schedule ? scheduleLines(pack.schedule, pack.planCounts) : []
+  return (
+    <>
+      {customise && <Customise pack={pack} busy={busy === 'custom'} onRun={onCustom} />}
+      <section>
+        <h2 className="m-0 mb-1 text-[16px] font-medium">Current cover</h2>
+        <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>As confirmed from the census{pack.currentInsurer ? `; with ${pack.currentInsurer} today` : ''}.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-3 mb-2">
+          {lines.map(l => (
+            <div key={l.cover}>
+              <p className="m-0 text-[12.5px] font-semibold" style={{ color: INK }}>{l.cover}</p>
+              <ul className="m-0 pl-4 text-[13px]" style={{ color: MUTED }}>{l.lines.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </div>
+          ))}
+        </div>
+        {pack.unscheduled && pack.unscheduled.length > 0 && <p className="m-0 mt-2 text-[12.5px]" style={{ color: '#a1242f' }}>{pack.unscheduled.length} lives left out: their hospital plan is not stated.</p>}
+      </section>
+
+      <section className="mt-8">
+        <h2 className="m-0 mb-1 text-[16px] font-medium">The current cover at every insurer</h2>
+        <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Annual premium net of GST. Bold is the lowest.</p>
+        <div className="overflow-x-auto">
+          <table className="trs-table w-full text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 640 }}>
+            <thead><tr>
+              <th className="text-left px-3 py-2" style={{ color: MUTED }}>Insurer</th>
+              <th className="text-right px-3 py-2">Premium, net</th><th className="text-right px-3 py-2">With GST</th>
+              <th className="text-right px-3 py-2">Per employee a month</th><th className="text-right px-3 py-2">Lines not priced</th>
+            </tr></thead>
+            <tbody>
+              {order.map(ins => { const c = curOf(ins)!; const grey = c.excluded; return (
+                <tr key={ins} style={{ borderTop: `1px solid ${HAIR}`, color: grey ? SUBTLE : INK }}>
+                  <td className="px-3 py-2" style={{ textDecoration: grey ? 'line-through' : 'none' }}>{shortInsurer(ins)}{isCurrentInsurer(ins) ? ' · current, renewal card' : ''}{grey ? ' · ruled out' : ''}</td>
+                  <td className="px-3 py-2 text-right tabular-nums" style={{ fontWeight: ins === lowestCur ? 600 : 400 }}>{money(c.net, { dp: 0 })}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{money(c.total, { dp: 0 })}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{pepm(c.net, pack.employees)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{c.unpriced || '—'}</td>
+                </tr>
+              ) })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="m-0 mb-1 text-[16px] font-medium">One change at a time</h2>
+        <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>Each row changes one thing for everyone (foreign workers keep their cover). The figure under each premium is the difference from the current cover at the same insurer.</p>
+        <div className="overflow-x-auto">
+          <table className="trs-table w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 860 }}>
+            <thead><tr>
+              <th className="text-left px-3 py-2" style={{ color: MUTED }}>Change</th>
+              {order.map(ins => <th key={ins} className="text-right px-3 py-2" style={{ color: curOf(ins)?.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}</th>)}
+            </tr></thead>
+            <tbody>
+              {changes.map(r => (
+                <tr key={r.key} style={{ borderTop: `1px solid ${HAIR}` }}>
+                  <td className="px-3 py-2"><span style={{ color: INK }}>{r.name}</span><div className="text-[12px]" style={{ color: SUBTLE }}>{r.facts[0]}</div></td>
+                  {order.map(ins => {
+                    const c = r.insurers.find(i => i.insurer_name === ins && !i.variant), base = curOf(ins)
+                    const d = c && base ? c.net - base.net : null
+                    const grey = c?.excluded
+                    return (
+                      <td key={ins} className="px-3 py-2 text-right tabular-nums" style={{ color: grey ? SUBTLE : INK, fontWeight: r.best?.insurer_name === ins ? 600 : 400 }}>
+                        {c ? money(c.net, { dp: 0 }) : '—'}
+                        {d != null && <div className="text-[12px] font-normal" style={{ color: grey ? SUBTLE : Math.abs(d) < 1 ? SUBTLE : d < 0 ? '#1f7a3a' : '#a1242f' }}>{Math.abs(d) < 1 ? 'same plan' : `${d > 0 ? '+' : '−'}${money(Math.abs(d), { dp: 0 })}`}</div>}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+              {pack.custom && (
+                <tr style={{ borderTop: `1px solid ${HAIR}` }}>
+                  <td className="px-3 py-2"><span style={{ color: INK }}>Custom</span><div className="text-[12px]" style={{ color: SUBTLE }}>{pack.custom.summary}</div></td>
+                  {order.map(ins => { const c = pack.custom!.insurers.find(i => i.insurer_name === ins && !i.variant); return <td key={ins} className="px-3 py-2 text-right tabular-nums" style={{ fontWeight: pack.custom!.best?.insurer_name === ins ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })}
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="m-0 mb-1 text-[16px] font-medium">Premium by change</h2>
+        <p className="m-0 mb-4 text-[13px]" style={{ color: MUTED }}>A cross per insurer; the line joins the lowest premium for each change.</p>
+        <Chart pack={{ ...pack, rungs: pack.rungs.map(r => ({ ...r, name: SHORT[r.key] ?? r.name })) }} employees={pack.employees} />
+      </section>
+
+      <ul className="m-0 mt-6 pl-4 text-[12.5px]" style={{ color: MUTED }}>{pack.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>
+    </>
   )
 }

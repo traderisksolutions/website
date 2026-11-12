@@ -25,7 +25,8 @@ import { ingestAttachment } from '@/lib/documents/ingest'
 import { parseEmlSmart }             from '@/lib/parse-eml'
 import { logError }                  from '@/lib/error-log'
 import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
-import { xlsxSheetsAsText } from '@/lib/xlsx-text'
+import { isEncryptedWorkbook, xlsxSheetsAsText } from '@/lib/xlsx-text'
+const ENCRYPTED_MARK = '[ENCRYPTED — password-protected workbook]'
 import { agentKey } from '@/lib/ai-agents'
 
 export const maxDuration = 300
@@ -390,9 +391,13 @@ async function processAttachment(
   else if (mime.includes('spreadsheetml') || mime.includes('excel') || filename.endsWith('.xlsx') || filename.endsWith('.xls')) {
     try {
       // Dates as YYYY-MM-DD: the library's default renders them month-first. See src/lib/xlsx-text.ts.
-      parsedText = xlsxSheetsAsText(data, 10000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n').slice(0, 30000)
+      // Every sheet, in full up to 400,000 characters: a group census runs to 11 tabs and 600 rows
+      // (OUE, 12 Nov 2026), and the old 30,000 cap cut it after 354. A protected file is marked so
+      // the census picker asks for its password.
+      parsedText = isEncryptedWorkbook(Buffer.from(data)) ? ENCRYPTED_MARK
+        : xlsxSheetsAsText(data, 200_000).map(s => `Sheet: ${s.name}\n${s.text}`).join('\n\n').slice(0, 400_000)
     } catch {
-      parsedText = '[XLSX — install xlsx package to extract table data]'
+      parsedText = '[XLSX — the file could not be read]'
     }
     console.log(`[nexus/extract] XLSX extracted: ${filename}`)
   }
