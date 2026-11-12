@@ -1,5 +1,5 @@
 /** Where a done suggestion opens. Pure, so client components import it without the server module. */
 export type SuggestionKind = 'eb_scenarios'
-export const doneHref = (_s: { kind: SuggestionKind }, quotationId: string) => `/pricing-matrix/quote/${quotationId}/analysis`
-export const doneLabel = (_s: { kind: SuggestionKind }) => 'Open analysis'
+export const doneHref = (_s: { kind: SuggestionKind }, quotationId: string) => `/pricing-matrix/quote/${quotationId}/compare`
+export const doneLabel = (_s: { kind: SuggestionKind }) => 'Compare cover'
 export const doneSummary = (s: { done: { members: number; summary?: string } | null }) => s.done?.summary ?? `${s.done?.members ?? 0} members priced`

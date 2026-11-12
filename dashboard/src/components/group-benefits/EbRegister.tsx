@@ -98,7 +98,7 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
           const a = r.analysis && r.analysis.best_net != null ? r.analysis : null
           const low = a ? null : lowestOf(r.results)
           const cats = r.requirement?.categories?.length ?? 0
-          const open = `/pricing-matrix/quote/${r.id}/analysis`
+          const open = `/pricing-matrix/quote/${r.id}/compare`
           return (
             <RegisterRow key={r.id}>
               {!company && <RegisterCell><Link href={open} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name || 'Untitled'}</Link> <Link href={`/pricing-matrix/quote/${r.id}`} className="text-[12px] no-underline hover:underline" style={{ color: MUTED }}>quotation</Link></RegisterCell>}

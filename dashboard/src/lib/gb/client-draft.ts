@@ -214,7 +214,7 @@ async function exemplars(): Promise<string[]> {
   return rows.map(r => ownWords(r.body_text).trim()).filter(t => t.length > 300 && t.length < 2500 && !seen.has(t.slice(0, 80)) && seen.add(t.slice(0, 80))).slice(0, 3)
 }
 
-async function tonePass(draft: string, by: string | null, quotationId: string): Promise<{ body: string; rewritten: boolean }> {
+export async function tonePass(draft: string, by: string | null, quotationId: string): Promise<{ body: string; rewritten: boolean }> {
   const samples = await exemplars()
   if (!samples.length) return { body: draft, rewritten: false }
   const r = await callGemini({

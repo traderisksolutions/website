@@ -38,3 +38,16 @@ test('a link with the company opens New quotation with it filled, older links in
   await expect(page).toHaveURL(/\/pricing-matrix\/new\?company=OUE/)
   await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/)
 })
+
+test('a quotation opens Compare cover: today and the five products, every cover, Back to the list', async ({ page }) => {
+  await openClean(page, '/pricing-matrix')
+  const row = page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first()
+  await expect(row).toBeVisible()
+  const href = await row.getAttribute('href')
+  await openClean(page, href!)
+  await expect(page.getByText('Today', { exact: true }).first()).toBeVisible({ timeout: 30_000 })
+  for (const p of ['Steadfast MCare+', 'RCC Enhanced III', 'Income FlexCare', 'Singlife MyBenefits Plus', 'AIA Flexi Vital Care Plus']) await expect(page.getByText(p, { exact: true }).first()).toBeVisible()
+  for (const c of ['Hospital & Surgical', 'Outpatient Specialist', 'Personal Accident']) await expect(page.getByRole('heading', { name: c })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Draft email' })).toHaveCount(5)
+  await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Employment Benefits')
+})

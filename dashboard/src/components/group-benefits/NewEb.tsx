@@ -206,7 +206,7 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
       if (!res.ok || !d.quotation_id) { setError(d.error ?? `The analysis did not run (${res.status}).`); setBusy(false); return }
       // The form is done: off the trail and out of history, so Back from the report skips it.
       dropCrumb('/pricing-matrix/new')
-      router.replace(`/pricing-matrix/quote/${d.quotation_id}/analysis`)
+      router.replace(`/pricing-matrix/quote/${d.quotation_id}/compare`)
     } catch (e) { setError(e instanceof Error ? e.message : 'The analysis did not run.'); setBusy(false) }
   }
 
