@@ -106,3 +106,11 @@ describe('anchor and GST', () => {
     expect(a.change).toBeCloseTo(0.1)
   })
 })
+
+describe('the anchor', () => {
+  it('keeps no total from a movement invoice alone', () => {
+    const ly = normaliseLastYear({ total: 400.08, premiumByCover: { GHS: 400.08 }, documents: [{ file: 'Staff Movement - Client Tax Invoice.pdf', kind: 'invoice' }] })
+    expect(ly.total).toBeNull()
+    expect(ly.premiumByCover).toEqual({})
+  })
+})

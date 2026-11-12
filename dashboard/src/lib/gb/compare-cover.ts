@@ -202,7 +202,7 @@ export function buildCompare(input: {
   if (!current) notes.push(input.currentInsurer ? `${input.currentInsurer} is not one of the five products; today's column shows last year's premium only.` : 'No current insurer stated; today is the cover as scheduled, with no renewal price.')
   return {
     quotationId: input.quotationId, effectiveDate: input.effectiveDate, basis: input.basis,
-    lives: input.members.length - left, employees: employeesInCompany, leftOut: left,
+    lives: input.members.length - left, employees: cats.reduce((n, c) => n + c.members.filter(m => m.relationship === 'self').length, 0), leftOut: left,
     categories: cats.map(c => ({ key: c.key, name: c.name, lives: c.members.length, employees: c.members.filter(m => m.relationship === 'self').length })),
     today: { product: current, label: current ?? input.currentInsurer ?? 'Today', picks: todayPicks, lastYearTotal: input.lastYearTotal ?? null },
     products: PRODUCTS, picks, options, prices, benefits, labels, why, notes, workbook: wb.file,

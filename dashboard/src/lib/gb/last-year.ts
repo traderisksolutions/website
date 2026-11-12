@@ -113,10 +113,14 @@ export function normaliseLastYear(raw: unknown, files?: string[]): LastYear {
     r.documents = (r.documents as Record<string, unknown>[]).filter(d => sent.has(String(d?.file ?? '').trim().toLowerCase()))
     if (Array.isArray(r.changes)) r.changes = (r.changes as Record<string, unknown>[]).filter(d => sent.has(String(d?.file ?? '').trim().toLowerCase()))
   }
+  // A total is the anchor: kept only when a schedule or debit note was read, never from a movement invoice alone.
+  const docKinds = (Array.isArray(r.documents) ? r.documents : []).map((d: Record<string, unknown>) => String(d?.kind ?? ''))
+  const anchorable = !Array.isArray(r.documents) || docKinds.some(k => k === 'schedule' || k === 'debit_note')
+  if (!anchorable) { for (const k of Object.keys(premiumByCover)) delete premiumByCover[k as LastYearCover] }
   return {
     insurer: str(r.insurer, 80), product: str(r.product, 80), policyNumber: str(r.policyNumber, 60),
     periodFrom: iso(r.periodFrom), periodTo: iso(r.periodTo), lives: amount(r.lives, 100_000),
-    categories, premiumByCover, total, sumMatches, gst: oneOf(r.gst, ['included', 'excluded'] as const),
+    categories, premiumByCover, total: anchorable ? total : null, sumMatches: anchorable ? sumMatches : null, gst: oneOf(r.gst, ['included', 'excluded'] as const),
     documents: (Array.isArray(r.documents) ? r.documents : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Document', kind: oneOf(d?.kind, kinds) ?? 'other', date: iso(d?.date) })),
     changes: (Array.isArray(r.changes) ? r.changes : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Endorsement', date: iso(d?.date), what: str(d?.what, 240) ?? '' })).filter(c => c.what),
     conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map(x => str(x, 240)).filter((x): x is string => !!x).slice(0, 20),
@@ -205,6 +209,7 @@ Rules:
 - "limit" is the hospital and surgical overall maximum limit of the main schedule: per disability or an annual policy limit, as the schedule states. "beds" is the ward entitlement. "coins" is the co-insurance percent on hospital bills.
 - "gpCopay" in S$ per visit (0 for none). "spLimit" and "dentalLimit" are annual limits in S$.
 - Life cover: a multiple of monthly salary as {"kind":"multiple","n":24}; a fixed sum as {"kind":"sum","n":100000}.
+- A member movement, addition, deletion or adjustment invoice is not the annual premium: leave premiumByCover and total null unless a schedule, renewal debit note or annual invoice states the annual premium.
 - Premiums: the annual premium for the policy period, in S$, net of GST when the document shows both. "gst" says whether the figures you copied include GST ("Gross Premium" on a broker's debit note usually does; say "included" only when the document shows GST or calls it gross or inclusive). Copy figures exactly; never compute or estimate one. null when not stated.
 - Endorsements: apply them in date order; the newest wins for each value it changes. List each change in "changes"; list any disagreement between documents in "conflicts".
 - If a value is not on the documents, use null. Do not guess.`
