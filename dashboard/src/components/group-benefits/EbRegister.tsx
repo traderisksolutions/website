@@ -76,7 +76,7 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
           ]} />
         )}
         {newHref
-          ? <Link href={newHref} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:opacity-90" style={{ background: '#132c1c' }}>+ New quotation</Link>
+          ? <Link href={newHref} data-same-tab className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium inline-flex items-center gap-2 no-underline hover:opacity-90" style={{ background: '#132c1c' }}>+ New quotation</Link>
           : <button type="button" onClick={onNew} className="h-9 px-4 rounded-[7px] border-0 text-white text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:opacity-90" style={{ background: '#132c1c' }}>+ New quotation</button>}
       </div>
       {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
