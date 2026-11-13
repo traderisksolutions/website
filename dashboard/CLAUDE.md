@@ -71,6 +71,8 @@ Quote `"${sha}:branch"`; zsh mangles `$sha:branch`. If `main` moved under you, m
 4. **Review:** tabs to price, last year's policy (editable premiums, sum check, endorsement changes, conflicts), details, current cover as numbers filled from last year's plans. Confirm runs `POST /api/group-benefits/analysis`.
 5. **Report** (`/pricing-matrix/quote/<id>/analysis`): Anchor (last year beside the same cover this year), the current cover at every insurer, one change at a time (`runCurrent`, `current.ts`), client report and Draft to client. No model prices anything.
 
+Compare cover (`/pricing-matrix/quote/<id>/compare`, `CompareCover.tsx`, `src/lib/gb/compare-cover.ts`): Today is last year's policy (uploaded on the page, kept in Drive, linked), hospital chosen by ward then limit, plan rules from Settings › Plan rules (`src/lib/gb/plan-pairs.ts`) applied on every change.
+
 Target screens (prototype of 13 Nov, built on Nathan's Gembridge workbook): Compare in Nathan's layout (plan selection per insurer per cover, premium per cover, benefit schedule rows from the brochures), cover steps with cover-per-premium and a running total, tiers one plan down and up per insurer, Options A to D, census workbook export with prices. Not built yet.
 
 ## 6. Where to look

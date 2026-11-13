@@ -16,16 +16,19 @@ export function amountOf(t: string | null | undefined): number | null {
 
 const sg = (t: string) => t.replace(/(^|[^S])\$/g, '$1S$')
 
+/** A hospital plan in two parts: the ward ("Private 1-bed") and the limit ("S$150,000 a year · 20% co-insurance"). */
+export function hospitalParts(b: Record<string, string>): { ward: string; limit: string } {
+  const basis = /disab/i.test(b['ghs.limit_basis'] ?? '') ? 'per disability' : /annual/i.test(b['ghs.limit_basis'] ?? '') ? 'a year' : ''
+  const lim = /as charged/i.test(b['ghs.annual_limit'] ?? '') ? 'As charged' : sg(b['ghs.annual_limit'] ?? '')
+  const type = (b['ghs.hospital_type'] ?? '').replace(/Govt\/Restructured|Government\/Restructured|Restructured/i, 'Government')
+  const co = b['ghs.copay'] && !/^0%|^nil/i.test(b['ghs.copay']) ? `${b['ghs.copay'].split(/[ (]/)[0]} co-insurance` : ''
+  return { ward: `${type} ${b['ghs.room_board'] ?? ''}`.trim(), limit: [`${lim}${basis ? ` ${basis}` : ''}`.trim(), co].filter(Boolean).join(' · ') }
+}
+
 /** A cover in words: "Private 1-bed · S$200,000 a year", "No co-pay · non-panel S$35 / visit". */
 export function coverWords(cover: string, plan: string, b: Record<string, string>): string {
   if (!plan) return 'None'
-  if (cover === 'Hospital & Surgical') {
-    const basis = /disab/i.test(b['ghs.limit_basis'] ?? '') ? 'per disability' : /annual/i.test(b['ghs.limit_basis'] ?? '') ? 'a year' : ''
-    const lim = /as charged/i.test(b['ghs.annual_limit'] ?? '') ? 'As charged' : sg(b['ghs.annual_limit'] ?? '')
-    const type = (b['ghs.hospital_type'] ?? '').replace(/Govt\/Restructured|Government\/Restructured|Restructured/i, 'Government')
-    const co = b['ghs.copay'] && !/^0%|^nil/i.test(b['ghs.copay']) ? `${b['ghs.copay'].split(/[ (]/)[0]} co-insurance` : ''
-    return [`${type} ${b['ghs.room_board'] ?? ''}`.trim(), `${lim}${basis ? ` ${basis}` : ''}`.trim(), co].filter(Boolean).join(' · ')
-  }
+  if (cover === 'Hospital & Surgical') { const h = hospitalParts(b); return [h.ward, h.limit].filter(Boolean).join(' · ') }
   if (cover === 'Outpatient GP') return `${/nil|no co-pay/i.test(`${plan} ${b['gp.copay'] ?? ''}`) ? 'No co-pay' : `${sg(b['gp.copay'] ?? '')} co-pay`}${b['gp.nonpanel'] ? ` · non-panel ${sg(b['gp.nonpanel'])}` : ''}`
   const key: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Personal Accident': 'pa.death' }
   const v = b[key[cover]]

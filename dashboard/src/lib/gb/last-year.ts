@@ -37,7 +37,8 @@ export type CategoryFacts = {
   pa: number | null
 }
 export type LastYearCategory = { name: string; lives: number | null; plans: Partial<Record<LastYearCover, string>>; facts: CategoryFacts }
-export type LastYearDoc = { file: string; kind: 'schedule' | 'endorsement' | 'debit_note' | 'invoice' | 'other'; date: string | null }
+/** `ref`: where the file is kept (drivefile:<id>), set when it was uploaded on Compare cover. */
+export type LastYearDoc = { file: string; kind: 'schedule' | 'endorsement' | 'debit_note' | 'invoice' | 'other'; date: string | null; ref?: string | null }
 export type LastYear = {
   insurer: string | null
   product: string | null

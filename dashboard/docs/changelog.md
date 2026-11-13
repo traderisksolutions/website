@@ -4,6 +4,14 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Compare cover: last year's policy as Today, ward then limit, plan rules
+
+- **Today is last year's policy.** "Add last year's policy" on Compare cover (`POST /api/group-benefits/quote/<id>/last-year`): files kept in the Shared Drive (`group-benefits/last-year`) and linked under Today, one read (`readLastYear`), saved on the quotation with what each census plan means. Today shows the cover as benefit rows (`factsAsBenefits`) and the premium net of GST (9% taken off when the documents include it); every product is measured against it. Without a policy, Today shows the schedule's cover and the current insurer's renewal price as before. The client draft reads the same Today.
+- **Hospital plan in two steps:** ward, then limit within it (`HospitalPicker`, `hospitalParts`). A change of ward keeps the same limit, else the nearest.
+- **Plan rules** (Settings › Employment Benefits › Plan rules; `src/lib/gb/plan-pairs.ts`, `app_settings gb_plan_rules`, `GET/PUT /api/group-benefits/plan-rules`): a cover tied to another at one insurer, same plan number or any plan, always together or optional. Default: Income FlexCare major medical follows its hospital plan and is taken with it. Applied to every load and every change of plan; the rule shows its pairs from the workbook.
+- The workbook has no Income FlexCare major medical rates: those cells read "not priced".
+- Journeys: two in `tests/journeys/employment-benefits.spec.ts` (choices answered without saving).
+
 ## 2026-11-13 — Inbox: label who a thread is from
 
 - **From** at the top of the Inbox rail: Client, Insurer or Referral (`ThreadParty.tsx`, `src/lib/crm/thread-party.ts`, `PATCH /api/engagement/thread/<id>/party`). The label sets the kind of the company the thread is filed under (Referral = partner), so every thread from that company reads the same. A company that holds a policy stays a client (409).

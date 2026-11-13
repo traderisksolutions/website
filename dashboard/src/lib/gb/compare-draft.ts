@@ -33,25 +33,23 @@ function weightOf(today: string, theirs: string, text: string): number {
 /** Every difference between today and one product, for the largest category. Pure. */
 export function compareFacts(d: CompareData & { company: string | null }, product: string, picks: Picks): CompareFacts {
   const cat = d.categories[0]?.key ?? ''
-  const todayPick = (cv: string) => d.today.picks[cat]?.[cv] ?? ''
   const theirPick = (cv: string) => picks[cat]?.[cv] ?? ''
   const price = (p: string | null, c: string, cv: string, plan: string) => p && plan ? d.prices[c]?.[p]?.[cv]?.[plan] ?? null : null
-  let total = 0, todayTotal: number | null = d.today.product ? 0 : d.today.lastYearTotal
-  for (const c of d.categories) for (const cv of COVERS) {
-    total += price(product, c.key, cv, picks[c.key]?.[cv] ?? '') ?? 0
-    if (d.today.product && todayTotal != null) todayTotal += price(d.today.product, c.key, cv, d.today.picks[c.key]?.[cv] ?? '') ?? 0
-  }
+  // Today: last year's policy and schedule as the compare page shows it (src/lib/gb/compare-cover.ts).
+  const todayOf = (cv: string) => d.today.benefits?.[cat]?.[cv] ?? {}
+  const todayTotal = d.today.total ?? d.today.lastYearTotal
+  let total = 0
+  for (const c of d.categories) for (const cv of COVERS) total += price(product, c.key, cv, picks[c.key]?.[cv] ?? '') ?? 0
   const covers = COVERS.map(cv => {
-    const tp = todayPick(cv), pp = theirPick(cv)
-    const tb = d.today.product ? d.benefits[`${d.today.product}|${cv}|${tp}`] ?? {} : {}
+    const pp = theirPick(cv), tb = todayOf(cv)
     const pb = d.benefits[`${product}|${cv}|${pp}`] ?? {}
-    const premium = price(product, cat, cv, pp), base = price(d.today.product, cat, cv, tp)
-    return { cover: cv, today: d.today.product ? coverWords(cv, tp, tb) : 'As scheduled', theirs: coverWords(cv, pp, pb), premium, delta: premium != null && base != null && base > 0 ? premium - base : null }
+    const premium = price(product, cat, cv, pp), base = d.today.premiums?.[cat]?.[cv] ?? null
+    return { cover: cv, today: coverWords(cv, Object.keys(tb).length ? 'today' : '', tb), theirs: coverWords(cv, pp, pb), premium, delta: premium != null && base != null && base > 0 ? premium - base : null }
   }).filter(c => c.theirs !== 'None' || c.today !== 'None')
   const more: Highlight[] = [], less: Highlight[] = []
   for (const id of Object.keys(d.labels)) {
     const [cv, label] = d.labels[id]
-    const tv = d.today.product ? (d.benefits[`${d.today.product}|${cv}|${todayPick(cv)}`] ?? {})[id] : undefined
+    const tv = todayOf(cv)[id]
     const pv = (d.benefits[`${product}|${cv}|${theirPick(cv)}`] ?? {})[id]
     if (tv == null || pv == null) continue
     const payer = /co-?pay|co-?insur/i.test(label)

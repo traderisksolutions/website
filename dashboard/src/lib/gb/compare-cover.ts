@@ -18,6 +18,8 @@ import { memberAge, type Member } from '../gb-quote'
 import { ALL, planValue, type Schedule } from './current'
 import { COVERS, MEDICAL, PRODUCTS, type Product, type Workbook, type WbRate } from './workbook'
 import { amountOf } from './compare-words'
+import { applyRules, type PlanRule } from './plan-pairs'
+import type { LastYear, LastYearCover } from './last-year'
 export { amountOf }
 
 export type CompareCategory = { key: string; name: string; lives: number; employees: number }
@@ -29,7 +31,16 @@ export type CompareData = {
   categories: CompareCategory[]
   /** Lives left out: foreign-worker plans, priced on their own cover. */
   leftOut: number
-  today: { product: Product | null; label: string; picks: Picks; lastYearTotal: number | null }
+  today: {
+    product: Product | null; label: string; picks: Picks; lastYearTotal: number | null
+    /** Today's premium for the year, net of GST: last year's policy when it states one, else the current insurer's renewal of the same plans. */
+    total: number | null; source: 'last_year' | 'renewal' | null
+    premiums: Record<string, Record<string, number | null>>                        // category → cover
+    /** Today's cover as the benefit rows read it: from the schedule and last year's policy, numbers only. */
+    benefits: Record<string, Record<string, Record<string, string>>>               // category → cover → id → value
+    policy: TodayPolicy | null
+  }
+  rules: PlanRule[]
   products: readonly Product[]
   picks: Record<string, Picks>                                       // product → picks
   options: Record<string, Record<string, string[]>>                  // product → cover → plans
@@ -41,7 +52,34 @@ export type CompareData = {
   workbook: Workbook['file']
 }
 
+export type TodayPolicy = {
+  insurer: string | null; product: string | null; policyNumber: string | null; periodFrom: string | null; periodTo: string | null
+  total: number | null; gstRemoved: boolean; sumMatches: boolean | null
+  documents: { file: string; kind: string; href: string | null }[]
+}
+
 const HOSP = 'Hospital & Surgical'
+export const GST = 0.09
+const COVER_OF_LAST: Partial<Record<LastYearCover, string>> = { GHS: 'Hospital & Surgical', EMM: 'Major Medical', GOPC: 'Outpatient GP', GOSC: 'Outpatient Specialist', GD: 'Dental', GPA: 'Personal Accident' }
+
+const usd = (n: number) => Number.isFinite(n) ? `$${Math.round(n).toLocaleString('en-SG')}` : 'As charged'
+/** Today's cover as benefit rows, from numbers: "Private", "1-bed", "$150,000", "Per disability", "20%". Pure. */
+export function factsAsBenefits(t: Target & { pa?: number | null }): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {}
+  if (t.hosp) out[HOSP] = {
+    'ghs.hospital_type': t.hosp.hospital === 'private' ? 'Private' : 'Government',
+    ...(t.hosp.beds ? { 'ghs.room_board': `${t.hosp.beds}-bed` } : {}),
+    ...(t.hosp.limit != null ? { 'ghs.annual_limit': usd(t.hosp.limit) } : {}),
+    'ghs.limit_basis': t.hosp.basis === 'per_disability' ? 'Per disability' : 'Annual',
+    'ghs.copay': t.hosp.coins ? `${t.hosp.coins}%` : 'Nil',
+  }
+  if (t.gmm != null) out['Major Medical'] = { 'gmm.annual_limit': usd(t.gmm) }
+  if (t.gpCopay != null) out['Outpatient GP'] = { 'gp.copay': t.gpCopay === 0 ? 'Nil' : usd(t.gpCopay) }
+  if (t.spLimit != null) out['Outpatient Specialist'] = { 'sp.annual_limit': usd(t.spLimit) }
+  if (t.dental != null) out.Dental = { 'dental.annual_limit': usd(t.dental) }
+  if (t.pa != null) out['Personal Accident'] = { 'pa.death': usd(t.pa) }
+  return out
+}
 export const productOf = (insurer: string | null | undefined): Product | null => {
   const s = (insurer ?? '').toLowerCase()
   if (/qbe|steadfast|mcare/.test(s)) return 'Steadfast MCare+'
@@ -168,7 +206,9 @@ function targetFor(key: string, members: Member[], schedule: Schedule | null): T
 export function buildCompare(input: {
   quotationId: string; wb: Workbook; members: Member[]; schedule: Schedule | null; effectiveDate: string; basis: 'renewal' | 'new_business'
   currentInsurer: string | null; lastYearTotal?: number | null; saved?: Record<string, Picks> | null
+  lastYear?: LastYear | null; rules?: PlanRule[]
 }): CompareData {
+  const rules = input.rules ?? []
   const { wb } = input
   const idx = indexRates(wb)
   const benefits: CompareData['benefits'] = {}, labels: CompareData['labels'] = {}
@@ -205,8 +245,45 @@ export function buildCompare(input: {
     }
     const saved = input.saved?.[p]
     if (saved) for (const k of Object.keys(saved)) if (picks[p][k]) picks[p][k] = { ...picks[p][k], ...saved[k] }
+    for (const k of Object.keys(picks[p])) picks[p][k] = applyRules(rules, p, picks[p][k], options[p])
   }
   const todayPicks = current ? JSON.parse(JSON.stringify(picks[current])) as Picks : Object.fromEntries(cats.map(c => [c.key, Object.fromEntries(COVERS.map(x => [x, '']))]))
+  const ly = input.lastYear ?? null
+  const one = ly?.categories.length === 1 ? ly.categories[0].facts : null
+  const todayBenefits: CompareData['today']['benefits'] = {}
+  for (const cat of cats) {
+    let t = targetFor(cat.key, cat.members, input.schedule)
+    if (!input.schedule && one) t = { hosp: one.hospital && one.beds && one.limitKind ? { hospital: one.hospital, beds: one.beds, limit: one.limit, basis: one.limitKind, coins: one.coins ?? 0 } : null, gmm: one.gmm, gpCopay: one.gpCopay, spLimit: one.spLimit, dental: one.dentalLimit }
+    const facts = factsAsBenefits({ ...t, pa: cats.length === 1 ? one?.pa ?? null : null })
+    todayBenefits[cat.key] = {}
+    for (const c of COVERS) {
+      // The current insurer's brochure fills the rows the schedule does not state; the schedule's numbers win.
+      const brochure = current && todayPicks[cat.key]?.[c] ? benefits[`${current}|${c}|${todayPicks[cat.key][c]}`] ?? {} : {}
+      const v = { ...brochure, ...facts[c] }
+      if (Object.keys(v).length) todayBenefits[cat.key][c] = v
+    }
+  }
+  const k = ly?.gst === 'included' ? 1 / (1 + GST) : 1
+  const net = (n: number | null | undefined) => n == null ? null : Math.round(n * k * 100) / 100
+  const lyCovers = Object.entries(ly?.premiumByCover ?? {}).filter(([c]) => COVER_OF_LAST[c as LastYearCover])
+  const lyTotal = net(ly?.total ?? (Object.keys(ly?.premiumByCover ?? {}).length ? Object.values(ly!.premiumByCover).reduce((a, b) => a + (b ?? 0), 0) : input.lastYearTotal ?? null))
+  const todayPremiums: CompareData['today']['premiums'] = {}
+  let todayTotal: number | null = null, source: CompareData['today']['source'] = null
+  if (lyTotal != null || lyCovers.length) {
+    source = 'last_year'; todayTotal = lyTotal
+    for (const cat of cats) todayPremiums[cat.key] = Object.fromEntries(COVERS.map(c => [c, cats.length === 1 ? net(lyCovers.find(([lc]) => COVER_OF_LAST[lc as LastYearCover] === c)?.[1]) : null]))
+  } else if (current) {
+    source = 'renewal'; todayTotal = 0
+    for (const cat of cats) {
+      todayPremiums[cat.key] = Object.fromEntries(COVERS.map(c => [c, todayPicks[cat.key]?.[c] ? prices[cat.key][current][c][todayPicks[cat.key][c]] ?? null : null]))
+      todayTotal += Object.values(todayPremiums[cat.key]).reduce<number>((a, b) => a + (b ?? 0), 0)
+    }
+  }
+  const policy: TodayPolicy | null = ly && (ly.documents.length || ly.total != null) ? {
+    insurer: ly.insurer, product: ly.product, policyNumber: ly.policyNumber, periodFrom: ly.periodFrom, periodTo: ly.periodTo,
+    total: lyTotal, gstRemoved: k !== 1, sumMatches: ly.sumMatches,
+    documents: ly.documents.map(d => ({ file: d.file, kind: d.kind, href: d.ref?.startsWith('drivefile:') ? `https://drive.google.com/file/d/${encodeURIComponent(d.ref.slice(10))}/view` : null })),
+  } : null
   const notes: string[] = ['AIA personal accident is not priced until its rate rule is confirmed.', 'Singlife GP is priced from its rate table; the workbook summary shows none (to confirm with Nathan).']
   const left = input.members.length - cats.reduce((n, c) => n + c.members.length, 0)
   if (left) notes.push(`${left} foreign-worker lives priced on their own cover, not in this comparison.`)
@@ -215,8 +292,8 @@ export function buildCompare(input: {
     quotationId: input.quotationId, effectiveDate: input.effectiveDate, basis: input.basis,
     lives: input.members.length - left, employees: cats.reduce((n, c) => n + c.members.filter(m => m.relationship === 'self').length, 0), leftOut: left,
     categories: cats.map(c => ({ key: c.key, name: c.name, lives: c.members.length, employees: c.members.filter(m => m.relationship === 'self').length })),
-    today: { product: current, label: current ?? input.currentInsurer ?? 'Today', picks: todayPicks, lastYearTotal: input.lastYearTotal ?? null },
-    products: PRODUCTS, picks, options, prices, benefits, labels, why, notes, workbook: wb.file,
+    today: { product: current, label: ly?.product ?? ly?.insurer ?? current ?? input.currentInsurer ?? 'Today', picks: todayPicks, lastYearTotal: lyTotal, total: todayTotal, source, premiums: todayPremiums, benefits: todayBenefits, policy },
+    products: PRODUCTS, picks, options, prices, benefits, labels, why, notes, workbook: wb.file, rules,
   }
 }
 
@@ -237,19 +314,20 @@ export async function loadCompare(id: string): Promise<(CompareData & { company:
   const { sbTry, enc } = await import('@/lib/crm/db')
   const { loadWorkbook, importWorkbook } = await import('./workbook')
   const { loadAnalysis } = await import('./analysis')
-  const [q] = await sbTry<{ id: string; company_name: string | null; census: Member[] | null; effective_date: string | null; basis: string | null; requirement: { current_schedule?: Schedule; current_insurer?: string | null; last_year?: { total?: number | null } | null } | null }[]>(`gb_quotations?id=eq.${enc(id)}&select=id,company_name,census,effective_date,basis,requirement&limit=1`, [])
+  const [q] = await sbTry<{ id: string; company_name: string | null; census: Member[] | null; effective_date: string | null; basis: string | null; requirement: { current_schedule?: Schedule; current_insurer?: string | null; last_year?: LastYear | null } | null }[]>(`gb_quotations?id=eq.${enc(id)}&select=id,company_name,census,effective_date,basis,requirement&limit=1`, [])
   if (!q) return { error: 'Quotation not found', status: 404 }
   if (!q.census?.length) return { error: 'The quotation has no census', status: 422 }
   const wb = await loadWorkbook() ?? await importWorkbook().catch(() => null)
   if (!wb) return { error: 'The house workbook is not loaded. Import it from the Drive folder.', status: 503 }
-  const pack = await loadAnalysis(id)
+  const { loadRules } = await import('./plan-pairs')
+  const [pack, stored] = await Promise.all([loadAnalysis(id), loadRules()])
   const data = buildCompare({
     quotationId: id, wb, members: q.census, schedule: q.requirement?.current_schedule ?? pack?.schedule ?? null,
     effectiveDate: (q.effective_date ?? pack?.effectiveDate ?? new Date().toISOString()).slice(0, 10),
     basis: (q.basis ?? pack?.basis) === 'renewal' ? 'renewal' : 'new_business',
     currentInsurer: q.requirement?.current_insurer ?? pack?.currentInsurer ?? null,
     lastYearTotal: q.requirement?.last_year?.total ?? pack?.lastYear?.total ?? null,
-    saved: await loadPicks(id),
+    saved: await loadPicks(id), lastYear: q.requirement?.last_year ?? null, rules: stored.rules,
   })
   return { company: q.company_name, ...data }
 }
