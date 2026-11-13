@@ -79,7 +79,7 @@ export default function AdminDeskPage() {
                       <tbody>
                         {b.cycles.map(c => (
                           <RegisterRow key={c.thread_id}>
-                            <RegisterCell first nowrap={false} primary={<Link href={`/engagement?lead=${c.thread_id}`} className="text-trs-ink no-underline hover:underline">{c.label}</Link>} secondary={c.type} />
+                            <RegisterCell first nowrap={false} primary={<><Link href={`/engagement?lead=${c.thread_id}`} className="block whitespace-normal text-trs-ink no-underline hover:underline">{c.label}</Link><span className="block text-[12.5px] text-trs-muted">{c.type}</span></>} />
                             <RegisterCell>{c.everyDays} days · {c.cadence}</RegisterCell>
                             <RegisterCell align="right">{c.count}</RegisterCell>
                             <RegisterCell>{fmtDate(c.last)}</RegisterCell>
@@ -99,7 +99,7 @@ export default function AdminDeskPage() {
                       <tbody>
                         {b.open.map(r => (
                           <RegisterRow key={r.id}>
-                            <RegisterCell first nowrap={false} primary={r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what} />
+                            <RegisterCell first nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
                             <RegisterCell>{r.type}</RegisterCell>
                             <RegisterCell>{OWES[r.owner] ?? r.owner}</RegisterCell>
                             <RegisterCell>{fmtDate(r.since)}</RegisterCell>
