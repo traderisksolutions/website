@@ -2,7 +2,7 @@
  * The client report from Compare cover (13 Nov 2026): today beside the five products with the plans
  * the broker chose, the premium per cover and in total, then every benefit row. It replaces the
  * report written from the analysis run, which priced on the rate cards and disagreed with what the
- * broker chose on Compare cover (OUE at Income: S$699,983 against S$405,540).
+ * broker chose on Compare cover (one client at Income: S$699,983 against S$405,540).
  *
  * buildCompareReport is pure; tested in src/__tests__/gb-compare-report.test.ts.
  */
