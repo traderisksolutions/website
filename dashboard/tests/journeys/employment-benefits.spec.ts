@@ -63,6 +63,8 @@ test('Compare cover: today from last year\'s policy, hospital by ward then limit
   await expect(page.getByRole('heading', { name: 'Major Medical' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('link', { name: /Add last year's policy|Census and policy/ })).toHaveAttribute('href', /\/pricing-matrix\/quote\/[^/]+\/edit$/)
   await expect(page.getByRole('heading', { name: /^Hospital options · \d+/ })).toBeVisible()
+  const report = page.getByRole('group', { name: 'Client report' })
+  for (const b of ['Download PDF', 'Send on WhatsApp', 'Send by email']) await expect(report.getByRole('button', { name: b })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Use' }).first()).toBeVisible()
   const ward = page.getByLabel('Ward at Income FlexCare'), limit = page.getByLabel('Limit at Income FlexCare'), mm = page.getByLabel('Major Medical at Income FlexCare')
   await expect(ward).toBeVisible()
@@ -93,4 +95,20 @@ test('a quotation\'s Census and policy opens New quotation with its census on fi
 test('an HR link\'s list opens New quotation, not the retired Quick quote', async ({ page }) => {
   await page.goto('/pricing-matrix?tab=quote&hrLink=00000000-0000-0000-0000-000000000000')
   await expect(page).toHaveURL(/\/pricing-matrix\/new\?hrLink=/)
+})
+
+test('the older quotation and report pages open Compare cover; the client report PDF is Compare cover', async ({ page }) => {
+  await openClean(page, '/pricing-matrix')
+  const href = (await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href'))!
+  const id = href.split('/')[3]
+  for (const old of [`/pricing-matrix/quote/${id}`, `/pricing-matrix/quote/${id}/report`]) { await page.goto(old); await expect(page).toHaveURL(new RegExp(`/pricing-matrix/quote/${id}/compare$`)) }
+  const pdf = await page.request.get(`/api/group-benefits/quote/${id}/compare/report-pdf`, { headers: process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {} })
+  expect(pdf.status()).toBe(200)
+  expect(pdf.headers()['content-type']).toContain('application/pdf')
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe('%PDF-')
+})
+
+test('a report link that is not signed is refused', async ({ page }) => {
+  const res = await page.request.get('/api/public/gb-report/1AbCdEfGhIjKlMnOp.9999999999.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  expect(res.status()).toBe(404)
 })

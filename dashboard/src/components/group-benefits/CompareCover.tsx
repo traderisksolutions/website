@@ -11,6 +11,8 @@
  * Today is last year's policy (Ernest, 13 Nov 2026): added here, kept in Drive and linked, its cover
  * as rows and its premium as the base. A hospital plan is chosen in two steps, ward then limit.
  * Plan rules (Employment Benefits › Plan rules, src/lib/gb/plan-pairs.ts) hold plans that go together.
+ * The client report is this page as a PDF (src/lib/gb/compare-report.ts): downloaded, sent on
+ * WhatsApp as a signed link, or put on the client thread as an email draft with it attached.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -25,6 +27,8 @@ const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpat
 const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', LINE = '#e6e8e4', FIELD = '#f2f3ef', TODAY = '#f3f7f4', UP = '#1d6b3f', DOWN = '#a3361f'
 type Data = CompareData & { company: string | null }
 const TODAY_COL = '__today__'
+/** The insurer's own member file, for placement (src/app/api/group-benefits/quote/[id]/insurer-form). */
+const ENROLMENT: Record<string, 'income' | 'rcc'> = { 'Income FlexCare': 'income', 'RCC Enhanced III': 'rcc' }
 
 function Tag({ c }: { c: Change | null }) {
   if (!c) return null
@@ -41,6 +45,33 @@ export function CompareCover({ id }: { id: string }) {
   const [drafted, setDrafted] = useState<Record<string, string>>({})
   const [shown, setShown] = useState<{ product: string; subject: string; body: string; note?: string } | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pending = useRef<Record<string, Picks> | null>(null)
+  const [sending, setSending] = useState<'pdf' | 'whatsapp' | 'email' | null>(null)
+  const [sent, setSent] = useState<{ text: string; href?: string } | null>(null)
+
+  /** Choices not yet saved go first, so the report is what is on screen. */
+  async function flush() {
+    if (!pending.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    const next = pending.current; pending.current = null
+    await fetch(`/api/group-benefits/quote/${id}/compare`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picks: next }) }).catch(() => {})
+  }
+
+  async function report(action: 'pdf' | 'whatsapp' | 'email') {
+    setSending(action); setError(null); setSent(null)
+    // Opened inside the click, so the browser does not block it; pointed at WhatsApp once the link exists.
+    const tab = action === 'whatsapp' ? window.open('', '_blank') : null
+    try {
+      await flush()
+      if (action === 'pdf') { window.location.href = `/api/group-benefits/quote/${id}/compare/report-pdf?download=1`; return }
+      const res = await fetch(`/api/group-benefits/quote/${id}/compare/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+      const d = await res.json().catch(() => ({})) as { waUrl?: string; phone?: string | null; href?: string; to?: string; error?: string }
+      if (!res.ok) { tab?.close(); setError(d.error ?? `The report was not sent (${res.status}).`); return }
+      if (action === 'whatsapp' && d.waUrl) { if (tab) tab.location.href = d.waUrl; else window.open(d.waUrl, '_blank'); setSent({ text: d.phone ? `WhatsApp opened to +${d.phone} with the report link. Press send there.` : 'WhatsApp opened with the report link. Choose the chat and press send.' }) }
+      if (action === 'email') setSent({ text: `Draft to ${d.to} with the report attached, on the client thread.`, href: d.href })
+    } catch (e) { tab?.close(); setError(e instanceof Error ? e.message : 'The report was not sent.') }
+    finally { setSending(null) }
+  }
 
   const load = useCallback(() => fetch(`/api/group-benefits/quote/${id}/compare`, { cache: 'no-store' }).then(async r => {
     const d = await r.json().catch(() => ({})) as Data & { error?: string }
@@ -54,7 +85,8 @@ export function CompareCover({ id }: { id: string }) {
       const mine = applyRules(data?.rules ?? [], product, { ...prev[product]?.[cat], ...patch }, data?.options[product] ?? {})
       const next = { ...prev, [product]: { ...prev[product], [cat]: mine } }
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => { void fetch(`/api/group-benefits/quote/${id}/compare`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picks: next }) }) }, 600)
+      pending.current = next
+      saveTimer.current = setTimeout(() => { pending.current = null; void fetch(`/api/group-benefits/quote/${id}/compare`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picks: next }) }) }, 600)
       return next
     })
   }, [cat, id, data])
@@ -88,7 +120,17 @@ export function CompareCover({ id }: { id: string }) {
     } finally { setDrafting(null) }
   }
 
-  if (error && !data) return <Shell company={null} id={id}><p className="m-0 text-[14px]" style={{ color: DOWN }} role="alert">{error}</p></Shell>
+  if (error && !data) return (
+    <Shell company={null} id={id}>
+      <p className="m-0 text-[14px]" style={{ color: DOWN }} role="alert">{error}</p>
+      {/no census/i.test(error) && (
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link href={`/pricing-matrix/quote/${id}/edit`} data-same-tab className="inline-flex items-center h-9 px-4 rounded-[7px] text-[14px] font-medium no-underline" style={{ background: '#132c1c', color: 'white' }}>Add the census</Link>
+          <Link href={`/pricing-matrix?tab=hrlinks&send=1&quote=${id}`} data-same-tab className="inline-flex items-center h-9 px-4 rounded-[7px] text-[14px] no-underline" style={{ border: `1px solid ${LINE}`, color: INK }}>Send HR a link</Link>
+        </div>
+      )}
+    </Shell>
+  )
   if (!data) return <Shell company={null} id={id}><Spinner label="Pricing every plan…" /></Shell>
 
   const todayTotal = total(TODAY_COL)
@@ -101,6 +143,13 @@ export function CompareCover({ id }: { id: string }) {
       <p className="m-0 mb-5 text-[13.5px]" style={{ color: MUTED }}>
         {data.lives} lives · {data.employees} employees · {data.basis === 'renewal' ? 'renewal' : 'new business'} from {data.effectiveDate}{data.leftOut ? ` · ${data.leftOut} foreign-worker lives not in this comparison` : ''}
       </p>
+      <div className="mb-5 flex flex-wrap items-center gap-2" role="group" aria-label="Client report">
+        <span className="text-[13px] mr-1" style={{ color: MUTED }}>Client report</span>
+        <Btn size="sm" level="secondary" loading={sending === 'pdf'} disabled={!!sending} onClick={() => void report('pdf')}>Download PDF</Btn>
+        <Btn size="sm" level="secondary" loading={sending === 'whatsapp'} disabled={!!sending} onClick={() => void report('whatsapp')}>Send on WhatsApp</Btn>
+        <Btn size="sm" level="secondary" loading={sending === 'email'} disabled={!!sending} onClick={() => void report('email')}>Send by email</Btn>
+        {sent && <span className="text-[13px]" style={{ color: INK }} role="status">{sent.text}{sent.href && <> <Link href={sent.href} className="underline" style={{ color: INK }}>Open draft</Link></>}</span>}
+      </div>
       {error && <p className="m-0 mb-3 text-[13px]" style={{ color: DOWN }} role="alert">{error}</p>}
       <div className="overflow-x-auto xl:overflow-x-visible">
         <div className="min-w-[1180px]">
@@ -122,6 +171,7 @@ export function CompareCover({ id }: { id: string }) {
                     <div className="mt-2">
                       {drafted[col] ? <Link href={drafted[col]} className="text-[12.5px] underline" style={{ color: INK }}>Open draft</Link>
                         : <Btn size="xs" level="secondary" loading={drafting === col} disabled={!!drafting} onClick={() => draft(col)}>Draft email</Btn>}
+                      {ENROLMENT[col] && <a href={`/api/group-benefits/quote/${id}/insurer-form?insurer=${ENROLMENT[col]}`} className="block mt-1.5 text-[12px] underline" style={{ color: MUTED }}>Enrolment file</a>}
                     </div>
                   )}
                 </div>

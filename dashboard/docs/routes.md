@@ -24,7 +24,8 @@ Back goes to the page the record was opened from. The trail (`src/lib/nav/trail.
 | Compare cover | One change at a time | Analysis | Compare cover |
 | Compare cover | Today › Census and policy (or Add last year's policy) | The quotation's census and policy (`/pricing-matrix/quote/<id>/edit`); Confirm reprices it in place | Compare cover |
 | Employee lists | Quote (a submitted HR link) | New quotation with the list as the census (`/pricing-matrix/new?hrLink=<id>`) | Employee lists |
-| Quotation (older page) | Upload employee list | The quotation's census and policy | The quotation |
+| Quotation (older page, retired) | Any link to `/pricing-matrix/quote/<id>` or `/report` | Compare cover | — |
+| Compare cover | Client report › Download PDF / Send on WhatsApp / Send by email | The PDF; WhatsApp with a signed link; a draft on the client thread | Compare cover |
 | Employment Benefits | Plan rules (tab) | Plans that go together, per insurer, with the brochure page | Employment Benefits |
 
 One screen enters a census and last year's policy: New quotation (`NewEb.tsx`). A new quotation, an existing one and an HR link's list all open it. Quick quote and the By hand wizard are retired.

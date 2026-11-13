@@ -1,46 +1,7 @@
-'use client'
+import { redirect } from 'next/navigation'
 
-import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
-
-/**
- * The client report: the PDF itself, previewed in the page, with a download.
- *
- * One document for everyone — what a broker previews here is byte for byte what they download
- * and send, rendered from the saved quotation on each request (src/lib/gb/report-pdf.tsx). The
- * earlier HTML version printed from the browser and ran off the right edge of A4.
- */
-
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { Download } from 'lucide-react'
-
-export default function QuoteReportPage() {
-  const { id } = useParams<{ id: string }>()
-  const [company, setCompany] = useState<string | null>(null)
-  const src = `/api/group-benefits/quote/${id}/report-pdf`
-
-  useEffect(() => {
-    fetch(`/api/group-benefits/quote/${id}`, { cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : null)).then(d => setCompany(d?.quotation?.company_name ?? null)).catch(() => {})
-  }, [id])
-
-  return (
-    <div className="bg-[#faf9f6] min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col" style={{ color: '#0f1412' }}>
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-3 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
-        <div className="flex items-center gap-4 min-w-0">
-          <Breadcrumbs className="flex-shrink-0" current={{ label: 'Client report', href: `/pricing-matrix/quote/${id}/report` }} fallback={{ label: 'Analysis', href: `/pricing-matrix/quote/${id}/analysis` }} />
-          <h1 className="m-0 text-[15px] font-medium truncate">{company ? `${company} · Client report` : 'Client report'}</h1>
-        </div>
-        <a href={`${src}?download=1`}
-           className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90">
-          <Download size={14} /> Download PDF
-        </a>
-      </div>
-      <div className="relative flex-1 p-3 sm:p-6">
-        <iframe title="Client report" src={src}
-                className="w-full h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h)-110px)] min-h-[520px] rounded-lg bg-white"
-                style={{ border: '1px solid #e6e8e4' }} />
-      </div>
-    </div>
-  )
+/** The client report is on Compare cover now: download, WhatsApp or email (13 Nov 2026). */
+export default async function QuoteReportPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  redirect(`/pricing-matrix/quote/${id}/compare`)
 }

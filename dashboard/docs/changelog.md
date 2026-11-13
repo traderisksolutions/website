@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Client report from Compare cover; older quotation pages retired
+
+- **The client report is Compare cover as a PDF** (`src/lib/gb/compare-report.ts`, `compare-report-pdf.tsx`): today beside the five products with the plans chosen, premium per cover and in total with the change against today, then every benefit row. The report written from the analysis run priced on the rate cards and disagreed with Compare cover (OUE at Income S$699,983 against S$405,540; Empyrion S$55,496 against S$50,243).
+- **Three actions on Compare cover:** Download PDF (`GET …/compare/report-pdf`); Send on WhatsApp (the PDF kept in Drive `group-benefits/client-reports`, a 30-day signed link `/api/public/gb-report/<token>` in a WhatsApp message to the client contact's number; the broker presses send); Send by email (a pending draft on the client thread with the PDF attached, approved in the Inbox). A report trashed in Drive is withdrawn: its link answers 404.
+- **Retired:** the older quotation page (`/pricing-matrix/quote/<id>` opens Compare cover) and the report page; their components (BenefitComparison, Step, ThreadSelectorModal, ValueScore). Enrolment files (Income, RCC) are under those columns on Compare cover; a quotation without a census offers Add the census and Send HR a link.
+- Journeys: report actions, old pages open Compare cover, the PDF is a PDF, an unsigned link is refused.
+
 ## 2026-11-13 — One screen for census and policy; plan rules from the brochures
 
 - **Census and policy is one screen** (`NewEb.tsx`) for a new quotation, an existing one (`/pricing-matrix/quote/<id>/edit`) and an HR link's list (`/pricing-matrix/new?hrLink=<id>`). On an existing quotation the census, policy, schedule and details are filled; Confirm reprices the same quotation (`quotation_id` on `POST /api/group-benefits/analysis` → `createQuotation` `replaceId`: the row is updated, its lines replaced), so links, drafts and saved choices keep pointing at it. Before this, every Confirm made a new quotation.

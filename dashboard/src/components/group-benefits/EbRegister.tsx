@@ -101,7 +101,7 @@ export function EbRegister({ onNew, company, newHref }: { onNew?: () => void; co
           const open = `/pricing-matrix/quote/${r.id}/compare`
           return (
             <RegisterRow key={r.id}>
-              {!company && <RegisterCell><Link href={open} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name || 'Untitled'}</Link> <Link href={`/pricing-matrix/quote/${r.id}`} className="text-[12px] no-underline hover:underline" style={{ color: MUTED }}>quotation</Link></RegisterCell>}
+              {!company && <RegisterCell><Link href={open} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.company_name || 'Untitled'}</Link></RegisterCell>}
               <RegisterCell align="right" className="tabular-nums">{company ? <Link href={open} className="no-underline hover:underline" style={{ color: '#0f1412' }}>{r.member_count ?? 0}</Link> : r.member_count ?? 0}</RegisterCell>
               <RegisterCell>{r.effective_date ? fmtDate(r.effective_date) : '—'}</RegisterCell>
               <RegisterCell>{r.basis === 'renewal' ? 'Renewal' : r.basis ? 'New business' : '—'}</RegisterCell>

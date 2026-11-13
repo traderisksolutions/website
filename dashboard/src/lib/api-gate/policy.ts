@@ -108,6 +108,14 @@ export const API_RULES: ApiRule[] = [
     reason: 'HR-facing employee-list link; the random token in the path is the credential, stored hashed and expiring.',
   },
   {
+    // A client opens the group benefits comparison sent on WhatsApp; they have no login. The path
+    // carries an HMAC-signed, 30-day token naming the kept Drive copy (src/lib/gb/report-link.ts);
+    // anything else is 404.
+    prefix: '/api/public/gb-report',
+    requirement: 'open',
+    reason: 'Client-facing report link sent on WhatsApp; the signed, expiring token in the path is the credential.',
+  },
+  {
     // Images inserted into outgoing emails, fetched by recipients' mail clients, which have no
     // login. The route serves only image/* files inside the Drive email-images folder, by their
     // unguessable Drive id; anything else is 404.
