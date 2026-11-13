@@ -1,6 +1,6 @@
 /**
  * Builds the company ledger from everything already on file: emails, rebuilt history, filed
- * documents, policies, debit notes, claims and case events. Idempotent (rows already logged are
+ * documents, policies, debit notes, claims, case events, quotations and placements. Idempotent (rows already logged are
  * left alone) and safe to stop and re-run.
  *
  *   npx tsx --env-file=.env.local --tsconfig tsconfig.json scripts/ledger-backfill.mts dry   [days]
@@ -62,6 +62,8 @@ for (const [table, path, select, size] of [
   ['debit_notes', 'debit_notes', '*', 500],
   ['claims', 'claims', '*', 500],
   ['work_item_events', 'work_item_events', '*', 500],
+  ['gb_quotations', 'gb_quotations', 'id,company_name,member_count,basis,effective_date,requirement,created_at', 200],
+  ['placements', 'placements', '*', 500],
 ] as [Exclude<DepositTable, 'email_messages'>, string, string, number][]) {
   counts[table] = await pages(path, select, size, async rows => take(await eventTargets(table, rows, dir)))
 }

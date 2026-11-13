@@ -12,12 +12,12 @@
 import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import {
-  emailDraft, rebuiltDraft, documentDraft, policyDrafts, debitNoteDraft, claimDraft, caseEventDraft, factReadable,
+  emailDraft, rebuiltDraft, documentDraft, policyDrafts, debitNoteDraft, claimDraft, caseEventDraft, quotationDraft, placementDraft, factReadable,
   type LedgerDraft,
 } from './shape'
 
 type Row = Record<string, any>
-export type DepositTable = 'email_messages' | 'rebuilt_messages' | 'policy_documents' | 'policies' | 'debit_notes' | 'claims' | 'work_item_events'
+export type DepositTable = 'email_messages' | 'rebuilt_messages' | 'policy_documents' | 'policies' | 'debit_notes' | 'claims' | 'work_item_events' | 'gb_quotations' | 'placements'
 export type Target = { draft: LedgerDraft; company_id: string }
 
 // ── company directory (cached; companies change rarely) ──────────────────────────────────────
@@ -29,7 +29,7 @@ export async function directory(force = false): Promise<Directory> {
   if (!force && dirCache && Date.now() - dirCache.at < 10 * 60_000) return dirCache.dir
   const rows: Row[] = []
   for (let off = 0; ; off += 1000) {
-    const page = await sb<Row[]>(`companies?select=id,parent_id,kind,domain,domains&order=id&offset=${off}&limit=1000`)
+    const page = await sb<Row[]>(`companies?select=id,parent_id,kind,domain,domains,company_name&order=id&offset=${off}&limit=1000`)
     rows.push(...page); if (page.length < 1000) break
   }
   const byId = new Map(rows.map(r => [r.id as string, r]))
@@ -129,6 +129,17 @@ export async function depositMessages(messageIds: string[]): Promise<{ written: 
   return { written: await writeTargets(targets, dir), unfiled, targets }
 }
 
+/**
+ * Records every email on a thread in the companies it now belongs to: called when an insurer or
+ * partner thread is filed against its client, which usually happens after the emails came in.
+ * With `removeFrom`, the thread's emails leave that company's ledger (the client it replaced).
+ */
+export async function recordThread(threadId: string, removeFrom: string | null = null): Promise<number> {
+  if (removeFrom) await sbTry(`company_ledger?thread_id=eq.${enc(threadId)}&company_id=eq.${enc(removeFrom)}&source_table=in.(email_messages,rebuilt_messages)`, null, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
+  const ids = (await sbTry<{ id: string }[]>(`email_messages?thread_id=eq.${enc(threadId)}&deleted_at=is.null&select=id&limit=500`, [])).map(m => m.id)
+  return ids.length ? (await depositMessages(ids)).written : 0
+}
+
 /** Ledger targets for non-email sources, already loaded. */
 export async function eventTargets(table: Exclude<DepositTable, 'email_messages'>, rows: Row[], dir: Directory, today = new Date().toISOString().slice(0, 10)): Promise<Target[]> {
   const out: Target[] = []
@@ -152,6 +163,14 @@ export async function eventTargets(table: Exclude<DepositTable, 'email_messages'
     for (const n of rows) if (n.company_id && dir.byId.has(n.company_id)) out.push({ draft: debitNoteDraft(n), company_id: n.company_id })
   } else if (table === 'claims') {
     for (const c of rows) if (c.company_id && dir.byId.has(c.company_id)) out.push({ draft: claimDraft(c), company_id: c.company_id })
+  } else if (table === 'placements') {
+    for (const p of rows) if (p.company_id && dir.byId.has(p.company_id)) out.push({ draft: placementDraft(p), company_id: p.company_id })
+  } else if (table === 'gb_quotations') {
+    // A quotation carries the company by name: matched to one company record, else left out.
+    const { companyKey } = await import('@/lib/format')
+    const byKey = new Map<string, string[]>()
+    for (const [id, c] of dir.byId) if (c.kind === 'client' && c.company_name) { const k = companyKey(c.company_name); byKey.set(k, [...(byKey.get(k) ?? []), id]) }
+    for (const q of rows) { const hit = byKey.get(companyKey(q.company_name)); if (hit?.length === 1) out.push({ draft: quotationDraft(q), company_id: hit[0] }) }
   } else if (table === 'work_item_events') {
     const wids = Array.from(new Set(rows.map(r => r.work_item_id)))
     const items = new Map((await inChunks(wids, 100, c => sbTry<Row[]>(`work_items?id=in.(${c.join(',')})&select=id,company_id,title,policy_id`, []))).map(w => [w.id, w]))

@@ -33,6 +33,7 @@ export const PLACES: Place[] = [
     { title: 'Companies', href: '/companies' },
     { title: 'People', href: '/contacts' },
     { title: 'Nexus', href: '/nexus' },
+    { title: 'Portfolio', href: '/companies/portfolio' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
     { title: 'Inbox', href: '/engagement' },

@@ -68,6 +68,8 @@ export async function createPlacement(input: {
     text: `Placement opened: ${placement.title} — ${lines.map(l => l.label).join(', ')}`, thread_id: thread?.id ?? null,
     detail: { policy_ids: lines.map(l => l.policy_id) } })
   await store.markQuoting(placement.company_id)
+  // The client's knowledge base records the placement (src/lib/admin/k/deposit.ts).
+  if (process.env.NODE_ENV !== 'test') void import('@/lib/admin/k/deposit').then(k => k.depositEvent('placements', placement.id)).catch(e => console.error('[placement] ledger', e))
   // One case per piece of work: the placement joins the case on its thread, an open renewal of the
   // same line, or opens one. The case's stage then follows the lines (src/lib/cases).
   await caseForPlacement({

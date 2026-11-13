@@ -125,6 +125,28 @@ export function claimDraft(c: Row): LedgerDraft {
   }
 }
 
+/** An Employment Benefits quotation: its census, basis and start date, opening on Compare cover. */
+export function quotationDraft(q: Row): LedgerDraft {
+  const req = (q.requirement ?? {}) as Row
+  return {
+    occurred_at: q.created_at, kind: 'quotation',
+    title: `Employment Benefits quotation · ${q.member_count ?? 0} lives`,
+    summary: [q.basis === 'renewal' ? 'Renewal' : q.basis === 'new_business' ? 'New business' : null, q.effective_date ? `from ${q.effective_date}` : null, req.current_insurer ? `current insurer ${req.current_insurer}` : null, req.last_year?.total != null ? `last year ${req.last_year.total}` : null].filter(Boolean).join(' · ') || null,
+    party: null, actor: null, policy_id: null, work_item_id: null, thread_id: null,
+    links: links({ label: 'Compare cover', url: `/pricing-matrix/quote/${q.id}/compare` }), source_table: 'gb_quotations', source_id: q.id,
+  }
+}
+
+/** A placement: cover asked of insurers for the client, by line. */
+export function placementDraft(p: Row): LedgerDraft {
+  return {
+    occurred_at: p.created_at, kind: 'placement', title: `Placement · ${p.title ?? p.ref ?? 'cover requested'}`,
+    summary: [p.ref, p.status, p.inception_date ? `inception ${p.inception_date}` : null].filter(Boolean).join(' · ') || null,
+    party: null, actor: null, policy_id: null, work_item_id: null, thread_id: p.client_thread_id ?? null,
+    links: links({ label: 'Placement', url: `/companies/${p.company_id}?tab=quotes` }), source_table: 'placements', source_id: p.id,
+  }
+}
+
 export function caseEventDraft(e: Row, item: Row): LedgerDraft {
   const d = (e.detail ?? {}) as Row
   const bits = [d.status, d.next_action, d.opened ? `opened ${d.opened}` : null, d.note, d.reason].filter(x => typeof x === 'string' && x)

@@ -19,6 +19,7 @@ import { runCurrent } from '@/lib/gb/analysis'
 import { CHANGES, groupsFor, type Schedule } from '@/lib/gb/current'
 import { specCovers } from '@/lib/gb/custom'
 import { normaliseLastYear } from '@/lib/gb/last-year'
+import { depositEvent } from '@/lib/admin/k/deposit'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import type { Member } from '@/lib/gb-quote'
 
@@ -64,6 +65,8 @@ export async function POST(req: NextRequest) {
     const pack = await runCurrent({ quotationId: d.quotationId, members: census, schedule, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null, lastYear })
     void logActivity({ action: replaceId ? 'gb.quote_repriced' : 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId, new_value: { company: companyName, members: census.length, via: 'analysis', changes: pack.rungs.length - 1 } })
     fileEbCompanyFolder(companyName)
+    // The client's knowledge base records the quotation (src/lib/admin/k/deposit.ts).
+    await depositEvent('gb_quotations', d.quotationId).catch(e => console.error('[analysis] ledger', e))
     return NextResponse.json({ quotation_id: d.quotationId })
   } catch (e) {
     if (e instanceof DraftError) return NextResponse.json({ error: e.message }, { status: 422 })

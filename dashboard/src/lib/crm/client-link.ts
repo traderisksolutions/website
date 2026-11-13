@@ -120,18 +120,28 @@ async function loadThread(threadId: string): Promise<ThreadRow | null> {
 }
 
 /** Writes the client on the thread's row for its counterparty; never touches a row that already names one. */
-async function fileClient(thread: ThreadRow, clientId: string | null, reason: string, confidence: number | null): Promise<void> {
+/**
+ * Files the client on the thread. An agent never replaces a client already filed; a person
+ * (`override`) does. The thread's emails are then recorded in the client's knowledge base, and
+ * taken out of the one it replaced: filing usually happens after the emails were first recorded.
+ */
+async function fileClient(thread: ThreadRow, clientId: string | null, reason: string, confidence: number | null, override = false): Promise<void> {
   if (!thread.company_id) return
   const [row] = await sbTry<LinkRow[]>(`thread_insurers?thread_id=eq.${enc(thread.id)}&insurer_company_id=eq.${enc(thread.company_id)}&select=id,client_company_id,reason&limit=1`, [])
   const now = new Date().toISOString()
+  const before = row?.client_company_id && row.client_company_id !== thread.company_id ? row.client_company_id : null
   if (row) {
-    if (row.client_company_id && row.client_company_id !== thread.company_id) return
+    if (before && !override) return
     await sbTry(`thread_insurers?id=eq.${enc(row.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ client_company_id: clientId, reason, confidence, updated_at: now }) })
-    return
+  } else {
+    await sbTry('thread_insurers', null, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
+      thread_id: thread.id, insurer_company_id: thread.company_id, client_company_id: clientId, via: 'subject', policy_status: 'none', policy_how: null, reason, confidence, updated_at: now,
+    }) })
   }
-  await sbTry('thread_insurers', null, { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({
-    thread_id: thread.id, insurer_company_id: thread.company_id, client_company_id: clientId, via: 'subject', policy_status: 'none', policy_how: null, reason, confidence, updated_at: now,
-  }) })
+  if (clientId && clientId !== before) {
+    const { recordThread } = await import('@/lib/admin/k/deposit')
+    await recordThread(thread.id, before).catch(e => console.error('[client-link] record thread', thread.id, e))
+  }
 }
 
 /** The model's read of who the insured is. A name as written, or null. */
@@ -244,6 +254,6 @@ export async function setClientForThread(threadId: string, pick: { companyId?: s
     created = !existing && !!clientId
     if (!clientId) return null
   }
-  await fileClient(thread, clientId, `client set by ${by ?? 'a person'}`, 1)
+  await fileClient(thread, clientId, `client set by ${by ?? 'a person'}`, 1, true)
   return { clientId, created }
 }

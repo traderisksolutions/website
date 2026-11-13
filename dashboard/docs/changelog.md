@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Client 360 phase 1: complete repositories, Portfolio, numbers per business
+
+- **Portfolio** (Clients › Portfolio, `src/lib/clients/portfolio.ts`, `GET /api/clients/portfolio`): every business (company group) ranked by commission from debit notes, cumulative share, the top 20% marked, premium, emails sent a month, requests a month and by type, commission per email, claims and loss ratio (paid ÷ premium, with how many claims carry a paid amount), next renewal. Admin for the top 20% by request type, with the businesses that raise most. Last 12 months: the top 20% (19 of 95) earn 92.0% of commission.
+- **Knowledge › Numbers** on every company: its row of the portfolio.
+- **Repositories completed:** the ledger backfill took the ledger from 15,262 to 27,163 entries (filed documents, case events, insurer-thread emails, claims, quotations, placements). Filing an insurer or partner thread against its client now records the thread's emails in the client's ledger; a person's pick of a different client replaces an agent's and moves the emails. New quotations and placements are recorded as they are made.
+- Gaps and phases: `docs/client-360.md`.
+
 ## 2026-11-13 — Client report from Compare cover; older quotation pages retired
 
 - **The client report is Compare cover as a PDF** (`src/lib/gb/compare-report.ts`, `compare-report-pdf.tsx`): today beside the five products with the plans chosen, premium per cover and in total with the change against today, then every benefit row. The report written from the analysis run priced on the rate cards and disagreed with Compare cover (OUE at Income S$699,983 against S$405,540; Empyrion S$55,496 against S$50,243).

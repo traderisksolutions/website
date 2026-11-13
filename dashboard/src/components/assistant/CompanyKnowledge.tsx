@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * A company's knowledge log: every email, document, policy, claim and case event the Knowledge
- * depositor has recorded, newest first, each with links to the thread or the data-room file.
+ * A company's knowledge log: its numbers (rank by commission, admin, claims), then every email,
+ * document, policy, claim and case event the Knowledge depositor has recorded, newest first, each
+ * with links to the thread or the data-room file.
  * Filters by kind; 50 at a time.
  */
 import { useCallback, useEffect, useState } from 'react'
@@ -10,6 +11,7 @@ import { Btn, Chip, Segmented, Spinner, Empty } from '@/components/crm/primitive
 import { callApi, errText } from '@/components/placement/shared'
 import { ThreadModal, fmtWhen } from './shared'
 import type { NextStep } from '@/lib/today/data'
+import { BusinessNumbers } from '@/components/clients/BusinessNumbers'
 
 type Entry = {
   id: string; occurred_at: string; kind: string; title: string; summary: string | null; party: string | null
@@ -49,6 +51,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const shown = (entries ?? []).filter(e => IN_FILTER[filter](e.kind))
   return (
     <div className="flex flex-col gap-3 min-w-0">
+      <BusinessNumbers companyId={companyId} />
       {steps.length > 0 && (
         <section className="flex flex-col gap-2 min-w-0 mb-2" aria-label="Next steps">
           <h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">Next steps</h2>

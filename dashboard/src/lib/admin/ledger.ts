@@ -5,7 +5,7 @@
  */
 import { sb, sbTry, enc } from '@/lib/crm/db'
 
-export type LedgerKind = 'email_in' | 'email_out' | 'email_rebuilt' | 'document' | 'policy' | 'debit_note' | 'claim' | 'case' | 'fact' | 'note'
+export type LedgerKind = 'email_in' | 'email_out' | 'email_rebuilt' | 'document' | 'policy' | 'debit_note' | 'claim' | 'case' | 'fact' | 'note' | 'quotation' | 'placement'
 export type LedgerEntry = {
   id: string; seq: number; group_id: string | null; company_id: string | null; occurred_at: string
   kind: LedgerKind; title: string; summary: string | null; party: string | null; actor: string | null
