@@ -22,6 +22,12 @@ Back goes to the page the record was opened from. The trail (`src/lib/nav/trail.
 | Today › Coming up › EB renewals | Compare cover / Open census | Compare cover / New quotation | Today |
 | Compare cover | Ask insurers | Plan builder | Compare cover |
 | Compare cover | One change at a time | Analysis | Compare cover |
+| Compare cover | Today › Census and policy (or Add last year's policy) | The quotation's census and policy (`/pricing-matrix/quote/<id>/edit`); Confirm reprices it in place | Compare cover |
+| Employee lists | Quote (a submitted HR link) | New quotation with the list as the census (`/pricing-matrix/new?hrLink=<id>`) | Employee lists |
+| Quotation (older page) | Upload employee list | The quotation's census and policy | The quotation |
+| Employment Benefits | Plan rules (tab) | Plans that go together, per insurer, with the brochure page | Employment Benefits |
+
+One screen enters a census and last year's policy: New quotation (`NewEb.tsx`). A new quotation, an existing one and an HR link's list all open it. Quick quote and the By hand wizard are retired.
 
 `/pricing-matrix/company/<companyId>` resolves the company's Employment Benefits (`src/lib/gb/company-eb.ts`). Quotations carry the company by name, matched with `companyKey`.
 
@@ -43,4 +49,3 @@ Back goes to the page the record was opened from. The trail (`src/lib/nav/trail.
 
 - Debit note detail › policy, company, receipt.
 - Policy page › its quotation.
-- Census by HR link still opens `?tab=quote&hrLink`.

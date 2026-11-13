@@ -2,10 +2,8 @@
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UploadCloud, Loader2, Clock, Mail, FolderOpen } from 'lucide-react'
+import { UploadCloud, Loader2, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { NewQuoteWizard } from '@/components/group-benefits/NewQuoteWizard'
-import { QuickQuote, type InitialRead } from '@/components/group-benefits/QuickQuote'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbRegister } from '@/components/group-benefits/EbRegister'
@@ -14,11 +12,11 @@ import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContac
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
 import { normInsurer } from '@/lib/insurers'
 import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
-import type { HrLinkCensusResponse, HrLinkDetailResponse } from '@/components/group-benefits/hr/labels'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { uploadToDrive } from '@/lib/upload-attachment'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { Segmented } from '@/components/crm/primitives'
+import { PlanRules } from '@/components/group-benefits/PlanRules'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
 // (e.g. a Vercel "Request Entity Too Large" page) instead of crashing on JSON.parse.
@@ -41,9 +39,9 @@ const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extr
 const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
-type Tab = 'eb' | 'hrlinks' | 'tables'
-const TABS: readonly Tab[] = ['eb', 'hrlinks', 'tables']
-const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee lists', tables: 'Insurers' }
+type Tab = 'eb' | 'hrlinks' | 'tables' | 'rules'
+const TABS: readonly Tab[] = ['eb', 'hrlinks', 'tables', 'rules']
+const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee lists', tables: 'Insurers', rules: 'Plan rules' }
 
 
 /**
@@ -56,8 +54,8 @@ const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee li
  * Since 27 Oct 2026 the Quotes tab is the register of employment-benefits policies across companies
  * (GET /api/eb/policies); "New quotation" opens a placement and lands on the company's Members tab.
  * The engine-by-hand paths below stay reachable under "By hand".
- * ?tab=quote&company=<name> opens the quote wizard for a client, which is how older links arrive. ?tab=quote&hrLink=<id> opens Quick quote with the census HR
- * submitted through that link. ?tab=hrlinks&company=<name>&companyId=<id> opens the HR links tab
+ * ?tab=quote&company=<name>, ?thread=<id> and ?hrLink=<id> are older links: they go to New quotation, the one screen a
+ * census enters by (13 Nov 2026; Quick quote and the By hand wizard were retired here). ?tab=hrlinks&company=<name>&companyId=<id> opens the HR links tab
  * with the Send HR a link dialog filled in, which is how the company page's "Send HR a link" arrives.
  */
 export default function PricingMatrixPage() {
@@ -76,20 +74,13 @@ function PricingMatrix() {
   const companyId = params.get('companyId') ?? null
   const hrLinkId = params.get('hrLink') ?? null
   const [tab, setTab]   = useState<Tab>(initialTab)
-  const [byHand, setByHand] = useState(false)
-  const [newQuote, setNewQuote] = useState(asked === 'quote' || !!params.get('thread'))
   const [tables, setTables] = useState<RateTable[]>([])
   const [loading, setLoading] = useState(true)
   const [showUpload, setShowUpload] = useState(false)
   const [emailInsurer, setEmailInsurer] = useState<{ insurer: string | null; plan?: string } | null>(null)
-  const [driveUrl, setDriveUrl] = useState<string | null>(null)
   // Arriving from the company page with ?tab=hrlinks&company=…: the dialog opens once, filled in.
   const [sendFromUrl, setSendFromUrl] = useState(asked === 'hrlinks' && !!(company || companyId || params.get('send')))
   const hrCompany: CompanyPick | null = company || companyId ? { id: companyId, name: company ?? '' } : null
-  // Arriving with ?hrLink=<id>: the census comes from the link's submission, not a file.
-  const [hrRead, setHrRead] = useState<InitialRead | null>(null)
-  const [hrReadState, setHrReadState] = useState<'idle' | 'loading' | 'ready' | 'failed'>(hrLinkId ? 'loading' : 'idle')
-  const [hrReadError, setHrReadError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -98,48 +89,14 @@ function PricingMatrix() {
     setLoading(false)
   }
   useEffect(() => { load() }, [])
-  // New quotation has its own address (13 Nov 2026); older links with ?tab=quote or ?thread land there.
+  // New quotation has its own address (13 Nov 2026); older links with ?tab=quote, ?thread or ?hrLink land there.
   useEffect(() => {
-    if (hrLinkId || !(asked === 'quote' || params.get('thread'))) return
+    if (!(asked === 'quote' || params.get('thread') || hrLinkId)) return
     const q = new URLSearchParams()
-    for (const k of ['company', 'companyId', 'thread']) { const v = params.get(k); if (v) q.set(k, v) }
+    for (const k of ['company', 'companyId', 'thread', 'hrLink']) { const v = params.get(k); if (v) q.set(k, v) }
     router.replace(`/pricing-matrix/new${q.size ? `?${q}` : ''}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    fetch('/api/group-benefits/folder', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
-      .then((d: { url?: string } | null) => setDriveUrl(d?.url ?? null)).catch(() => {})
-  }, [])
 
-  useEffect(() => {
-    if (!hrLinkId) return
-    let cancelled = false
-    ;(async () => {
-      try {
-        const [cr, lr] = await Promise.all([
-          fetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' }),
-          fetch(`/api/group-benefits/hr-links/${hrLinkId}`, { cache: 'no-store' }),
-        ])
-        const cd = await cr.json().catch(() => ({})) as HrLinkCensusResponse
-        const ld = await lr.json().catch(() => ({})) as HrLinkDetailResponse
-        if (cancelled) return
-        if (cd.migrationPending || ld.migrationPending) { setHrReadError('Migration 20261019_hr_connect is not applied yet.'); setHrReadState('failed'); return }
-        if (!cr.ok || !Array.isArray(cd.census)) { setHrReadError(cd.error ?? `Could not load the employee list (${cr.status}).`); setHrReadState('failed'); return }
-        if (cd.census.length === 0) { setHrReadError('The link has no submitted list yet.'); setHrReadState('failed'); return }
-        const link = lr.ok ? ld.link : undefined
-        setHrRead({
-          members: cd.census,
-          company: link?.company_name ?? company ?? '',
-          effectiveDate: link?.effective_date ?? null,
-          source: link ? `HR link ${link.reference}` : 'HR link',
-        })
-        setHrReadState('ready')
-      } catch (e) {
-        if (cancelled) return
-        setHrReadError(e instanceof Error ? e.message : 'Could not load the employee list.'); setHrReadState('failed')
-      }
-    })()
-    return () => { cancelled = true }
-  }, [hrLinkId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
@@ -157,34 +114,14 @@ function PricingMatrix() {
       </div>
 
       <div className="mt-8 mb-6">
-        <Segmented size="sm" label="Section" value={tab} onChange={t => { setTab(t); if (t === 'eb') setNewQuote(false) }} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
+        <Segmented size="sm" label="Section" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
       </div>
 
+      {tab === 'rules' && <PlanRules />}
       {tab === 'tables' && (
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
-      {tab === 'eb' && newQuote && !byHand && hrReadState === 'loading' && (
-        <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading the employee list…</p>
-      )}
-      {tab === 'eb' && newQuote && !byHand && hrReadState === 'failed' && (
-        <p className="m-0 mb-4 text-[13.5px]" style={{ color: '#a1242f' }}>{hrReadError}</p>
-      )}
-      {tab === 'eb' && newQuote && !byHand && hrReadState !== 'loading' && hrRead && (
-        <div className="flex flex-col gap-10">
-          <QuickQuote key={hrLinkId ?? 'hr'} initialCompany={company} initialRead={hrRead} onUseWizard={() => setByHand(true)} />
-          <section>
-            <h2 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em]">Engine quotes</h2>
-            <QuotesTab onNew={() => window.scrollTo({ top: 0 })} />
-          </section>
-        </div>
-      )}
-      {tab === 'eb' && newQuote && byHand && (
-        <div className="flex flex-col gap-3">
-          <Segmented size="sm" label="Quote by" value="hand" onChange={v => { if (v === 'quick') setByHand(false) }} options={[{ value: 'quick', label: 'Quick quote' }, { value: 'hand', label: 'By hand' }]} />
-          <NewQuoteWizard initialCompany={company} onSaved={() => { /* results shown inline; Quotes tab reloads on open */ }} />
-        </div>
-      )}
-      {tab === 'eb' && !newQuote && <EbRegister newHref="/pricing-matrix/new" />}
+      {tab === 'eb' && <EbRegister newHref="/pricing-matrix/new" />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan} onClose={() => setEmailInsurer(null)} />
@@ -298,88 +235,6 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
       </section>
 
       <InsurerContactsDialog open={!!editing} insurer={editing} onClose={() => setEditing(null)} onChanged={() => void reload()} />
-    </div>
-  )
-}
-
-type Quote = { id: string; company_name: string | null; effective_date: string | null; product_codes: string[]; member_count: number; results: { insurer_name: string; total: number }[]; created_at: string; source?: string | null }
-
-/** Who started the quote. Every quote is priced by the engine from the loaded rate tables. */
-const SOURCE_LABEL: Record<string, string> = { email: 'Client email', csv: 'Upload', hr_link: 'HR link', manual: 'By hand' }
-type QuoteFilter = 'all' | 'waiting' | 'priced'
-
-const fmtDay = (iso: string | null | undefined) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : ''
-const lowest = (q: Quote) => [...(q.results ?? [])].filter(r => r.total > 0).sort((a, b) => a.total - b.total)[0]
-
-/**
- * One row per company, the latest quote first. A company quoted three times is one row with
- * "3 quotes"; casing differences ("BCEI SG PTE LTD" / "BCEI SG Pte Ltd") are the same company.
- * Waiting = no employee list yet, which is the next thing to chase.
- */
-function QuotesTab({ onNew }: { onNew: () => void }) {
-  const router = useRouter()
-  const [rows, setRows] = useState<Quote[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<QuoteFilter>('all')
-  useEffect(() => {
-    fetch('/api/group-benefits/quote', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((d) => { setRows(Array.isArray(d) ? d : []); setLoading(false) }).catch(() => setLoading(false))
-  }, [])
-
-  const companies = (() => {
-    const m = new Map<string, Quote[]>()
-    for (const q of rows) {
-      const k = (q.company_name ?? '').trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() || `untitled:${q.id}`
-      m.set(k, [...(m.get(k) ?? []), q])
-    }
-    return Array.from(m.values()).map(list => {
-      const sorted = [...list].sort((a, b) => b.created_at.localeCompare(a.created_at))
-      const latestPriced = sorted.find(q => q.member_count > 0 && lowest(q))
-      return { latest: sorted[0], shown: latestPriced ?? sorted[0], count: list.length, priced: !!latestPriced }
-    }).sort((a, b) => b.latest.created_at.localeCompare(a.latest.created_at))
-  })()
-  const waiting = companies.filter(c => !c.priced).length
-  const shown = companies.filter(c => filter === 'all' || (filter === 'waiting' ? !c.priced : c.priced))
-
-  if (loading) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading…</p>
-  if (rows.length === 0) return (
-    <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>
-      No quotes yet. <button onClick={onNew} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#0f1412' }}>Start one</button>.
-    </p>
-  )
-  return (
-    <div className="flex flex-col gap-4">
-      <Segmented value={filter} onChange={setFilter} className="self-start" options={[
-        { value: 'all', label: 'All', count: companies.length },
-        { value: 'waiting', label: 'Waiting for employee list', count: waiting },
-        { value: 'priced', label: 'Priced', count: companies.length - waiting },
-      ]} />
-      <Register label="Quotes" minWidth={760}>
-        <RegisterHead>
-          <RegisterTh first width={300}>Company</RegisterTh>
-          <RegisterTh>Status</RegisterTh>
-          <RegisterTh>From</RegisterTh>
-          <RegisterTh align="right">Members</RegisterTh>
-          <RegisterTh align="right">Lowest premium</RegisterTh>
-          <RegisterTh last align="right">Updated</RegisterTh>
-        </RegisterHead>
-        <tbody>
-          {shown.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-[14px]" style={{ color: '#4a5550' }}>None.</td></tr>}
-          {shown.map(({ latest, shown: q, count, priced }) => {
-            const best = priced ? lowest(q) : undefined
-            return (
-              <RegisterRow key={q.id} onClick={() => router.push(`/pricing-matrix/quote/${q.id}`)}>
-                <RegisterCell first primary={q.company_name || 'Untitled'}
-                  secondary={[q.effective_date ? `starts ${fmtDay(q.effective_date)}` : null, count > 1 ? `${count} quotes` : null].filter(Boolean).join(' · ') || undefined} />
-                <RegisterCell><span className={CHIP} style={priced ? undefined : { background: '#fff4dc', color: '#8a5a00' }}>{priced ? 'Priced' : 'Waiting for employee list'}</span></RegisterCell>
-                <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{SOURCE_LABEL[q.source ?? ''] ?? q.source ?? '—'}</span></RegisterCell>
-                <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: q.member_count ? '#0f1412' : '#8c958f' }}>{q.member_count || '—'}</span></RegisterCell>
-                {best ? <RegisterCell align="right" primary={best.total.toLocaleString('en-SG', { style: 'currency', currency: 'SGD' })} secondary={shortInsurer(best.insurer_name)} /> : <RegisterCell align="right"><span style={{ color: '#8c958f' }}>—</span></RegisterCell>}
-                <RegisterCell last align="right"><span className="text-[14px] tabular-nums" style={{ color: '#4a5550' }}>{fmtDay(latest.created_at)}</span></RegisterCell>
-              </RegisterRow>
-            )
-          })}
-        </tbody>
-      </Register>
     </div>
   )
 }

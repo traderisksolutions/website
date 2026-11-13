@@ -13,6 +13,10 @@
  * cover, the changes endorsements made), the details, and what each census plan means as numbers,
  * filled from last year's policy where the plan numbers match. Confirm prices the current cover and
  * one change at a time at every insurer, measured against last year's premium, and opens the report.
+ *
+ * One screen for every way in (13 Nov 2026): a new quotation; an existing one (`quotationId`: its
+ * census, policy and details filled, a file added replaces them, Confirm reprices it in place); an
+ * HR link's submitted list (`hrLinkId`: the census comes from the link).
  */
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -26,6 +30,7 @@ import type { Member } from '@/lib/gb-quote'
 import type { SheetRead } from '@/lib/gb/census-parse'
 import type { CensusSource } from '@/app/api/group-benefits/census/sources/route'
 import type { BrochureRow } from '@/lib/gb/brochures'
+import { documentHref } from '@/lib/gb/compare-words'
 import { dropCrumb } from '@/lib/nav/trail'
 
 const INSURERS = ['AIA', 'Income', 'QBE', 'Raffles Health', 'Singlife']
@@ -82,7 +87,9 @@ function DropZone({ id, label, accept, multiple, disabled, onFiles }: { id: stri
   )
 }
 
-export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialCompany?: string; initialCompanyId?: string | null; threadId?: string | null }) {
+const sheetOf = (name: string, members: Member[]): SheetRead => ({ sheet: name, members, employees: members.filter(m => m.relationship === 'self').length, dependants: members.filter(m => m.relationship !== 'self').length, unread: [], found: {}, planCovers: [...new Set(members.flatMap(m => Object.keys(m.plans ?? {})))] })
+
+export function NewEb({ initialCompany, initialCompanyId, threadId, quotationId, hrLinkId }: { initialCompany?: string; initialCompanyId?: string | null; threadId?: string | null; quotationId?: string | null; hrLinkId?: string | null }) {
   const router = useRouter()
   const [stage, setStage] = useState<Stage>('documents')
   const [pick, setPick] = useState<CompanyPick>({ id: initialCompanyId ?? null, name: initialCompany ?? '' })
@@ -100,6 +107,8 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
   const [docIds, setDocIds] = useState<Set<string>>(new Set())
   const [lastYear, setLastYear] = useState<LastYear | null>(null)
   const [readingPolicy, setReadingPolicy] = useState(false)
+  // A policy read here, not the one on file: its plans fill the schedule ahead of what was confirmed before.
+  const [freshPolicy, setFreshPolicy] = useState(false)
   const [effDate, setEffDate] = useState(nextMonthFirst())
   const [basis, setBasis] = useState<'new_business' | 'renewal'>('renewal')
   const [current, setCurrent] = useState('')
@@ -122,6 +131,44 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
     }).catch(() => {})
     return () => { cancelled = true }
   }, [threadId, pick.id])
+
+  // An existing quotation: everything it was priced from, ready to change.
+  useEffect(() => {
+    if (!quotationId) return
+    let cancelled = false
+    fetch(`/api/group-benefits/quote/${quotationId}/documents`, { cache: 'no-store' }).then(async r => {
+      const d = await r.json().catch(() => ({})) as { company?: CompanyPick; census?: Member[]; effectiveDate?: string | null; basis?: 'renewal' | 'new_business'; currentInsurer?: string | null; schedule?: Schedule | null; lastYear?: LastYear | null; excluded?: string[]; error?: string }
+      if (cancelled) return
+      if (!r.ok) { setError(d.error ?? `The quotation could not be opened (${r.status}).`); return }
+      if (d.company) setPick(d.company)
+      const census = d.census ?? []
+      if (census.length) { setFile({ name: `Census on file · ${census.length} lives` }); setSheets([sheetOf('Census on file', census)]); setPicked(new Set(['Census on file'])) }
+      if (d.effectiveDate) setEffDate(d.effectiveDate.slice(0, 10))
+      if (d.basis) setBasis(d.basis)
+      if (d.currentInsurer) setCurrent(insurerOf(d.currentInsurer))
+      if (d.schedule) setPrior(d.schedule)
+      if (d.lastYear) setLastYear(d.lastYear)
+      if (d.excluded) setExcluded(d.excluded)
+    }).catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'The quotation could not be opened.') })
+    return () => { cancelled = true }
+  }, [quotationId])
+
+  // An HR link: the census is the list HR submitted on it.
+  useEffect(() => {
+    if (!hrLinkId) return
+    let cancelled = false
+    fetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' })
+      .then(async r => ({ ok: r.ok, status: r.status, d: await r.json().catch(() => ({})) as { census?: Member[]; company?: { id: string | null; name: string | null }; effective_date?: string | null; reference?: string; error?: string } }))
+      .then(c => {
+      if (cancelled) return
+      if (!c.ok || !c.d.census?.length) { setError(c.d.error ?? `The list from the HR link could not be loaded (${c.status}).`); return }
+      const name = `HR link ${c.d.reference ?? ''}`.trim()
+      setFile({ name: `${name} · ${c.d.census.length} lives` }); setSheets([sheetOf(name, c.d.census)]); setPicked(new Set([name]))
+      if (c.d.company?.name) setPick(p => p.name ? p : { id: c.d.company!.id ?? null, name: c.d.company!.name! })
+      if (c.d.effective_date) setEffDate(c.d.effective_date.slice(0, 10))
+    }).catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'The list from the HR link could not be loaded.') })
+    return () => { cancelled = true }
+  }, [hrLinkId])
 
   useEffect(() => {
     fetch('/api/group-benefits/brochures', { cache: 'no-store' }).then(r => r.json()).then((d: { rows?: BrochureRow[] }) => setBrochures(d.rows ?? [])).catch(() => setBrochures([]))
@@ -159,7 +206,7 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
         const d = await res.json().catch(() => ({})) as { read?: LastYear; skipped?: string[]; error?: string }
         if (!res.ok || !d.read) { setError(d.error ?? `Last year's policy could not be read (${res.status}).`); return }
         const ly = d.read
-        setLastYear(ly)
+        setLastYear(ly); setFreshPolicy(true)
         if (ly.periodTo) setEffDate(dayAfter(ly.periodTo))
         setBasis('renewal')
         if (ly.insurer || ly.product) setCurrent(insurerOf(`${ly.insurer ?? ''} ${ly.product ?? ''}`) || current)
@@ -179,7 +226,8 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
     setSchedule(prev => {
       const next = emptySchedule()
       for (const c of SCHEDULE_COVERS) for (const { value } of values[c]) {
-        const had = (prev[c] as Record<string, unknown>)[value] ?? (fromPolicy[c] as Record<string, unknown> | undefined)?.[value] ?? (prior?.[c] as Record<string, unknown> | undefined)?.[value]
+        const policyV = (fromPolicy[c] as Record<string, unknown> | undefined)?.[value], priorV = (prior?.[c] as Record<string, unknown> | undefined)?.[value]
+        const had = (prev[c] as Record<string, unknown>)[value] ?? (quotationId && !freshPolicy ? priorV ?? policyV : policyV ?? priorV)
         if (had !== undefined) { (next[c] as Record<string, unknown>)[value] = had; continue }
         if (c === 'GHS') next.GHS[value] = /fw|foreign/i.test(value) ? { hospital: 'government', beds: 4, limitKind: 'per_disability', limit: 15_000, coins: 0, foreignWorker: true } : { ...DEFAULT_GHS }
         else if (c === 'GTL') next.GTL[value] = value === ALL ? { kind: 'sum', n: 100_000 } : lifeOf(value)
@@ -190,7 +238,7 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
       }
       return next
     })
-  }, [values, prior, lastYear, members.length])
+  }, [values, prior, lastYear, members.length, quotationId, freshPolicy])
 
   async function analyse() {
     if (!members.length) { setError('Pick at least one tab with people on it.'); return }
@@ -199,13 +247,13 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
     try {
       const res = await fetch('/api/group-benefits/analysis', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ census: members, schedule, company_name: pick.name.trim(), company_id: pick.id, effective_date: effDate, basis, current_insurer: current || null, excluded, last_year: lastYear,
+        body: JSON.stringify({ census: members, schedule, company_name: pick.name.trim(), company_id: pick.id, effective_date: effDate, basis, current_insurer: current || null, excluded, last_year: lastYear, quotation_id: quotationId ?? undefined,
           source: threadId ? { label: 'Thread', href: `/engagement?lead=${threadId}` } : undefined }),
       })
       const d = await res.json().catch(() => ({})) as { quotation_id?: string; error?: string }
       if (!res.ok || !d.quotation_id) { setError(d.error ?? `The analysis did not run (${res.status}).`); setBusy(false); return }
       // The form is done: off the trail and out of history, so Back from the report skips it.
-      dropCrumb('/pricing-matrix/new')
+      dropCrumb('/pricing-matrix/new'); if (quotationId) dropCrumb(`/pricing-matrix/quote/${quotationId}/edit`)
       router.replace(`/pricing-matrix/quote/${d.quotation_id}/compare`)
     } catch (e) { setError(e instanceof Error ? e.message : 'The analysis did not run.'); setBusy(false) }
   }
@@ -248,6 +296,10 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
           <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="neweb-policy">
             <h3 id="neweb-policy" className="m-0 text-[15px] font-medium">Last year&apos;s policy and premium</h3>
             <DropZone id="neweb-policy-files" label="Add policy documents" accept=".pdf,.png,.jpg,.jpeg,.xlsx" multiple disabled={readingPolicy || busy} onFiles={fs => setUploads(u => [...u, ...fs].slice(0, 12))} />
+            {lastYear && !uploads.length && !docIds.size && lastYear.documents.map(d => {
+              const href = documentHref(d.ref)
+              return <FileRow key={d.file} name={d.file} meta={`On file${lastYear.policyNumber ? ` · policy ${lastYear.policyNumber}` : ''}${lastYear.total != null ? ` · ${money(lastYear.total, { dp: 0 })}` : ''}`} action={href ? <a href={href} target="_blank" rel="noreferrer" className="text-[12.5px] underline" style={{ color: INK }}>Open</a> : undefined} />
+            })}
             {uploads.map((f, i) => (
               <FileRow key={`${f.name}-${i}`} name={f.name} meta={`${Math.max(1, Math.round(f.size / 1024))} KB`}
                 action={<button type="button" aria-label={`Remove ${f.name}`} onClick={() => setUploads(u => u.filter((_, j) => j !== i))} className="bg-transparent border-0 p-1 cursor-pointer" style={{ color: MUTED }}><X size={15} /></button>} />
@@ -286,7 +338,7 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
         {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
         <div className="flex items-center gap-3">
           <Btn level="primary" onClick={readDocuments} loading={readingPolicy} disabled={!sheets || !pick.name.trim() || reading || readingPolicy}>
-            {readingPolicy ? `Reading ${policyCount} ${policyCount === 1 ? 'document' : 'documents'}…` : policyCount ? 'Read documents' : 'Continue without last year'}
+            {readingPolicy ? `Reading ${policyCount} ${policyCount === 1 ? 'document' : 'documents'}…` : policyCount ? 'Read documents' : lastYear ? 'Continue' : 'Continue without last year'}
           </Btn>
         </div>
       </>)}
@@ -348,7 +400,7 @@ export function NewEb({ initialCompany, initialCompanyId, threadId }: { initialC
 
         {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
         <div className="flex items-center gap-3">
-          <Btn level="primary" onClick={analyse} loading={busy} disabled={busy || !members.length}>{busy ? 'Pricing every insurer…' : `Confirm and price ${members.length} lives`}</Btn>
+          <Btn level="primary" onClick={analyse} loading={busy} disabled={busy || !members.length}>{busy ? 'Pricing every insurer…' : `${quotationId ? 'Confirm and reprice' : 'Confirm and price'} ${members.length} lives`}</Btn>
         </div>
       </>)}
     </div>

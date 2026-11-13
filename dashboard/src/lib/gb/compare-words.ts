@@ -14,6 +14,11 @@ export function amountOf(t: string | null | undefined): number | null {
   return m ? Number(m[1]) * (m[2] ? 1000 : 1) : null
 }
 
+/** Where a kept document opens: Drive for an upload, the email attachment for a file from the emails. */
+export const documentHref = (ref: string | null | undefined): string | null =>
+  ref?.startsWith('drivefile:') ? `https://drive.google.com/file/d/${encodeURIComponent(ref.slice(10))}/view`
+  : ref?.startsWith('gmail:') ? `/api/engagement/attachments/${encodeURIComponent(ref.slice(6))}/download` : null
+
 const sg = (t: string) => t.replace(/(^|[^S])\$/g, '$1S$')
 
 /** A hospital plan in two parts: the ward ("Private 1-bed") and the limit ("S$150,000 a year · 20% co-insurance"). */

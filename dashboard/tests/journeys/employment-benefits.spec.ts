@@ -61,7 +61,9 @@ test('Compare cover: today from last year\'s policy, hospital by ward then limit
   const href = await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href')
   await openClean(page, href!)
   await expect(page.getByRole('heading', { name: 'Major Medical' })).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByRole('button', { name: /Add last year's policy|Replace policy/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Add last year's policy|Census and policy/ })).toHaveAttribute('href', /\/pricing-matrix\/quote\/[^/]+\/edit$/)
+  await expect(page.getByRole('heading', { name: /^Hospital options · \d+/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Use' }).first()).toBeVisible()
   const ward = page.getByLabel('Ward at Income FlexCare'), limit = page.getByLabel('Limit at Income FlexCare'), mm = page.getByLabel('Major Medical at Income FlexCare')
   await expect(ward).toBeVisible()
   await expect(page.getByText('Tied to Hospital & Surgical, same plan').first()).toBeVisible()
@@ -72,9 +74,23 @@ test('Compare cover: today from last year\'s policy, hospital by ward then limit
   }
 })
 
-test('Settings › Plan rules lists the Income FlexCare rule and the plans it pairs', async ({ page }) => {
-  await openClean(page, '/settings?section=plan_rules')
-  await expect(page.getByLabel('Rule 1 insurer')).toHaveValue('Income FlexCare')
-  await expect(page.getByLabel('Rule 1 cover')).toHaveValue('Major Medical')
-  await expect(page.getByText(/Plan 3 → Plan 3/)).toBeVisible()
+test('Employment Benefits › Plan rules: the brochure rules for Income, RCC and Singlife, each with its pairs', async ({ page }) => {
+  await openClean(page, '/pricing-matrix?tab=rules')
+  const insurers = await page.locator('select[aria-label$=" insurer"]').evaluateAll(els => els.map(e => (e as HTMLSelectElement).value))
+  for (const p of ['Income FlexCare', 'RCC Enhanced III', 'Singlife MyBenefits Plus']) expect(insurers).toContain(p)
+  await expect(page.getByText(/Plan 3 → Plan 3/).first()).toBeVisible()
+})
+
+test('a quotation\'s Census and policy opens New quotation with its census on file, to reprice in place', async ({ page }) => {
+  await openClean(page, '/pricing-matrix')
+  const href = await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href')
+  await openClean(page, href!.replace(/\/compare$/, '/edit'))
+  await expect(page.getByRole('heading', { name: 'Census and policy' })).toBeVisible()
+  await expect(page.getByText(/Census on file · \d+ lives/)).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('combobox', { name: 'Company' })).not.toHaveValue('')
+})
+
+test('an HR link\'s list opens New quotation, not the retired Quick quote', async ({ page }) => {
+  await page.goto('/pricing-matrix?tab=quote&hrLink=00000000-0000-0000-0000-000000000000')
+  await expect(page).toHaveURL(/\/pricing-matrix\/new\?hrLink=/)
 })

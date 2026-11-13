@@ -115,7 +115,7 @@ export default function HrLinkPage() {
               <div className="flex items-center gap-2 flex-wrap">
                 <Btn level="secondary" onClick={() => act('resend')} loading={busy === 'resend'} disabled={busy !== null || link.status === 'submitted'}>Resend</Btn>
                 <Btn level="secondary" onClick={() => setConfirmClose(true)} loading={busy === 'close'} disabled={busy !== null || !linkIsOpen(link)}>Close link</Btn>
-                <Btn level="primary" onClick={() => router.push(`/pricing-matrix?tab=quote&hrLink=${link.id}`)} disabled={!submitted}>Quote from this list</Btn>
+                <Btn level="primary" onClick={() => router.push(`/pricing-matrix/new?hrLink=${link.id}`)} disabled={!submitted}>Quote from this list</Btn>
               </div>
             </div>
             <p className="m-0 mt-2 text-[13.5px] tabular-nums flex flex-wrap items-center gap-x-2 gap-y-1" style={{ color: MUTED }}>

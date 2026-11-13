@@ -5,12 +5,15 @@
  * → { read: LastYear } — last year's policy: insurer, plans per category, premium per cover.
  *
  * One model call reads every file; code bounds the result (src/lib/gb/last-year.ts). Spreadsheets
- * are sent as text. Nothing is saved here: the broker confirms the read on Review first.
+ * are sent as text. Uploads are kept in the Shared Drive (group-benefits/last-year) and each
+ * document carries where it is kept, so Compare cover links to it; a file from the emails is
+ * referenced where it already is. The read itself is saved only when the broker confirms Review.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
-import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
+import { gmailRef, messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
+import { storeUpload } from '@/lib/storage/drive-upload'
 import { readLastYear } from '@/lib/gb/last-year'
 import { LAST_YEAR_MAX_BYTES as MAX_BYTES, lastYearPart as asPart } from '@/lib/gb/last-year-files'
 
@@ -22,6 +25,8 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const files: { name: string; mime: string; bytes: Buffer }[] = []
+  const keep: { name: string; type: string; raw: Buffer }[] = []
+  const refOf = new Map<string, string>()
   const skipped: string[] = []
   const type = req.headers.get('content-type') ?? ''
   let ids: string[] = []
@@ -32,8 +37,9 @@ export async function POST(req: NextRequest) {
     if (!list.length && !ids.length) return NextResponse.json({ error: 'Attach the policy schedule, endorsements or debit note.' }, { status: 400 })
     for (const f of list) {
       if (f.size > MAX_BYTES) { skipped.push(`${f.name}: over 20 MB`); continue }
-      const p = await asPart(f.name, Buffer.from(await f.arrayBuffer())).catch(() => null)
-      if (p) files.push(p); else skipped.push(`${f.name}: not a PDF, image or spreadsheet`)
+      const raw = Buffer.from(await f.arrayBuffer())
+      const p = await asPart(f.name, raw).catch(() => null)
+      if (p) { files.push(p); keep.push({ name: f.name, type: f.type || p.mime, raw }) } else skipped.push(`${f.name}: not a PDF, image or spreadsheet`)
     }
   } else {
     const body = await req.json().catch(() => ({})) as { attachment_ids?: string[] }
@@ -46,11 +52,16 @@ export async function POST(req: NextRequest) {
     for (const a of rows) {
       const bytes = await messageAttachmentBytes(a.message_id, a.filename).catch(() => null)
       const p = bytes ? await asPart(a.filename, bytes).catch(() => null) : null
-      if (p) files.push(p); else skipped.push(`${a.filename}: could not be fetched from the mailbox`)
+      if (p) { files.push(p); refOf.set(a.filename.trim().toLowerCase(), gmailRef(a.id)) } else skipped.push(`${a.filename}: could not be fetched from the mailbox`)
     }
   }
   if (!files.length) return NextResponse.json({ error: skipped.join('; ') || 'No readable document.' }, { status: 422 })
-  const out = await readLastYear(files)
+  const [out, stored] = await Promise.all([
+    readLastYear(files),
+    Promise.all(keep.map(k => storeUpload('group-benefits/last-year', k.name, k.type, k.raw).catch(() => null))),
+  ])
   if ('error' in out) return NextResponse.json({ error: out.error, skipped }, { status: 502 })
-  return NextResponse.json({ read: out.read, skipped })
+  keep.forEach((k, i) => { if (stored[i]) refOf.set(k.name.trim().toLowerCase(), stored[i]!) })
+  const read = { ...out.read, documents: out.read.documents.map(d => ({ ...d, ref: refOf.get(d.file.trim().toLowerCase()) ?? null })) }
+  return NextResponse.json({ read, skipped })
 }

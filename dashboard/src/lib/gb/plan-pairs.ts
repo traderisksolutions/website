@@ -1,20 +1,25 @@
 /**
- * Plan rules: which plans go together at an insurer. Income FlexCare's major medical plan is tied
- * to its hospital plan: Plan 3 hospital takes Plan 3 major medical, and one is not sold without the
- * other (Ernest, 13 Nov 2026). Staff keep the rules in Settings › Plan rules (app_settings
- * `gb_plan_rules`); Compare cover applies them on every change of plan.
+ * Plan rules: which plans go together at an insurer, as the brochures state them (13 Nov 2026):
+ * Income FlexCare's extended major medical is part of hospital plans 2 to 5 and priced in them;
+ * RCC and Singlife sell major medical as an optional rider on the same plan as the hospital plan;
+ * RCC's specialist rider needs its GP rider. Staff keep the rules in Employment Benefits › Plan
+ * rules (app_settings `gb_plan_rules`); Compare cover applies them on every change of plan.
  *
  * A rule: at `product`, `cover` goes with `tiedTo`. `match` 'same_plan' allows only the plan with
  * the same plan number ("Plan 2A/2B" carries 2A and 2B), 'any_plan' any plan. `required` takes the
  * cover whenever its partner is taken; without it the cover may be left out. With no partner plan,
- * the cover is none.
+ * the cover is none. `premium` 'included': the cover costs nothing on its own; the partner's rate
+ * carries it. `source`: where the rule is stated.
  *
  * Pure apart from load/save; safe in the browser. Tested in src/__tests__/gb-plan-pairs.test.ts.
  */
-export type PlanRule = { id: string; product: string; cover: string; tiedTo: string; match: 'same_plan' | 'any_plan'; required: boolean }
+export type PlanRule = { id: string; product: string; cover: string; tiedTo: string; match: 'same_plan' | 'any_plan'; required: boolean; premium: 'own' | 'included'; source: string }
 
 export const DEFAULT_RULES: PlanRule[] = [
-  { id: 'income-mm', product: 'Income FlexCare', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: true },
+  { id: 'income-mm', product: 'Income FlexCare', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: true, premium: 'included', source: 'Employees FlexCare brochure 2026, pages 6 and 8' },
+  { id: 'rcc-mm', product: 'RCC Enhanced III', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: false, premium: 'own', source: 'RCC Enhanced III brochure, 14 Jul 2025, page 18' },
+  { id: 'rcc-sp', product: 'RCC Enhanced III', cover: 'Outpatient Specialist', tiedTo: 'Outpatient GP', match: 'any_plan', required: false, premium: 'own', source: 'RCC Enhanced III brochure, 14 Jul 2025, pages 4 and 18' },
+  { id: 'singlife-mm', product: 'Singlife MyBenefits Plus', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: false, premium: 'own', source: 'MyBenefits Plus brochure, Jun 2022, page 12' },
 ]
 
 /** The plan numbers a plan name carries: "Plan 2A/2B" → 2a, 2b; "Plan 1 (Private 1-bed)" → 1. */
@@ -45,6 +50,24 @@ export function applyRules(rules: PlanRule[], product: string, picks: Record<str
   return out
 }
 
+/**
+ * Every hospital plan at a product with each way its tied covers can go with it, for the broker to
+ * pick from: "Plan 3" alone and "Plan 3 + major medical Plan 3" where the rider is optional.
+ * Pure. `options` per cover; returns picks for the tied covers only.
+ */
+export function permutations(rules: PlanRule[], product: string, base: string, options: Record<string, string[]>): Record<string, string>[] {
+  const mine = rules.filter(r => r.product === product && r.tiedTo === base)
+  let out: Record<string, string>[] = (options[base] ?? []).map(p => ({ [base]: p }))
+  for (const r of mine) {
+    out = out.flatMap(o => {
+      const allowed = allowedPlans(r, o[base], options[r.cover] ?? [])
+      const withIt = allowed.map(p => ({ ...o, [r.cover]: p }))
+      return !allowed.length ? [{ ...o, [r.cover]: '' }] : r.required ? withIt : [{ ...o, [r.cover]: '' }, ...withIt]
+    })
+  }
+  return out
+}
+
 /** The rule governing a cover at a product, if any. */
 export const ruleFor = (rules: PlanRule[], product: string, cover: string): PlanRule | null => rules.find(r => r.product === product && r.cover === cover) ?? null
 
@@ -56,7 +79,7 @@ export function cleanRules(raw: unknown, products: readonly string[], covers: re
     const product = String(r?.product ?? ''), cover = String(r?.cover ?? ''), tiedTo = String(r?.tiedTo ?? '')
     if (!products.includes(product) || !covers.includes(cover) || !covers.includes(tiedTo) || cover === tiedTo) return null
     if (out.some(o => o.product === product && o.cover === cover)) return null
-    out.push({ id: String(r?.id ?? '').slice(0, 40) || `${product}|${cover}`, product, cover, tiedTo, match: r?.match === 'any_plan' ? 'any_plan' : 'same_plan', required: r?.required !== false })
+    out.push({ id: String(r?.id ?? '').slice(0, 40) || `${product}|${cover}`, product, cover, tiedTo, match: r?.match === 'any_plan' ? 'any_plan' : 'same_plan', required: r?.required !== false, premium: r?.premium === 'included' ? 'included' : 'own', source: String(r?.source ?? '').trim().slice(0, 160) })
   }
   return out
 }
@@ -67,7 +90,7 @@ export type StoredRules = { rules: PlanRule[]; updatedBy: string | null; updated
 export async function loadRules(): Promise<StoredRules> {
   const { sbTry } = await import('@/lib/crm/db')
   const [r] = await sbTry<{ value: string }[]>(`app_settings?key=eq.${KEY}&select=value&limit=1`, [])
-  try { if (r?.value) { const v = JSON.parse(r.value) as StoredRules; if (Array.isArray(v.rules)) return v } } catch { /* default below */ }
+  try { if (r?.value) { const v = JSON.parse(r.value) as StoredRules; if (Array.isArray(v.rules)) return { ...v, rules: v.rules.map(x => ({ ...x, premium: x.premium ?? 'own', source: x.source ?? '' })) } } } catch { /* default below */ }
   return { rules: DEFAULT_RULES, updatedBy: null, updatedAt: null }
 }
 

@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — One screen for census and policy; plan rules from the brochures
+
+- **Census and policy is one screen** (`NewEb.tsx`) for a new quotation, an existing one (`/pricing-matrix/quote/<id>/edit`) and an HR link's list (`/pricing-matrix/new?hrLink=<id>`). On an existing quotation the census, policy, schedule and details are filled; Confirm reprices the same quotation (`quotation_id` on `POST /api/group-benefits/analysis` → `createQuotation` `replaceId`: the row is updated, its lines replaced), so links, drafts and saved choices keep pointing at it. Before this, every Confirm made a new quotation.
+- **Retired duplicates:** the upload on Compare cover (now a link to Census and policy), Quick quote and the By hand wizard on the Employment Benefits page, the Engine quotes list under them.
+- **Last year's policy files are kept:** New quotation's read stores uploads in the Shared Drive (`group-benefits/last-year`) and references a file from the emails where it is; Compare cover and Census and policy link to each.
+- **Plan rules** moved from Settings to Employment Benefits › Plan rules, with Premium (own rate, or carried in the partner's) and Source. Defaults read from the brochures: Income FlexCare major medical is part of hospital plans 2 to 5 and priced in them (Employees FlexCare 2026, pages 6 and 8); RCC and Singlife major medical are optional riders on the same plan (RCC 14 Jul 2025 page 18; MyBenefits Plus Jun 2022 page 12); RCC specialist needs its GP rider (pages 4 and 18).
+- **Hospital options** on Compare cover: every hospital plan at an insurer with each way its riders go with it, priced for the category, sorted by premium, against today; Use sets them together.
+- Journeys: Census and policy, HR link redirect, Plan rules tab (`tests/journeys/employment-benefits.spec.ts`).
+
 ## 2026-11-13 — Compare cover: last year's policy as Today, ward then limit, plan rules
 
 - **Today is last year's policy.** "Add last year's policy" on Compare cover (`POST /api/group-benefits/quote/<id>/last-year`): files kept in the Shared Drive (`group-benefits/last-year`) and linked under Today, one read (`readLastYear`), saved on the quotation with what each census plan means. Today shows the cover as benefit rows (`factsAsBenefits`) and the premium net of GST (9% taken off when the documents include it); every product is measured against it. Without a policy, Today shows the schedule's cover and the current insurer's renewal price as before. The client draft reads the same Today.

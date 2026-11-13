@@ -37,7 +37,7 @@ export type CategoryFacts = {
   pa: number | null
 }
 export type LastYearCategory = { name: string; lives: number | null; plans: Partial<Record<LastYearCover, string>>; facts: CategoryFacts }
-/** `ref`: where the file is kept (drivefile:<id>), set when it was uploaded on Compare cover. */
+/** `ref`: where the file is kept (drivefile:<id>), set when the read kept or found the file. */
 export type LastYearDoc = { file: string; kind: 'schedule' | 'endorsement' | 'debit_note' | 'invoice' | 'other'; date: string | null; ref?: string | null }
 export type LastYear = {
   insurer: string | null
@@ -122,7 +122,7 @@ export function normaliseLastYear(raw: unknown, files?: string[]): LastYear {
     insurer: str(r.insurer, 80), product: str(r.product, 80), policyNumber: str(r.policyNumber, 60),
     periodFrom: iso(r.periodFrom), periodTo: iso(r.periodTo), lives: amount(r.lives, 100_000),
     categories, premiumByCover, total: anchorable ? total : null, sumMatches: anchorable ? sumMatches : null, gst: oneOf(r.gst, ['included', 'excluded'] as const),
-    documents: (Array.isArray(r.documents) ? r.documents : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Document', kind: oneOf(d?.kind, kinds) ?? 'other', date: iso(d?.date) })),
+    documents: (Array.isArray(r.documents) ? r.documents : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Document', kind: oneOf(d?.kind, kinds) ?? 'other', date: iso(d?.date), ref: typeof d?.ref === 'string' && /^(drivefile|gmail):[\w.-]{1,200}$/.test(d.ref) ? d.ref : null })),
     changes: (Array.isArray(r.changes) ? r.changes : []).slice(0, 30).map((d: Record<string, unknown>) => ({ file: str(d?.file, 160) ?? 'Endorsement', date: iso(d?.date), what: str(d?.what, 240) ?? '' })).filter(c => c.what),
     conflicts: (Array.isArray(r.conflicts) ? r.conflicts : []).map(x => str(x, 240)).filter((x): x is string => !!x).slice(0, 20),
   }

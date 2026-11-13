@@ -1,6 +1,6 @@
 /**
  * GET → { rules, updatedBy, updatedAt, plans }: the plan rules (src/lib/gb/plan-pairs.ts) and the
- *   plans each product sells per cover, from the house workbook, so Settings can show the pairs.
+ *   plans each product sells per cover, from the house workbook, so Plan rules can show the pairs.
  * PUT { rules } → saves them. Compare cover applies them from its next load.
  */
 import { NextRequest, NextResponse } from 'next/server'

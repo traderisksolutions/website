@@ -10,7 +10,7 @@
  *
  * Today is last year's policy (Ernest, 13 Nov 2026): added here, kept in Drive and linked, its cover
  * as rows and its premium as the base. A hospital plan is chosen in two steps, ward then limit.
- * Plan rules from Settings (src/lib/gb/plan-pairs.ts) hold plans that go together.
+ * Plan rules (Employment Benefits › Plan rules, src/lib/gb/plan-pairs.ts) hold plans that go together.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -18,7 +18,7 @@ import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { Btn, Segmented, Spinner } from '@/components/crm/primitives'
 import { fmtDate, money } from '@/lib/format'
 import { amountOf, changeOf, coverWords, hospitalParts, type Change } from '@/lib/gb/compare-words'
-import { allowedPlans, applyRules, ruleFor } from '@/lib/gb/plan-pairs'
+import { allowedPlans, applyRules, permutations, ruleFor } from '@/lib/gb/plan-pairs'
 import type { CompareData, Picks } from '@/lib/gb/compare-cover'
 
 const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Personal Accident']
@@ -40,9 +40,7 @@ export function CompareCover({ id }: { id: string }) {
   const [drafting, setDrafting] = useState<string | null>(null)
   const [drafted, setDrafted] = useState<Record<string, string>>({})
   const [shown, setShown] = useState<{ product: string; subject: string; body: string; note?: string } | null>(null)
-  const [reading, setReading] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const fileRef = useRef<HTMLInputElement | null>(null)
 
   const load = useCallback(() => fetch(`/api/group-benefits/quote/${id}/compare`, { cache: 'no-store' }).then(async r => {
     const d = await r.json().catch(() => ({})) as Data & { error?: string }
@@ -51,29 +49,16 @@ export function CompareCover({ id }: { id: string }) {
   }).catch(e => setError(e instanceof Error ? e.message : 'Compare could not load')), [id])
   useEffect(() => { void load() }, [load])
 
-  async function addPolicy(files: FileList | null) {
-    if (!files?.length) return
-    setReading(true); setError(null)
-    try {
-      const fd = new FormData()
-      for (const f of Array.from(files)) fd.append('files', f)
-      const res = await fetch(`/api/group-benefits/quote/${id}/last-year`, { method: 'POST', body: fd })
-      const d = await res.json().catch(() => ({})) as { error?: string }
-      if (!res.ok) { setError(d.error ?? (res.status === 413 ? 'The files are over 4 MB together. Add them one at a time.' : `Last year's policy could not be read (${res.status}).`)); return }
-      await load()
-    } catch (e) { setError(e instanceof Error ? e.message : "Last year's policy could not be read.") }
-    finally { setReading(false); if (fileRef.current) fileRef.current.value = '' }
-  }
-
-  const choose = useCallback((product: string, cover: string, plan: string) => {
+  const chooseMany = useCallback((product: string, patch: Record<string, string>) => {
     setPicks(prev => {
-      const mine = applyRules(data?.rules ?? [], product, { ...prev[product]?.[cat], [cover]: plan }, data?.options[product] ?? {})
+      const mine = applyRules(data?.rules ?? [], product, { ...prev[product]?.[cat], ...patch }, data?.options[product] ?? {})
       const next = { ...prev, [product]: { ...prev[product], [cat]: mine } }
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => { void fetch(`/api/group-benefits/quote/${id}/compare`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ picks: next }) }) }, 600)
       return next
     })
   }, [cat, id, data])
+  const choose = useCallback((product: string, cover: string, plan: string) => chooseMany(product, { [cover]: plan }), [chooseMany])
 
   const cols = useMemo(() => data ? [TODAY_COL, ...data.products] : [], [data])
   const pickOf = useCallback((col: string, c: string, cover: string) => !data ? '' : col === TODAY_COL ? data.today.picks[c]?.[cover] ?? '' : picks[col]?.[c]?.[cover] ?? '', [data, picks])
@@ -129,7 +114,7 @@ export function CompareCover({ id }: { id: string }) {
                   </div>
                   <div className="mt-2.5 text-[21px] font-medium tabular-nums">{t != null ? money(t, { dp: 0 }) : '—'}</div>
                   <div className="text-[12px]" style={{ color: SUBTLE }}>{t != null ? `a year, net of GST · ${money(t / Math.max(1, data.lives), { dp: 0 })} a life` : col === TODAY_COL ? 'no premium on file' : ''}</div>
-                  {col === TODAY_COL ? <TodayPolicy data={data} reading={reading} onAdd={() => fileRef.current?.click()} />
+                  {col === TODAY_COL ? <TodayPolicy data={data} id={id} />
                     : d == null ? null : Math.abs(d) < 1 ? <div className="text-[12.5px]" style={{ color: SUBTLE }}>same as today</div>
                     : <div className="text-[12.5px] font-medium tabular-nums" style={{ color: d > 0 ? DOWN : UP }}>{d > 0 ? '+' : '−'}{Math.abs(d / (todayTotal || 1) * 100).toFixed(1)}% · {signed(d)}</div>}
                   {data.categories.length > 1 && <div className="mt-1 text-[11.5px] tabular-nums" style={{ color: SUBTLE }}>{data.categories.map(c => { const ct = total(col, c.key); return ct != null ? <div key={c.key}>{c.name} {money(ct, { dp: 0 })}</div> : null })}</div>}
@@ -144,7 +129,6 @@ export function CompareCover({ id }: { id: string }) {
             })}
           </div>
 
-          <input ref={fileRef} type="file" multiple hidden accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.xlsx,.xls,.xlsm,.csv" aria-label="Last year's policy files" onChange={e => void addPolicy(e.target.files)} />
           {shown && (
             <section className="mt-5 rounded-[12px] p-4" style={{ border: `1px solid ${LINE}` }} aria-label={`Email for ${shown.product}`}>
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -190,7 +174,8 @@ export function CompareCover({ id }: { id: string }) {
                       const rule = ruleFor(data.rules, p, cover)
                       const allowed = rule ? allowedPlans(rule, pickOf(col, cat, rule.tiedTo), opts) : opts
                       const b = (o: string) => data.benefits[`${p}|${cover}|${o}`] ?? {}
-                      const priceText = (o: string) => { const op = data.prices[cat]?.[p]?.[cover]?.[o]; return op != null ? `${money(op, { dp: 0 })}${tp != null ? ` (${signed(op - tp)})` : ''}` : 'not priced' }
+                      const included = rule?.premium === 'included'
+                      const priceText = (o: string) => { const op = data.prices[cat]?.[p]?.[cover]?.[o]; return included ? `in ${rule!.tiedTo} premium` : op != null ? `${money(op, { dp: 0 })}${tp != null ? ` (${signed(op - tp)})` : ''}` : 'not priced' }
                       return (
                         <div key={col} className="min-w-0">
                           {cover === 'Hospital & Surgical' ? <HospitalPicker col={col} plan={plan} opts={opts} b={b} priceText={priceText} onChange={v => choose(col, cover, v)} />
@@ -203,9 +188,9 @@ export function CompareCover({ id }: { id: string }) {
                             )}
                           {rule && <div className="mt-1 text-[11.5px]" style={{ color: SUBTLE }}>Tied to {rule.tiedTo}{rule.match === 'same_plan' ? ', same plan' : ''}</div>}
                           <div className="mt-2 text-[13px]" style={{ color: INK }}>{coverWords(cover, plan, b(plan))}</div>
-                          <div className="text-[13px] font-medium tabular-nums">{plan ? (pr != null ? money(pr, { dp: 0 }) : 'not priced') : '—'}
-                            {pr != null && tp != null && <span className="ml-2" style={{ color: pr - tp > 0 ? DOWN : UP }}>{signed(pr - tp)}</span>}
-                            {pr != null && tp ? <Tag c={{ text: `${pr >= tp ? '+' : '−'}${Math.abs(Math.round((pr - tp) / tp * 100))}%`, tone: pr > tp ? 'down' : pr < tp ? 'up' : 'same' }} /> : null}
+                          <div className="text-[13px] font-medium tabular-nums">{plan ? (included ? `In ${rule!.tiedTo} premium` : pr != null ? money(pr, { dp: 0 }) : 'not priced') : '—'}
+                            {!included && pr != null && tp != null && <span className="ml-2" style={{ color: pr - tp > 0 ? DOWN : UP }}>{signed(pr - tp)}</span>}
+                            {!included && pr != null && tp ? <Tag c={{ text: `${pr >= tp ? '+' : '−'}${Math.abs(Math.round((pr - tp) / tp * 100))}%`, tone: pr > tp ? 'down' : pr < tp ? 'up' : 'same' }} /> : null}
                           </div>
                           {plan && <div className="text-[11.5px]" style={{ color: SUBTLE }}>{plan}</div>}
                         </div>
@@ -213,6 +198,7 @@ export function CompareCover({ id }: { id: string }) {
                     })}
                   </div>
                 </div>
+                {cover === 'Hospital & Surgical' && <HospitalOptions data={data} cat={cat} picks={picks} todayPremium={(cv: string) => price(TODAY_COL, cat, cv)} onUse={chooseMany} />}
                 {ids.map(bid => {
                   const vals = cols.map(col => benefitsFor(col, cover)[bid] ?? '—')
                   if (vals.every(v => v === '—')) return null
@@ -237,8 +223,8 @@ export function CompareCover({ id }: { id: string }) {
   )
 }
 
-/** Today's source: last year's policy, its documents, and the button that adds or replaces it. */
-function TodayPolicy({ data, reading, onAdd }: { data: Data; reading: boolean; onAdd: () => void }) {
+/** Today's source: last year's policy and its documents, and the way to the quotation's documents. */
+function TodayPolicy({ data, id }: { data: Data; id: string }) {
   const t = data.today, pol = t.policy
   return (
     <div className="mt-0.5 flex flex-col gap-1 text-[12.5px]" style={{ color: SUBTLE }}>
@@ -248,8 +234,59 @@ function TodayPolicy({ data, reading, onAdd }: { data: Data; reading: boolean; o
       {pol?.documents.map(d => d.href
         ? <a key={d.file} href={d.href} target="_blank" rel="noreferrer" className="underline truncate" style={{ color: INK }} title={d.file}>{d.file}</a>
         : <span key={d.file} className="truncate" title={`${d.file}: read, not kept`}>{d.file}</span>)}
-      <div className="mt-1">
-        {reading ? <Spinner label="Reading the policy…" /> : <Btn size="xs" level="secondary" onClick={onAdd}>{pol ? 'Replace policy' : "Add last year's policy"}</Btn>}
+      <div className="mt-1"><Link href={`/pricing-matrix/quote/${id}/edit`} data-same-tab className="text-[12.5px] underline" style={{ color: INK }}>{pol ? 'Census and policy' : "Add last year's policy"}</Link></div>
+    </div>
+  )
+}
+
+/**
+ * Every hospital plan at one insurer with each way its tied covers go with it (Income's major
+ * medical inside plans 2 to 5; RCC's and Singlife's as an optional rider on the same plan), priced
+ * for the category and sorted by premium. Use sets the hospital plan and the riders together.
+ */
+function HospitalOptions({ data, cat, picks, todayPremium, onUse }: { data: Data; cat: string; picks: Record<string, Picks>; todayPremium: (cover: string) => number | null; onUse: (product: string, patch: Record<string, string>) => void }) {
+  const H = 'Hospital & Surgical'
+  const [p, setP] = useState<string>(data.products[0])
+  const tied = data.rules.filter(r => r.product === p && r.tiedTo === H)
+  const rows = permutations(data.rules, p, H, data.options[p] ?? {}).map(o => {
+    const parts = [H, ...tied.map(r => r.cover)].map(cv => o[cv] ? data.prices[cat]?.[p]?.[cv]?.[o[cv]] ?? null : 0)
+    const premium = parts.some(x => x == null) ? null : parts.reduce<number>((a, b) => a + (b ?? 0), 0)
+    const base = [H, ...tied.map(r => r.cover)].reduce<number | null>((a, cv) => { const v = todayPremium(cv); return a == null && v == null ? null : (a ?? 0) + (v ?? 0) }, null)
+    return { o, premium, delta: premium != null && base != null && base > 0 ? premium - base : null }
+  }).sort((a, b) => (a.premium ?? Infinity) - (b.premium ?? Infinity))
+  const now = picks[p]?.[cat] ?? {}
+  const isNow = (o: Record<string, string>) => Object.keys(o).every(k => (now[k] ?? '') === o[k])
+  const words = (cv: string, plan: string) => coverWords(cv, plan, data.benefits[`${p}|${cv}|${plan}`] ?? {})
+  return (
+    <div className="py-4" style={{ borderBottom: `1px solid ${LINE}` }}>
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+        <h3 className="m-0 text-[15px] font-medium">Hospital options · {rows.length}</h3>
+        <Segmented size="xs" label="Insurer" value={p} onChange={setP} options={data.products.map(x => ({ value: x, label: x }))} />
+      </div>
+      <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
+        <table className="w-full text-[13px]">
+          <thead className="sticky top-0 bg-white"><tr className="text-left text-[12px]" style={{ color: SUBTLE }}>
+            <th className="py-1.5 pr-3 font-normal">Ward</th><th className="py-1.5 pr-3 font-normal">Limit</th>
+            {tied.map(r => <th key={r.cover} className="py-1.5 pr-3 font-normal">{r.cover}</th>)}
+            <th className="py-1.5 pr-3 font-normal text-right">Premium</th><th className="py-1.5 pr-3 font-normal text-right">Against today</th><th />
+          </tr></thead>
+          <tbody>
+            {rows.map(({ o, premium, delta }) => {
+              const h = hospitalParts(data.benefits[`${p}|${H}|${o[H]}`] ?? {})
+              const on = isNow(o)
+              return (
+                <tr key={JSON.stringify(o)} style={{ borderTop: `1px solid ${LINE}`, background: on ? TODAY : undefined }}>
+                  <td className="py-1.5 pr-3">{h.ward || o[H]}</td>
+                  <td className="py-1.5 pr-3">{h.limit}</td>
+                  {tied.map(r => <td key={r.cover} className="py-1.5 pr-3">{o[r.cover] ? `${words(r.cover, o[r.cover])}${r.premium === 'included' ? ' (in hospital premium)' : ''}` : 'None'}</td>)}
+                  <td className="py-1.5 pr-3 text-right tabular-nums font-medium">{premium != null ? money(premium, { dp: 0 }) : 'not priced'}</td>
+                  <td className="py-1.5 pr-3 text-right tabular-nums" style={{ color: delta == null ? SUBTLE : delta > 0 ? DOWN : UP }}>{delta != null ? signed(delta) : '—'}</td>
+                  <td className="py-1.5 text-right">{on ? <span className="text-[12px]" style={{ color: MUTED }}>Chosen</span> : <Btn size="xs" level="tertiary" onClick={() => onUse(p, o)}>Use</Btn>}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

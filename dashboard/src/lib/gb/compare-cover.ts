@@ -17,7 +17,7 @@
 import { memberAge, type Member } from '../gb-quote'
 import { ALL, planValue, type Schedule } from './current'
 import { COVERS, MEDICAL, PRODUCTS, type Product, type Workbook, type WbRate } from './workbook'
-import { amountOf } from './compare-words'
+import { amountOf, documentHref } from './compare-words'
 import { applyRules, type PlanRule } from './plan-pairs'
 import type { LastYear, LastYearCover } from './last-year'
 export { amountOf }
@@ -231,6 +231,8 @@ export function buildCompare(input: {
       }
     }
   }
+  // A cover the partner's rate carries (Income's major medical) costs nothing on its own.
+  for (const r of rules) if (r.premium === 'included') for (const cat of cats) for (const plan of options[r.product]?.[r.cover] ?? []) if (prices[cat.key][r.product]?.[r.cover]) prices[cat.key][r.product][r.cover][plan] = 0
   const picks: CompareData['picks'] = {}, why: CompareData['why'] = {}
   for (const p of PRODUCTS) {
     picks[p] = {}; why[p] = []
@@ -282,7 +284,7 @@ export function buildCompare(input: {
   const policy: TodayPolicy | null = ly && (ly.documents.length || ly.total != null) ? {
     insurer: ly.insurer, product: ly.product, policyNumber: ly.policyNumber, periodFrom: ly.periodFrom, periodTo: ly.periodTo,
     total: lyTotal, gstRemoved: k !== 1, sumMatches: ly.sumMatches,
-    documents: ly.documents.map(d => ({ file: d.file, kind: d.kind, href: d.ref?.startsWith('drivefile:') ? `https://drive.google.com/file/d/${encodeURIComponent(d.ref.slice(10))}/view` : null })),
+    documents: ly.documents.map(d => ({ file: d.file, kind: d.kind, href: documentHref(d.ref) })),
   } : null
   const notes: string[] = ['AIA personal accident is not priced until its rate rule is confirmed.', 'Singlife GP is priced from its rate table; the workbook summary shows none (to confirm with Nathan).']
   const left = input.members.length - cats.reduce((n, c) => n + c.members.length, 0)

@@ -22,6 +22,8 @@ export type QuotationInput = {
   census: Member[]; source?: string; basis?: QuoteBasis
   /** Free text kept with the quotation. The agent records where a draft came from here. */
   notes?: string | null
+  /** Reprice this quotation in place (its census or policy changed) rather than add another. */
+  replaceId?: string | null
 }
 
 export async function createQuotation(input: QuotationInput, createdBy: string | null) {
@@ -38,12 +40,17 @@ export async function createQuotation(input: QuotationInput, createdBy: string |
   const result = computeQuote(census, tables, input.category_map ?? {}, products, gstRate, effDate, { basis })
 
   // Save the quotation + flattened lines.
-  const qRes = await fetch(`${SB_URL}/rest/v1/gb_quotations`, {
-    method: 'POST', headers: sbH('return=representation'),
+  // A repriced quotation keeps its id, so links, drafts and saved choices still point at it.
+  if (input.replaceId) {
+    const del = await fetch(`${SB_URL}/rest/v1/gb_quote_lines?quotation_id=eq.${encodeURIComponent(input.replaceId)}`, { method: 'DELETE', headers: sbH() })
+    if (!del.ok) throw new Error(`Quote ${input.replaceId} lines not cleared: ${del.status}`)
+  }
+  const qRes = await fetch(input.replaceId ? `${SB_URL}/rest/v1/gb_quotations?id=eq.${encodeURIComponent(input.replaceId)}` : `${SB_URL}/rest/v1/gb_quotations`, {
+    method: input.replaceId ? 'PATCH' : 'POST', headers: sbH('return=representation'),
     body: JSON.stringify({
       company_name: input.company_name ?? null, effective_date: effDate, gst_rate: gstRate, basis,
       product_codes: products, rate_table_ids: tableIds, category_map: input.category_map ?? {},
-      census, results: result.per_insurer, member_count: census.length, source: input.source ?? 'csv', created_by: createdBy,
+      census, results: result.per_insurer, member_count: census.length, source: input.source ?? 'csv', ...(input.replaceId ? {} : { created_by: createdBy }),
       notes: input.notes ?? null,
     }),
   })

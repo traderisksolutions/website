@@ -1,6 +1,6 @@
 /**
  * A file the last-year read can send: PDFs and images as they are, spreadsheets as text.
- * Shared by New quotation's read and Compare cover's upload. Server only.
+ * Used by New quotation's read of last year's policy. Server only.
  */
 import { workbookSheets } from '@/lib/xlsx-text'
 

@@ -149,7 +149,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
                     {r.submitted_at
                       ? (policy
                         ? <Btn size="xs" level="primary" loading={pricing === r.id} onClick={e => { e.stopPropagation(); void priceOnPolicy(r, policy) }}>Quote</Btn>
-                        : <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/pricing-matrix?tab=quote&hrLink=${r.id}`) }}>Quote</Btn>)
+                        : <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/pricing-matrix/new?hrLink=${r.id}`) }}>Quote</Btn>)
                       : <span className="text-[13px]" style={{ color: '#8c958f' }}>Waiting for HR</span>}
                   </RegisterCell>
                 </RegisterRow>

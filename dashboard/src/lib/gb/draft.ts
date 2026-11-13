@@ -113,6 +113,8 @@ export type DraftInput = {
   /** Lines written at the top of the quotation's notes, before the plan choices. */
   notesHead?: string[]
   createdBy: string | null
+  /** Reprice this quotation in place. */
+  replaceId?: string | null
 }
 
 export type DraftResult = {
@@ -223,7 +225,7 @@ export async function draftQuotation(input: DraftInput): Promise<DraftResult> {
   const { quotationId, result } = await createQuotation({
     company_name: input.companyName, effective_date: input.effectiveDate, basis: input.basis,
     products: Array.from(titlesUsed), rate_table_ids: tableIds, category_map: categoryMap,
-    census, source: input.source, notes: [...(input.notesHead ?? []), ...notes].join('\n'),
+    census, source: input.source, notes: [...(input.notesHead ?? []), ...notes].join('\n'), replaceId: input.replaceId ?? null,
   }, input.createdBy)
   if (!quotationId) throw new Error('Draft quotation not saved')
 
