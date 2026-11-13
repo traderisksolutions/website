@@ -123,14 +123,15 @@ export async function collectUnclaimedDomains(): Promise<DomainEvidence[]> {
 }
 
 /** Add the agent's reading and the closest existing companies to each unclaimed domain. */
-export async function describeDomains(limit = 40): Promise<DomainCandidate[]> {
+export async function describeDomains(limit = 40, opts: { read?: boolean } = {}): Promise<DomainCandidate[]> {
   const evidence = (await collectUnclaimedDomains()).slice(0, limit)
   if (evidence.length === 0) return []
 
   const companies = (await sbTry<Record<string, unknown>[]>(`companies?select=*&limit=1000`, [])).map(normalizeCompany)
   const identity = buildIdentityIndex(companies, await loadAliases())
   const byId = new Map(companies.map(c => [c.id, c]))
-  const classified = await classifyDomains(evidence)
+  // The model's reading of each domain only on a person's Read button (manual AI); the rest is rules.
+  const classified = opts.read ? await classifyDomains(evidence) : new Map<string, NonNullable<DomainCandidate['suggestion']>>()
 
   return evidence.map(ev => {
     const guess = classified.get(ev.domain) ?? null

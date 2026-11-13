@@ -22,7 +22,7 @@
  * and spent nearly twice the thinking tokens.
  */
 import { geminiUrl, GEMINI_DEEP } from '@/lib/gemini-models'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { searchCompany, renderContext as renderArchive, type CompanyChunk } from '@/lib/agents/company-retrieval'
@@ -136,7 +136,7 @@ function str(v: unknown, max = 2000): string {
 }
 
 export async function nextReply(opts: { threadId: string }): Promise<NextReply> {
-  const { key, via } = agentKey('crm')
+  const { key, via } = (await modelKey('crm'))
   if (!key) throw new Error('No Gemini key available for the CRM agent. Set GEMINI_API_KEY_CRM.')
 
   // 1 ── the thread and its company

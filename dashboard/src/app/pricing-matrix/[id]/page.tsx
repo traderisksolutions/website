@@ -97,16 +97,8 @@ export default function GbReviewPage() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty])
 
-  // Single source of truth for kicking extraction: if the table is still a fresh draft
-  // (upload succeeded but extraction never started), start it here. Ref guards double-fire.
+  // Manual AI (13 Nov 2026): a draft table waits for Read rate table; nothing reads it on opening.
   const triggered = React.useRef(false)
-  useEffect(() => {
-    if (status === 'draft' && !triggered.current) {
-      triggered.current = true
-      fetch(`/api/group-benefits/rate-tables/${id}/extract`, { method: 'POST' }).catch(() => {})
-      setStatus('extracting')
-    }
-  }, [status, id])
 
   async function reExtract() {
     triggered.current = true
@@ -218,6 +210,7 @@ export default function GbReviewPage() {
           {brochure
             ? <a href={`/api/group-benefits/sources/file/${brochure.driveFileId}`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> Brochure</a>
             : d.table.source_pdf_url ? <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a> : null}
+          {status === 'draft' && <button type="button" onClick={() => void reExtract()} className={btn}><RefreshCw size={13} /> Read rate table</button>}
           {!editing && status !== 'extracting' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

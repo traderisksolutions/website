@@ -17,7 +17,7 @@
  * premium quoted to a client, so the gate is the point.
  */
 import { GEMINI_DEEP, geminiUrl } from '@/lib/gemini-models'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { benefitsFor, PRODUCT_BY_CODE, BENEFIT_BY_CODE } from './canon'
@@ -162,7 +162,7 @@ export async function extractSchedule(
   if (!productCodes.length) {
     return { ...EMPTY, model: GEMINI_DEEP, error: 'No canonical product for this table — map its label first.' }
   }
-  const { key, via } = agentKey('pricingmatrix')
+  const { key, via } = (await modelKey('pricingmatrix'))
   if (!key) return { ...EMPTY, model: GEMINI_DEEP, error: 'No Gemini API key configured' }
 
   try {

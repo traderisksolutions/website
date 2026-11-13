@@ -13,7 +13,7 @@
 import { geminiUrl, GEMINI_EMBED } from '@/lib/gemini-models'
 import { logError } from '@/lib/error-log'
 import { logAiUsage, type AiFeature } from '@/lib/gemini-usage'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = () => {
@@ -68,7 +68,7 @@ export async function embedText(text: string, feature: AiFeature = 'company_retr
   // HTTP 400, embedText returns [], and the draft silently loses the whole company archive: the
   // same call that had read 8 passages from 3 threads returned none, with nothing on screen to
   // say the archive had dropped out.
-  const { key } = agentKey('crm')
+  const { key } = (await modelKey('crm'))
   if (!key) throw new Error('no Gemini key configured for embeddings')
   const res = await fetch(`${geminiUrl(GEMINI_EMBED, 'embedContent')}?key=${key}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

@@ -1,6 +1,7 @@
 /**
- * GET  /api/companies/domains        → email domains with no company yet, each with the agent's
- *                                      reading and the closest companies already on file.
+ * GET  /api/companies/domains[?read=1] → email domains with no company yet, each with the closest
+ *                                      companies already on file; with read=1 (a person's Read
+ *                                      button) also the agent's reading of each.
  * POST /api/companies/domains        → { domain, decision: 'assign'|'create'|'ignore', ... }
  *                                      applies the decision and files every thread on that domain.
  */
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   try {
     const limit = Number(req.nextUrl.searchParams.get('limit') ?? 40)
     const [domains, companies] = await Promise.all([
-      describeDomains(Math.max(1, Math.min(80, limit))),
+      describeDomains(Math.max(1, Math.min(80, limit)), { read: req.nextUrl.searchParams.get('read') === '1' }),
       listClientCompanies(),
     ])
     return NextResponse.json({ domains, companies: companies.map(c => ({ id: c.id, name: c.name, domains: c.domains })) })

@@ -8,6 +8,7 @@
  * 121 attachments were filed by filename only, their insurer, policy number and premium unread.
  */
 import { callGemini } from '@/lib/ai-call'
+import { aiBlocked, MANUAL_REFUSAL } from '@/lib/ai-gate'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import { logError } from '@/lib/error-log'
 import type { AgentName } from './queue'
@@ -28,6 +29,9 @@ export const answered = (r: { text: string | null; error?: string | null }) => !
 
 /** Whether the model answers, checked at most every 5 minutes per server instance. */
 export async function modelState(now = Date.now()): Promise<ModelState> {
+  // Manual AI (src/lib/ai-gate.ts): a drain no person started holds the model agents, unprobed.
+  const blocked = await aiBlocked()
+  if (blocked) return { ok: false, reason: blocked, checkedAt: now }
   if (state && now - state.checkedAt < TTL_MS) return state
   const r = await callGemini({ agent: 'housekeeping', feature: 'credit_probe', model: GEMINI_LITE, parts: [{ text: 'Reply with OK.' }], maxOutputTokens: 8, temperature: 0 })
   state = { ok: answered(r), reason: answered(r) ? null : (r.error ?? 'no answer').slice(0, 300), checkedAt: now }
@@ -42,7 +46,7 @@ export function splitAgents(agents: AgentName[], modelOk: boolean): { run: Agent
 
 /** One alert an hour while agents are held. */
 export async function alertHeld(held: AgentName[], reason: string | null, now = Date.now()): Promise<void> {
-  if (!held.length || now - alertedAt < ALERT_EVERY_MS) return
+  if (!held.length || now - alertedAt < ALERT_EVERY_MS || reason === MANUAL_REFUSAL) return
   alertedAt = now
   await logError({ source: 'gemini', feature: 'credit_guard', statusCode: 402,
     message: `Model unavailable, ${held.length} agent${held.length === 1 ? "" : "s"} held in the queue until it answers (${held.join(', ')}). Cause: ${reason ?? 'unknown'}. Top up Gemini or raise AI_DAILY_CAP_USD.`,

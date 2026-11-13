@@ -9,6 +9,7 @@
  * cron, up to 3 attempts. Nothing here sends anything.
  */
 import { callGemini } from '@/lib/ai-call'
+import { aiBlocked } from '@/lib/ai-gate'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import { sb, sbTry, enc, isInternal, isAutomated, bareEmail, emailDomain } from '@/lib/crm/db'
 import { stripEmbeddedTextQuote } from '@/lib/build-reply-thread'
@@ -188,6 +189,8 @@ export async function readMessage(messageId: string, opts: { dryRun?: boolean; r
   ])
   if (!thread) return { message_id: m.id, skipped: 'no thread', open: [], close: [] }
   const skip = skipReason(m, people)
+  // Manual AI: left unclaimed, so a person's Read thread (or automatic mode) reads it later.
+  if (!skip && !opts.dryRun && await aiBlocked()) return { message_id: m.id, skipped: 'manual mode', open: [], close: [] }
 
   if (!opts.dryRun) {
     if (opts.retry) {
@@ -260,6 +263,8 @@ export async function readMessage(messageId: string, opts: { dryRun?: boolean; r
  * message looked at, so a long backlog is worked through over several runs.
  */
 export async function readSince(cursor: string, limit = 60): Promise<{ cursor: string; read: number; opened: number; closed: number; skipped: number; failed: number }> {
+  // Manual AI: the hourly pass reads nothing and keeps its cursor.
+  if (await aiBlocked()) return { cursor, read: 0, opened: 0, closed: 0, skipped: 0, failed: 0 }
   const msgs = await sb<{ id: string; created_at: string }[]>(`email_messages?created_at=gt.${enc(cursor)}&deleted_at=is.null&select=id,created_at&order=created_at.asc&limit=${limit}`)
   const retries = await sbTry<{ message_id: string; attempts: number; error: string | null }[]>(
     `follow_up_reads?error=not.is.null&error=not.like.skipped*&attempts=lt.3&read_at=lt.${enc(new Date(Date.now() - 50 * 60_000).toISOString())}&select=message_id,attempts,error&limit=10`, [])

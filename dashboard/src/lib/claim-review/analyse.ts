@@ -8,6 +8,7 @@
  * until an adviser has read it.
  */
 import { fetchOpus } from '@/lib/anthropic-models'
+import { anthropicKeyGated } from '@/lib/ai-gate'
 
 export type Verdict = 'supported' | 'not_supported' | 'unclear'
 
@@ -128,7 +129,7 @@ export function quoteFound(quote: string, corpus: string): boolean | null {
 }
 
 export async function analyseClaim(files: UploadedFile[], context: string): Promise<ReportRun> {
-  const key = process.env.ANTHROPIC_API_KEY
+  const key = await anthropicKeyGated()
   if (!key) throw new Error('ANTHROPIC_API_KEY is not set')
   const { res, model } = await fetchOpus({
     max_tokens: 16000,

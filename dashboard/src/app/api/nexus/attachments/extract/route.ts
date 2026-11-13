@@ -27,7 +27,7 @@ import { logError }                  from '@/lib/error-log'
 import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-models'
 import { isEncryptedWorkbook, xlsxSheetsAsText } from '@/lib/xlsx-text'
 const ENCRYPTED_MARK = '[ENCRYPTED — password-protected workbook]'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 
 export const maxDuration = 300
 
@@ -153,7 +153,9 @@ function collectAttachmentParts(payload: unknown, results: AttachmentPart[] = []
 
 // ── Gemini Vision description for images ─────────────────────────────────────
 
-async function describeImage(data: Buffer, mimeType: string, apiKey: string): Promise<string> {
+async function describeImage(data: Buffer, mimeType: string, apiKey: string): Promise<string | null> {
+  // Manual AI: no key, no description; parsed_text stays null so a person's read can fill it.
+  if (!apiKey) return null
   try {
     const res = await fetch(`${GEMINI_FLASH}?key=${apiKey}`, {
       method:  'POST',
@@ -253,6 +255,8 @@ async function extractPdfText(data: Buffer, apiKey: string): Promise<string | nu
   const libText = await extractPdfViaLib(data)
   // Thin text ⇒ likely scanned/image PDF ⇒ let Gemini read it directly.
   if (libText.length >= 200) return libText.slice(0, 60_000)
+  // Manual AI: unread rather than half-read, so it is not taken as done.
+  if (!apiKey) return null
   const aiText = await analyzePdfViaGemini(data, apiKey)
   const combined = [libText, aiText].filter(Boolean).join('\n\n').trim()
   return combined ? combined.slice(0, 60_000) : null
@@ -360,7 +364,7 @@ async function processAttachment(
     storageUrl = await uploadToStorage(storagePath, data, 'application/pdf')
     // A PDF neither library nor model could read (image-only, protected, or one the model
     // refuses with 400) is marked so, rather than left null to be read again on every pass.
-    parsedText = (await extractPdfText(data, apiKey)) ?? '[PDF stored; no readable text: image-only or protected. Open the file to read it.]'
+    parsedText = (await extractPdfText(data, apiKey)) ?? (apiKey ? '[PDF stored; no readable text: image-only or protected. Open the file to read it.]' : null)
     console.log(`[nexus/extract] PDF stored + read: ${filename} → ${storageUrl ?? 'FAILED'} (${parsedText?.length ?? 0} chars)`)
   }
 
@@ -515,7 +519,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: 'missing fields' })
     }
 
-    const apiKey = agentKey('crm').key
+    const apiKey = (await modelKey('crm')).key
     if (!apiKey) {
       console.warn('[nexus/extract] no Gemini key for the Client relationships agent — skipping image descriptions')
     }

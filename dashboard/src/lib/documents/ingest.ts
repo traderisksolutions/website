@@ -16,6 +16,7 @@ import { attachmentBytes, fileToDrive, moveDriveFile, groupFolderName } from './
 import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import * as store from './store'
 import type { PolicyDocument } from './store'
+import { aiBlocked } from '@/lib/ai-gate'
 
 const needsReview = (r: DocRead, policyId: string | null) => !policyId || r.confidence < 0.6
 
@@ -35,6 +36,8 @@ export async function ingestAttachment(attachmentId: string, opts: { file?: bool
     company_id: placed?.company_id ?? thread?.company_id ?? null,
   }
   if (isNoise(att.filename, att.mime_type)) return store.insertDocument({ ...base, doc_type: 'other', status: 'ignored', classified_by: 'rule' })
+  // Manual AI: no row and no filing by filename alone (4 Nov 2026); the document waits for a person's read.
+  if (await aiBlocked()) return null
 
   const read = await readDocument({ filename: att.filename, text: att.parsed_text, subject: msg?.subject ?? thread?.subject, from: msg?.from_address, documentId: att.id })
   const policies = base.company_id ? await store.companyPolicies(base.company_id) : []

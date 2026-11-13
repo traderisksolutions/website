@@ -11,7 +11,7 @@ import { searchCompany, renderContext }   from '@/lib/agents/company-retrieval'
 import { buildCitations, renderProvenance, CITE_INSTRUCTION } from '@/lib/agents/guardrails'
 import { routeModel }                     from '@/lib/agents/router'
 import { withVoice, voiceInstruction } from '@/lib/voice'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 
 const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ draftId: draft?.id ?? null, content: manualContent, contactId })
     }
 
-    const geminiKey = agentKey('crm').key
+    const geminiKey = (await modelKey('crm')).key
     if (!geminiKey) return NextResponse.json({ error: 'No Gemini key for the Client relationships agent' }, { status: 500 })
 
     // Resolve a human-readable greeting name

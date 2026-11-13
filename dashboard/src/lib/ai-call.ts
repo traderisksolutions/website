@@ -14,6 +14,7 @@
  */
 import { geminiUrl } from './gemini-models'
 import { agentKey, type AgentId } from './ai-agents'
+import { aiBlocked } from './ai-gate'
 import { logAiUsage, type AiFeature } from './gemini-usage'
 import { logError } from './error-log'
 
@@ -64,6 +65,9 @@ async function todaySpendUsd(): Promise<number> {
 }
 
 export async function callGemini(opts: CallOptions): Promise<CallResult> {
+  // Manual AI: no model call without a person's click behind it (src/lib/ai-gate.ts).
+  const blocked = await aiBlocked()
+  if (blocked) return { text: null, error: blocked }
   const { key, via } = agentKey(opts.agent)
   if (!key) return { text: null, error: `No Gemini API key for the ${opts.agent} agent` }
   // The cap: a runaway day stops at a known figure. The task fails and the queue keeps it for tomorrow.

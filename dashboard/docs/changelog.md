@@ -4,6 +4,20 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — AI is manual: every model call starts with a person's button
+
+- **The gate** (`src/lib/ai-gate.ts`): a model call is allowed only inside a request made by a signed-in TRS person. Crons, the agent queue, mail ingest, webhooks and scripts are refused before any model is reached. Both doors go through it: `callGemini`, and `modelKey()` / `anthropicKeyGated()` for the 21 files that call Gemini or Claude directly (they used `agentKey()` / `ANTHROPIC_API_KEY`). A test fails if any code reads a model key around it. `AI_MODE=auto` would restore automatic runs; it is not set.
+- **Background code that met a refusal now waits instead of recording a false answer:** the Nexus reader skips without claiming the message; the client linker files nothing; the credit guard holds the reading agents without a probe or an alert; attachments stay unread rather than half-read; the data room files nothing by filename alone; a case read is put back without using an attempt; an automatic chase uses its template.
+- **Pages that started AI on opening now wait for a button:** Unfiled threads (Read domains with AI) and a draft rate table (Read rate table).
+- Gemini credit ran out on 13 Nov; production's automatic agents were already held by the credit guard.
+
+## 2026-11-13 — Client 360 phase 2: the fact catalogue, insurer mail, Ask about this client
+
+- **Fact catalogue** (`src/lib/admin/k/catalogue.ts`): the only keys a business's facts are kept under, one slot each ({person} an address on the email, {ref} a number written in it or a line of cover). `cleanFacts` refuses any other key, a person not on the email, a reference not in the text, a value of the wrong type and a quote not found word for word. Replaces 1,777 free-text key shapes.
+- **Insurer mail is read** (`factsFromMessage`, insurer reader): premiums, renewal changes, limits, excesses, conditions, declines, endorsements, claim status and amounts paid, from the email and the stored text of its document attachments, only when the email names the client it is filed under. One email's several values under one key all stand; a later email replaces them.
+- **Ask about this client** (Knowledge tab, `POST /api/companies/<id>/ask`, `src/lib/admin/k/ask.ts`): one business's records, labelled; totals worked out by code; an answer that cites nothing or states a figure not on file is refused. Threads in a colleague's own mailbox are left out.
+- **Re-read**: about 400 emails read before Gemini credit ran out; the rest wait. `scripts/facts-batch.mts` exports the reads for Claude to answer and imports the answers through the same checker; `retire` archives and removes the free-text facts afterwards.
+
 ## 2026-11-13 — Client 360 phase 1: complete repositories, Portfolio, numbers per business
 
 - **Portfolio** (Clients › Portfolio, `src/lib/clients/portfolio.ts`, `GET /api/clients/portfolio`): every business (company group) ranked by commission from debit notes, cumulative share, the top 20% marked, premium, emails sent a month, requests a month and by type, commission per email, claims and loss ratio (paid ÷ premium, with how many claims carry a paid amount), next renewal. Admin for the top 20% by request type, with the businesses that raise most. Last 12 months: the top 20% (19 of 95) earn 92.0% of commission.

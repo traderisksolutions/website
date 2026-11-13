@@ -7,17 +7,17 @@
 import { GEMINI_FLASH, geminiUrl } from '@/lib/gemini-models'
 import { logGeminiUsage, logAnthropicUsage, type AiFeature } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
-import { agentKey } from '@/lib/ai-agents'
+import { anthropicKeyGated, modelKey } from '@/lib/ai-gate'
 
 export const OPUS_MODEL = 'claude-opus-4-8'
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
-export function geminiKey(): string | null {
-  return agentKey('crm').key
+async function geminiKey(): Promise<string | null> {
+  return (await modelKey('crm')).key
 }
 
-export function anthropicKey(): string | null {
-  return process.env.ANTHROPIC_API_KEY || null
+async function anthropicKey(): Promise<string | null> {
+  return anthropicKeyGated()
 }
 
 /** Tolerant JSON parse: strips code fences and anything before the first `{` or `[`. */
@@ -40,7 +40,7 @@ export async function geminiJson<T>(opts: {
   temperature?: number; maxOutputTokens?: number
 }): Promise<AiResult<T>> {
   const model = opts.model ?? GEMINI_FLASH
-  const key = geminiKey()
+  const key = await geminiKey()
   if (!key) return { data: null, model, error: 'Gemini is not configured (no GEMINI_API_KEY).' }
   try {
     const body: Record<string, unknown> = {
@@ -81,7 +81,7 @@ export async function geminiJson<T>(opts: {
 export async function opusJson<T>(opts: {
   prompt: string; system: string; feature: AiFeature; resourceId?: string | null; maxTokens?: number
 }): Promise<AiResult<T>> {
-  const key = anthropicKey()
+  const key = await anthropicKey()
   if (!key) return { data: null, model: OPUS_MODEL, error: 'Deep analysis needs ANTHROPIC_API_KEY, which is not set.' }
   try {
     const res = await fetch(ANTHROPIC_URL, {

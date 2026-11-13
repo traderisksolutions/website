@@ -9,7 +9,17 @@ vi.mock('@/lib/error-log', () => ({ logError: async (e: { message: string }) => 
 describe('credit guard', () => {
   beforeEach(async () => { (await import('@/lib/agent-tasks/model-guard')).resetModelState(); calls = 0; logged.length = 0 })
 
+  it('in manual mode, holds the reading agents without a probe or an alert', async () => {
+    const { modelState, alertHeld } = await import('@/lib/agent-tasks/model-guard')
+    const { MANUAL_REFUSAL } = await import('@/lib/ai-gate')
+    const s = await modelState(1_000)
+    expect(s).toMatchObject({ ok: false, reason: MANUAL_REFUSAL })
+    expect(calls).toBe(0)
+    await alertHeld(['document_clerk'] as never, MANUAL_REFUSAL, 10 * 3_600_000)
+    expect(logged).toEqual([])
+  })
   it('reads an empty balance as unavailable, and checks at most every 5 minutes', async () => {
+    process.env.AI_MODE = 'auto'
     const { modelState } = await import('@/lib/agent-tasks/model-guard')
     reply = { text: null, error: 'Gemini 429: Your prepayment credits are depleted' }
     expect((await modelState(1_000)).ok).toBe(false)
@@ -18,6 +28,7 @@ describe('credit guard', () => {
     reply = { text: 'OK' }
     expect((await modelState(400_000)).ok).toBe(true)
     expect(calls).toBe(2)
+    delete process.env.AI_MODE
   })
   it('an empty answer still means the model is reachable', async () => {
     const { answered } = await import('@/lib/agent-tasks/model-guard')

@@ -31,6 +31,8 @@ The dashboard replaces inbox-and-spreadsheet broking with one system: every emai
 
 ### Agents
 
+**AI is manual (Jarod, 13 Nov 2026): every model call is started by a person's button.** `src/lib/ai-gate.ts` refuses any call without a signed-in TRS session behind the request: crons, the agent queue, mail ingest, webhooks and scripts reach no model and spend nothing. Code that calls a model directly takes its key from `modelKey()` / `anthropicKeyGated()`, never `agentKey()` or `process.env.ANTHROPIC_API_KEY`. Background readers skip without claiming or recording (Nexus reader, client linker, the credit guard holds the reading agents). `AI_MODE=auto` would restore automatic runs; it is not set. Do not run model calls from scripts.
+
 Every model call goes through `callGemini` (`src/lib/ai-call.ts`) with an `agent` and a `feature` registered in `src/lib/gemini-usage.ts` and `src/lib/ai-agents.ts`; spend is attributed per agent key. Models: `GEMINI_FLASH` for drafting, `GEMINI_DEEP` for reading. Rules that do not bend: a model reads, code computes. No premium, date, age or count comes from a model. A model's structured read is always passed through a pure `normalise*` function that bounds and parses it. A rewrite of a client email is kept only when every figure survives (`keepsFigures`).
 
 ## 3. Standing constraints (Jarod's)

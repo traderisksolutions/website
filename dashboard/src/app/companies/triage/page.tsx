@@ -52,9 +52,9 @@ export default function TriagePage() {
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const loadDomains = useCallback(async () => {
+  const loadDomains = useCallback(async (read = false) => {
     setDomains(null)
-    const res = await fetch('/api/companies/domains', { cache: 'no-store' })
+    const res = await fetch(`/api/companies/domains${read ? '?read=1' : ''}`, { cache: 'no-store' })
     const d = await res.json()
     if (!res.ok) { setError(d.error ?? 'Could not load domains.'); setDomains([]); return }
     setDomains(d.domains); setCompanies(d.companies)
@@ -154,6 +154,9 @@ export default function TriagePage() {
 
         {tab === 'domains' && (
           <div className="mt-6">
+            {domains && domains.length > 0 && !domains.some(d => d.suggestion) && (
+              <div className="mb-3"><Btn level="secondary" onClick={() => void loadDomains(true)}>Read domains with AI</Btn></div>
+            )}
             {!domains && <Spinner label="Reading the unfiled mail…" />}
             {domains?.length === 0 && <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>Every domain is accounted for.</p>}
             <ul className="m-0 p-0 list-none flex flex-col gap-3">

@@ -68,6 +68,11 @@ export async function fail(task: AgentTask, error: string) {
     : { status: 'queued', error: error.slice(0, 2000), locked_at: null, run_after: new Date(Date.now() + 2 * 4 ** (task.attempts - 1) * 60_000).toISOString() })
 }
 
+/** Puts a task back without using an attempt: it waits for something outside it (manual AI), not for a fix. */
+export async function hold(task: AgentTask, reason: string, ms = 6 * 3_600_000) {
+  await patch(task.id, { status: 'queued', attempts: Math.max(0, task.attempts - 1), error: reason.slice(0, 2000), locked_at: null, run_after: new Date(Date.now() + ms).toISOString() })
+}
+
 /** A person settles a needs_human task: done with their answer, or re-queued with it in payload. */
 export async function resolveHuman(id: string, by: string, answer: Record<string, unknown>, requeue: boolean) {
   const [t] = await sbTry<AgentTask[]>(`agent_tasks?id=eq.${enc(id)}&select=*`, [])

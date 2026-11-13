@@ -11,7 +11,7 @@
  */
 import { createHash } from 'node:crypto'
 import { sb, sbTry, enc, inChunks, isInternal, isAutomated, bareEmail } from '@/lib/crm/db'
-import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
+import { enqueue, hold, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { workCompany } from '@/lib/casework/run'
 import { readHistory, type HistoryMessage } from './history'
 import { isClaimLike, isBulkMail, isOutOfOffice, refKey, senderKind, subjectCore, type SenderKind } from './signals'
@@ -24,6 +24,7 @@ import { clearLater } from '@/lib/admin/b/later'
 import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { readLedger, getCursor, setCursor } from '@/lib/admin/ledger'
 import { groupRoot } from './knowledge'
+import { aiBlocked } from '@/lib/ai-gate'
 
 type Row = Record<string, any>
 
@@ -314,6 +315,9 @@ export async function intakeMessage(task: AgentTask): Promise<IntakeResult | 'ha
 /** The case worker reads one client. A model failure throws, so the task retries. */
 export async function readCase(task: AgentTask) {
   const p = task.payload as ReadCasePayload
+  // Manual AI: the read waits, its attempts untouched, until a person starts it or AI is automatic again.
+  const blocked = await aiBlocked()
+  if (blocked) { await hold(task, blocked); return 'handled' as const }
   // Resume from the ledger: the threads that moved since the case builder last read this group.
   const group = await groupRoot(p.company_id)
   const cursor = await getCursor('case_builder', group)

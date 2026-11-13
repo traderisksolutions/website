@@ -18,6 +18,7 @@
  */
 import { sb, sbTry, enc } from './db'
 import { callGemini } from '@/lib/ai-call'
+import { aiBlocked } from '@/lib/ai-gate'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import { normCompany } from '@/lib/gb/intake'
 import { createCompany } from './autofile'
@@ -184,6 +185,8 @@ export async function linkClientForThread(threadId: string, opts: { clients?: Cl
   }
   // `force`: a person pressed Read thread, so the model reads again even where it found nothing before.
   if (!opts.model || (existing && !opts.force)) return { clientId: null, named: earlier, how: 'none' }
+  // Manual AI: a refused read files nothing, so the thread is not marked as naming no client.
+  if (await aiBlocked()) return { clientId: null, named: earlier, how: 'none' }
   const read = await readClientName(thread)
   if (!read.name) { await fileClient(thread, null, NO_CLIENT, read.confidence); return { clientId: null, named: null, how: 'none' } }
   const c = clientByName(read.name, clients)

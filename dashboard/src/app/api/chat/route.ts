@@ -21,6 +21,7 @@ import { listCompanyQuotes } from '@/lib/crm/quotes'
 import { rankPeople } from '@/lib/crm/people'
 import { listCompanyCases } from '@/lib/crm/cases'
 import { enc } from '@/lib/crm/db'
+import { anthropicKeyGated } from '@/lib/ai-gate'
 
 export const maxDuration = 300
 
@@ -360,7 +361,7 @@ export async function POST(req: NextRequest) {
 
     const system = [effCompanyId ? SYSTEM_COMPANY : SYSTEM, ctx, learned].filter(Boolean).join('\n\n')
 
-    const key = process.env.ANTHROPIC_API_KEY
+    const key = await anthropicKeyGated()
     if (!key) return NextResponse.json({ error: 'Assistant is not configured (ANTHROPIC_API_KEY missing).' }, { status: 500 })
 
     const enc = new TextEncoder()

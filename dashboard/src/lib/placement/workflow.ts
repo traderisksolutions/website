@@ -19,6 +19,7 @@ import { caseForPlacement, touchPlacement } from '@/lib/cases/sync'
 import { sbTry, enc } from '@/lib/crm/db'
 import type { StartPoint } from '@/lib/cases/stage'
 import type { PlacementLogEntry, Placement, PlacementBundle, PlacementDispatch, PlacementLine, PlacementQuote, PlacementRound, PlacementShare, PlacementTier, RoundReason, Spec } from './types'
+import { aiBlocked } from '@/lib/ai-gate'
 
 const now = () => new Date().toISOString()
 const DRAFT_TYPE = { dispatch: 'PLACEMENT_REQUEST', chase: 'PLACEMENT_CHASE', client: 'PLACEMENT_CLIENT', tier: 'PLACEMENT_TIER', confirm: 'PLACEMENT_CONFIRM' } as const
@@ -825,7 +826,8 @@ export async function runChases(nowDate = new Date()): Promise<{ drafted: number
     const chaseIn = { insurerName: d.insurer_name, contactName: null, clientName: company?.company_name ?? 'our client', lineLabel: line?.label ?? d.insurer_name,
       sentOn: (d.sent_at ?? d.created_at).slice(0, 10), chaseNo: d.chase_count + 1, inceptionDate: bundle?.placements[0]?.inception_date ?? null }
     // No model, no silence: the fixed chase when the model is out or fails.
-    const body = (await agent.draftChase(chaseIn).catch(() => null)) ?? chaseTemplate(chaseIn)
+    // Manual AI: an automatic chase is the template; the model writes one only for a person.
+    const body = ((await aiBlocked()) ? null : await agent.draftChase(chaseIn).catch(() => null)) ?? chaseTemplate(chaseIn)
     if (!body) { skipped++; continue }
     const draft = await store.createDraft({ contact_id: contactId, to_email: d.to_email, subject: withRef(`Follow-up: quotation request — ${company?.company_name ?? ''}`.trim(), bundle?.placements[0]?.ref), body, thread_id: d.thread_id, email_type: DRAFT_TYPE.chase })
     if (!draft) { skipped++; continue }

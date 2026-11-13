@@ -16,7 +16,7 @@
 import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { GEMINI_DEEP, geminiUrl } from '@/lib/gemini-models'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 
 export type MatchPlan = { plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null }
 export type MatchBenefit = { plan_code: string | null; category: string | null; benefit_name: string; value_text: string | null }
@@ -73,7 +73,7 @@ export async function suggestPlanMatch(
   // prompt and validated against that list afterwards, so a frontier model bought nothing the
   // deep Gemini tier does not; and the result only pre-fills a dropdown the broker can override,
   // which never justified a frontier price per call.
-  const { key } = agentKey('group_benefit')
+  const { key } = (await modelKey('group_benefit'))
   if (!key) return { suggestions: [], error: 'No Gemini API key configured' }
   if (!target.trim()) return { suggestions: [], error: 'no target stated' }
   const relevant = products.filter(p => p.product_title === productTitle && p.plans.length > 0)

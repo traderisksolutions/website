@@ -16,7 +16,7 @@
  * the first 5,000 requests a month across all Gemini 3.x models, then $14 per 1,000.
  */
 import { geminiUrl, GEMINI_DEEP } from '@/lib/gemini-models'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 import { logAiUsage } from '@/lib/gemini-usage'
 import { logError } from '@/lib/error-log'
 import { searchCompany, renderContext, type CompanyChunk } from '@/lib/agents/company-retrieval'
@@ -112,7 +112,7 @@ export async function ask(opts: {
   const question = (opts.question ?? '').trim()
   if (!question) throw new Error('a question is required')
 
-  const { key, via } = agentKey('askai')
+  const { key, via } = (await modelKey('askai'))
   if (!key) throw new Error('No Gemini key available for Ask AI. Set GEMINI_API_KEY_ASKAI.')
 
   // The company's own correspondence, when one was named. This is what makes the answer about

@@ -1,3 +1,4 @@
+import { modelKey } from '@/lib/ai-gate'
 /**
  * Pricing Matrix extraction. Three independent extractors read an insurer rate PDF, then an
  * Opus judge reconciles them and flags every numeric disagreement for human review.
@@ -92,7 +93,7 @@ function safeParse(s: string): GbExtraction {
 /** Named extractWithOpus until 2 Oct 2026; the export name is kept so the route and its stored
  *  extraction runs keep lining up. */
 export async function extractWithDeep(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
-  const { key } = agentKey('pricingmatrix')
+  const { key } = (await modelKey('pricingmatrix'))
   if (!key) return { data: EMPTY, raw: '', error: 'No Gemini API key configured' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_DEEP)}?key=${key}`, {
@@ -125,7 +126,7 @@ export async function extractWithDeep(pdfBase64: string, profileHint: string): P
 
 // ── B. Gemini (inline PDF) ──────────────────────────────────────────────────────
 export async function extractWithGemini(pdfBase64: string, profileHint: string): Promise<{ data: GbExtraction; raw: string; error?: string }> {
-  const key = agentKey('pricingmatrix').key
+  const key = (await modelKey('pricingmatrix')).key
   if (!key) return { data: EMPTY, raw: '', error: 'No Gemini key for the Employment benefits agent' }
   try {
     const res = await fetch(`${geminiUrl(GEMINI_FLASH)}?key=${key}`, {
@@ -264,7 +265,7 @@ export type Adjudication = Record<string, { price: number | null; confidence: nu
 export const conflictKey = priceKey
 
 export async function adjudicate(pdfBase64: string, conflicts: Conflict[]): Promise<Adjudication> {
-  const { key } = agentKey('pricingmatrix')
+  const { key } = (await modelKey('pricingmatrix'))
   if (!key || conflicts.length === 0) return {}
   try {
     // The two reads are labelled first/second rather than by model, so the judge has no reason to

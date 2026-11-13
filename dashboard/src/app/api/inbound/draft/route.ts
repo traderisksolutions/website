@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { logError }                 from '@/lib/error-log'
 import { withVoice, voiceInstruction } from '@/lib/voice'
-import { agentKey } from '@/lib/ai-agents'
+import { modelKey } from '@/lib/ai-gate'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent'
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const { name, topic, message } =
       await req.json() as { name: string; topic?: string | null; message?: string | null }
 
-    const geminiKey = agentKey('crm').key
+    const geminiKey = (await modelKey('crm')).key
     if (!geminiKey) return NextResponse.json({ error: 'No Gemini key for the Client relationships agent' }, { status: 500 })
 
     const firstName = name.split(' ')[0] || 'there'
