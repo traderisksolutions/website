@@ -34,5 +34,5 @@ Goal (Jarod, 13 Nov 2026): find the 20% of clients that earn 80% of commission, 
 
 1. **Repository complete, numbers, Pareto** (built 13 Nov 2026): ledger backfill and hooks, Portfolio (Clients › Portfolio), Knowledge › Numbers.
 2. **Facts from insurer mail, one key list, Ask about this client**: the knowledge keeper reads insurer threads filed against the client with the Nexus rules; facts move to a fixed key list; a question agent reads one business's repository.
-3. **Admin automation for the top 20%**: by request type, the drafts and agents that take each type off people (members and endorsements first: the largest type for the largest client).
+3. **Admin automation for the top 20%** (started 14 Nov 2026): the admin desk (open requests, repeats, movements per business) and the first rule that takes a repeat off people: TPA claim notices move claims on the register. Next: rules for the other repeats the desk shows (the monthly enrolment's chase and forward), within manual AI.
 4. **Renewal outlook**: premium change per insurer against loss ratio, from TRS's own renewal history once enough outcomes are on file.

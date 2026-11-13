@@ -55,7 +55,7 @@ export default function AiApprovalsPage() {
               <tbody>
                 {rows.map(r => (
                   <RegisterRow key={r.agent}>
-                    <RegisterCell first nowrap={false} primary={r.label} secondary={r.does} />
+                    <RegisterCell first nowrap={false} primary={<><span className="block">{r.label}</span><span className="block whitespace-normal text-[12.5px] text-trs-muted">{r.does}</span></>} />
                     <RegisterCell align="right">{r.waiting}</RegisterCell>
                     <RegisterCell>{r.oldest ? fmtDate(r.oldest) : '—'}</RegisterCell>
                     <RegisterCell align="right">

@@ -4,6 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-14 — Client 360 phase 3: the admin desk for the top 20%, claim notices by rule
+
+- **Admin desk** (Clients › Admin desk, `/companies/portfolio/desk`, `src/lib/clients/admin-desk.ts`): the top 20% by commission, each with its open requests (who they wait on, since, due), the work that comes round again and when it is next due, and its member movements in progress. A repeat is three or more threads whose subjects match once months, dates and numbers are taken out (an enrolment every 15 days at the largest client; an insurer's claim notices weekly at several). Rules only.
+- **TPA claim notices move claims by rule** (`src/lib/claims/tpa-notices.ts`, nightly admin sweep): IHP's "Claim Pending Further Action" puts the claim at documents pending, waiting on the client; "Claim Settlement Document Ready for Viewing" settles it. Forward only; a closed claim is never reopened. Applied once to the 161 notices on file: 6 claims moved; 22 references have no claim on the register.
+- AI approvals: each agent's description shown in full.
+
 ## 2026-11-13 — AI is manual: every model call starts with a person's button
 
 - **The gate** (`src/lib/ai-gate.ts`): a model call is allowed only inside a request made by a signed-in TRS person. Crons, the agent queue, mail ingest, webhooks and scripts are refused before any model is reached. Both doors go through it: `callGemini`, and `modelKey()` / `anthropicKeyGated()` for the 21 files that call Gemini or Claude directly (they used `agentKey()` / `ANTHROPIC_API_KEY`). A test fails if any code reads a model key around it. `AI_MODE=auto` would restore automatic runs; it is not set.
