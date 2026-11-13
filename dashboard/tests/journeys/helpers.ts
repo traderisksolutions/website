@@ -29,3 +29,11 @@ export async function companyId(page: Page, name: string): Promise<string> {
   expect(rows.length, `a company named like ${name}`).toBeGreaterThan(0)
   return rows[0].id
 }
+
+/** Rows straight from the database, read-only, for picking a record a journey can open. */
+export async function dbRows<T>(path: string): Promise<T[]> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY
+  if (!url || !key) return []
+  const res = await fetch(`${url}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
+  return res.ok ? await res.json() as T[] : []
+}

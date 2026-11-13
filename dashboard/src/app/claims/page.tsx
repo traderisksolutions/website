@@ -57,9 +57,22 @@ export default function ClaimsPage() {
   }, [])
   useEffect(() => { load() }, [load])
   useEffect(() => { callApi<{ user?: { email?: string } | null }>('/api/auth/me').then(d => setMe(d.user?.email?.toLowerCase() ?? null)).catch(() => setMe(null)) }, [])
-  useEffect(() => { const id = new URLSearchParams(window.location.search).get('claim'); if (id) { setSelected(id); setView('all') } }, [])
+  // ?company=<id> (the company page, the thread rail) and ?policy=<number> (the policy page) narrow the register to that client or policy, every status.
+  const [scope, setScope] = useState<{ company: string | null; policy: string | null }>({ company: null, policy: null })
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    const id = p.get('claim'); if (id) { setSelected(id); setView('all') }
+    const company = p.get('company'), policy = p.get('policy')
+    if (company || policy) { setScope({ company, policy }); setView('all') }
+  }, [])
+  function clearScope() {
+    setScope({ company: null, policy: null })
+    const u = new URL(window.location.href); u.searchParams.delete('company'); u.searchParams.delete('policy'); window.history.replaceState(null, '', u.toString())
+  }
 
-  const mine = useMemo(() => (rows ?? []).filter(r => who === 'all' || r.owner_email === me), [rows, who, me])
+  const scoped = useMemo(() => (rows ?? []).filter(r => (!scope.company || r.company_id === scope.company) && (!scope.policy || r.policy_number === scope.policy)), [rows, scope])
+  const scopeName = scope.company ? (scoped.find(r => r.client)?.client ?? 'This client') : null
+  const mine = useMemo(() => scoped.filter(r => who === 'all' || r.owner_email === me), [scoped, who, me])
   const count = (b: Bucket) => b === 'all' ? mine.length : mine.filter(r => bucket(r) === b).length
   const shown = view === 'forms' ? [] : mine.filter(r => view === 'all' || bucket(r) === view)
 
@@ -92,10 +105,16 @@ export default function ClaimsPage() {
         {view !== 'forms' && <Segmented value={who} onChange={setWho} options={[{ value: 'mine', label: 'Mine' }, { value: 'all', label: 'Everyone' }]} />}
       </div>
 
+      {(scope.company || scope.policy) && (
+        <p className="m-0 mb-3 flex flex-wrap items-center gap-2 text-[13.5px]">
+          <Chip>{[scopeName, scope.policy ? `Policy ${scope.policy}` : null].filter(Boolean).join(' · ')}</Chip>
+          <button type="button" onClick={clearScope} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px]" style={{ color: INK }}>Show every client</button>
+        </p>
+      )}
       {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px]">{notice}</p>}
 
-      {view === 'forms' ? <WebsiteForms onCount={setFormsNew} /> : !rows ? <Spinner label="Loading claims…" /> : shown.length === 0 ? <Empty>No claims here.</Empty> : (
+      {view === 'forms' ? <WebsiteForms onCount={setFormsNew} /> : !rows ? <Spinner label="Loading claims…" /> : shown.length === 0 ? <Empty>{scope.company || scope.policy ? 'No claims on file for this client.' : 'No claims here.'}</Empty> : (
         <>
           <div className="hidden md:block overflow-x-auto rounded-[10px] bg-white" style={{ boxShadow: 'var(--card-shadow)' }}>
             <table className="w-full text-[13.5px] border-collapse">

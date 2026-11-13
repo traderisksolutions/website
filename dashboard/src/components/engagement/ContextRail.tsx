@@ -163,9 +163,14 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
             )}
           </InfoRow>
           {companyId && (
+            <InfoRow label="Employment Benefits">
+              <Arrow href={`/pricing-matrix/company/${companyId}`}>Compare cover</Arrow>
+            </InfoRow>
+          )}
+          {companyId && (
             <InfoRow label="Policy">
               {!detail ? <Small>…</Small> : !policy ? <Small>None active on file</Small> : (
-                <>{policy.class_of_insurance ?? 'Policy'}<br /><Small>{[policy.insurer, policy.policy_number].filter(Boolean).join(' · ')}{policy.insurer || policy.policy_number ? ' · ' : ''}<Arrow href={`/debit-notes?company_id=${companyId}`}>Debit notes</Arrow></Small></>
+                <><Arrow href={`/policies/${policy.id}`}>{policy.class_of_insurance ?? 'Policy'}</Arrow><br /><Small>{[policy.insurer, policy.policy_number].filter(Boolean).join(' · ')}{policy.insurer || policy.policy_number ? ' · ' : ''}<Arrow href={`/debit-notes?company_id=${companyId}`}>Debit notes</Arrow> · <Arrow href={`/claims?company=${companyId}`}>Claims</Arrow></Small></>
               )}
             </InfoRow>
           )}

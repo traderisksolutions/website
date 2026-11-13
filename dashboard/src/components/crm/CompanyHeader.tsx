@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { FileText, FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
-import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
+import { Btn, Chip, Field, LinkBtn, inputCls, textareaCls } from './primitives'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -158,11 +158,13 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
                 </button>
               </span>
             )}
-            {/* Two actions at the right of the stage row: drafts (only when some wait, then primary) and a More menu for the rest. Ask AI lives in the chat dock. */}
-            <span className="ml-auto inline-flex items-center gap-2">
+            {/* At the right of the stage row: drafts (only when some wait, then primary), the company's Employment Benefits and claims, and a More menu for the rest. Ask AI lives in the chat dock. */}
+            <span className="ml-auto inline-flex items-center gap-2 flex-wrap">
               {draftsCount !== null && draftsCount > 0 && (
                 <Btn level="primary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
               )}
+              <LinkBtn href={`/pricing-matrix/company/${company.id}`} level="secondary" className={ACTION_BTN}>Employment Benefits</LinkBtn>
+              <LinkBtn href={`/claims?company=${company.id}`} level="tertiary" className={ACTION_BTN}>Claims</LinkBtn>
               <DropdownMenu modal={false}>
                 {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
                 <DropdownMenuTrigger

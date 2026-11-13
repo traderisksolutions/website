@@ -23,7 +23,7 @@ const HORIZONS: { key: Horizon; label: string; from: number; to: number }[] = [
 type Kind = 'renewal' | 'payment' | 'step'
 const KIND_LABEL: Record<Kind, string> = { renewal: 'Renewal', payment: 'Payment', step: 'Case step' }
 
-type Row = { id: string; date: string; days: number; kind: Kind; companyId: string | null; company: string; what: string; detail: string | null; late: boolean }
+type Row = { id: string; date: string; days: number; kind: Kind; companyId: string | null; company: string; what: string; detail: string | null; late: boolean; href?: string }
 
 const isoToday = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10)
 const addDays = (iso: string, n: number) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10)
@@ -37,15 +37,15 @@ export function toRows(events: CalendarEvent[], today: string): Row[] {
     if (e.type === 'renewal') {
       if (e.milestone !== 0) continue
       const d = daysFrom(today, e.date)
-      out.push({ id: e.id, date: e.date, days: d, kind: 'renewal', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: [e.classOfInsurance ?? 'Policy', e.insurer].filter(Boolean).join(' · '), detail: e.policyNumber, late: d < 0 })
+      out.push({ id: e.id, date: e.date, days: d, kind: 'renewal', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: [e.classOfInsurance ?? 'Policy', e.insurer].filter(Boolean).join(' · '), detail: e.policyNumber, late: d < 0, href: `/policies/${e.policyId}` })
     } else if (e.type === 'renewal_overdue') {
-      out.push({ id: e.id, date: e.endDate, days: -e.daysOverdue, kind: 'renewal', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: [e.classOfInsurance ?? 'Policy', e.insurer].filter(Boolean).join(' · '), detail: e.policyNumber, late: true })
+      out.push({ id: e.id, date: e.endDate, days: -e.daysOverdue, kind: 'renewal', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: [e.classOfInsurance ?? 'Policy', e.insurer].filter(Boolean).join(' · '), detail: e.policyNumber, late: true, href: `/policies/${e.policyId}` })
     } else if (e.type === 'debit_due') {
       if (e.status === 'paid') continue
       const d = daysFrom(today, e.date)
-      out.push({ id: e.id, date: e.date, days: d, kind: 'payment', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: `${e.debitNoteNo} · ${money(e.currency, e.outstanding)} outstanding`, detail: [e.classOfInsurance, e.insurer].filter(Boolean).join(' · ') || null, late: d < 0 })
+      out.push({ id: e.id, date: e.date, days: d, kind: 'payment', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: `${e.debitNoteNo} · ${money(e.currency, e.outstanding)} outstanding`, detail: [e.classOfInsurance, e.insurer].filter(Boolean).join(' · ') || null, late: d < 0, href: `/debit-notes?open=${e.debitNoteId}` })
     } else if (e.type === 'payment_overdue') {
-      out.push({ id: e.id, date: e.dueDate, days: -e.daysOverdue, kind: 'payment', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: `${e.debitNoteNo} · ${money(e.currency, e.outstanding)} outstanding`, detail: [e.classOfInsurance, e.insurer].filter(Boolean).join(' · ') || null, late: true })
+      out.push({ id: e.id, date: e.dueDate, days: -e.daysOverdue, kind: 'payment', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: `${e.debitNoteNo} · ${money(e.currency, e.outstanding)} outstanding`, detail: [e.classOfInsurance, e.insurer].filter(Boolean).join(' · ') || null, late: true, href: `/debit-notes?open=${e.debitNoteId}` })
     } else if (e.type === 'case_step') {
       const d = daysFrom(today, e.date)
       out.push({ id: e.id, date: e.date, days: d, kind: 'step', companyId: e.companyId, company: e.companyName ?? 'Unfiled', what: e.action || 'Case step', detail: e.caseName, late: d < 0 })
@@ -101,7 +101,7 @@ export function ComingUp() {
                     {r.companyId ? <Link href={`/companies/${r.companyId}`} className="text-[14px] font-medium text-trs-ink no-underline hover:underline truncate">{r.company}</Link> : <span className="text-[14px] font-medium text-trs-ink truncate">{r.company}</span>}
                     <Chip tone={r.late ? 'red' : r.days === 0 ? 'amber' : 'neutral'}>{KIND_LABEL[r.kind]}</Chip>
                   </div>
-                  <div className="text-[13px] text-trs-ink-2 truncate">{r.what}{r.detail ? <span className="text-trs-muted"> · {r.detail}</span> : null}</div>
+                  <div className="text-[13px] text-trs-ink-2 truncate">{r.href ? <Link href={r.href} className="text-trs-ink-2 no-underline hover:underline">{r.what}</Link> : r.what}{r.detail ? <span className="text-trs-muted"> · {r.detail}</span> : null}</div>
                 </div>
                 <span className="col-start-2 md:col-start-auto text-[12.5px] text-trs-muted tabular-nums whitespace-nowrap">{r.days < 0 ? `${-r.days} day${r.days === -1 ? '' : 's'} late` : r.days === 0 ? 'Today' : `in ${r.days} day${r.days === 1 ? '' : 's'}`}</span>
               </div>

@@ -79,4 +79,5 @@ Target screens (prototype of 13 Nov, built on Nathan's Gembridge workbook): Comp
 - `docs/design-system.md`: tokens, borders, chips, the rail.
 - `docs/agent-routing.md`, `docs/placement.md`, `docs/ontology.md`: agents, placements, data model.
 - `docs/refactor-plan.md`: baseline numbers (11 Nov 2026), the phases, the rules for each.
+- `docs/routes.md`: where every record links to and where Back goes.
 - `docs/changelog.md`: what shipped when.

@@ -1,6 +1,6 @@
 'use client'
 
-/** Quotes › Employment Benefits › <company> · Compare cover. Back goes to the Employment Benefits list. */
+/** <company> · Compare cover. Back goes where it was opened from: the Employment Benefits list, the company, the thread. With nothing on the trail, the list. */
 import { useParams } from 'next/navigation'
 import { CompareCover } from '@/components/group-benefits/CompareCover'
 

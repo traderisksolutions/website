@@ -43,6 +43,11 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
           {' · '}<span className="font-mono">{policy.policy_number ?? 'no number'}</span>
           {' · '}{policy.start_date ? fmtDate(policy.start_date) : '?'} – {policy.end_date ? fmtDate(policy.end_date) : '?'}
           {' · '}{lines.length} {lines.length === 1 ? 'line' : 'lines'}{last ? ` · net ${fmtAmount(last.running_net, ccy)}` : ''}
+          {policy.company_id && <>
+            {' · '}<Link href={`/debit-notes?company_id=${policy.company_id}`} className="text-trs-ink no-underline hover:underline">Debit notes</Link>
+            {' · '}<Link href={`/claims?company=${policy.company_id}${policy.policy_number ? `&policy=${encodeURIComponent(policy.policy_number)}` : ''}`} className="text-trs-ink no-underline hover:underline">Claims</Link>
+            {isEb(policy) && <>{' · '}<Link href={`/pricing-matrix/company/${policy.company_id}`} className="text-trs-ink no-underline hover:underline">Employment Benefits</Link></>}
+          </>}
         </>}
         actions={tab === 'renewal' ? <><ReportLink policyId={policy.id} /><RenewalAdviceButton policyId={policy.id} /></> : undefined}
       >
@@ -174,4 +179,9 @@ function packRows(c: PeriodFigures, q: PeriodFigures | null, ccy: string, eb: bo
   )
   if (c.sum_insured != null || q?.sum_insured != null) rows.push(moneyRow('Sum insured', c.sum_insured, q?.sum_insured))
   return rows
+}
+
+/** An employee-benefits policy: the line or class says so (as the company's Employment Benefits tab reads it). */
+function isEb(p: { product_line?: string | null; class?: string | null }): boolean {
+  return /benefit|medical|hospital|\bghs\b|\bgtl\b|\bgpa\b|dental|\beb\b/i.test(`${p.product_line ?? ''} ${p.class ?? ''}`)
 }

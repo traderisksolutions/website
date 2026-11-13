@@ -50,7 +50,7 @@ export function EbRenewals() {
         {rows.map(r => (
           <RegisterRow key={r.policy_id}>
             <RegisterCell><div className="max-w-[220px] truncate" title={r.company}>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline" style={{ color: INK }}>{r.company}</Link> : r.company}</div></RegisterCell>
-            <RegisterCell><div className="max-w-[260px] truncate" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}>{r.policy}</div><div className="text-[12px]" style={{ color: MUTED }}>{r.insurer ? insurerWord(r.insurer) : '—'}</div></RegisterCell>
+            <RegisterCell><div className="max-w-[260px] truncate" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}><Link href={`/policies/${r.policy_id}`} className="no-underline hover:underline" style={{ color: INK }}>{r.policy}</Link></div><div className="text-[12px]" style={{ color: MUTED }}>{r.insurer ? insurerWord(r.insurer) : '—'}</div></RegisterCell>
             <RegisterCell><span className="whitespace-nowrap">{fmtDate(r.end_date)}</span><div className="text-[12px] tabular-nums" style={{ color: r.days < 0 ? '#a1242f' : MUTED }}>{r.days < 0 ? `${-r.days} days ago` : `in ${r.days} days`}</div></RegisterCell>
             <RegisterCell align="right" className="tabular-nums">{r.members ?? <span style={{ color: MUTED }}>none</span>}</RegisterCell>
             <RegisterCell>

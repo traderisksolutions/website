@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Routes between records; Back returns to where a record was opened
+
+- **Employment Benefits from the company page and a thread:** an Employment Benefits button in the company header and an Employment Benefits row in the Inbox rail open the company's newest Compare cover, or New quotation for the company when it has none (`/pricing-matrix/company/<id>`, `src/lib/gb/company-eb.ts`).
+- **Back:** a click in the top bar or place tabs starts a new trail, so a quotation opened from the Employment Benefits list returns to the list, never to a company visited earlier. Before a link is followed, the current page's step takes its tab or filter from the address, so Back returns to the tab left.
+- **Claims:** Claims in the company header, on the policy page and in the Inbox rail open the claims of that client (`/claims?company=<id>&policy=<number>`), with "Show every client" to clear.
+- **Policy page:** links to the client's debit notes, claims and, for an employee-benefits line, Employment Benefits.
+- **Today:** a renewal's policy line opens the policy; a payment's line opens the debit note; EB renewals name the policy as a link. The Inbox rail's policy opens the policy.
+- **Map:** `docs/routes.md`. Six journeys in `tests/journeys/routes.spec.ts`; 59 journeys pass.
+
+---
+
 ## 2026-11-13 — Refactor steps 1 and 2; New quotation from the client's own documents
 
 - **Behaviours register** (`docs/behaviours.md`): 300 behaviours asked for, by place, each with its source. A refactored page keeps every behaviour listed for it; a pull request names the IDs it touches.

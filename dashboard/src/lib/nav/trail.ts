@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 
 export type Crumb = { label: string; href: string }
 const KEY = 'trs:trail'
+const FRESH_KEY = 'trs:trail:fresh'
 const HASH_KEY = 't'
 
 export function readTrail(): Crumb[] {
@@ -32,7 +33,46 @@ export function trailAfter(trail: Crumb[], c: Crumb): Crumb[] {
 }
 
 export function pushCrumb(c: Crumb): Crumb[] {
-  const next = trailAfter(readTrail(), c)
+  const next = takeFresh() ? [c] : trailAfter(readTrail(), c)
+  writeTrail(next)
+  return next
+}
+
+/**
+ * A click in the top bar starts a new trail: the next page registered is the first step, so Back
+ * from a record opened off Quotes › Employment Benefits goes to that list, never to a company
+ * visited before the click.
+ */
+export function startFresh() {
+  try { sessionStorage.setItem(FRESH_KEY, '1') } catch { /* private window */ }
+}
+
+export function freshPending(): boolean {
+  try { return sessionStorage.getItem(FRESH_KEY) === '1' } catch { return false }
+}
+
+function takeFresh(): boolean {
+  try { const v = sessionStorage.getItem(FRESH_KEY) === '1'; sessionStorage.removeItem(FRESH_KEY); return v } catch { return false }
+}
+
+/** Pure: the trail with its last step moved to `href` when that step is the same page (a thread, a tab or a filter chosen since). */
+export function trailAt(trail: Crumb[], href: string, label?: string): Crumb[] {
+  const last = trail.at(-1)
+  if (!last || last.href.split(/[?#]/)[0] !== href.split(/[?#]/)[0]) return trail
+  return [...trail.slice(0, -1), { label: label ?? last.label, href }]
+}
+
+/**
+ * Records where on this page the person is now (the open tab, a filter), from the address bar.
+ * Called before a link is followed, so Back returns to that tab rather than the page's bare
+ * address. A step whose place is not in the address (the Inbox thread ThreadView records) is never
+ * overwritten by an address without a query.
+ */
+export function syncHere(): Crumb[] {
+  if (typeof window === 'undefined') return []
+  const trail = readTrail()
+  if (!window.location.search && trail.at(-1)?.href.includes('?')) return trail
+  const next = trailAt(trail, `${window.location.pathname}${window.location.search}`)
   writeTrail(next)
   return next
 }

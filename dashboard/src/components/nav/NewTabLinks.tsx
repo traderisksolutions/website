@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { pushCrumb, readTrail, withTrail } from '@/lib/nav/trail'
+import { freshPending, pushCrumb, readTrail, startFresh, syncHere, withTrail } from '@/lib/nav/trail'
 import { locate } from './nav-sections'
 
 /**
@@ -17,7 +17,7 @@ import { locate } from './nav-sections'
  * Also the trail's recorder for list pages: a page of the top bar (Inbox, Companies, Today) puts
  * itself on the trail when opened, so a record opened from it shows "← Companies". Detail pages
  * register themselves through Breadcrumbs; this never adds a step for a path that already is the
- * trail's last.
+ * trail's last. A click in the top bar or the place tabs starts a new trail (`startFresh`).
  */
 export function NewTabLinks() {
   const pathname = usePathname()
@@ -25,7 +25,7 @@ export function NewTabLinks() {
     const { place, tab } = locate(pathname)
     if (!place || !tab || tab.href !== pathname) return
     const last = readTrail().at(-1)
-    if (last && last.href.split('?')[0] === pathname) return
+    if (last && last.href.split('?')[0] === pathname && !freshPending()) return
     const label = tab.title === place.label ? place.label : `${place.label} · ${tab.title}`
     pushCrumb({ label, href: pathname })
   }, [pathname])
@@ -34,7 +34,12 @@ export function NewTabLinks() {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
       const el = e.target instanceof Element ? e.target : null
       const a = el?.closest('a[href]') as HTMLAnchorElement | null
-      if (!a || a.target || a.hasAttribute('download') || a.closest('header, nav, [role="tablist"], [data-same-tab]')) return
+      if (!a) return
+      // The top bar and the place tabs start a new trail; every other link first records where
+      // on this page the person is (the thread, the tab), so Back returns there.
+      if (!a.closest('header, .trs-place-tabs')) syncHere()
+      else if (a.pathname !== window.location.pathname) startFresh()
+      if (a.target || a.hasAttribute('download') || a.closest('header, nav, [role="tablist"], [data-same-tab]')) return
       const href = a.getAttribute('href') ?? ''
       if (!href || href.startsWith('#') || /^(mailto|tel|sms|javascript):/i.test(href)) return
       let url: URL
