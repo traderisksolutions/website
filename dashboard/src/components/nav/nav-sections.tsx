@@ -24,6 +24,7 @@ export const PLACES: Place[] = [
     { title: 'Today', href: '/today' },
     { title: 'Queue', href: '/work' },
     { title: 'Follow-ups', href: '/followups' },
+    { title: 'AI approvals', href: '/work/ai' },
     { title: 'Home', href: '/' },
     { title: 'Board', href: '/board' },
     { title: 'Calendar', href: '/calendar' },

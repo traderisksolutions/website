@@ -43,3 +43,12 @@ describe('every model key goes through the gate', () => {
     expect(offenders).toEqual([])
   })
 })
+
+describe('AI approvals', () => {
+  it('lists every agent the credit guard holds, so all held AI work has a Run button', async () => {
+    const { AI_AGENTS } = await import('@/lib/agent-tasks/approvals')
+    const { MODEL_AGENTS } = await import('@/lib/agent-tasks/model-guard')
+    const listed = new Set(AI_AGENTS.map(a => a.agent))
+    for (const a of MODEL_AGENTS) expect(listed.has(a)).toBe(true)
+  })
+})
