@@ -15,13 +15,15 @@
  */
 import { sb, sbTry, enc, isInternal, bareEmail } from '@/lib/crm/db'
 import { callGemini } from '@/lib/ai-call'
-import { GEMINI_LITE } from '@/lib/gemini-models'
+import { GEMINI_FLASH, GEMINI_LITE } from '@/lib/gemini-models'
+import { subjectNames } from '@/lib/nexus/company-view'
 import { skip, enqueue, type AgentTask } from '@/lib/agent-tasks/queue'
 import { readHistory } from './history'
 import { refKey } from './signals'
 import type { FactInput, ReadMessagePayload, RecordFactsPayload, SeedCompanyPayload } from './handoffs'
 import { readLedger, getCursor, setCursor } from '@/lib/admin/ledger'
-import { factReadable } from '@/lib/admin/k/shape'
+import { factReader } from '@/lib/admin/k/shape'
+import { catalogueFor, cleanFacts, LINE_SLUGS } from '@/lib/admin/k/catalogue'
 import { depositMessages, directory } from '@/lib/admin/k/deposit'
 
 type Row = Record<string, any>
@@ -51,8 +53,12 @@ export async function getGroupFacts(companyId: string, opts: { topic?: string } 
   return sbTry<CompanyFact[]>(`company_facts?group_id=eq.${enc(root)}&superseded_by=is.null${opts.topic ? `&topic=eq.${enc(opts.topic)}` : ''}&select=*&order=source_date.desc.nullslast,created_at.desc&limit=1000`, [])
 }
 
-/** Pure: which incoming facts are new, and which current rows each one replaces. */
-export function planFacts(incoming: FactInput[], current: Pick<CompanyFact, 'id' | 'company_id' | 'key' | 'value'>[]): { insert: FactInput[]; supersede: Map<number, string[]> } {
+/**
+ * Pure: which incoming facts are new, and which current rows each one replaces. A newer source
+ * replaces what an older source said under the same key; one email stating several values under
+ * one key (two premiums in one quotation) keeps them all.
+ */
+export function planFacts(incoming: FactInput[], current: Pick<CompanyFact, 'id' | 'company_id' | 'key' | 'value' | 'source_id'>[]): { insert: FactInput[]; supersede: Map<number, string[]> } {
   const insert: FactInput[] = []
   const supersede = new Map<number, string[]>()
   const norm = (v: string) => v.replace(/\s+/g, ' ').trim().toLowerCase()
@@ -63,7 +69,7 @@ export function planFacts(incoming: FactInput[], current: Pick<CompanyFact, 'id'
     seen.add(sig)
     const same = current.filter(c => c.company_id === f.company_id && c.key === f.key)
     if (same.some(c => norm(c.value) === norm(f.value))) continue
-    supersede.set(insert.length, same.map(c => c.id))
+    supersede.set(insert.length, same.filter(c => !f.source_id || c.source_id !== f.source_id).map(c => c.id))
     insert.push(f)
   }
   return { insert, supersede }
@@ -74,7 +80,7 @@ export async function writeFacts(facts: FactInput[], agent: string): Promise<{ i
   const companies = Array.from(new Set(facts.map(f => f.company_id)))
   const roots = new Map<string, string>()
   for (const c of companies) roots.set(c, await groupRoot(c))
-  const current = await sbTry<CompanyFact[]>(`company_facts?company_id=in.(${companies.join(',')})&superseded_by=is.null&select=id,company_id,key,value&limit=5000`, [])
+  const current = await sbTry<CompanyFact[]>(`company_facts?company_id=in.(${companies.join(',')})&superseded_by=is.null&select=id,company_id,key,value,source_id&limit=5000`, [])
   const { insert, supersede } = planFacts(facts, current)
   let superseded = 0
   for (let i = 0; i < insert.length; i++) {
@@ -102,10 +108,10 @@ export function seedFacts(company: Row, policies: Row[], insureds: Row[], links:
     if (value == null || !String(value).trim()) return
     out.push({ company_id: id, policy_id: src.policy_id ?? null, topic, key, value: String(value).trim().slice(0, 500), source_kind: src.kind, source_id: src.id ?? null, source_date: src.date ?? null, confidence: 'high' })
   }
-  f('insured', 'company.name', company.company_name, { kind: 'staff', id })
-  f('insured', 'company.uen', company.uen, { kind: 'staff', id })
-  if (company.parent_id) f('insured', 'company.parent', company.parent_id, { kind: 'staff', id })
-  if (company.relation) f('insured', 'company.relation', company.relation, { kind: 'staff', id })
+  f('business', 'business.name', company.company_name, { kind: 'staff', id })
+  f('business', 'business.uen', company.uen, { kind: 'staff', id })
+  if (company.parent_id) f('business', 'business.parent', company.parent_id, { kind: 'staff', id })
+  if (company.relation) f('business', 'business.relation', company.relation, { kind: 'staff', id })
   for (const p of policies) {
     const scope = p.policy_number ? `policy.${refKey(p.policy_number)}` : `policy.${p.id}`
     const src = { kind: 'policy' as const, id: p.id, date: p.start_date ?? null, policy_id: p.id }
@@ -115,7 +121,7 @@ export function seedFacts(company: Row, policies: Row[], insureds: Row[], links:
     if (p.start_date || p.end_date) f('cover', `${scope}.period`, `${p.start_date ?? '?'} to ${p.end_date ?? '?'}`, src)
     f('cover', `${scope}.status`, p.lifecycle, src)
   }
-  for (const i of insureds) f('insured', `policy.${i.policy_id}.insured.${i.company_id}`, i.role, { kind: 'policy', id: i.policy_id, policy_id: i.policy_id })
+  for (const i of insureds) f('cover', `policy.${i.policy_id}.insured`, i.role, { kind: 'policy', id: i.policy_id, policy_id: i.policy_id })
   for (const l of links) {
     const email = String(l.contacts?.email ?? '').toLowerCase()
     if (!email) continue
@@ -139,36 +145,27 @@ async function seedCompany(task: AgentTask) {
   return writeFacts(seedFacts(company, policies, insureds, links), 'knowledge_keeper')
 }
 
-const FACT_SYSTEM = `You read one email to a Singapore insurance broker (TRS) from a client, and list durable facts about the client that a broker would want on file next year: who handles claims, billing or HR and how to reach them; headcount, fleet size, sites, business activity; what they require (contract insurance requirements, deadlines that recur); how they like to be dealt with.
-Only facts the email states. No opinions, no summaries of the request itself, nothing about TRS staff.
-Each fact: topic (contact|business|requirement|preference|claims_handling|billing|members), key (dot.separated, lower case, e.g. "claims.contact", "fleet.vehicles", "headcount.total"), value (short), quote (the exact words from the email, under 200 characters).
-Answer JSON only: {"facts":[{"topic":"","key":"","value":"","quote":""}]}`
+export const CLIENT_SYSTEM = `You read one email a client of TRS (a Singapore insurance broker) wrote, and record durable facts about the client's business that a broker wants on file next year: the business, its people and what each handles, its headcount and sites, what cover its contracts require, how it pays and how it likes to work.
+Only what the email states. Nothing about TRS staff, nothing about the request itself, no opinions.
+business.* is the client's own business: another entity named in a signature or address goes under business.related_entity, never business.name.
+requirement.* is only cover a contract, a tender or the law obliges the client to hold (with its amount when stated), never the thing this email asks for and never a renewal falling due.
+Use ONLY these keys. {person} is that person's email address as it appears on the email; {ref} is a policy, claim or quotation number exactly as written, or a line of cover from LINES when no number is given.
+KEYS:
+%KEYS%
+LINES: %LINES%
+Each fact: key, value (short; a figure for money, number and percent), quote (the exact words from the email that state it, under 200 characters).
+Answer JSON only: {"facts":[{"key":"","value":"","quote":""}]}. An empty list is a good answer when the email states nothing durable.`
 
-const KEY_SYNONYMS: Record<string, string> = { company: 'business', client: 'business', firm: 'business', organisation: 'business', organization: 'business', hr: 'contact', person: 'contact', poc: 'contact', telephone: 'phone', mobile: 'phone', tel: 'phone', mail: 'email', e_mail: 'email', staff: 'headcount', employees: 'headcount', employee_count: 'headcount', office: 'address', location: 'address' }
-
-/**
- * One spelling per fact key, so a later value supersedes the earlier one instead of sitting
- * beside it: the topic is never repeated inside the key ("business.company.rebrand" and
- * "business.business.rebrand" are both "business.rebrand"), synonyms collapse, and a key is at
- * most three segments. Pure.
- */
-export function canonicalKey(topic: string, raw: string): string {
-  const segs = raw.toLowerCase().replace(/[^a-z0-9_.]/g, '').split('.').filter(Boolean).map(s => KEY_SYNONYMS[s] ?? s)
-  const out: string[] = []
-  for (const s of segs) { if (s === topic || s === out[out.length - 1]) continue; out.push(s) }
-  return out.slice(0, 3).join('.').slice(0, 80)
-}
-
-/** Pure: keeps only facts whose quote is really in the text, with a sane key. */
-export function verifiedFacts(raw: unknown, text: string): { topic: string; key: string; value: string; quote: string }[] {
-  const flat = text.replace(/\s+/g, ' ').toLowerCase()
-  const list = Array.isArray((raw as Row)?.facts) ? (raw as Row).facts as Row[] : []
-  const topics = new Set(['contact', 'business', 'requirement', 'preference', 'claims_handling', 'billing', 'members'])
-  return list.filter(f => f && typeof f.quote === 'string' && typeof f.value === 'string' && typeof f.key === 'string')
-    .map(f => { const topic = topics.has(f.topic) ? f.topic : 'business'; return { topic, key: canonicalKey(topic, String(f.key)), value: String(f.value).trim().slice(0, 300), quote: String(f.quote).trim().slice(0, 240) } })
-    .filter(f => f.key.length >= 3 && f.value && f.quote.length >= 8 && flat.includes(f.quote.replace(/\s+/g, ' ').toLowerCase()))
-    .slice(0, 20)
-}
+export const INSURER_SYSTEM = `You read one email an insurer wrote to TRS (a Singapore insurance broker) about TRS's client %CLIENT%, and record what the insurer states about that client's cover: the premium quoted or agreed, a renewal increase or decrease, sums insured and limits, excesses, conditions and exclusions, a decline and its reason, how long a quote is valid; an endorsement made and its premium; a claim's status, the amount paid and the reason for a decision.
+Only what the email or its attachments state about %CLIENT%. Other clients named in the same email are left out. No opinions.
+A question or request the insurer puts to TRS is not a fact: leave it out. A condition is a term the cover is subject to, not something the insurer asks for.
+Use ONLY these keys. {ref} is the policy, claim, quotation or endorsement number exactly as written, or a line of cover from LINES when no number is given.
+KEYS:
+%KEYS%
+LINES: %LINES%
+When the email lists several figures under one key (two premiums, several limits), give each its own fact and start the value with what it is for ("Contract value S$1,380,000", "Plant and machinery S$100,000").
+Each fact: key, value (short; a figure for money and percent, with its currency), quote (the exact words from the email that state it, under 200 characters).
+Answer JSON only: {"facts":[{"key":"","value":"","quote":""}]}. An empty list is a good answer when the email states no terms.`
 
 /** Pure. A short reply that only thanks, notes or confirms receipt states no fact worth a model call. */
 export function isAcknowledgement(text: string): boolean {
@@ -181,17 +178,62 @@ export function isAcknowledgement(text: string): boolean {
 const AGENT = 'knowledge_keeper'
 const PER_RUN = 25
 
-/** Facts the model reads off one client email, checked against the email's own text. */
-async function factsFromMessage(messageId: string, companyId: string): Promise<FactInput[]> {
-  const [m] = await sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,from_address,subject,body_text,sent_at`, [])
-  if (!m || isInternal(bareEmail(m.from_address))) return []
+export type PreparedRead = {
+  messageId: string; companyId: string; reader: 'client' | 'insurer'
+  system: string; prompt: string; corpus: string; addresses: string[]; sentAt: string | null; withFiles: boolean
+}
+
+/** Everything one read needs, or null when the email is not worth one. The same for a live call and a batch. */
+export async function prepareRead(messageId: string, companyId: string, reader: 'client' | 'insurer'): Promise<PreparedRead | null> {
+  const [[m], people, [co]] = await Promise.all([
+    sbTry<Row[]>(`email_messages?id=eq.${enc(messageId)}&select=id,from_address,subject,body_text,sent_at`, []),
+    sbTry<Row[]>(`email_participants?message_id=eq.${enc(messageId)}&deleted_at=is.null&select=email`, []),
+    sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=company_name`, []),
+  ])
+  if (!m || isInternal(bareEmail(m.from_address))) return null
   const own = readHistory(m.body_text ?? '', m.subject).top.slice(0, 6000)
-  if (own.length < 40 || isAcknowledgement(own)) return []
-  const r = await callGemini({ agent: 'admin', feature: 'admin_fact_read', model: GEMINI_LITE, system: FACT_SYSTEM, parts: [{ text: `FROM: ${m.from_address}\nSUBJECT: ${m.subject ?? ''}\n\n${own}` }], json: true, maxOutputTokens: 4000, thinkingShare: 0, metadata: { company_id: companyId, message_id: messageId } })
+  if (own.length < 40 || isAcknowledgement(own)) return null
+  const client = String(co?.company_name ?? 'the client')
+  let corpus = `${m.subject ?? ''}\n${own}`
+  if (reader === 'insurer') {
+    const atts = await sbTry<Row[]>(`email_attachments?message_id=eq.${enc(messageId)}&parsed_text=not.is.null&select=filename,parsed_text&limit=6`, [])
+    // Documents only: an image's stored text is a model's description of it, not its own words.
+    for (const a of atts.filter(x => /\.(pdf|xlsx?|xlsm|csv|docx?|txt)$/i.test(String(x.filename ?? '')))) corpus += `\n\nATTACHMENT ${a.filename}:\n${String(a.parsed_text).slice(0, 15_000)}`
+    corpus = corpus.slice(0, 40_000)
+    const dir = await directory()
+    const group = dir.group(companyId)
+    const names = [...dir.byId.values()].filter(c => dir.group(c.id) === group && c.company_name).map(c => String(c.company_name))
+    if (!names.some(n => subjectNames(corpus, n))) return null
+  }
+  return {
+    messageId, companyId, reader, corpus, sentAt: m.sent_at ?? null,
+    system: (reader === 'client' ? CLIENT_SYSTEM : INSURER_SYSTEM).replace(/%CLIENT%/g, client).replace('%KEYS%', catalogueFor(reader)).replace('%LINES%', LINE_SLUGS.join(', ')),
+    prompt: `FROM: ${m.from_address}\n${corpus}`,
+    addresses: [bareEmail(m.from_address), ...people.map(p => String(p.email ?? ''))].filter(Boolean),
+    withFiles: corpus.length > own.length + (m.subject ?? '').length + 2,
+  }
+}
+
+/** A read's answer, checked against the catalogue and the email's own words. Pure. */
+export function finishRead(p: PreparedRead, parsed: unknown): FactInput[] {
+  return cleanFacts(parsed, p.corpus, p.reader, p.addresses).map(f => ({ company_id: p.companyId, topic: f.topic, key: f.key, value: f.value, quote: f.quote, source_kind: 'email' as const, source_id: p.messageId, source_date: String(p.sentAt ?? '').slice(0, 10) || null, confidence: 'medium' }))
+}
+
+/**
+ * Facts the model reads off one email, client or insurer, each checked against the catalogue and
+ * the email's own words (cleanFacts). An insurer's email is read for the client it is filed under,
+ * with the text of its attachments (quotations, renewal notices, settlement letters arrive as
+ * PDFs), and only when the email or an attachment names that client: a thread filed against the
+ * wrong client must not write its terms into that client's file.
+ */
+export async function factsFromMessage(messageId: string, companyId: string, reader: 'client' | 'insurer', opts: { dryRun?: boolean } = {}): Promise<FactInput[]> {
+  const p = await prepareRead(messageId, companyId, reader)
+  if (!p) return []
+  const r = await callGemini({ agent: 'admin', feature: reader === 'client' ? 'admin_fact_read' : 'admin_fact_read_insurer', model: p.withFiles ? GEMINI_FLASH : GEMINI_LITE, system: p.system, temperature: 0, parts: [{ text: p.prompt }], json: true, maxOutputTokens: 4000, thinkingShare: 0, metadata: { company_id: companyId, message_id: messageId, dry_run: !!opts.dryRun } })
   if (!r.text) throw new Error(r.error ?? 'no answer from the model')
   let parsed: unknown = null
   try { parsed = JSON.parse(r.text) } catch { throw new Error('model answer was not JSON') }
-  return verifiedFacts(parsed, own).map(f => ({ company_id: companyId, topic: f.topic, key: f.key, value: f.value, quote: f.quote, source_kind: 'email', source_id: messageId, source_date: String(m.sent_at ?? '').slice(0, 10) || null, confidence: 'medium' }))
+  return finishRead(p, parsed)
 }
 
 /** Reads a group's new ledger entries from the cursor. The cursor moves after each entry, so a failure resumes at that entry. */
@@ -203,8 +245,9 @@ async function readLedgerTask(task: AgentTask) {
   const entries = await readLedger(groupId, cursor, PER_RUN)
   let read = 0, inserted = 0, superseded = 0
   for (const e of entries) {
-    if (e.source_table === 'email_messages' && e.company_id && factReadable(e, dir.byId.get(e.company_id)?.kind)) {
-      const w = await writeFacts(await factsFromMessage(e.source_id, e.company_id), AGENT)
+    const reader = e.source_table === 'email_messages' && e.company_id ? factReader(e, dir.byId.get(e.company_id)?.kind) : null
+    if (reader && e.company_id) {
+      const w = await writeFacts(await factsFromMessage(e.source_id, e.company_id, reader), AGENT)
       read++; inserted += w.inserted; superseded += w.superseded
     }
     cursor = e.seq

@@ -12,6 +12,7 @@ import { callApi, errText } from '@/components/placement/shared'
 import { ThreadModal, fmtWhen } from './shared'
 import type { NextStep } from '@/lib/today/data'
 import { BusinessNumbers } from '@/components/clients/BusinessNumbers'
+import { AskClient } from '@/components/clients/AskClient'
 
 type Entry = {
   id: string; occurred_at: string; kind: string; title: string; summary: string | null; party: string | null
@@ -51,6 +52,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const shown = (entries ?? []).filter(e => IN_FILTER[filter](e.kind))
   return (
     <div className="flex flex-col gap-3 min-w-0">
+      <AskClient companyId={companyId} />
       <BusinessNumbers companyId={companyId} />
       {steps.length > 0 && (
         <section className="flex flex-col gap-2 min-w-0 mb-2" aria-label="Next steps">

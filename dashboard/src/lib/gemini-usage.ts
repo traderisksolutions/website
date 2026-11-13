@@ -168,6 +168,8 @@ export type AiFeature =
   | 'case_work'
   // Autonomous admin (1 Nov 2026): the siloed agents on agent_tasks.
   | 'admin_fact_read'
+  | 'admin_fact_read_insurer'
+  | 'client_ask'
   | 'admin_claim_read'
   | 'admin_endorsement_read'
   | 'admin_route'

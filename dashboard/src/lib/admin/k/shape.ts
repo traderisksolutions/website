@@ -158,12 +158,21 @@ export function caseEventDraft(e: Row, item: Row): LedgerDraft {
   }
 }
 
-/** Pure: whether an entry is worth a fact read — a client writing in, in their own words. */
-export function factReadable(e: { kind: string; party: string | null; actor: string | null; summary: string | null; title?: string | null }, companyKind: string | null | undefined): boolean {
-  if (companyKind !== 'client') return false
-  if (e.kind !== 'email_in' || e.party !== 'client') return false
-  if (!e.actor || isAutomated(e.actor)) return false
+type Readable = { kind: string; party: string | null; actor: string | null; summary: string | null; title?: string | null }
+
+/**
+ * Pure: which reader an entry is worth, or null. Under a client's ledger: the client writing in,
+ * in their own words ('client'), or an insurer writing on a thread filed against the client
+ * ('insurer'). Never TRS, partners, TPAs, vendors, automated senders or mailing lists.
+ */
+export function factReader(e: Readable, companyKind: string | null | undefined): 'client' | 'insurer' | null {
+  if (companyKind !== 'client' || e.kind !== 'email_in') return null
+  if (e.party !== 'client' && e.party !== 'insurer') return null
+  if (!e.actor || isAutomated(e.actor)) return null
   const text = `${e.title ?? ''}\n${e.summary ?? ''}`.toLowerCase()
-  if (/unsubscribe|newsletter|webinar|view (this|it) in (your )?browser|mailing list/.test(text)) return false
-  return (e.summary ?? '').trim().length >= 40
+  if (/unsubscribe|newsletter|webinar|view (this|it) in (your )?browser|mailing list/.test(text)) return null
+  return (e.summary ?? '').trim().length >= 40 ? e.party : null
 }
+
+/** Pure: whether an entry is worth a fact read at all. */
+export const factReadable = (e: Readable, companyKind: string | null | undefined): boolean => factReader(e, companyKind) !== null

@@ -217,6 +217,8 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
 
   // ── Autonomous admin ──────────────────────────────────────────────────────
   admin_fact_read:          'admin',
+  admin_fact_read_insurer:  'admin',
+  client_ask:               'admin',
   admin_claim_read:         'admin',
   admin_endorsement_read:   'admin',
   admin_route:              'admin',

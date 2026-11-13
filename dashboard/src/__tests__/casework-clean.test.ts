@@ -122,7 +122,6 @@ describe('queueRank', () => {
 })
 
 import { twinOf, titleTokens } from '@/lib/casework/clean'
-import { canonicalKey } from '@/lib/admin/a/knowledge'
 
 describe('twinOf', () => {
   const open = [
@@ -139,15 +138,5 @@ describe('twinOf', () => {
   it('leaves a new matter alone', () => {
     expect(twinOf({ title: 'Removal of one staff member - credit note', policy_number: null, threads: ['t3'] }, open)).toBeNull()
     expect(titleTokens('Re: Fwd: 2nd Reminder: Motor renewal SXX0000X').has('reminder')).toBe(false)
-  })
-})
-
-describe('canonicalKey', () => {
-  it('drops the repeated topic, collapses synonyms, caps depth', () => {
-    expect(canonicalKey('business', 'business.company.rebrand')).toBe('rebrand')
-    expect(canonicalKey('business', 'company.rebrand')).toBe('rebrand')
-    expect(canonicalKey('contact', 'contact.contact.phone')).toBe('phone')
-    expect(canonicalKey('contact', 'hr.contact.mobile')).toBe('phone')
-    expect(canonicalKey('members', 'headcount.total.current.extra')).toBe('headcount.total.current')
   })
 })

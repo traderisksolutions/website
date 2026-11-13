@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ownText, partyOf, emailDraft, rebuiltDraft, policyDrafts, debitNoteDraft, claimDraft, caseEventDraft, factReadable, links, ledgerKey, SUMMARY_MAX } from '../shape'
+import { ownText, partyOf, emailDraft, rebuiltDraft, policyDrafts, debitNoteDraft, claimDraft, caseEventDraft, factReadable, factReader, links, ledgerKey, SUMMARY_MAX } from '../shape'
 import { searchTerm } from '../retrieve'
 
 const domains = new Map([['insurer.example', 'insurer'], ['client.example', 'client'], ['tpa.example', 'tpa'], ['broker.example', 'partner']])
@@ -86,11 +86,12 @@ describe('other sources', () => {
 
 describe('factReadable', () => {
   const e = { kind: 'email_in', party: 'client', actor: 'hr@client.example', summary: 'Our claims are handled by Jane Tan, HR manager, on 6123 4567.', title: 'Contacts' }
-  it('reads only a client writing in their own words', () => {
-    expect(factReadable(e, 'client')).toBe(true)
+  it('reads a client or an insurer writing in, under the client only', () => {
+    expect(factReader(e, 'client')).toBe('client')
     expect(factReadable(e, 'insurer')).toBe(false)
     expect(factReadable(e, 'partner')).toBe(false)
-    expect(factReadable({ ...e, party: 'insurer' }, 'client')).toBe(false)
+    expect(factReader({ ...e, party: 'insurer', actor: 'uw@insurer.example' }, 'client')).toBe('insurer')
+    expect(factReadable({ ...e, party: 'partner' }, 'client')).toBe(false)
     expect(factReadable({ ...e, kind: 'email_out' }, 'client')).toBe(false)
     expect(factReadable({ ...e, actor: 'noreply@client.example' }, 'client')).toBe(false)
   })
