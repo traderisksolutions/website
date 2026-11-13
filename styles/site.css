@@ -401,3 +401,9 @@ body.s-site { font-family: var(--s-ui); background: #fff; color: var(--s-ink); o
 .s-prose table { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 15px; }
 .s-prose th, .s-prose td { border-bottom: 1px solid var(--s-hair); padding: 11px 10px; text-align: left; vertical-align: top; }
 .s-prose th { font-size: 12.5px; font-weight: 600; color: var(--s-sub); }
+
+/* Industries index: one block per business type, sector page link beside the heading */
+.s-ind { margin-top: 56px; }
+.s-ind-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px 24px; }
+.s-ind-h .s-art-sub { margin: 0; }
+.s-ind .s-list { margin-top: 8px; }

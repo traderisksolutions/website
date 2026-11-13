@@ -151,7 +151,52 @@ def main():
         add += f'  <url><loc>{loc}</loc><lastmod>{a["updated_at"][:10]}</lastmod></url>\n'
     if add:
         open('sitemap.xml', 'w').write(sm.replace('</urlset>', add + '</urlset>'))
+    industries_page(posts)
+    if f'{SITE}/industries/' not in open('sitemap.xml').read():
+        sm2 = open('sitemap.xml').read()
+        open('sitemap.xml', 'w').write(sm2.replace('</urlset>', f'  <url><loc>{SITE}/industries/</loc></url>\n</urlset>'))
     print('insights:', len(POSTS), 'hand-written +', len(feed), 'from the feed;', add.count('<url>'), 'sitemap entries added')
+
+
+# Industries index (/industries/): every business type TRS writes for, each with its sector page (if one exists)
+# and the guides for that business type. A guide appears only once it is published in the feed.
+INDUSTRIES = [
+    ('Offices and professional firms', '/solutions/professional-services/', ['office-insurance-singapore', 'insurance-for-consultants-singapore', 'professional-indemnity-insurance-accountants-singapore', 'professional-indemnity-architects-engineers-singapore']),
+    ('Retail', None, ['insurance-for-retail-shops-singapore', 'money-insurance-cash-in-transit-singapore']),
+    ('Food and beverage', None, ['restaurant-insurance-singapore-fb-package']),
+    ('Construction and renovation', '/solutions/built-environment/', ['construction-insurance-main-contractor-singapore', 'insurance-for-renovation-contractors-singapore', 'tender-insurance-requirements-singapore-contractors', 'wica-insurance-construction-workers-singapore', 'contractors-all-risks-insurance-cost-singapore', 'performance-bond-vs-bankers-guarantee-singapore']),
+    ('Logistics, freight and warehousing', '/solutions/logistics/', ['insurance-for-logistics-companies-singapore', 'freight-forwarder-liability-insurance-singapore', 'warehouse-insurance-singapore', 'fleet-insurance-singapore-commercial-vehicles']),
+    ('Trading and distribution', '/solutions/wholesale/', ['insurance-for-trading-companies-singapore', 'marine-cargo-insurance-incoterms-singapore', 'trade-credit-insurance-cost-singapore']),
+    ('Manufacturing', '/solutions/manufacturing/', ['insurance-for-manufacturers-singapore', 'machinery-breakdown-insurance-singapore', 'product-recall-insurance-singapore']),
+    ('Technology and start-ups', '/solutions/tech-media-startups/', ['insurance-for-tech-startups-singapore', 'professional-indemnity-insurance-it-companies-singapore', 'cyber-insurance-vs-tech-eo-singapore']),
+    ('Healthcare', '/solutions/healthcare/', ['medical-malpractice-insurance-singapore-clinics']),
+    ('Cleaning and security', None, ['insurance-for-cleaning-and-security-companies-singapore']),
+    ('Financial services', '/solutions/financial-services/', ['directors-officers-insurance-cost-singapore-sme']),
+    ('Energy and chemicals', '/solutions/energy/', ['environmental-liability-insurance-singapore']),
+]
+
+
+def industries_page(posts):
+    by = {x['slug']: x for x in posts}
+    groups = ''
+    items = []
+    for name, sol, slugs in INDUSTRIES:
+        rows = ''.join(row(by[s]) for s in slugs if s in by)
+        if not rows and not sol:
+            continue
+        sol_link = f'<a class="s-btn s-o" href="{sol}">Sector overview {ARROW}</a>' if sol else ''
+        groups += (f'<section class="s-ind" id="{re.sub(r"[^a-z]+", "-", name.lower()).strip("-")}"><div class="s-ind-h"><h2 class="s-art-sub">{e(name)}</h2>{sol_link}</div>'
+                   f'<div class="s-list">{rows}</div></section>')
+        items.append(name)
+    body = ('<section class="s-w"><div class="s-bh"><div><h1 class="s-h1">Industries</h1><p class="s-lede">Insurance by business type: what each must hold, what most carry, and what moves the premium.</p></div></div>'
+            + groups + '</section>' + close_band())
+    url = SITE + '/industries/'
+    ld = {'@context': 'https://schema.org', '@type': 'CollectionPage', 'name': 'Insurance by industry', 'url': url,
+          'hasPart': [{'@type': 'WebPage', 'name': n} for n in items]}
+    os.makedirs('industries', exist_ok=True)
+    open('industries/index.html', 'w').write(ins_page(ins_head('Business insurance by industry in Singapore | TRS',
+         'Insurance by business type in Singapore: offices, retail, F&B, construction, logistics, trading, manufacturing, technology, healthcare, cleaning and security.',
+         url, ld).replace('<meta property="og:type" content="article" />', '<meta property="og:type" content="website" />'), body))
 
 
 if __name__ == '__main__':
