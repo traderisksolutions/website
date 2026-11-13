@@ -11,6 +11,7 @@ import { daysUntil, isOpen, sortTasks } from '@/components/board/model'
 import { AddToCaseControl } from './AddToCaseControl'
 import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
+import { ThreadParty, type PartyChange } from './ThreadParty'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
@@ -38,7 +39,7 @@ export function loadBoard(): Promise<BoardPayload> {
 
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
-const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Partner', other: 'Company' }
+const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Referral', other: 'Company' }
 const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] hover:underline'
 
 export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask, onDraftOpen }: {
@@ -68,9 +69,20 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   // A thread linked to an insurer or partner is about a client: the rail shows that client where it
   // is known, and never lists the insurer's other conversations as this thread's (the AAS WIC request
   // to Chubb listed Chubb's Bangkok itinerary deck, 11 Nov 2026).
-  const counterparty = lead.companyKind === 'insurer' || lead.companyKind === 'partner'
-  const companyId = lead.clientCompanyId ?? (counterparty ? null : lead.companyId ?? null)
-  const { onLinkCompany } = useEngagementNav()
+  // A label set here (Client, Insurer, Referral) holds until the list reloads the thread.
+  const [party, setParty] = useState<{ threadId: string | null } & PartyChange | null>(null)
+  const [readKey, setReadKey] = useState(0)
+  const mine = party && party.threadId === threadId ? party : null
+  const kind = mine?.kind ?? lead.companyKind ?? null
+  const clientCompanyId = mine && mine.clientCompanyId !== undefined ? mine.clientCompanyId : lead.clientCompanyId ?? null
+  const clientNamed = mine && mine.clientNamed !== undefined ? mine.clientNamed : lead.clientNamed ?? null
+  const counterparty = kind === 'insurer' || kind === 'partner'
+  const companyId = (counterparty ? clientCompanyId : lead.companyId) ?? null
+  const { onLinkCompany, onRefresh } = useEngagementNav()
+  const onParty = (c: PartyChange) => {
+    setParty(p => ({ ...(p && p.threadId === threadId ? p : {}), threadId, ...c }))
+    onRefresh?.()
+  }
   const [board, setBoard] = useState<BoardPayload | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [related, setRelated] = useState<CompanyThread[] | null>(null)
@@ -140,22 +152,31 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-6">
+        {/* Who the thread is from comes first: it decides whose client, policy and actions the rail shows. */}
+        {threadId && lead.companyId && (
+          <div className="px-1 mb-7">
+            <InfoRow label="From">
+              <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
+                onChanged={onParty} onRead={() => setReadKey(k => k + 1)} />
+            </InfoRow>
+          </div>
+        )}
         {threadId
-          ? <ChiefBar threadId={threadId} refreshKey={latestMessageId} onOpenChange={onDraftOpen} actionsFooter={actionsFooter} aiExtras={aiExtras} />
+          ? <ChiefBar threadId={threadId} refreshKey={`${latestMessageId ?? ''}:${readKey}`} onOpenChange={onDraftOpen} actionsFooter={actionsFooter} aiExtras={aiExtras} />
           : <Group label="AI">{aiExtras}</Group>}
 
         <Group label="Information">
           <InfoRow label="Company">
             {companyId ? (
               <>
-                <Arrow href={`/companies/${companyId}`}>{company?.name ?? lead.companyName ?? 'Company'}</Arrow>
+                <Arrow href={`/companies/${companyId}`}>{company?.name ?? (counterparty ? mine?.clientName : lead.companyName) ?? 'Company'}</Arrow>
                 {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner yet', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ')}</Small></>}
               </>
             ) : counterparty && lead.companyId ? (
               <>
                 <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
-                <br /><Small>{KIND_LABEL[lead.companyKind ?? ''] ?? 'Company'}{lead.clientNamed ? ` · about ${lead.clientNamed}, not on file` : ' · client not linked'}</Small>
-                {threadId && lead.clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, lead.clientNamed!)} className={QUIET_LINK} style={{ color: INK }}>Create {lead.clientNamed} and link</button></>}
+                <br /><Small>{KIND_LABEL[kind ?? ''] ?? 'Company'}{clientNamed ? ` · about ${clientNamed}, not on file` : ' · client not linked'}</Small>
+                {threadId && clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={QUIET_LINK} style={{ color: INK }}>Create {clientNamed} and link</button></>}
                 {threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}
               </>
             ) : (

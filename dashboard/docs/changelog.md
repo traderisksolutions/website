@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-13 — Inbox: label who a thread is from
+
+- **From** at the top of the Inbox rail: Client, Insurer or Referral (`ThreadParty.tsx`, `src/lib/crm/thread-party.ts`, `PATCH /api/engagement/thread/<id>/party`). The label sets the kind of the company the thread is filed under (Referral = partner), so every thread from that company reads the same. A company that holds a policy stays a client (409).
+- **Client or Insurer:** Read thread runs the thread read; on an insurer thread the model first names the client the thread is about (`POST …/party`, `linkClientForThread` forced).
+- **Referral:** the shared company search picks the client referred, or adds it as a new company from what was typed; a client the model named that is not on file is filled in.
+- Journeys: `tests/journeys/thread-party.spec.ts` (read-only).
+
+---
+
 ## 2026-11-13 — Routes between records; Back returns to where a record was opened
 
 - **Employment Benefits from the company page and a thread:** an Employment Benefits button in the company header and an Employment Benefits row in the Inbox rail open the company's newest Compare cover, or New quotation for the company when it has none (`/pricing-matrix/company/<id>`, `src/lib/gb/company-eb.ts`).

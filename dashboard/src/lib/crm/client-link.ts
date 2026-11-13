@@ -156,9 +156,9 @@ export type LinkOutcome = { clientId: string | null; named: string | null; how: 
 /**
  * Names the client of one insurer or partner thread and files it. `model` false keeps it to the
  * rules (the nightly sweep over hundreds of threads). Idempotent; a row that already names a
- * client is left alone.
+ * client is left alone. `force` lets the model read a thread it read before (Read thread, by a person).
  */
-export async function linkClientForThread(threadId: string, opts: { clients?: ClientRef[]; model?: boolean } = {}): Promise<LinkOutcome> {
+export async function linkClientForThread(threadId: string, opts: { clients?: ClientRef[]; model?: boolean; force?: boolean } = {}): Promise<LinkOutcome> {
   const thread = await loadThread(threadId)
   if (!thread?.company_id || !(thread.companies?.kind === 'insurer' || thread.companies?.kind === 'partner')) return { clientId: null, named: null, how: 'skip' }
   const clients = opts.clients ?? await listClients()
@@ -172,7 +172,8 @@ export async function linkClientForThread(threadId: string, opts: { clients?: Cl
     const c = clientByName(earlier, clients)
     if (c) { await fileClient(thread, c.id, `client by model, matched later`, 0.8); return { clientId: c.id, named: null, how: 'model' } }
   }
-  if (!opts.model || existing) return { clientId: null, named: earlier, how: 'none' }
+  // `force`: a person pressed Read thread, so the model reads again even where it found nothing before.
+  if (!opts.model || (existing && !opts.force)) return { clientId: null, named: earlier, how: 'none' }
   const read = await readClientName(thread)
   if (!read.name) { await fileClient(thread, null, NO_CLIENT, read.confidence); return { clientId: null, named: null, how: 'none' } }
   const c = clientByName(read.name, clients)
