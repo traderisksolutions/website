@@ -4,6 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-14 — Admin desk: Mark done and Snooze; enrolment cycles; claims from IHP notices
+
+- **Mark done and Snooze 7 days** on the desk's open requests, one by one or selected together (the follow-ups API records who). A request snoozed into the future leaves the desk until its date; the desk always loads fresh.
+- **Enrolment cycles by rule** (`src/lib/clients/enrolment-cycle.ts`, nightly admin sweep): for the top 20%'s member and endorsement repeats, a client submission of the last 21 days that the insurer has not confirmed after 5 working days (a confirmation anywhere in the cycle counts, the insurer often answers on its own thread) gets a ready-made chase to the insurer; a monthly or quarterly cycle 3 days late gets a ready-made reminder to the client. Both are drafts for a person to approve; each is prepared once. Nothing due on 14 Nov (the largest client's November enrolment was confirmed on 10 Nov).
+- **Claims from IHP notices**: a notice reference with no claim on the register now becomes one, under the client its thread is filed against or the subject names, with the policy from the subject's number. References must be IHP's full length, so a reference cut by a line break is never a claim. Applied to the notices on file: 21 claims added and recorded in their clients' ledgers.
+
 ## 2026-11-14 — Client 360 phase 3: the admin desk for the top 20%, claim notices by rule
 
 - **Admin desk** (Clients › Admin desk, `/companies/portfolio/desk`, `src/lib/clients/admin-desk.ts`): the top 20% by commission, each with its open requests (who they wait on, since, due), the work that comes round again and when it is next due, and its member movements in progress. A repeat is three or more threads whose subjects match once months, dates and numbers are taken out (an enrolment every 15 days at the largest client; an insurer's claim notices weekly at several). Rules only.

@@ -30,6 +30,12 @@ test('Admin desk lists the top 20% and opens a business with its repeats, open r
   await expect(nav.getByRole('button').first()).toBeVisible()
   await nav.getByRole('button').nth(1).click()
   for (const h of [/^Repeats · \d+$/, /^Open requests · \d+$/, /^Member movements in progress · \d+$/]) await expect(page.getByRole('heading', { name: h })).toBeVisible()
+  // Read-only: the buttons are checked, never pressed.
+  if (await page.getByRole('checkbox', { name: 'Select every open request' }).count()) {
+    await expect(page.getByRole('button', { name: /^Mark done/ })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Done', exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Snooze', exact: true }).first()).toBeVisible()
+  }
 })
 
 test('AI approvals lists every AI agent with a Run button', async ({ page }) => {

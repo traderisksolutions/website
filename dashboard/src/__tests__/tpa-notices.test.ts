@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextStage, readTpaNotice } from '@/lib/claims/tpa-notices'
+import { clientInSubject, nextStage, policyInSubject, readTpaNotice } from '@/lib/claims/tpa-notices'
 
 const body = (refs: string) => `Dear Member,\n\nYour claim is pending for your action.\n\nClaim Reference No.: ${refs}\n\nYou may submit…`
 describe('TPA claim notices', () => {
@@ -18,5 +18,11 @@ describe('TPA claim notices', () => {
     expect(nextStage('with_insurer', 'pending')).toBeNull()
     expect(nextStage('settled', 'pending')).toBeNull()
     expect(nextStage('declined', 'settled')).toBeNull()
+  })
+  it('reads the client and the policy number out of a notice subject', () => {
+    expect(policyInSubject('Claim Settlement Document Ready for Viewing ( HEALTHWAY MEDICAL GROUP PTE LTD-N0018218 )')).toBe('N0018218')
+    expect(clientInSubject('Claim Settlement Document Ready for Viewing ( HEALTHWAY MEDICAL GROUP PTE LTD-N0018218 )')).toBe('HEALTHWAY MEDICAL GROUP PTE LTD')
+    expect(clientInSubject('Claim Pending Further Action (JGC Asia Pacific Pte Ltd)')).toBe('JGC Asia Pacific Pte Ltd')
+    expect(policyInSubject('Claim Pending Further Action (JGC Asia Pacific Pte Ltd)')).toBeNull()
   })
 })

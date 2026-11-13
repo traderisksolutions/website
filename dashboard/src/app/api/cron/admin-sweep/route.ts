@@ -14,6 +14,7 @@ import { todaySGT } from '@/lib/sgt-time'
 import { expirePolicies } from '@/lib/policies/expire'
 import { sweepClientLinks } from '@/lib/crm/client-link'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
+import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -29,10 +30,12 @@ export async function GET(req: NextRequest) {
     const clients = await sweepClientLinks({ since: new Date(Date.now() - 3 * 86_400_000).toISOString(), agentLimit: 40 }).catch(() => null)
     // TPA claim notices move claims on the register by rule (src/lib/claims/tpa-notices.ts).
     const notices = await applyTpaNotices(new Date(Date.now() - 3 * 86_400_000).toISOString()).catch(() => null)
+    // Enrolment cycles: chases and reminders prepared as drafts by rule (src/lib/clients/enrolment-cycle.ts).
+    const enrolment = await runEnrolmentCycles({ today }).then(r => ({ chases: r.chases, reminders: r.reminders })).catch(() => null)
     await enqueue(dailySweepTasks(today))
     const r = await drain({ agents: [...PHASE_B_AGENTS], budgetMs: 240_000 })
     console.log('[admin-sweep]', today, JSON.stringify(r))
-    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, ...r })
+    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, ...r })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

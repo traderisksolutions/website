@@ -4,12 +4,13 @@
  * Clients › Admin desk: the top 20% by commission (src/lib/clients/admin-desk.ts). Left, each
  * business with its open requests; right, the one chosen: the work that comes round again with
  * when it is next due, every open request with who it waits on, and its member movements in
- * progress. Rules only; no model.
+ * progress. Done and Snooze (7 days) use the follow-ups API; a request snoozed into the future is
+ * off the desk until its date. Rules only; no model.
  */
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
-import { Spinner } from '@/components/crm/primitives'
+import { Btn, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, money } from '@/lib/format'
 import type { DeskBusiness } from '@/lib/clients/admin-desk'
@@ -24,8 +25,28 @@ export default function AdminDeskPage() {
   const [moves, setMoves] = useState<MovementBatch[]>([])
   const [pick, setPick] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [acting, setActing] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  /** Done or snoozed: the request leaves the desk at once, and the API keeps who did it. */
+  async function act(ids: string[], what: 'done' | 'snooze') {
+    if (!ids.length) return
+    setActing(true); setError(null); setNotice(null)
+    let ok = 0
+    for (const id of ids) {
+      const r = await fetch(`/api/nexus/follow-ups/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(what === 'done' ? { status: 'done' } : { snooze_days: 7 }) }).catch(() => null)
+      if (r?.ok) ok++
+    }
+    const gone = new Set(ids)
+    setData(d => d && { ...d, businesses: d.businesses.map(x => ({ ...x, open: x.open.filter(q => !gone.has(q.id)) })) })
+    setPicked(new Set())
+    setActing(false)
+    setNotice(`${ok} ${what === 'done' ? 'marked done' : 'snoozed for 7 days'}${ok < ids.length ? `; ${ids.length - ok} not saved` : ''}.`)
+  }
+
   useEffect(() => {
-    fetch('/api/clients/admin-desk', { cache: 'no-store' }).then(async r => {
+    fetch('/api/clients/admin-desk?fresh=1', { cache: 'no-store' }).then(async r => {
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setError(d.error ?? `The desk could not load (${r.status})`); return }
       setData(d); setPick(p => p ?? d.businesses?.[0]?.id ?? null)
@@ -53,7 +74,7 @@ export default function AdminDeskPage() {
                   const late = x.cycles.filter(c => c.next < t).length
                   return (
                     <li key={x.id}>
-                      <button type="button" onClick={() => setPick(x.id)} aria-current={on ? 'true' : undefined}
+                      <button type="button" onClick={() => { setPick(x.id); setPicked(new Set()); setNotice(null) }} aria-current={on ? 'true' : undefined}
                         className="w-full text-left bg-transparent border-0 cursor-pointer px-3 py-2 rounded-[8px] hover:bg-trs-canvas" style={on ? { background: 'var(--trs-tint, #f3f7f4)' } : undefined}>
                         <span className="block text-[13.5px] truncate">{x.name}</span>
                         <span className="block text-[12px] text-trs-muted tabular-nums">#{x.rank} · {x.open.length} open · {x.open.filter(r => r.owner === 'trs').length} with TRS{x.cycles.length ? ` · ${x.cycles.length} repeat${x.cycles.length === 1 ? '' : 's'}${late ? `, ${late} due` : ''}` : ''}</span>
@@ -92,18 +113,35 @@ export default function AdminDeskPage() {
                 </div>
 
                 <div>
-                  <h3 className="m-0 mb-2 text-[15px] font-medium">Open requests · {b.open.length}</h3>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h3 className="m-0 mr-auto text-[15px] font-medium">Open requests · {b.open.length}</h3>
+                    {notice && <span className="text-[13px] text-trs-muted" role="status">{notice}</span>}
+                    {b.open.length > 0 && <>
+                      <Btn size="sm" level="secondary" disabled={acting || !picked.size} loading={acting} onClick={() => void act([...picked], 'done')}>Mark done{picked.size ? ` · ${picked.size}` : ''}</Btn>
+                      <Btn size="sm" level="tertiary" disabled={acting || !picked.size} onClick={() => void act([...picked], 'snooze')}>Snooze 7 days</Btn>
+                    </>}
+                  </div>
                   {b.open.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None open.</p> : (
                     <Register label="Open requests" minWidth={760} dense={false}>
-                      <RegisterHead><RegisterTh first>Request</RegisterTh><RegisterTh>Type</RegisterTh><RegisterTh>Waiting on</RegisterTh><RegisterTh>Since</RegisterTh><RegisterTh last>Due</RegisterTh></RegisterHead>
+                      <RegisterHead>
+                        <RegisterTh first><input type="checkbox" aria-label="Select every open request" checked={picked.size > 0 && b.open.every(r => picked.has(r.id))} onChange={e => setPicked(e.target.checked ? new Set(b.open.map(r => r.id)) : new Set())} /></RegisterTh>
+                        <RegisterTh>Request</RegisterTh><RegisterTh>Type</RegisterTh><RegisterTh>Waiting on</RegisterTh><RegisterTh>Since</RegisterTh><RegisterTh>Due</RegisterTh><RegisterTh last />
+                      </RegisterHead>
                       <tbody>
                         {b.open.map(r => (
                           <RegisterRow key={r.id}>
-                            <RegisterCell first nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
+                            <RegisterCell first><input type="checkbox" aria-label={`Select ${r.what}`} checked={picked.has(r.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n })} /></RegisterCell>
+                            <RegisterCell nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
                             <RegisterCell>{r.type}</RegisterCell>
                             <RegisterCell>{OWES[r.owner] ?? r.owner}</RegisterCell>
                             <RegisterCell>{fmtDate(r.since)}</RegisterCell>
-                            <RegisterCell last><span className={r.due && r.due.slice(0, 10) < t ? 'text-trs-neg' : undefined}>{r.due ? fmtDate(r.due) : '—'}</span></RegisterCell>
+                            <RegisterCell><span className={r.due && r.due.slice(0, 10) < t ? 'text-trs-neg' : undefined}>{r.due ? fmtDate(r.due) : '—'}</span></RegisterCell>
+                            <RegisterCell last>
+                              <div className="flex gap-1">
+                                <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'done')}>Done</Btn>
+                                <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'snooze')}>Snooze</Btn>
+                              </div>
+                            </RegisterCell>
                           </RegisterRow>
                         ))}
                       </tbody>
