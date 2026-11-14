@@ -314,24 +314,24 @@ function HospitalOptions({ data, cat, picks, todayPremium, onUse }: { data: Data
         <Segmented size="xs" label="Insurer" value={p} onChange={setP} options={data.products.map(x => ({ value: x, label: x }))} />
       </div>
       <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-        <table className="w-full text-[13px]">
-          <thead className="sticky top-0 bg-white"><tr className="text-left text-[12px]" style={{ color: SUBTLE }}>
-            <th className="py-1.5 pr-3 font-normal">Ward</th><th className="py-1.5 pr-3 font-normal">Limit</th>
-            {tied.map(r => <th key={r.cover} className="py-1.5 pr-3 font-normal">{r.cover}</th>)}
-            <th className="py-1.5 pr-3 font-normal text-right">Premium</th><th className="py-1.5 pr-3 font-normal text-right">Against today</th><th />
+        <table className="trs-table w-full text-[13px]">
+          <thead className="sticky top-0 bg-white"><tr className="text-[12px]" style={{ color: SUBTLE }}>
+            <th className="py-1.5 px-3 font-normal">Ward</th><th className="py-1.5 px-3 font-normal">Limit</th>
+            {tied.map(r => <th key={r.cover} className="py-1.5 px-3 font-normal">{r.cover}</th>)}
+            <th className="py-1.5 px-3 font-normal">Premium</th><th className="py-1.5 px-3 font-normal">Against today</th><th />
           </tr></thead>
           <tbody>
             {rows.map(({ o, premium, delta }) => {
               const h = hospitalParts(data.benefits[`${p}|${H}|${o[H]}`] ?? {})
               const on = isNow(o)
               return (
-                <tr key={JSON.stringify(o)} style={{ borderTop: `1px solid ${LINE}`, background: on ? TODAY : undefined }}>
-                  <td className="py-1.5 pr-3">{h.ward || o[H]}</td>
-                  <td className="py-1.5 pr-3">{h.limit}</td>
-                  {tied.map(r => <td key={r.cover} className="py-1.5 pr-3">{o[r.cover] ? `${words(r.cover, o[r.cover])}${r.premium === 'included' ? ' (in hospital premium)' : ''}` : 'None'}</td>)}
-                  <td className="py-1.5 pr-3 text-right tabular-nums font-medium">{premium != null ? money(premium, { dp: 0 }) : 'not priced'}</td>
-                  <td className="py-1.5 pr-3 text-right tabular-nums" style={{ color: delta == null ? SUBTLE : delta > 0 ? DOWN : UP }}>{delta != null ? signed(delta) : '—'}</td>
-                  <td className="py-1.5 text-right">{on ? <span className="text-[12px]" style={{ color: MUTED }}>Chosen</span> : <Btn size="xs" level="tertiary" onClick={() => onUse(p, o)}>Use</Btn>}</td>
+                <tr key={JSON.stringify(o)} className={on ? 'row-selected' : undefined}>
+                  <td className="py-1.5 px-3">{h.ward || o[H]}</td>
+                  <td className="py-1.5 px-3">{h.limit}</td>
+                  {tied.map(r => <td key={r.cover} className="py-1.5 px-3 cell-left">{o[r.cover] ? `${words(r.cover, o[r.cover])}${r.premium === 'included' ? ' (in hospital premium)' : ''}` : 'None'}</td>)}
+                  <td className="py-1.5 px-3 tabular-nums font-medium">{premium != null ? money(premium, { dp: 0 }) : 'not priced'}</td>
+                  <td className="py-1.5 px-3 tabular-nums" style={{ color: delta == null ? SUBTLE : delta > 0 ? DOWN : UP }}>{delta != null ? signed(delta) : '—'}</td>
+                  <td className="py-1.5 px-3">{on ? <span className="text-[12px]" style={{ color: MUTED }}>Chosen</span> : <Btn size="xs" level="tertiary" onClick={() => onUse(p, o)}>Use</Btn>}</td>
                 </tr>
               )
             })}

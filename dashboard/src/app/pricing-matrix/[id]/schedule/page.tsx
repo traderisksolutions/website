@@ -95,7 +95,7 @@ export default function SchedulePage() {
   if (!d && !error) return <div className="p-8"><Loader2 className="animate-spin" style={{ color: '#4a5550' }} /></div>
 
   const t = d?.table
-  const cell = 'px-3 py-2 text-[13px] border-l border-[#e6e8e4] text-right tabular-nums align-top'
+  const cell = 'px-3 py-2 text-[13px] tabular-nums align-top'
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
@@ -160,11 +160,11 @@ export default function SchedulePage() {
             <div className="border border-[#e6e8e4] rounded-lg overflow-x-auto">
               <table className="trs-table w-full border-collapse" style={{ minWidth: 260 + g.plans.length * 150 }}>
                 <thead>
-                  <tr className="bg-[#faf9f6]">
-                    <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide sticky left-0 bg-[#faf9f6] z-10"
+                  <tr>
+                    <th className="px-3 py-2 font-semibold sticky left-0 z-10"
                         style={{ color: '#4a5550', minWidth: 260 }}>Benefit</th>
                     {g.plans.map(p => (
-                      <th key={p} className="px-3 py-2 text-right text-[12px] font-semibold border-l border-[#e6e8e4]"
+                      <th key={p} className="px-3 py-2 font-semibold"
                           style={{ color: '#0f1412', minWidth: 150 }}>
                         {p === '\u0000all' ? 'All tiers' : p}
                       </th>
@@ -173,7 +173,7 @@ export default function SchedulePage() {
                 </thead>
                 <tbody>
                   {g.lines.map(([code, line]) => (
-                    <tr key={code} className="border-t border-[#f1f2ee]">
+                    <tr key={code}>
                       <td className="px-3 py-2 text-[13px] sticky left-0 bg-white z-10" style={{ color: '#0f1412' }}>
                         {line.name}
                         <span className="block text-[11px]" style={{ color: '#8c958f' }}>{code}</span>

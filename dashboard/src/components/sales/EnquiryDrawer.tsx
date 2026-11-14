@@ -171,12 +171,12 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
       <DetailSection label={`Cover requested · ${it.product_requests?.length ?? 0}`}>
         {(it.product_requests ?? []).length === 0 ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>None chosen yet.</p> : (
           <table className="trs-table w-full border-collapse text-[13.5px]">
-            <thead><tr style={{ color: MUTED }}><th className="text-left font-normal py-1.5 pr-3">Cover</th><th className="text-left font-normal py-1.5 pr-3">Chubb form</th><th className="text-right font-normal py-1.5">Chubb table</th></tr></thead>
+            <thead><tr style={{ color: MUTED }}><th className="font-normal py-1.5 px-3">Cover</th><th className="font-normal py-1.5 px-3">Chubb form</th><th className="font-normal py-1.5 px-3">Chubb table</th></tr></thead>
             <tbody>{it.product_requests.map(p => (
               <tr key={p.product} style={{ borderTop: `1px solid ${RULE}` }}>
-                <td className="py-2 pr-3 align-top">{PRODUCT_LABEL[p.product] ?? p.product}</td>
-                <td className="py-2 pr-3 align-top" style={{ color: MUTED }}>{p.chubb_form ?? '–'}</td>
-                <td className="py-2 align-top text-right tabular-nums">{p.chubb_table_premium != null ? `S$${p.chubb_table_premium.toLocaleString('en-SG')}` : '–'}</td>
+                <td className="py-2 px-3 align-top">{PRODUCT_LABEL[p.product] ?? p.product}</td>
+                <td className="py-2 px-3 align-top cell-left" style={{ color: MUTED }}>{p.chubb_form ?? '–'}</td>
+                <td className="py-2 px-3 align-top tabular-nums">{p.chubb_table_premium != null ? `S$${p.chubb_table_premium.toLocaleString('en-SG')}` : '–'}</td>
               </tr>))}</tbody>
           </table>
         )}
@@ -188,8 +188,8 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
           <table className="trs-table w-full border-collapse text-[13.5px]">
             <tbody>{g.items.map(a => (
               <tr key={a.id} style={{ borderTop: `1px solid ${RULE}` }}>
-                <td className="py-2 pr-4 align-top w-[55%]" style={{ color: MUTED }}>{a.title}</td>
-                <td className="py-2 align-top whitespace-pre-wrap break-words">{a.value}</td>
+                <td className="py-2 px-3 align-top w-[55%]" style={{ color: MUTED }}>{a.title}</td>
+                <td className="py-2 px-3 align-top whitespace-pre-wrap break-words cell-left">{a.value}</td>
               </tr>))}</tbody>
           </table>
         </DetailSection>
@@ -199,11 +199,11 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
         <DetailSection label="Proposal fields">
           <div className="overflow-x-auto">
             <table className="trs-table w-full border-collapse text-[13px]">
-              <thead><tr style={{ color: MUTED }}><th className="text-left font-normal py-1.5 pr-3">Form</th>{SOURCE_COLUMNS.map(([, l]) => <th key={l} className="text-right font-normal py-1.5 px-1.5">{l}</th>)}</tr></thead>
+              <thead><tr style={{ color: MUTED }}><th className="font-normal py-1.5 px-3">Form</th>{SOURCE_COLUMNS.map(([, l]) => <th key={l} className="font-normal py-1.5 px-1.5">{l}</th>)}</tr></thead>
               <tbody>{formKeys.map(k => (
                 <tr key={k} style={{ borderTop: `1px solid ${RULE}` }}>
-                  <td className="py-2 pr-3">{FORM_TITLE[k] ?? k}</td>
-                  {SOURCE_COLUMNS.map(([c]) => <td key={c} className="py-2 px-1.5 text-right tabular-nums">{it.proposal_fields[k]?.[c] ?? 0}</td>)}
+                  <td className="py-2 px-3">{FORM_TITLE[k] ?? k}</td>
+                  {SOURCE_COLUMNS.map(([c]) => <td key={c} className="py-2 px-1.5 tabular-nums">{it.proposal_fields[k]?.[c] ?? 0}</td>)}
                 </tr>))}</tbody>
             </table>
           </div>

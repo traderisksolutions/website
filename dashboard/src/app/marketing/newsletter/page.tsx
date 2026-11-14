@@ -115,7 +115,7 @@ function Newsletter() {
                     <RegisterRow key={s.id}>
                       <RegisterCell first identityWidth={300} primary={s.email} />
                       <RegisterCell primary={STATUS[s.status]} secondary={s.status === 'pending' ? (s.confirm_sent_at ? `Confirmation sent ${day(s.confirm_sent_at)}` : 'Confirmation not sent yet') : undefined} />
-                      <RegisterCell primary={<span className="block max-w-[320px] truncate" style={{ color: MUTED }}>{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
+                      <RegisterCell align="left" primary={<span className="block max-w-[320px] truncate" style={{ color: MUTED }}>{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
                       <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{day(s.confirmed_at ?? s.created_at)}</span></RegisterCell>
                     </RegisterRow>
                   ))}

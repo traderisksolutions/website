@@ -59,7 +59,7 @@ export function XlTh({ children, colSpan, rowSpan, align = 'center', sticky, wid
 }) {
   return (
     <th scope="col" colSpan={colSpan} rowSpan={rowSpan} title={title}
-      className={cn('h-8 px-2.5 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center', sticky && 'sticky left-0 z-30', className)}
+      className={cn('h-8 px-2.5 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-center' : 'text-center', sticky && 'sticky left-0 z-30', className)}
       style={{ ...edge, background: HEAD, color: strong ? INK : MUTED, width, minWidth: width }}>
       {children}
     </th>
@@ -99,7 +99,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
   const bg = fill ? XL_FILL[fill] : label ? '#fff' : undefined
   return (
     <td colSpan={colSpan} title={title}
-      className={cn('h-8 px-2.5 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-right' : 'text-center',
+      className={cn('h-8 px-2.5 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-center' : 'text-center',
         label && 'sticky left-0 z-10 group-hover:bg-[var(--trs-tint)]', strong && 'font-medium', className)}
       style={{ ...edge, background: bg, color: muted ? MUTED : INK, width, minWidth: width, maxWidth: width }}>
       {isBlank(children) ? <span style={{ color: '#c4c7c5' }}>–</span> : children}

@@ -190,7 +190,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
                   <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
                   <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
                   <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</span> })()}</RegisterCell>
-                  <RegisterCell nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
+                  <RegisterCell align="left" nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
                   <RegisterCell last align="right">
                     <button className={LINK} style={{ color: '#0f1412' }} onClick={e => { e.stopPropagation(); setEditing(t.insurer_name ?? '') }}>Edit contacts</button>
                   </RegisterCell>
@@ -216,7 +216,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
               <RegisterRow key={r.key}>
                 <RegisterCell first primary={r.label} secondary={r.plan ? r.insurer : undefined} />
                 <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.rates}</span></RegisterCell>
-                <RegisterCell nowrap={false}><ContactLines people={who(r.insurer)} /></RegisterCell>
+                <RegisterCell align="left" nowrap={false}><ContactLines people={who(r.insurer)} /></RegisterCell>
                 <RegisterCell last align="right">
                   <span className="inline-flex items-center gap-4">
                     <button className={LINK} style={{ color: '#4a5550' }} onClick={() => setEditing(r.insurer)}>Edit contacts</button>

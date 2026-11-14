@@ -187,7 +187,7 @@ function MethodologyCard() {
                 <RegisterRow key={a.label} className="hover:bg-[#faf9f6]">
                   <RegisterCell first primary={a.label} />
                   <RegisterCell align="right" primary={`${a.minutes} min`} />
-                  <RegisterCell last nowrap={false}><span className="block text-[13.5px] leading-snug min-w-[260px]" style={{ color: MUTED }}>{a.basis}</span></RegisterCell>
+                  <RegisterCell align="left" last nowrap={false}><span className="block text-[13.5px] leading-snug min-w-[260px]" style={{ color: MUTED }}>{a.basis}</span></RegisterCell>
                 </RegisterRow>
               ))}
             </tbody>

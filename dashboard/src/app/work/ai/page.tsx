@@ -65,7 +65,7 @@ export default function AiApprovalsPage() {
                       </select>
                     </RegisterCell>
                     <RegisterCell last>
-                      <div className="flex items-center gap-3">
+                      <div className="flex justify-center items-center gap-3">
                         <Btn size="sm" level="secondary" loading={busy === r.agent} disabled={!!busy || !r.waiting} onClick={() => void run(r.agent)}>Run</Btn>
                         {result[r.agent] && <span className="text-[12.5px] text-trs-muted" role="status">{result[r.agent]}</span>}
                       </div>

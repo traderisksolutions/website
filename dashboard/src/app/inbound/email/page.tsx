@@ -274,8 +274,8 @@ function InboundLeadsPage() {
                             <RegisterCell first selected={isActive} title={lead.email ?? name} className={cn(!isActive && isExpanded && 'bg-[#faf9f6]')}
                               primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{name}</span>{lead.ai_draft_id && <Chip title="AI draft ready">AI draft</Chip>}</span>}
                               secondary={lead.company || channelLabel(lead.source)} />
-                            <RegisterCell className="max-w-[200px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{lead.topic || lead.department || '—'}</span></RegisterCell>
-                            <RegisterCell className="max-w-[320px]"><span className="block truncate text-[13.5px]" style={{ color: MUTED }}>{msg || '—'}</span></RegisterCell>
+                            <RegisterCell align="left" className="max-w-[200px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{lead.topic || lead.department || '—'}</span></RegisterCell>
+                            <RegisterCell align="left" className="max-w-[320px]"><span className="block truncate text-[13.5px]" style={{ color: MUTED }}>{msg || '—'}</span></RegisterCell>
                             <RegisterCell><span onClick={e => e.stopPropagation()}><StatusDropdown lead={lead} onChange={handleStatus} /></span></RegisterCell>
                             <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: INK }}>{timeAgo(lead.created_at)}</span></RegisterCell>
                             <RegisterCell last align="right">

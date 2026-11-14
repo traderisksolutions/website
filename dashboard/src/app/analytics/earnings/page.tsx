@@ -40,9 +40,9 @@ function rangeDates(r: Range, custom: { from: string; to: string }): { from: str
 
 const SELECT = 'h-9 rounded-[7px] border-0 px-3.5 pr-8 text-[13.5px] max-w-[240px] cursor-pointer bg-[#f1f2ee] text-[#0f1412] focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15'
 const tooltipStyle = { fontSize: 12, borderRadius: 10, border: '1px solid #d5d9d4', boxShadow: 'none', color: INK }
-const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2 pr-3 whitespace-nowrap'
-const td = 'py-2.5 pr-3 text-[13px] align-top'
-const num = 'py-2.5 pr-3 text-[13px] text-right tabular-nums align-top whitespace-nowrap'
+const th = 'font-medium px-3 whitespace-nowrap'
+const td = 'px-3 text-[13px] align-middle'
+const num = 'px-3 text-[13px] text-center tabular-nums align-middle whitespace-nowrap'
 
 export default function EarningsPage() {
   const [data, setData] = useState<{ notes: Note[]; undated: number; paidRecorded: number; companiesOnFile: number } | null>(null)
@@ -106,20 +106,20 @@ export default function EarningsPage() {
       return x * dir
     })
   }, [v, rSort])
-  const rTh = (key: 'client' | 'premium' | 'end' | 'daysLeft', label: string, right = true) => (
-    <th className={`${th} ${right ? 'text-right' : ''}`} aria-sort={rSort.key === key ? (rSort.desc ? 'descending' : 'ascending') : 'none'}>
+  const rTh = (key: 'client' | 'premium' | 'end' | 'daysLeft', label: string) => (
+    <th className={th} aria-sort={rSort.key === key ? (rSort.desc ? 'descending' : 'ascending') : 'none'}>
       <button onClick={() => setRSort(s => ({ key, desc: s.key === key ? !s.desc : key === 'premium' }))}
-              className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.04em] font-medium" style={{ color: rSort.key === key ? INK : FAINT }}>
+              className="bg-transparent border-0 p-0 cursor-pointer font-medium" style={{ color: rSort.key === key ? INK : FAINT }}>
         {label}{rSort.key === key ? (rSort.desc ? ' ↓' : ' ↑') : ''}
       </button>
     </th>
   )
 
   const basisWord = basis === 'commission' ? 'commission' : 'premium'
-  const sortTh = (key: SortKey, label: string, right = true) => (
-    <th className={`${th} ${right ? 'text-right' : ''}`}>
+  const sortTh = (key: SortKey, label: string) => (
+    <th className={th}>
       <button onClick={() => setSort(s => ({ key, desc: s.key === key ? !s.desc : true }))}
-              className="bg-transparent border-0 p-0 cursor-pointer uppercase tracking-[0.04em] font-medium" style={{ color: sort.key === key ? INK : FAINT }}>
+              className="bg-transparent border-0 p-0 cursor-pointer font-medium" style={{ color: sort.key === key ? INK : FAINT }}>
         {label}{sort.key === key ? (sort.desc ? ' ↓' : ' ↑') : ''}
       </button>
     </th>
@@ -229,9 +229,9 @@ export default function EarningsPage() {
                 ) : (
                   <div className="overflow-auto max-h-[480px]">
                     <table className="trs-table w-full min-w-[440px]">
-                      <thead className="sticky top-0 bg-white">
+                      <thead className="sticky top-0">
                         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-                          {rTh('client', 'Company', false)}
+                          {rTh('client', 'Company')}
                           {rTh('premium', 'Premium')}
                           {rTh('end', 'Ends')}
                           {rTh('daysLeft', 'Days left')}
@@ -271,11 +271,11 @@ export default function EarningsPage() {
                   <thead>
                     <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                       <th className={th}>#</th>
-                      {sortTh('name', 'Client', false)}
+                      {sortTh('name', 'Client')}
                       {sortTh('periodValue', `${basisWord} in range`)}
                       {sortTh('lifetimeCommission', 'Lifetime commission')}
                       {sortTh('lifetimePremium', 'Lifetime premium')}
-                      <th className={`${th} text-right`}>Share</th>
+                      <th className={th}>Share</th>
                       {sortTh('tenureMonths', 'Months')}
                       {sortTh('lastIssue', 'Last note')}
                       <th className={th}>Insurers</th>
@@ -285,7 +285,7 @@ export default function EarningsPage() {
                     {table.map((r: ClientRow) => (
                       <tr key={r.key} style={{ borderBottom: `1px solid #f1f2ee` }}>
                         <td className={`${num} text-left`} style={{ color: FAINT }}>{r.rank}</td>
-                        <td className={td}>
+                        <td className={`${td} cell-left`}>
                           <div className="flex items-center gap-2">
                             {r.companyId ? <Link href={`/companies/${r.companyId}`} className="hover:underline" style={{ color: INK }}>{displayName(r.name)}</Link> : <span>{displayName(r.name)}</span>}
                             {r.vip && <span className="text-[10.5px] font-semibold tracking-wide px-1.5 py-[1px] rounded" style={{ border: `1px solid ${INK}`, color: INK }}>VIP</span>}
@@ -300,7 +300,7 @@ export default function EarningsPage() {
                         <td className={num}>{pct(r.share)}</td>
                         <td className={num}>{r.tenureMonths}</td>
                         <td className={num}>{dateLabel(r.lastIssue)}</td>
-                        <td className={td} style={{ color: MUTED }}>{r.insurers.length > 2 ? `${r.insurers.slice(0, 2).join(', ')} +${r.insurers.length - 2}` : r.insurers.join(', ')}</td>
+                        <td className={`${td} cell-left`} style={{ color: MUTED }}>{r.insurers.length > 2 ? `${r.insurers.slice(0, 2).join(', ')} +${r.insurers.length - 2}` : r.insurers.join(', ')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -316,10 +316,10 @@ export default function EarningsPage() {
                       <thead>
                         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                           <th className={th}>{g.title === 'By insurer' ? 'Insurer' : 'Class'}</th>
-                          <th className={`${th} text-right`}>Premium</th>
-                          <th className={`${th} text-right`}>Commission</th>
-                          <th className={`${th} text-right`}>Rate</th>
-                          <th className={`${th} text-right`}>Clients</th>
+                          <th className={th}>Premium</th>
+                          <th className={th}>Commission</th>
+                          <th className={th}>Rate</th>
+                          <th className={th}>Clients</th>
                         </tr>
                       </thead>
                       <tbody>

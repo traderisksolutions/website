@@ -72,8 +72,8 @@ export default function MovementsPage() {
             {shown.map(b => (
               <RegisterRow key={b.key}>
                 <RegisterCell first identityWidth={240} primary={b.company_name} secondary={`reported ${fmtDate(b.reported_at)}`} />
-                <RegisterCell primary={b.policy_number ?? '—'} secondary={b.insurer ?? undefined} />
-                <RegisterCell nowrap={false}><span className="block text-[14px]" style={{ color: INK }}>{counts(b)}</span><span className="block text-[12px] max-w-[260px] truncate" style={{ color: MUTED }} title={b.names.join(', ')}>{b.names.join(', ')}</span></RegisterCell>
+                <RegisterCell align="left" primary={b.policy_number ?? '—'} secondary={b.insurer ?? undefined} />
+                <RegisterCell align="left" nowrap={false}><span className="block text-[14px]" style={{ color: INK }}>{counts(b)}</span><span className="block text-[12px] max-w-[260px] truncate" style={{ color: MUTED }} title={b.names.join(', ')}>{b.names.join(', ')}</span></RegisterCell>
                 <RegisterCell><Chip tone={b.stage === 'to_bill' ? 'amber' : b.stage === 'billed' ? 'green' : 'neutral'}>{STAGE[b.stage]}</Chip></RegisterCell>
                 <RegisterCell align="right" primary={`${b.days_waiting} day${b.days_waiting === 1 ? '' : 's'}`} secondary={b.chase_count ? `${b.chase_count} chaser${b.chase_count === 1 ? '' : 's'}` : undefined} />
                 <RegisterCell align="right" primary={money(b.expected)} />

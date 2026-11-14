@@ -106,10 +106,10 @@ export function SourceFilesTab() {
                     : <span className="block text-[14.5px] font-medium leading-tight break-words" style={{ color: '#0f1412' }}>{f.filename}</span>}
                   <span className="block text-[12.5px] mt-0.5" style={{ color: '#4a5550' }}>{KIND[f.kind] ?? f.kind} · {size(f.bytes)}</span>
                 </RegisterCell>
-                <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{f.insurer}</span></RegisterCell>
+                <RegisterCell align="left"><span className="text-[14px]" style={{ color: '#2a332f' }}>{f.insurer}</span></RegisterCell>
                 <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: '#2a332f' }}>{f.planYear ?? '—'}</span></RegisterCell>
                 <RegisterCell><span className={CHIP} style={{ color: STATUS[f.status].color }}>{STATUS[f.status].label}</span></RegisterCell>
-                <RegisterCell>
+                <RegisterCell align="left">
                   {f.rateTables.length
                     ? f.rateTables.map(t => <a key={t.id} href={`/pricing-matrix/${t.id}`} className="block text-[13.5px] no-underline hover:underline" style={{ color: '#0f1412' }}>{t.insurerName ?? 'Rate table'}</a>)
                     : <span style={{ color: '#8c958f' }}>—</span>}

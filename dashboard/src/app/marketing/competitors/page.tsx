@@ -211,7 +211,7 @@ function CompaniesTab({ data, busy, onAdd, onRemove }: { data: Payload; busy: bo
               <RegisterRow key={c.id}>
                 <RegisterCell first identityWidth={240} primary={c.name} secondary={<>{c.domain}{blog ? ` · blog at ${blog}` : c.last_analysed_at ? ' · no blog found' : ' · not analysed yet'}</>} />
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at ? n(c.pages_count) : '–'}</span></RegisterCell>
-                <RegisterCell nowrap={false} className="min-w-[240px] max-w-[420px]">
+                <RegisterCell align="left" nowrap={false} className="min-w-[240px] max-w-[420px]">
                   {best ? <>
                     <span className="block text-[13.5px] leading-[1.4] break-all" style={{ color: INK2 }}>{best}</span>
                     {c.best_page_note && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>{c.best_page_note}</span>}
@@ -273,9 +273,9 @@ function PromptsTab({ data, busy, onAdd, onToggle, onRemove }: { data: Payload; 
                 <RegisterCell className="pl-5 pr-1">
                   <input type="checkbox" checked={p.selected} disabled={busy} onChange={() => onToggle(p)} aria-label={`Write for: ${p.prompt}`} className="block w-4 h-4 cursor-pointer" style={{ accentColor: INK }} />
                 </RegisterCell>
-                <RegisterCell nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.prompt}</span></RegisterCell>
-                <RegisterCell nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.search_query || <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
-                <RegisterCell nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.prompt}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.search_query || <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
                 <RegisterCell>{r ? <Chip>{TONE_LABEL[r.tone] ?? r.tone}</Chip> : <span style={{ color: FAINT }}>–</span>}</RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{p.impressions == null ? '–' : n(p.impressions)}</span></RegisterCell>
                 <RegisterCell last><Btn level="tertiary" size="xs" disabled={busy} onClick={() => onRemove(p)}>Remove</Btn></RegisterCell>

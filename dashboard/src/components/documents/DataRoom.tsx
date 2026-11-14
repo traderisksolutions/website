@@ -90,11 +90,11 @@ export function DataRoom({ companyId }: { companyId: string }) {
         </select>
         {d.needs_review && <span className="ml-2"><Chip title="The agent was not sure; check the type and the policy">Check</Chip></span>}
       </RegisterCell>
-      <RegisterCell title={d.filename}>
+      <RegisterCell align="left" title={d.filename}>
         <a href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="no-underline hover:underline" style={{ color: INK }}>{d.title || d.filename}</a>
       </RegisterCell>
-      <RegisterCell>{d.insurer_name ?? <span style={{ color: MUTED }}>–</span>}</RegisterCell>
-      <RegisterCell>{d.source === 'upload' ? `Uploaded${d.uploaded_by ? ` by ${d.uploaded_by.split('@')[0]}` : ''}` : (d.from_address ?? '–')}</RegisterCell>
+      <RegisterCell align="left">{d.insurer_name ?? <span style={{ color: MUTED }}>–</span>}</RegisterCell>
+      <RegisterCell align="left">{d.source === 'upload' ? `Uploaded${d.uploaded_by ? ` by ${d.uploaded_by.split('@')[0]}` : ''}` : (d.from_address ?? '–')}</RegisterCell>
       <RegisterCell>
         {d.status === 'filed' && d.drive_url ? <a href={d.drive_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 no-underline hover:underline" style={{ color: INK }}>Drive <ExternalLink size={11} /></a>
           : d.status === 'failed' ? <span title={d.error ?? ''} style={{ color: ERROR }}>Not filed</span>

@@ -32,7 +32,7 @@ export function CompanyEb({ companyId, companyName, policies }: { companyId: str
             {eb.map(p => (
               <RegisterRow key={p.id}>
                 <RegisterCell><Link href={`/policies/${p.id}`} className="no-underline hover:underline" style={{ color: INK }}>{p.label ?? p.class_of_insurance ?? 'Policy'}</Link>{p.policy_number ? <span style={{ color: MUTED }}> · {p.policy_number}</span> : null}</RegisterCell>
-                <RegisterCell>{p.insurer ?? '—'}</RegisterCell>
+                <RegisterCell align="left">{p.insurer ?? '—'}</RegisterCell>
                 <RegisterCell>{p.end_date ? fmtDate(p.end_date) : '—'}</RegisterCell>
                 <RegisterCell>{p.lifecycle}</RegisterCell>
               </RegisterRow>

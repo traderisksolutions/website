@@ -54,12 +54,12 @@ export function DeclinesRegister({ q, line }: { q: string; line: string }) {
               <RegisterCell first>{i === 0 ? <span className="font-medium">{name}<span className="block text-[12px] font-normal" style={{ color: MUTED }}>{ds.length} declined</span></span> : null}</RegisterCell>
               <RegisterCell>{day(r.declined_on)}</RegisterCell>
               <RegisterCell>{r.line ?? '–'}</RegisterCell>
-              <RegisterCell title={r.quote ?? undefined}>
+              <RegisterCell align="left" title={r.quote ?? undefined}>
                 <div>{r.risk ?? '–'}</div>
                 <div className="text-[12.5px]" style={{ color: MUTED }}>{r.reason}</div>
               </RegisterCell>
               <RegisterCell><Chip tone={KIND[r.kind]?.tone ?? 'neutral'}>{KIND[r.kind]?.label ?? r.kind}</Chip></RegisterCell>
-              <RegisterCell last>
+              <RegisterCell align="left" last>
                 <div className="truncate">{r.client_name ?? '–'}</div>
                 {r.thread_id && <Link href={`/engagement?lead=${r.thread_id}`} className="text-[12.5px] underline underline-offset-2" style={{ color: MUTED }}>Open thread</Link>}
               </RegisterCell>

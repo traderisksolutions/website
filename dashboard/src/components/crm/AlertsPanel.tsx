@@ -33,7 +33,7 @@ export function AlertsPanel({ alerts }: { alerts: Alert[] }) {
             {alerts.map(a => (
               <RegisterRow key={a.id} onClick={a.href ? () => open(a.href!) : undefined}>
                 <RegisterCell first identityWidth={520} primary={a.title} />
-                <RegisterCell nowrap={false}><span className="text-[14px]" style={{ color: BODY }}>{a.detail ?? '—'}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false}><span className="text-[14px]" style={{ color: BODY }}>{a.detail ?? '—'}</span></RegisterCell>
                 <RegisterCell last align="right" title={a.at ? `${fmtRelative(a.at)} · ${fmtDateTime(a.at)}` : undefined} primary={a.at ? fmtDate(a.at) : '—'} />
               </RegisterRow>
             ))}

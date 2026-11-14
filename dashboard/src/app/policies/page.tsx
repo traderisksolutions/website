@@ -70,8 +70,8 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
                 <RegisterCell first primary={r.company_id
                   ? <Link href={`/companies/${r.company_id}?tab=policies`} className="text-trs-ink no-underline hover:underline">{r.companies?.company_name ?? 'Unnamed client'}</Link>
                   : 'No client'} />
-                <RegisterCell>{r.class_of_insurance ?? (r.product_line ? productLineLabel(r.product_line) : '—')}</RegisterCell>
-                <RegisterCell>{r.insurer ?? '—'}</RegisterCell>
+                <RegisterCell align="left">{r.class_of_insurance ?? (r.product_line ? productLineLabel(r.product_line) : '—')}</RegisterCell>
+                <RegisterCell align="left">{r.insurer ?? '—'}</RegisterCell>
                 <RegisterCell className="font-mono text-[12.5px]"><Link href={`/policies/${r.id}`} className="text-trs-ink no-underline hover:underline">{r.policy_number ?? 'Ledger'}</Link></RegisterCell>
                 <RegisterCell className="tabular-nums">{r.start_date || r.end_date ? `${r.start_date ? fmtDate(r.start_date) : '?'} – ${r.end_date ? fmtDate(r.end_date) : '?'}` : '—'}</RegisterCell>
                 <RegisterCell last>

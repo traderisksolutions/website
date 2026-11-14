@@ -51,7 +51,7 @@ export default function PortfolioPage() {
                       <RegisterCell first primary={t} />
                       <RegisterCell align="right">{s.topByType[t]}</RegisterCell>
                       <RegisterCell align="right">{topRequests ? pct(s.topByType[t] / topRequests, 0) : '—'}</RegisterCell>
-                      <RegisterCell last nowrap={false}>{most.map(r => `${r.name} ${r.byType[t]}`).join(' · ') || '—'}</RegisterCell>
+                      <RegisterCell align="left" last nowrap={false}>{most.map(r => `${r.name} ${r.byType[t]}`).join(' · ') || '—'}</RegisterCell>
                     </RegisterRow>
                   )
                 })}

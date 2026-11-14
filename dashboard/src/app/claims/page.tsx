@@ -117,11 +117,11 @@ export default function ClaimsPage() {
       {view === 'forms' ? <WebsiteForms onCount={setFormsNew} /> : !rows ? <Spinner label="Loading claims…" /> : shown.length === 0 ? <Empty>{scope.company || scope.policy ? 'No claims on file for this client.' : 'No claims here.'}</Empty> : (
         <>
           <div className="hidden md:block overflow-x-auto rounded-[10px] bg-white" style={{ boxShadow: 'var(--card-shadow)' }}>
-            <table className="w-full text-[13.5px] border-collapse">
+            <table className="trs-table w-full text-[13.5px] border-collapse">
               <thead>
-                <tr className="text-left text-[12px]" style={{ color: MUTED }}>
-                  {['Claim', 'Client', 'Class · insurer', 'Loss', 'Status', 'Waiting on', 'Claimed S$', 'Last mail', 'Threads'].map((h, i) => (
-                    <th key={h} className={`font-medium px-3 py-2.5 whitespace-nowrap ${i === 6 || i === 8 ? 'text-right' : ''}`}>{h}</th>
+                <tr className="text-[12px]" style={{ color: MUTED }}>
+                  {['Claim', 'Client', 'Class · insurer', 'Loss', 'Status', 'Waiting on', 'Claimed S$', 'Last mail', 'Threads'].map(h => (
+                    <th key={h} className="font-medium px-3 py-2.5 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -129,16 +129,16 @@ export default function ClaimsPage() {
                 {shown.map(r => {
                   const st = statusOf(r)
                   return (
-                    <tr key={r.id} onClick={() => select(r.id)} aria-selected={selected === r.id} className="cursor-pointer border-t border-[#e6e8e4] hover:bg-[#faf9f6]" style={selected === r.id ? { background: '#edf7e8' } : undefined}>
+                    <tr key={r.id} onClick={() => select(r.id)} aria-selected={selected === r.id} className="cursor-pointer">
                       <td className="px-3 py-2.5 max-w-[260px]"><span className={selected === r.id ? 'font-medium' : ''}>{r.title}</span>{r.opened_mode === 'midway' || r.opened_mode === 'from_forward' ? <span className="block text-[12px]" style={{ color: MUTED }}>{r.opened_mode === 'midway' ? 'Opened midway' : 'Opened from forward'}</span> : null}</td>
-                      <td className="px-3 py-2.5">{r.client ?? '—'}</td>
+                      <td className="px-3 py-2.5 cell-left">{r.client ?? '—'}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">{CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</td>
                       <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{day(r.loss_date)}</td>
                       <td className="px-3 py-2.5"><Chip tone={st.tone}>{st.label}</Chip></td>
                       <td className="px-3 py-2.5 whitespace-nowrap">{r.waiting_on ? `${WAITING[r.waiting_on] ?? r.waiting_on}${r.waiting_days != null ? ` · ${r.waiting_days} d` : ''}` : '—'}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{money(r.amount_claimed)}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{money(r.amount_claimed)}</td>
                       <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{day(r.last_mail_at)}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums">{r.threads}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{r.threads}</td>
                     </tr>
                   )
                 })}
@@ -291,19 +291,19 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
         <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-[14px] font-medium">Inbox threads</h3><span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{d.threads.length}</span></div>
         {d.threads.length === 0 ? <Empty compact>No threads linked.</Empty> : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[13.5px] border-collapse min-w-[560px]">
-              <thead><tr className="text-left text-[12px]" style={{ color: MUTED }}>{['Thread', 'Side', 'How it joined', 'Messages', 'Last'].map((h, i) => <th key={h} className={`font-medium px-2 py-2 ${i === 3 ? 'text-right' : ''}`}>{h}</th>)}</tr></thead>
+            <table className="trs-table w-full text-[13.5px] border-collapse min-w-[560px]">
+              <thead><tr className="text-[12px]" style={{ color: MUTED }}>{['Thread', 'Side', 'How it joined', 'Messages', 'Last'].map(h => <th key={h} className="font-medium px-2 py-2">{h}</th>)}</tr></thead>
               <tbody>
                 {d.threads.map(t => (
-                  <tr key={t.id} className="border-t border-[#e6e8e4]">
+                  <tr key={t.id}>
                     <td className="px-2 py-2 max-w-[320px]"><Link href={`/engagement?thread=${t.id}`} className="no-underline hover:underline break-words" style={{ color: INK }}>{t.subject ?? 'Thread'}</Link></td>
                     <td className="px-2 py-2"><Chip tone={t.side === 'insurer' ? 'blue' : 'neutral'}>{SIDE[t.side] ?? t.side}</Chip></td>
-                    <td className="px-2 py-2">
+                    <td className="px-2 py-2 cell-left">
                       {t.joined_by === 'forward' || t.joined_by === 'midway' ? <Chip tone="amber">{JOINED[t.joined_by]}</Chip> : JOINED[t.joined_by ?? ''] ?? 'Case worker'}
                       {t.rebuilt > 0 && <span className="text-[12.5px]" style={{ color: MUTED }}> · {t.rebuilt} rebuilt</span>}
                       {t.joined_evidence && <span className="block text-[12px]" style={{ color: MUTED }}>{t.joined_evidence}</span>}
                     </td>
-                    <td className="px-2 py-2 text-right tabular-nums">{t.messages}</td>
+                    <td className="px-2 py-2 tabular-nums">{t.messages}</td>
                     <td className="px-2 py-2 tabular-nums whitespace-nowrap">{day(t.last)}</td>
                   </tr>
                 ))}

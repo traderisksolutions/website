@@ -53,11 +53,11 @@ export function PlanRules() {
       {msg && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{msg}</p>}
       {rules.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">No rules. Every plan can be chosen on its own.</p> : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px] table-fixed text-[13px]">
+          <table className="trs-table w-full min-w-[900px] table-fixed text-[13px]">
             <colgroup><col className="w-[19%]" /><col className="w-[17%]" /><col className="w-[17%]" /><col className="w-[14%]" /><col className="w-[14%]" /><col className="w-[13%]" /><col className="w-[6%]" /></colgroup>
-            <thead><tr className="text-left text-[12px] text-trs-muted">
-              <th className="py-2 pr-2 font-normal">Insurer</th><th className="py-2 pr-2 font-normal">Cover</th><th className="py-2 pr-2 font-normal">Goes with</th>
-              <th className="py-2 pr-2 font-normal">Plan</th><th className="py-2 pr-2 font-normal">Taken</th><th className="py-2 pr-2 font-normal">Premium</th><th />
+            <thead><tr className="text-[12px] text-trs-muted">
+              <th className="py-2 px-2 font-normal">Insurer</th><th className="py-2 px-2 font-normal">Cover</th><th className="py-2 px-2 font-normal">Goes with</th>
+              <th className="py-2 px-2 font-normal">Plan</th><th className="py-2 px-2 font-normal">Taken</th><th className="py-2 px-2 font-normal">Premium</th><th />
             </tr></thead>
             <tbody>
               {rules.map((r, i) => {
@@ -65,21 +65,21 @@ export function PlanRules() {
                 const own = data.plans[r.product]?.[r.cover] ?? []
                 return (
                   <Fragment key={r.id}>
-                  <tr className="border-t border-trs-line align-top">
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} insurer`} className={cell} value={r.product} onChange={e => set(i, { product: e.target.value })}>{data.products.map(p => <option key={p}>{p}</option>)}</select></td>
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} cover`} className={cell} value={r.cover} onChange={e => set(i, { cover: e.target.value })}>{data.covers.map(c => <option key={c}>{c}</option>)}</select></td>
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} goes with`} className={cell} value={r.tiedTo} onChange={e => set(i, { tiedTo: e.target.value })}>{data.covers.filter(c => c !== r.cover).map(c => <option key={c}>{c}</option>)}</select></td>
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} plan`} className={cell} value={r.match} onChange={e => set(i, { match: e.target.value as PlanRule['match'] })}><option value="same_plan">Same plan</option><option value="any_plan">Any plan</option></select></td>
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} taken`} className={cell} value={r.required ? 'yes' : 'no'} onChange={e => set(i, { required: e.target.value === 'yes' })}><option value="yes">Always</option><option value="no">Optional</option></select></td>
-                    <td className="py-2 pr-2"><select aria-label={`Rule ${i + 1} premium`} className={cell} value={r.premium} onChange={e => set(i, { premium: e.target.value as PlanRule['premium'] })}><option value="own">Own rate</option><option value="included">In partner</option></select></td>
-                    <td className="py-2"><Btn size="xs" level="tertiary" onClick={() => setRules(rs => rs.filter((_, k) => k !== i))}>Remove</Btn></td>
+                  <tr className="align-top">
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} insurer`} className={cell} value={r.product} onChange={e => set(i, { product: e.target.value })}>{data.products.map(p => <option key={p}>{p}</option>)}</select></td>
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} cover`} className={cell} value={r.cover} onChange={e => set(i, { cover: e.target.value })}>{data.covers.map(c => <option key={c}>{c}</option>)}</select></td>
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} goes with`} className={cell} value={r.tiedTo} onChange={e => set(i, { tiedTo: e.target.value })}>{data.covers.filter(c => c !== r.cover).map(c => <option key={c}>{c}</option>)}</select></td>
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} plan`} className={cell} value={r.match} onChange={e => set(i, { match: e.target.value as PlanRule['match'] })}><option value="same_plan">Same plan</option><option value="any_plan">Any plan</option></select></td>
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} taken`} className={cell} value={r.required ? 'yes' : 'no'} onChange={e => set(i, { required: e.target.value === 'yes' })}><option value="yes">Always</option><option value="no">Optional</option></select></td>
+                    <td className="py-2 px-2"><select aria-label={`Rule ${i + 1} premium`} className={cell} value={r.premium} onChange={e => set(i, { premium: e.target.value as PlanRule['premium'] })}><option value="own">Own rate</option><option value="included">In partner</option></select></td>
+                    <td className="py-2 px-2"><Btn size="xs" level="tertiary" onClick={() => setRules(rs => rs.filter((_, k) => k !== i))}>Remove</Btn></td>
                   </tr>
                   <tr>
-                    <td colSpan={4} className="pb-3 pr-4 text-[12.5px] text-trs-muted align-top">
+                    <td colSpan={4} className="pb-3 px-2 text-[12.5px] text-trs-muted align-top">
                       {!own.length ? `${r.product} sells no ${r.cover}.` : r.match === 'any_plan' ? `Any of ${own.length} ${r.cover} plans with any ${r.tiedTo} plan`
                         : partners.map(p => { const a = allowedPlans(r, p, own); return `${p.replace(/\s*\(.*$/, '')} → ${a.length ? a.join(', ') : 'none'}` }).join(' · ')}
                     </td>
-                    <td colSpan={3} className="pb-3 align-top"><input aria-label={`Rule ${i + 1} source`} className={cell} value={r.source} placeholder="Source: brochure and page" onChange={e => set(i, { source: e.target.value })} /></td>
+                    <td colSpan={3} className="pb-3 px-2 align-top cell-left"><input aria-label={`Rule ${i + 1} source`} className={cell} value={r.source} placeholder="Source: brochure and page" onChange={e => set(i, { source: e.target.value })} /></td>
                   </tr>
                   </Fragment>
                 )

@@ -63,7 +63,7 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
               {clientSide.map(p => (
                 <RegisterRow key={p.email}>
                   <RegisterCell first>{identity(p)}</RegisterCell>
-                  <RegisterCell>{email(p)}</RegisterCell>
+                  <RegisterCell align="left">{email(p)}</RegisterCell>
                   <RegisterCell>
                     <span className="inline-flex items-center gap-1.5 flex-wrap">
                       {p.isPrimary && <Chip title="Most active client contact">Point person</Chip>}
@@ -108,7 +108,7 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
               {others.map(p => (
                 <RegisterRow key={p.email}>
                   <RegisterCell first>{identity(p)}</RegisterCell>
-                  <RegisterCell>{email(p)}</RegisterCell>
+                  <RegisterCell align="left">{email(p)}</RegisterCell>
                   <RegisterCell><Chip>{PARTY_LABEL[p.party]}</Chip></RegisterCell>
                   <RegisterCell last align="right" primary={fmtRelative(p.lastSeen)} secondary={`${p.threads} thread${p.threads === 1 ? '' : 's'}`} />
                 </RegisterRow>

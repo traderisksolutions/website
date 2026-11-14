@@ -127,7 +127,7 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
                       </span>
                     </span>
                   </RegisterCell>
-                  <RegisterCell primary={n.classOfInsurance ?? n.event_type ?? '—'} secondary={n.insurer ?? 'Insurer not recorded'} className="max-w-[260px]" nowrap={false} />
+                  <RegisterCell align="left" primary={n.classOfInsurance ?? n.event_type ?? '—'} secondary={n.insurer ?? 'Insurer not recorded'} className="max-w-[260px]" nowrap={false} />
                   <RegisterCell primary={fmtDate(n.payment_due_date)} />
                   <RegisterCell align="right" primary={fmtMoney(n.net_amount ?? n.gross_amount, n.currency)} secondary={n.commission ? `Commission ${fmtMoney(n.commission, n.currency)}` : undefined} />
                   <RegisterCell align="right" primary={openNote ? <span className="font-medium">{fmtMoney(n.outstanding, n.currency)}</span> : '—'}

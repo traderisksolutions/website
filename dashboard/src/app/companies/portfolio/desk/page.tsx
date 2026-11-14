@@ -131,13 +131,13 @@ export default function AdminDeskPage() {
                         {b.open.map(r => (
                           <RegisterRow key={r.id}>
                             <RegisterCell first><input type="checkbox" aria-label={`Select ${r.what}`} checked={picked.has(r.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n })} /></RegisterCell>
-                            <RegisterCell nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
+                            <RegisterCell align="left" nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
                             <RegisterCell>{r.type}</RegisterCell>
                             <RegisterCell>{OWES[r.owner] ?? r.owner}</RegisterCell>
                             <RegisterCell>{fmtDate(r.since)}</RegisterCell>
                             <RegisterCell><span className={r.due && r.due.slice(0, 10) < t ? 'text-trs-neg' : undefined}>{r.due ? fmtDate(r.due) : '—'}</span></RegisterCell>
                             <RegisterCell last>
-                              <div className="flex gap-1">
+                              <div className="flex justify-center gap-1">
                                 <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'done')}>Done</Btn>
                                 <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'snooze')}>Snooze</Btn>
                               </div>

@@ -198,7 +198,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                   <RegisterRow key={m.id}>
                     <RegisterCell first identityWidth={140} primary={fmtDate(m.effective_on ?? m.created_at)} secondary={m.effective_on ? undefined : 'reported'} />
                     <RegisterCell primary={MOVEMENT_WORD[m.kind] ?? m.kind} />
-                    <RegisterCell primary={m.member_name} secondary={m.relationship ? RELATION_WORD[m.relationship] ?? m.relationship : undefined} />
+                    <RegisterCell align="left" primary={m.member_name} secondary={m.relationship ? RELATION_WORD[m.relationship] ?? m.relationship : undefined} />
                     <RegisterCell align="right" primary={m.pax} />
                     <RegisterCell primary={MOVEMENT_STATUS_WORD[m.status] ?? m.status} secondary={[m.sent_at ? `sent ${fmtDate(m.sent_at)}` : null, m.chase_count ? `${m.chase_count} chaser${m.chase_count === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ') || undefined} />
                     <RegisterCell primary={tx ? (tx.note_no ?? (tx.kind === 'credit' ? 'Credit note' : 'Debit note')) : '—'} />
@@ -236,7 +236,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                   <RegisterCell align="right" primary={t.pax ?? '—'} />
                   <RegisterCell align="right" primary={fmtAmount(t.amount, t.currency)} />
                   <RegisterCell align="right" primary={t.estimate_amount != null ? fmtAmount(Number(t.estimate_amount), t.currency) : '—'} secondary={t.variance_amount != null && Math.abs(Number(t.variance_amount)) > 1 ? `${Number(t.variance_amount) > 0 ? '+' : ''}${fmtAmount(Number(t.variance_amount), t.currency)} vs expected` : undefined} />
-                  <RegisterCell nowrap={false}><span className="block text-[14px] max-w-[360px]" style={{ color: INK }}>{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
+                  <RegisterCell align="left" nowrap={false}><span className="block text-[14px] max-w-[360px]" style={{ color: INK }}>{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
                   <RegisterCell>
                     {t.source_thread_id
                       ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>

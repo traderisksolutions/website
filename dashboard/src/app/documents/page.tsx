@@ -59,8 +59,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
                 <a href={`/api/documents/${r.id}/file`} target="_blank" rel="noreferrer" className="text-trs-ink no-underline hover:underline">{r.title || r.filename}</a>
               } />
               <RegisterCell>{docLabel(r.doc_type)}</RegisterCell>
-              <RegisterCell>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=documents`} className="text-trs-ink no-underline hover:underline">{r.companies?.company_name ?? 'Unnamed client'}</Link> : '—'}</RegisterCell>
-              <RegisterCell>{[r.insurer_name, r.policy_number].filter(Boolean).join(' · ') || '—'}</RegisterCell>
+              <RegisterCell align="left">{r.company_id ? <Link href={`/companies/${r.company_id}?tab=documents`} className="text-trs-ink no-underline hover:underline">{r.companies?.company_name ?? 'Unnamed client'}</Link> : '—'}</RegisterCell>
+              <RegisterCell align="left">{[r.insurer_name, r.policy_number].filter(Boolean).join(' · ') || '—'}</RegisterCell>
               <RegisterCell className="tabular-nums">{fmtDate(r.received_at ?? r.created_at)}</RegisterCell>
               <RegisterCell last><Chip tone={STATUS[r.status]?.tone ?? 'neutral'}>{STATUS[r.status]?.word ?? r.status}</Chip></RegisterCell>
             </RegisterRow>

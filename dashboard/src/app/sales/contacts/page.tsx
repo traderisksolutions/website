@@ -121,10 +121,10 @@ function Contacts() {
               {!data ? null : data.rows.length === 0 ? <RegisterEmpty colSpan={5}>No contacts match.</RegisterEmpty> : data.rows.map(r => (
                 <RegisterRow key={r.id}>
                   <RegisterCell first identityWidth={260} primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{r.name ?? '–'}</span>{r.location && <span className="text-[11px] flex-shrink-0" style={{ color: MUTED }}>{r.location}</span>}</span>} secondary={r.email} />
-                  <RegisterCell primary={r.company ?? '–'} secondary={r.title ?? undefined} />
+                  <RegisterCell align="left" primary={r.company ?? '–'} secondary={r.title ?? undefined} />
                   <RegisterCell><Chip>{RELATIONSHIP_WORD[r.relationship] ?? r.relationship}</Chip></RegisterCell>
                   <RegisterCell><span className="inline-flex items-center gap-2"><EmailChip status={r.email_status} />{r.suppressed && <Chip>Suppressed</Chip>}</span></RegisterCell>
-                  <RegisterCell last><span className="text-[13px]" style={{ color: MUTED }}>{r.sources.map(SOURCE_LABEL).join(', ')}</span></RegisterCell>
+                  <RegisterCell align="left" last><span className="text-[13px]" style={{ color: MUTED }}>{r.sources.map(SOURCE_LABEL).join(', ')}</span></RegisterCell>
                 </RegisterRow>
               ))}
             </tbody>

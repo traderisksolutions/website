@@ -19,7 +19,7 @@ export function RenewalReportSections({ m }: { m: ReportModel }) {
             <RegisterRow key={o.option}>
               <RegisterCell first identityWidth={260}>{o.option}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{o.premium}</RegisterCell>
-              <RegisterCell last nowrap={false}>{o.basis}</RegisterCell>
+              <RegisterCell align="left" last nowrap={false}>{o.basis}</RegisterCell>
             </RegisterRow>
           ))}
         </tbody>
@@ -48,7 +48,7 @@ export function RenewalReportSections({ m }: { m: ReportModel }) {
             {m.not_on_file.map(r => (
               <RegisterRow key={r.item}>
                 <RegisterCell first identityWidth={260}>{r.item}</RegisterCell>
-                <RegisterCell last nowrap={false}>{r.source}</RegisterCell>
+                <RegisterCell align="left" last nowrap={false}>{r.source}</RegisterCell>
               </RegisterRow>
             ))}
           </tbody>

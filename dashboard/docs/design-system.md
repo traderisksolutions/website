@@ -109,12 +109,20 @@ now resolve to flat white + hairline border, with `--shadow-panel` /
 
 ## Table rules
 
-- **Header row** — no `border-b`; uses `bg-muted/50` tint to separate from body
-- **Body rows** — `border-b border-[--border-subtle]`
-- **Expanded row** — `bg-muted/20 border-b border-[--border-subtle]`
-- **No full-cell boxing** — column separators only where the grid layout demands it
+One look for every table in the staff app (Jarod, 14 Nov 2026): `.trs-table` in `globals.css`, applied by `Register` and every hand-built table. Email bodies, PDFs and client-facing pages keep their own.
 
----
+| Part | Rule |
+| --- | --- |
+| Frame | 1px `#dcdfd9` outer border, 10px radius (the `Register` card) |
+| Header | `#f0f2ee` band, 12.5px muted, 36px, sticky; **every header centred** |
+| Rows | 48px; every second row `#f9faf8`; hover `#e9f2ec`; selected `--trs-soft` |
+| Lines | 1px `#e3e6e0` under every row and between columns; none after the last |
+
+**Cell alignment, decided per column:**
+- **Centred:** numbers, amounts, counts, dates, badges and status chips, short words (owner first name, line, stage, Yes/No).
+- **Left:** the first (identity) column, names of companies, people and insurers, emails, subjects, descriptions, notes, file names, free text.
+- `RegisterCell` centres by default; pass `align="left"` for a text column. In a hand-built table, add `cell-left` to the `td`. A centred cell holding a flex container adds `justify-center`.
+- `XlGrid` (rate and data-entry grids) keeps its 32px rows; its cells follow the same alignment rule.
 
 ## Form / composer rules
 

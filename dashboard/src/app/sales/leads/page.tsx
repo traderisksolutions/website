@@ -176,8 +176,8 @@ function Leads() {
                     <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{r.fit_score ?? '–'}</span></RegisterCell>
                     <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{r.intent_score ?? '–'}</span></RegisterCell>
                     <RegisterCell align="right"><span className="tabular-nums font-medium">{r.total_score ?? '–'}</span></RegisterCell>
-                    <RegisterCell primary={r.contact_name ?? <span style={{ color: MUTED }}>No contact</span>} secondary={r.contact_name ? `${(r.contact_count ?? 0) > 1 ? `+${(r.contact_count ?? 0) - 1} · ` : ''}${r.contact_title ?? '–'}` : undefined} />
-                    <RegisterCell primary={<EmailChip status={r.email_status} hasEmail={!!r.contact_email} />} secondary={r.contact_email ?? undefined} />
+                    <RegisterCell align="left" primary={r.contact_name ?? <span style={{ color: MUTED }}>No contact</span>} secondary={r.contact_name ? `${(r.contact_count ?? 0) > 1 ? `+${(r.contact_count ?? 0) - 1} · ` : ''}${r.contact_title ?? '–'}` : undefined} />
+                    <RegisterCell align="left" primary={<EmailChip status={r.email_status} hasEmail={!!r.contact_email} />} secondary={r.contact_email ?? undefined} />
                     <RegisterCell><ActionChip action={r.recommended_action} /></RegisterCell>
                     <RegisterCell last primary={<OutreachChip status={r.outreach_status} />} secondary={draftNote || undefined} />
                   </RegisterRow>

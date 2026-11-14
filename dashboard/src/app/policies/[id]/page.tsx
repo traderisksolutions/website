@@ -73,7 +73,7 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
             {lines.map(l => (
               <RegisterRow key={`${l.source.table}:${l.source.id}`}>
                 <RegisterCell first className="tabular-nums" identityWidth={120}>{l.date ? fmtDate(l.date) : '—'}</RegisterCell>
-                <RegisterCell nowrap={false}>{l.label}{l.needs_review ? <> <Chip tone="amber">Check</Chip></> : null}</RegisterCell>
+                <RegisterCell align="left" nowrap={false}>{l.label}{l.needs_review ? <> <Chip tone="amber">Check</Chip></> : null}</RegisterCell>
                 <RegisterCell>{KIND_WORD[l.kind]}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{l.insurer_amount == null ? '—' : fmtAmount(l.insurer_amount, ccy)}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{l.trs_amount == null ? '—' : fmtAmount(l.trs_amount, ccy)}</RegisterCell>
@@ -124,19 +124,19 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
                 <RegisterCell first identityWidth={240}>At this year&apos;s rate</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.same_rate, ccy)}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.same_rate, ccy)}</RegisterCell>
-                <RegisterCell last nowrap={false}>{pack.projection.basis}</RegisterCell>
+                <RegisterCell align="left" last nowrap={false}>{pack.projection.basis}</RegisterCell>
               </RegisterRow>
               <RegisterRow>
                 <RegisterCell first identityWidth={240}>{pack.projection.band.label}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.low, ccy)}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.high, ccy)}</RegisterCell>
-                <RegisterCell last nowrap={false}>{pack.projection.band.low_pct >= 0 ? '+' : ''}{pack.projection.band.low_pct}% to +{pack.projection.band.high_pct}% · {pack.projection.assumptions.join(' ')}</RegisterCell>
+                <RegisterCell align="left" last nowrap={false}>{pack.projection.band.low_pct >= 0 ? '+' : ''}{pack.projection.band.low_pct}% to +{pack.projection.band.high_pct}% · {pack.projection.assumptions.join(' ')}</RegisterCell>
               </RegisterRow>
               <RegisterRow>
                 <RegisterCell first identityWidth={240}>Budget</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.high, ccy)}</RegisterCell>
                 <RegisterCell align="right" className="tabular-nums">{fmtAmount(pack.projection.high, ccy)}</RegisterCell>
-                <RegisterCell last nowrap={false}>High of the range, as billed</RegisterCell>
+                <RegisterCell align="left" last nowrap={false}>High of the range, as billed</RegisterCell>
               </RegisterRow>
             </tbody>
           </Register>

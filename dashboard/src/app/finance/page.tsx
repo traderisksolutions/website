@@ -186,7 +186,7 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
           secondary={<span className="tabular-nums">{note.debit_note_no}</span>}
           className={cn(open && 'bg-[#faf9f6]')}
         />
-        <RegisterCell primary={note.classOfInsurance ?? note.event_type ?? '—'} secondary={note.insurer ?? 'No insurer on file'} className="max-w-[230px]" nowrap={false} />
+        <RegisterCell align="left" primary={note.classOfInsurance ?? note.event_type ?? '—'} secondary={note.insurer ?? 'No insurer on file'} className="max-w-[230px]" nowrap={false} />
         <RegisterCell primary={fmtDate(note.payment_due_date)} />
         <RegisterCell align="right" primary={fmtMoney(billed, note.currency)} />
         <RegisterCell align="right" nowrap={false}

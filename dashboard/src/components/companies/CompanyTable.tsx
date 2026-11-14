@@ -91,9 +91,9 @@ function SortHeader({ col, sort, onSort, className }: { col: typeof COLUMNS[numb
   const on = sort.key === col.key
   const Icon = on ? (sort.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
   return (
-    <th scope="col" aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('py-0 font-normal', col.align === 'right' ? 'text-right' : 'text-left', className)}>
+    <th scope="col" aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'} className={cn('py-0 font-normal', className)}>
       <button type="button" onClick={() => onSort(col.key)} title={col.hint}
-        className={cn('group inline-flex items-center gap-1.5 h-[30px] bg-transparent border-0 cursor-pointer text-[12px] whitespace-nowrap', col.align === 'right' && 'flex-row-reverse', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
+        className={cn('group inline-flex items-center gap-1.5 h-[30px] bg-transparent border-0 cursor-pointer text-[12px] whitespace-nowrap', on ? 'font-medium' : '')} style={{ color: on ? INK : MUTED }}>
         {col.label}
         <Icon size={13} className={cn(on ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
       </button>
@@ -140,15 +140,15 @@ export function CompanyTable({ rows, today, staff, workloads, selectedId, onSele
                       <span className="block text-[13px] font-medium leading-tight truncate" style={{ color: INK }} title={c.domains[0] ? `${c.name} · ${c.domains[0]}` : c.name}>{mark(c.name)}</span>
                     </td>
                     <td className="px-[10px] py-1.5 align-middle whitespace-nowrap"><StageTag stage={c.stage} /></td>
-                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap" title={c.needsReply > 0 ? `${c.needsReply} awaiting our reply` : c.openThreads === 0 ? 'No open threads' : 'None waiting on us'}>
+                    <td className="px-[10px] py-1.5 align-middle whitespace-nowrap" title={c.needsReply > 0 ? `${c.needsReply} awaiting our reply` : c.openThreads === 0 ? 'No open threads' : 'None waiting on us'}>
                       <span className="text-[13px] tabular-nums" style={{ color: INK }}>{c.openThreads}</span>
                       {c.needsReply > 0 && <span className="text-[12px] ml-1.5" style={{ color: MUTED }}>{c.needsReply} awaiting</span>}
                     </td>
-                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap" title={ltv ? `${ltv.notes} debit note${ltv.notes === 1 ? '' : 's'}` : undefined}>
+                    <td className="px-[10px] py-1.5 align-middle whitespace-nowrap" title={ltv ? `${ltv.notes} debit note${ltv.notes === 1 ? '' : 's'}` : undefined}>
                       {ltv ? <span className="text-[13px] tabular-nums" style={{ color: INK }}>{money(ltv.total, ltv.currency)}</span> : <span style={{ color: '#8c958f' }}>—</span>}
                     </td>
-                    <td className="px-[10px] py-1.5 align-middle text-right whitespace-nowrap"><RenewalCell date={c.nextRenewalDate} today={today} compact align="right" /></td>
-                    <td className="px-[10px] pr-4 py-1.5 align-middle whitespace-nowrap">
+                    <td className="px-[10px] py-1.5 align-middle whitespace-nowrap"><RenewalCell date={c.nextRenewalDate} today={today} compact /></td>
+                    <td className="px-[10px] pr-4 py-1.5 align-middle whitespace-nowrap cell-left">
                       <span className="flex items-center gap-2.5">
                         {owners.length ? owners.map(o => <PersonTag key={o} email={o} staff={staff} size="sm" />) : <span className="text-[13px]" style={{ color: MUTED }}>No owner</span>}
                         <span className="text-[12px]" style={{ color: MUTED }}>{c.lastActivityAt ? `Last activity ${relative(c.lastActivityAt)}` : 'No activity yet'}</span>

@@ -114,18 +114,18 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
         {counts && (
           <div className="flex flex-col gap-4 min-w-0">
             <div className="overflow-x-auto">
-              <table className="w-full text-[13px] border-collapse" style={{ color: INK }}>
-                <thead><tr style={{ color: MUTED }} className="text-left">
-                  <th className="font-medium py-1 pr-3">Plan</th><th className="font-medium py-1 pr-3 text-right">Employees</th>
-                  <th className="font-medium py-1 pr-3 text-right">Alone</th><th className="font-medium py-1 pr-3 text-right">+ spouse</th>
-                  <th className="font-medium py-1 pr-3 text-right">+ children</th><th className="font-medium py-1 pr-3 text-right">Family</th>
-                  <th className="font-medium py-1 text-right">Lives</th>
+              <table className="trs-table w-full text-[13px] border-collapse" style={{ color: INK }}>
+                <thead><tr style={{ color: MUTED }}>
+                  <th className="font-medium py-1 px-3">Plan</th><th className="font-medium py-1 px-3">Employees</th>
+                  <th className="font-medium py-1 px-3">Alone</th><th className="font-medium py-1 px-3">+ spouse</th>
+                  <th className="font-medium py-1 px-3">+ children</th><th className="font-medium py-1 px-3">Family</th>
+                  <th className="font-medium py-1 px-3">Lives</th>
                 </tr></thead>
                 <tbody>{plans.map(p => { const t = counts.tiers[p], l = counts.lives[p]; return (
-                  <tr key={p}><td className="py-1 pr-3">{p}</td><td className="py-1 pr-3 text-right tabular-nums">{l.employee}</td>
-                    <td className="py-1 pr-3 text-right tabular-nums">{t.EO}</td><td className="py-1 pr-3 text-right tabular-nums">{t.ES}</td>
-                    <td className="py-1 pr-3 text-right tabular-nums">{t.EC}</td><td className="py-1 pr-3 text-right tabular-nums">{t.EF}</td>
-                    <td className="py-1 text-right tabular-nums">{l.employee + l.spouse + l.child}</td></tr>) })}</tbody>
+                  <tr key={p}><td className="py-1 px-3">{p}</td><td className="py-1 px-3 tabular-nums">{l.employee}</td>
+                    <td className="py-1 px-3 tabular-nums">{t.EO}</td><td className="py-1 px-3 tabular-nums">{t.ES}</td>
+                    <td className="py-1 px-3 tabular-nums">{t.EC}</td><td className="py-1 px-3 tabular-nums">{t.EF}</td>
+                    <td className="py-1 px-3 tabular-nums">{l.employee + l.spouse + l.child}</td></tr>) })}</tbody>
               </table>
             </div>
 

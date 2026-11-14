@@ -46,7 +46,7 @@ export function CompanyRenewals({ companyId }: { companyId: string }) {
           return (
             <RegisterRow key={r.policy.id}>
               <RegisterCell first primary={<Link href={`/policies/${r.policy.id}?tab=renewal`} className="text-trs-ink no-underline hover:underline">{r.policy.class ?? r.policy.product_line ?? 'Policy'}</Link>} secondary={<span className="font-mono">{r.policy.policy_number ?? 'no number'}</span>} identityWidth={260} />
-              <RegisterCell>{r.policy.insurer ?? '—'}</RegisterCell>
+              <RegisterCell align="left">{r.policy.insurer ?? '—'}</RegisterCell>
               <RegisterCell className="tabular-nums">{r.policy.end_date ? fmtDate(r.policy.end_date) : '—'}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{fmtAmount(r.current.premium_net, ccy)}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{r.current.endorsements_count} · {fmtAmount(r.current.endorsements_net, ccy)}</RegisterCell>

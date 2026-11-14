@@ -186,7 +186,7 @@ function Generate() {
             return (
               <RegisterRow key={r.id} onClick={() => router.push(withSite(`/marketing/generate/runs/${r.id}`, siteKey))}>
                 <RegisterCell first identityWidth={170} primary={fmtDate(r.created_at, true)} />
-                <RegisterCell primary={r.setup.focus?.label || r.setup.topic || r.primary_target_name || '(no focus)'} secondary={r.error ? r.error.slice(0, 100) : r.setup.target_query ? `Search: ${r.setup.target_query}` : undefined} />
+                <RegisterCell align="left" primary={r.setup.focus?.label || r.setup.topic || r.primary_target_name || '(no focus)'} secondary={r.error ? r.error.slice(0, 100) : r.setup.target_query ? `Search: ${r.setup.target_query}` : undefined} />
                 <RegisterCell>{r.setup.market ?? '–'}{r.setup.language ? ` · ${r.setup.language.toUpperCase()}` : ''}</RegisterCell>
                 <RegisterCell><RunStatusChip status={r.status} /></RegisterCell>
                 <RegisterCell><GateChip passed={g?.passed_gate ?? null} /></RegisterCell>

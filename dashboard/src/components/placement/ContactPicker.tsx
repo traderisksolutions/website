@@ -125,8 +125,8 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
                       aria-label={`Ask ${r.name ?? r.email} at ${r.insurer_name}`}
                     />
                   </RegisterCell>
-                  <RegisterCell primary={r.insurer_name} />
-                  <RegisterCell last primary={r.name ?? '—'} secondary={r.email} />
+                  <RegisterCell align="left" primary={r.insurer_name} />
+                  <RegisterCell align="left" last primary={r.name ?? '—'} secondary={r.email} />
                 </RegisterRow>
               )),
             ]

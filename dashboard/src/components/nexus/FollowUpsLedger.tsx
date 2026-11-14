@@ -166,13 +166,13 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
       </RegisterCell>
       <RegisterCell><Chip tone={status.tone}>{status.label}</Chip></RegisterCell>
       <RegisterCell>
-        <div className="flex items-center gap-2 min-w-0 max-w-[220px]">
+        <div className="flex justify-center items-center gap-2 min-w-0 max-w-[220px]">
           <Chip tone={chip.tone}>{chip.label}</Chip>
           {debtor && <span className="truncate text-[12px]" style={{ color: MUTED }} title={debtor}>{debtor}</span>}
         </div>
       </RegisterCell>
-      <RegisterCell title={r.what} primary={clip(r.what, 60)} />
-      <RegisterCell title={r.owner_party === 'trs' ? r.counterparty_email ?? undefined : r.owner_email ?? undefined} primary={clip(owedTo(r), 28)} />
+      <RegisterCell align="left" title={r.what} primary={clip(r.what, 60)} />
+      <RegisterCell align="left" title={r.owner_party === 'trs' ? r.counterparty_email ?? undefined : r.owner_email ?? undefined} primary={clip(owedTo(r), 28)} />
       <RegisterCell primary={fmtDate(r.since_at)} />
       <RegisterCell>
         <span className="tabular-nums" style={{ color: tone === 'overdue' ? TONE_STYLE.red.color : tone === 'soon' ? TONE_STYLE.amber.color : INK, fontWeight: tone ? 500 : undefined }}>

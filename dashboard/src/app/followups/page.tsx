@@ -62,7 +62,7 @@ export default function FollowupsPage() {
             {rows.map(r => (
               <RegisterRow key={r.id}>
                 <RegisterCell first primary={day(r.sent_at)} />
-                <RegisterCell title={r.subject ?? ''}>
+                <RegisterCell align="left" title={r.subject ?? ''}>
                   {r.work_item_id ? <Link href={`/today/${r.work_item_id}`} className="no-underline hover:underline text-trs-ink">{r.subject}</Link> : <Link href={`/engagement?lead=${r.thread_id}`} className="no-underline hover:underline text-trs-ink">{r.subject}</Link>}
                   <div className="text-[12px] text-trs-muted truncate">To {r.to_party === 'insurer' ? 'insurer' : r.to_party === 'client' ? 'client' : ''} {r.to_email} · by {r.sent_by?.split('@')[0]}{r.set_by !== 'rule' ? ' · chase set by hand' : ''}{r.preapproved ? ' · sends without asking' : ''}</div>
                 </RegisterCell>

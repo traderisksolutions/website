@@ -49,15 +49,15 @@ export function ClientFormsPanel({ isAdmin }: { isAdmin: boolean }) {
       {lines.map(line => (
         <div key={line} className="min-w-0">
           <h3 className="m-0 mb-2 text-[14px] font-semibold text-trs-ink">{productLineLabel(line)}</h3>
-          <div className="overflow-x-auto"><table className="w-full text-[13px]"><tbody>
+          <div className="overflow-x-auto"><table className="trs-table w-full text-[13px]"><tbody>
             {forms.filter(f => f.line === line).map(f => (
               <tr key={f.id} className={f.active ? '' : 'opacity-50'}>
-                <td className="py-1.5 pr-3 min-w-[220px]">{f.title}<div className="text-[12px] text-trs-muted break-all">{f.filename}</div></td>
-                <td className="py-1.5 pr-3 whitespace-nowrap"><Chip>{KIND[f.kind] ?? f.kind}</Chip></td>
-                <td className="py-1.5 pr-3 whitespace-nowrap">{f.flow ? <Chip tone="blue">{FLOW[f.flow] ?? f.flow}</Chip> : <span className="text-trs-muted">All requests</span>}</td>
-                <td className="py-1.5 pr-3 whitespace-nowrap text-trs-muted">{f.attach_on.includes('renewal') ? 'New and renewal' : 'New requests'}</td>
-                <td className="py-1.5 pr-3 whitespace-nowrap text-trs-muted tabular-nums">Sent {f.sent_count} · {day(f.last_sent)}</td>
-                <td className="py-1.5 text-right whitespace-nowrap">{isAdmin && <Btn size="xs" level="tertiary" onClick={() => void edit(f.id, { active: !f.active })}>{f.active ? 'Retire' : 'Use again'}</Btn>}</td>
+                <td className="py-1.5 px-3 min-w-[220px]">{f.title}<div className="text-[12px] text-trs-muted break-all">{f.filename}</div></td>
+                <td className="py-1.5 px-3 whitespace-nowrap"><Chip>{KIND[f.kind] ?? f.kind}</Chip></td>
+                <td className="py-1.5 px-3 whitespace-nowrap">{f.flow ? <Chip tone="blue">{FLOW[f.flow] ?? f.flow}</Chip> : <span className="text-trs-muted">All requests</span>}</td>
+                <td className="py-1.5 px-3 whitespace-nowrap text-trs-muted">{f.attach_on.includes('renewal') ? 'New and renewal' : 'New requests'}</td>
+                <td className="py-1.5 px-3 whitespace-nowrap text-trs-muted tabular-nums">Sent {f.sent_count} · {day(f.last_sent)}</td>
+                <td className="py-1.5 px-3 whitespace-nowrap">{isAdmin && <Btn size="xs" level="tertiary" onClick={() => void edit(f.id, { active: !f.active })}>{f.active ? 'Retire' : 'Use again'}</Btn>}</td>
               </tr>
             ))}
           </tbody></table></div>

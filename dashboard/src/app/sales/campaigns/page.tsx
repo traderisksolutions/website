@@ -82,7 +82,7 @@ export default function CampaignsPage() {
                 <RegisterRow key={c.id} onClick={() => router.push(`/sales/campaigns/${c.id}`)}>
                   <RegisterCell first identityWidth={260} primary={c.name} secondary={`First email: ${FIRST_TOUCH_LABEL[c.first_touch]}`} />
                   <RegisterCell><Chip>{CAMPAIGN_STATUS_LABEL[c.status]}</Chip></RegisterCell>
-                  <RegisterCell nowrap={false}><span className="text-[13.5px]" style={{ color: MUTED }}>{audienceSummary(c.audience)}</span></RegisterCell>
+                  <RegisterCell align="left" nowrap={false}><span className="text-[13.5px]" style={{ color: MUTED }}>{audienceSummary(c.audience)}</span></RegisterCell>
                   <RegisterCell align="right"><span className="tabular-nums">{n(c.counts.review)}</span></RegisterCell>
                   <RegisterCell align="right"><span className="tabular-nums">{n(c.counts.active + c.counts.pending)}</span></RegisterCell>
                   <RegisterCell align="right"><span className="tabular-nums">{n(c.counts.sent)}</span></RegisterCell>

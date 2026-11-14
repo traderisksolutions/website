@@ -21,9 +21,9 @@ const pct = (n: number | null | undefined) => n == null ? '—' : `${Math.round(
 const date = (s: string | null) => s ? new Date(s).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' }) : '—'
 const label = (k: string) => k.replace(/_/g, ' ')
 
-const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2'
-const td = 'py-2.5 text-[13px] align-top'
-const num = 'py-2.5 text-[13px] text-right tabular-nums align-top'
+const th = 'font-medium px-3 whitespace-nowrap'
+const td = 'px-3 text-[13px] align-middle'
+const num = 'px-3 text-[13px] text-center tabular-nums align-middle whitespace-nowrap'
 
 function Rows({ rows, first, extra }: { rows: Bucket[]; first: string; extra?: (b: Bucket) => React.ReactNode }) {
   return (
@@ -31,13 +31,13 @@ function Rows({ rows, first, extra }: { rows: Bucket[]; first: string; extra?: (
       <thead>
         <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
           <th className={th}>{first}</th>
-          <th className={`${th} text-right`}>Share</th>
-          <th className={`${th} text-right`}>Effort share</th>
-          <th className={`${th} text-right`}>Messages</th>
-          <th className={`${th} text-right`}>Agent, approved</th>
-          <th className={`${th} text-right`}>Agent, auto</th>
-          <th className={`${th} text-right`}>Hand written</th>
-          <th className={`${th} text-right`}>Sent unedited</th>
+          <th className={th}>Share</th>
+          <th className={th}>Effort share</th>
+          <th className={th}>Messages</th>
+          <th className={th}>Agent, approved</th>
+          <th className={th}>Agent, auto</th>
+          <th className={th}>Hand written</th>
+          <th className={th}>Sent unedited</th>
           {extra && <th className={th}></th>}
         </tr>
       </thead>
@@ -101,12 +101,12 @@ function Ladder() {
         {err && <div className="mb-3 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: '1px solid #d5d9d4', color: INK }}>{err}</div>}
         <div className="overflow-x-auto"><table className="trs-table w-full min-w-[640px]">
           <thead><tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-            <th className={th}>Rung</th><th className={th}>Class</th><th className={th}>State</th><th className={`${th} text-right`}>Unedited</th><th className={`${th} text-right`}>Approved</th><th className={`${th} text-right`}>Needed</th><th className={th}>Since</th><th className={th}></th>
+            <th className={th}>Rung</th><th className={th}>Class</th><th className={th}>State</th><th className={th}>Unedited</th><th className={th}>Approved</th><th className={th}>Needed</th><th className={th}>Since</th><th className={th}></th>
           </tr></thead>
           <tbody>
             {(l?.ladder ?? []).map(r => (
               <tr key={r.draft_class} style={{ borderBottom: `1px solid ${RULE}` }}>
-                <td className={num} style={{ color: MUTED, textAlign: 'left' }}>{r.rung}</td>
+                <td className={num} style={{ color: MUTED }}>{r.rung}</td>
                 <td className={td} style={{ color: INK }}>{CLASS_LABEL[r.draft_class] ?? r.draft_class}</td>
                 <td className={td} style={{ color: r.status === 'auto' ? INK : MUTED }}>{STATUS_LABEL[r.status] ?? r.status}{r.status === 'paused' && r.paused_reason ? ` · ${r.paused_reason}` : ''}</td>
                 <td className={num} style={{ color: INK }}>{r.approvals_unedited}</td>
@@ -114,7 +114,7 @@ function Ladder() {
                 <td className={num} style={{ color: MUTED }}>{r.min_unedited}</td>
                 <td className={td} style={{ color: MUTED }}>{date(r.last_graduated_at)}</td>
                 <td className={td}>
-                  <div className="flex gap-1.5 justify-end">
+                  <div className="flex gap-1.5 justify-center">
                     {(r.status === 'candidate' || (r.status === 'paused' && r.approvals_unedited >= r.min_unedited)) && <Btn level="primary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'auto')}>Switch on auto-send</Btn>}
                     {r.status === 'auto' && <Btn level="secondary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'pause')}>Pause</Btn>}
                     {r.status === 'paused' && <Btn level="tertiary" size="sm" disabled={busy !== null} onClick={() => act(r.draft_class, 'manual')}>Back to manual</Btn>}
@@ -134,9 +134,9 @@ function Ladder() {
               <tr key={s.id} style={{ borderBottom: `1px solid ${RULE}` }}>
                 <td className={td} style={{ color: MUTED }}>{new Date(s.sent_at).toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit' })}</td>
                 <td className={td} style={{ color: INK }}>{CLASS_LABEL[s.draft_class] ?? s.draft_class}</td>
-                <td className={td} style={{ color: INK }}>{s.client ?? '—'}</td>
-                <td className={td} style={{ color: MUTED }}>{s.to}</td>
-                <td className={td} style={{ color: MUTED }}>{s.subject}</td>
+                <td className={`${td} cell-left`} style={{ color: INK }}>{s.client ?? '—'}</td>
+                <td className={`${td} cell-left`} style={{ color: MUTED }}>{s.to}</td>
+                <td className={`${td} cell-left`} style={{ color: MUTED }}>{s.subject}</td>
                 <td className={td}>{s.work_item_id && <a className="underline" style={{ color: INK }} href={`/today/${s.work_item_id}`}>Open case</a>}</td>
               </tr>
             ))}</tbody>

@@ -1616,14 +1616,14 @@ function StakeholderMapSection({
                       <Fragment key={r.key}>
                         <tr className="cursor-pointer hover:bg-[#faf9f6]" style={{ borderTop: `1px solid ${HAIR}` }} onClick={() => toggle(r.key)} aria-expanded={open}>
                           <td className="py-3 pl-3 align-top"><ChevronDown size={14} className={cn('transition-transform mt-0.5', open && 'rotate-180')} style={{ color: FAINT }} /></td>
-                          <td className="py-3 px-3 align-top">
+                          <td className="py-3 px-3 align-top cell-left">
                             <div className="font-medium" style={{ color: INK }}>{r.s.name}</div>
                             {r.s.company && <div className="text-[12.5px]" style={{ color: MUTED }}>{r.s.company}</div>}
                           </td>
                           <td className="py-3 px-3 align-top">
                             {r.st ? <Chip title={r.st.full}>{r.st.label}</Chip> : <span style={{ color: FAINT }}>—</span>}
                           </td>
-                          <td className="py-3 px-3 align-top text-[13.5px] whitespace-nowrap" style={{ color: r.last ? BODY : FAINT }}>
+                          <td className="py-3 px-3 align-top text-[13.5px] whitespace-nowrap cell-left" style={{ color: r.last ? BODY : FAINT }}>
                             {status}
                             {r.outstanding.length > 0 && <span style={{ color: MUTED }}> · {r.outstanding.length} item{r.outstanding.length !== 1 ? 's' : ''} awaited</span>}
                           </td>
@@ -1631,7 +1631,7 @@ function StakeholderMapSection({
                         {open && (
                           <tr style={{ background: HOVER }}>
                             <td></td>
-                            <td colSpan={3} className="px-3 pb-4 pt-1">
+                            <td colSpan={3} className="px-3 pb-4 pt-1 cell-left">
                               {r.s.email && <p className="m-0 mb-1 text-[13px]" style={{ color: MUTED }}>{r.s.email}</p>}
                               {r.s.role_summary && <p className="m-0 mb-2 text-[14px] leading-[1.55]" style={{ color: BODY }}>{r.s.role_summary}</p>}
                               {r.st && <p className="m-0 mb-2 text-[13px]" style={{ color: MUTED }}>Stance: {r.st.full}</p>}
@@ -1820,7 +1820,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
                     </td>
 
                     {/* Outcome + assumptions */}
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 cell-left">
                       <p className="m-0 text-[14px] leading-[1.55]" style={{ color: BODY }}>{s.outcome}</p>
                       {assumptions.length > 0 && (
                         <div className="mt-2.5">
@@ -1833,7 +1833,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
                     </td>
 
                     {/* TRS action + watch-fors */}
-                    <td className="py-4 px-4">
+                    <td className="py-4 px-4 cell-left">
                       <p className="m-0 text-[14px] font-medium leading-[1.5]" style={{ color: INK }}>{s.trs_action}</p>
                       {triggerConditions.length > 0 && (
                         <div className="mt-2.5">
@@ -3572,13 +3572,13 @@ function ThreadLinkerModal({
         </td>
 
         {/* Contact */}
-        <td className="py-3 pr-3 min-w-0 max-w-[160px] align-top">
+        <td className="py-3 pr-3 min-w-0 max-w-[160px] align-top cell-left">
           <p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{thread.contact ? contactName(thread.contact) : '—'}</p>
           {thread.contact?.company && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.contact.company}</p>}
         </td>
 
         {/* Subject */}
-        <td className="py-3 pr-3 min-w-0 align-top">
+        <td className="py-3 pr-3 min-w-0 align-top cell-left">
           <p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{thread.subject ?? '(no subject)'}</p>
           {isSuggested && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.match_reason}</p>}
         </td>
@@ -3690,8 +3690,8 @@ function ThreadLinkerModal({
                       {linkedThreads.map(ct => (
                         <tr key={`linked-${ct.thread_id}`} style={{ borderTop: `1px solid ${HAIR}` }}>
                           <td className="px-4 py-3 w-10 align-top"><Chip>Linked</Chip></td>
-                          <td className="py-3 pr-3 max-w-[160px] align-top"><p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
-                          <td className="py-3 pr-3 min-w-0 align-top"><p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p></td>
+                          <td className="py-3 pr-3 max-w-[160px] align-top cell-left"><p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
+                          <td className="py-3 pr-3 min-w-0 align-top cell-left"><p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p></td>
                           <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top" style={{ color: MUTED }}>{fmtDate(ct.thread?.last_message_at ?? null)}</td>
                           <td className="py-3 pr-4 w-[150px] align-top">
                             <div className="flex items-center justify-between gap-2">
@@ -3714,7 +3714,7 @@ function ThreadLinkerModal({
                   )}
                   {restRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested={false} />)}
                   {restRows.length === 0 && suggestedRows.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-12 text-[15px]" style={{ color: MUTED }}>
+                    <tr><td colSpan={5} className="text-center py-12 text-[15px]" style={{ color: MUTED, textAlign: 'center' }}>
                       {search ? 'No threads match.' : 'No threads available.'}
                     </td></tr>
                   )}

@@ -49,8 +49,8 @@ export function RenewalCalendar({ companyId }: { companyId: string }) {
               <RegisterCell first className="tabular-nums" identityWidth={170}>
                 {r.policy.end_date ? fmtDate(r.policy.end_date) : '—'}{d != null && <> <Chip tone={d < 0 ? 'red' : d <= 30 ? 'amber' : 'neutral'}>{d < 0 ? `${-d} d ago` : `${d} d`}</Chip></>}
               </RegisterCell>
-              <RegisterCell primary={<Link href={`/policies/${r.policy.id}?tab=renewal`} className="text-trs-ink no-underline hover:underline">{r.policy.class ?? r.policy.product_line ?? 'Policy'}</Link>} secondary={<span className="font-mono">{r.policy.policy_number ?? 'no number'}</span>} identityWidth={240} />
-              <RegisterCell>{r.policy.insurer ?? '—'}</RegisterCell>
+              <RegisterCell align="left" primary={<Link href={`/policies/${r.policy.id}?tab=renewal`} className="text-trs-ink no-underline hover:underline">{r.policy.class ?? r.policy.product_line ?? 'Policy'}</Link>} secondary={<span className="font-mono">{r.policy.policy_number ?? 'no number'}</span>} identityWidth={240} />
+              <RegisterCell align="left">{r.policy.insurer ?? '—'}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{fmtAmount(r.current.premium_net || r.current.premium_inception, ccy)}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{r.current.claims_count && r.current.claims_paid === 0 ? '—' : pct(r.current.loss_ratio)}</RegisterCell>
               <RegisterCell align="right" className="tabular-nums">{r.policy.is_eb ? lives : '—'}</RegisterCell>

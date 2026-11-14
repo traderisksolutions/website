@@ -131,7 +131,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                       <>
                         <RegisterCell first primary={line} title={under} />
                         <RegisterCell title={p.policy_number ?? undefined}><span className="block max-w-[160px] truncate text-[13.5px] tabular-nums">{p.policy_number ?? '—'}</span></RegisterCell>
-                        <RegisterCell title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-[13.5px]">{p.insurer ?? '—'}</span></RegisterCell>
+                        <RegisterCell align="left" title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-[13.5px]">{p.insurer ?? '—'}</span></RegisterCell>
                         <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
@@ -143,7 +143,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                           const dn = [...dns].sort((a, b) => (b.issue_date ?? '').localeCompare(a.issue_date ?? ''))[0]
                           const link = 'underline underline-offset-4 text-[13.5px] whitespace-nowrap'
                           return (
-                            <RegisterCell title={doc ? `${doc.title || doc.filename}${more > 0 ? ` · ${more} more in the data room` : ''}` : f?.folder ? 'Drive folder' : undefined}>
+                            <RegisterCell align="left" title={doc ? `${doc.title || doc.filename}${more > 0 ? ` · ${more} more in the data room` : ''}` : f?.folder ? 'Drive folder' : undefined}>
                               {doc ? <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>{FILE_WORD[doc.doc_type] ?? 'Document'} ↗</a>
                                 : dn ? <a href={`/api/debit-notes/${dn.id}/pdf`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>Debit note ↗</a>
                                 : f?.folder ? <a href={f.folder} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: MUTED }}>Folder ↗</a>
@@ -200,7 +200,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                                 return (
                                   <RegisterRow key={q.id}>
                                     <RegisterCell first primary={q.insurer_name} title={q.insurer_name} />
-                                    <RegisterCell title={q.plan_label ?? undefined}><span className="text-[13px]" style={{ color: MUTED }}>{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
+                                    <RegisterCell align="left" title={q.plan_label ?? undefined}><span className="text-[13px]" style={{ color: MUTED }}>{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
                                     <RegisterCell align="right" primary={rounds.get(q.round_id)?.round_no ?? '—'} />
                                     <RegisterCell align="right" primary={`${q.premium_amount != null ? fmtAmount(q.premium_amount, q.currency ?? 'SGD') : (q.premium_text ?? '—')}${q.needs_review ? ' · check' : ''}`} />
                                     <RegisterCell primary={q.limit_text ?? '—'} />
@@ -255,7 +255,7 @@ function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
             <XlCell label align="left" strong>{d.debit_note_no}</XlCell>
             <XlCell>{fmtDate(d.issue_date)}</XlCell>
             <XlCell>{d.event_type ? d.event_type.replace(/_/g, ' ') : ''}</XlCell>
-            <XlCell>{d.insurer ?? ''}</XlCell>
+            <XlCell align="left">{d.insurer ?? ''}</XlCell>
             <XlCell>{fmtAmount(d.gross_amount, d.currency)}</XlCell>
             <XlCell>{d.paid_amount ? fmtAmount(d.paid_amount, d.currency) : ''}</XlCell>
             <XlCell>{d.outstanding > 0 ? fmtAmount(d.outstanding, d.currency) : ''}</XlCell>

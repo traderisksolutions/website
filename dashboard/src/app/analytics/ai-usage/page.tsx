@@ -61,9 +61,9 @@ const MODEL_RATE: Record<string, string> = {
   'unrecorded':             'model not written to the row',
 }
 
-const th = 'text-left text-[11px] uppercase tracking-[0.04em] font-medium pb-2'
-const td = 'py-2.5 text-[13px] align-top'
-const num = 'py-2.5 text-[13px] text-right tabular-nums align-top'
+const th = 'font-medium px-3 whitespace-nowrap'
+const td = 'px-3 text-[13px] align-middle'
+const num = 'px-3 text-[13px] text-center tabular-nums align-middle whitespace-nowrap'
 
 export default function AISpendPage() {
   const [d, setD] = useState<Payload | null>(null)
@@ -192,9 +192,9 @@ export default function AISpendPage() {
                   <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                     <th className={th}>Agent</th>
                     <th className={th}>Model</th>
-                    <th className={`${th} text-right`}>Calls</th>
-                    <th className={`${th} text-right`}>Tokens</th>
-                    <th className={`${th} text-right`}>Cost</th>
+                    <th className={th}>Calls</th>
+                    <th className={th}>Tokens</th>
+                    <th className={th}>Cost</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -237,10 +237,10 @@ export default function AISpendPage() {
                   <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                     <th className={th}>Model</th>
                     <th className={th}>Rate</th>
-                    <th className={`${th} text-right`}>Calls</th>
-                    <th className={`${th} text-right`}>In</th>
-                    <th className={`${th} text-right`}>Out</th>
-                    <th className={`${th} text-right`}>Cost</th>
+                    <th className={th}>Calls</th>
+                    <th className={th}>In</th>
+                    <th className={th}>Out</th>
+                    <th className={th}>Cost</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,9 +265,9 @@ export default function AISpendPage() {
                     <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
                       <th className={th}>Feature</th>
                       <th className={th}>Agent</th>
-                      <th className={`${th} text-right`}>Calls</th>
-                      <th className={`${th} text-right`}>Cost</th>
-                      <th className={`${th} text-right`}>Per call</th>
+                      <th className={th}>Calls</th>
+                      <th className={th}>Cost</th>
+                      <th className={th}>Per call</th>
                     </tr>
                   </thead>
                   <tbody>

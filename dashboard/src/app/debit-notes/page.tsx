@@ -284,7 +284,7 @@ function DebitNotesContent() {
                   <RegisterRow key={r.id} onClick={() => setOpenId(r.id)}>
                     <RegisterCell first title={r.companies?.name ?? undefined} primary={r.companies?.name ?? '—'} secondary={r.policies?.class_of_insurance || 'No policy type'} />
                     <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.policies?.policy_number || '—'}</span></RegisterCell>
-                    <RegisterCell className="max-w-[220px]"><span className="block truncate text-[14px]" style={{ color: BODY }}>{r.insurer ?? '—'}</span></RegisterCell>
+                    <RegisterCell align="left" className="max-w-[220px]"><span className="block truncate text-[14px]" style={{ color: BODY }}>{r.insurer ?? '—'}</span></RegisterCell>
                     <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.debit_note_no}</span></RegisterCell>
                     <RegisterCell primary={fmtDate(r.policies?.end_date ?? null)} />
                     <RegisterCell align="right" primary={<span className="font-medium">{fmt(r.gross_amount, r.currency)}</span>} secondary={r.currency} />

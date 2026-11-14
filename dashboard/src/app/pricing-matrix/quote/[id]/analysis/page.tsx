@@ -99,10 +99,10 @@ export default function AnalysisPage() {
               <div className="overflow-x-auto">
                 <table className="trs-table w-full text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 720 }}>
                   <thead><tr>
-                    <th className="text-left px-3 py-2" style={{ color: MUTED }}>Insurer</th>
-                    {[down, sug, up].map((r, i) => r ? <th key={r.key} className="text-right px-3 py-2" style={{ background: i === 1 ? FIELD : undefined }}>{i === 0 ? 'Save a little · ' : i === 2 ? 'Add a little · ' : 'Suggested · '}{r.name}</th> : <th key={i} />)}
-                    {pack.custom && <th className="text-right px-3 py-2">Custom</th>}
-                    {pack.split && <th className="text-right px-3 py-2">Split</th>}
+                    <th className="px-3 py-2" style={{ color: MUTED }}>Insurer</th>
+                    {[down, sug, up].map((r, i) => r ? <th key={r.key} className="px-3 py-2" style={{ background: i === 1 ? FIELD : undefined }}>{i === 0 ? 'Save a little · ' : i === 2 ? 'Add a little · ' : 'Suggested · '}{r.name}</th> : <th key={i} />)}
+                    {pack.custom && <th className="px-3 py-2">Custom</th>}
+                    {pack.split && <th className="px-3 py-2">Split</th>}
                   </tr></thead>
                   <tbody>
                     {insurers.map(ins => {
@@ -112,9 +112,9 @@ export default function AnalysisPage() {
                       return (
                         <tr key={ins} style={{ borderTop: `1px solid ${HAIR}` }}>
                           <td className="px-3 py-2" style={{ color: colour, textDecoration: excluded ? 'line-through' : 'none' }}>{shortInsurer(ins)}{excluded ? ' · ruled out' : ''}{pack.currentInsurer && shortInsurer(pack.currentInsurer) === shortInsurer(ins) ? ' · current' : ''}</td>
-                          {cells.map((c, i) => { const r = [down, sug, up][i]; const best = !!r?.best && r.best.insurer_name === ins; return <td key={i} className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: i === 1 ? FIELD : undefined }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : r ? '—' : ''}</td> })}
-                          {pack.custom && (() => { const c = pack.custom!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.custom!.best?.insurer_name === ins; return <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
-                          {pack.split && (() => { const c = pack.split!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.split!.best?.insurer_name === ins; return <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
+                          {cells.map((c, i) => { const r = [down, sug, up][i]; const best = !!r?.best && r.best.insurer_name === ins; return <td key={i} className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: i === 1 ? FIELD : undefined }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : r ? '—' : ''}</td> })}
+                          {pack.custom && (() => { const c = pack.custom!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.custom!.best?.insurer_name === ins; return <td className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
+                          {pack.split && (() => { const c = pack.split!.insurers.find(x => x.insurer_name === ins && !x.variant); const best = pack.split!.best?.insurer_name === ins; return <td className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })()}
                         </tr>
                       )
                     })}
@@ -150,14 +150,14 @@ export default function AnalysisPage() {
                 <table className="trs-table w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 900 }}>
                   <thead>
                     <tr>
-                      <th className="text-left px-3 py-2" style={{ color: MUTED }}>Insurer</th>
+                      <th className="px-3 py-2" style={{ color: MUTED }}>Insurer</th>
                       {pack.rungs.map(r => (
-                        <th key={r.key} className="text-right px-3 py-2" style={{ background: r.key === pack.suggested ? FIELD : undefined }}>
+                        <th key={r.key} className="px-3 py-2" style={{ background: r.key === pack.suggested ? FIELD : undefined }}>
                           <button type="button" onClick={() => post({ suggested: r.key }, r.key)} disabled={!!busy} title="Make this the suggested package" className="bg-transparent border-0 p-0 cursor-pointer text-[13px] font-semibold" style={{ color: INK }}>{r.name}{r.key === pack.suggested ? ' ·' : ''}</button>
                         </th>
                       ))}
-                      {pack.custom && <th className="text-right px-3 py-2">Custom</th>}
-                      {pack.split && <th className="text-right px-3 py-2">Split</th>}
+                      {pack.custom && <th className="px-3 py-2">Custom</th>}
+                      {pack.split && <th className="px-3 py-2">Split</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -312,14 +312,14 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
     <>
       <tr style={{ borderTop: `1px solid ${HAIR}` }}>
         <td className="px-3 py-2"><button type="button" onClick={onToggle} aria-expanded={open} className="bg-transparent border-0 p-0 cursor-pointer text-[13px] text-left" style={{ color: colour, textDecoration: excluded ? 'line-through' : 'none' }}>{shortInsurer(insurer)}{excluded ? ' · ruled out' : ''}{pack.currentInsurer && shortInsurer(pack.currentInsurer) === shortInsurer(insurer) ? ' · current' : ''}</button></td>
-        {plain.map((c, i) => { const best = pack.rungs[i].best?.insurer_name === insurer; return <td key={i} className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: bg(i) }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : '—'}</td> })}
-        {pack.custom && <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: pack.custom.best?.insurer_name === insurer ? 600 : 400 }}>{custom ? money(custom.net, { dp: 0 }) : '—'}</td>}
-        {pack.split && <td className="px-3 py-2 text-right tabular-nums" style={{ color: colour, fontWeight: pack.split.best?.insurer_name === insurer ? 600 : 400 }}>{split ? money(split.net, { dp: 0 }) : '—'}</td>}
+        {plain.map((c, i) => { const best = pack.rungs[i].best?.insurer_name === insurer; return <td key={i} className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: best ? 600 : 400, background: bg(i) }}>{c ? <>{money(c.net, { dp: 0 })}{c.unpriced ? <span title={`${c.unpriced} member lines not priced`} style={{ color: SUBTLE }}> *</span> : null}</> : '—'}</td> })}
+        {pack.custom && <td className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: pack.custom.best?.insurer_name === insurer ? 600 : 400 }}>{custom ? money(custom.net, { dp: 0 }) : '—'}</td>}
+        {pack.split && <td className="px-3 py-2 tabular-nums" style={{ color: colour, fontWeight: pack.split.best?.insurer_name === insurer ? 600 : 400 }}>{split ? money(split.net, { dp: 0 }) : '—'}</td>}
       </tr>
       {hasCoins && (
         <tr>
           <td className="px-3 py-1 text-[12.5px]" style={{ color: SUBTLE }}>with 20% co-insurance</td>
-          {coins.map((c, i) => <td key={i} className="px-3 py-1 text-right tabular-nums text-[12.5px]" style={{ color: SUBTLE, background: bg(i) }}>{c ? money(c.net, { dp: 0 }) : '—'}</td>)}
+          {coins.map((c, i) => <td key={i} className="px-3 py-1 tabular-nums text-[12.5px]" style={{ color: SUBTLE, background: bg(i) }}>{c ? money(c.net, { dp: 0 }) : '—'}</td>)}
           {pack.custom && <td />}
           {pack.split && <td />}
         </tr>
@@ -327,9 +327,9 @@ function InsurerRows({ pack, insurer, open, showCoins, onToggle }: { pack: Analy
       {open && (
         <tr>
           <td className="px-3 py-2 text-[12.5px]" style={{ color: SUBTLE }}>plans</td>
-          {plain.map((c, i) => <td key={i} className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED, background: bg(i) }}>{c ? Object.entries(c.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{c?.notes.length ? <div style={{ color: SUBTLE }}>{c.notes.join('; ')}</div> : null}</td>)}
-          {pack.custom && <td className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED }}>{custom ? Object.entries(custom.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{custom && pack.custom.notes[custom.rate_table_id]?.length ? <div style={{ color: SUBTLE }}>{pack.custom.notes[custom.rate_table_id].join('; ')}</div> : null}</td>}
-          {pack.split && <td className="px-3 py-2 text-right text-[12px]" style={{ color: MUTED }}>{split ? Object.entries(split.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}</td>}
+          {plain.map((c, i) => <td key={i} className="px-3 py-2 text-[12px]" style={{ color: MUTED, background: bg(i) }}>{c ? Object.entries(c.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{c?.notes.length ? <div style={{ color: SUBTLE }}>{c.notes.join('; ')}</div> : null}</td>)}
+          {pack.custom && <td className="px-3 py-2 text-[12px]" style={{ color: MUTED }}>{custom ? Object.entries(custom.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}{custom && pack.custom.notes[custom.rate_table_id]?.length ? <div style={{ color: SUBTLE }}>{pack.custom.notes[custom.rate_table_id].join('; ')}</div> : null}</td>}
+          {pack.split && <td className="px-3 py-2 text-[12px]" style={{ color: MUTED }}>{split ? Object.entries(split.plans).filter(([, v]) => v).map(([kk, v]) => `${kk} ${v}`).join(' · ') : '—'}</td>}
         </tr>
       )}
     </>
@@ -425,14 +425,14 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
             {a.rows.some(r => r.lastYear != null) && (
               <div className="overflow-x-auto">
                 <table className="trs-table text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 520 }}>
-                  <thead><tr><th className="text-left px-3 py-2">Cover</th><th className="text-right px-3 py-2">Last year</th><th className="text-right px-3 py-2">This year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</th><th className="text-right px-3 py-2">Change</th></tr></thead>
+                  <thead><tr><th className="px-3 py-2">Cover</th><th className="px-3 py-2">Last year</th><th className="px-3 py-2">This year{row ? `, ${shortInsurer(row.insurer_name)}` : ''}</th><th className="px-3 py-2">Change</th></tr></thead>
                   <tbody>
                     {a.rows.map(r => (
                       <tr key={r.cover} style={{ borderTop: `1px solid ${HAIR}` }}>
                         <td className="px-3 py-2">{LAST_YEAR_COVER_WORD[r.cover]}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{r.lastYear != null ? money(r.lastYear, { dp: 0 }) : '—'}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{r.thisYear != null ? money(r.thisYear, { dp: 0 }) : '—'}</td>
-                        <td className="px-3 py-2 text-right tabular-nums" style={{ color: tone(r.change) }}>{pc(r.change)}</td>
+                        <td className="px-3 py-2 tabular-nums">{r.lastYear != null ? money(r.lastYear, { dp: 0 }) : '—'}</td>
+                        <td className="px-3 py-2 tabular-nums">{r.thisYear != null ? money(r.thisYear, { dp: 0 }) : '—'}</td>
+                        <td className="px-3 py-2 tabular-nums" style={{ color: tone(r.change) }}>{pc(r.change)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -464,8 +464,8 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
         <div className="overflow-x-auto">
           <table className="trs-table w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 860 }}>
             <thead><tr>
-              <th className="text-left px-3 py-2" style={{ color: MUTED }}>Change</th>
-              {order.map(ins => <th key={ins} className="text-right px-3 py-2" style={{ color: curOf(ins)?.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}</th>)}
+              <th className="px-3 py-2" style={{ color: MUTED }}>Change</th>
+              {order.map(ins => <th key={ins} className="px-3 py-2" style={{ color: curOf(ins)?.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}</th>)}
             </tr></thead>
             <tbody>
               {changes.map(r => (
@@ -476,7 +476,7 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
                     const d = c && base ? c.net - base.net : null
                     const grey = c?.excluded
                     return (
-                      <td key={ins} className="px-3 py-2 text-right tabular-nums" style={{ color: grey ? SUBTLE : INK, fontWeight: r.best?.insurer_name === ins ? 600 : 400 }}>
+                      <td key={ins} className="px-3 py-2 tabular-nums" style={{ color: grey ? SUBTLE : INK, fontWeight: r.best?.insurer_name === ins ? 600 : 400 }}>
                         {c ? money(c.net, { dp: 0 }) : '—'}
                         {d != null && <div className="text-[12px] font-normal" style={{ color: grey ? SUBTLE : Math.abs(d) < 1 ? SUBTLE : d < 0 ? '#1f7a3a' : '#a1242f' }}>{Math.abs(d) < 1 ? 'same plan' : `${d > 0 ? '+' : '−'}${money(Math.abs(d), { dp: 0 })}`}</div>}
                       </td>
@@ -487,7 +487,7 @@ function CurrentView({ pack, customise, busy, onCustom }: { pack: AnalysisPack; 
               {pack.custom && (
                 <tr style={{ borderTop: `1px solid ${HAIR}` }}>
                   <td className="px-3 py-2"><span style={{ color: INK }}>Custom</span><div className="text-[12px]" style={{ color: SUBTLE }}>{pack.custom.summary}</div></td>
-                  {order.map(ins => { const c = pack.custom!.insurers.find(i => i.insurer_name === ins && !i.variant); return <td key={ins} className="px-3 py-2 text-right tabular-nums" style={{ fontWeight: pack.custom!.best?.insurer_name === ins ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })}
+                  {order.map(ins => { const c = pack.custom!.insurers.find(i => i.insurer_name === ins && !i.variant); return <td key={ins} className="px-3 py-2 tabular-nums" style={{ fontWeight: pack.custom!.best?.insurer_name === ins ? 600 : 400 }}>{c ? money(c.net, { dp: 0 }) : '—'}</td> })}
                 </tr>
               )}
             </tbody>
@@ -517,17 +517,17 @@ function PlansAndPremium({ pack, order, curOf, isCurrentInsurer, lowest }: { pac
   const covers = LAST_YEAR_COVERS.filter(cv => cols.some(x => x.byCover[cv] != null))
   const ly = pack.lastYear ? (pack.lastYear.total ?? null) : null
   const gross = pack.lastYear?.gst === 'included'
-  const cell = 'px-3 py-2 text-right tabular-nums align-top'
+  const cell = 'px-3 py-2 tabular-nums align-top'
   const pc = (n: number) => `${n > 0 ? '+' : n < 0 ? '\u2212' : ''}${Math.abs(n * 100).toFixed(1)}%`
   const ward = (g: CurrentPlan['ghs']) => !g ? '\u2014' : `${g.hospital === 'government' ? 'Government' : g.hospital === 'private' ? 'Private' : ''} ${g.beds ? `${g.beds}-bed` : ''}`.trim() || '\u2014'
   const limit = (g: CurrentPlan['ghs']) => !g || g.limit == null ? '\u2014' : `${money(g.limit, { dp: 0 })} ${g.kind === 'annual' ? 'a year' : g.kind === 'per_disability' ? 'per disability' : ''}`.trim()
-  const head = (ins: string, c: AnalysisInsurer) => <th key={ins} className="px-3 py-2 text-right" style={{ color: c.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}{isCurrentInsurer(ins) ? <div className="text-[11.5px] font-normal" style={{ color: MUTED }}>current, renewal card</div> : null}{c.excluded ? <div className="text-[11.5px] font-normal">ruled out</div> : null}</th>
+  const head = (ins: string, c: AnalysisInsurer) => <th key={ins} className="px-3 py-2" style={{ color: c.excluded ? SUBTLE : INK }}>{shortInsurer(ins)}{isCurrentInsurer(ins) ? <div className="text-[11.5px] font-normal" style={{ color: MUTED }}>current, renewal card</div> : null}{c.excluded ? <div className="text-[11.5px] font-normal">ruled out</div> : null}</th>
   return (
     <section className="mt-8" aria-labelledby="plans-premium">
       <h2 id="plans-premium" className="m-0 mb-3 text-[16px] font-medium">Plans and premium</h2>
       <div className="overflow-x-auto">
         <table className="trs-table w-full text-[13px]" style={{ borderCollapse: 'collapse', minWidth: 760 }}>
-          <thead><tr><th className="text-left px-3 py-2">Cover</th>{cols.map(x => head(x.ins, x.c))}</tr></thead>
+          <thead><tr><th className="px-3 py-2">Cover</th>{cols.map(x => head(x.ins, x.c))}</tr></thead>
           <tbody>
             {covers.map(cv => (
               <tr key={cv} style={{ borderTop: `1px solid ${HAIR}` }}>

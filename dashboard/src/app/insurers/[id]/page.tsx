@@ -91,10 +91,10 @@ export default function InsurerThreadsPage() {
               return (
                 <RegisterRow key={r.id}>
                   <RegisterCell first primary={fmt(r.last_message_at)} />
-                  <RegisterCell title={r.subject}>
+                  <RegisterCell align="left" title={r.subject}>
                     <Link href={`/engagement?lead=${r.thread_id}`} className="no-underline hover:underline" style={{ color: INK }}>{r.subject}</Link>
                   </RegisterCell>
-                  <RegisterCell>{r.client ? <Link href={`/companies/${r.client.id}?tab=documents`} className="no-underline hover:underline" style={{ color: INK }}>{r.client.name}</Link> : <span style={{ color: MUTED }}>No client</span>}</RegisterCell>
+                  <RegisterCell align="left">{r.client ? <Link href={`/companies/${r.client.id}?tab=documents`} className="no-underline hover:underline" style={{ color: INK }}>{r.client.name}</Link> : <span style={{ color: MUTED }}>No client</span>}</RegisterCell>
                   <RegisterCell>
                     {r.policy_status === 'not_a_policy' ? <span style={{ color: MUTED }}>Not about a policy</span>
                       : r.options.length === 0 ? <span style={{ color: MUTED }}>{r.client ? 'Client has no policies' : '–'}</span>

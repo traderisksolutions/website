@@ -510,7 +510,7 @@ export default function RoadplusReconPage() {
                           <RegisterCell first className="min-w-[240px]"
                             primary={<>{newIds.indexOf(p.id) !== -1 && <span className={cn(CHIP, 'mr-2 align-middle')} style={CHIP_STYLE}>New</span>}{fmtDate(p.received_at)}</>}
                             secondary={RECON_LABEL[p.recon]} />
-                          <RegisterCell><span className="text-[14px] font-medium" style={{ color: INK }}>{p.insured_name ?? '—'}</span></RegisterCell>
+                          <RegisterCell align="left"><span className="text-[14px] font-medium" style={{ color: INK }}>{p.insured_name ?? '—'}</span></RegisterCell>
                           <RegisterCell align="right" primary={p.age ?? '—'} />
                           <RegisterCell title="Full value is in the CSV export"><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{maskNric(p.nric)}</span></RegisterCell>
                           <RegisterCell primary={p.coverage ?? '—'} secondary={p.max_rental_period ? `max ${p.max_rental_period}` : undefined} />
@@ -574,7 +574,7 @@ export default function RoadplusReconPage() {
                       <RegisterCell first primary={e.step} secondary={<span style={{ fontFamily: MONO }}>{e.journey_id}</span>} title={e.journey_id} />
                       <RegisterCell primary={fmtDate(e.created_at)} />
                       <RegisterCell><span className="text-[14px]" style={{ color: INK }}>{STEP_STATUS_LABEL[e.status] ?? e.status}</span></RegisterCell>
-                      <RegisterCell nowrap={false}>
+                      <RegisterCell align="left" nowrap={false}>
                         <span className="block max-w-[420px] text-[14px] break-words" style={{ color: '#2a332f' }}>
                           {e.error ? e.error : e.meta ? <span className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{JSON.stringify(e.meta)}</span> : '—'}
                         </span>

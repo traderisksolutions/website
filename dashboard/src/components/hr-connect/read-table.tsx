@@ -65,7 +65,7 @@ export function PeopleFound({ read, token, source }: { read: HrRead; token: stri
           <div className="hrc-scroll">
             <table className="trs-table">
               <thead><tr><th>Row</th><th>Reason</th></tr></thead>
-              <tbody>{read.skipped.map(s => <tr key={s.key}><td>{s.key}</td><td>{s.reason}</td></tr>)}</tbody>
+              <tbody>{read.skipped.map(s => <tr key={s.key}><td>{s.key}</td><td className="cell-left">{s.reason}</td></tr>)}</tbody>
             </table>
           </div>
         </>

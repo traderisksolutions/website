@@ -94,7 +94,7 @@ export function CompanyLog({ bundle, events, onChanged }: {
                 <RegisterRow key={e.id}>
                   <RegisterCell first identityWidth={120} title={`${fmtRelative(e.at)} · ${fmtDateTime(e.at)}`} primary={fmtDate(e.at)} />
                   <RegisterCell primary={e.kind} />
-                  <RegisterCell nowrap={false}>
+                  <RegisterCell align="left" nowrap={false}>
                     <span className="block text-[13px] whitespace-pre-wrap" style={{ color: INK }} title={e.detail ?? undefined}>{e.text}{e.detail && <span style={{ color: MUTED }}> · {e.detail}</span>}</span>
                   </RegisterCell>
                   <RegisterCell last align="right">

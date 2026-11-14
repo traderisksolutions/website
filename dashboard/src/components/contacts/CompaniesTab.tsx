@@ -101,7 +101,7 @@ export function CompaniesTab({ onSwitchToContacts }: { onSwitchToContacts: () =>
                 return (
                   <RegisterRow key={c.id} selected={on} onClick={() => setSelectedId(c.id)}>
                     <RegisterCell first selected={on} title={c.name} primary={c.name} secondary={c.domain ?? 'No domain on file'} />
-                    <RegisterCell className="max-w-[360px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{c.address ?? '—'}</span></RegisterCell>
+                    <RegisterCell align="left" className="max-w-[360px]"><span className="block truncate text-[14px]" style={{ color: '#2a332f' }}>{c.address ?? '—'}</span></RegisterCell>
                     <RegisterCell last><span className="text-[14px]" style={{ color: '#2a332f' }}>{c.type ?? '—'}</span></RegisterCell>
                   </RegisterRow>
                 )

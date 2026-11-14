@@ -132,7 +132,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
               return (
                 <RegisterRow key={r.id} onClick={() => router.push(`/pricing-matrix/hr-links/${r.id}`)}>
                   <RegisterCell first identityWidth={180} primary={r.reference} secondary={r.effective_date ? `effective ${fmtDate(r.effective_date)}` : 'no policy start'} />
-                  <RegisterCell className="max-w-[260px]">
+                  <RegisterCell align="left" className="max-w-[260px]">
                     <span className="block text-[14px] truncate" style={{ color: '#0f1412' }} title={r.company_name}>{r.company_name}</span>
                     {policyHref && (
                       <Link href={policyHref} onClick={e => e.stopPropagation()} className="block text-[12.5px] truncate no-underline hover:underline" style={{ color: MUTED }}>
@@ -140,7 +140,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
                       </Link>
                     )}
                   </RegisterCell>
-                  <RegisterCell primary={<span className="text-[14px] font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
+                  <RegisterCell align="left" primary={<span className="text-[14px] font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
                   <RegisterCell><span className={CHIP}>{linkStatusWord(r)}</span></RegisterCell>
                   <RegisterCell primary={fmtDate(r.sent_at)} secondary={`valid to ${fmtDate(r.expires_at)}`} />
                   <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r.submitted_at ? '#0f1412' : '#8c958f' }}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>

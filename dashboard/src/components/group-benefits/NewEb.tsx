@@ -324,9 +324,9 @@ export function NewEb({ initialCompany, initialCompanyId, threadId, quotationId,
                   {brochures.map(b => (
                     <tr key={b.product} style={{ borderTop: `1px solid ${LINE}` }}>
                       <td className="px-3 py-1.5">{b.product}</td>
-                      <td className="px-3 py-1.5">{b.brochure?.url ? <a href={b.brochure.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.brochure.name}</a> : <span style={{ color: MUTED }}>Not in Drive</span>}</td>
+                      <td className="px-3 py-1.5 cell-left">{b.brochure?.url ? <a href={b.brochure.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.brochure.name}</a> : <span style={{ color: MUTED }}>Not in Drive</span>}</td>
                       <td className="px-3 py-1.5">{b.brochure?.year ?? '—'}</td>
-                      <td className="px-3 py-1.5">{b.rates?.url ? <a href={b.rates.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.rates.name}</a> : <span style={{ color: MUTED }}>Brochure rate table</span>}</td>
+                      <td className="px-3 py-1.5 cell-left">{b.rates?.url ? <a href={b.rates.url} target="_blank" rel="noopener" className="underline underline-offset-2" style={{ color: INK }}>{b.rates.name}</a> : <span style={{ color: MUTED }}>Brochure rate table</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -353,13 +353,13 @@ export function NewEb({ initialCompany, initialCompanyId, threadId, quotationId,
                 {(sheets ?? []).map(s => (
                   <tr key={s.sheet} style={{ borderTop: `1px solid ${LINE}`, color: s.members.length ? INK : MUTED }}>
                     <td className="px-3 py-1.5"><input id={`tab-${s.sheet}`} type="checkbox" aria-label={`Price tab ${s.sheet}`} disabled={!s.members.length} checked={picked.has(s.sheet)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(s.sheet); else n.delete(s.sheet); return n })} /></td>
-                    <td className="px-3 py-1.5">{s.sheet}{!s.members.length ? <span className="text-[12px]" style={{ color: MUTED }}> · no people read</span> : null}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{s.employees}</td>
-                    <td className="px-3 py-1.5 text-right tabular-nums">{s.dependants}</td>
-                    <td className="px-3 py-1.5 text-[12.5px]" style={{ color: MUTED }}>{s.planCovers.join(', ') || '—'}</td>
+                    <td className="px-3 py-1.5 cell-left">{s.sheet}{!s.members.length ? <span className="text-[12px]" style={{ color: MUTED }}> · no people read</span> : null}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{s.employees}</td>
+                    <td className="px-3 py-1.5 tabular-nums">{s.dependants}</td>
+                    <td className="px-3 py-1.5 text-[12.5px] cell-left" style={{ color: MUTED }}>{s.planCovers.join(', ') || '—'}</td>
                   </tr>
                 ))}
-                <tr style={{ borderTop: `1px solid ${LINE}`, fontWeight: 600 }}><td /><td className="px-3 py-1.5">Picked</td><td className="px-3 py-1.5 text-right tabular-nums">{employees}</td><td className="px-3 py-1.5 text-right tabular-nums">{members.length - employees}</td><td className="px-3 py-1.5 text-[12.5px]">{lives} lives</td></tr>
+                <tr style={{ borderTop: `1px solid ${LINE}`, fontWeight: 600 }}><td /><td className="px-3 py-1.5 cell-left">Picked</td><td className="px-3 py-1.5 tabular-nums">{employees}</td><td className="px-3 py-1.5 tabular-nums">{members.length - employees}</td><td className="px-3 py-1.5 text-[12.5px] cell-left">{lives} lives</td></tr>
               </tbody>
             </table>
           </div>
@@ -433,16 +433,16 @@ function LastYearPanel({ ly, onChange }: { ly: LastYear; onChange: (ly: LastYear
               <tr key={c} style={{ borderTop: `1px solid ${LINE}` }}>
                 <td className="px-3 py-1.5 whitespace-nowrap">{LAST_YEAR_COVER_WORD[c]}</td>
                 {ly.categories.map(k => <td key={k.name} className="px-3 py-1.5">{k.plans[c] ?? <span style={{ color: MUTED }}>—</span>}</td>)}
-                <td className="px-3 py-1 text-right">
+                <td className="px-3 py-1">
                   <input id={`ly-premium-${c}`} aria-label={`${LAST_YEAR_COVER_WORD[c]} premium`} inputMode="decimal" value={ly.premiumByCover[c] ?? ''} placeholder="Not stated"
                     onChange={e => { const t = e.target.value.trim(); const n = Number(t.replace(/[^0-9.]/g, '')); setPremium(c, t === '' || !Number.isFinite(n) ? null : n) }}
-                    className={`${inputCls} max-w-[130px] text-right tabular-nums`} />
+                    className={`${inputCls} max-w-[130px] text-center tabular-nums`} />
                 </td>
               </tr>
             ))}
             <tr style={{ borderTop: `1px solid ${LINE}`, fontWeight: 600 }}>
               <td className="px-3 py-1.5">Total</td>{ly.categories.map(k => <td key={k.name} />)}
-              <td className="px-3 py-1.5 text-right tabular-nums">{ly.total != null || sum > 0 ? money(ly.total ?? sum) : <span className="font-normal" style={{ color: MUTED }}>Not stated</span>}{' '}
+              <td className="px-3 py-1.5 tabular-nums">{ly.total != null || sum > 0 ? money(ly.total ?? sum) : <span className="font-normal" style={{ color: MUTED }}>Not stated</span>}{' '}
                 {ly.sumMatches === true && <span className="text-[11.5px] px-2 py-0.5 rounded-full font-normal" style={{ background: PILL, color: PILL_FG }}>= debit note</span>}
                 {ly.sumMatches === false && <span className="text-[11.5px] px-2 py-0.5 rounded-full font-normal" style={{ background: '#fbf1dc', color: '#8a5a00' }}>covers add to {money(sum)}</span>}
               </td>

@@ -134,9 +134,9 @@ function Enquiries() {
                     <RegisterCell first selected={on} identityWidth={240}
                       primary={r.company_name ?? <span style={{ color: MUTED }}>No company yet</span>}
                       secondary={r.contact_name ?? '–'} />
-                    <RegisterCell primary={r.email ?? <span style={{ color: MUTED }}>–</span>} secondary={r.phone ?? undefined} />
+                    <RegisterCell align="left" primary={r.email ?? <span style={{ color: MUTED }}>–</span>} secondary={r.phone ?? undefined} />
                     <RegisterCell primary={r.industry ? answerLabel('industry', r.industry) : '–'} />
-                    <RegisterCell primary={cover.length ? <span className="block max-w-[260px] truncate" title={cover.join(', ')}>{cover.join(', ')}</span> : '–'}
+                    <RegisterCell align="left" primary={cover.length ? <span className="block max-w-[260px] truncate" title={cover.join(', ')}>{cover.join(', ')}</span> : '–'}
                       secondary={r.flags?.length ? `${r.flags.length} flag${r.flags.length === 1 ? '' : 's'} for the adviser` : undefined} />
                     <RegisterCell primary={bookingLabel(r.booking) ?? '–'} secondary={r.booking?.format ? (r.booking.format === 'whatsapp' ? 'WhatsApp call' : 'Google Meet') : undefined} />
                     <RegisterCell primary={STATUS_LABEL[r.status] ?? r.status} />
