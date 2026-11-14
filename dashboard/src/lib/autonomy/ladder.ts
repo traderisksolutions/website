@@ -5,10 +5,12 @@
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { isUnedited } from '@/lib/analytics/autonomy/origin'
 import { LADDER_ORDER, canSwitchOn, nextStatus, type LadderRow, type LadderStatus } from './rules'
+import { manualMode } from '@/lib/ai-gate'
 
 type Row = Record<string, any>
 
-export const killSwitch = () => (process.env.AUTONOMY_AUTOSEND ?? 'on').toLowerCase() === 'off'
+/** Auto-send is off while AI is manual (src/lib/ai-gate.ts): nothing sends without a person's click. */
+export const killSwitch = () => manualMode() || (process.env.AUTONOMY_AUTOSEND ?? 'on').toLowerCase() === 'off'
 
 export async function loadLadder(): Promise<LadderRow[]> {
   const rows = await sbTry<LadderRow[]>('autonomy_ladder?select=*&order=rung.asc', [])

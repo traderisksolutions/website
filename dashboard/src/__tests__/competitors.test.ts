@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { autoName, isMigrationPending, normaliseUrl } from '@/lib/marketing/competitors'
 import { cleanCadencePatch } from '@/lib/marketing/schedule'
 
@@ -36,7 +36,11 @@ describe('lag rule and cadence', () => {
     expect(cleanCadencePatch({ count: 13 })).toEqual({ error: 'Articles per night must be 0 to 12' })
     expect(cleanCadencePatch({ length: 'huge' })).toEqual({ error: 'Length must be standard or long' })
     expect(cleanCadencePatch({ post: 'yes' })).toEqual({ error: 'post must be true or false' })
+    expect(cleanCadencePatch({ count: '2' })).toEqual({ error: 'AI is manual: articles are written with Run now, not nightly.' })
+    expect(cleanCadencePatch({ count: 0, length: 'long', post: false })).toEqual({ patch: { nightly_count: 0, article_length: 'long', require_approval: true } })
+    vi.stubEnv('AI_MODE', 'auto')
     expect(cleanCadencePatch({ count: '2', length: 'long', post: false })).toEqual({ patch: { nightly_count: 2, article_length: 'long', require_approval: true } })
+    vi.unstubAllEnvs()
     expect(cleanCadencePatch({})).toEqual({ patch: {} })
   })
 })

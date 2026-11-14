@@ -3,6 +3,7 @@
 // (content-engine/engine/nightly.py) picks the same prompts; tonight() mirrors its rule so the
 // preview matches the run.
 import { sb, sbCount } from '@/lib/sales/db'
+import { manualMode } from '@/lib/ai-gate'
 import { n } from '@/lib/sales/labels'
 import type { Cadence, GeoAnalysis, GeoQuality, KnowledgeVersionSummary, NightGroup, NightRow, NightStatus, RunSetup, Site, TonightPlan, TonightPrompt } from './types'
 import { isMigrationPending, latestAnalysis, latestResults } from './competitors'
@@ -46,6 +47,8 @@ export function cleanCadencePatch(body: Record<string, unknown>): { patch: Caden
   if (body.count !== undefined) {
     const v = Math.floor(Number(body.count))
     if (!Number.isFinite(v) || v < 0 || v > 12) return { error: 'Articles per night must be 0 to 12' }
+    // Manual AI (src/lib/ai-gate.ts): no nightly writing; an article is written with Run now.
+    if (v > 0 && manualMode()) return { error: 'AI is manual: articles are written with Run now, not nightly.' }
     patch.nightly_count = v
   }
   if (body.length !== undefined) {
