@@ -260,14 +260,14 @@ function CompanyWorkspace() {
           </span>
           <Segmented<ThreadView> value={threadView} onChange={v => setThreadView(v)} label="Threads view" className="flex-shrink-0" options={[{ value: 'list', label: 'List' }, { value: 'reader', label: 'Reader' }]} />
 
-          <div className="ml-auto hidden md:flex items-center gap-1 flex-shrink-0" role="tablist">
+          <div className="ml-auto hidden md:flex items-center gap-1 min-w-0 overflow-x-auto" role="tablist">
             {TABS.filter(t => t.key !== 'threads').map(t => (
               <button
                 key={t.key}
                 type="button"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-[30px] px-2.5 rounded-[6px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap hover:bg-[#f1f2ee]"
+                className="h-[30px] px-2.5 rounded-[6px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap flex-shrink-0 hover:bg-[#f1f2ee]"
                 style={{ color: MUTED }}
               >
                 {t.label}

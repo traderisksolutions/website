@@ -89,9 +89,9 @@ Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unkno
 
 ## Dogfood
 
-`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 91 checks) and every route (`http <base>`, 37 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
+`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 91 checks) and every route (`http <base>`, 54 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
 
-Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness.
+Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness; 54 of 54 on the routes with Today mail and the read a person starts.
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 

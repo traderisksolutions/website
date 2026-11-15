@@ -10,17 +10,23 @@ import { dbRows, openClean } from './helpers'
 const headers: Record<string, string> = process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {}
 type Sources = { picked: unknown[]; proposed: unknown[]; recent: unknown[]; older: unknown[]; buckets: { client: unknown[]; insurer: unknown[] } }
 
-/** An open case whose threads the signed-in person may see; with `offers`, one that also has a thread to tick. */
+/** An open case whose threads the signed-in person may see; with `offers`, one that also has a thread to tick. Looked up once per worker. */
+const found: { any?: string | null; offers?: string | null } = {}
 async function openCase(page: Page, offers = false): Promise<string | null> {
+  const key = offers ? 'offers' : 'any'
+  if (found[key] !== undefined) return found[key] ?? null
   const rows = await dbRows<{ work_item_id: string }>('work_item_threads?select=work_item_id,work_items!inner(closed_at)&work_items.closed_at=is.null&order=created_at.desc&limit=60')
   const ids = Array.from(new Set(rows.map(r => r.work_item_id))).slice(0, 25)
   for (const id of ids) {
     const res = await page.request.get(`/api/work/${id}/sources`, { headers })
     if (!res.ok()) continue
     const s = await res.json() as Sources
-    if (s.picked.length > 0 && (!offers || s.proposed.length + s.recent.length + s.older.length > 0)) return id
+    if (!s.picked.length) continue
+    found.any ??= id
+    if (s.proposed.length + s.recent.length + s.older.length > 0) found.offers ??= id
+    if (found[key]) return found[key] ?? null
   }
-  return null
+  return (found[key] = null)
 }
 const names = async (group: import('@playwright/test').Locator) => (await group.getByRole('radio').allTextContents()).map(t => t.replace(/[\d,]+\s*$/, '').trim())
 

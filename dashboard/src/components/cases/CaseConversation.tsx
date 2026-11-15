@@ -12,6 +12,7 @@ import { DASH, fmtDayTime } from '@/lib/format'
 import type { Said } from '@/lib/cases/sources'
 import type { CaseSources } from '@/lib/cases/sources-store'
 import type { CaseMemory } from '@/lib/cases/memory-store'
+import { actorName } from '@/lib/cases/names'
 import { count, headingCls, ReadNewButton, tableFrame } from './shared'
 
 const SIDES = [{ key: 'client', name: 'Client' }, { key: 'insurer', name: 'Insurer' }] as const
@@ -48,15 +49,16 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
       <h2 className={headingCls}>{name} · {count(rows.length, 'message')}</h2>
       {rows.length === 0 ? <Empty compact>No messages on this side.</Empty> : (
         <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 820 }} aria-label={`${name} messages`}>
-            <thead><tr><th className="w-[112px]">Date</th><th className="w-[220px]">From</th><th>Message</th><th className="w-[200px]">Files</th></tr></thead>
+          <table className="trs-table table-fixed" style={{ minWidth: 720 }} aria-label={`${name} messages`}>
+            <colgroup><col style={{ width: 108 }} /><col style={{ width: 180 }} /><col /><col style={{ width: '18%' }} /></colgroup>
+            <thead><tr><th>Date</th><th>From</th><th>Message</th><th>Files</th></tr></thead>
             <tbody>
               {rows.map(m => (
                 <tr key={m.message_id} className="align-top">
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDayTime(m.at)}</td>
                   <td className="cell-left px-3 py-2">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[13px] text-trs-ink" title={m.from}>{m.name}</span>
+                      <span className="text-[13px] text-trs-ink [overflow-wrap:anywhere]" title={m.from}>{m.by === 'trs' && m.name.includes('@') ? actorName(m.from, memory.staff) : m.name}</span>
                       {m.by === 'trs' && <Chip>TRS</Chip>}
                       {fresh.has(m.message_id) && <Chip tone="amber">New</Chip>}
                     </span>
@@ -67,7 +69,7 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
                       {dense(m.text) || <span className="text-trs-muted">No text</span>}
                     </button>
                   </td>
-                  <td className="cell-left px-3 py-2 text-[13px] break-words">{m.files.length ? m.files.join(', ') : <span className="text-trs-muted">{DASH}</span>}</td>
+                  <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
                 </tr>
               ))}
             </tbody>

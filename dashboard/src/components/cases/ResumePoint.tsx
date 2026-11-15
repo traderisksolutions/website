@@ -51,8 +51,8 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
             onDone={notice => { onNotice(notice); onChanged(); load().then(setMemory).catch(e => onError(errText(e))) }} />
         </div>
         <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 480 }} aria-label="Resume point">
-            <thead><tr><th className="w-[150px]">Item</th><th>Detail</th></tr></thead>
+          <table className="trs-table" aria-label="Resume point">
+            <thead><tr><th className="w-[124px] sm:w-[150px]">Item</th><th>Detail</th></tr></thead>
             <tbody>
               {rows.map(([item, detail]) => (
                 <tr key={item} className="align-top">

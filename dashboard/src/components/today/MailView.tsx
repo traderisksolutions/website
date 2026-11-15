@@ -66,21 +66,22 @@ export function MailView({ onCount }: { onCount: (n: number | null) => void }) {
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
       {view.total === 0 ? <Empty>No threads in this view.</Empty> : (
         <div className="overflow-x-auto rounded-[10px] border border-trs-line bg-white">
-          <table className="trs-table" style={{ minWidth: 980 }}>
+          <table className="trs-table table-fixed" style={{ minWidth: 980 }}>
+            <colgroup><col style={{ width: '26%' }} /><col style={{ width: '15%' }} /><col style={{ width: 170 }} /><col style={{ width: '15%' }} /><col style={{ width: 116 }} /><col /></colgroup>
             <thead><tr><th>Thread</th><th>Company</th><th>Label</th><th>Set by</th><th>Last message</th><th>Case</th></tr></thead>
             <tbody>
               {view.threads.map(t => (
                 <tr key={t.id}>
-                  <td className="px-3 max-w-[340px]"><Link href={`/engagement?thread=${t.id}`} className="block truncate text-trs-ink no-underline hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</Link></td>
-                  <td className="cell-left px-3 max-w-[200px]">{t.company ? <Link href={`/companies/${t.company.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.company.name ?? 'Company'}</Link> : <span className="text-trs-muted">Unfiled</span>}</td>
+                  <td className="px-3"><Link href={`/engagement?thread=${t.id}`} className="block truncate text-trs-ink no-underline hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</Link></td>
+                  <td className="cell-left px-3">{t.company ? <Link href={`/companies/${t.company.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.company.name ?? 'Company'}</Link> : <span className="text-trs-muted">Unfiled</span>}</td>
                   <td className="px-2">
                     <select className={selectCls} aria-label={`Label for ${t.subject || 'No subject'}`} value={t.label} disabled={saving === t.id} onChange={e => void relabel(t, e.target.value as Label)}>
                       {LABELS.map(l => <option key={l} value={l}>{LABEL_NAME[l]}</option>)}
                     </select>
                   </td>
-                  <td className="cell-left px-3 max-w-[220px]"><span className="block truncate text-trs-ink-2" title={setByText(t.set_by, data.staff)}>{setByText(t.set_by, data.staff)}</span></td>
+                  <td className="cell-left px-3"><span className="block truncate text-trs-ink-2" title={setByText(t.set_by, data.staff)}>{setByText(t.set_by, data.staff)}</span></td>
                   <td className="px-3 whitespace-nowrap tabular-nums">{fmtDate(t.last_message_at)}</td>
-                  <td className="cell-left px-3 max-w-[220px]">{t.case ? <Link href={`/today/${t.case.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</td>
+                  <td className="cell-left px-3">{t.case ? <Link href={`/today/${t.case.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</td>
                 </tr>
               ))}
             </tbody>

@@ -43,15 +43,16 @@ export function CompanyThreadList({ companyId, onOpen }: {
       </div>
       {rows.length === 0 ? <Empty compact>No threads in this group.</Empty> : (
         <div className="overflow-x-auto rounded-[10px] border border-trs-line bg-white">
-          <table className="trs-table" style={{ minWidth: 680 }}>
+          <table className="trs-table table-fixed" style={{ minWidth: 680 }}>
+            <colgroup><col /><col style={{ width: 164 }} /><col style={{ width: 124 }} /><col style={{ width: '30%' }} /></colgroup>
             <thead><tr><th>Thread</th><th>Label</th><th>Last message</th><th>Case</th></tr></thead>
             <tbody>
               {rows.map(t => (
                 <tr key={t.id}>
-                  <td className="px-3 max-w-[420px]"><button type="button" onClick={() => onOpen(t.id)} className="block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</button></td>
+                  <td className="px-3"><button type="button" onClick={() => onOpen(t.id)} className="block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</button></td>
                   <td className="px-3"><Chip>{LABEL_NAME[t.label]}</Chip></td>
                   <td className="px-3 whitespace-nowrap tabular-nums">{fmtDate(t.last_message_at)}</td>
-                  <td className="cell-left px-3 max-w-[260px]">{t.case ? <Link href={`/today/${t.case.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</td>
+                  <td className="cell-left px-3">{t.case ? <Link href={`/today/${t.case.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</td>
                 </tr>
               ))}
             </tbody>
