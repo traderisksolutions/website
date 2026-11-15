@@ -4,7 +4,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-16 — Case agents phase 3, first part: rounds, next steps and step drafts (built, not deployed)
+## 2026-11-16 — Case agents phase 3, first part: rounds, next steps and step drafts (live, b42034bf)
 
 - **Rounds** (`src/lib/cases/rounds.ts`, Case › Rounds): every email on a case's picked threads is one move, read by rule. Round 1 is the first request; a new round opens when the client changes the request after TRS has written to an insurer. Each round lists its insurers (asked, replied, sent to client) and its emails. Worked out on every read; no model is called and no table was added.
 - **Next steps**: the client's change, answer, question, documents or instruction owed to each insurer asked (Insurer agent); an insurer's terms, questions, decline, reply or documents owed to the client (Client agent); then who the case waits on.
