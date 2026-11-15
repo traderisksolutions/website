@@ -2,7 +2,7 @@
  * Case sources, conversation, brief and resume point (docs/case-sources.md), and the labelled
  * mail lists that feed them. Read-only: the journeys open, tick and cancel; they never add a
  * thread, save a note or start a read (a read is a model call, started only by a person).
- * Guards TOD-024, CLI-033, CSE-011 to CSE-014.
+ * Guards TOD-024, CLI-033, CSE-011 to CSE-014, CSE-019 to CSE-021.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { dbRows, openClean } from './helpers'
@@ -114,18 +114,73 @@ test('CSE-013 Conversation shows the client’s side above the insurer’s, one 
   await expect(page.getByRole('region', { name: 'Draft' })).toHaveCount(0)
 })
 
-test('CSE-014 Brief lists notes with their source; Add note asks for a section and the note', async ({ page }) => {
+test('CSE-014 Brief opens on the five parts in one table; Add note asks for a section and the note', async ({ page }) => {
   const id = await openCase(page)
   test.skip(!id, 'no open case with a thread')
   await openClean(page, `/today/${id}?section=brief`)
   const panel = page.getByRole('region', { name: 'Brief' })
   await expect(panel).toBeVisible({ timeout: 30_000 })
-  expect(await names(panel.getByRole('radiogroup', { name: 'Brief' }))).toEqual(['Current', 'Set aside'])
+  expect(await names(panel.getByRole('radiogroup', { name: 'Brief' }))).toEqual(['Brief', 'Notes', 'Set aside'])
+  const brief = panel.getByRole('table', { name: 'Brief' })
+  await expect(brief.locator('thead th')).toHaveText(['Part', 'Item', 'Who', 'Date', 'Source'])
+  // Each part is named once, in the order a person reads before writing the next email.
+  const parts = (await brief.locator('tbody td:first-child').allTextContents()).map(t => t.trim())
+  expect(parts.filter((t, i) => parts.indexOf(t) === i)).toEqual(['Communicated', 'Client wish list', 'Known risks and success factors', 'Open questions', 'Next step'])
   await panel.getByRole('button', { name: 'Add note' }).click()
   const dialog = page.getByRole('dialog', { name: 'Note' })
   await expect(dialog).toBeVisible()
   await expect(dialog.getByRole('combobox').locator('option')).toHaveText(['Client said', 'Insurer said', 'Client wish list', 'Known risks', 'Success factors', 'Open questions', 'Next step', 'Decisions', 'Hand-over'])
   await expect(dialog.getByRole('button', { name: 'Save note' })).toBeDisabled()
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
+})
+
+/** An open renewal or new-quote case whose line of insurance has a document checklist. */
+async function checklistCase(page: Page): Promise<string | null> {
+  const rows = await dbRows<{ id: string }>('work_items?closed_at=is.null&case_type=in.(renewal,new_quote)&select=id&order=created_at.desc&limit=40')
+  for (const { id } of rows) {
+    const res = await page.request.get(`/api/work/${id}/brief`, { headers })
+    if (res.ok() && (await res.json() as { checklist: { total: number } | null }).checklist?.total) return id
+  }
+  return null
+}
+
+test('CSE-019 a renewal or new quote lists its line’s documents under the brief, each with where it stands', async ({ page }) => {
+  const id = await checklistCase(page)
+  test.skip(!id, 'no open renewal or new quote on a line with a checklist')
+  await openClean(page, `/today/${id}?section=brief`)
+  const panel = page.getByRole('region', { name: 'Brief' })
+  await expect(panel.getByRole('heading', { name: /^Documents · .+ · \d+ of \d+/ })).toBeVisible({ timeout: 30_000 })
+  await expect(panel.getByRole('combobox', { name: 'Line of insurance' })).toBeVisible()
+  const docs = panel.getByRole('table', { name: 'Documents' })
+  await expect(docs.locator('thead th')).toHaveText(['Document', 'Status', 'File', 'By', 'Action'])
+  const states = (await docs.locator('tbody td:nth-child(2)').allTextContents()).map(t => t.trim())
+  expect(states.length).toBeGreaterThan(0)
+  for (const s of states) expect(['Missing', 'Found', 'Confirmed', 'Not needed']).toContain(s)
+  // Every document carries a person's call: confirm or not needed, or undo once called.
+  await expect(docs.locator('tbody tr').first().getByRole('button').first()).toBeVisible()
+})
+
+test('CSE-020 a claim shows the brief without a document checklist', async ({ page }) => {
+  const [claim] = await dbRows<{ id: string }>('work_items?closed_at=is.null&case_type=eq.claim&select=id&order=created_at.desc&limit=1')
+  test.skip(!claim, 'no open claim')
+  await openClean(page, `/today/${claim.id}?section=brief`)
+  const panel = page.getByRole('region', { name: 'Brief' })
+  await expect(panel.getByRole('table', { name: 'Brief' })).toBeVisible({ timeout: 30_000 })
+  await expect(panel.getByRole('table', { name: 'Documents' })).toHaveCount(0)
+  await expect(panel.getByRole('combobox', { name: 'Line of insurance' })).toHaveCount(0)
+})
+
+test('CSE-021 Settings › Document checklists holds one list per line; Add document asks for its name and how it is found', async ({ page }) => {
+  await openClean(page, '/settings?section=checklists')
+  const eb = page.getByRole('region', { name: 'Employment Benefits', exact: true })
+  await expect(eb).toBeVisible({ timeout: 30_000 })
+  await expect(eb.locator('thead th')).toHaveText(['Document', 'Found by', 'File name says', 'Action'])
+  expect(await eb.locator('tbody tr').count()).toBeGreaterThan(0)
+  await eb.getByRole('button', { name: 'Add document' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Document' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Save document' })).toBeDisabled()
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(dialog).toHaveCount(0)
 })

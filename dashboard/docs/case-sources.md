@@ -1,8 +1,10 @@
-# Case sources, labels, relevance and case memory
+# Case sources, labels, relevance, case memory, the brief and document checklists
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
 Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screens live on production (migration applied). The five-tier label rules below are live (7bb57340) and all 2,754 threads were relabelled by them the same day: 747 labels changed, none set by a person.
+
+Built the same day and not yet live: the brief in five parts with a document checklist per line (phase 2, below), and Today › Mail loading a page at a time. Their two migrations are applied to production and are additive. The nightly job that embeds new threads is running.
 
 ## Rules
 
@@ -25,6 +27,11 @@ Migration `supabase/migrations/20261115_case_sources.sql` (additive; safe to run
 | `work_item_thread_excluded` | Threads a person took off a case, and who. |
 | `work_item_notes` | Case memory: section, text, the quote and its email, author, status (current, superseded, rejected). |
 | `work_item_reads` | Which agent has read which email of the case. |
+| `line_checklists` | One row per line of insurance that has a list: who confirmed it and when (empty while it is a draft), who last edited it. Migration `20261115_case_brief.sql`. |
+| `line_checklist_items` | The documents of a list: name, how it is found (`file`, `wish`, `person`), document types, words a file name carries, position, active. |
+| `work_item_checklist` | A person's calls on one document of one case: confirmed or not needed, the file confirmed, the files turned down, who and when. What code finds is never stored. |
+| `work_items.product_line`, `product_line_by` | The line of insurance a person chose for the case, and who. |
+| `rpc/today_mail` | Today › Mail in one query: counts per relevance and the newest rows. Migration `20261115_today_mail.sql`. |
 
 ## Labels (`src/lib/cases/labels.ts`)
 
@@ -86,7 +93,9 @@ Each thread has one vector, made from its subject and what its first three messa
 
 A thread with no vector comes after the scored ones, newest first. A case with no thread yet keeps newest first throughout. Similarity changes the order only: what is proposed, the reason shown and what a person picks are untouched.
 
-Run `scripts/embed-threads.mts --write` after new mail to embed threads that are new or changed (37 ms a thread). The runtime is installed once in `tools/thread-embed/` (`npm ci --ignore-scripts`) and is not a dependency of the dashboard.
+New and changed threads are embedded every night at 01:00 Singapore time by the Cloud Run job `thread-embed` (project `trs-ai-project`, asia-southeast1; 2 CPU, 2 Gi, 30-minute limit), started by a Cloud Scheduler entry of the same name. The job runs as its own service account, which may read the database key and start this job and nothing else; it holds no key file and no `CRON_SECRET`. `npm run embed:run` starts the same job on demand and waits for it. `tools/thread-embed/deploy.sh` builds the image (`tools/thread-embed/Dockerfile`) and creates or updates the job and its schedule. A run with nothing new takes about 25 s.
+
+The same text embedded on a Mac and in the job gives vectors 0.998 alike (cosine), so the two can be mixed. `scripts/embed-threads.mts --write` still runs by hand (37 ms a thread); the runtime is installed once in `tools/thread-embed/` (`npm ci --ignore-scripts`) and is not a dependency of the dashboard.
 
 Measured 15 Nov 2026, hold-one-out on 521 threads of cases with two or more (links made by rules): in the first five offered 60.1% by rules alone, 75.2% with this order.
 
@@ -95,6 +104,46 @@ Measured 15 Nov 2026, hold-one-out on 521 threads of cases with two or more (lin
 Sections: Client said, Insurer said, Wish list, Risk, Success factor, Open question, Next step, Decision, Hand-over. One next step stands at a time; a newer one supersedes the older, which stays on record.
 
 Every agent starts with `loadCaseState(case, { agent, viewer })`: the case, its emails, the notes, where it stands (`resume`: last touch, next step, open questions, hand-over, unread counts) and the emails that agent has not read. It ends with `recordTurn(case, agent, { evidence, notes, readThreadIds })`, which keeps the notes that pass, marks the emails read and writes one event. The case reader already does this (`storeCase`). A turn that left notes is written to the client's ledger as counts; a person's note is written in its own words.
+
+## The brief (`brief.ts`, `brief-store.ts`)
+
+Phase 2 of the plan: the brief holds only what a person needs to send the next email, in five parts and this order.
+
+| Part | What it holds | Read from |
+| --- | --- | --- |
+| Communicated | The last email TRS sent the client, and the last it sent each insurer. | The emails on the case's threads; automatic replies and TRS-only emails left out. |
+| Client wish list | What the client asked to keep or to have. | Current Wish list notes. |
+| Known risks and success factors | Only those a client or an insurer stated. | Current Risk and Success factor notes. An agent's note stays only when the words it quotes were written by the client or an insurer; one resting on TRS's own words is left off and counted (`left_off`). A person's note always stays. |
+| Open questions | Who owes whom an answer, and since when. | Current Open question notes, oldest first. The writer of the quoted words is the one waiting: a client's or an insurer's words mean TRS owes; TRS's words on a client thread mean the client owes, on an insurer thread that insurer. |
+| Next step | The one action, and the agent that drafts it. | The standing Next step note, else the case's `next_action`. Placement drafts when the case has a placement, no agent drafts for a claim, Relay otherwise. |
+
+Every row carries its source email; a row with none (a person's own note, a next step taken from `next_action`) is counted as `unsourced`. Words from a colleague's mailbox are withheld and the row marked private. No model reads anything: the notes are those the case reader or a person already left.
+
+## Document checklists (`checklist.ts`, `brief-store.ts`)
+
+A list belongs to a line of insurance and is held in Settings › Document checklists. It applies to renewal and new-quote cases; a claim has none. It is not the binding gate (`src/lib/admin/b/documents/gate.ts`), which is untouched.
+
+The case's line is a person's choice, else the policy's line or class, else what the title says (`caseLine`). Group health and group personal accident share the Employment Benefits list.
+
+| Found by | A document is Found when |
+| --- | --- |
+| A file on the case | A file on the case's threads has one of the item's document types (`classifyByName`) or one of its words in the name. The newest such file is offered. |
+| Client wish on the brief | The brief holds a client wish. |
+| A person only | Never by code; a person confirms it. |
+
+Status on a case: Missing, Found, Confirmed, Not needed. A person's call stands over what code finds. "Not this file" keeps the file on a turned-down list for that case and offers the next. Only a person's calls are stored. The list is complete when no document is Missing.
+
+A list is a draft until a person confirms it; any edit returns it to draft. A document is retired, not deleted, so calls already made stay on record. Five lists were seeded as drafts (Employment Benefits, group travel, commercial vehicle, directors and officers, work injury compensation); none is confirmed.
+
+Measured on production, 15 Nov 2026 (no model):
+
+| Open renewal and new-quote cases | Count |
+| --- | --- |
+| All | 278 |
+| Line from the policy | 6 |
+| Line from the title | 184 |
+| No line until a person chooses | 88 |
+| On one of the five drafted lists | 85 |
 
 ## Routes
 
@@ -107,17 +156,22 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | `GET /api/work/:id/memory` | The nine sections, notes set aside, where the case stands, the emails without their bodies. |
 | `POST /api/work/:id/memory` | `{ action: note, section, text, message_id? }`, or `{ action: reject or restore, note_id }`. |
 | `POST /api/work/:id/read` | The case reader on this case's threads; answers `{ ok, notes, read }`. Started by a person only. |
-| `GET /api/today/mail` | Labelled threads the person may see, with company, label, who set it and the open case. |
+| `GET /api/work/:id/brief` | The brief in five parts, the case's line of insurance and its document checklist. |
+| `POST /api/work/:id/brief` | `{ action: confirm, not_needed, reject or clear, item_id }`: a person's call on one document. `{ action: line, line }`: the case's line (null clears the choice). |
+| `GET /api/settings/checklists` | Every line's list with its documents, the document types and the staff names. |
+| `POST /api/settings/checklists` | `{ action: list, line }` starts a list; `{ action: item, line, label, found_by, doc_types, words }` adds a document; `{ action: confirm, line }` confirms the list. |
+| `PATCH /api/settings/checklists` | `{ id, label?, found_by?, doc_types?, words?, active? }` edits or retires a document. |
+| `GET /api/today/mail?relevance=&label=&limit=` | The count per relevance under the label filter and the newest `limit` rows (200 by default, 20,000 at most) the person may see, with company, label, who set it and the open case. One database call (`rpc/today_mail`). |
 | `POST /api/threads/:id/label` | `{ label }`: a person's label. |
 | `GET /api/companies/:id/relevance` | A client's threads by group, the hidden count and renewal season. |
 
-Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unknown case, thread or note, 409 a thread on another case or a note already on the case.
+Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unknown case, thread, note, list or document, 409 a thread on another case, a note already on the case, a document already on the list, an empty list confirmed, or a finding turned down when there is none.
 
 ## Dogfood
 
-`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 91 checks) and every route (`http <base>`, 54 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
+`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 154 checks) and every route (`http <base>`, 90 checks), removes the records and verifies none are left. The checklist checks start a list on a line that has none and remove it; the lists staff keep are read, never written, and compared before and after. It refuses a database that is not local unless `--live` is given. No model is called.
 
-Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness; 54 of 54 on the routes with Today mail and the read a person starts.
+Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness; 54 of 54 on the routes with Today mail and the read a person starts. With the brief, the checklists and Today mail by page: 154 of 154 on the stores and 90 of 90 on the routes. The stores walk also compares `rpc/today_mail` with the code rules (`mailView`) for every mailbox on file, a person with none, a colleague and the scheduler: 320 views, all equal.
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 
@@ -125,12 +179,13 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 
 | Screen | Where | Shows |
 | --- | --- | --- |
-| Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: Thread, Company, Label, Set by, Last message, Case. Relevance and label filters; the label is changed in the row. |
+| Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: Thread, Company, Label, Set by, Last message, Case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
 | Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
 | Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side, Add. A thread on another case opens `MoveThreadDialog`. |
 | Case › Conversation | `?section=conversation` (`CaseConversation.tsx`) | Client table above Insurer table: Date, From, Message, Files. |
-| Case › Brief | `?section=brief` (`CaseBrief.tsx`) | Notes with their source; Set aside, Restore, Add note. |
+| Case › Brief | `?section=brief` (`CaseBrief.tsx`, `CaseBriefTables.tsx`) | Tabs Brief, Notes, Set aside. Brief: the five parts in one table (Part, Item, Who, Date, Source), then on a renewal or new quote the line of insurance and Documents (Document, Status, File, By, Action). Notes: every note with its source; Set aside, Restore, Add note. |
+| Settings › Document checklists | `/settings?section=checklists` (`ChecklistPanel.tsx`) | One table per line: Document, Found by, File name says, Action. Add document, Edit, Retire, Confirm list; Add list for a line that has none. |
 
 A panel that changes the case refreshes the page's events and threads without reloading the draft, so words typed in the draft survive.
 
@@ -144,4 +199,8 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 - A classifier trained on labels people set (SetFit): waits for person-set labels.
 - The autonomy measure on `/analytics/autonomy`.
-- Vectors for new threads without a manual run of `scripts/embed-threads.mts`.
+- The brief does not yet replace the Summary on Overview; both show.
+- A complete checklist does not yet stop an agent reading other threads, and a confirmed list is not yet given to the case reader as context.
+- A document in the company's data room does not tick a checklist item; only files on the case's threads do.
+- Wish notes are one list: no split between what must be kept and what would be good to have.
+- A button in the dashboard for the embedding run; it is started by the schedule or `npm run embed:run`.

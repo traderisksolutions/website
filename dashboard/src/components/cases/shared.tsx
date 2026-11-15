@@ -18,7 +18,7 @@ export type CaseSection = typeof CASE_SECTIONS[number]['value']
 export const asCaseSection = (v: string | null): CaseSection => CASE_SECTIONS.find(s => s.value === v)?.value ?? 'overview'
 
 export const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
-export const tableFrame = 'overflow-x-auto rounded-[10px] border border-trs-line bg-white'
+export const tableFrame = 'relative overflow-x-auto rounded-[10px] border border-trs-line bg-white'
 export const headingCls = 'm-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink'
 /** A subject in a table cell that opens the thread over the page. */
 export const subjectBtn = 'block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline'

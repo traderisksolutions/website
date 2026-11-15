@@ -1,7 +1,7 @@
 /**
- * GET /api/today/mail?relevance=&label=&limit= → every thread the person may see, one row each,
- * newest first: label, who set it, client, open case, with the staff names for "Set by". A thread
- * in a colleague's mailbox is left out.
+ * GET /api/today/mail?relevance=&label=&limit= → one view of the threads the person may see: the
+ * count per relevance under the label filter, and the newest `limit` rows (label, who set it,
+ * client, open case), with the staff names for "Set by". A thread in a colleague's mailbox is left out.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { caseActor, caseFail } from '@/lib/cases/http'

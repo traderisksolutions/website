@@ -1,9 +1,11 @@
 'use client'
 
 /**
- * Case brief: what the case knows, one note per row with the email it came from. An agent's note
- * always carries its source; a person's note may carry none. Set aside takes a note off the brief
- * without deleting it; Restore puts it back. Words from a colleague's mailbox are withheld.
+ * Case brief. Brief is what a person needs to send the next email, in five parts (communicated,
+ * client wish list, known risks and success factors, open questions, next step), above the
+ * documents the case's line of insurance needs. Notes lists every note the case holds, one per
+ * row with the email it came from; Set aside takes a note off the brief without deleting it and
+ * Restore puts it back. Words from a colleague's mailbox are withheld.
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,35 +15,40 @@ import { selectCls } from '@/components/today/MailView'
 import { DASH, fmtDay } from '@/lib/format'
 import { actorName, senderName } from '@/lib/cases/names'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
+import type { CheckAction, CheckRow } from '@/lib/cases/brief-store'
+import type { CaseBriefAnswer } from '@/app/api/work/[id]/brief/route'
+import { BriefTable, CaseDocuments } from './CaseBriefTables'
 import { subjectBtn, tableFrame } from './shared'
 
-type Tab = 'current' | 'aside'
+type Tab = 'brief' | 'current' | 'aside'
+const CHECK_NOTICE: Record<CheckAction, string> = { confirm: 'Document confirmed.', not_needed: 'Document marked not needed.', reject: 'Finding turned down.', clear: 'Call undone.' }
 
 export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   id: string
   onOpenThread: (threadId: string) => void
-  /** A note was added, set aside or restored. */
+  /** A note was added, set aside or restored, or a document call was made. */
   onChanged: () => void
   onNotice: (message: string) => void
   onError: (message: string | null) => void
 }) {
   const [memory, setMemory] = useState<CaseMemory | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
-  const [tab, setTab] = useState<Tab>('current')
+  const [brief, setBrief] = useState<CaseBriefAnswer | null>(null)
+  const [tab, setTab] = useState<Tab>('brief')
   const [busy, setBusy] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [section, setSection] = useState('')
   const [text, setText] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
 
-  const load = useCallback(() => callApi<CaseMemory>(`/api/work/${id}/memory`), [id])
+  const load = useCallback(() => Promise.all([callApi<CaseMemory>(`/api/work/${id}/memory`), callApi<CaseBriefAnswer>(`/api/work/${id}/brief`)]), [id])
   useEffect(() => {
-    setMemory(null); setFailed(null)
-    load().then(setMemory).catch(e => setFailed(errText(e)))
+    setMemory(null); setBrief(null); setFailed(null)
+    load().then(([m, b]) => { setMemory(m); setBrief(b) }).catch(e => setFailed(errText(e)))
   }, [load])
 
   if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
-  if (!memory) return <Spinner label="Loading brief…" />
+  if (!memory || !brief) return <Spinner label="Loading brief…" />
 
   const name = new Map<string, string>(memory.sections.map(s => [s.section, s.name]))
   const current = memory.sections.flatMap(s => s.notes)
@@ -58,11 +65,27 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
       : line || DASH
   }
 
+  /** The brief is built from the notes: a change to a note is read back into it. */
+  const rebrief = () => callApi<CaseBriefAnswer>(`/api/work/${id}/brief`).then(setBrief).catch(e => onError(errText(e)))
+
+  async function check(body: { action: CheckAction; item_id: string } | { action: 'line'; line: string | null }, key: string, notice: string) {
+    setBusy(key); onError(null)
+    try {
+      const d = await callApi<{ brief: CaseBriefAnswer }>(`/api/work/${id}/brief`, { method: 'POST', body })
+      setBrief(d.brief)
+      onNotice(notice)
+      onChanged()
+    } catch (e) { onError(errText(e)) } finally { setBusy(null) }
+  }
+  const onCheck = (r: CheckRow, action: CheckAction) => void check({ action, item_id: r.item_id }, `${r.item_id}:${action}`, CHECK_NOTICE[action])
+  const onLine = (line: string | null) => void check({ action: 'line', line }, 'line', line ? 'Line of insurance set.' : 'Line choice cleared.')
+
   async function mark(n: Note, action: 'reject' | 'restore') {
     setBusy(n.id); onError(null)
     try {
       const d = await callApi<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action, note_id: n.id } })
       setMemory(d.memory)
+      void rebrief()
       onNotice(action === 'reject' ? 'Note set aside.' : 'Note restored to the brief.')
       onChanged()
     } catch (e) { onError(errText(e)) } finally { setBusy(null) }
@@ -72,7 +95,8 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
     setBusy('add'); setAddError(null)
     try {
       const d = await callApi<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action: 'note', section: section || memory!.sections[0]?.section, text } })
-      setMemory(d.memory); setAdding(false); setText(''); setTab('current')
+      setMemory(d.memory); setAdding(false); setText('')
+      void rebrief()
       onNotice('Note added to the brief.')
       onChanged()
     } catch (e) { setAddError(errText(e)) } finally { setBusy(null) }
@@ -81,11 +105,16 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   return (
     <section aria-label="Brief" className="flex flex-col gap-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <Segmented<Tab> value={tab} onChange={setTab} label="Brief" options={[{ value: 'current', label: 'Current', count: current.length }, { value: 'aside', label: 'Set aside', count: memory.set_aside.length }]} />
+        <Segmented<Tab> value={tab} onChange={setTab} label="Brief" options={[{ value: 'brief', label: 'Brief' }, { value: 'current', label: 'Notes', count: current.length }, { value: 'aside', label: 'Set aside', count: memory.set_aside.length }]} />
         <Btn level="primary" disabled={busy !== null} onClick={() => { setAddError(null); setAdding(true) }}>Add note</Btn>
       </div>
 
-      {rows.length === 0 ? <Empty compact>{tab === 'current' ? 'No notes on the brief.' : 'No notes set aside.'}</Empty> : (
+      {tab === 'brief' ? (
+        <div className="flex flex-col gap-5 min-w-0">
+          <BriefTable view={brief} staff={brief.staff} onOpenThread={onOpenThread} />
+          {brief.checklist_applies && <CaseDocuments view={brief} staff={brief.staff} busy={busy} onOpenThread={onOpenThread} onCheck={onCheck} onLine={onLine} />}
+        </div>
+      ) : rows.length === 0 ? <Empty compact>{tab === 'current' ? 'No notes on the case.' : 'No notes set aside.'}</Empty> : (
         <div className={tableFrame}>
           <table className="trs-table" style={{ minWidth: 900 }}>
             <thead><tr><th className="w-[150px]">Section</th><th>Note</th><th>Source</th><th className="w-[140px]">By</th><th className="w-[104px]"><span className="sr-only">Action</span></th></tr></thead>

@@ -4,6 +4,31 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-15 — Case agents phase 2: the brief in five parts, a document checklist per line (built, not live)
+
+- **Brief** (`src/lib/cases/brief.ts`, `GET /api/work/:id/brief`): the case's Brief opens on one table of five parts: Communicated, Client wish list, Known risks and success factors, Open questions, Next step. Communicated is read from the emails; the rest from the notes already on the case. An agent's risk or success factor shows only when the words it quotes were written by the client or an insurer. No model is called.
+- **Document checklists** (`src/lib/cases/checklist.ts`, Settings › Document checklists): one list per line of insurance, edited by staff, a draft until a person confirms it. On a renewal or new-quote case each document is Missing, Found, Confirmed or Not needed. Code finds a document by its file name on the case's threads, or by a client wish on the brief; a person confirms, turns the file down, or marks it not needed. A claim has no checklist.
+- **Line of insurance** on a case: a person's choice, else the policy's, else the title's. Of 278 open renewal and new-quote cases, 190 get a line by code and 88 need a person.
+- **Data** (`20261115_case_brief.sql`, applied): `line_checklists`, `line_checklist_items`, `work_item_checklist`, `work_items.product_line`. Five lists seeded as drafts (Employment Benefits, group travel, commercial vehicle, directors and officers, work injury compensation); none confirmed.
+- The binding gate's document register is untouched. The Notes and Set aside tabs keep the earlier notes table.
+- Tables on the case page (Brief, Notes, Conversation, Sources, Resume) and on Settings › Document checklists scroll inside their own frame on a phone and a tablet; the page no longer scrolls sideways (the frame was not positioned, so a hidden column header widened the page).
+- Behaviours CSE-014 (rewritten), CSE-019 to CSE-021. Journeys `case-sources.spec.ts` (9). Tests `brief.test.ts` (10), `checklist.test.ts` (11). Dogfood 154 store checks and 90 route checks on production.
+
+## 2026-11-15 — Today › Mail loads a page at a time (built, not live)
+
+- **One database call** (`rpc/today_mail`, migration `20261115_today_mail.sql`, applied): visibility, relevance, the label filter, the count per relevance and the newest rows are computed in the database. The route no longer reads every thread and its mailboxes.
+- **Screen**: the newest 200 rows load first; "Show N more" adds 200. A change of relevance tab or label asks again.
+- Measured on production with 2,754 threads: the whole read took 8,499 ms and sent 547,754 bytes; the first page takes 154 to 561 ms and sends about 78 KB.
+- The dogfood walk compares the database function with the code rules for every mailbox on file, a person with none, a colleague and the scheduler: 320 views, all equal.
+- Behaviour TOD-024. Tests `mail.test.ts`.
+
+## 2026-11-15 — Thread vectors: a nightly job, and a run on demand (running)
+
+- **Cloud Run job `thread-embed`** (project `trs-ai-project`, asia-southeast1): embeds new and changed threads every night at 01:00 Singapore time, started by Cloud Scheduler as the job's own service account. No `CRON_SECRET`, no key file. The account may read the database key and start this job only.
+- **On demand**: `npm run embed:run` starts the job and waits. `tools/thread-embed/deploy.sh` builds the image and creates or updates the job and schedule.
+- Verified: a scheduled start and a start on demand both ran to the end (about 25 s with nothing new; 2,754 of 2,754 threads hold a vector). The same text embedded on a Mac and in the job is 0.998 alike (cosine).
+- No model API, nothing paid beyond the job's seconds of CPU. Nothing in the dashboard changed.
+
 ## 2026-11-15 — Labels: five tiers instead of the subject alone (live, 7bb57340)
 
 - **Rule** (`src/lib/cases/labels.ts`): after the subject, the label rule reads a not-casework hold, the first email's own words, the file names, and a cover named in the subject. An insurer's first email must make renewal or quotation its point. No model, nothing paid.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { labelled, mailView, isMailRelevance, type MailRow } from '../mail'
+import { labelled, mailRowOf, mailView, isMailRelevance, type MailRaw, type MailRow } from '../mail'
 import { actorName, senderName, isAgent } from '../names'
 
 describe('labelled', () => {
@@ -14,6 +14,24 @@ describe('labelled', () => {
   it('reads the subject for a thread nobody labelled', () => {
     expect(labelled({ subject: 'RE: Request for quotation', label: null })).toEqual({ label: 'quotation_request', set_by: { kind: 'rule', basis: 'subject: quotation' } })
     expect(labelled({ subject: 'Lunch', label: 'not-a-label' })).toEqual({ label: 'other', set_by: { kind: 'rule', basis: 'not casework: lunch' } })
+  })
+})
+
+describe('mailRowOf', () => {
+  const raw: MailRaw = {
+    id: 't1', subject: 'RE: Renewal terms', display_subject: 'Renewal terms', last_message_at: '2026-11-10T02:00:00+00:00',
+    company_id: 'c1', company_name: 'Northgate Freight', label: 'renewal', label_by: 'rule', label_basis: 'subject: renewal', label_at: null,
+    relevance: 'active', case_id: 'w1', case_title: 'Renewal 2027',
+  }
+  it('names the thread, the client and the case from one database row', () => {
+    expect(mailRowOf(raw)).toEqual({
+      id: 't1', subject: 'Renewal terms', last_message_at: '2026-11-10T02:00:00+00:00', company: { id: 'c1', name: 'Northgate Freight' },
+      label: 'renewal', set_by: { kind: 'rule', basis: 'subject: renewal' }, relevance: 'active', case: { id: 'w1', title: 'Renewal 2027' },
+    })
+  })
+  it('leaves an unfiled thread on no case without a company or a case', () => {
+    const r = mailRowOf({ ...raw, display_subject: null, company_id: null, company_name: null, case_id: null, case_title: null, relevance: 'back_burner' })
+    expect([r.subject, r.company, r.case, r.relevance]).toEqual(['RE: Renewal terms', null, null, 'back_burner'])
   })
 })
 

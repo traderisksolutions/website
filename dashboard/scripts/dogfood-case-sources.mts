@@ -1,5 +1,6 @@
 /**
- * Dogfood of case sources, thread labels, relevance and case memory against a real database:
+ * Dogfood of case sources, thread labels, relevance, case memory, the brief and the document
+ * checklists against a real database:
  * every query, every write and every route, on test records that are removed at the end.
  *
  *   npx tsx --env-file=.env.local --tsconfig tsconfig.json scripts/dogfood-case-sources.mts lib
@@ -8,9 +9,12 @@
  *
  * lib   seeds two companies, eight threads and two cases under fixed ids on `.invalid` domains,
  *       then walks the stores: rule labels, proposals, pick / conflict / move / exclude / restore,
- *       a private thread, a person's label, relevance and renewal season, an agent's turn with
- *       evidence, the resume point, a person's note, the case worker's guard and the ingest hook.
- * http  seeds the same records and walks the four routes with a signed-in session (the dev
+ *       a private thread, a person's label, relevance and renewal season, Today › Mail's one read
+ *       against the same answer worked out in code for every mailbox, an agent's turn with
+ *       evidence, the resume point, a person's note, the brief in five parts, a document
+ *       checklist on a line that has none (started, filled, confirmed, removed), a person's calls
+ *       on its documents, the case worker's guard and the ingest hook.
+ * http  seeds the same records and walks the eight routes with a signed-in session (the dev
  *       server must run on the same database: API_GATE_MODE=log-only npx next dev -p 3117).
  * clean removes the test records, for a run that was cut short.
  *
@@ -25,6 +29,16 @@ import {
   CaseError, attachable, companyRelevance, excludeThread, labelThreadsByRule, loadSources, pickThread, restoreThread, setLabel, setSide,
 } from '@/lib/cases/sources-store'
 import { addPersonNote, loadCaseState, recordTurn, setNoteStatus } from '@/lib/cases/memory-store'
+import { mailByLabel } from '@/lib/cases/mail-store'
+import { addItem, addList, confirmList, editItem, listChecklists, loadBrief, setCaseLine, setCheck, type CaseBriefView } from '@/lib/cases/brief-store'
+import { checklistLine } from '@/lib/cases/checklist'
+import { PRODUCT_LINES } from '@/lib/product-lines'
+import { labelled, mailView, type MailRelevance, type MailRow } from '@/lib/cases/mail'
+import { RELEVANCE, relevanceOf } from '@/lib/cases/relevance'
+import { LABELS, type Label } from '@/lib/cases/labels'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { SB_URL, sbHeaders } from '@/lib/sb'
+import { fetchAllRows, PAGE } from '@/lib/postgrest-all'
 
 type Row = Record<string, any>
 
@@ -65,6 +79,42 @@ async function refusal(fn: () => Promise<unknown>): Promise<{ status: number; er
   try { await fn(); return { status: 0, error: null } } catch (e) { return e instanceof CaseError ? { status: e.status, error: e } : { status: -1, error: null } }
 }
 
+// ── Today › Mail worked out in code ───────────────────────────────────────────────────────────
+
+/**
+ * What today_mail must answer, from the rules in code: canSeeThread (visibility.ts), relevanceOf
+ * (relevance.ts) and mailView (mail.ts) over every thread. Slow by design; it is the reference.
+ */
+async function mailInCode(): Promise<{ mailboxes: string[]; rowsFor: (viewer: string | null) => Promise<MailRow[]> }> {
+  const all = <R = Row>(path: string) => fetchAllRows<R>(`${SB_URL}/rest/v1/${path}`, sbHeaders())
+  const [threads, open, dir] = await Promise.all([
+    all(`email_threads?deleted_at=is.null&select=id,subject,display_subject,company_id,last_message_at,label,label_by,label_basis,label_at&order=last_message_at.desc.nullslast`),
+    all(`work_items?closed_at=is.null&select=id,title,work_item_threads(thread_id)`),
+    directory(true),
+  ])
+  const held = new Set<string>(), mailboxes = new Set<string>()
+  for (let offset = 0; ; offset += PAGE) {
+    const rows = await sb<Row[]>(`email_thread_aliases?select=thread_id,mailbox&order=mailbox,gmail_thread_id&limit=${PAGE}&offset=${offset}`)
+    for (const r of rows) { held.add(r.thread_id); mailboxes.add(String(r.mailbox).toLowerCase()) }
+    if (rows.length < PAGE) break
+  }
+  const onOpen = new Map<string, { id: string; title: string | null }>()
+  for (const w of open) for (const l of w.work_item_threads ?? []) onOpen.set(l.thread_id, { id: w.id, title: w.title ?? null })
+  const rowsFor = async (viewer: string | null) => {
+    const mine = await visibleThreadIds(Array.from(held), viewer)
+    return threads.filter(t => !held.has(t.id) || mine.has(t.id)).map((t): MailRow => {
+      const { label, set_by } = labelled(t as { subject: string | null })
+      return {
+        id: t.id, subject: t.display_subject ?? t.subject ?? null, last_message_at: t.last_message_at ?? null,
+        company: t.company_id ? { id: t.company_id, name: dir.byId.get(t.company_id)?.company_name ?? null } : null,
+        label, set_by, relevance: relevanceOf({ lastMessageAt: t.last_message_at, label, onOpenCase: onOpen.has(t.id) }, today),
+        case: onOpen.get(t.id) ?? null,
+      }
+    })
+  }
+  return { mailboxes: Array.from(mailboxes), rowsFor }
+}
+
 // ── test records ──────────────────────────────────────────────────────────────────────────────
 
 async function caseIds(): Promise<string[]> {
@@ -85,6 +135,8 @@ async function clean(): Promise<void> {
   await del(`email_threads?id=${list(THREADS)}`)
   await del(`policies?id=eq.${POLICY}`)
   await del(`companies?id=${list(COMPANIES)}`)
+  // A checklist this run started: its documents and the calls on them go with it.
+  await del(`line_checklists?updated_by=eq.${enc(ME)}`)
 }
 
 /** How many test records are left, by table. Empty after a clean. */
@@ -108,6 +160,8 @@ async function leftovers(): Promise<Record<string, number>> {
     work_item_reads: await count(`work_item_reads?work_item_id=${list(cases)}&select=message_id`),
     thread_vectors: await count(`thread_vectors?thread_id=${list(THREADS)}&select=thread_id`),
     company_ledger: await count(`company_ledger?or=(company_id.${list(COMPANIES)},group_id.${list(COMPANIES)})&select=id`),
+    line_checklists: await count(`line_checklists?updated_by=eq.${enc(ME)}&select=line`),
+    line_checklist_items: await count(`line_checklist_items?updated_by=eq.${enc(ME)}&select=id`),
   }
   return Object.fromEntries(Object.entries(out).filter(([, n]) => n > 0))
 }
@@ -169,6 +223,13 @@ async function seed(): Promise<void> {
 const labels = async () => new Map((await sb<Row[]>(`email_threads?id=${list(THREADS)}&select=id,label,label_rule,label_by,label_basis`)).map(t => [t.id as string, t]))
 const links = async (workItemId: string) => sb<Row[]>(`work_item_threads?work_item_id=eq.${workItemId}&select=thread_id,side,joined_by,joined_evidence`)
 const events = async (workItemId: string) => (await sb<Row[]>(`work_item_events?work_item_id=eq.${workItemId}&select=id,kind,actor,detail&order=created_at.asc`))
+const calls = async (workItemId: string) => sb<Row[]>(`work_item_checklist?work_item_id=eq.${workItemId}&select=item_id,status,message_id,filename,found,rejected,actor`)
+/** A line of insurance with no checklist, to start one on: the lists staff keep are never written to. */
+async function freeLine(): Promise<string | null> {
+  const taken = new Set((await sb<Row[]>('line_checklists?select=line&limit=200')).map(l => l.line as string))
+  return [...PRODUCT_LINES].reverse().map(p => p.slug).find(s => checklistLine(s) === s && !taken.has(s)) ?? null
+}
+const part = (v: CaseBriefView, p: string) => v.brief.rows.filter(r => r.part === p)
 const notes = async (workItemId: string) => sb<Row[]>(`work_item_notes?work_item_id=eq.${workItemId}&select=id,section,text,quote,message_id,thread_id,author,author_kind,status,superseded_by,rejected_by&order=created_at.asc`)
 
 // ── the stores ────────────────────────────────────────────────────────────────────────────────
@@ -266,6 +327,31 @@ async function walkStores(): Promise<void> {
   ok('renewal season from the policy end date', r.season.on && r.season.basis === 'policy ends' && !!r.season.date, r.season)
   ok('a colleague on the thread sees it', (await companyRelevance(CLIENT, COLLEAGUE, today)).hidden === 0)
 
+  console.log('\nToday › Mail in one read')
+  const page = await mailByLabel(ME, { relevance: 'all', label: 'all', limit: 2 }, today)
+  ok('a page holds up to the limit and says how many there are', page.threads.length === 2 && page.total > 2 && page.total === page.counts.all && page.counts.all === page.counts.active + page.counts.back_burner + page.counts.member_movements, { rows: page.threads.length, total: page.total, counts: page.counts })
+  const seen = await mailByLabel(ME, { relevance: 'all', label: 'all', limit: 20_000 }, today)
+  ok('the colleague\'s private thread is not in the read', !seen.threads.some(t => t.id === T.hidden) && seen.threads.some(t => t.id === T.renewal))
+  ok('the colleague on it has it', (await mailByLabel(COLLEAGUE, { relevance: 'all', label: 'all', limit: 20_000 }, today)).threads.some(t => t.id === T.hidden))
+  const code = await mailInCode()
+  const views: { relevance: MailRelevance; label: Label | 'all' }[] = [
+    ...(['all', ...RELEVANCE] as MailRelevance[]).map(relevance => ({ relevance, label: 'all' as const })),
+    ...LABELS.map(l => ({ relevance: 'all' as const, label: l })),
+    { relevance: 'back_burner', label: 'renewal' }, { relevance: 'active', label: 'claim' },
+  ]
+  // Every mailbox on file, a person with none, a colleague on a private thread, and a cron (null).
+  for (const viewer of [...new Set([...code.mailboxes, ME, COLLEAGUE]), null]) {
+    const rows = await code.rowsFor(viewer)
+    const off: string[] = []
+    for (const v of views) {
+      const want = mailView(rows, { ...v, limit: 20_000 })
+      const got = await mailByLabel(viewer, { ...v, limit: 20_000 }, today)
+      if (JSON.stringify(want) !== JSON.stringify(got)) off.push(`${v.relevance}/${v.label}: ${want.total} in code, ${got.total} in the database`)
+    }
+    const who = viewer == null ? 'a cron' : viewer.startsWith('dogfood.') ? viewer.split('@')[0] : `mailbox ${code.mailboxes.indexOf(viewer) + 1}`
+    ok(`the database answers what the code rules answer: ${who}, ${views.length} views`, off.length === 0, off.slice(0, 3))
+  }
+
   console.log('\nAn agent\'s turn')
   const turn = {
     evidence: [
@@ -335,6 +421,124 @@ async function walkStores(): Promise<void> {
   ok('a note that is not on the case is 404', (await refusal(() => setNoteStatus(W1, NOWHERE, ME, 'rejected'))).status === 404)
   ok('reject and restore are on the events', (await events(W1)).filter(e => e.kind === 'note_rejected' || e.kind === 'note_restored').map(e => e.kind).join() === 'note_rejected,note_restored')
 
+  console.log('\nThe brief')
+  await recordTurn(W1, 'case_worker', { notes: [
+    { section: 'risk', text: 'Budget is capped at last year\'s premium', quote: 'Our budget is capped at last year\'s premium', thread_id: T.renewal },
+    { section: 'success_factor', text: 'Insurers approached this week', quote: 'we will approach the insurers this week', thread_id: T.renewal },
+    { section: 'open_question', text: 'Will the loss ratio stay under 60%', quote: 'hold the rates if the loss ratio stays under 60%', thread_id: T.insurer },
+    { section: 'wish', text: 'Budget figure stays private', quote: 'Please do not share this figure', thread_id: T.hidden },
+  ] })
+  let b = await loadBrief(W1, ME)
+  ok('five parts in order', b.parts.map(p => p.part).join() === 'communicated,wish,stated,open,next' && b.parts[1].name === 'Client wish list', b.parts)
+  const comm = part(b, 'communicated')
+  ok('Communicated: the last email to the client, then to the insurer by name', comm.length === 2 && comm[0].who === 'To the client' && comm[0].source?.message_id === M.trs && /^To Dogfood Insurer/.test(comm[1].who ?? '') && comm[1].source?.message_id === M.ask, comm.map(r => [r.who, r.source?.message_id]))
+  ok('in TRS\'s own words', /approach the insurers/.test(comm[0].text) && /quote the renewal/.test(comm[1].text), comm.map(r => r.text))
+  const wishes = part(b, 'wish')
+  ok('a person\'s wish with no email has no source and names the person', wishes.some(r => r.text === said && r.source === null && r.author === ME && r.who === null), wishes)
+  const secret = wishes.find(r => r.source?.thread_id === T.hidden)
+  ok('a wish from a colleague\'s thread: words and sender withheld', !!secret && secret.private === true && secret.source?.quote === null && secret.source?.from === null, secret)
+  const theirs = part(await loadBrief(W1, COLLEAGUE), 'wish').find(r => r.source?.thread_id === T.hidden)
+  ok('the colleague on that thread reads them', !!theirs && !theirs.private && theirs.source?.quote === 'Please do not share this figure' && theirs.who === 'Client', theirs)
+  const stated = part(b, 'stated')
+  ok('a risk the client stated is kept, named and sourced', stated.length === 1 && stated[0].kind === 'Risk' && stated[0].who === 'Client' && stated[0].source?.message_id === M.client, stated)
+  ok('an agent\'s reading of TRS\'s own words is left off', b.brief.left_off === 1, b.brief.left_off)
+  const open = part(b, 'open')
+  ok('an open question says who owes whom, with its date', open.length === 1 && /^TRS owes Dogfood Insurer/.test(open[0].who ?? '') && open[0].source?.message_id === M.quote && !!open[0].date, open)
+  const next = part(b, 'next')
+  ok('one next step, the current one, with the agent that drafts', next.length === 1 && next[0].text === 'Chase the insurer for final terms' && next[0].who === 'Relay drafts' && next[0].source?.message_id === M.quote, next)
+  ok('one row rests on no email', b.brief.unsourced === 1 && b.brief.rows.filter(r => !r.source).length === 1, b.brief.unsourced)
+  ok('no row is a summary or an inferred risk: every agent row carries its email', b.brief.rows.every(r => r.source || r.author), b.brief.rows.filter(r => !r.source))
+  ok('unknown case is 404', (await refusal(() => loadBrief(NOWHERE, ME))).status === 404)
+
+  console.log('\nLine of insurance')
+  ok('read from the case title', b.line?.by === 'title' && b.line?.name === 'Employment Benefits' && b.checklist_applies === true, b.line)
+  const claim = await loadBrief(W2, ME)
+  ok('a claim runs on no checklist', claim.checklist_applies === false && claim.checklist === null, { applies: claim.checklist_applies, checklist: claim.checklist })
+  ok('a line off the list is 400', (await refusal(() => setCaseLine(W1, 'snacks', ME))).status === 400)
+  const LINE = await freeLine()
+  ok('a line with no checklist to test on', !!LINE, LINE)
+  if (!LINE) return
+  await setCaseLine(W1, LINE, ME)
+  b = await loadBrief(W1, ME)
+  ok('a person\'s choice stands over the title', b.line?.line === LINE && b.line?.by === 'person', b.line)
+  ok('a line with no list shows none', b.checklist === null && b.checklist_applies === true)
+
+  console.log('\nA checklist in Settings')
+  const listsBefore = await listChecklists()
+  ok('the lists staff keep are listed', listsBefore.some(l => l.line === 'employee_benefits' && l.name === 'Employment Benefits' && l.items.length > 0) && !listsBefore.some(l => l.line === LINE), listsBefore.map(l => [l.line, l.items.length]))
+  ok('a list on no line is 400', (await refusal(() => addList('snacks', ME))).status === 400)
+  ok('a document on a line with no list is 404', (await refusal(() => addItem(LINE, { label: 'Quotation', words: ['quotation'] }, ME))).status === 404)
+  await addList(LINE, ME)
+  await addList(LINE, ME)
+  await addItem(LINE, { label: 'Insurer quotation', found_by: 'file', words: ['Quotation'] }, ME)
+  await addItem(LINE, { label: 'Client wish list', found_by: 'wish' }, ME)
+  await addItem(LINE, { label: 'Signed proposal form', found_by: 'person' }, ME)
+  await addItem(LINE, { label: 'Budget paper', found_by: 'file', words: ['budget'] }, ME)
+  ok('the same document again is 409', (await refusal(() => addItem(LINE, { label: 'insurer quotation', words: ['quote'] }, ME))).status === 409)
+  ok('a document with no name is 400', (await refusal(() => addItem(LINE, { label: ' ', words: ['quote'] }, ME))).status === 400)
+  ok('a file document with nothing to find it by is 400', (await refusal(() => addItem(LINE, { label: 'Loss record', found_by: 'file' }, ME))).status === 400)
+  ok('an unknown document type is 400', (await refusal(() => addItem(LINE, { label: 'Loss record', doc_types: ['snack_menu'] }, ME))).status === 400)
+  let draft = (await listChecklists()).find(l => l.line === LINE)
+  ok('one list, four documents in the order added, a draft', draft?.items.map(i => i.label).join() === 'Insurer quotation,Client wish list,Signed proposal form,Budget paper' && draft.confirmed_by === null && draft.updated_by === ME, draft)
+  ok('words are kept in lower case', draft?.items[0].words.join() === 'quotation', draft?.items[0])
+  const [quotation, wishItem, form, budget] = draft?.items.map(i => i.id) ?? []
+  await confirmList(LINE, ME)
+  draft = (await listChecklists()).find(l => l.line === LINE)
+  ok('confirmed by a person, with when', draft?.confirmed_by === ME && !Number.isNaN(Date.parse(draft?.confirmed_at ?? '')), draft && { by: draft.confirmed_by, at: draft.confirmed_at })
+  await editItem(form, { label: 'Signed proposal' }, ME)
+  draft = (await listChecklists()).find(l => l.line === LINE)
+  ok('an edit returns the list to draft', draft?.confirmed_by === null && draft.items.some(i => i.label === 'Signed proposal'), draft && { by: draft.confirmed_by })
+  ok('a rename onto another document is 409', (await refusal(() => editItem(form, { label: 'Budget paper' }, ME))).status === 409)
+  ok('a document on no list is 404', (await refusal(() => editItem(NOWHERE, { label: 'Anything' }, ME))).status === 404)
+  ok('confirming a line with no list is 404', (await refusal(() => confirmList('snacks', ME))).status === 404)
+  const after = await listChecklists()
+  ok('no other list was written to', listsBefore.every(l => { const a = after.find(x => x.line === l.line); return !!a && a.updated_at === l.updated_at && a.confirmed_by === l.confirmed_by && a.items.length === l.items.length }), after.map(l => [l.line, l.updated_at]))
+
+  console.log('\nDocuments on the case')
+  await put('email_attachments', [{ message_id: M.hidden, thread_id: T.hidden, filename: 'Budget_Dogfood_2027.xlsx' }])
+  b = await loadBrief(W1, ME)
+  const doc = (v: CaseBriefView, id: string) => v.checklist?.rows.find(r => r.item_id === id)
+  ok('the case runs on the list of its line, marked draft', b.checklist?.line === LINE && b.checklist?.confirmed_by === null && b.checklist?.total === 4, b.checklist && { line: b.checklist.line, total: b.checklist.total })
+  ok('a file on the case ticks its document: name, sender, email', doc(b, quotation)?.state === 'found' && doc(b, quotation)?.file?.filename === 'Quotation_Dogfood_GHS.pdf' && doc(b, quotation)?.file?.message_id === M.quote && doc(b, quotation)?.file?.thread_id === T.insurer, doc(b, quotation))
+  ok('a client wish on the brief ticks the wish list', doc(b, wishItem)?.state === 'found' && doc(b, wishItem)?.file === null, doc(b, wishItem))
+  ok('a document only a person can confirm is missing', doc(b, form)?.state === 'missing', doc(b, form))
+  ok('a file in a colleague\'s mailbox is found with its name withheld', doc(b, budget)?.state === 'found' && doc(b, budget)?.private === true && doc(b, budget)?.file?.filename === '' && doc(b, budget)?.file?.from === null, doc(b, budget))
+  ok('the colleague reads the file name', doc(await loadBrief(W1, COLLEAGUE), budget)?.file?.filename === 'Budget_Dogfood_2027.xlsx')
+  ok('three of four ticked, none confirmed, not complete', b.checklist?.ticked === 3 && b.checklist?.confirmed === 0 && b.checklist?.complete === false, b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed })
+  await setCheck(W1, quotation, ME, 'confirm')
+  b = await loadBrief(W1, ME)
+  let C = await calls(W1)
+  ok('confirm: the found file goes on record with who confirmed', doc(b, quotation)?.state === 'confirmed' && doc(b, quotation)?.actor === ME && doc(b, quotation)?.file?.filename === 'Quotation_Dogfood_GHS.pdf' && C.length === 1 && C[0].found === true && C[0].message_id === M.quote, { row: doc(b, quotation), C })
+  await setCheck(W1, quotation, ME, 'clear')
+  ok('undo: back to what code finds, nothing kept', doc(await loadBrief(W1, ME), quotation)?.state === 'found' && (await calls(W1)).length === 0)
+  await setCheck(W1, quotation, ME, 'reject')
+  b = await loadBrief(W1, ME)
+  C = await calls(W1)
+  ok('not this file: the finding is turned down and not offered again', doc(b, quotation)?.state === 'missing' && doc(b, quotation)?.file === null && C[0]?.status === null && C[0]?.rejected?.[0]?.filename === 'Quotation_Dogfood_GHS.pdf', { row: doc(b, quotation), C })
+  ok('turning down with no finding is 409', (await refusal(() => setCheck(W1, quotation, ME, 'reject'))).status === 409)
+  await setCheck(W1, quotation, ME, 'confirm')
+  C = await calls(W1)
+  ok('a person confirms a document no file was found for', doc(await loadBrief(W1, ME), quotation)?.state === 'confirmed' && C[0]?.found === false && C[0]?.message_id === null, C)
+  await setCheck(W1, quotation, ME, 'clear')
+  C = await calls(W1)
+  ok('undo keeps the turned-down file on record', C.length === 1 && C[0].status === null && C[0].rejected.length === 1 && doc(await loadBrief(W1, ME), quotation)?.state === 'missing', C)
+  await setCheck(W1, quotation, ME, 'not_needed')
+  await setCheck(W1, form, ME, 'confirm')
+  await setCheck(W1, budget, COLLEAGUE, 'confirm')
+  b = await loadBrief(W1, ME)
+  ok('every document ticked: the list is complete', b.checklist?.complete === true && b.checklist?.ticked === 4 && b.checklist?.confirmed === 3 && doc(b, quotation)?.state === 'not_needed', b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed, complete: b.checklist.complete })
+  ok('a confirmed file in a colleague\'s mailbox stays withheld', doc(b, budget)?.state === 'confirmed' && doc(b, budget)?.private === true && doc(b, budget)?.file?.filename === '' && doc(b, budget)?.actor === COLLEAGUE, doc(b, budget))
+  ok('a document that is not on the list is 404', (await refusal(() => setCheck(W1, NOWHERE, ME, 'confirm'))).status === 404)
+  ok('a call on a case with no checklist is 404', (await refusal(() => setCheck(W2, quotation, ME, 'confirm'))).status === 404)
+  await editItem(form, { active: false }, ME)
+  b = await loadBrief(W1, ME)
+  ok('a retired document leaves the case\'s list; its call stays on record', b.checklist?.total === 3 && !doc(b, form) && (await calls(W1)).some(c => c.item_id === form && c.status === 'confirmed'), b.checklist && { total: b.checklist.total })
+  const E = await events(W1)
+  ok('every call and the line choice are on the case\'s events', E.filter(e => e.kind === 'checklist').length === 8 && E.filter(e => e.kind === 'line').length === 1 && E.some(e => e.detail?.note === 'Finding turned down: Insurer quotation') && E.some(e => /^Line set: /.test(e.detail?.note ?? '')), E.filter(e => e.kind === 'checklist' || e.kind === 'line').map(e => e.detail?.note))
+  await setCaseLine(W1, null, ME)
+  b = await loadBrief(W1, ME)
+  ok('clearing the choice returns the case to its title\'s line', b.line?.by === 'title' && b.checklist?.line === 'employee_benefits' && (b.checklist?.total ?? 0) > 0, b.line)
+
   console.log('\nThe case worker\'s guard')
   await pickThread(W2, T.other_case, COLLEAGUE)
   await excludeThread(W2, T.movement, COLLEAGUE)
@@ -388,7 +592,7 @@ async function walkRoutes(base: string): Promise<void> {
   if (!secret) throw new Error('AUTH_SECRET is not set')
   const session = await createSession({ id: 'dogfood', email: ME, name: 'Dogfood' }, secret)
   const outsider = await createSession({ id: 'dogfood-out', email: 'someone@dogfood-client.invalid', name: 'Outsider' }, secret)
-  const call = async (method: 'GET' | 'POST', path: string, body?: unknown, cookie: string | null = session) => {
+  const call = async (method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown, cookie: string | null = session) => {
     const r = await fetch(`${base}${path}`, { method, headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: `trs_session=${cookie}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) })
     return { status: r.status, json: await r.json().catch(() => null) as Row | null }
   }
@@ -454,6 +658,66 @@ async function walkRoutes(base: string): Promise<void> {
   r = await call('POST', `/api/work/${W1}/memory`, { action: 'restore', note_id: noteId })
   ok('restore → 200, back in its section', r.status === 200 && r.json?.memory?.sections?.find((x: Row) => x.section === 'risk')?.notes?.length === 1, r.json?.error)
   ok('a note that is not on the case → 404', (await call('POST', `/api/work/${W1}/memory`, { action: 'reject', note_id: NOWHERE })).status === 404)
+
+  console.log('\nGET/POST /api/work/:id/brief')
+  ok('no session → 401', (await call('GET', `/api/work/${W1}/brief`, undefined, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('POST', `/api/work/${W1}/brief`, { action: 'line', line: null }, outsider)).status === 401)
+  r = await call('GET', `/api/work/${W1}/brief`)
+  const rows = (r.json?.brief?.rows ?? []) as Row[]
+  ok('five parts, the line of the case and the staff names', r.status === 200 && r.json?.parts?.length === 5 && r.json?.line?.by === 'title' && r.json?.checklist_applies === true && Array.isArray(r.json?.staff), r.json && { status: r.status, parts: r.json.parts?.length, line: r.json.line, error: r.json.error })
+  ok('Communicated carries TRS\'s last email; the person\'s risk is under Known risks', rows.some(x => x.part === 'communicated' && x.who === 'To the client' && x.source?.message_id === M.trs) && rows.some(x => x.part === 'stated' && x.kind === 'Risk' && x.author === ME), rows.map(x => [x.part, x.who]))
+  ok('no email body leaves the route', !JSON.stringify(r.json).includes('body_text'))
+  ok('unknown case → 404', (await call('GET', `/api/work/${NOWHERE}/brief`)).status === 404)
+  ok('unknown action → 400', (await call('POST', `/api/work/${W1}/brief`, { action: 'tick' })).status === 400)
+  ok('no body → 400', (await call('POST', `/api/work/${W1}/brief`)).status === 400)
+  ok('a call with no document → 400', (await call('POST', `/api/work/${W1}/brief`, { action: 'confirm' })).status === 400)
+  ok('a line that is not a line → 400', (await call('POST', `/api/work/${W1}/brief`, { action: 'line', line: 'snacks' })).status === 400)
+  ok('a line that is not text → 400', (await call('POST', `/api/work/${W1}/brief`, { action: 'line', line: 7 })).status === 400)
+
+  console.log('\nGET/POST/PATCH /api/settings/checklists')
+  ok('no session → 401', (await call('GET', '/api/settings/checklists', undefined, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('POST', '/api/settings/checklists', { action: 'list', line: 'cyber' }, outsider)).status === 401)
+  r = await call('GET', '/api/settings/checklists')
+  ok('the lists, the document types and the staff names', r.status === 200 && r.json?.lists?.some((l: Row) => l.line === 'employee_benefits') && r.json?.doc_types?.length > 0 && Array.isArray(r.json?.staff), r.json && { status: r.status, lists: r.json.lists?.length, error: r.json.error })
+  const LINE = await freeLine()
+  ok('a line with no checklist to test on', !!LINE, LINE)
+  if (LINE) {
+    const listOf = (x: { json: Row | null }) => (x.json?.lists as Row[] | undefined)?.find(l => l.line === LINE)
+    ok('no line → 400', (await call('POST', '/api/settings/checklists', { action: 'list' })).status === 400)
+    ok('unknown action → 400', (await call('POST', '/api/settings/checklists', { action: 'burn', line: LINE })).status === 400)
+    ok('a list on no line → 400', (await call('POST', '/api/settings/checklists', { action: 'list', line: 'snacks' })).status === 400)
+    ok('a document before the list → 404', (await call('POST', '/api/settings/checklists', { action: 'item', line: LINE, label: 'Signed proposal form', found_by: 'person' })).status === 404)
+    r = await call('POST', '/api/settings/checklists', { action: 'list', line: LINE })
+    ok('a list is started, empty', r.status === 200 && r.json?.ok === true && listOf(r)?.items?.length === 0, r.json && { status: r.status, error: r.json.error })
+    ok('confirming an empty list → 409', (await call('POST', '/api/settings/checklists', { action: 'confirm', line: LINE })).status === 409)
+    r = await call('POST', '/api/settings/checklists', { action: 'item', line: LINE, label: 'Signed proposal form', found_by: 'person' })
+    const itemId = listOf(r)?.items?.[0]?.id as string | undefined
+    ok('a document is added by the signed-in person', r.status === 200 && !!itemId && listOf(r)?.updated_by === ME && listOf(r)?.items?.[0]?.found_by === 'person', r.json && { status: r.status, error: r.json.error })
+    ok('the same document again → 409', (await call('POST', '/api/settings/checklists', { action: 'item', line: LINE, label: 'Signed proposal form', found_by: 'person' })).status === 409)
+    ok('a document with no name → 400', (await call('POST', '/api/settings/checklists', { action: 'item', line: LINE, label: '' })).status === 400)
+    r = await call('POST', '/api/settings/checklists', { action: 'confirm', line: LINE })
+    ok('confirm → 200, by the signed-in person', r.status === 200 && listOf(r)?.confirmed_by === ME, r.json?.error)
+    ok('an edit with no document → 400', (await call('PATCH', '/api/settings/checklists', { label: 'x' })).status === 400)
+    ok('an edit of a document on no list → 404', (await call('PATCH', '/api/settings/checklists', { id: NOWHERE, label: 'Anything' })).status === 404)
+    r = await call('PATCH', '/api/settings/checklists', { id: itemId, label: 'Signed proposal' })
+    ok('an edit → 200, the list is a draft again', r.status === 200 && listOf(r)?.confirmed_by === null && listOf(r)?.items?.[0]?.label === 'Signed proposal', r.json?.error)
+
+    r = await call('POST', `/api/work/${W1}/brief`, { action: 'line', line: LINE })
+    const docRow = (x: { json: Row | null }) => (x.json?.brief?.checklist?.rows as Row[] | undefined)?.find(d => d.item_id === itemId)
+    ok('line → 200, the case runs on that list', r.status === 200 && r.json?.brief?.line?.by === 'person' && r.json?.brief?.checklist?.line === LINE && docRow(r)?.state === 'missing', r.json && { status: r.status, line: r.json.brief?.line, error: r.json.error })
+    ok('a document that is not on the list → 404', (await call('POST', `/api/work/${W1}/brief`, { action: 'confirm', item_id: NOWHERE })).status === 404)
+    ok('turning down with no finding → 409', (await call('POST', `/api/work/${W1}/brief`, { action: 'reject', item_id: itemId })).status === 409)
+    r = await call('POST', `/api/work/${W1}/brief`, { action: 'confirm', item_id: itemId })
+    ok('confirm → 200, by the signed-in person, list complete', r.status === 200 && docRow(r)?.state === 'confirmed' && docRow(r)?.actor === ME && r.json?.brief?.checklist?.complete === true, r.json?.error ?? docRow(r))
+    r = await call('POST', `/api/work/${W1}/brief`, { action: 'not_needed', item_id: itemId })
+    ok('not needed → 200', r.status === 200 && docRow(r)?.state === 'not_needed', r.json?.error)
+    r = await call('POST', `/api/work/${W1}/brief`, { action: 'clear', item_id: itemId })
+    ok('undo → 200, missing again', r.status === 200 && docRow(r)?.state === 'missing', r.json?.error)
+    r = await call('PATCH', '/api/settings/checklists', { id: itemId, active: false })
+    ok('retire → 200, kept on the list as retired', r.status === 200 && listOf(r)?.items?.[0]?.active === false, r.json?.error)
+    r = await call('POST', `/api/work/${W1}/brief`, { action: 'line', line: null })
+    ok('clearing the line → 200, back to the title\'s line', r.status === 200 && r.json?.brief?.line?.by === 'title', r.json?.error)
+  }
 
   console.log('\nGET /api/today/mail')
   ok('no session → 401', (await call('GET', '/api/today/mail', undefined, null)).status === 401)

@@ -8,6 +8,7 @@ import { TeamTable } from '@/components/settings/TeamTable'
 import { VoicePanel } from '@/components/settings/VoicePanel'
 import { RenewalMethodPanel } from '@/components/settings/RenewalMethodPanel'
 import { ClientFormsPanel } from '@/components/settings/ClientFormsPanel'
+import { ChecklistPanel } from '@/components/settings/ChecklistPanel'
 
 /**
  * Settings, structured as Alps Wills structures it: one page, a nav of sections on the left,
@@ -21,7 +22,7 @@ const RULE = '#e6e8e4'
 // Insurers, RFQ, Email templates and How it works were removed on 2 Oct 2026. Insurers now live
 // under Companies → Insurers, where every distinct insurer already had a company record; the RFQ
 // flow and its templates were retired everywhere, not only here.
-type Section = 'profile' | 'team' | 'signatures' | 'voice' | 'renewal_method' | 'client_forms'
+type Section = 'profile' | 'team' | 'signatures' | 'voice' | 'renewal_method' | 'client_forms' | 'checklists'
 const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'agents' }[] = [
   { key: 'profile',    label: 'Your profile',   group: 'you' },
   { key: 'signatures', label: 'Signatures',     group: 'you' },
@@ -29,6 +30,7 @@ const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'agents' 
   { key: 'voice',      label: 'Tone of voice',  group: 'agents' },
   { key: 'renewal_method', label: 'Renewal method', group: 'agents' },
   { key: 'client_forms', label: 'Client forms', group: 'agents' },
+  { key: 'checklists', label: 'Document checklists', group: 'agents' },
 ]
 const GROUP_LABEL = { you: 'You', team: 'Team', agents: 'Agents' } as const
 
@@ -92,6 +94,7 @@ function SettingsInner() {
             {section === 'voice' && <VoicePanel isAdmin={!!profile?.is_admin} />}
             {section === 'renewal_method' && <RenewalMethodPanel isAdmin={!!profile?.is_admin} />}
             {section === 'client_forms' && <ClientFormsPanel isAdmin={!!profile?.is_admin} />}
+            {section === 'checklists' && <ChecklistPanel />}
           </section>
         </div>
       </div>
