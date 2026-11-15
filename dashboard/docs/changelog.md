@@ -4,7 +4,14 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-15 — Case agents phase 1: sources, labels, relevance and case memory (not deployed)
+## 2026-11-15 — Case sources: words filed under who wrote them; closings trimmed (not deployed)
+
+- **A quote is filed under its writer** (`src/lib/cases/memory.ts`: `quoteSource`, `evidenceNotes`): words found in a message's own text belong to its sender; words found only in the history beneath belong to whoever wrote that block. A client forwarding an insurer's email no longer puts the insurer's words under Client said; an insurer's words TRS forwarded are kept as Insurer said. Words with no writer named are left out.
+- **Closings trimmed** (`src/lib/admin/a/history.ts`: `withoutSignOff`): the two buckets show a message without its closing, signature block, device line and confidentiality notice. A sentence that only opens like a closing ("Regards to your team", "Best option") is kept. The ledger's own text is unchanged.
+- **Outlook for Mac history** (`*From: *` bold labels) is read as history, not as the writer's own text.
+- No dependency added. Measured on 1,494 recent messages against email-reply-parser 3.0.0: messages only the library trims 127 before, 0 after; 677 ms against 4.6 s.
+
+## 2026-11-15 — Case agents phase 1: sources, labels, relevance and case memory (live, 64fd44a1)
 
 - **A person's pick decides what a case reads** (`src/lib/cases/sources-store.ts`, `/api/work/:id/sources`): pick, exclude, restore and side per thread; one thread on one case, a conflict answers with the other case and can be moved. The case reader no longer moves a thread a person picked, nor re-attaches one a person took off.
 - **Two buckets** (`sources.ts`): what the client said and what the insurer said, in date order, built from the picked threads only.
@@ -12,7 +19,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - **Relevance** (`relevance.ts`, `/api/companies/:id/relevance`): Active, Back burner (over 90 days, or on no open case), Member movements; renewal season from a policy ending within 90 days or an open renewal case.
 - **Case memory** (`memory-store.ts`, `/api/work/:id/memory`): notes in nine sections, each agent note tied to the words of an email on the case; which agent has read which email; a resume point for every agent and person. The case reader records its turn.
 - Mail privacy applies throughout: a colleague's thread is counted, never listed or quoted.
-- Migration `20261115_case_sources.sql` is written and not yet applied to production. Dogfood script `scripts/dogfood-case-sources.mts`: 88 store checks and 37 route checks pass on a local copy of the schema. Detail: `docs/case-sources.md`.
+- Migration `20261115_case_sources.sql` applied to production on 15 Nov; 2,754 threads labelled by rule (`scripts/label-backfill.mts`), none left unlabelled. Dogfood script `scripts/dogfood-case-sources.mts` on production with test records: 88 store checks and 37 route checks pass. Detail: `docs/case-sources.md`.
 
 ## 2026-11-14 — Admin desk: Mark done and Snooze; enrolment cycles; claims from IHP notices
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { cleanNotes, quoted, noteKey, unreadFor, resumePoint, SECTIONS, SECTION_NAME, type CaseMessage } from '../memory'
+import { cleanNotes, quoted, noteKey, unreadFor, resumePoint, quoteSource, evidenceNotes, ownWords, SECTIONS, SECTION_NAME, type CaseMessage } from '../memory'
+import type { Side, SourceMessage } from '../sources'
 
 const messages: CaseMessage[] = [
   { id: 'm1', thread_id: 't1', sent_at: '2026-11-01T02:00:00Z', text: 'We would like to keep the same hospital plan,\nbut the budget cannot go above $40,000 this year.' },
@@ -95,4 +96,94 @@ describe('resumePoint', () => {
     expect(r).toEqual({ last: null, next_step: 'Call the client', open_questions: [], handover: null, unread: { new: 0 } })
   })
   it('names every section', () => { for (const s of SECTIONS) expect(SECTION_NAME[s]).toBeTruthy() })
+})
+
+// A client forwards the insurer's terms; the insurer later quotes the client's reply.
+const mail = (o: Partial<SourceMessage> & { id: string }): SourceMessage => ({
+  thread_id: 't1', direction: 'inbound', from_address: 'hr@client.invalid', subject: 'Renewal terms', body_text: '', sent_at: '2026-11-01T02:00:00Z', ...o,
+})
+const forwarded = mail({
+  id: 'f1', subject: 'Fwd: Renewal terms',
+  body_text: [
+    'Hi Nathan, please see below. Can the excess be reduced?', '',
+    '---------- Forwarded message ---------',
+    'From: Underwriter <uw@insurer.invalid>',
+    'Date: Mon, 2 Nov 2026 at 10:15',
+    'Subject: Renewal terms',
+    'To: HR <hr@client.invalid>', '',
+    'We can renew at a premium of $41,200 with the excess raised to $500.',
+  ].join('\n'),
+})
+const insurerReply = mail({
+  id: 'f2', from_address: 'uw@insurer.invalid', sent_at: '2026-11-03T02:00:00Z', subject: 'RE: Renewal terms',
+  body_text: [
+    'Noted. The excess stays at $500 for this renewal.', '',
+    'From: HR <hr@client.invalid>',
+    'Sent: Tuesday, 3 November 2026 9:02 AM',
+    'To: Underwriter <uw@insurer.invalid>',
+    'Subject: Renewal terms', '',
+    'Our budget for the year is capped at $40,000 all in.',
+  ].join('\n'),
+})
+const trsForward = mail({
+  id: 'f3', direction: 'outbound', from_address: 'nathan@trade-risksol.com', sent_at: '2026-11-04T02:00:00Z', subject: 'Fwd: Renewal terms',
+  body_text: [
+    'Please see the insurer’s position below.', '',
+    '---------- Forwarded message ---------',
+    'From: Underwriter <uw@insurer.invalid>',
+    'Date: Wed, 4 Nov 2026 at 09:00',
+    'Subject: Renewal terms', '',
+    'Claims experience over three years supports a 5% loading.',
+  ].join('\n'),
+})
+const thread = [forwarded, insurerReply, trsForward]
+const kinds = new Map([['client.invalid', 'client'], ['insurer.invalid', 'insurer']])
+const sides = new Map<string, Side>([['t1', 'client']])
+
+describe('quoteSource', () => {
+  it('gives words to the sender who wrote them', () => {
+    expect(quoteSource('Can the excess be reduced?', 't1', thread)).toMatchObject({ message: { id: 'f1' }, from: 'hr@client.invalid', own: true })
+    expect(quoteSource('excess stays at $500', 't1', thread)).toMatchObject({ message: { id: 'f2' }, from: 'uw@insurer.invalid', own: true })
+  })
+  it('gives forwarded and quoted words to the earlier sender', () => {
+    expect(quoteSource('premium of $41,200 with the excess raised', 't1', thread)).toMatchObject({ message: { id: 'f1' }, from: 'uw@insurer.invalid', own: false })
+    expect(quoteSource('budget for the year is capped at $40,000', 't1', thread)).toMatchObject({ message: { id: 'f2' }, from: 'hr@client.invalid', own: false })
+  })
+  it('finds nothing off the thread, and nothing in a subject line alone', () => {
+    expect(quoteSource('Can the excess be reduced?', 't2', thread)).toBeNull()
+    expect(quoteSource('Renewal terms', 't1', thread)).toBeNull()
+  })
+  it('own words leave the history out', () => {
+    expect(ownWords(forwarded)).toBe('Hi Nathan, please see below. Can the excess be reduced?')
+  })
+})
+
+describe('evidenceNotes', () => {
+  const run = (quote: string) => evidenceNotes([{ thread: 't1', quote }], thread, kinds, sides)
+  it('files a statement under who wrote it, not who forwarded it', () => {
+    expect(run('Can the excess be reduced?')).toEqual([{ section: 'client_said', text: 'Can the excess be reduced?', quote: 'Can the excess be reduced?', message_id: 'f1' }])
+    expect(run('premium of $41,200 with the excess raised')[0]).toMatchObject({ section: 'insurer_said', message_id: 'f1' })
+    expect(run('budget for the year is capped at $40,000')[0]).toMatchObject({ section: 'client_said', message_id: 'f2' })
+  })
+  it('keeps an insurer’s words that TRS forwarded, and leaves out what TRS wrote', () => {
+    expect(run('Claims experience over three years supports')[0]).toMatchObject({ section: 'insurer_said', message_id: 'f3' })
+    expect(run('Please see the insurer’s position below')).toEqual([])
+  })
+  it('an unlisted address is the client only when it sent the email itself', () => {
+    const own = mail({ id: 'g1', from_address: 'owner@gmail.com', body_text: 'Please add my two new drivers to the policy.' })
+    const carried = mail({ id: 'g2', body_text: 'See below.\n\nFrom: Someone <someone@unlisted.invalid>\nSent: Monday, 2 November 2026 9:00 AM\nSubject: Cover\n\nThe cover excludes flood damage at this address.' })
+    expect(evidenceNotes([{ thread: 't1', quote: 'add my two new drivers' }], [own], kinds, sides)[0]).toMatchObject({ section: 'client_said' })
+    expect(evidenceNotes([{ thread: 't1', quote: 'cover excludes flood damage' }], [carried], kinds, sides)).toEqual([])
+  })
+})
+
+describe('cleanNotes with own words', () => {
+  it('cites the email whose sender wrote the words, not a later one that quotes them', () => {
+    const msgs: CaseMessage[] = [
+      { id: 'q2', thread_id: 't1', sent_at: '2026-11-03T02:00:00Z', text: insurerReply.body_text!, own: ownWords(insurerReply) },
+      { id: 'q1', thread_id: 't1', sent_at: '2026-11-03T01:00:00Z', text: 'Our budget for the year is capped at $40,000 all in.', own: 'Our budget for the year is capped at $40,000 all in.' },
+    ]
+    const { kept } = cleanNotes([{ section: 'wish', text: 'Budget capped at $40,000', thread_id: 't1', quote: 'budget for the year is capped at $40,000' }], { ...agent, messages: msgs })
+    expect(kept[0]).toMatchObject({ message_id: 'q1' })
+  })
 })

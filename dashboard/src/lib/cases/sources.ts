@@ -6,6 +6,8 @@
  * label of its kind. A thread a person took off the case is never proposed again. What was said
  * is the messages themselves, in two buckets: the client's side and the insurer's side. A message
  * from outside goes by its sender's domain; a TRS message goes by the side of the thread it is on.
+ * Words belong to whoever wrote them: a quote found only in an email's history (a forward, a
+ * quoted reply) is the earlier sender's, not the forwarder's.
  * No model reads anything here.
  *
  * Pure. Tested in __tests__/sources.test.ts. The reads and writes are in sources-store.ts.
@@ -63,7 +65,7 @@ export function buildBuckets(messages: readonly SourceMessage[], sides: Map<stri
     if (isAutoReply(m) || isInternalOnly(m)) continue
     const bucket = bucketOf(m, sides.get(m.thread_id), domainKind)
     if (!bucket) continue
-    const text = ownText(m.body_text, m.subject, 1200)
+    const text = ownText(m.body_text, m.subject, 1200, false)
     if (!text && !(m.files ?? []).length) continue
     const trs = m.direction === 'outbound' || partyOf(m.from_address, domainKind) === 'internal'
     out[bucket].push({

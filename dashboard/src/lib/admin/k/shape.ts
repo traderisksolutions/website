@@ -2,7 +2,7 @@
  * Pure shaping for the company ledger: what one source row becomes as a ledger entry. No I/O, so
  * the depositor and the backfill write identical rows and the tests read the rules directly.
  */
-import { readHistory } from '@/lib/admin/a/history'
+import { readHistory, withoutSignOff } from '@/lib/admin/a/history'
 import { TRS_DOMAINS, PUBLIC_EMAIL_DOMAINS, emailDomain, bareEmail, isAutomated } from '@/lib/crm/db'
 import type { LedgerKind } from '@/lib/admin/ledger'
 
@@ -18,12 +18,16 @@ export type LedgerDraft = {
 
 export const SUMMARY_MAX = 1500
 
-/** The message's own text: quoted history and forwarded blocks removed, whitespace tidied, trimmed. */
-export function ownText(body: string | null | undefined, subject?: string | null, max = SUMMARY_MAX): string | null {
+/**
+ * The message's own text: quoted history and forwarded blocks removed, whitespace tidied, trimmed.
+ * `closing: false` also drops the sign-off and what follows it (signature, notices).
+ */
+export function ownText(body: string | null | undefined, subject?: string | null, max = SUMMARY_MAX, closing = true): string | null {
   if (!body) return null
   let top: string
   try { top = readHistory(body, subject).top } catch { top = body }
-  const t = top.replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  const tidy = top.replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  const t = closing ? tidy : withoutSignOff(tidy)
   if (!t) return null
   return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readHistory, parseLooseDate, parseWrote, filesNamed, normaliseBody, addressesIn } from '../history'
+import { readHistory, parseLooseDate, parseWrote, filesNamed, normaliseBody, addressesIn, withoutSignOff } from '../history'
 import * as F from './fixtures'
 
 describe('readHistory — forwards', () => {
@@ -172,5 +172,50 @@ describe('helpers', () => {
   })
   it('names files from an Attachments line, brackets and file-only lines, not links', () => {
     expect(filesNamed('Claim form.pdf; Photos 1.jpg', 'see https://x.com/a.pdf\n[Medical report.pdf]\nInvoice 33.xlsx')).toEqual(['Claim form.pdf', 'Photos 1.jpg', 'Medical report.pdf', 'Invoice 33.xlsx'])
+  })
+})
+
+describe('readHistory — Outlook for Mac', () => {
+  const body = [
+    'Noted, thank you.', '',
+    '*From: *Jane Tan <jane@client.invalid>',
+    '*Date: *Thursday, 12 November 2026 at 2:25 PM',
+    '*To: *Nathan <nathan@trade-risksol.com>',
+    '*Cc: *Ops <operations@trade-risksol.com>',
+    '*Subject: *Re: Renewal', '',
+    'Please proceed with the renewal.',
+  ].join('\n')
+  it('reads the bold header written with a space before the closing asterisk', () => {
+    const h = readHistory(body, 'Re: Renewal')
+    expect(h.top).toBe('Noted, thank you.')
+    expect(h.messages).toHaveLength(1)
+    expect(h.messages[0]).toMatchObject({ fromAddress: 'jane@client.invalid', fromName: 'Jane Tan', subject: 'Re: Renewal', body: 'Please proceed with the renewal.' })
+    expect(h.messages[0].sentAt).toBe('2026-11-12T06:25:00.000Z')
+  })
+  it('reads the same header inside quoted lines', () => {
+    const h = readHistory(['Thanks.', '', ...body.split('\n').slice(2).map(l => `>> ${l}`)].join('\n'), 'Re: Renewal')
+    expect(h.top).toBe('Thanks.')
+    expect(h.messages[0].fromAddress).toBe('jane@client.invalid')
+  })
+})
+
+describe('withoutSignOff', () => {
+  const cut = (lines: string[]) => withoutSignOff(lines.join('\n'))
+  it('cuts at the closing and drops the signature under it', () => {
+    expect(cut(['Please see attached.', '', 'Warmest Regards,', 'Jane Tan', 'HR Manager', '+65 6000 0000'])).toBe('Please see attached.')
+    expect(cut(['Please see attached.', 'Thanks & Regards, Jane'])).toBe('Please see attached.')
+    expect(cut(['Please see attached.', '', 'Best', 'Cheng Sou (Ernest)'])).toBe('Please see attached.')
+    expect(cut(['Approved.', '', 'Yours sincerely,', 'Underwriting'])).toBe('Approved.')
+  })
+  it('cuts at a device line, a signature dash and a confidentiality notice', () => {
+    expect(cut(['Ok to proceed', '', 'Sent from my iPhone'])).toBe('Ok to proceed')
+    expect(cut(['Ok to proceed', '-- ', 'Jane'])).toBe('Ok to proceed')
+    expect(cut(['Ok to proceed', '', 'This email and any attachments are confidential and intended solely for the addressee.'])).toBe('Ok to proceed')
+  })
+  it('keeps sentences that only open like a closing', () => {
+    for (const t of ['Regards to your team, and see you on Friday.', 'Best option is the higher ward.', 'Best Western Hotel is the venue.', 'Thanks, we will revert by Friday.', 'Sincerely hoping this can be waived.']) expect(cut(['Hello,', t, 'More to follow.'])).toBe(`Hello,\n${t}\nMore to follow.`)
+  })
+  it('keeps a body that opens with a closing', () => {
+    expect(cut(['Regards,', 'Jane'])).toBe('Regards,\nJane')
   })
 })

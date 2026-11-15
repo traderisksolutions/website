@@ -13,10 +13,9 @@
  */
 import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { directory, depositEvent } from '@/lib/admin/k/deposit'
-import { partyOf } from '@/lib/admin/k/shape'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { CaseError, caseRow, caseMessages, caseThreadIds } from './sources-store'
-import { cleanNotes, quoted, resumePoint, unreadFor, isSection, SECTION_NAME, SINGLE, type CaseMessage, type CleanNote, type Dropped, type Resume, type Section } from './memory'
+import { cleanNotes, evidenceNotes, ownWords, resumePoint, unreadFor, isSection, SECTION_NAME, SINGLE, type CaseMessage, type CleanNote, type Dropped, type Resume, type Section } from './memory'
 import type { Side, SourceMessage } from './sources'
 
 type Row = Record<string, any>
@@ -40,7 +39,7 @@ export type CaseState = {
 }
 
 const asText = (m: SourceMessage) => `${m.subject ?? ''}\n${m.body_text ?? ''}`
-const asCaseMessages = (messages: readonly SourceMessage[]): CaseMessage[] => messages.map(m => ({ id: m.id, thread_id: m.thread_id, sent_at: m.sent_at, text: asText(m) }))
+const asCaseMessages = (messages: readonly SourceMessage[]): CaseMessage[] => messages.map(m => ({ id: m.id, thread_id: m.thread_id, sent_at: m.sent_at, text: asText(m), own: ownWords(m) }))
 
 export async function loadCaseState(workItemId: string, opts: { agent?: string; viewer?: string | null } = {}): Promise<CaseState> {
   const item = await caseRow(workItemId)
@@ -97,20 +96,6 @@ export type Turn = {
   event?: boolean
 }
 export type TurnResult = { kept: number; stored: number; dropped: Dropped[]; read: number; event_id: string | null }
-
-/** Evidence quotes as notes, by the sender of the email that holds the words. TRS's own words are no one's statement. */
-export function evidenceNotes(evidence: readonly { thread: string; quote: string }[], messages: readonly SourceMessage[], domainKind: Map<string, string>, sides: Map<string, Side>) {
-  const out: { section: Section; text: string; quote: string; message_id: string }[] = []
-  for (const e of evidence) {
-    const quote = String(e?.quote ?? '').trim()
-    const m = messages.find(x => x.thread_id === e?.thread && quoted(quote, asText(x)))
-    if (!m || m.direction === 'outbound') continue
-    const party = partyOf(m.from_address, domainKind, sides.get(m.thread_id) === 'client' ? 'client' : null)
-    const section: Section | null = party === 'client' ? 'client_said' : party === 'insurer' || party === 'tpa' ? 'insurer_said' : null
-    if (section) out.push({ section, text: quote, quote, message_id: m.id })
-  }
-  return out
-}
 
 export async function recordTurn(workItemId: string, agent: string, turn: Turn): Promise<TurnResult> {
   const { ids, sides } = await caseThreadIds(workItemId)

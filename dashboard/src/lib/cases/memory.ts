@@ -11,6 +11,9 @@
  * Pure. Tested in __tests__/memory.test.ts. The reads and writes are in memory-store.ts.
  */
 import { createHash } from 'node:crypto'
+import { ownText, partyOf } from '@/lib/admin/k/shape'
+import { readHistory } from '@/lib/admin/a/history'
+import type { Side, SourceMessage } from './sources'
 
 export const SECTIONS = ['client_said', 'insurer_said', 'wish', 'risk', 'success_factor', 'open_question', 'next_step', 'decision', 'handover'] as const
 export type Section = typeof SECTIONS[number]
@@ -25,7 +28,8 @@ export const SINGLE: ReadonlySet<Section> = new Set<Section>(['next_step'])
 export const TEXT_MAX = 600
 export const QUOTE_MAX = 240
 
-export type CaseMessage = { id: string; thread_id: string; sent_at: string | null; text: string }
+/** `text` is the whole email; `own` is what its sender wrote, without the history beneath. */
+export type CaseMessage = { id: string; thread_id: string; sent_at: string | null; text: string; own?: string }
 export type CleanNote = {
   section: Section; text: string; quote: string | null; message_id: string | null; thread_id: string | null
   source_date: string | null; author: string; author_kind: 'agent' | 'person'; idem_key: string
@@ -38,6 +42,51 @@ export const quoted = (quote: string, text: string) => { const q = flat(quote); 
 
 export const noteKey = (workItemId: string, section: string, text: string, messageId: string | null) =>
   createHash('sha1').update(`${workItemId}|${section}|${flat(text)}|${messageId ?? ''}`).digest('hex')
+
+/** What the sender of an email wrote, without the history beneath it. */
+export const ownWords = (m: Pick<SourceMessage, 'body_text' | 'subject'>) => ownText(m.body_text, m.subject, Number.MAX_SAFE_INTEGER) ?? ''
+
+export type QuoteSource = { message: SourceMessage; /** Who wrote the words. */ from: string | null; /** True when the email's own sender wrote them. */ own: boolean }
+
+/**
+ * The email on a thread that holds a quote, and who wrote the words. The email whose sender wrote
+ * them comes first. An email that only carries them beneath (forwarded or quoted) gives them to
+ * the sender of that earlier message; with the words copied down several messages, the oldest.
+ * Null when no email on the thread holds the words, or they sit only in a subject line.
+ */
+export function quoteSource(quote: string, threadId: string, messages: readonly SourceMessage[]): QuoteSource | null {
+  const on = messages.filter(m => m.thread_id === threadId)
+  const own = on.find(m => quoted(quote, ownWords(m)))
+  if (own) return { message: own, from: own.from_address, own: true }
+  for (const m of on) {
+    if (!m.body_text || !quoted(quote, m.body_text)) continue
+    let beneath: ReturnType<typeof readHistory>['messages'] = []
+    try { beneath = readHistory(m.body_text, m.subject).messages } catch { /* unreadable history: no writer named */ }
+    const block = [...beneath].reverse().find(h => quoted(quote, h.body))
+    if (block) return { message: m, from: block.fromAddress, own: false }
+  }
+  return null
+}
+
+/**
+ * Evidence quotes as notes, by who wrote the words: the sender of the email, or the sender of the
+ * earlier message when the words sit only in forwarded or quoted history. TRS's own words are no
+ * one's statement; words with no writer named are left out.
+ */
+export function evidenceNotes(evidence: readonly { thread: string; quote: string }[], messages: readonly SourceMessage[], domainKind: Map<string, string>, sides: Map<string, Side>) {
+  const out: { section: Section; text: string; quote: string; message_id: string }[] = []
+  for (const e of evidence) {
+    const quote = String(e?.quote ?? '').trim()
+    const src = quoteSource(quote, e?.thread, messages)
+    if (!src || (src.own && src.message.direction === 'outbound')) continue
+    const m = src.message
+    // An unlisted address on the client's thread is the client only when it sent the email itself.
+    const party = partyOf(src.from, domainKind, src.own && sides.get(m.thread_id) === 'client' ? 'client' : null)
+    const section: Section | null = party === 'client' ? 'client_said' : party === 'insurer' || party === 'tpa' ? 'insurer_said' : null
+    if (section) out.push({ section, text: quote, quote, message_id: m.id })
+  }
+  return out
+}
 
 /**
  * Bounds what is stored. `messages` are the emails on the case's picked threads: nothing outside
@@ -55,8 +104,11 @@ export function cleanNotes(raw: unknown, ctx: { workItemId: string; author: stri
     const quote = typeof n.quote === 'string' && n.quote.trim() ? n.quote.trim().slice(0, QUOTE_MAX) : null
     let msg = typeof n.message_id === 'string' ? byId.get(n.message_id) ?? null : null
     const named = typeof n.message_id === 'string' && !!n.message_id
-    // The agent named the thread and the words: the email is the one that holds them.
-    if (!msg && !named && quote && typeof n.thread_id === 'string') msg = ctx.messages.find(m => m.thread_id === n.thread_id && quoted(quote, m.text)) ?? null
+    // The agent named the thread and the words: the email is the one whose sender wrote them, else the first that carries them.
+    if (!msg && !named && quote && typeof n.thread_id === 'string') {
+      const on = ctx.messages.filter(m => m.thread_id === n.thread_id)
+      msg = on.find(m => m.own != null && quoted(quote, m.own)) ?? on.find(m => quoted(quote, m.text)) ?? null
+    }
     if (ctx.authorKind === 'agent') {
       if (!quote || (!named && typeof n.thread_id !== 'string')) { dropped.push({ text, reason: 'no source email' }); continue }
       if (!msg) { dropped.push({ text, reason: named ? 'email not on this case' : 'words not found in the email' }); continue }

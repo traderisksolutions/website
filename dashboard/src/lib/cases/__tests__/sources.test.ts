@@ -54,6 +54,11 @@ describe('buildBuckets', () => {
     const all = [...b.client, ...b.insurer].map(s => s.message_id)
     for (const id of ['m4', 'm5', 'm6']) expect(all).not.toContain(id)
   })
+  it('shows the message without its sign-off, signature and the history beneath', () => {
+    const body = ['Hi Nathan,', '', 'Please renew on the same terms.', '', 'Warmest Regards,', 'Jane Tan', 'HR Manager', '+65 6000 0000', '', 'On Mon, 2 Nov 2026 at 10:15, Nathan <nathan@trade-risksol.com> wrote:', '> Shall we renew?'].join('\n')
+    const one = buildBuckets([msg({ id: 'm7', thread_id: 't1', body_text: body })], sides, kinds)
+    expect(one.client[0].text).toBe('Hi Nathan,\n\nPlease renew on the same terms.')
+  })
   it('keeps who wrote, the files and the email it opens', () => {
     expect(b.insurer[0]).toMatchObject({ by: 'trs', from: 'nathan@trade-risksol.com', href: '/engagement?thread=t2' })
     expect(b.insurer[1]).toMatchObject({ by: 'them', from: 'uw@insurer.invalid', files: ['Quotation.pdf'], text: 'Our terms are attached.' })

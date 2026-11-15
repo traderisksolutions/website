@@ -58,8 +58,8 @@ function toLines(text: string): Line[] {
   return text.split('\n').map(raw => {
     const m = /^((?:[ \t]*>)+)[ \t]?/.exec(raw)
     const depth = m ? (m[1].match(/>/g) ?? []).length : 0
-    // Outlook bold labels arrive as *From:* in plain text.
-    const t = (m ? raw.slice(m[0].length) : raw).replace(/^\*([^*:：]{1,20}[:：])\*/, '$1').trimEnd()
+    // Outlook bold labels arrive as *From:* in plain text; Outlook for Mac writes *From: *.
+    const t = (m ? raw.slice(m[0].length) : raw).replace(/^\*([^*:：]{1,20}[:：])[ \t]?\*/, '$1').trimEnd()
     return { depth, text: t }
   })
 }
@@ -228,6 +228,38 @@ export function filesNamed(header: string | undefined, body: string): string[] {
     if (/^[^\s].{2,140}\.(pdf|xlsx|xlsm|xls|docx|doc|csv|jpe?g|png|heic|zip|msg|eml|pptx)$/i.test(t) && t.split(/\s+/).length <= 8 && !/https?:|www\./i.test(line)) add(t)
   }
   return Array.from(out)
+}
+
+// ── Sign-off ────────────────────────────────────────────────────────────────────────────────
+
+const CLOSING = /^(?:(?:(?:with\s+)?(?:best|kind|kindest|warm|warmest|many)\s+)?(?:regards|rgds|wishes)|(?:thanks?|thank\s+you)\s*(?:and|&|,)\s*(?:(?:best|kind|warm)\s+)?regards|yours\s+(?:sincerely|faithfully|truly)|sincerely|(?:best|cheers)(?=[,.!]?\s*$|,))/i
+/** After the closing: nothing, or the writer's name. "Regards to your team" is a sentence, not a closing. */
+const NAME_TAIL = /^[,.!]?(?:\s+\p{Lu}[\p{L}.'-]*){0,3}\s*$/u
+const DEVICE = /^(?:sent from (?:my |outlook|mail for )|get outlook for )/i
+const NOTICE = /^(?:confidentiality (?:notice|note)|disclaimer\s*[:：]|(?:this|the information in this) (?:e-?mail|message|communication)\b[^.]{0,90}\b(?:confidential|intended))/i
+
+function closes(line: string): boolean {
+  const t = line.trim()
+  if (!t) return false
+  if (/^--\s?$/.test(line) || DEVICE.test(t) || NOTICE.test(t)) return true
+  if (t.length > 48) return false
+  const m = CLOSING.exec(t)
+  return !!m && NAME_TAIL.test(t.slice(m[0].length))
+}
+
+/**
+ * A message's own text without its closing: "Regards, Name", the signature under it, a
+ * "Sent from my iPhone" line, a confidentiality notice. The cut is the first such line that has
+ * something written above it; a body that opens with one is returned whole.
+ */
+export function withoutSignOff(text: string): string {
+  const lines = String(text ?? '').split('\n')
+  let written = false
+  for (let i = 0; i < lines.length; i++) {
+    if (written && closes(lines[i])) return lines.slice(0, i).join('\n').trimEnd()
+    if (lines[i].trim()) written = true
+  }
+  return text
 }
 
 // ── Splitting ───────────────────────────────────────────────────────────────────────────────

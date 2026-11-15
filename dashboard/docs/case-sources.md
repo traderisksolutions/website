@@ -2,7 +2,7 @@
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
-Status, 15 Nov 2026: data model, rules, stores and routes built and dogfooded on a local copy of the schema. Not applied to production; no screen yet (the user journey is with Jarod for approval).
+Status, 15 Nov 2026: data model, rules, stores and routes live on production (migration applied, 2,754 threads labelled by rule). No screen yet (the user journey is with Jarod for approval).
 
 ## Rules
 
@@ -11,7 +11,8 @@ Status, 15 Nov 2026: data model, rules, stores and routes built and dogfooded on
 3. Mail privacy holds everywhere. A thread in a colleague's mailbox is counted (`hidden`), never listed, never quoted; picking, excluding or labelling it answers 403. A note read from such a thread shows its text and withholds the quote.
 4. Labels and relevance are code. No model is called anywhere in this module.
 5. A note an agent leaves must quote an email on the case word for word, or it is dropped with the reason. A person's note needs no source.
-6. Every write is idempotent: the same pick, the same turn or the same note twice changes nothing the second time.
+6. Words belong to whoever wrote them. A quote found in a message's own text is its sender's; a quote found only in the history beneath is filed under the writer of that block (`quoteSource`); with no writer named it is left out.
+7. Every write is idempotent: the same pick, the same turn or the same note twice changes nothing the second time.
 
 ## Data
 
@@ -43,7 +44,7 @@ Renewal season is on for a client when a policy ends within 90 days, or a renewa
 
 ## Sources of a case (`sources.ts`, `sources-store.ts`)
 
-`loadSources(case, viewer)` answers: `picked` (with who picked each), `buckets.client` and `buckets.insurer` (what each side said, in date order, TRS's own messages marked `trs`, auto-replies left out), `proposed` (threads of the same client the case likely needs: policy number in the subject, then shared subject words, then a label that fits the case type), `recent`, `older` (over 90 days), `excluded` and `hidden`.
+`loadSources(case, viewer)` answers: `picked` (with who picked each), `buckets.client` and `buckets.insurer` (what each side said, in date order, TRS's own messages marked `trs`, auto-replies left out, each message without its closing, signature and the history beneath), `proposed` (threads of the same client the case likely needs: policy number in the subject, then shared subject words, then a label that fits the case type), `recent`, `older` (over 90 days), `excluded` and `hidden`.
 
 Proposals are computed on every load and never stored.
 
@@ -72,7 +73,7 @@ Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unkno
 
 `scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 88 checks) and every route (`http <base>`, 37 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
 
-Run of 15 Nov 2026: 88 of 88 and 37 of 37 on a local Postgres and PostgREST built from the production schema description. The local copy has no production triggers and no production data; the run on production follows the migration.
+Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 88 of 88 again after the sign-off and attribution change.
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 
@@ -80,4 +81,3 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 
 - The screen (sources picker, two buckets, labels, relevance groups, case memory): after the user journey is approved.
 - The case reader reading only picked sources: with the screen.
-- The label backfill over existing threads: after the migration.
