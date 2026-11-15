@@ -11,6 +11,7 @@ import { sb, sbTry, enc, emailDomain, bareEmail, inChunks } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { displayName, matchInsurer, type InsurerCompany } from '@/lib/insurers'
 import { indexNames, type NameIndex } from '@/lib/crm/party-read'
+import { referralTags } from '@/lib/crm/thread-referral'
 import { companyCore } from '@/lib/crm/resolve'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { CaseError, caseMessages, caseThreadIds } from './sources-store'
@@ -60,10 +61,11 @@ export type CaseMail = Omit<RoundsInput, 'caseType' | 'set'> & { item: Row; mess
 export async function caseMail(workItemId: string, viewer: string | null): Promise<CaseMail> {
   const item = await workItem(workItemId)
   const { ids, sides } = await caseThreadIds(workItemId)
-  const [visible, messages, dir, threads, events] = await Promise.all([
+  const [visible, messages, dir, tags, threads, events] = await Promise.all([
     visibleThreadIds(ids, viewer),
     caseMessages(ids),
     directory(),
+    referralTags(ids),
     inChunks(ids, 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&select=id,subject,company_id`, [])),
     sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(workItemId)}&kind=in.(move,source_side)&select=kind,detail,created_at&order=created_at.asc&limit=2000`, []),
   ])
@@ -93,8 +95,9 @@ export async function caseMail(workItemId: string, viewer: string | null): Promi
     if (isWriter(e.detail?.by) && isMove(e.detail?.move)) set.set(id, { by: e.detail.by, move: e.detail.move })
     else set.delete(id)
   }
+  const referral = new Map<string, string | false>([...tags].map(([id, t]) => [id, t.referral ? t.company ?? 'referral' : false]))
   return {
-    item, messages, sides, sideSet, visible, domainKind: dir.domainKind, names, threadInsurer, set,
+    item, messages, sides, sideSet, visible, domainKind: dir.domainKind, names, threadInsurer, set, referral,
     insurerName: a => { const c = at(a); return c && (c.kind === 'insurer' || c.kind === 'tpa') ? displayName(String(c.company_name)) : null },
     companyName: a => { const c = at(a); return c ? String(c.company_name) : null },
   }
@@ -102,7 +105,7 @@ export async function caseMail(workItemId: string, viewer: string | null): Promi
 
 const input = (c: CaseMail, set: ReadonlyMap<string, Call> = c.set): RoundsInput => ({
   messages: c.messages, sides: c.sides, sideSet: c.sideSet, visible: c.visible, domainKind: c.domainKind, insurerName: c.insurerName, companyName: c.companyName,
-  names: c.names, threadInsurer: c.threadInsurer, caseType: c.item.case_type, set,
+  names: c.names, threadInsurer: c.threadInsurer, caseType: c.item.case_type, set, referral: c.referral,
 })
 /** The rounds as the case's emails stand. */
 export const roundsOf = (c: CaseMail): Rounds => buildRounds(input(c))

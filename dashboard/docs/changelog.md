@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-16 — Referral mark on the Inbox rail, referrals review (not deployed)
+
+- **Referral row on the rail** (`ThreadReferral.tsx`, `src/lib/crm/thread-referral.ts`): under From, when the rules read a referral among the thread's senders. Tag as referral or Not a referral is kept for that thread alone (`app_settings`, `thread_referral:<id>`); the company keeps its kind and the thread stays filed where it is. Rounds read the mark. No model is called and no table was added.
+- **Checked rule**: a sender at a referral's domain counts by address only when a person has checked that referral; an unchecked one counts when the sender also writes as a referral. On the 266 latest threads filed elsewhere: 8 suggestions, against 43 with every referral's domain counted.
+- **Referrals review** (Today › Unfiled threads › Referrals, `ReferralReview.tsx`, `referral-review.ts`, `GET /api/companies/referrals`): the 58 companies filed as a referral in one table with domains, threads, emails from TRS, last email and how their senders read; Kind or Keep sets the kind and marks the company checked. 50 unchecked at build.
+- **Domains of "other" companies** (`buildCompanyIndex`): mail from a domain such a company holds is left for a person; no second company is made from it.
+- **Data**: one referral created by the filing agent held an accounting system's sending domain, which a company of kind other also holds. Its domains were cleared (before: that one domain; after: none). Nothing was merged or deleted.
+- Behaviours INB-037, CLI-034, CSE-028. Journeys `referrals.spec.ts` (2). Tests `thread-referral.test.ts` (5), `referral-review.test.ts` (5), `rounds.test.ts` (+4), `party-read.test.ts` (+2).
+
 ## 2026-11-16 — Case agents phase 3, first part: rounds, next steps and step drafts (live, b42034bf)
 
 - **Rounds** (`src/lib/cases/rounds.ts`, Case › Rounds): every email on a case's picked threads is one move, read by rule. Round 1 is the first request; a new round opens when the client changes the request after TRS has written to an insurer. Each round lists its insurers (asked, replied, sent to client) and its emails. Worked out on every read; no model is called and no table was added.

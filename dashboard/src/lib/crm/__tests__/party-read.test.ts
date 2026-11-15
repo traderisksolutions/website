@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { companyInSignature, companyOfAddress, indexNames, readSender, readSenders, signatureOf, voiceOf } from '../party-read'
+import { companyInSignature, companyOfAddress, indexNames, readSender, readSenders, referralAmong, signatureOf, voiceOf } from '../party-read'
 
 const index = indexNames([
   { id: '1', name: 'Carebridge Pte Ltd', kind: 'partner' },
@@ -62,5 +62,22 @@ describe('one read per sender', () => {
     const market = email('ben@unfiled.sg', 'Please see our proposal for your client.')
     expect(readSenders([referral, referral, market], index).get('ben@unfiled.sg')?.party).toBe('referral')
     expect(readSenders([referral, market], index).has('ben@unfiled.sg')).toBe(false)
+  })
+})
+
+describe('the referral a thread rests on', () => {
+  it('is the sender a company names, over one only the wording places', () => {
+    const reads = readSenders([
+      email('sam@gmail.com', 'Hi Nathan,\n\nOur client would like to add two staff.'),
+      email('amy.tan@gmail.com', 'Hi Nathan,\n\nCensus attached.\n\nBest regards,\nAmy Tan\nCarebridge Pte Ltd'),
+    ], index)
+    expect(referralAmong(reads)).toMatchObject({ sender: 'amy.tan@gmail.com', read: { by: 'signature', company: { id: '1' } } })
+  })
+  it('is no one when every sender reads as the market or a client', () => {
+    const reads = readSenders([
+      email('uw@harbour-insurance.sg', 'Please find our quotation for your client attached.'),
+      email('hr@orchardfoods.sg', 'Hello'),
+    ], index)
+    expect(referralAmong(reads)).toBeNull()
   })
 })

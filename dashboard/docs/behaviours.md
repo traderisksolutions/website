@@ -48,6 +48,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | INB-034 | A new enquiry in the bar lists one person per insurer per policy and offers "Send N separately". | project_trs_next_actions_bar | ChiefBar.tsx | Enquiry thread shows per-insurer list. |
 | INB-035 | "Since you were away" is one 36px strip with Show/Hide, the triage link and dismiss, with no rule line under it. | CL 28 Oct (later); CL 11 Nov evening | layout | Strip height 36px. |
 | INB-036 | The Unassigned work view lists threads filed under a company with no owner; Unlinked stays a separate view. | CL 30 Sep (later) | ThreadListPane | Company without owner shows its threads. |
+| INB-037 | The rail shows a Referral row under From when the rules read a referral among the thread's senders: the referral's name, what it was read from (Address, Signature or Wording), Tag as referral and Not a referral. The mark is on that thread alone; the company keeps its kind and the thread stays where it is filed. Remove or Undo hands the thread back to the rule. A sender at a referral's domain counts by address only when a person has checked that referral. | Jarod 16 Nov ("the Inbox rail suggestion (tag only or refile)"; built as tag only) | ThreadReferral.tsx, src/lib/crm/thread-referral.ts | journey referrals INB-037; thread-referral.test.ts. |
 
 ## Today, Home, Follow-ups, Calendar
 
@@ -115,6 +116,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CLI-031 | Customer value states premium billed, TRS commission and effective rate, policy count, client since and last billed, with the currency stated. | CL 11 Sep (evening) | Policies tab | Figures match debit notes. |
 | CLI-032 | Ask Opus is the client's consultant: a case resolves to its company, so one conversation covers claim, renewal and money. | CL 11 Sep (night) | chat dock | Open case; scope = company. |
 | CLI-033 | A company's Threads tab opens as a list by relevance (Active, Back burner, Member movements) with label and case per thread; Reader is the earlier two-pane view. | Journey v2, approved 15 Nov | /companies/[id]?tab=threads, src/components/crm/CompanyThreadList.tsx | journey case-sources CLI-033. |
+| CLI-034 | Unfiled threads has a Referrals tab: every company filed as a referral, unchecked first, with its domains (and any other company on the same domain), threads, emails from TRS, last email and how its senders read. Kind sets the company's kind; Keep confirms it as a referral. Either marks it checked. | Jarod 16 Nov ("the partner list review") | /companies/triage, ReferralReview.tsx, src/lib/crm/referral-review.ts | journey referrals CLI-034; referral-review.test.ts. |
 
 ## Quotes › Employment Benefits
 
@@ -268,6 +270,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CSE-025 | An insurer is copied only with colleagues at the same domain; a client is never copied with an address at an insurer or a third-party administrator. | CL 16 Nov (a client's email must not reach an insurer by copy, nor the reverse) | rounds.ts (`recipientFor`) | rounds.test.ts. |
 | CSE-026 | A person can set who wrote one email and what it is (Type); the call replaces the rule's reading for that email, is kept on the case's events with who made it, and "Rule" hands it back. TRS's own email stays TRS's. An email in a colleague's mailbox shows no words and cannot be set. | CL 16 Nov (a rule's reading must be correctable in one click) | rounds-store.ts (`setCall`), /api/work/[id]/rounds | dogfood "Rounds" (stores and routes). |
 | CSE-027 | A sender the domain map cannot place is read by rule from the address, the signature and the voice of the email; a referral's emails count as the client's words and carry the referral's name. A thread whose side a person set is not moved by the read. | Jarod 16 Nov ("also read signature (could be a referral)… or read content") | src/lib/crm/party-read.ts, rounds.ts | party-read.test.ts; rounds.test.ts. |
+| CSE-028 | A thread a person tagged as a referral carries the referral's name on its client-side emails in Rounds where the sender names none; a thread marked Not a referral carries none. | Jarod 16 Nov | rounds.ts (`referral`), rounds-store.ts | rounds.test.ts. |
 
 ## Finance
 

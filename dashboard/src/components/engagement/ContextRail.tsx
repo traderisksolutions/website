@@ -12,6 +12,7 @@ import { AddToCaseControl } from './AddToCaseControl'
 import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { ThreadParty, type PartyChange } from './ThreadParty'
+import { ThreadReferral } from './ThreadReferral'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
@@ -153,12 +154,13 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-6">
         {/* Who the thread is from comes first: it decides whose client, policy and actions the rail shows. */}
-        {threadId && lead.companyId && (
-          <div className="px-1 mb-7">
-            <InfoRow label="From">
+        {threadId && (
+          <div className="px-1 mb-7 empty:hidden">
+            {lead.companyId && <InfoRow label="From">
               <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
                 onChanged={onParty} onRead={() => setReadKey(k => k + 1)} />
-            </InfoRow>
+            </InfoRow>}
+            <ThreadReferral threadId={threadId} kind={kind} />
           </div>
         )}
         {threadId

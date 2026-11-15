@@ -6,8 +6,10 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty, inputCls } from '@/components/crm/primitives'
 import { CompanySearchSelect } from '@/components/crm/CompanySearchSelect'
+import { ReferralReview } from '@/components/crm/ReferralReview'
 import { fmtRelative } from '@/lib/crm/format'
 import { COMPANY_KINDS, type CompanyKind, type LinkSuggestion } from '@/lib/crm/types'
+import type { ReferralRow } from '@/lib/crm/referral-review'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -39,7 +41,7 @@ type MisfiledThread = {
 }
 type MisfiledGroup = { looksLike: string; match: { id: string; name: string } | null; threads: MisfiledThread[] }
 
-type Tab = 'domains' | 'threads' | 'insurer' | 'duplicates'
+type Tab = 'domains' | 'threads' | 'insurer' | 'duplicates' | 'referrals'
 
 export default function TriagePage() {
   const [tab, setTab] = useState<Tab>('domains')
@@ -48,6 +50,7 @@ export default function TriagePage() {
   const [threads, setThreads] = useState<ThreadRow[] | null>(null)
   const [dups, setDups] = useState<DupPair[] | null>(null)
   const [misfiled, setMisfiled] = useState<MisfiledGroup[] | null>(null)
+  const [referrals, setReferrals] = useState<ReferralRow[] | null>(null)
   const [running, setRunning] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -80,9 +83,16 @@ export default function TriagePage() {
     setMisfiled(d.groups); if (d.companies) setCompanies(d.companies)
   }, [])
 
+  const loadReferrals = useCallback(async () => {
+    const res = await fetch('/api/companies/referrals', { cache: 'no-store' })
+    const d = await res.json()
+    if (!res.ok) { setError(d.error ?? 'Could not load the referrals.'); setReferrals([]); return }
+    setReferrals(d.rows)
+  }, [])
+
   // Every queue loads on arrival, not when its tab is opened, so the counts on the tabs are
-  // true. A tab reading zero while it holds eighty threads is worse than four small requests.
-  useEffect(() => { loadDomains(); loadThreads(); loadDups(); loadMisfiled() }, [loadDomains, loadThreads, loadDups, loadMisfiled])
+  // true. A tab reading zero while it holds eighty threads is worse than five small requests.
+  useEffect(() => { loadDomains(); loadThreads(); loadDups(); loadMisfiled(); loadReferrals() }, [loadDomains, loadThreads, loadDups, loadMisfiled, loadReferrals])
 
   async function runAutofile() {
     setRunning('autofile'); setError(null); setNotice(null)
@@ -121,7 +131,7 @@ export default function TriagePage() {
     finally { setRunning(null) }
   }
 
-  const counts = { domains: domains?.length ?? 0, threads: threads?.length ?? 0, duplicates: dups?.length ?? 0, insurer: misfiled?.reduce((n, g) => n + g.threads.length, 0) ?? 0 }
+  const counts = { domains: domains?.length ?? 0, threads: threads?.length ?? 0, duplicates: dups?.length ?? 0, insurer: misfiled?.reduce((n, g) => n + g.threads.length, 0) ?? 0, referrals: referrals?.filter(r => !r.checkedAt).length ?? 0 }
   const countLine = !domains
     ? 'Loading…'
     : `${counts.domains} domain${counts.domains === 1 ? '' : 's'} to decide`
@@ -149,6 +159,7 @@ export default function TriagePage() {
             { value: 'threads' as Tab, label: 'Leftover threads', count: counts.threads },
             { value: 'insurer' as Tab, label: 'Under an insurer', count: counts.insurer },
             { value: 'duplicates' as Tab, label: 'Duplicates', count: counts.duplicates },
+            { value: 'referrals' as Tab, label: 'Referrals', count: counts.referrals },
           ]} />
         </div>
 
@@ -192,6 +203,12 @@ export default function TriagePage() {
                   onDone={() => setMisfiled(prev => prev?.filter(x => x.threads[0].id !== g.threads[0].id) ?? null)} />
               ))}
             </ul>
+          </div>
+        )}
+
+        {tab === 'referrals' && (
+          <div className="mt-6">
+            {!referrals ? <Spinner label="Reading the referrals’ emails…" /> : <ReferralReview rows={referrals} onChange={setReferrals} onNotice={setNotice} onError={setError} />}
           </div>
         )}
 

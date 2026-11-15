@@ -122,6 +122,30 @@ describe('a referral', () => {
     const r = buildRounds(input([m], { sides: new Map<string, Side>([['tr', 'insurer']]), sideSet: new Set(['tr']), visible: new Set(['tr']), names: indexNames([partner]) }))
     expect(r.rounds[0].moves[0]).toMatchObject({ by: 'insurer', via: null })
   })
+  describe('marked on the thread by a person', () => {
+    const voiced = msg({ id: 'r1', thread_id: 'tr', sent_at: at(1), from_address: 'amy.tan@gmail.com', body_text: 'Hi Nathan,\n\nOur client would like a quotation for group hospital and surgical insurance for 40 staff. Census attached.', files: ['census.xlsx'] })
+    const named: SourceMessage = { ...voiced, from_address: 'amy@carebridge.sg' }
+    const run = (m: SourceMessage, referral: Map<string, string | false>) => buildRounds(input([m], { sides: new Map(), visible: new Set(['tr']), names: indexNames([partner]), referral }))
+    it('carries the mark’s name where the sender names none', () => {
+      expect(run(voiced, new Map()).rounds[0].moves[0]).toMatchObject({ by: 'client', via: 'referral' })
+      const r = run(voiced, new Map([['tr', 'Carebridge']]))
+      expect(r.rounds[0].moves[0]).toMatchObject({ by: 'client', via: 'Carebridge' })
+      expect(r.referral).toBe('Carebridge')
+    })
+    it('marks a client’s own email on the thread', () => {
+      const plain: SourceMessage = { ...voiced, from_address: 'hr@orchard-foods.example', body_text: 'Hi Nathan,\n\nWe would like a quotation for group hospital and surgical insurance for our 40 staff. Census attached.' }
+      const r = buildRounds(input([plain], { sides: new Map<string, Side>([['tr', 'client']]), visible: new Set(['tr']), referral: new Map([['tr', 'Carebridge']]) }))
+      expect(r.rounds[0].moves[0]).toMatchObject({ by: 'client', via: 'Carebridge' })
+    })
+    it('keeps the name the sender carries over the mark’s', () => {
+      expect(run(named, new Map([['tr', 'referral']])).rounds[0].moves[0]).toMatchObject({ via: 'Carebridge' })
+    })
+    it('clears the name when the mark is not a referral', () => {
+      const r = run(named, new Map([['tr', false]]))
+      expect(r.rounds[0].moves[0]).toMatchObject({ by: 'client', via: null })
+      expect(r.referral).toBeNull()
+    })
+  })
 })
 
 describe('who a step’s email goes to', () => {

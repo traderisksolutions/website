@@ -169,6 +169,24 @@ The sender read places the senders the domain map cannot: a personal address, a 
 
 The address and the signature name the company; the voice names only the side. One read per sender across their emails on the case: a named company beats a voice. A referral's emails are the client's words, marked with the referral's name; the round's heading names the referral.
 
+### A referral marked on one thread (`src/lib/crm/thread-referral.ts`)
+
+The Inbox rail shows a Referral row under From when the rules read a referral among the thread's senders, or a person has marked the thread. Tag as referral and Not a referral store the person's call for that thread alone (`app_settings`, key `thread_referral:<thread id>`); Remove or Undo deletes it. The company the thread is filed under keeps its kind, and the thread does not move. Rounds read the mark: a tagged thread's client-side emails carry the referral's name where the sender names none, and Not a referral clears the rule's reading on that thread.
+
+| Sender | Reads as a referral when |
+| --- | --- |
+| At the domain of a referral a person has checked | Always, unless the sender writes in the market's voice. |
+| At the domain of a referral nobody has checked | The sender also writes in a referral's voice. |
+| At no domain on file, or a personal address | The address name, the signature or the voice says so (the table above). |
+
+No row shows on a thread filed under a referral, an insurer or a third-party administrator. Measured on production, read-only, on the 266 latest threads filed elsewhere: 43 suggestions with every referral's domain counted, 8 with the checked rule (address 5, voice 2, signature 1).
+
+### Referrals review (`src/lib/crm/referral-review.ts`, Today › Unfiled threads › Referrals)
+
+Every company of kind referral in one table, unchecked first, then by threads: company, domains (with any other company holding the same domain), threads, emails from TRS, the last email, how its senders read on its five latest threads (Referral, Market), Kind and Checked. Choosing a kind, or Keep, sets the kind and marks the company checked (`PATCH /api/companies/:id { kind, confirmed: true }`). A checked referral is what the rail's address reading rests on. A subject in a colleague's mailbox is withheld.
+
+A domain held by a company of kind other (a billing sender, a regulator) is not a client's own: mail from it is left for a person, and no second company is made from it (`buildCompanyIndex`).
+
 Round 1 is the first request. A new round opens when the client changes the request after TRS has written to an insurer in the current round. Every insurer asked so far, and not declined, is owed the change. Inside a round each insurer is one chain: to ask, asked, heard, replied, sent to client, declined.
 
 The next steps are the links not yet made, in the order they block the case.
@@ -206,6 +224,9 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | `PATCH /api/settings/checklists` | `{ id, label?, found_by?, doc_types?, words?, active? }` edits or retires a document. |
 | `GET /api/today/mail?relevance=&label=&limit=` | The count per relevance under the label filter and the newest `limit` rows (200 by default, 20,000 at most) the person may see, with company, label, who set it and the open case. One database call (`rpc/today_mail`). |
 | `POST /api/threads/:id/label` | `{ label }`: a person's label. |
+| `GET /api/engagement/thread/:id/referral` | `{ tag, suggestion }`: the person's mark on the thread and the rules' reading of its senders. |
+| `POST /api/engagement/thread/:id/referral` | `{ referral: true, false or null }`: tag, not a referral, or hand back to the rule. |
+| `GET /api/companies/referrals` | `{ rows, unchecked }`: the referrals review. |
 | `GET /api/companies/:id/relevance` | A client's threads by group, the hidden count and renewal season. |
 
 Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unknown case, thread, note, list or document, 409 a thread on another case, a note already on the case, a document already on the list, an empty list confirmed, or a finding turned down when there is none.
@@ -243,7 +264,8 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 ## Not built yet
 
-- Rounds: the case agent that decides between the client agent and the insurer agent with a model, the share of drafts sent as written per agent on `/analytics/autonomy`, and a suggestion on the Inbox rail's From when a sender reads as a referral.
+- Rounds: the case agent that decides between the client agent and the insurer agent with a model, and the share of drafts sent as written per agent on `/analytics/autonomy`.
+- Referral marks live in `app_settings`, so the Inbox list cannot filter on them; a column on `email_threads` would allow it.
 - Rounds: an insurer's follow-up and a third-party administrator's reminder can read as a question or as terms; a client's answer with no insurer named is offered to every insurer asked. A person's Type corrects one email.
 - A classifier trained on labels people set (SetFit): waits for person-set labels.
 - The autonomy measure on `/analytics/autonomy`.

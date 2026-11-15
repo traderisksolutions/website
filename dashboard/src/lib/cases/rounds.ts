@@ -128,6 +128,8 @@ export type RoundsInput = {
   caseType: string | null
   /** A person's call per email. */
   set: ReadonlyMap<string, Call>
+  /** A person's referral mark per thread (crm/thread-referral.ts): the referral's name, 'referral' when none is on file, false for not a referral. */
+  referral?: ReadonlyMap<string, string | false>
 }
 
 const INSURER = new Set(['insurer', 'tpa'])
@@ -348,7 +350,9 @@ export function buildRounds(i: RoundsInput): Rounds {
     const own = ownWords(m.body_text)
     const by: Writer = trs ? 'trs' : bucket
     const person = call && call.by === by && MOVES_FOR[by].includes(call.move) ? call.move : null
-    const via = placed?.side === 'client' ? placed.via : null
+    // A person's mark on the thread: "not a referral" clears the name, a marked thread carries it where the sender names none.
+    const mark = i.referral?.get(m.thread_id)
+    const via = placed?.side !== 'client' || mark === false ? null : placed.via && placed.via !== 'referral' ? placed.via : mark ?? placed.via
     if (via) referrals.set(via, (referrals.get(via) ?? 0) + 1)
     const row = (rule: Rule, move: Move, insurer: string | null, round: Round) => {
       round.moves.push({

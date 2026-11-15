@@ -172,8 +172,10 @@ export async function buildCompanyIndex(): Promise<CompanyIndex> {
   // list and let insurer domains be mistaken for a client's own.
   const insurerContacts = await sbTry<{ contacts: { email: string | null } | null }[]>(`insurer_contacts?select=contacts(email)`, [])
   const insurerDomains = insurerContacts.map(r => emailDomain(r.contacts?.email)).filter(Boolean)
-  // Insurer, TPA, partner and vendor domains are never a client's own.
-  const counterparties = await sbTry<{ domains: string[] | null }[]>(`companies?kind=in.(insurer,tpa,partner,vendor)&select=domains`, [])
+  // Insurer, TPA, partner and vendor domains are never a client's own. Nor is a domain a company
+  // of kind "other" already holds (a billing sender, a regulator): mail from it is left for a
+  // person, not given a second company.
+  const counterparties = await sbTry<{ domains: string[] | null }[]>(`companies?kind=in.(insurer,tpa,partner,vendor,other)&select=domains`, [])
   for (const c of counterparties) for (const d of c.domains ?? []) if (d) insurerDomains.push(d.toLowerCase())
   const aliases = await sbTry<{ company_id: string; alias: string }[]>(`company_aliases?select=company_id,alias&limit=5000`, [])
   return makeCompanyIndex(companies, insurerDomains, aliases)

@@ -168,3 +168,10 @@ export function readSenders(messages: readonly { from_address: string | null; bo
   }
   return out
 }
+
+/** The sender a thread's referral reading rests on: the strongest read among those that read as a referral. */
+export function referralAmong(reads: ReadonlyMap<string, SenderRead>): { sender: string; read: SenderRead } | null {
+  let best: { sender: string; read: SenderRead } | null = null
+  for (const [sender, read] of reads) if (read.party === 'referral' && (!best || RANK[read.by] > RANK[best.read.by])) best = { sender, read }
+  return best
+}
