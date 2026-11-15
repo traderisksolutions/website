@@ -38,5 +38,11 @@ export function renewalSeason(i: { openRenewalCases: readonly { title: string | 
   return { on: false, basis: null, date: null }
 }
 
+/**
+ * What the client-wide case reader leaves out in renewal season: member movements and endorsements
+ * that are on no open case. A thread on no case yet stays in, since that read is what files it.
+ */
+export const leftOutInSeason = (season: Season, t: RelevanceInput, today: string) => season.on && !t.onOpenCase && relevanceOf(t, today) === 'member_movements'
+
 /** What a view lists. Renewal season hides Back burner and Member movements. */
 export const shownIn = (view: 'all' | 'renewal_season', r: Relevance) => view === 'all' || r === 'active'

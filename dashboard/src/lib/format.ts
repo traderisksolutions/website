@@ -55,6 +55,14 @@ export function fmtDateTime(iso: string | null | undefined, empty = DASH): strin
   return `${fmtDate(iso)} ${time}`
 }
 
+/** "24 Dec 14:05", Singapore time: a message within the matter at hand, where the year is known. */
+export function fmtDayTime(iso: string | null | undefined, empty = DASH): string {
+  const d = asDate(iso)
+  if (!d) return empty
+  const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: SG }).format(d)
+  return `${fmtDay(iso)} ${time}`
+}
+
 /** "just now", "5m ago", "3h ago", "2d ago", then the date ("24 Dec"). */
 export function timeAgo(iso: string | null | undefined, empty = DASH, now = Date.now()): string {
   const d = asDate(iso)

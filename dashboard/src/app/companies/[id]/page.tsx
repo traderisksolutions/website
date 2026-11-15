@@ -15,6 +15,7 @@ import { type Policy, type CompanyValue } from '@/components/crm/PoliciesPanel'
 import { CompanyQuotes } from '@/components/crm/CompanyQuotes'
 import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
+import { CompanyThreadList } from '@/components/crm/CompanyThreadList'
 import { CompanyLog } from '@/components/crm/CompanyLog'
 import { Segmented, Spinner } from '@/components/crm/primitives'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
@@ -79,6 +80,7 @@ const MORE_TABS = [
 const TABS = [...MAIN_TABS, ...MORE_TABS]
 type Tab = typeof TABS[number]['key']
 const DEFAULT_TAB: Tab = 'quotes'
+type ThreadView = 'list' | 'reader'
 /** Older links still name the tabs that were folded or renamed. */
 const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies', employees: 'members' }
 /** A policy still being quoted belongs with the requests; the rest are on the books. */
@@ -97,6 +99,10 @@ function CompanyWorkspace() {
   const asked = search.get('tab') ?? ''
   const tab: Tab = TABS.some(t => t.key === asked) ? asked as Tab : TAB_ALIAS[asked] ?? DEFAULT_TAB
   const setTab = (t: Tab) => { router.replace(`/companies/${id}${t === DEFAULT_TAB ? '' : `?tab=${t}`}`, { scroll: false }) }
+  // Threads opens on the list by relevance; the reader is one click away and a row opens it on that thread.
+  const threadView: ThreadView = search.get('view') === 'reader' ? 'reader' : 'list'
+  const openThreadId = search.get('thread')
+  const setThreadView = (v: ThreadView, threadId?: string) => { router.replace(`/companies/${id}?tab=threads${v === 'reader' ? '&view=reader' : ''}${threadId ? `&thread=${threadId}` : ''}`, { scroll: false }) }
 
   const [ov, setOv] = useState<Overview | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -134,6 +140,8 @@ function CompanyWorkspace() {
   }, [id])
 
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)), [id, j])
+  // A thread filed under an insurer that names this client is not in the reader's list: it opens in the Inbox.
+  const openThread = (threadId: string) => { if (threads?.some(t => t.id === threadId)) setThreadView('reader', threadId); else router.push(`/engagement?thread=${threadId}`) }
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
   const loadPlacements = useCallback(() => j<PlacementData>(`/api/companies/${id}/placements`, EMPTY_BUNDLE).then(setPlacementData), [id, j])
   const [docStatus, setDocStatus] = useState<Record<string, DataRoomStatus> | null>(null)
@@ -250,6 +258,7 @@ function CompanyWorkspace() {
             {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
             {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
           </span>
+          <Segmented<ThreadView> value={threadView} onChange={v => setThreadView(v)} label="Threads view" className="flex-shrink-0" options={[{ value: 'list', label: 'List' }, { value: 'reader', label: 'Reader' }]} />
 
           <div className="ml-auto hidden md:flex items-center gap-1 flex-shrink-0" role="tablist">
             {TABS.filter(t => t.key !== 'threads').map(t => (
@@ -268,9 +277,11 @@ function CompanyWorkspace() {
         </div>
 
         <div className="flex-1 min-h-0">
-          {threads
-            ? <CompanyMail threads={threads} companyId={id} companyName={company.name} fullHeight onRefresh={() => { setThreads(null); void loadThreads() }} />
-            : <Spinner label="Loading conversations…" />}
+          {threadView === 'list'
+            ? <div className="h-full overflow-y-auto px-4 sm:px-6 py-4"><CompanyThreadList companyId={id} onOpen={openThread} /></div>
+            : threads
+              ? <CompanyMail threads={threads} companyId={id} companyName={company.name} fullHeight openId={openThreadId} onRefresh={() => { setThreads(null); void loadThreads() }} />
+              : <Spinner label="Loading conversations…" />}
         </div>
         {drafts}
       </div>

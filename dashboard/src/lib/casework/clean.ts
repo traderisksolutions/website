@@ -223,3 +223,20 @@ export function twinOf(c: Pick<CleanCase, 'title' | 'policy_number' | 'threads'>
   }
   return best?.id ?? null
 }
+
+/** What the Decision slot says when a read a person started finds the matter complete. */
+export const DONE_BY_READ = 'The case reader read this matter as complete. Close the case if nothing is left to do.'
+
+/**
+ * The row of a read a person started on their own case. The case keeps its client, kind and
+ * title, and the read never closes it: a matter found complete becomes a decision for the person.
+ */
+export function personsCaseRow<T extends Record<string, unknown>>(row: T, done: boolean): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...row }
+  for (const k of ['company_id', 'client_name', 'case_type', 'title']) delete out[k]
+  if (done) {
+    for (const k of ['status', 'closed_at', 'closed_by']) delete out[k]
+    out.needs_human = [out.needs_human, DONE_BY_READ].filter(Boolean).join(' ')
+  }
+  return out
+}

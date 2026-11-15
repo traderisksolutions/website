@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { relevanceOf, renewalSeason, shownIn, daysBetween } from '../relevance'
+import { relevanceOf, renewalSeason, shownIn, leftOutInSeason, daysBetween } from '../relevance'
 
 const today = '2026-11-15'
 
@@ -39,5 +39,22 @@ describe('shownIn', () => {
     expect(shownIn('renewal_season', 'back_burner')).toBe(false)
     expect(shownIn('renewal_season', 'member_movements')).toBe(false)
     expect(shownIn('all', 'back_burner')).toBe(true)
+  })
+})
+
+describe('leftOutInSeason', () => {
+  const on = { on: true, basis: 'policy ends', date: '2026-12-31' }
+  const off = { on: false, basis: null, date: null }
+  const movement = { lastMessageAt: '2026-11-10T00:00:00Z', label: 'member_movement' as const, onOpenCase: false }
+  it('leaves member movements on no open case out of the whole-client read in renewal season', () => {
+    expect(leftOutInSeason(on, movement, today)).toBe(true)
+    expect(leftOutInSeason(on, { ...movement, label: 'endorsement' }, today)).toBe(true)
+  })
+  it('keeps them outside renewal season, and when a case holds them', () => {
+    expect(leftOutInSeason(off, movement, today)).toBe(false)
+    expect(leftOutInSeason(on, { ...movement, onOpenCase: true }, today)).toBe(false)
+  })
+  it('keeps a thread that is on no case yet: the read is what files it', () => {
+    expect(leftOutInSeason(on, { lastMessageAt: '2026-11-10T00:00:00Z', label: 'claim', onOpenCase: false }, today)).toBe(false)
   })
 })

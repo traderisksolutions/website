@@ -4,6 +4,7 @@
  * Today: the morning list. Every open case that needs a person, in four groups: Ready to send,
  * Decide, To act, Read. "Come back later" holds a case until a time or until the other side
  * replies. j/k move, Enter opens. Nothing sends from here; Review and send opens the case.
+ * Mail lists every thread by label (MailView); the Inbox stays where mail is read.
  */
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -14,13 +15,15 @@ import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
 import { ComingUp } from '@/components/today/ComingUp'
 import { EbRenewals } from '@/components/today/EbRenewals'
+import { MailView } from '@/components/today/MailView'
 import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
 import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
 import type { TodayItem } from '@/lib/today/data'
 
 type Who = 'mine' | 'all'
-type View = 'list' | 'coming'
+type View = 'list' | 'coming' | 'mail'
+const asView = (v: string | null): View => (v === 'coming' || v === 'mail' ? v : 'list')
 type Group = 'send' | 'decide' | 'act' | 'read' | 'later'
 const GROUPS: { key: Group; label: string }[] = [
   { key: 'send', label: 'Ready to send' }, { key: 'decide', label: 'Decide' },
@@ -42,8 +45,9 @@ function TodayPage() {
   const [items, setItems] = useState<TodayItem[] | null>(null)
   const [me, setMe] = useState<string | null>(null)
   const [who, setWho] = useState<Who>('mine')
-  const [view, setView] = useState<View>(params.get('view') === 'coming' ? 'coming' : 'list')
+  const [view, setView] = useState<View>(asView(params.get('view')))
   const [showLater, setShowLater] = useState(false)
+  const [mailCount, setMailCount] = useState<number | null>(null)
   const [cursor, setCursor] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -84,13 +88,14 @@ function TodayPage() {
   const active = scoped.filter(i => i.group !== 'later').length
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[980px] mx-auto w-full min-w-0">
+    <div className={`px-4 md:px-8 py-6 mx-auto w-full min-w-0 ${view === 'mail' ? 'max-w-[1180px]' : 'max-w-[980px]'}`}>
       <PageHeader className="mb-5" title="Today"
-        meta={items ? `${active} to go through · ${count('send')} ready to send · ${count('decide')} decisions · ${count('act')} to act · ${count('read')} to read` : undefined}
+        meta={view === 'mail' ? (mailCount == null ? undefined : `${mailCount.toLocaleString('en-SG')} thread${mailCount === 1 ? '' : 's'}`) : items ? `${active} to go through · ${count('send')} ready to send · ${count('decide')} decisions · ${count('act')} to act · ${count('read')} to read` : undefined}
         actions={view === 'list' && flat[0] && <LinkBtn level="primary" href={`/today/${flat[0].id}`}>Start</LinkBtn>}>
         <Segmented<View> value={view} onChange={setView} label="View" options={[
           { value: 'list', label: 'To do', count: items ? active : undefined },
           { value: 'coming', label: 'Coming up' },
+          { value: 'mail', label: 'Mail' },
         ]} />
         {view === 'list' && <Segmented<Who> value={who} onChange={setWho} label="Owner" options={[
           { value: 'mine', label: 'Mine', count: (items ?? []).filter(i => i.group !== 'later' && (i.owner_email === me || !i.owner_email)).length },
@@ -102,7 +107,7 @@ function TodayPage() {
       {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
 
-      {view === 'coming' ? <><EbRenewals /><ComingUp /></> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
+      {view === 'mail' ? <MailView onCount={setMailCount} /> : view === 'coming' ? <><EbRenewals /><ComingUp /></> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
         <div ref={listRef} className="rounded-[10px] border border-trs-line bg-white overflow-hidden">
           {GROUPS.map(g => {
             const rows = scoped.filter(i => i.group === g.key)

@@ -128,7 +128,7 @@ function Card({ card, staff, busy, onUnpin }: { card: BoardCard; staff: Map<stri
         <span className="flex items-center gap-1 flex-wrap">{c.owners.map(o => <PersonTag key={o} email={o} staff={staff} />)}</span>
       )}
 
-      <Link href={`${card.href}?tab=threads`} className="text-[12.5px] tabular-nums no-underline hover:underline underline-offset-4" style={{ color: INK }}>
+      <Link href={`${card.href}?tab=threads&view=reader`} className="text-[12.5px] tabular-nums no-underline hover:underline underline-offset-4" style={{ color: INK }}>
         {t.total} {t.total === 1 ? 'thread' : 'threads'} · {t.awaiting} awaiting reply
       </Link>
 

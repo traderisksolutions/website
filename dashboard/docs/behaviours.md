@@ -76,6 +76,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | TOD-021 | Board (/board) keeps the pinned companies in five columns: Quoting, Quoted, Presented, Bound, In force. | project_trs_placement (27 Oct late); project_trs_client_structure (2 Nov, moved to /board) | /board | Pin a company; card appears. |
 | TOD-022 | Calendar shows every dated item: renewals, debit notes due, money past due pinned to today (amount still outstanding, linking to Finance), case deadlines, and active policies past their end pinned to today. | CL 11 Sep (late); CL 28 Sep (later) | /calendar | September shows all five kinds. |
 | TOD-023 | Calendar uses the shared renewal bands, has window chips, accepts ?date=YYYY-MM-DD and gives each renewal an Open company link. | CL 28 Sep (later) | /calendar, src/lib/crm/renewal.ts | Deep link opens the month. |
+| TOD-024 | Today › Mail lists every labelled thread the person may see in one table (Thread, Company, Label, Set by, Last message, Case), filtered by relevance and label; a person changes a label in the row. The Inbox is unchanged. | Jarod 15 Nov ("keep the inbox as is… this should be under Today") | /today?view=mail, src/components/today/MailView.tsx, /api/today/mail | journey case-sources TOD-024; mail.test.ts. |
 
 ## Clients: Companies, People, Unfiled threads, Nexus
 
@@ -113,6 +114,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CLI-030 | Point persons are derived from correspondence, never assigned by hand. | CL 10 Sep | src/lib/crm/people.ts | rule |
 | CLI-031 | Customer value states premium billed, TRS commission and effective rate, policy count, client since and last billed, with the currency stated. | CL 11 Sep (evening) | Policies tab | Figures match debit notes. |
 | CLI-032 | Ask Opus is the client's consultant: a case resolves to its company, so one conversation covers claim, renewal and money. | CL 11 Sep (night) | chat dock | Open case; scope = company. |
+| CLI-033 | A company's Threads tab opens as a list by relevance (Active, Back burner, Member movements) with label and case per thread; Reader is the earlier two-pane view. | Journey v2, approved 15 Nov | /companies/[id]?tab=threads, src/components/crm/CompanyThreadList.tsx | journey case-sources CLI-033. |
 
 ## Quotes › Employment Benefits
 
@@ -249,6 +251,13 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CSE-008 | A note an agent leaves on a case quotes an email on that case word for word, or it is dropped with the reason. A person's note needs no source. | Client 360 accuracy rules | src/lib/cases/memory.ts (`cleanNotes`) | memory.test.ts; dogfood "An agent's turn". |
 | CSE-009 | Every agent starts from the case's state (notes, next step, open questions, its unread emails) and records its turn; the same turn twice stores nothing new. | Jarod 15 Nov ("start where we left off without losing information") | memory-store.ts (`loadCaseState`, `recordTurn`) | dogfood "Resume". |
 | CSE-010 | One next step stands at a time; a newer one supersedes the older, which stays on record. A rejected note stays on record with who rejected it. | CL 15 Nov | memory.ts, memory-store.ts | dogfood "An agent's turn", "A person's note". |
+| CSE-011 | A case page has four sections on `?section=`: Overview, Sources, Conversation, Brief. Overview keeps the draft and adds the Resume point (next step, last touch, new emails, open questions, hand-over) and the Agents table (Case reader, Placement, Relay: last read, emails read, unread, notes kept). | Journey v2, approved 15 Nov; Jarod 15 Nov ("start where we left off") | src/app/today/[id]/page.tsx, src/components/cases/ResumePoint.tsx | journey case-sources CSE-011. |
+| CSE-012 | Sources lists Proposed, Recent, Over 90 days, On case and Removed. Threads are ticked and added in one action with a side each; a thread held by another case opens a dialog naming that case and who picked it, and moves only on "Move to this case". | Journey v2, approved 15 Nov | src/components/cases/CaseSourcesPanel.tsx, MoveThreadDialog.tsx | journey case-sources CSE-012; dogfood 409 then move. |
+| CSE-013 | Conversation is two tables, Client above Insurer, one row per email (Date, From, Message, Files): each email's own words with blank lines removed; the row opens the thread. | Jarod 15 Nov ("can we use a table format… white lines and spaces makes it super hard to read") | src/components/cases/CaseConversation.tsx | journey case-sources CSE-013. |
+| CSE-014 | Brief is one table of notes (Section, Note, Source, By). A person sets a note aside, restores it, or adds one; a note quoted from a colleague's private thread shows no words. | Journey v2, approved 15 Nov | src/components/cases/CaseBrief.tsx | journey case-sources CSE-014; dogfood "A person's note". |
+| CSE-015 | [Standing] A read a person starts on a case never closes it and never changes its client, kind or title. A matter the reader finds complete becomes a decision for the person. | AI is manual (13 Nov); CL 15 Nov | src/lib/casework/clean.ts (`personsCaseRow`) | casework-clean.test.ts "personsCaseRow". |
+| CSE-016 | "Read N new emails" reads the threads on the case that the person may see and nothing else of the client; it is the only way a model reads a case. | Journey v2 ("case reader reads picked threads only") | /api/work/[id]/read, src/lib/casework/run.ts (`workCase`) | dogfood: read refusals (no model call). |
+| CSE-017 | In renewal season the whole-client read leaves out member movements and endorsements that sit on no open case; a thread on an open case is always read. | Management feedback (year-end movements); CL 15 Nov | src/lib/cases/relevance.ts (`leftOutInSeason`), run.ts | relevance.test.ts "leftOutInSeason". |
 
 ## Finance
 

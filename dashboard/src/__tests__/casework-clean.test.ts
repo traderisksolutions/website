@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanCase, parseAnswer, quoteFound, queueRank, type CaseContext } from '@/lib/casework/clean'
+import { cleanCase, parseAnswer, quoteFound, queueRank, personsCaseRow, DONE_BY_READ, type CaseContext } from '@/lib/casework/clean'
 
 const ctx: CaseContext = {
   threadIds: ['t1', 't2'],
@@ -138,5 +138,28 @@ describe('twinOf', () => {
   it('leaves a new matter alone', () => {
     expect(twinOf({ title: 'Removal of one staff member - credit note', policy_number: null, threads: ['t3'] }, open)).toBeNull()
     expect(titleTokens('Re: Fwd: 2nd Reminder: Motor renewal SXX0000X').has('reminder')).toBe(false)
+  })
+})
+
+describe('personsCaseRow: a read a person started on their own case', () => {
+  const row = { company_id: 'c1', client_name: 'Client', case_type: 'claim', title: 'Claim', status: 'done', closed_at: '2026-11-15T00:00:00Z', closed_by: 'case_worker', summary: 'Paid in full.', needs_human: null as string | null }
+
+  it('keeps the case its client, kind and title', () => {
+    const out = personsCaseRow({ ...row, status: 'waiting_insurer', closed_at: null, closed_by: null }, false)
+    for (const k of ['company_id', 'client_name', 'case_type', 'title']) expect(out).not.toHaveProperty(k)
+    expect(out.status).toBe('waiting_insurer')
+    expect(out.summary).toBe('Paid in full.')
+  })
+
+  it('never closes the case: a matter read as complete becomes a decision', () => {
+    const out = personsCaseRow(row, true)
+    for (const k of ['status', 'closed_at', 'closed_by']) expect(out).not.toHaveProperty(k)
+    expect(out.needs_human).toBe(DONE_BY_READ)
+  })
+
+  it('adds to a decision already standing, and leaves the row it was given alone', () => {
+    const given = { ...row, needs_human: 'Confirm the payee.' }
+    expect(personsCaseRow(given, true).needs_human).toBe(`Confirm the payee. ${DONE_BY_READ}`)
+    expect(given.status).toBe('done')
   })
 })

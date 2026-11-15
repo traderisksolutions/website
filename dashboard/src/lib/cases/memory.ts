@@ -13,6 +13,7 @@
 import { createHash } from 'node:crypto'
 import { ownText, partyOf } from '@/lib/admin/k/shape'
 import { readHistory } from '@/lib/admin/a/history'
+import { CASE_AGENTS } from './names'
 import type { Side, SourceMessage } from './sources'
 
 export const SECTIONS = ['client_said', 'insurer_said', 'wish', 'risk', 'success_factor', 'open_question', 'next_step', 'decision', 'handover'] as const
@@ -132,7 +133,7 @@ export function unreadFor<T extends { id: string; sent_at: string | null }>(mess
 
 export type Resume = {
   /** The last thing recorded on the case, by anyone. */
-  last: { at: string; actor: string | null; kind: string } | null
+  last: { at: string; actor: string | null; kind: string; note: string | null } | null
   next_step: string | null
   open_questions: string[]
   handover: string | null
@@ -143,13 +144,14 @@ export type Resume = {
 /** Where the case stands for whoever picks it up: the last event, the standing next step, open questions and unread email counts. */
 export function resumePoint(i: {
   notes: readonly { section: string; text: string; status: string; created_at: string }[]
-  events: readonly { created_at: string; actor: string | null; kind: string }[]
+  events: readonly { created_at: string; actor: string | null; kind: string; detail?: { note?: unknown } | null }[]
   messages: readonly { id: string }[]
   reads: readonly { agent: string; message_id: string }[]
   nextAction?: string | null
 }): Resume {
   const current = i.notes.filter(n => n.status === 'current').sort((a, b) => b.created_at.localeCompare(a.created_at))
-  const last = [...i.events].sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
+  // Opening the case is not work on it.
+  const last = i.events.filter(e => e.kind !== 'seen').sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null
   const on = new Set(i.messages.map(m => m.id))
   const byAgent = new Map<string, Set<string>>()
   const any = new Set<string>()
@@ -157,10 +159,27 @@ export function resumePoint(i: {
   const unread: Record<string, number> = { new: on.size - any.size }
   for (const [agent, ids] of byAgent) unread[agent] = on.size - ids.size
   return {
-    last: last ? { at: last.created_at, actor: last.actor, kind: last.kind } : null,
+    last: last ? { at: last.created_at, actor: last.actor, kind: last.kind, note: typeof last.detail?.note === 'string' && last.detail.note ? last.detail.note : null } : null,
     next_step: current.find(n => n.section === 'next_step')?.text ?? i.nextAction ?? null,
     open_questions: current.filter(n => n.section === 'open_question').map(n => n.text),
     handover: current.find(n => n.section === 'handover')?.text ?? null,
     unread,
   }
+}
+
+export type AgentRow = { agent: string; name: string; last_read: string | null; emails_read: number; unread: number; notes_kept: number }
+
+/** How far each agent has read the case and what it left on it. Reads of emails no longer on the case are not counted. */
+export function agentRows(i: {
+  messages: readonly { id: string }[]
+  reads: readonly { agent: string; message_id: string; read_at?: string | null }[]
+  notes: readonly { author: string; status: string }[]
+}): AgentRow[] {
+  const on = new Set(i.messages.map(m => m.id))
+  return CASE_AGENTS.map(a => {
+    const mine = i.reads.filter(r => r.agent === a.id && on.has(r.message_id))
+    const read = new Set(mine.map(r => r.message_id))
+    const last = mine.map(r => r.read_at ?? '').sort().pop() || null
+    return { agent: a.id, name: a.name, last_read: last, emails_read: read.size, unread: on.size - read.size, notes_kept: i.notes.filter(n => n.author === a.id && n.status !== 'rejected').length }
+  })
 }

@@ -27,7 +27,7 @@ const MUTED = '#4a5550'
 
 type ThreadRow = { id: string; subject: string | null; status: string; last_message_at: string | null; contact_id: string | null }
 
-export function CompanyMail({ threads, companyId, companyName, onCombine, onRefresh, fullHeight }: {
+export function CompanyMail({ threads, companyId, companyName, onCombine, onRefresh, fullHeight, openId }: {
   threads: CompanyThread[]
   companyId: string
   companyName: string
@@ -35,6 +35,8 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
   onRefresh?: () => void
   /** Fill the viewport instead of sitting inside the page column — the Threads tab. */
   fullHeight?: boolean
+  /** The thread to open first, from the company's thread list. */
+  openId?: string | null
 }) {
   const [filter, setFilter] = useState<Filter>('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -93,8 +95,9 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
   // Open the first thread on a wide screen so the pane is never empty for no reason.
   useEffect(() => {
     if (selectedId || visible.length === 0) return
+    if (openId && threads.some(t => t.id === openId)) { void openThread(openId); return }
     if (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches) void openThread(visible[0].id)
-  }, [visible, selectedId, openThread])
+  }, [visible, selectedId, openThread, openId, threads])
 
   const toggle = (id: string) => setSelected(s => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const current = threads.find(t => t.id === selectedId) ?? null

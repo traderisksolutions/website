@@ -15,7 +15,7 @@ import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { directory, depositEvent } from '@/lib/admin/k/deposit'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { CaseError, caseRow, caseMessages, caseThreadIds } from './sources-store'
-import { cleanNotes, evidenceNotes, ownWords, resumePoint, unreadFor, isSection, SECTION_NAME, SINGLE, type CaseMessage, type CleanNote, type Dropped, type Resume, type Section } from './memory'
+import { agentRows, cleanNotes, evidenceNotes, ownWords, resumePoint, unreadFor, isSection, SECTION_NAME, SINGLE, type AgentRow, type CaseMessage, type CleanNote, type Dropped, type Resume, type Section } from './memory'
 import type { Side, SourceMessage } from './sources'
 
 type Row = Record<string, any>
@@ -34,8 +34,25 @@ export type CaseState = {
   messages: SourceMessage[]
   notes: Note[]
   resume: Resume
+  /** One row per agent: how far it has read and what it kept. */
+  agents: AgentRow[]
   /** Emails `agent` has not read, oldest first. Every email when no agent is named. */
   unread: SourceMessage[]
+}
+
+/** What GET /api/work/:id/memory answers: the case's memory as the screens show it. */
+export type CaseMemory = {
+  item: CaseState['item']
+  threads: CaseState['threads']
+  sections: { section: Section; name: string; notes: Note[] }[]
+  /** Notes off the brief: set aside by a person, or replaced by a later one. */
+  set_aside: Note[]
+  resume: Resume
+  agents: AgentRow[]
+  /** Emails the case reader has not read. */
+  new_emails: number
+  staff: { email: string; name: string }[]
+  emails: { id: string; thread_id: string; sent_at: string | null; from: string | null; subject: string | null; direction: string; new: boolean }[]
 }
 
 const asText = (m: SourceMessage) => `${m.subject ?? ''}\n${m.body_text ?? ''}`
@@ -49,8 +66,8 @@ export async function loadCaseState(workItemId: string, opts: { agent?: string; 
   const [all, notes, events, reads] = await Promise.all([
     caseMessages(ids),
     sbTry<Row[]>(`work_item_notes?work_item_id=eq.${enc(workItemId)}&select=${NOTE_COLS}&order=created_at.asc&limit=1000`, []),
-    sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(workItemId)}&select=created_at,actor,kind&order=created_at.desc&limit=50`, []),
-    sbTry<Row[]>(`work_item_reads?work_item_id=eq.${enc(workItemId)}&select=agent,message_id&limit=5000`, []),
+    sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(workItemId)}&select=created_at,actor,kind,detail&order=created_at.desc&limit=50`, []),
+    sbTry<Row[]>(`work_item_reads?work_item_id=eq.${enc(workItemId)}&select=agent,message_id,read_at&limit=5000`, []),
   ])
   const messages = all.filter(m => visible.has(m.thread_id))
   const mine = new Set(reads.filter(r => r.agent === opts.agent).map(r => r.message_id as string))
@@ -61,6 +78,7 @@ export async function loadCaseState(workItemId: string, opts: { agent?: string; 
     notes: notes.map(n => (n.thread_id && !visible.has(n.thread_id) ? { ...n, quote: null, private: true } : n) as Note),
     // Counts cover every email on the case, so a hidden thread's unread emails still show as work left.
     resume: resumePoint({ notes: notes as any[], events: events as any[], messages: all, reads: reads as any[], nextAction: item.next_action ?? null }),
+    agents: agentRows({ messages: all, reads: reads as any[], notes: notes as any[] }),
     unread: unreadFor(messages, mine),
   }
 }
@@ -95,7 +113,7 @@ export type Turn = {
   /** false when the agent already wrote its own event for this turn (the case worker's "read"). */
   event?: boolean
 }
-export type TurnResult = { kept: number; stored: number; dropped: Dropped[]; read: number; event_id: string | null }
+export type TurnResult = { kept: number; stored: number; dropped: Dropped[]; read: number; /** Emails this agent had not read before the turn. */ read_new: number; event_id: string | null; /** The turn in words, for the case's history. */ note: string }
 
 export async function recordTurn(workItemId: string, agent: string, turn: Turn): Promise<TurnResult> {
   const { ids, sides } = await caseThreadIds(workItemId)
@@ -107,21 +125,22 @@ export async function recordTurn(workItemId: string, agent: string, turn: Turn):
   const on = new Set(messages.map(m => m.id))
   const threads = new Set(turn.readThreadIds ?? [])
   const read = Array.from(new Set([...(turn.readMessageIds ?? []).filter(id => on.has(id)), ...messages.filter(m => threads.has(m.thread_id)).map(m => m.id)]))
-  await inChunks(read, 500, async c => { await sb('work_item_reads?on_conflict=work_item_id,agent,message_id', {
-    method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' }, body: JSON.stringify(c.map(message_id => ({ work_item_id: workItemId, agent, message_id }))),
-  }); return [] })
+  // Only the rows written come back: the emails this agent read for the first time.
+  const fresh = await inChunks(read, 500, c => sb<Row[]>('work_item_reads?on_conflict=work_item_id,agent,message_id', {
+    method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=representation' }, body: JSON.stringify(c.map(message_id => ({ work_item_id: workItemId, agent, message_id }))),
+  }))
 
   const bySection = new Map<string, number>()
   for (const n of made) bySection.set(n.section, (bySection.get(n.section) ?? 0) + 1)
   const said = Array.from(bySection).map(([s, n]) => `${n} ${SECTION_NAME[s as Section].toLowerCase()}`).join(', ')
   const note = [made.length ? `${made.length} note${made.length === 1 ? '' : 's'} kept: ${said}` : null, `${read.length} email${read.length === 1 ? '' : 's'} read`].filter(Boolean).join(' · ')
-  if (turn.event === false) return { kept: kept.length, stored: made.length, dropped, read: read.length, event_id: null }
+  if (turn.event === false) return { kept: kept.length, stored: made.length, dropped, read: read.length, read_new: fresh.length, event_id: null, note }
   const [ev] = await sb<Row[]>('work_item_events', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({
     work_item_id: workItemId, kind: 'agent_turn', actor: agent, detail: { ...(turn.detail ?? {}), notes: made.length, dropped: dropped.length, read: read.length, note },
   }) })
   // The ledger hears of a turn only when it left something on the case.
   if (ev?.id && made.length) await depositEvent('work_item_events', ev.id).catch(() => 0)
-  return { kept: kept.length, stored: made.length, dropped, read: read.length, event_id: ev?.id ?? null }
+  return { kept: kept.length, stored: made.length, dropped, read: read.length, read_new: fresh.length, event_id: ev?.id ?? null, note }
 }
 
 /** A person's note. It needs no source email; a source it names must be on the case. */

@@ -2,7 +2,7 @@
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
-Status, 15 Nov 2026: data model, rules, stores and routes live on production (migration applied, 2,754 threads labelled by rule). No screen yet (the user journey is with Jarod for approval).
+Status, 15 Nov 2026: data model, rules, stores and routes live on production (migration applied, 2,754 threads labelled by rule). Screens built to the approved journey v2, not deployed.
 
 ## Rules
 
@@ -72,7 +72,7 @@ Every agent starts with `loadCaseState(case, { agent, viewer })`: the case, its 
 
 ## Routes
 
-All four need a signed-in TRS person; the scheduler has no view of mail.
+Every route needs a signed-in TRS person; the scheduler has no view of mail.
 
 | Route | Does |
 | --- | --- |
@@ -80,6 +80,8 @@ All four need a signed-in TRS person; the scheduler has no view of mail.
 | `POST /api/work/:id/sources` | `{ action: pick, exclude, restore or side, thread_id, move?, side? }`; answers the sources as they then stand. |
 | `GET /api/work/:id/memory` | The nine sections, notes set aside, where the case stands, the emails without their bodies. |
 | `POST /api/work/:id/memory` | `{ action: note, section, text, message_id? }`, or `{ action: reject or restore, note_id }`. |
+| `POST /api/work/:id/read` | The case reader on this case's threads; answers `{ ok, notes, read }`. Started by a person only. |
+| `GET /api/today/mail` | Labelled threads the person may see, with company, label, who set it and the open case. |
 | `POST /api/threads/:id/label` | `{ label }`: a person's label. |
 | `GET /api/companies/:id/relevance` | A client's threads by group, the hidden count and renewal season. |
 
@@ -93,7 +95,27 @@ Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 
+## Screens
+
+| Screen | Where | Shows |
+| --- | --- | --- |
+| Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: Thread, Company, Label, Set by, Last message, Case. Relevance and label filters; the label is changed in the row. |
+| Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
+| Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
+| Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side, Add. A thread on another case opens `MoveThreadDialog`. |
+| Case › Conversation | `?section=conversation` (`CaseConversation.tsx`) | Client table above Insurer table: Date, From, Message, Files. |
+| Case › Brief | `?section=brief` (`CaseBrief.tsx`) | Notes with their source; Set aside, Restore, Add note. |
+
+A panel that changes the case refreshes the page's events and threads without reloading the draft, so words typed in the draft survive.
+
+## The read a person starts (`POST /api/work/:id/read`, `workCase`)
+
+"Read N new emails" is the one button that sends a case to a model. It takes the threads on the case that the person may see and nothing else of the client, keeps the notes that quote those emails, and records which emails were read. It answers 400 for a closed case, a case with no client, no thread or no email. It never closes the case and never changes its client, kind or title (`personsCaseRow` in `src/lib/casework/clean.ts`): when the reader finds the matter complete, the Decision slot says so and the person closes it. It writes no draft.
+
+The whole-client read (the queue, run from Today › AI approvals) still takes mail on no case, so new mail can become a case. In renewal season it leaves out member movements and endorsements on no open case (`leftOutInSeason`).
+
 ## Not built yet
 
-- The screen (sources picker, two buckets, labels, relevance groups, case memory): after the user journey is approved.
-- The case reader reading only picked sources: with the screen.
+- A classifier trained on labels people set (SetFit): waits for person-set labels.
+- The autonomy measure on `/analytics/autonomy`.
+- Vectors for new threads without a manual run of `scripts/embed-threads.mts`.

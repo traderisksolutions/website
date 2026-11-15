@@ -1,27 +1,33 @@
 /**
  * GET  /api/work/:id/memory → what the case knows: notes by section with their source, where it
  *                             stands (last touch, next step, open questions, hand-over), and how
- *                             many emails each agent has not read.
+ *                             many emails each agent has not read (one row per agent).
  * POST /api/work/:id/memory → { action: 'note', section, text, message_id? } a person's note,
  *                             { action: 'reject' | 'restore', note_id } on one note.
  * Words quoted from a colleague's private thread are withheld.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { caseActor, caseFail } from '@/lib/cases/http'
-import { loadCaseState, addPersonNote, setNoteStatus } from '@/lib/cases/memory-store'
+import { loadCaseState, addPersonNote, setNoteStatus, type CaseMemory } from '@/lib/cases/memory-store'
 import { isSection, SECTIONS, SECTION_NAME } from '@/lib/cases/memory'
+import { currentStaff } from '@/lib/casework/queue'
 
 type Ctx = { params: Promise<{ id: string }> }
 
-async function view(id: string, viewer: string) {
-  const s = await loadCaseState(id, { viewer })
+async function view(id: string, viewer: string): Promise<CaseMemory> {
+  // Unread is the case reader's: what "Read N new emails" would take.
+  const [s, staff] = await Promise.all([loadCaseState(id, { viewer, agent: 'case_worker' }), currentStaff()])
+  const fresh = new Set(s.unread.map(m => m.id))
   return {
     item: s.item,
     threads: s.threads,
     sections: SECTIONS.map(section => ({ section, name: SECTION_NAME[section], notes: s.notes.filter(n => n.section === section && n.status === 'current') })),
     set_aside: s.notes.filter(n => n.status !== 'current'),
     resume: s.resume,
-    emails: s.messages.map(m => ({ id: m.id, thread_id: m.thread_id, sent_at: m.sent_at, from: m.from_address, subject: m.subject, direction: m.direction })),
+    agents: s.agents,
+    new_emails: s.unread.length,
+    staff,
+    emails: s.messages.map(m => ({ id: m.id, thread_id: m.thread_id, sent_at: m.sent_at, from: m.from_address, subject: m.subject, direction: m.direction, new: fresh.has(m.id) })),
   }
 }
 

@@ -7,19 +7,25 @@
  * does next; clean.ts decides what of that may be stored. Open items are updated in place, a new
  * case opens an item. The reply itself is the relay agent's (src/lib/admin/b/relay): the case worker
  * keeps the record, so two agents never draft on one message. Nothing sends.
+ *
+ * Two reads: workCompany takes a whole client and opens or updates its cases; workCase takes one
+ * case on the threads a person put on it and updates that case only (the "Read new emails" button).
  */
 import { callGemini } from '@/lib/ai-call'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
 import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
-import { twinOf } from './clean'
+import { twinOf, personsCaseRow } from './clean'
 import { caseModeFor, type CaseMode } from '@/lib/admin/b/kinds'
 import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clean'
 import { STAGED_TYPES, isStage, stageIndex, startPointFor } from '@/lib/cases/stage'
 import { syncStage } from '@/lib/cases/sync'
 import { renewalMethod } from '@/lib/methods/method'
-import { attachable, PERSON } from '@/lib/cases/sources-store'
+import { attachable, caseRow, caseThreadIds, CaseError, PERSON } from '@/lib/cases/sources-store'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { isLabel, labelOf } from '@/lib/cases/labels'
+import { leftOutInSeason, renewalSeason } from '@/lib/cases/relevance'
 import { recordTurn } from '@/lib/cases/memory-store'
 
 const ACTOR = 'case_worker'
@@ -54,42 +60,60 @@ export const PARTNER_NOTE = `This record is a PARTNER BROKER that places work wi
 export type CaseInput = { companyId: string | null; mode: CaseMode; companyName: string | null; prompt: string; ctx: CaseContext; files: Map<string, Row>; threadSide: Map<string, 'client' | 'insurer' | 'internal' | 'other'> }
 
 /** Everything the case worker reads for one client, and what its answer will be checked against. */
-export async function loadCase(companyId: string, today = new Date().toISOString().slice(0, 10), opts: { focusThreadIds?: string[] } = {}): Promise<CaseInput | null> {
+export type OneCase = { workItemId: string; threadIds: string[] }
+
+export async function loadCase(companyId: string, today = new Date().toISOString().slice(0, 10), opts: { focusThreadIds?: string[]; /** One case on exactly these threads: nothing else of the client is read. */ only?: OneCase } = {}): Promise<CaseInput | null> {
   const [company] = await sbTry<Row[]>(`companies?id=eq.${enc(companyId)}&select=id,company_name,kind,domains,parent_id&limit=1`, [])
   if (!company) return null
-  const mode = caseModeFor(company.kind)
-  if (mode === 'none') return null
+  const only = opts.only ?? null
+  const kind = caseModeFor(company.kind)
+  // A case a person built is read whoever it is filed under.
+  if (kind === 'none' && !only) return null
+  const mode: CaseMode = kind === 'none' ? 'client' : kind
   const since = new Date(Date.parse(today) - WINDOW_DAYS * 86_400_000).toISOString()
   const aliases = await sbTry<Row[]>(`company_aliases?company_id=eq.${enc(companyId)}&select=alias`, [])
-  const items = await sbTry<Row[]>(`work_items?company_id=eq.${enc(companyId)}&closed_at=is.null&select=id,title,case_type,status,next_action,owner_email,work_item_threads(thread_id)`, [])
+  const items = await sbTry<Row[]>(`work_items?${only ? `id=eq.${enc(only.workItemId)}` : `company_id=eq.${enc(companyId)}&closed_at=is.null`}&select=id,title,case_type,status,next_action,owner_email,deadline,work_item_threads(thread_id)`, [])
 
   // The client's own threads, the threads of its open items, and insurer-side threads that name it.
   // A focused read (the case builder resuming from its ledger cursor) takes only the threads that
   // moved, plus the open items' threads, so the whole client is not re-read for every email.
   const focus = opts.focusThreadIds ? opts.focusThreadIds.filter(Boolean) : null
-  const own = focus
-    ? (focus.length ? await sbTry<Row[]>(`email_threads?id=in.(${focus.slice(0, MAX_THREADS).join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at`, []) : [])
-    : await sbTry<Row[]>(`email_threads?company_id=eq.${enc(companyId)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at&order=last_message_at.desc&limit=${MAX_THREADS}`, [])
+  const own = only
+    ? await inChunks(only.threadIds.filter(Boolean), 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`, []))
+    : focus
+      ? (focus.length ? await sbTry<Row[]>(`email_threads?id=in.(${focus.slice(0, MAX_THREADS).join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`, []) : [])
+      : await sbTry<Row[]>(`email_threads?company_id=eq.${enc(companyId)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at,label&order=last_message_at.desc&limit=${MAX_THREADS}`, [])
   // Open items already on these threads, whoever they are filed under (a partner's mail opens
   // cases under the end client), so the reader updates them instead of opening duplicates.
-  if (own.length) {
+  if (own.length && !only) {
     const onThreads = await sbTry<Row[]>(`work_item_threads?thread_id=in.(${own.map(t => t.id).join(',')})&select=work_items(id,title,case_type,status,next_action,owner_email,closed_at,work_item_threads(thread_id))`, [])
     for (const l of onThreads) {
       const w = l.work_items
       if (w && !w.closed_at && !items.some(i => i.id === w.id)) items.push(w)
     }
   }
-  const linked = items.flatMap(i => (i.work_item_threads ?? []).map((t: Row) => t.thread_id as string))
-  const names = focus ? [] : Array.from(new Set([company.company_name, ...aliases.map(a => a.alias)].map(n => companyCore(String(n ?? ''))).filter(n => n.length >= 5)))
+  // One case: its threads are the ones handed in. A thread of the case in a colleague's mailbox is not fetched.
+  const linked = only ? [] : items.flatMap(i => (i.work_item_threads ?? []).map((t: Row) => t.thread_id as string))
+  const names = focus || only ? [] : Array.from(new Set([company.company_name, ...aliases.map(a => a.alias)].map(n => companyCore(String(n ?? ''))).filter(n => n.length >= 5)))
   const named: Row[] = []
   for (const n of names.slice(0, 6)) {
     const words = n.split(' ').slice(0, 3).join('*')
-    named.push(...await sbTry<Row[]>(`email_threads?subject=ilike.*${enc(words)}*&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at&limit=20`, []))
+    named.push(...await sbTry<Row[]>(`email_threads?subject=ilike.*${enc(words)}*&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at,label&limit=20`, []))
   }
   const byId = new Map<string, Row>()
   for (const t of [...own, ...named]) byId.set(t.id, t)
   const missing = linked.filter(id => !byId.has(id))
   if (missing.length) for (const t of await sbTry<Row[]>(`email_threads?id=in.(${missing.join(',')})&select=id,subject,company_id,last_message_at`, [])) byId.set(t.id, t)
+  const policies = await sbTry<Row[]>(`policies?company_id=eq.${enc(companyId)}&select=insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle&order=end_date.desc.nullslast&limit=25`, [])
+  // Renewal season, whole-client read: member movements on no open case are left out (cases/relevance.ts).
+  if (!focus && !only) {
+    const season = renewalSeason({ openRenewalCases: items.filter(i => i.case_type === 'renewal').map(i => ({ title: i.title ?? null, deadline: i.deadline ?? null })), policyEnds: policies.map(p => p.end_date) }, today)
+    const onOpen = new Set(linked)
+    for (const t of Array.from(byId.values())) {
+      const label = isLabel(t.label) ? t.label : labelOf({ subject: t.subject }).label
+      if (leftOutInSeason(season, { lastMessageAt: t.last_message_at, label, onOpenCase: onOpen.has(t.id) }, today)) byId.delete(t.id)
+    }
+  }
   const threads = Array.from(byId.values()).sort((a, b) => String(b.last_message_at).localeCompare(String(a.last_message_at))).slice(0, MAX_THREADS)
   if (threads.length === 0) return null
   const ids = threads.map(t => t.id as string)
@@ -102,7 +126,6 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   const rebuilt = await inChunks(ids, 30, chunk => sbTry<Row[]>(`rebuilt_messages?thread_id=in.(${chunk.join(',')})&select=thread_id,origin,from_address,to_addresses,cc_addresses,sent_at,sent_at_text,subject,body_text,attachments_named,trs_copied&order=position.asc`, []))
   const peopleBy = new Map<string, Row[]>()
   for (const p of people) peopleBy.set(p.message_id, [...(peopleBy.get(p.message_id) ?? []), p])
-  const policies = await sbTry<Row[]>(`policies?company_id=eq.${enc(companyId)}&select=insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle&order=end_date.desc.nullslast&limit=25`, [])
   const staff = (await sbTry<Row[]>('contacts?is_employee=eq.true&select=email', [])).map(r => String(r.email).toLowerCase())
   const gone = new Set((await sbTry<Row[]>('staff_departures?select=email', [])).map(r => String(r.email).toLowerCase()))
   const insurerIds = new Set((await sbTry<Row[]>('companies?kind=eq.insurer&select=id', [])).map(r => r.id as string))
@@ -156,6 +179,7 @@ export async function loadCase(companyId: string, today = new Date().toISOString
     policies.length ? `POLICIES ON FILE:\n${policies.map(p => `- ${p.insurer} ${p.class_of_insurance ?? p.product_line ?? ''} ${p.policy_number ?? '(no number)'} ${p.start_date ?? '?'} to ${p.end_date ?? '?'} [${p.lifecycle}]`).join('\n')}` : 'POLICIES ON FILE: none',
     renewalText ? `RENEWAL METHOD (TRS's own rules for renewal cases; follow it for next_action, needs_human and what to ask):\n${renewalText}` : '',
     items.length ? `OPEN ITEMS:\n${items.map(i => `- ${i.id} | ${i.case_type} | ${i.title} | ${i.status} | next: ${i.next_action ?? '-'}`).join('\n')}` : 'OPEN ITEMS: none',
+    only ? `ONE CASE: every thread below belongs to the open item ${only.workItemId}. Return exactly one case, with item_id "${only.workItemId}" and every thread id in its threads.` : '',
     `THREADS:\n\n${blocks.join('\n\n')}`,
   ].filter(Boolean).join('\n\n')
 
@@ -202,9 +226,9 @@ async function caseCompany(input: CaseInput, c: CleanCase): Promise<{ companyId:
   return { companyId: null, needsHuman: `End client "${named}" is not on file. Choose or add the client; ${partner} is a partner broker.` }
 }
 
-export async function storeCase(input: CaseInput, c: CleanCase, openedMode: string | null = null): Promise<string> {
-  const owner = await caseCompany(input, c)
-  const row = {
+export async function storeCase(input: CaseInput, c: CleanCase, openedMode: string | null = null, opts: { /** The case is a person's: its client, kind and title stay as they are. */ fixed?: boolean } = {}): Promise<string> {
+  const owner = opts.fixed ? { companyId: input.companyId, needsHuman: null } : await caseCompany(input, c)
+  const read: Row = {
     company_id: owner.companyId, client_name: c.client, case_type: c.case_type, title: c.title, status: c.status,
     waiting_since: c.waiting_since, last_activity_at: c.last_activity, summary: c.summary, next_action: c.next_action,
     deadline: c.deadline, deadline_basis: c.deadline_basis, insurer_name: c.insurer, policy_number: c.policy_number,
@@ -212,6 +236,8 @@ export async function storeCase(input: CaseInput, c: CleanCase, openedMode: stri
     evidence: c.evidence, model: GEMINI_LITE, read_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     closed_at: c.status === 'done' ? new Date().toISOString() : null, closed_by: c.status === 'done' ? ACTOR : null,
   }
+  // A read a person started keeps their case's client, kind and title, and never closes it.
+  const row: Row = opts.fixed ? personsCaseRow(read, c.status === 'done') : read
   let id = c.item_id
   if (!id && owner.companyId) {
     // The reader is shown the open items and names the one a case belongs to; when it misses
@@ -251,11 +277,39 @@ export async function storeCase(input: CaseInput, c: CleanCase, openedMode: stri
   }
 
   // Drafts are the relay agent's; a draft the model still returns is not stored.
-  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action } }) })
   // What this read learned and how far it read stay on the case for the next agent or person.
   // Never the reason a read fails: the case itself is stored above.
-  await recordTurn(id, ACTOR, { evidence: c.evidence, readThreadIds: mine.keep, event: false }).catch(() => null)
+  const turn = await recordTurn(id, ACTOR, { evidence: c.evidence, readThreadIds: mine.keep, event: false }).catch(() => null)
+  const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`
+  await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: {
+    status: c.status, next_action: c.next_action,
+    ...(turn ? { notes: turn.stored, read: turn.read_new, note: `${count(turn.stored, 'note')} kept, ${count(turn.read_new, 'email')} read` } : {}),
+  } }) })
   return id
+}
+
+/**
+ * Reads one case on the threads a person put on it, and nothing else of the client. Started by a
+ * person's button (POST /api/work/:id/read), so the model call has a signed-in session behind it.
+ * The case keeps its client, kind and title; the read updates where it stands and what was said.
+ */
+export async function workCase(workItemId: string, viewer: string, today = new Date().toISOString().slice(0, 10)): Promise<{ notes: number; read: number }> {
+  const item = await caseRow(workItemId)
+  if (item.closed_at) throw new CaseError('This case is closed.', 400)
+  if (!item.company_id) throw new CaseError('Choose the client for this case first.', 400)
+  const { ids } = await caseThreadIds(workItemId)
+  const visible = await visibleThreadIds(ids, viewer)
+  const threadIds = ids.filter(id => visible.has(id))
+  if (!threadIds.length) throw new CaseError('Add a thread to the case first.', 400)
+  const input = await loadCase(item.company_id, today, { only: { workItemId, threadIds } })
+  if (!input) throw new CaseError('The threads on this case hold no email to read.', 400)
+  const { cases, error } = await readCase(input)
+  if (error) throw new CaseError(error, 502)
+  const c = cases.find(k => k.item_id === workItemId) ?? cases[0]
+  if (!c) throw new CaseError('The read returned no case. Nothing changed.', 502)
+  await storeCase(input, { ...c, item_id: workItemId, case_type: item.case_type, threads: input.ctx.threadIds }, null, { fixed: true })
+  const [last] = await sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(workItemId)}&kind=eq.read&select=detail&order=created_at.desc&limit=1`, [])
+  return { notes: Number(last?.detail?.notes ?? 0), read: Number(last?.detail?.read ?? 0) }
 }
 
 /** Reads one client and stores every case. Returns what happened, for logs and the dry run. */

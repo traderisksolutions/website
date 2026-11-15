@@ -175,12 +175,19 @@ async function threadFor(threadId: string, actor: string): Promise<Row> {
 export async function pickThread(workItemId: string, threadId: string, actor: string, opts: { move?: boolean } = {}): Promise<{ moved_from: string | null; side: Side }> {
   const item = await caseRow(workItemId)
   const t = await threadFor(threadId, actor)
-  const [held] = await sb<Row[]>(`work_item_threads?thread_id=eq.${enc(threadId)}&select=work_item_id,side,work_items(id,title)&limit=1`)
+  const [held] = await sb<Row[]>(`work_item_threads?thread_id=eq.${enc(threadId)}&select=work_item_id,side,joined_by,joined_evidence,created_at,work_items(id,title)&limit=1`)
   let movedFrom: string | null = null
   if (held && held.work_item_id !== workItemId) {
-    if (!opts.move) throw new CaseError('This thread is on another case.', 409, { conflict: { id: held.work_item_id, title: held.work_items?.title ?? null } })
+    if (!opts.move) {
+      // When a person picked it, the time of that pick; else when the case reader linked it.
+      const [picked] = await sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(held.work_item_id)}&kind=eq.source_picked&detail->>thread_id=eq.${enc(threadId)}&select=created_at&order=created_at.desc&limit=1`, [])
+      throw new CaseError('This thread is on another case.', 409, { conflict: {
+        id: held.work_item_id, title: held.work_items?.title ?? null,
+        picked_by: held.joined_by === PERSON ? held.joined_evidence ?? null : 'case_worker', picked_at: picked?.created_at ?? held.created_at ?? null,
+      } })
+    }
     await sb(`work_item_threads?thread_id=eq.${enc(threadId)}&work_item_id=eq.${enc(held.work_item_id)}`, { method: 'DELETE', headers: quiet })
-    await event(held.work_item_id, 'source_moved', actor, { thread_id: threadId, to: workItemId, note: 'Thread moved to another case' })
+    await event(held.work_item_id, 'source_moved', actor, { thread_id: threadId, to: workItemId, to_title: item.title ?? null, note: 'Thread moved to another case' })
     movedFrom = held.work_item_id
   }
   let side: Side

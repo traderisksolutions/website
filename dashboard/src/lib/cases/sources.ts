@@ -18,6 +18,7 @@ import { bareEmail } from '@/lib/crm/db'
 import { plainSubject, type Label } from './labels'
 import { BACK_BURNER_DAYS, daysBetween } from './relevance'
 import { bySimilarity } from './similarity'
+import { senderName } from './names'
 
 export const SIDES = ['client', 'insurer', 'internal', 'other'] as const
 export type Side = typeof SIDES[number]
@@ -32,7 +33,7 @@ export type SourceMessage = {
 }
 
 /** One message as the case shows it: when, who, their own words, and the email it opens. */
-export type Said = { message_id: string; thread_id: string; at: string | null; from: string; by: 'them' | 'trs'; text: string; files: string[]; href: string }
+export type Said = { message_id: string; thread_id: string; at: string | null; from: string; /** The sender as the email names them. */ name: string; by: 'them' | 'trs'; text: string; files: string[]; href: string }
 
 const INSURER = new Set(['insurer', 'tpa'])
 const sideBucket = (s: Side | undefined): Bucket | null => (s === 'client' || s === 'insurer' ? s : null)
@@ -70,7 +71,7 @@ export function buildBuckets(messages: readonly SourceMessage[], sides: Map<stri
     if (!text && !(m.files ?? []).length) continue
     const trs = m.direction === 'outbound' || partyOf(m.from_address, domainKind) === 'internal'
     out[bucket].push({
-      message_id: m.id, thread_id: m.thread_id, at: m.sent_at, from: bareEmail(m.from_address) || 'unknown', by: trs ? 'trs' : 'them',
+      message_id: m.id, thread_id: m.thread_id, at: m.sent_at, from: bareEmail(m.from_address) || 'unknown', name: senderName(m.from_address), by: trs ? 'trs' : 'them',
       text: text ?? '', files: m.files ?? [], href: `/engagement?thread=${m.thread_id}`,
     })
   }

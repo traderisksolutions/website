@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanNotes, quoted, noteKey, unreadFor, resumePoint, quoteSource, evidenceNotes, ownWords, SECTIONS, SECTION_NAME, type CaseMessage } from '../memory'
+import { agentRows, cleanNotes, quoted, noteKey, unreadFor, resumePoint, quoteSource, evidenceNotes, ownWords, SECTIONS, SECTION_NAME, type CaseMessage } from '../memory'
 import type { Side, SourceMessage } from '../sources'
 
 const messages: CaseMessage[] = [
@@ -86,7 +86,7 @@ describe('resumePoint', () => {
   }
   it('states where the case stands', () => {
     expect(resumePoint(base)).toEqual({
-      last: { at: '2026-11-06T00:00:00Z', actor: 'nathan@trade-risksol.com', kind: 'note' },
+      last: { at: '2026-11-06T00:00:00Z', actor: 'nathan@trade-risksol.com', kind: 'note', note: null },
       next_step: 'Send the comparison to HR', open_questions: ['Is dental still wanted?'], handover: 'Nathan away 16 to 20 Nov; Hasya holds the case',
       unread: { new: 1, case_worker: 1, drafter: 2 },
     })
@@ -96,6 +96,31 @@ describe('resumePoint', () => {
     expect(r).toEqual({ last: null, next_step: 'Call the client', open_questions: [], handover: null, unread: { new: 0 } })
   })
   it('names every section', () => { for (const s of SECTIONS) expect(SECTION_NAME[s]).toBeTruthy() })
+  it('carries the last touch in words, and does not count opening the case', () => {
+    const r = resumePoint({ ...base, events: [
+      { created_at: '2026-11-12T10:51:00Z', actor: 'case_worker', kind: 'read', detail: { note: '3 notes kept, 3 emails read' } },
+      { created_at: '2026-11-13T09:00:00Z', actor: 'nathan@trade-risksol.com', kind: 'seen' },
+    ] })
+    expect(r.last).toEqual({ at: '2026-11-12T10:51:00Z', actor: 'case_worker', kind: 'read', note: '3 notes kept, 3 emails read' })
+  })
+})
+
+describe('agentRows', () => {
+  const rows = agentRows({
+    messages: [{ id: 'm1' }, { id: 'm2' }, { id: 'm3' }],
+    reads: [
+      { agent: 'case_worker', message_id: 'm1', read_at: '2026-11-10T08:00:00Z' }, { agent: 'case_worker', message_id: 'm2', read_at: '2026-11-12T10:51:00Z' },
+      { agent: 'case_worker', message_id: 'gone', read_at: '2026-11-14T00:00:00Z' }, { agent: 'relay', message_id: 'm3', read_at: '2026-11-11T00:00:00Z' },
+    ],
+    notes: [{ author: 'case_worker', status: 'current' }, { author: 'case_worker', status: 'superseded' }, { author: 'case_worker', status: 'rejected' }, { author: 'nathan@trade-risksol.com', status: 'current' }],
+  })
+  it('gives one row per agent, in a fixed order', () => { expect(rows.map(r => r.name)).toEqual(['Case reader', 'Placement', 'Relay']) })
+  it('counts only emails still on the case', () => {
+    expect(rows[0]).toEqual({ agent: 'case_worker', name: 'Case reader', last_read: '2026-11-12T10:51:00Z', emails_read: 2, unread: 1, notes_kept: 2 })
+  })
+  it('shows an agent that has read nothing', () => {
+    expect(rows[1]).toEqual({ agent: 'placement', name: 'Placement', last_read: null, emails_read: 0, unread: 3, notes_kept: 0 })
+  })
 })
 
 // A client forwards the insurer's terms; the insurer later quotes the client's reply.

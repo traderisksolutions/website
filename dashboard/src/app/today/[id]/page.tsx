@@ -6,13 +6,17 @@
  * and on the right the case, its timeline, the threads and data-room files it rests on, and the
  * client's contacts on file. Send sends every ticked draft through /api/email/send, records the
  * send on the case, and moves to the next item on Today.
+ *
+ * Sections (?section=): Overview is the draft with the resume point under it; Sources, Conversation
+ * and Brief are the case's threads, what was said on them and what the case knows (docs/case-sources.md).
+ * Draft edits live in the page, so they survive a change of section.
  */
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { oneRecipient } from '@/lib/email/recipients'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
-import { Btn, Chip, Spinner } from '@/components/crm/primitives'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { Btn, Chip, Segmented, Spinner } from '@/components/crm/primitives'
 import { ActionItem, Arrow, Buttons, Group, InfoRow, Small } from '@/components/engagement/rail-bits'
 import { ActionBar } from '@/components/ui/action-bar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -24,6 +28,12 @@ import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterD
 import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
 import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
+import { actorName } from '@/lib/cases/names'
+import { CASE_SECTIONS, asCaseSection, type CaseSection } from '@/components/cases/shared'
+import { CaseSourcesPanel } from '@/components/cases/CaseSourcesPanel'
+import { CaseConversation } from '@/components/cases/CaseConversation'
+import { CaseBrief } from '@/components/cases/CaseBrief'
+import { ResumePoint } from '@/components/cases/ResumePoint'
 
 const FLOW_TIP: Record<RenewalFlow, string> = {
   hold: 'Hold: loss ratio under the hold threshold and exposure steady. Ask the current insurer on the same basis. Open the renewal method.',
@@ -57,8 +67,13 @@ const recipients = (d: { to: string; cc: string | null }) => {
 const withRefs = (a: TodayDraft['attachments']) => a.filter(x => x.storage_url).map(x => ({ filename: x.filename, mime_type: x.mime_type ?? undefined, storage_url: x.storage_url as string }))
 
 export default function ReviewPage() {
+  return <Suspense fallback={<div className="px-4 md:px-8 py-6"><Spinner label="Loading the case…" /></div>}><Review /></Suspense>
+}
+
+function Review() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const section = asCaseSection(useSearchParams().get('section'))
   const [item, setItem] = useState<ItemDetail | null>(null)
   const [staff, setStaff] = useState<Staff[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -86,6 +101,15 @@ export default function ReviewPage() {
     }).catch(e => setError(errText(e)))
   }, [id])
   useEffect(() => { load() }, [load])
+
+  /** After a change in a section: the case's record again, leaving the drafts being edited as they are. */
+  const refresh = useCallback(() => {
+    callApi<{ item: ItemDetail }>(`/api/today/${id}`).then(d => setItem(cur => cur && {
+      ...cur, events: d.item.events, threads: d.item.threads, ledger: d.item.ledger, status: d.item.status,
+      next_action: d.item.next_action, summary: d.item.summary, needs_human: d.item.needs_human,
+    })).catch(() => null)
+  }, [id])
+  const go = (s: CaseSection) => { setNotice(null); setError(null); router.replace(`/today/${id}${s === 'overview' ? '' : `?section=${s}`}`, { scroll: false }) }
 
   const forward = item?.draft?.kind === 'forward_to_insurer'
   const sending = (item?.draft ? 1 : 0) + (item?.paired.filter(p => include[p.id]).length ?? 0)
@@ -165,8 +189,14 @@ export default function ReviewPage() {
       </header>
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      <div><Segmented<CaseSection> value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.map(s => ({ ...s }))} /></div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-4 items-start">
+      {section === 'sources' && <CaseSourcesPanel id={item.id} staff={staff} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
+      {section === 'conversation' && <CaseConversation id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
+      {section === 'brief' && <CaseBrief id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
+
+      {section === 'overview' && <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-4 items-start">
+        <div className="flex flex-col gap-6 min-w-0">
         <section className="rounded-[10px] border border-trs-line bg-white min-w-0 flex flex-col" aria-label="Draft">
           {item.needs_human && (
             <div className="px-4 py-3 border-b border-trs-line">
@@ -225,6 +255,8 @@ export default function ReviewPage() {
               : <Btn level="primary" disabled={busy !== null} loading={busy === 'close'} onClick={() => void run('close', async () => { await work({ action: 'close' }); await next(); return 'Closed.' })}>Mark done</Btn>}
           </ActionBar>
         </section>
+        <ResumePoint id={item.id} onChanged={refresh} onNotice={setNotice} onError={setError} />
+        </div>
 
         {/* The right column in the rail format (docs/design-system.md, "Context rail"): green pill
             per group, no boxes, spacing separates. Actions · Information · Source · Timeline. */}
@@ -336,7 +368,7 @@ export default function ReviewPage() {
             </Group>
           )}
         </aside>
-      </div>
+      </div>}
 
       <ThreadModal threadId={thread} onClose={() => setThread(null)} />
       <DocModal doc={doc} onClose={() => setDoc(null)} />
@@ -366,7 +398,7 @@ function partyLabel(party: string | null, fallback: string) {
 }
 
 function eventText(kind: string, actor: string, d: Record<string, any>): string {
-  const who = actor.includes('@') ? actor.split('@')[0] : actor.replace(/_/g, ' ')
+  const who = actor.includes('@') ? actor.split('@')[0] : actorName(actor)
   switch (kind) {
     case 'sent': return `Sent by ${who}`
     case 'draft': return d.discarded ? `Draft discarded by ${who}` : d.edited ? `Draft edited by ${who}` : `Draft written by ${who}`
@@ -376,8 +408,16 @@ function eventText(kind: string, actor: string, d: Record<string, any>): string 
     case 'edit': return d.attachments ? `Attachments changed by ${who}` : `Edited by ${who}: ${Object.keys(d.changes ?? {}).map(k => k.replace(/_/g, ' ')).join(', ')}`
     case 'closed': return `Closed by ${who}`
     case 'reopened': return `Reopened by ${who}`
-    case 'read': return `Case read by ${who}${d.status ? ` · ${String(d.status).replace(/_/g, ' ')}` : ''}`
-    case 'note': return d.opened ? `Opened ${String(d.opened).replace(/_/g, ' ')}` : `Note by ${who}`
+    case 'read': return `Case read by ${who}${d.note ? ` · ${d.note}` : d.status ? ` · ${String(d.status).replace(/_/g, ' ')}` : ''}`
+    case 'note': return d.opened ? `Opened ${String(d.opened).replace(/_/g, ' ')}` : d.note ? `Note by ${who} · ${d.note}` : `Note by ${who}`
+    case 'source_picked': return d.moved_from ? `Thread moved to this case by ${who}` : `Thread added by ${who}`
+    case 'source_moved': return `Thread moved to ${d.to_title ?? 'another case'} by ${who}`
+    case 'source_excluded': return `Thread removed by ${who}`
+    case 'source_restored': return `Thread restored by ${who}`
+    case 'source_side': return `Thread side set to ${String(d.side ?? 'other')} by ${who}`
+    case 'agent_turn': return d.note ? `${who} · ${d.note}` : `Turn by ${who}`
+    case 'note_rejected': return `Note set aside by ${who}`
+    case 'note_restored': return `Note restored by ${who}`
     default: return `${kind.replace(/_/g, ' ')} · ${who}`
   }
 }

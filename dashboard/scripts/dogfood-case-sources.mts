@@ -408,6 +408,7 @@ async function walkRoutes(base: string): Promise<void> {
   ok('pick answers the sources as they stand', r.status === 200 && r.json?.ok === true && r.json?.side === 'client' && r.json?.sources?.picked?.[0]?.id === T.renewal && r.json?.sources?.buckets?.client?.length === 2, r.json && { status: r.status, side: r.json.side, error: r.json.error })
   r = await call('POST', `/api/work/${W1}/sources`, { action: 'pick', thread_id: T.other_case })
   ok('a thread on another case → 409 naming the case', r.status === 409 && r.json?.conflict?.id === W2 && r.json?.conflict?.title === 'Hospitalisation claim - J Tan', r)
+  ok('the conflict names who picked it and when', r.json?.conflict?.picked_by === COLLEAGUE && !Number.isNaN(Date.parse(r.json?.conflict?.picked_at ?? '')), r.json?.conflict)
   r = await call('POST', `/api/work/${W1}/sources`, { action: 'pick', thread_id: T.other_case, move: true })
   ok('move → 200 with where it came from', r.status === 200 && r.json?.moved_from === W2, r.json && { status: r.status, moved_from: r.json.moved_from })
   ok('a private thread → 403', (await call('POST', `/api/work/${W1}/sources`, { action: 'pick', thread_id: T.hidden })).status === 403)
@@ -453,6 +454,35 @@ async function walkRoutes(base: string): Promise<void> {
   r = await call('POST', `/api/work/${W1}/memory`, { action: 'restore', note_id: noteId })
   ok('restore → 200, back in its section', r.status === 200 && r.json?.memory?.sections?.find((x: Row) => x.section === 'risk')?.notes?.length === 1, r.json?.error)
   ok('a note that is not on the case → 404', (await call('POST', `/api/work/${W1}/memory`, { action: 'reject', note_id: NOWHERE })).status === 404)
+
+  console.log('\nGET /api/today/mail')
+  ok('no session → 401', (await call('GET', '/api/today/mail', undefined, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('GET', '/api/today/mail', undefined, outsider)).status === 401)
+  ok('unknown relevance → 400', (await call('GET', '/api/today/mail?relevance=urgent')).status === 400)
+  ok('unknown label → 400', (await call('GET', '/api/today/mail?label=snacks')).status === 400)
+  r = await call('GET', '/api/today/mail?limit=20000')
+  const mail = (r.json?.threads ?? []) as Row[]
+  const row = (id: string) => mail.find(t => t.id === id)
+  ok('every thread the person may see, with the counts by group', r.status === 200 && r.json?.total === r.json?.counts?.all && mail.length === r.json?.total && r.json?.me === ME, r.json && { status: r.status, total: r.json.total, counts: r.json.counts, rows: mail.length, error: r.json.error })
+  ok('a thread on a case names the client and the case', row(T.renewal)?.company?.name === CLIENT_NAME && row(T.renewal)?.case?.id === W1 && row(T.renewal)?.relevance === 'active', row(T.renewal))
+  ok('a label a person set names the person', row(T.pantry)?.label === 'document' && row(T.pantry)?.set_by?.kind === 'person' && row(T.pantry)?.set_by?.email === ME, row(T.pantry))
+  ok('a label by rule says so', row(T.movement)?.label === 'member_movement' && row(T.movement)?.set_by?.kind === 'rule' && row(T.movement)?.relevance === 'member_movements', row(T.movement))
+  ok('the colleague\'s private thread is not listed', !row(T.hidden))
+  r = await call('GET', '/api/today/mail?relevance=member_movements&label=member_movement&limit=20000')
+  const narrowed = (r.json?.threads ?? []) as Row[]
+  ok('relevance and label narrow the rows', r.status === 200 && narrowed.every(t => t.relevance === 'member_movements' && t.label === 'member_movement') && narrowed.some(t => t.id === T.movement) && r.json?.total === r.json?.counts?.member_movements && narrowed.length < mail.length, r.json && { rows: narrowed.length, counts: r.json.counts })
+
+  // Refusals only: each answers before any model is reached. The case with threads is never read here.
+  console.log('\nPOST /api/work/:id/read')
+  ok('no session → 401', (await call('POST', `/api/work/${W2}/read`, {}, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('POST', `/api/work/${W2}/read`, {}, outsider)).status === 401)
+  ok('unknown case → 404', (await call('POST', `/api/work/${NOWHERE}/read`, {})).status === 404)
+  ok('this case holds no thread now', !(await links(W2)).length)
+  r = await call('POST', `/api/work/${W2}/read`, {})
+  ok('a case with no thread → 400, nothing read', r.status === 400 && /Add a thread/.test(r.json?.error ?? '') && !(await events(W2)).some(e => e.kind === 'read'), r)
+  await sb(`work_items?id=eq.${W2}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: new Date().toISOString() }) })
+  r = await call('POST', `/api/work/${W2}/read`, {})
+  ok('a closed case → 400', r.status === 400 && /closed/.test(r.json?.error ?? ''), r)
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────────────────────

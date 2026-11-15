@@ -1,0 +1,44 @@
+'use client'
+
+/**
+ * Shared by the case page's sections (Sources, Conversation, Brief, Resume point): the section
+ * list, the table frame, and the one button that starts the case reader on the case's threads.
+ */
+import { useState } from 'react'
+import { Btn, type BtnLevel } from '@/components/crm/primitives'
+import { callApi, errText } from '@/components/placement/shared'
+
+export const CASE_SECTIONS = [
+  { value: 'overview', label: 'Overview' },
+  { value: 'sources', label: 'Sources' },
+  { value: 'conversation', label: 'Conversation' },
+  { value: 'brief', label: 'Brief' },
+] as const
+export type CaseSection = typeof CASE_SECTIONS[number]['value']
+export const asCaseSection = (v: string | null): CaseSection => CASE_SECTIONS.find(s => s.value === v)?.value ?? 'overview'
+
+export const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
+export const tableFrame = 'overflow-x-auto rounded-[10px] border border-trs-line bg-white'
+export const headingCls = 'm-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink'
+/** A subject in a table cell that opens the thread over the page. */
+export const subjectBtn = 'block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline'
+
+/** "Read 2 new emails": a person starts the case reader on the threads on this case. */
+export function ReadNewButton({ id, unread, level = 'secondary', onDone, onError }: {
+  id: string
+  /** Emails on the case the case reader has not read. */
+  unread: number
+  level?: BtnLevel
+  onDone: (notice: string) => void
+  onError: (message: string | null) => void
+}) {
+  const [busy, setBusy] = useState(false)
+  async function read() {
+    setBusy(true); onError(null)
+    try {
+      const d = await callApi<{ notes: number; read: number }>(`/api/work/${id}/read`, { method: 'POST', body: {} })
+      onDone(`${count(d.notes, 'note')} kept, ${count(d.read, 'email')} read.`)
+    } catch (e) { onError(errText(e)) } finally { setBusy(false) }
+  }
+  return <Btn level={level} disabled={busy || unread === 0} loading={busy} onClick={() => void read()}>{unread === 0 ? 'No new emails' : `Read ${count(unread, 'new email')}`}</Btn>
+}

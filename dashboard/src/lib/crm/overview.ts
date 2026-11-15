@@ -39,7 +39,7 @@ export async function buildOverview(company: Company): Promise<CompanyOverview &
   for (const t of waiting.slice(0, 5)) {
     alerts.push({ id: `reply-${t.id}`, kind: 'awaiting_reply', tone: 'amber', title: `Awaiting our reply: ${threadTitle(t)}`, detail: `${t.contact?.name ?? t.contact?.email ?? 'Client'} wrote ${fmtRelative(t.last_message_at)}`, href: `/engagement?lead=${t.id}`, at: t.last_message_at })
   }
-  if (waiting.length > 5) alerts.push({ id: 'reply-more', kind: 'awaiting_reply', tone: 'amber', title: `${waiting.length - 5} more thread${waiting.length - 5 === 1 ? '' : 's'} awaiting a reply`, detail: null, href: `/companies/${company.id}?tab=threads`, at: null })
+  if (waiting.length > 5) alerts.push({ id: 'reply-more', kind: 'awaiting_reply', tone: 'amber', title: `${waiting.length - 5} more thread${waiting.length - 5 === 1 ? '' : 's'} awaiting a reply`, detail: null, href: `/companies/${company.id}?tab=threads&view=reader`, at: null })
 
   // Renewals
   const policies = withoutEndorsementDuplicates(customers.flatMap(c => c.policies ?? [])).filter(p => p.status === 'active' && p.end_date)
