@@ -48,6 +48,22 @@ Renewal season is on for a client when a policy ends within 90 days, or a renewa
 
 Proposals are computed on every load and never stored.
 
+## Order by closeness (`similarity.ts`, `thread_vectors`)
+
+Each thread has one vector, made from its subject and what its first three messages say themselves (`threadText`), by `scripts/embed-threads.mts` on a CPU with bge-small-en-v1.5. No model API is called. `rpc/thread_similarity(p_reference, p_candidates)` answers how close each candidate is to the centre of the reference threads: the threads the viewer sees on the case.
+
+| List | Order |
+| --- | --- |
+| Proposed | Policy number, then subject, then label; inside each, closest first. |
+| Recent | Closest first. |
+| Older | Newest first. |
+
+A thread with no vector comes after the scored ones, newest first. A case with no thread yet keeps newest first throughout. Similarity changes the order only: what is proposed, the reason shown and what a person picks are untouched.
+
+Run `scripts/embed-threads.mts --write` after new mail to embed threads that are new or changed (37 ms a thread). The runtime is installed once in `tools/thread-embed/` (`npm ci --ignore-scripts`) and is not a dependency of the dashboard.
+
+Measured 15 Nov 2026, hold-one-out on 521 threads of cases with two or more (links made by rules): in the first five offered 60.1% by rules alone, 75.2% with this order.
+
 ## Case memory (`memory.ts`, `memory-store.ts`)
 
 Sections: Client said, Insurer said, Wish list, Risk, Success factor, Open question, Next step, Decision, Hand-over. One next step stands at a time; a newer one supersedes the older, which stays on record.
@@ -71,9 +87,9 @@ Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unkno
 
 ## Dogfood
 
-`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 88 checks) and every route (`http <base>`, 37 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
+`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 91 checks) and every route (`http <base>`, 37 checks), removes the records and verifies none are left. It refuses a database that is not local unless `--live` is given. No model is called.
 
-Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 88 of 88 again after the sign-off and attribution change.
+Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness.
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 

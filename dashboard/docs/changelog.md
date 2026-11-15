@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-15 — Case sources: offers ordered by closeness to the case (not deployed)
+
+- **Thread vectors** (`thread_vectors`, migration `20261115_thread_vectors.sql`, applied): one vector per thread from its subject and its first messages' own text, made on a CPU by `scripts/embed-threads.mts` (bge-small-en-v1.5, 384 numbers). No model API, nothing paid. 2,754 threads embedded in 113 s; a re-run embeds only threads whose text changed.
+- **Order** (`src/lib/cases/similarity.ts`, `proposeThreads`): the rules still decide what is proposed and why; inside each group and in Recent the closest to the threads already on the case comes first. No thread on the case, or no vector: newest first, as before. A colleague's private thread orders nothing.
+- Hold-one-out on the 521 threads already on cases with two or more: the thread is in the first five offered 60.1% of the time by rules alone, 75.2% with this order; first ten 74.7% to 89.1%. The links tested were made by rules, not by people. The similarity query answers in 23 ms on average.
+- The runtime (473 MB) lives in `tools/thread-embed/`, outside the dashboard's dependencies, and never runs on Vercel. New threads get a vector at the next run of the script.
+
 ## 2026-11-15 — Case sources: words filed under who wrote them; closings trimmed (not deployed)
 
 - **A quote is filed under its writer** (`src/lib/cases/memory.ts`: `quoteSource`, `evidenceNotes`): words found in a message's own text belong to its sender; words found only in the history beneath belong to whoever wrote that block. A client forwarding an insurer's email no longer puts the insurer's words under Client said; an insurer's words TRS forwarded are kept as Insurer said. Words with no writer named are left out.

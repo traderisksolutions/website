@@ -1,0 +1,8 @@
+{
+  "name": "thread-embed",
+  "private": true,
+  "description": "The CPU runtime for scripts/embed-threads.mts. Kept out of the dashboard's own dependencies: it is 473 MB installed and never runs on Vercel.",
+  "dependencies": {
+    "@huggingface/transformers": "4.3.2"
+  }
+}

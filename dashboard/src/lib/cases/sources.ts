@@ -17,6 +17,7 @@ import { isAutoReply, isInternalOnly } from '@/lib/threads/waiting'
 import { bareEmail } from '@/lib/crm/db'
 import { plainSubject, type Label } from './labels'
 import { BACK_BURNER_DAYS, daysBetween } from './relevance'
+import { bySimilarity } from './similarity'
 
 export const SIDES = ['client', 'insurer', 'internal', 'other'] as const
 export type Side = typeof SIDES[number]
@@ -106,8 +107,10 @@ const compact = (s: string | null | undefined) => String(s ?? '').toLowerCase().
 /**
  * What to offer for a case out of the client's threads. `taken` are the picked and excluded thread
  * ids, which are never offered. Threads older than 90 days are listed apart and never proposed.
+ * `similarity` (closeness to the threads already on the case) orders each group; without it, or
+ * for a thread with no score, the order is newest first.
  */
-export function proposeThreads(c: CaseCore, candidates: readonly Candidate[], taken: ReadonlySet<string>, today: string): Proposed {
+export function proposeThreads(c: CaseCore, candidates: readonly Candidate[], taken: ReadonlySet<string>, today: string, similarity?: ReadonlyMap<string, number>): Proposed {
   const policy = compact(c.policy_number)
   const words = matterWords(c.title)
   const labels = LABELS_FOR_CASE[c.case_type] ?? []
@@ -122,8 +125,9 @@ export function proposeThreads(c: CaseCore, candidates: readonly Candidate[], ta
     else if (t.label && labels.includes(t.label)) out.proposed.push({ ...t, reason: 'label', basis: 'Label matches the case' })
     else out.recent.push(t)
   }
-  const newest = (a: Candidate, b: Candidate) => String(b.last_message_at ?? '').localeCompare(String(a.last_message_at ?? ''))
-  out.proposed.sort((a, b) => rank[a.reason] - rank[b.reason] || newest(a, b))
-  out.recent.sort(newest); out.older.sort(newest)
+  const newest = bySimilarity()
+  const closest = bySimilarity(similarity)
+  out.proposed.sort((a, b) => rank[a.reason] - rank[b.reason] || closest(a, b))
+  out.recent.sort(closest); out.older.sort(newest)
   return out
 }

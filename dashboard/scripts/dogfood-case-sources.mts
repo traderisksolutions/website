@@ -81,7 +81,7 @@ async function clean(): Promise<void> {
   await del(`work_item_thread_excluded?thread_id=${list(THREADS)}`)
   await del(`work_item_threads?thread_id=${list(THREADS)}`)
   await del(`work_items?id=${list(cases)}`)
-  for (const t of ['thread_insurers', 'email_thread_aliases', 'email_attachments', 'email_participants', 'email_messages']) await del(`${t}?thread_id=${list(THREADS)}`)
+  for (const t of ['thread_vectors', 'thread_insurers', 'email_thread_aliases', 'email_attachments', 'email_participants', 'email_messages']) await del(`${t}?thread_id=${list(THREADS)}`)
   await del(`email_threads?id=${list(THREADS)}`)
   await del(`policies?id=eq.${POLICY}`)
   await del(`companies?id=${list(COMPANIES)}`)
@@ -106,6 +106,7 @@ async function leftovers(): Promise<Record<string, number>> {
     work_item_events: await count(`work_item_events?work_item_id=${list(cases)}&select=id`),
     work_item_notes: await count(`work_item_notes?work_item_id=${list(cases)}&select=id`),
     work_item_reads: await count(`work_item_reads?work_item_id=${list(cases)}&select=message_id`),
+    thread_vectors: await count(`thread_vectors?thread_id=${list(THREADS)}&select=thread_id`),
     company_ledger: await count(`company_ledger?or=(company_id.${list(COMPANIES)},group_id.${list(COMPANIES)})&select=id`),
   }
   return Object.fromEntries(Object.entries(out).filter(([, n]) => n > 0))
@@ -189,13 +190,17 @@ async function walkStores(): Promise<void> {
   ok('second run changes nothing', again.labelled === 7 && again.changed === 0, again)
 
   console.log('\nProposals for the renewal case')
+  // Vectors by hand (no model): the renewal, insurer and private threads point one way, the pantry another, the movement between them.
+  const axis = (x: number, y: number) => `[${[x, y, ...Array(382).fill(0)].join(',')}]`
+  const vector = (id: string, x: number, y: number): Row => ({ thread_id: id, model: 'dogfood', text_hash: `dogfood-${id.slice(-2)}`, embedding: axis(x, y) })
+  await put('thread_vectors', [vector(T.renewal, 1, 0), vector(T.insurer, 1, 0), vector(T.hidden, 1, 0), vector(T.pantry, 0, 1), vector(T.movement, 0.8, 0.6)])
   let s = await loadSources(W1, ME, today)
   ok('nothing picked yet, the private thread counted', s.picked.length === 0 && s.hidden === 1, { picked: s.picked.length, hidden: s.hidden })
   ok('proposed: policy number first (newest first), then subject', s.proposed.map(p => p.id).join() === [T.other_case, T.renewal, T.insurer].join(), s.proposed.map(p => [p.subject, p.reason]))
   ok('reasons: policy_number, policy_number, subject', s.proposed.map(p => p.reason).join() === 'policy_number,policy_number,subject', s.proposed.map(p => p.reason))
   ok('the thread on the claim names that case', s.proposed[0]?.onCase?.id === W2, s.proposed[0]?.onCase)
   ok('insurer thread naming the client is on the insurer side', s.proposed.find(p => p.id === T.insurer)?.side === 'insurer')
-  ok('recent: the two unrelated threads, newest first', s.recent.map(c => c.id).join() === [T.pantry, T.movement].join(), s.recent.map(c => c.subject))
+  ok('recent: the two unrelated threads, newest first (a private thread on the case orders nothing)', s.recent.map(c => c.id).join() === [T.pantry, T.movement].join(), s.recent.map(c => c.subject))
   ok('older than 90 days listed apart', s.older.map(c => c.id).join() === T.old, s.older.map(c => c.subject))
   ok('the private thread is in no list', ![...s.proposed, ...s.recent, ...s.older].some(c => c.id === T.hidden))
 
@@ -222,6 +227,11 @@ async function walkStores(): Promise<void> {
   ok('insurer bucket: TRS asks, the insurer answers with its file', s.buckets.insurer.map(m => m.message_id).join() === [M.ask, M.quote].join() && s.buckets.insurer[1]?.files.join() === 'Quotation_Dogfood_GHS.pdf', s.buckets.insurer.map(m => [m.from, m.by, m.files]))
   ok('no private words in either bucket', ![...s.buckets.client, ...s.buckets.insurer].some(m => m.thread_id === T.hidden))
   ok('picked threads are not proposed again', !s.proposed.length, s.proposed.map(p => p.subject))
+  ok('recent is now ordered by closeness to the picked threads, not by date', s.recent.map(c => c.id).join() === [T.movement, T.pantry].join(), s.recent.map(c => c.subject))
+  const near = await sb<Row[]>('rpc/thread_similarity', { method: 'POST', body: JSON.stringify({ p_reference: [T.renewal, T.insurer], p_candidates: [T.movement, T.pantry, T.old] }) })
+  const sim = new Map(near.map(r => [r.thread_id as string, r.similarity as number]))
+  ok('similarity: 0.8 for the movement, 0 for the pantry, none for a thread with no vector', Math.abs((sim.get(T.movement) ?? -1) - 0.8) < 1e-4 && Math.abs(sim.get(T.pantry) ?? -1) < 1e-4 && !sim.has(T.old), near)
+  ok('no reference threads, no scores', !(await sb<Row[]>('rpc/thread_similarity', { method: 'POST', body: JSON.stringify({ p_reference: [], p_candidates: [T.movement] }) })).length)
 
   console.log('\nExclude, restore, side')
   await excludeThread(W1, T.other_case, ME)

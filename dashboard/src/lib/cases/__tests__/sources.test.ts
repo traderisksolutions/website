@@ -95,6 +95,13 @@ describe('proposeThreads', () => {
   it('never proposes a thread older than 90 days, whatever it matches', () => {
     expect(p.older.map(x => x.id)).toEqual(['old'])
   })
+  it('orders each group by closeness to the case, and keeps the groups', () => {
+    const more = [...candidates, t({ id: 'label2', subject: 'Quotation', label: 'quotation_request', last_message_at: '2026-11-01T00:00:00Z' }), t({ id: 'crane', subject: 'Crane inspection', last_message_at: '2026-11-14T00:00:00Z' })]
+    const s = proposeThreads(c, more, new Set(['picked', 'excluded']), today, new Map([['label2', 0.9], ['label', 0.6], ['policy', 0.2], ['elsewhere', 0.8], ['marine', 0.5]]))
+    expect(s.proposed.map(x => x.id)).toEqual(['policy', 'subject', 'label2', 'label'])
+    expect(s.recent.map(x => x.id)).toEqual(['elsewhere', 'marine', 'crane'])
+    expect(s.older.map(x => x.id)).toEqual(['old'])
+  })
   it('does not match on form words alone', () => {
     expect([...matterWords('RE: Renewal of Group Policy 2027')]).toEqual(['2027'])
     const q = proposeThreads({ ...c, title: 'Renewal quotation request', policy_number: null, case_type: 'other' }, [t({ id: 'a', subject: 'Renewal quotation request for another client' })], new Set(), today)

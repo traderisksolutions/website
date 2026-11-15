@@ -98,6 +98,17 @@ export type CaseSources = {
   buckets: Record<Bucket, Said[]>
 }
 
+/**
+ * How close each candidate is to the threads the viewer sees on the case (`thread_vectors`, made on
+ * a CPU by scripts/embed-threads.mts). Empty when the case has no thread yet or nothing is embedded:
+ * the offer then keeps its newest-first order.
+ */
+async function similarityTo(reference: string[], candidates: string[]): Promise<Map<string, number>> {
+  if (!reference.length || !candidates.length) return new Map()
+  const rows = await sbTry<Row[]>('rpc/thread_similarity', [], { method: 'POST', body: JSON.stringify({ p_reference: reference, p_candidates: candidates }) })
+  return new Map(rows.filter(r => typeof r.similarity === 'number').map(r => [r.thread_id as string, r.similarity as number]))
+}
+
 export async function loadSources(workItemId: string, viewer: string | null, today = todayIso()): Promise<CaseSources> {
   const item = await caseRow(workItemId)
   const dir = await directory()
@@ -130,7 +141,7 @@ export async function loadSources(workItemId: string, viewer: string | null, tod
     side: sideOfThread({ company_id: t.company_id ?? null, companyKind: dir.byId.get(t.company_id)?.kind ?? null, named: client.named.has(t.id) }, item.company_id ?? null),
     onCase: onCase.get(t.id) ?? null,
   }))
-  const offered = proposeThreads({ id: item.id, case_type: item.case_type, title: item.title ?? null, policy_number: item.policy_number ?? null }, candidates, taken, today)
+  const offered = proposeThreads({ id: item.id, case_type: item.case_type, title: item.title ?? null, policy_number: item.policy_number ?? null }, candidates, taken, today, await similarityTo(shown.map(l => l.thread_id as string), candidates.map(t => t.id)))
 
   const newest = (a: { last_message_at: string | null }, b: { last_message_at: string | null }) => String(b.last_message_at ?? '').localeCompare(String(a.last_message_at ?? ''))
   return {
