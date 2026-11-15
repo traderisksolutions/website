@@ -4,7 +4,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-15 — Case agents phase 2: the brief in five parts, a document checklist per line (built, not live)
+## 2026-11-15 — Case agents phase 2: the brief in five parts, a document checklist per line (live, 6cbf02a5)
 
 - **Brief** (`src/lib/cases/brief.ts`, `GET /api/work/:id/brief`): the case's Brief opens on one table of five parts: Communicated, Client wish list, Known risks and success factors, Open questions, Next step. Communicated is read from the emails; the rest from the notes already on the case. An agent's risk or success factor shows only when the words it quotes were written by the client or an insurer. No model is called.
 - **Document checklists** (`src/lib/cases/checklist.ts`, Settings › Document checklists): one list per line of insurance, edited by staff, a draft until a person confirms it. On a renewal or new-quote case each document is Missing, Found, Confirmed or Not needed. Code finds a document by its file name on the case's threads, or by a client wish on the brief; a person confirms, turns the file down, or marks it not needed. A claim has no checklist.
@@ -14,7 +14,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - Tables on the case page (Brief, Notes, Conversation, Sources, Resume) and on Settings › Document checklists scroll inside their own frame on a phone and a tablet; the page no longer scrolls sideways (the frame was not positioned, so a hidden column header widened the page).
 - Behaviours CSE-014 (rewritten), CSE-019 to CSE-021. Journeys `case-sources.spec.ts` (9). Tests `brief.test.ts` (10), `checklist.test.ts` (11). Dogfood 154 store checks and 90 route checks on production.
 
-## 2026-11-15 — Today › Mail loads a page at a time (built, not live)
+## 2026-11-15 — Today › Mail loads a page at a time (live, 6cbf02a5)
 
 - **One database call** (`rpc/today_mail`, migration `20261115_today_mail.sql`, applied): visibility, relevance, the label filter, the count per relevance and the newest rows are computed in the database. The route no longer reads every thread and its mailboxes.
 - **Screen**: the newest 200 rows load first; "Show N more" adds 200. A change of relevance tab or label asks again.

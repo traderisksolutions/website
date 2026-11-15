@@ -4,7 +4,7 @@ Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read
 
 Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screens live on production (migration applied). The five-tier label rules below are live (7bb57340) and all 2,754 threads were relabelled by them the same day: 747 labels changed, none set by a person.
 
-Built the same day and not yet live: the brief in five parts with a document checklist per line (phase 2, below), and Today › Mail loading a page at a time. Their two migrations are applied to production and are additive. The nightly job that embeds new threads is running.
+Live the same day (6cbf02a5): the brief in five parts with a document checklist per line (phase 2, below), and Today › Mail loading a page at a time. Their two migrations are applied to production and are additive. The nightly job that embeds new threads is running.
 
 ## Rules
 
