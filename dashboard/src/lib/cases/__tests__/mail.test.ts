@@ -13,7 +13,7 @@ describe('labelled', () => {
   })
   it('reads the subject for a thread nobody labelled', () => {
     expect(labelled({ subject: 'RE: Request for quotation', label: null })).toEqual({ label: 'quotation_request', set_by: { kind: 'rule', basis: 'subject: quotation' } })
-    expect(labelled({ subject: 'Lunch', label: 'not-a-label' })).toEqual({ label: 'other', set_by: { kind: 'rule', basis: 'no rule matched' } })
+    expect(labelled({ subject: 'Lunch', label: 'not-a-label' })).toEqual({ label: 'other', set_by: { kind: 'rule', basis: 'not casework: lunch' } })
   })
 })
 

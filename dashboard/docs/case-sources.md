@@ -2,7 +2,7 @@
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
-Status, 15 Nov 2026: data model, rules, stores and routes live on production (migration applied, 2,754 threads labelled by rule). Screens built to the approved journey v2, not deployed.
+Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screens live on production (bcd54e2b; migration applied, 2,754 threads labelled by rule). The five-tier label rules below are built and not deployed; stored labels change only when `scripts/label-backfill.mts --write` runs after the deploy.
 
 ## Rules
 
@@ -30,7 +30,33 @@ Migration `supabase/migrations/20261115_case_sources.sql` (additive; safe to run
 
 `quotation_request`, `quote_received`, `renewal`, `claim`, `member_movement`, `endorsement`, `document`, `payment`, `other`.
 
-`labelOf` reads the subject, first rule first: claim, endorsement, member movement, payment, an insurer's quotation file (quote received), renewal, quotation request, document. A cover's own name is not a claim ("Work Injury Compensation", "Group Hospitalisation & Surgical"); nor is a claims experience report. The rule runs when mail arrives (`depositMessages`) and can be re-run over any threads (`labelThreadsByRule`); it never overwrites a person's label, and keeps its own answer beside it in `label_rule`.
+`labelOf` reads five things in order; the first rule that matches wins and its basis is stored in `label_basis`.
+
+| Tier | What is read | Result |
+| --- | --- | --- |
+| 1 | The subject | Claim, endorsement, member movement, payment, an insurer's quotation file (quote received), renewal, quotation request, document. An automatic reply, a recall, a maintenance notice or an announcement is Other. |
+| 2 | A subject that is not casework (circular, webinar, invitation, booking, meeting, training, survey, password) or a thread only automated senders wrote | Other; nothing below is read. |
+| 3 | The first email's own words (`ownText`, first 600 characters, read for the label and never stored) | Claim, endorsement, member movement, payment, a request for terms (quotation request), renewal, quotation, document. From an insurer the words must be the point of the email ("renewal notice", "pleased to quote"), because its footers say "renewal" and "quotation". |
+| 4 | The file names on the thread | A medical or police report is a claim; a proposal form, ACRA profile or financial statement from a client or TRS is a quotation request; an invoice, debit note or payment advice is a payment; a name list is a member movement. A signature picture is not a file. |
+| 5 | A cover named in the subject of a thread no insurer started | Quotation request. |
+
+A cover's own name is not a claim ("Work Injury Compensation", "Group Hospitalisation & Surgical"); nor is a claims experience report. A request to an insurer for terms is a quotation request even when it names the expiring policy, because a quotation request is offered to renewal and new-quote cases alike. The rule runs when mail arrives (`depositMessages`) and can be re-run over any threads (`labelThreadsByRule`, `scripts/label-backfill.mts`); it never overwrites a person's label, and keeps its own answer beside it in `label_rule`.
+
+Measured offline on the 2,754 threads of 15 Nov 2026 (no model):
+
+| Label | Subject only | Five tiers |
+| --- | --- | --- |
+| Quotation request | 116 | 461 |
+| Quote received | 83 | 92 |
+| Renewal | 230 | 272 |
+| Claim | 308 | 402 |
+| Member movement | 62 | 119 |
+| Endorsement | 11 | 54 |
+| Document | 222 | 104 |
+| Payment | 165 | 265 |
+| Other | 1,557 | 985 |
+
+Of the 985 left on Other, 449 are held back as not casework and 523 match no rule. Known weak spots from reading samples: a vendor's own quotation or invoice reads as TRS casework; a first email that mentions a renewal in passing (a claims history, a list of policies) reads as renewal.
 
 ## Relevance (`src/lib/cases/relevance.ts`)
 

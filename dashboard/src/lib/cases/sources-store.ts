@@ -15,6 +15,7 @@ import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { partyOf } from '@/lib/admin/k/shape'
 import { visibleThreadIds, threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { ownText } from '@/lib/followups/rules'
 import { labelOf, isLabel, type Label, type LabelMessage } from './labels'
 import { relevanceOf, renewalSeason, RELEVANCE, type Relevance, type Season } from './relevance'
 import { buildBuckets, proposeThreads, sideOfThread, isSide, type Bucket, type Candidate, type Proposal, type Said, type Side, type SourceMessage } from './sources'
@@ -262,7 +263,7 @@ export async function setLabel(threadId: string, label: Label, actor: string): P
 }
 
 /**
- * Stores the rule's label for these threads from their subject, senders and file names. A thread a
+ * Stores the rule's label for these threads from their subject, senders, first email and file names. A thread a
  * person labelled keeps that label; only label_rule and label_basis follow the rule there.
  */
 export async function labelThreadsByRule(threadIds: readonly string[]): Promise<{ labelled: number; kept: number; changed: number }> {
@@ -278,10 +279,17 @@ export async function labelThreadsByRule(threadIds: readonly string[]): Promise<
   const names = new Map<string, string[]>()
   for (const f of files) if (f.filename) names.set(f.message_id, [...(names.get(f.message_id) ?? []), f.filename])
   const byThread = new Map<string, LabelMessage[]>()
-  for (const m of senders) byThread.set(m.thread_id, [...(byThread.get(m.thread_id) ?? []), { party: partyOf(m.from_address, dir.domainKind), attachments: names.get(m.id) ?? [] }])
+  const first = new Map<string, string>()
+  for (const m of senders) {
+    if (!first.has(m.thread_id)) first.set(m.thread_id, m.id)
+    byThread.set(m.thread_id, [...(byThread.get(m.thread_id) ?? []), { party: partyOf(m.from_address, dir.domainKind), attachments: names.get(m.id) ?? [] }])
+  }
+  // The first email's own words: read only for the label, never stored.
+  const bodies = await inChunks(Array.from(first.values()), 15, c => sbTry<Row[]>(`email_messages?id=in.(${c.join(',')})&select=id,body_text`, []))
+  const opening = new Map(bodies.map(b => [b.id as string, ownText(b.body_text)]))
   const now = new Date().toISOString()
   for (const t of threads) {
-    const { label, basis } = labelOf({ subject: t.subject, messages: byThread.get(t.id) ?? [] })
+    const { label, basis } = labelOf({ subject: t.subject, messages: byThread.get(t.id) ?? [], opening: opening.get(first.get(t.id) ?? '') })
     const byPerson = !!t.label_by && t.label_by !== 'rule'
     if (byPerson) { out.kept++; if (t.label_rule !== label) await sbTry(`email_threads?id=eq.${enc(t.id)}`, null, { method: 'PATCH', headers: quiet, body: JSON.stringify({ label_rule: label, label_basis: basis }) }); continue }
     if (t.label === label && t.label_rule === label) { out.labelled++; continue }
