@@ -4,12 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-15 — Labels: five tiers instead of the subject alone (not deployed)
+## 2026-11-15 — Labels: five tiers instead of the subject alone (live, 7bb57340)
 
 - **Rule** (`src/lib/cases/labels.ts`): after the subject, the label rule reads a not-casework hold, the first email's own words, the file names, and a cover named in the subject. An insurer's first email must make renewal or quotation its point. No model, nothing paid.
 - **Ingest** (`labelThreadsByRule`): passes the first email's own text (`ownText`) to the rule; the text is read for the label and not stored.
 - Measured offline on 2,754 threads: Other 1,557 to 985 (56.5% to 35.8%); quotation request 116 to 461, claim 308 to 402, payment 165 to 265, member movement 62 to 119, endorsement 11 to 54, renewal 230 to 272, document 222 to 104. 747 stored rule labels would change; no label is set by a person today.
-- Stored labels change only when `scripts/label-backfill.mts --write` runs, after the deploy (mail arriving before it is labelled by the deployed rule).
+- Backfill run after the deploy (`scripts/label-backfill.mts --write`): 2,754 threads relabelled, 747 changed, 0 person's labels to keep. The stored counts equal the offline measure for every thread.
 - Behaviour CSE-018. Tests `labels.test.ts` (16).
 
 ## 2026-11-15 — Case sources: the screens (live, bcd54e2b)

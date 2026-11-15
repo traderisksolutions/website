@@ -2,7 +2,7 @@
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
-Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screens live on production (bcd54e2b; migration applied, 2,754 threads labelled by rule). The five-tier label rules below are built and not deployed; stored labels change only when `scripts/label-backfill.mts --write` runs after the deploy.
+Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screens live on production (migration applied). The five-tier label rules below are live (7bb57340) and all 2,754 threads were relabelled by them the same day: 747 labels changed, none set by a person.
 
 ## Rules
 
