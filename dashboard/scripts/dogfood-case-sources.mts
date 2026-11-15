@@ -132,7 +132,7 @@ async function seed(): Promise<void> {
     thread(T.other_case, CLIENT, 'GHS-778899 renewal timeline', 1),
     thread(T.pantry, CLIENT, 'Office pantry snacks', 8),
   ])
-  await put('thread_insurers', [{ thread_id: T.insurer, insurer_company_id: INSURER, client_company_id: CLIENT, via: 'dogfood' }])
+  await put('thread_insurers', [{ thread_id: T.insurer, insurer_company_id: INSURER, client_company_id: CLIENT, via: 'sender_domain' }])
   await put('email_thread_aliases', [{ mailbox: COLLEAGUE, gmail_thread_id: 'dogfood-25', thread_id: T.hidden }])
   await put('email_messages', [
     message(M.client, T.renewal, 'inbound', `HR <${HR}>`, 'Renewal of Group Hospital & Surgical GHS-778899', 'Please keep the same panel of clinics for the renewal. Our budget is capped at last year\'s premium.', 6),
