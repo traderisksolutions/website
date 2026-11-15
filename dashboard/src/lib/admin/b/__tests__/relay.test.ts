@@ -129,6 +129,15 @@ describe('composition', () => {
     const r = composeRelay('relay_quote', { ...base, terms: extractQuoteTerms('Premium S$1,000. Valid for 14 days.'), files: ['Q.pdf'] })
     expect(r.body).toContain('Premium: S$1,000'); expect(r.body).toContain('Valid: 14 days'); expect(r.body).not.toContain('Excess'); expect(r.subject).toBe('Re: WICA renewal')
   })
+  it('a change and an answer go to the insurer in the client’s own words', () => {
+    const original = { from: 'mei@acme.example', sent_at: '2026-11-07', subject: 'WICA renewal', text: 'Please requote with 12 staff instead of 10.' }
+    const c = composeRelay('forward_change', { ...base, original, files: ['Wages v2.xlsx'] })
+    expect(c.subject).toBe('Re: WICA renewal'); expect(c.body).toContain('has revised their request'); expect(c.body).toContain('the revised documents are attached')
+    expect(c.body).toContain('Please requote with 12 staff instead of 10.'); expect(c.body).toContain('Attached: Wages v2.xlsx.'); expect(c.body).toContain('your revised terms')
+    const a = composeRelay('forward_answer', { ...base, original: { ...original, text: '1. Yes.\n2. No claims in three years.' } })
+    expect(a.body).toContain('reply from our client Acme Pte Ltd to your questions'); expect(a.body).toContain('2. No claims in three years.'); expect(a.body).not.toContain('Attached:')
+    expect(PARTY_OF.forward_change).toBe('insurer'); expect(CLASS_OF.forward_answer).toBe('forward')
+  })
   it('a request for information lists exactly the missing items', () => {
     const r = composeRelay('request_info', { ...base, missing: ['Headcount and annual wages by occupation', 'Claims history for the last 3 years'] })
     expect(r.body).toContain('- Headcount and annual wages by occupation\n- Claims history for the last 3 years')

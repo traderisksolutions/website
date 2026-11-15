@@ -1,8 +1,9 @@
 /**
- * Case sources, conversation, brief and resume point (docs/case-sources.md), and the labelled
- * mail lists that feed them. Read-only: the journeys open, tick and cancel; they never add a
- * thread, save a note or start a read (a read is a model call, started only by a person).
- * Guards TOD-024, CLI-033, CSE-011 to CSE-014, CSE-019 to CSE-021.
+ * Case sources, conversation, rounds, brief and resume point (docs/case-sources.md), and the
+ * labelled mail lists that feed them. Read-only: the journeys open, tick and cancel; they never
+ * add a thread, save a note, draft a step, set an email's type or start a read (a read is a
+ * model call, started only by a person).
+ * Guards TOD-024, CLI-033, CSE-011 to CSE-014, CSE-019 to CSE-022.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { dbRows, openClean } from './helpers'
@@ -59,7 +60,7 @@ test('CSE-011 a case opens on Overview with the resume point and the agents', as
   await openClean(page, `/today/${id}`)
   const sections = page.getByRole('radiogroup', { name: 'Case sections' })
   await expect(sections).toBeVisible({ timeout: 30_000 })
-  expect(await names(sections)).toEqual(['Overview', 'Sources', 'Conversation', 'Brief'])
+  expect(await names(sections)).toEqual(['Overview', 'Sources', 'Conversation', 'Rounds', 'Brief'])
   await expect(sections.getByRole('radio', { name: 'Overview' })).toHaveAttribute('aria-checked', 'true')
   const resume = page.getByRole('table', { name: 'Resume point' })
   await expect(resume).toBeVisible({ timeout: 30_000 })
@@ -111,6 +112,27 @@ test('CSE-013 Conversation shows the client’s side above the insurer’s, one 
   for (let i = 0; i < await tables.count(); i++) await expect(tables.nth(i).locator('thead th')).toHaveText(['Date', 'From', 'Message', 'Files'])
   await expect(panel.getByRole('button', { name: /^(Read \d+ new emails?|No new emails)$/ })).toBeVisible()
   // The draft is not on this section.
+  await expect(page.getByRole('region', { name: 'Draft' })).toHaveCount(0)
+})
+
+test('CSE-022 Rounds lists the next steps, then one round: its insurers and every email with its type', async ({ page }) => {
+  const id = await openCase(page)
+  test.skip(!id, 'no open case with a thread')
+  await openClean(page, `/today/${id}?section=rounds`)
+  const panel = page.getByRole('region', { name: 'Rounds' })
+  await expect(panel).toBeVisible({ timeout: 30_000 })
+  await expect(panel.getByRole('heading', { level: 2 })).toHaveText([/^Next steps · \d+$/, /^Round \d+ of \d+/])
+  const steps = panel.getByRole('table', { name: 'Next steps' })
+  if (await steps.count()) await expect(steps.locator('thead th')).toHaveText(['Step', 'Since', 'Drafted by', 'Action'])
+  else await expect(panel.getByText('Nothing is waiting to be passed on.')).toBeVisible()
+  const emails = panel.getByRole('table', { name: /^Round \d+ emails$/ })
+  await expect(emails.locator('thead th')).toHaveText(['Date', 'From', 'Insurer', 'Type', 'Message', 'Files'])
+  // Every email carries the rule's reading: a list a person can change, or plain text in a colleague's mailbox.
+  const rows = emails.locator('tbody tr')
+  expect(await rows.count()).toBeGreaterThan(0)
+  const first = rows.first()
+  await expect(first.getByRole('combobox', { name: 'Email type' }).or(first.getByText('In a colleague\'s mailbox'))).toBeVisible()
+  // A step is drafted only on a person's click; the draft is not on this section.
   await expect(page.getByRole('region', { name: 'Draft' })).toHaveCount(0)
 })
 

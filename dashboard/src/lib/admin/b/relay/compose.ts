@@ -7,7 +7,7 @@ import { replySubject } from '../drafts'
 import { termsRows, type QuoteTerms } from './terms'
 
 export type RelayKind =
-  | 'forward_quote_request' | 'forward_documents' | 'forward_instruction' | 'forward_question'
+  | 'forward_quote_request' | 'forward_documents' | 'forward_instruction' | 'forward_question' | 'forward_change' | 'forward_answer'
   | 'request_info' | 'request_documents' | 'answer_question' | 'document_send' | 'status_update' | 'ack_client'
   | 'relay_quote' | 'relay_decline' | 'relay_documents' | 'relay_decision' | 'relay_question' | 'ack_insurer'
 
@@ -15,13 +15,13 @@ export type RelayKind =
 export type DraftClass = 'ack' | 'forward' | 'relay' | 'answer' | 'request' | 'status'
 
 export const CLASS_OF: Record<RelayKind, DraftClass> = {
-  forward_quote_request: 'forward', forward_documents: 'forward', forward_instruction: 'forward', forward_question: 'forward',
+  forward_quote_request: 'forward', forward_documents: 'forward', forward_instruction: 'forward', forward_question: 'forward', forward_change: 'forward', forward_answer: 'forward',
   request_info: 'request', request_documents: 'request', answer_question: 'answer', document_send: 'relay', status_update: 'status', ack_client: 'ack',
   relay_quote: 'relay', relay_decline: 'relay', relay_documents: 'relay', relay_decision: 'relay', relay_question: 'relay', ack_insurer: 'ack',
 }
 
 export const PARTY_OF: Record<RelayKind, 'client' | 'insurer'> = {
-  forward_quote_request: 'insurer', forward_documents: 'insurer', forward_instruction: 'insurer', forward_question: 'insurer', ack_insurer: 'insurer',
+  forward_quote_request: 'insurer', forward_documents: 'insurer', forward_instruction: 'insurer', forward_question: 'insurer', forward_change: 'insurer', forward_answer: 'insurer', ack_insurer: 'insurer',
   request_info: 'client', request_documents: 'client', answer_question: 'client', document_send: 'client', status_update: 'client', ack_client: 'client',
   relay_quote: 'client', relay_decline: 'client', relay_documents: 'client', relay_decision: 'client', relay_question: 'client',
 }
@@ -29,7 +29,7 @@ export const PARTY_OF: Record<RelayKind, 'client' | 'insurer'> = {
 /** The draft that goes out with this one so the other side hears too. */
 export function relayPairFor(kind: RelayKind): RelayKind | null {
   switch (kind) {
-    case 'forward_quote_request': case 'forward_documents': case 'forward_instruction': case 'forward_question': return 'ack_client'
+    case 'forward_quote_request': case 'forward_documents': case 'forward_instruction': case 'forward_question': case 'forward_change': case 'forward_answer': return 'ack_client'
     case 'relay_quote': case 'relay_decision': return 'ack_insurer'
     default: return null
   }
@@ -132,6 +132,17 @@ export function composeRelay(kind: RelayKind, f: RelayFacts): { subject: string;
       return {
         subject: replySubject(f.threadSubject, `${client} | ${f.title}: query`),
         body: `${hi}\n\nPlease see below ${hasNumbering(f.original?.text) ? `our client ${client}'s answers to your questions, numbered as asked,` : `the query from our client ${client}`} on ${matterOf(f)}${refAfter(f)}:\n\n${quoteBlock(f.original?.text)}\n\n${hasNumbering(f.original?.text) ? 'Please let us know if anything further is needed.' : 'Please let us have your reply so that we can revert to the client.'}\n\n${SIGN}`,
+      }
+    case 'forward_change':
+      // The client changed what is being quoted: the insurer re-quotes on the client's own words.
+      return {
+        subject: replySubject(f.threadSubject, `${client} | ${f.title}: revised request`),
+        body: `${hi}\n\nOur client ${client} has revised their request on ${matterOf(f)}${refAfter(f)}. Their words are below${(f.files ?? []).length ? ' and the revised documents are attached' : ''}:\n\n${quoteBlock(f.original?.text)}\n${attached(f.files)}\nPlease let us have your revised terms on this basis, or let us know what further information you need.\n\n${SIGN}`,
+      }
+    case 'forward_answer':
+      return {
+        subject: replySubject(f.threadSubject, `${client} | ${f.title}: client's reply`),
+        body: `${hi}\n\nPlease see below the reply from our client ${client} to your questions on ${matterOf(f)}${refAfter(f)}${hasNumbering(f.original?.text) ? ', numbered as asked' : ''}${(f.files ?? []).length ? '; the documents are attached' : ''}:\n\n${quoteBlock(f.original?.text)}\n${attached(f.files)}\nPlease let us know if anything further is needed, or let us have your terms.\n\n${SIGN}`,
       }
     case 'request_info': {
       const items = (f.missing ?? []).map(i => `- ${i}`).join('\n')

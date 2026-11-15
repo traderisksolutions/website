@@ -1,6 +1,6 @@
 /**
- * Dogfood of case sources, thread labels, relevance, case memory, the brief and the document
- * checklists against a real database:
+ * Dogfood of case sources, thread labels, relevance, case memory, the brief, the document
+ * checklists and the rounds against a real database:
  * every query, every write and every route, on test records that are removed at the end.
  *
  *   npx tsx --env-file=.env.local --tsconfig tsconfig.json scripts/dogfood-case-sources.mts lib
@@ -13,8 +13,10 @@
  *       against the same answer worked out in code for every mailbox, an agent's turn with
  *       evidence, the resume point, a person's note, the brief in five parts, a document
  *       checklist on a line that has none (started, filled, confirmed, removed), a person's calls
- *       on its documents, the case worker's guard and the ingest hook.
- * http  seeds the same records and walks the eight routes with a signed-in session (the dev
+ *       on its documents, the rounds (every email as one move, the insurer's chain, a next
+ *       step drafted once from its template, a person's call on an email), the case worker's
+ *       guard and the ingest hook.
+ * http  seeds the same records and walks the nine routes with a signed-in session (the dev
  *       server must run on the same database: API_GATE_MODE=log-only npx next dev -p 3117).
  * clean removes the test records, for a run that was cut short.
  *
@@ -32,6 +34,8 @@ import { addPersonNote, loadCaseState, recordTurn, setNoteStatus } from '@/lib/c
 import { mailByLabel } from '@/lib/cases/mail-store'
 import { addItem, addList, confirmList, editItem, listChecklists, loadBrief, setCaseLine, setCheck, type CaseBriefView } from '@/lib/cases/brief-store'
 import { checklistLine } from '@/lib/cases/checklist'
+import { loadRounds, setCall } from '@/lib/cases/rounds-store'
+import { draftStep } from '@/lib/cases/rounds-draft'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import { labelled, mailView, type MailRelevance, type MailRow } from '@/lib/cases/mail'
 import { RELEVANCE, relevanceOf } from '@/lib/cases/relevance'
@@ -51,7 +55,7 @@ const u = (n: number) => `d09f00d0-0000-4000-8000-${String(n).padStart(12, '0')}
 const CLIENT = u(1), INSURER = u(2), POLICY = u(5)
 const W1 = u(11), W2 = u(12)
 const T = { renewal: u(21), insurer: u(22), movement: u(23), old: u(24), hidden: u(25), other_case: u(26), pantry: u(27), fresh: u(28) }
-const M = { client: u(31), trs: u(32), ask: u(33), quote: u(34), movement: u(35), old: u(36), hidden: u(37), timeline: u(38), pantry: u(39), later: u(40), fresh: u(41), terms: u(42) }
+const M = { client: u(31), trs: u(32), ask: u(33), quote: u(34), movement: u(35), old: u(36), hidden: u(37), timeline: u(38), pantry: u(39), later: u(40), fresh: u(41), terms: u(42), reask: u(43) }
 const COMPANIES = [CLIENT, INSURER], THREADS = Object.values(T), CASES = [W1, W2]
 const ME = 'dogfood.staff@trade-risksol.com', COLLEAGUE = 'dogfood.colleague@trade-risksol.com'
 const HR = 'hr@dogfood-client.invalid', UW = 'uw@dogfood-insurer.invalid'
@@ -127,6 +131,10 @@ async function clean(): Promise<void> {
   const del = (path: string) => sb(path, { method: 'DELETE', headers: quiet })
   await del(`company_ledger?company_id=${list(COMPANIES)}`)
   await del(`company_ledger?group_id=${list(COMPANIES)}`)
+  // A step's unsent email, and the contact row made for its recipient.
+  await sb(`work_items?id=${list(cases)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ draft_id: null }) })
+  await del(`ai_drafts?work_item_id=${list(cases)}`)
+  await del(`contacts?company_id=${list(COMPANIES)}`)
   for (const t of ['work_item_notes', 'work_item_reads', 'work_item_thread_excluded', 'work_item_events', 'work_item_threads']) await del(`${t}?work_item_id=${list(cases)}`)
   await del(`work_item_thread_excluded?thread_id=${list(THREADS)}`)
   await del(`work_item_threads?thread_id=${list(THREADS)}`)
@@ -158,6 +166,8 @@ async function leftovers(): Promise<Record<string, number>> {
     work_item_events: await count(`work_item_events?work_item_id=${list(cases)}&select=id`),
     work_item_notes: await count(`work_item_notes?work_item_id=${list(cases)}&select=id`),
     work_item_reads: await count(`work_item_reads?work_item_id=${list(cases)}&select=message_id`),
+    ai_drafts: await count(`ai_drafts?work_item_id=${list(cases)}&select=id`),
+    contacts: await count(`contacts?or=(company_id.${list(COMPANIES)},email.${list([HR, UW])})&select=id`),
     thread_vectors: await count(`thread_vectors?thread_id=${list(THREADS)}&select=thread_id`),
     company_ledger: await count(`company_ledger?or=(company_id.${list(COMPANIES)},group_id.${list(COMPANIES)})&select=id`),
     line_checklists: await count(`line_checklists?updated_by=eq.${enc(ME)}&select=line`),
@@ -539,6 +549,63 @@ async function walkStores(): Promise<void> {
   b = await loadBrief(W1, ME)
   ok('clearing the choice returns the case to its title\'s line', b.line?.by === 'title' && b.checklist?.line === 'employee_benefits' && (b.checklist?.total ?? 0) > 0, b.line)
 
+  console.log('\nRounds')
+  const UNDERWRITER = 'Dogfood Insurer (test)'
+  const CHANGE = `change:${M.later}:${UNDERWRITER}`, TERMS = `quote:${M.quote}:${UNDERWRITER}`
+  let rv = await loadRounds(W1, ME)
+  const moveOf = (id: string) => rv.rounds.flatMap(x => x.moves).find(m => m.message_id === id)
+  const draftRow = async (id: string) => (await sb<Row[]>(`ai_drafts?id=eq.${id}&select=id,to_email,cc,subject,body,status,thread_id,party,pair_id,draft_class,generated_by,attachments,context_used`))[0]
+  const drafts = async () => sb<Row[]>(`ai_drafts?work_item_id=eq.${W1}&select=id,pair_id&order=created_at.asc`)
+  ok('every email is one move: the client asks, TRS asks the insurer, the insurer quotes', [M.client, M.trs, M.ask, M.quote].map(id => moveOf(id)?.move).join() === 'ask,note,request,quote' && moveOf(M.quote)?.insurer === UNDERWRITER, rv.rounds[0]?.moves.map(m => [m.by, m.move, m.insurer]))
+  ok('round 1: the insurer was asked and has replied with terms', rv.rounds[0]?.chains.length === 1 && rv.rounds[0].chains[0].insurer === UNDERWRITER && rv.rounds[0].chains[0].state === 'replied' && !!rv.rounds[0].chains[0].asked_at && !rv.rounds[0].chains[0].sent_at, rv.rounds[0]?.chains)
+  ok('the client\'s change after the insurer was asked opens round 2', rv.rounds.length === 2 && rv.rounds[1].moves.map(m => m.message_id).join() === M.later && moveOf(M.later)?.move === 'change' && rv.rounds[1].chains[0]?.state === 'to_ask', rv.rounds[1])
+  ok('a colleague\'s email is a move with no words', moveOf(M.hidden)?.private === true && moveOf(M.hidden)?.text === '' && !moveOf(M.hidden)?.files.length, moveOf(M.hidden))
+  ok('two next steps: the change to the insurer first, then the terms to the client', rv.steps.map(x => x.id).join('|') === [CHANGE, TERMS].join('|') && rv.steps.map(x => [x.act, x.to, x.agent, x.draft].join()).join('|') === 'draft,insurer,Insurer agent,forward_change|draft,client,Client agent,relay_quote', rv.steps.map(x => [x.id, x.act, x.to, x.agent, x.draft]))
+  ok('no step has an unsent email yet', !Object.keys(rv.drafted).length && rv.moves.insurer.some(x => x.move === 'quote') && rv.names.move.change === 'Change', rv.drafted)
+
+  ok('a step that is not waiting is 404', (await refusal(() => draftStep(W1, `quote:${M.client}:`, ME))).status === 404)
+  ok('an unknown case is 404', (await refusal(() => draftStep(NOWHERE, CHANGE, ME))).status === 404 && (await refusal(() => loadRounds(NOWHERE, ME))).status === 404)
+  const stepOne = await draftStep(W1, CHANGE, ME)
+  let dr = await draftRow(stepOne.draft_id)
+  ok('the change is drafted to the underwriter, on the insurer\'s thread', stepOne.to === UW && !stepOne.existing && dr.to_email === UW && !dr.cc && dr.thread_id === T.insurer && dr.status === 'pending' && dr.party === 'insurer' && dr.draft_class === 'forward', { to: dr.to_email, cc: dr.cc, thread: dr.thread_id, party: dr.party, class: dr.draft_class })
+  ok('in the client\'s own words, from the template', dr.generated_by === 'template' && /has revised their request/.test(dr.body) && /please add dental to the quotation/.test(dr.body) && /revised terms/.test(dr.body) && /^Re: /i.test(dr.subject), { subject: dr.subject, body: dr.body })
+  ok('it records the insurer agent, the step and the email it rests on', dr.context_used?.agent === 'insurer_agent' && dr.context_used?.step === CHANGE && dr.context_used?.kind === 'forward_change' && dr.context_used?.message_id === M.later && String(dr.context_used?.basis ?? '').includes(ME), dr.context_used)
+  ok('it is the case\'s unsent email, as the case had none', (await sb<Row[]>(`work_items?id=eq.${W1}&select=draft_id`))[0]?.draft_id === stepOne.draft_id)
+  const stepAgain = await draftStep(W1, CHANGE, ME)
+  ok('the same step again writes no second email', stepAgain.existing && stepAgain.draft_id === stepOne.draft_id && stepAgain.to === UW && (await drafts()).length === 1, stepAgain)
+
+  const stepTwo = await draftStep(W1, TERMS, ME)
+  dr = await draftRow(stepTwo.draft_id)
+  ok('the terms are drafted to the client\'s HR, on the client\'s thread, with the insurer\'s file', stepTwo.to === HR && dr.to_email === HR && !dr.cc && dr.thread_id === T.renewal && dr.party === 'client' && dr.attachments?.length === 1 && dr.attachments[0].filename === 'Quotation_Dogfood_GHS.pdf' && dr.context_used?.agent === 'client_agent' && dr.context_used?.step === TERMS, { to: dr.to_email, thread: dr.thread_id, files: dr.attachments, context: dr.context_used })
+  const pair = await drafts()
+  ok('it sits beside the first: one pair, the first still the case\'s own', pair.length === 2 && !!pair[0].pair_id && pair[0].pair_id === pair[1].pair_id && (await sb<Row[]>(`work_items?id=eq.${W1}&select=draft_id`))[0]?.draft_id === stepOne.draft_id, pair)
+  rv = await loadRounds(W1, ME)
+  ok('each step shows its unsent email', rv.drafted[CHANGE] === stepOne.draft_id && rv.drafted[TERMS] === stepTwo.draft_id, rv.drafted)
+  ok('no private words reach a draft', !(await sb<Row[]>(`ai_drafts?work_item_id=eq.${W1}&select=body`)).some(x => /5% increase/.test(x.body)))
+
+  await setCall(W1, M.quote, { by: 'insurer', move: 'question' }, ME)
+  rv = await loadRounds(W1, ME)
+  ok('a person\'s call replaces the rule\'s reading, which is kept beside it', moveOf(M.quote)?.move === 'question' && moveOf(M.quote)?.rule === 'quote' && moveOf(M.quote)?.set_by === 'person', moveOf(M.quote))
+  ok('the steps follow the call: the insurer\'s question is owed to the client', rv.steps.map(x => x.id).join('|') === [CHANGE, `question:${M.quote}:${UNDERWRITER}`].join('|'), rv.steps.map(x => x.id))
+  await setCall(W1, M.quote, null, ME)
+  rv = await loadRounds(W1, ME)
+  ok('handing the email back restores the rule', moveOf(M.quote)?.move === 'quote' && moveOf(M.quote)?.set_by === 'rule' && rv.steps.map(x => x.id).join('|') === [CHANGE, TERMS].join('|'), moveOf(M.quote))
+  ok('an email that is not on the case is 404', (await refusal(() => setCall(W1, M.movement, { by: 'client', move: 'ask' }, ME))).status === 404)
+  ok('an email in a colleague\'s mailbox is 403', (await refusal(() => setCall(W1, M.hidden, { by: 'client', move: 'ask' }, ME))).status === 403)
+  ok('TRS\'s own email cannot be given to the client, nor an insurer\'s email a client\'s move', (await refusal(() => setCall(W1, M.ask, { by: 'client', move: 'ask' }, ME))).status === 400 && (await refusal(() => setCall(W1, M.quote, { by: 'insurer', move: 'ask' }, ME))).status === 400)
+  const calls2 = (await events(W1)).filter(e => e.kind === 'move')
+  ok('both calls are on the case\'s events, with who made them', calls2.length === 2 && calls2.every(e => e.actor === ME && e.detail?.message_id === M.quote && e.detail?.rule === 'quote') && calls2[0].detail?.note === 'Email set to Insurer: Question' && calls2[1].detail?.note === 'Email handed back to the rule', calls2.map(e => e.detail))
+
+  await put('email_messages', [message(M.reask, T.insurer, 'outbound', ME, 'RE: Quotation for Dogfood Client - Group Hospital & Surgical', 'Our client has asked to add dental. Please requote on that basis and let us have your revised terms.', 0)])
+  await put('email_participants', [person(M.reask, T.insurer, ME, 'from'), person(M.reask, T.insurer, UW, 'to')])
+  rv = await loadRounds(W1, ME)
+  ok('once TRS has written to the insurer the change is no longer owed: round 2 waits on the insurer', rv.rounds[1]?.chains[0]?.state === 'asked' && !rv.steps.some(x => x.id === CHANGE) && rv.steps.some(x => x.id === `waiting::${UNDERWRITER}` && x.act === 'wait'), { chains: rv.rounds[1]?.chains, steps: rv.steps.map(x => x.id) })
+  ok('a step that has moved on is not drafted', (await refusal(() => draftStep(W1, CHANGE, ME))).status === 404)
+  ok('a step that only waits has no email', (await refusal(() => draftStep(W1, `waiting::${UNDERWRITER}`, ME))).status === 400)
+  await sb(`work_items?id=eq.${W1}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: new Date().toISOString() }) })
+  ok('a closed case drafts nothing', (await refusal(() => draftStep(W1, TERMS, ME))).status === 400)
+  await sb(`work_items?id=eq.${W1}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: null }) })
+
   console.log('\nThe case worker\'s guard')
   await pickThread(W2, T.other_case, COLLEAGUE)
   await excludeThread(W2, T.movement, COLLEAGUE)
@@ -747,6 +814,34 @@ async function walkRoutes(base: string): Promise<void> {
   await sb(`work_items?id=eq.${W2}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: new Date().toISOString() }) })
   r = await call('POST', `/api/work/${W2}/read`, {})
   ok('a closed case → 400', r.status === 400 && /closed/.test(r.json?.error ?? ''), r)
+
+  console.log('\nGET/POST /api/work/:id/rounds')
+  const terms = `quote:${M.quote}:Dogfood Insurer (test)`
+  ok('no session → 401', (await call('GET', `/api/work/${W1}/rounds`, undefined, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('POST', `/api/work/${W1}/rounds`, { action: 'draft', step: terms }, outsider)).status === 401)
+  ok('unknown case → 404', (await call('GET', `/api/work/${NOWHERE}/rounds`)).status === 404)
+  ok('the insurer\'s thread joins the case', (await call('POST', `/api/work/${W1}/sources`, { action: 'pick', thread_id: T.insurer })).status === 200)
+  r = await call('GET', `/api/work/${W1}/rounds`)
+  ok('one round: request, terms asked, terms received; the terms are owed to the client', r.status === 200 && r.json?.rounds?.length === 1 && r.json.rounds[0].moves.map((m: Row) => m.move).join() === 'ask,note,request,quote,note' && r.json.rounds[0].chains?.[0]?.state === 'replied' && r.json.steps?.map((x: Row) => x.id).join() === terms && r.json.steps[0].agent === 'Client agent', r.json && { status: r.status, rounds: r.json.rounds?.map((x: Row) => x.moves?.map((m: Row) => m.move)), steps: r.json.steps?.map((x: Row) => x.id), error: r.json.error })
+  ok('the page\'s lists come with it: what an email may be called, by writer', r.json?.moves?.client?.some((x: Row) => x.move === 'change' && x.name === 'Change') && r.json?.moves?.trs?.some((x: Row) => x.move === 'request') && r.json?.names?.state?.replied && r.json?.item?.id === W1 && !Object.keys(r.json?.drafted ?? {}).length, r.json && { moves: r.json.moves, names: r.json.names })
+  ok('no email body leaves the route', !JSON.stringify(r.json).includes('body_text'))
+  ok('unknown action → 400', (await call('POST', `/api/work/${W1}/rounds`, { action: 'burn' })).status === 400)
+  ok('no body → 400', (await call('POST', `/api/work/${W1}/rounds`)).status === 400)
+  ok('draft with no step → 400', (await call('POST', `/api/work/${W1}/rounds`, { action: 'draft' })).status === 400)
+  ok('a step that is not waiting → 404', (await call('POST', `/api/work/${W1}/rounds`, { action: 'draft', step: `quote:${M.client}:` })).status === 404)
+  ok('move with no email → 400', (await call('POST', `/api/work/${W1}/rounds`, { action: 'move', by: 'client', move: 'ask' })).status === 400)
+  ok('a move that is not a move → 400', (await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.quote, by: 'insurer', move: 'haggle' })).status === 400)
+  ok('an insurer\'s email set to a client\'s move → 400', (await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.quote, by: 'insurer', move: 'ask' })).status === 400)
+  ok('an email that is not on the case → 404', (await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.movement, by: 'client', move: 'ask' })).status === 404)
+  r = await call('POST', `/api/work/${W1}/rounds`, { action: 'draft', step: terms })
+  ok('draft → 200 with the email made, to the client\'s HR, and the step now showing it', r.status === 200 && r.json?.made?.to === HR && r.json.made.existing === false && r.json.drafted?.[terms] === r.json.made.draft_id, r.json && { status: r.status, made: r.json.made, drafted: r.json.drafted, error: r.json.error })
+  const madeId = r.json?.made?.draft_id
+  r = await call('POST', `/api/work/${W1}/rounds`, { action: 'draft', step: terms })
+  ok('the same step again → the same email', r.status === 200 && r.json?.made?.existing === true && r.json.made.draft_id === madeId && (await sb<Row[]>(`ai_drafts?work_item_id=eq.${W1}&select=id`)).length === 1, r.json?.made)
+  r = await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.quote, by: 'insurer', move: 'decline' })
+  ok('move → 200, the email reads as the person called it and the step follows', r.status === 200 && r.json?.rounds?.[0]?.moves?.find((m: Row) => m.message_id === M.quote)?.move === 'decline' && r.json.rounds[0].moves.find((m: Row) => m.message_id === M.quote)?.set_by === 'person' && r.json.steps?.[0]?.id === `decline:${M.quote}:Dogfood Insurer (test)`, r.json && { status: r.status, steps: r.json.steps?.map((x: Row) => x.id), error: r.json.error })
+  r = await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.quote, by: null, move: null })
+  ok('handing it back → 200, the rule\'s reading again', r.status === 200 && r.json?.rounds?.[0]?.moves?.find((m: Row) => m.message_id === M.quote)?.move === 'quote' && r.json.steps?.[0]?.id === terms, r.json && { status: r.status, steps: r.json.steps?.map((x: Row) => x.id), error: r.json.error })
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────────────────────

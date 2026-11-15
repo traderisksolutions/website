@@ -1,4 +1,4 @@
-# Case sources, labels, relevance, case memory, the brief and document checklists
+# Case sources, labels, relevance, case memory, the brief, document checklists and rounds
 
 Phase 1 of the case agents plan (management feedback, Nov 2026). The agents read only what a person put on the case, every email thread carries one label, older mail steps back, and what any agent or person learned stays on the case.
 
@@ -145,6 +145,47 @@ Measured on production, 15 Nov 2026 (no model):
 | No line until a person chooses | 88 |
 | On one of the five drafted lists | 85 |
 
+## Rounds (`rounds.ts`, `rounds-store.ts`, `rounds-draft.ts`, `src/lib/crm/party-read.ts`)
+
+Phase 3 of the plan, first part: who is owed what next on a case, worked out from the emails on its picked threads on every read. Nothing is stored but a person's calls. No model is called.
+
+Every email is one move.
+
+| Writer | Moves |
+| --- | --- |
+| Client | Request, Change, Answer, Question, Documents, Instruction, Follow-up, Message |
+| Insurer | Quote, Question, Decline, Reply, Documents, Follow-up, Message |
+| TRS | Sent to insurer, Sent to client, Follow-up, Message |
+
+Who wrote an outside email, in this order: the company its domain is filed under; the sender read (`party-read.ts`); the side of the thread. A thread whose side a person set is not moved by the sender read. TRS's own email goes by who it was written to.
+
+The sender read places the senders the domain map cannot: a personal address, a domain not on file, a business that refers clients.
+
+| Read | Rule |
+| --- | --- |
+| Address | The domain's own name is a company on file. Public mailboxes name no one. |
+| Signature | The block under the closing names a company on file, or carries its web address. |
+| Voice | "our client", "the HR has added" is a referral; "your client", "our proposal", "the insured" is the market. Both or neither reads as nothing. |
+
+The address and the signature name the company; the voice names only the side. One read per sender across their emails on the case: a named company beats a voice. A referral's emails are the client's words, marked with the referral's name; the round's heading names the referral.
+
+Round 1 is the first request. A new round opens when the client changes the request after TRS has written to an insurer in the current round. Every insurer asked so far, and not declined, is owed the change. Inside a round each insurer is one chain: to ask, asked, heard, replied, sent to client, declined.
+
+The next steps are the links not yet made, in the order they block the case.
+
+| Step | To | Drafted by | Template |
+| --- | --- | --- | --- |
+| The client's change, answer, question, documents or instruction, per insurer | Insurer | Insurer agent | `forward_change`, `forward_answer`, `forward_question`, `forward_documents`, `forward_instruction` |
+| An insurer's terms, questions, decline, reply or documents | Client | Client agent | `relay_quote`, `relay_question`, `relay_decline`, `relay_decision`, `relay_documents` |
+| Ask insurers for terms (a renewal or new quote with no insurer written to) | Insurer | none | Opens the thread |
+| Waiting on an insurer, or on the client | none | none | Opens the thread |
+
+A person's call on one email (who wrote it and what it is) replaces the rule's reading for that email and is kept as a case event of kind `move`; the latest call wins and "Rule" hands the email back. TRS's own email stays TRS's.
+
+Draft (`draftStep`) writes one step's email from its template (`src/lib/admin/b/relay/compose.ts`) in the other side's own words, with the files of the email it rests on. It goes to whoever last wrote on that side of the case, else whoever TRS last wrote to there, on that thread. Copied: an insurer's colleagues at the same domain, or everyone on the client's email who is not at an insurer. The draft is the case's unsent email when the case has none, and sits beside it otherwise. It records the agent (`client_agent` or `insurer_agent`), the step and the email it rests on in `ai_drafts.context_used`, so the share sent as written can be counted per agent. The same step twice makes one draft. A person edits and sends it from Overview; nothing sends from Rounds.
+
+Measured on production, 16 Nov 2026 (read-only): 539 open cases, 403 with emails; 18 hold more than one round (the most is 22, weekly member movements); 354 steps to act on across 212 cases, of which 312 draft an email and 42 name no insurer to write to, and 97 steps that wait. TRS wrote to the same side after the email on 44 of the 354, 36 of them among the 42: those cases have no insurer thread attached. Read by hand, 30 sampled steps: 16 exactly right, 25 with the right recipient, 5 wrong; the rules were tightened after the sample and it was not repeated. The sender read placed 108 of the 280 senders the domain map leaves unplaced.
+
 ## Routes
 
 Every route needs a signed-in TRS person; the scheduler has no view of mail.
@@ -158,6 +199,8 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | `POST /api/work/:id/read` | The case reader on this case's threads; answers `{ ok, notes, read }`. Started by a person only. |
 | `GET /api/work/:id/brief` | The brief in five parts, the case's line of insurance and its document checklist. |
 | `POST /api/work/:id/brief` | `{ action: confirm, not_needed, reject or clear, item_id }`: a person's call on one document. `{ action: line, line }`: the case's line (null clears the choice). |
+| `GET /api/work/:id/rounds` | The rounds: every email as one move, each insurer's chain, the next steps and the unsent email already made for a step. No email bodies beyond each email's own words. |
+| `POST /api/work/:id/rounds` | `{ action: draft, step }` writes the step's email and answers the rounds with `made`; `{ action: move, message_id, by, move }` is a person's call on one email (both null hand it back to the rule). |
 | `GET /api/settings/checklists` | Every line's list with its documents, the document types and the staff names. |
 | `POST /api/settings/checklists` | `{ action: list, line }` starts a list; `{ action: item, line, label, found_by, doc_types, words }` adds a document; `{ action: confirm, line }` confirms the list. |
 | `PATCH /api/settings/checklists` | `{ id, label?, found_by?, doc_types?, words?, active? }` edits or retires a document. |
@@ -169,9 +212,11 @@ Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unkno
 
 ## Dogfood
 
-`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 154 checks) and every route (`http <base>`, 90 checks), removes the records and verifies none are left. The checklist checks start a list on a line that has none and remove it; the lists staff keep are read, never written, and compared before and after. It refuses a database that is not local unless `--live` is given. No model is called.
+`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 182 checks) and every route (`http <base>`, 109 checks), removes the records and verifies none are left. The checklist checks start a list on a line that has none and remove it; the lists staff keep are read, never written, and compared before and after. It refuses a database that is not local unless `--live` is given. No model is called.
 
 Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness; 54 of 54 on the routes with Today mail and the read a person starts. With the brief, the checklists and Today mail by page: 154 of 154 on the stores and 90 of 90 on the routes. The stores walk also compares `rpc/today_mail` with the code rules (`mailView`) for every mailbox on file, a person with none, a colleague and the scheduler: 320 views, all equal.
+
+Run of 16 Nov 2026 on production with the rounds (`--live`, test records removed): 182 of 182 on the stores and 109 of 109 on the routes.
 
 Found by the run and fixed: a quotation request for Work Injury Compensation was labelled a claim; a message's sender was counted among its recipients; a repeated note wrote a second event.
 
@@ -184,6 +229,7 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
 | Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side, Add. A thread on another case opens `MoveThreadDialog`. |
 | Case › Conversation | `?section=conversation` (`CaseConversation.tsx`) | Client table above Insurer table: Date, From, Message, Files. |
+| Case › Rounds | `?section=rounds` (`CaseRounds.tsx`) | Next steps (Step, Since, Drafted by, and Draft, Open draft or Open thread). Then one round at a time: its insurers (Insurer, Asked, Replied, Sent to client, State) and its emails (Date, From, Insurer, Type, Message, Files). Type is a list a person can change. |
 | Case › Brief | `?section=brief` (`CaseBrief.tsx`, `CaseBriefTables.tsx`) | Tabs Brief, Notes, Set aside. Brief: the five parts in one table (Part, Item, Who, Date, Source), then on a renewal or new quote the line of insurance and Documents (Document, Status, File, By, Action). Notes: every note with its source; Set aside, Restore, Add note. |
 | Settings › Document checklists | `/settings?section=checklists` (`ChecklistPanel.tsx`) | One table per line: Document, Found by, File name says, Action. Add document, Edit, Retire, Confirm list; Add list for a line that has none. |
 
@@ -197,6 +243,8 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 ## Not built yet
 
+- Rounds: the case agent that decides between the client agent and the insurer agent with a model, the share of drafts sent as written per agent on `/analytics/autonomy`, and a suggestion on the Inbox rail's From when a sender reads as a referral.
+- Rounds: an insurer's follow-up and a third-party administrator's reminder can read as a question or as terms; a client's answer with no insurer named is offered to every insurer asked. A person's Type corrects one email.
 - A classifier trained on labels people set (SetFit): waits for person-set labels.
 - The autonomy measure on `/analytics/autonomy`.
 - The brief does not yet replace the Summary on Overview; both show.

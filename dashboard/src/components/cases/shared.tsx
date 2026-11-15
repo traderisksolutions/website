@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Shared by the case page's sections (Sources, Conversation, Brief, Resume point): the section
+ * Shared by the case page's sections (Sources, Conversation, Rounds, Brief, Resume point): the section
  * list, the table frame, and the one button that starts the case reader on the case's threads.
  */
 import { useState } from 'react'
@@ -12,6 +12,7 @@ export const CASE_SECTIONS = [
   { value: 'overview', label: 'Overview' },
   { value: 'sources', label: 'Sources' },
   { value: 'conversation', label: 'Conversation' },
+  { value: 'rounds', label: 'Rounds' },
   { value: 'brief', label: 'Brief' },
 ] as const
 export type CaseSection = typeof CASE_SECTIONS[number]['value']

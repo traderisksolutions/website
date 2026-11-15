@@ -7,8 +7,9 @@
  * client's contacts on file. Send sends every ticked draft through /api/email/send, records the
  * send on the case, and moves to the next item on Today.
  *
- * Sections (?section=): Overview is the draft with the resume point under it; Sources, Conversation
- * and Brief are the case's threads, what was said on them and what the case knows (docs/case-sources.md).
+ * Sections (?section=): Overview is the draft with the resume point under it; Sources, Conversation,
+ * Rounds and Brief are the case's threads, what was said on them, who is owed what next and what the
+ * case knows (docs/case-sources.md).
  * Draft edits live in the page, so they survive a change of section.
  */
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
@@ -33,6 +34,7 @@ import { CASE_SECTIONS, asCaseSection, type CaseSection } from '@/components/cas
 import { CaseSourcesPanel } from '@/components/cases/CaseSourcesPanel'
 import { CaseConversation } from '@/components/cases/CaseConversation'
 import { CaseBrief } from '@/components/cases/CaseBrief'
+import { CaseRounds } from '@/components/cases/CaseRounds'
 import { ResumePoint } from '@/components/cases/ResumePoint'
 
 const FLOW_TIP: Record<RenewalFlow, string> = {
@@ -193,6 +195,7 @@ function Review() {
 
       {section === 'sources' && <CaseSourcesPanel id={item.id} staff={staff} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'conversation' && <CaseConversation id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
+      {section === 'rounds' && <CaseRounds id={item.id} onOpenThread={setThread} onOpenDraft={() => go('overview')} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'brief' && <CaseBrief id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
 
       {section === 'overview' && <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-4 items-start">

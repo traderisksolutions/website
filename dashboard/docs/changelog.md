@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-16 — Case agents phase 3, first part: rounds, next steps and step drafts (built, not deployed)
+
+- **Rounds** (`src/lib/cases/rounds.ts`, Case › Rounds): every email on a case's picked threads is one move, read by rule. Round 1 is the first request; a new round opens when the client changes the request after TRS has written to an insurer. Each round lists its insurers (asked, replied, sent to client) and its emails. Worked out on every read; no model is called and no table was added.
+- **Next steps**: the client's change, answer, question, documents or instruction owed to each insurer asked (Insurer agent); an insurer's terms, questions, decline, reply or documents owed to the client (Client agent); then who the case waits on.
+- **Draft** on a step (`rounds-draft.ts`): one email from its template in the other side's own words with that email's files, to whoever last wrote on that side, on that thread. It joins the case's unsent emails on Overview; a person edits and sends. Two new templates, `forward_change` and `forward_answer`. Each draft records `client_agent` or `insurer_agent`.
+- **Type**: a person sets who wrote one email and what it is; kept as a case event of kind `move`, "Rule" hands it back.
+- **Sender read** (`src/lib/crm/party-read.ts`): a sender the domain map cannot place is read from the address, the signature and the voice. A referral's emails are the client's words, marked with the referral's name.
+- Measured on production, read-only: 403 open cases with emails, 18 with more than one round; 354 steps to act on across 212 cases (312 draft an email, 42 name no insurer), 97 that wait. Read by hand before the last rule changes, 30 steps: 16 exactly right, 25 with the right recipient, 5 wrong.
+- Not built: the case agent that chooses between the two with a model, the share sent as written per agent, a referral suggestion on the Inbox rail.
+- Behaviours CSE-011 (five sections), CSE-022 to CSE-027. Journey `case-sources.spec.ts` CSE-022. Tests `rounds.test.ts` (19), `party-read.test.ts` (9), `relay.test.ts`. Dogfood on production with test records, removed after: 182 of 182 on the stores, 109 of 109 on the routes.
+
 ## 2026-11-15 — Case agents phase 2: the brief in five parts, a document checklist per line (live, 6cbf02a5)
 
 - **Brief** (`src/lib/cases/brief.ts`, `GET /api/work/:id/brief`): the case's Brief opens on one table of five parts: Communicated, Client wish list, Known risks and success factors, Open questions, Next step. Communicated is read from the emails; the rest from the notes already on the case. An agent's risk or success factor shows only when the words it quotes were written by the client or an insurer. No model is called.
