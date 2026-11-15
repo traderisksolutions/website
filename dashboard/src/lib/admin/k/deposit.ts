@@ -126,6 +126,10 @@ export async function depositMessages(messageIds: string[]): Promise<{ written: 
   const dir = await directory()
   const messages = await inChunks(messageIds, 50, c => sbTry<Row[]>(`email_messages?id=in.(${c.join(',')})&deleted_at=is.null&select=${MSG_COLS}`, []))
   const { targets, unfiled } = await messageTargets(messages, dir)
+  // Each email re-labels its thread by rule, code only (src/lib/cases/labels.ts): an insurer's
+  // quotation file turns a quotation request into a quote received. A person's label stands.
+  const threadIds = Array.from(new Set(messages.map(m => m.thread_id as string).filter(Boolean)))
+  if (threadIds.length) await import('@/lib/cases/sources-store').then(m => m.labelThreadsByRule(threadIds)).catch(() => null)
   return { written: await writeTargets(targets, dir), unfiled, targets }
 }
 

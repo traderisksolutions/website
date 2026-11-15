@@ -235,6 +235,21 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CLM-005 | A claim letter from an insurer opens or updates the claim; the agent drafts adjuster access and settlement pack at those stages. | project_trs_client_structure (3 Nov); project_trs_nathan_method | src/lib/documents/money-store.ts | Seed letter; claim opened. |
 | CLM-006 | Claim draft rows use outlined secondaries with one green primary. | project_trs_rail_format (11 Nov) | /claims | rule |
 
+## Cases: sources, labels and memory
+
+| ID | Behaviour | Source | Where | Test |
+| --- | --- | --- | --- | --- |
+| CSE-001 | [Standing] A thread a person put on a case is never moved or removed by an agent; a thread a person took off a case is never put back on it by an agent. | Management feedback, Nov 2026; CL 15 Nov | src/lib/cases/sources-store.ts (`attachable`), src/lib/casework/run.ts | dogfood-case-sources: "The case worker's guard". |
+| CSE-002 | A thread sits on one case. Picking a thread that is on another case answers with that case; Move takes it and both cases record it. | CL 15 Nov | /api/work/[id]/sources | dogfood: 409 then move. |
+| CSE-003 | A case shows what was said in two buckets, client and insurer, in date order, from the picked threads only. | Management feedback ("dump into 2 buckets client & insurer") | src/lib/cases/sources.ts | dogfood: client and insurer bucket checks. |
+| CSE-004 | Every thread carries one label from the fixed list, set by rule when mail arrives; a person's label is never overwritten by the rule. | Management feedback ("label emails properly") | src/lib/cases/labels.ts, deposit.ts | labels.test.ts; dogfood "A person's label", "Ingest". |
+| CSE-005 | A cover's own name is not a claim: "Work Injury Compensation" and "Group Hospitalisation & Surgical" subjects are not labelled claim. | Dogfood 15 Nov | src/lib/cases/labels.ts | labels.test.ts "does not call a cover by its name a claim". |
+| CSE-006 | Mail over 90 days old, or on no open case, is Back burner; member movements and endorsements are their own group; renewal season is on when a policy ends within 90 days or a renewal case is open. | Management feedback (3 months, back burner, year-end movements) | src/lib/cases/relevance.ts | relevance.test.ts; dogfood "Relevance". |
+| CSE-007 | [Standing] A colleague's private thread is counted, never listed or quoted, in sources, relevance and notes; acting on it answers 403. | INB-002 | sources-store.ts, memory-store.ts | dogfood "Private words", 403 checks. |
+| CSE-008 | A note an agent leaves on a case quotes an email on that case word for word, or it is dropped with the reason. A person's note needs no source. | Client 360 accuracy rules | src/lib/cases/memory.ts (`cleanNotes`) | memory.test.ts; dogfood "An agent's turn". |
+| CSE-009 | Every agent starts from the case's state (notes, next step, open questions, its unread emails) and records its turn; the same turn twice stores nothing new. | Jarod 15 Nov ("start where we left off without losing information") | memory-store.ts (`loadCaseState`, `recordTurn`) | dogfood "Resume". |
+| CSE-010 | One next step stands at a time; a newer one supersedes the older, which stays on record. A rejected note stays on record with who rejected it. | CL 15 Nov | memory.ts, memory-store.ts | dogfood "An agent's turn", "A person's note". |
+
 ## Finance
 
 | ID | Behaviour | Source | Where | Test |

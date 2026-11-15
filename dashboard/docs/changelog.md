@@ -4,6 +4,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-15 — Case agents phase 1: sources, labels, relevance and case memory (not deployed)
+
+- **A person's pick decides what a case reads** (`src/lib/cases/sources-store.ts`, `/api/work/:id/sources`): pick, exclude, restore and side per thread; one thread on one case, a conflict answers with the other case and can be moved. The case reader no longer moves a thread a person picked, nor re-attaches one a person took off.
+- **Two buckets** (`sources.ts`): what the client said and what the insurer said, in date order, built from the picked threads only.
+- **Thread labels by rule** (`labels.ts`, set when mail arrives): quotation request, quote received, renewal, claim, member movement, endorsement, document, payment, other. A person's label is never overwritten.
+- **Relevance** (`relevance.ts`, `/api/companies/:id/relevance`): Active, Back burner (over 90 days, or on no open case), Member movements; renewal season from a policy ending within 90 days or an open renewal case.
+- **Case memory** (`memory-store.ts`, `/api/work/:id/memory`): notes in nine sections, each agent note tied to the words of an email on the case; which agent has read which email; a resume point for every agent and person. The case reader records its turn.
+- Mail privacy applies throughout: a colleague's thread is counted, never listed or quoted.
+- Migration `20261115_case_sources.sql` is written and not yet applied to production. Dogfood script `scripts/dogfood-case-sources.mts`: 88 store checks and 37 route checks pass on a local copy of the schema. Detail: `docs/case-sources.md`.
+
 ## 2026-11-14 — Admin desk: Mark done and Snooze; enrolment cycles; claims from IHP notices
 
 - **Mark done and Snooze 7 days** on the desk's open requests, one by one or selected together (the follow-ups API records who). A request snoozed into the future leaves the desk until its date; the desk always loads fresh.

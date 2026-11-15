@@ -19,6 +19,8 @@ import { cleanCase, parseAnswer, type CaseContext, type CleanCase } from './clea
 import { STAGED_TYPES, isStage, stageIndex, startPointFor } from '@/lib/cases/stage'
 import { syncStage } from '@/lib/cases/sync'
 import { renewalMethod } from '@/lib/methods/method'
+import { attachable, PERSON } from '@/lib/cases/sources-store'
+import { recordTurn } from '@/lib/cases/memory-store'
 
 const ACTOR = 'case_worker'
 const WINDOW_DAYS = 90
@@ -217,17 +219,24 @@ export async function storeCase(input: CaseInput, c: CleanCase, openedMode: stri
     const open = await sbTry<Row[]>(`work_items?company_id=eq.${enc(owner.companyId)}&case_type=eq.${enc(c.case_type)}&closed_at=is.null&select=id,title,policy_number,work_item_threads(thread_id)&limit=50`, [])
     id = twinOf(c, open.map(o => ({ id: o.id, title: o.title, policy_number: o.policy_number, threads: (o.work_item_threads ?? []).map((t: Row) => t.thread_id) })))
   }
+  // A person's choice of sources stands over the reader's grouping (src/lib/cases/sources-store.ts).
+  const mine = await attachable(id ?? null, c.threads)
+  // Every thread of a case the reader would open is already on a case a person built: nothing new opens.
+  if (!id && !mine.keep.length && mine.held.size) return Array.from(mine.held.values())[0]
   if (id) await sb(`work_items?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(row) })
   else {
     const [created] = await sb<Row[]>('work_items', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ ...row, owner_email: c.suggested_owner }) })
     id = created.id as string
   }
-  // A thread belongs to one item: claim it here even if an earlier read put it elsewhere.
-  await sb(`work_item_threads?thread_id=in.(${c.threads.join(',')})&work_item_id=neq.${enc(id)}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
-  await sb('work_item_threads?on_conflict=work_item_id,thread_id', {
-    method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
-    body: JSON.stringify(c.threads.map(t => ({ work_item_id: id, thread_id: t, side: input.threadSide.get(t) ?? 'other' }))),
-  })
+  // A thread belongs to one item: claim it here even if an earlier read put it elsewhere. A thread
+  // a person picked onto another case, or took off this one, is not claimed.
+  if (mine.keep.length) {
+    await sb(`work_item_threads?thread_id=in.(${mine.keep.join(',')})&work_item_id=neq.${enc(id)}&or=(joined_by.is.null,joined_by.neq.${PERSON})`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } })
+    await sb('work_item_threads?on_conflict=work_item_id,thread_id', {
+      method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+      body: JSON.stringify(mine.keep.map(t => ({ work_item_id: id, thread_id: t, side: input.threadSide.get(t) ?? 'other' }))),
+    })
+  }
 
   // Quote cases: the start point once, and the reader's stage only where no record decides it
   // (no placement yet) and never backwards. Best-effort until the case-stage migration is applied.
@@ -243,6 +252,9 @@ export async function storeCase(input: CaseInput, c: CleanCase, openedMode: stri
 
   // Drafts are the relay agent's; a draft the model still returns is not stored.
   await sb('work_item_events', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ work_item_id: id, kind: 'read', actor: ACTOR, detail: { status: c.status, next_action: c.next_action } }) })
+  // What this read learned and how far it read stay on the case for the next agent or person.
+  // Never the reason a read fails: the case itself is stored above.
+  await recordTurn(id, ACTOR, { evidence: c.evidence, readThreadIds: mine.keep, event: false }).catch(() => null)
   return id
 }
 
