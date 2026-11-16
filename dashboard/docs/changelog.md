@@ -12,6 +12,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - **Documents**: one basic list for every renewal and new-quote case (last year's policy schedule and claims history Required, authorisation form Optional), ahead of any list the line holds. Each document is Required or Optional; the list is complete when no Required document is missing. A list applies as it stands; the draft mark is gone from the case.
 - **Files** (Case › Brief): every file on the case's emails in one table, on every kind of case.
 - **Migration** `20261116_manual_journey.sql` (additive): `work_item_threads.insurer_company_id`, `line_checklist_items.required`, the basic list and its three documents. Not applied; the code must not deploy before it.
+- **Home › Mail** (`HomeMail.tsx`): the newest 15 active threads under the To do list: a tick box, Company, Thread, Label, Source. A thread opens in the Inbox; ticked threads open the same Combine form ("Next steps for N threads") and the case opens on Rounds. Behaviour TOD-026, journey case-sources TOD-026.
 - No model is called anywhere in the journey. Not built: the automatic layer, where a model selects the threads, sets the sides and runs the steps.
 - Not verified against the database: starting a case from Combine, a named insurer saved on a thread, Run pressed on a case.
 - Behaviours TOD-024, TOD-025, CSE-019 to CSE-021, CSE-029 to CSE-032. Journey `case-sources.spec.ts` TOD-025 and updates to TOD-024, CSE-012, CSE-019 to CSE-022. Tests `combine.test.ts` (20), `checklist.test.ts`, `rounds.test.ts`.

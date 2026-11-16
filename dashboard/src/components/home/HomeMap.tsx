@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Home: the to-do (every item that needs a person, worked in place), then the canvas of the work (client, TRS and insurer joined by three bridges, every open case
+ * Home: the to-do (every item that needs a person, worked in place), then the newest active mail with its labels (threads ticked there open as one case), then the canvas of the work (client, TRS and insurer joined by three bridges, every open case
  * as a card on the side that owes the next move), then the clients and insurers with open work.
  * The pinned-company board moved to /board.
  */
@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
 import { HomeCanvas } from './HomeCanvas'
 import { TodoList } from './TodoList'
+import { HomeMail } from './HomeMail'
 import type { HomeData, HomeCanvas as Canvas } from '@/lib/today/data'
 
 type Staff = { email: string; name: string }
@@ -37,6 +38,7 @@ export function HomeMap() {
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
       {!data && !error && <Spinner label="Loading the map…" />}
       <TodoList />
+      <HomeMail />
       {data && c && <>
         <HomeCanvas data={c} staff={staff} onChanged={m => { setNotice(m); setError(null); void load() }} />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

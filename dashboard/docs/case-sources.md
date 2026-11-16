@@ -273,6 +273,7 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 | Screen | Where | Shows |
 | --- | --- | --- |
 | Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: a tick box, Thread, Company, Label, Set by, Last message, Case. Ticked threads open Combine (`CombineDialog.tsx`): Client, Case, Kind, Title, then Thread, Side, Filed under, Last message, On case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
+| Home › Mail | `/` (`HomeMail.tsx`, `GET /api/today/mail?relevance=active`) | The newest 15 active threads: a tick box, Company, Thread, Label, Source (the rule's basis, or the person who set the label). A thread opens in the Inbox. Ticked threads open Combine ("Next steps for N threads"); the case opens on Rounds. |
 | Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
 | Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side (Client, an insurer by name, Internal, Other: `SideSelect.tsx`), Add. A thread on another case opens `MoveThreadDialog`. |
