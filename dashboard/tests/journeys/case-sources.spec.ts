@@ -11,7 +11,7 @@ import { dbRows, openClean } from './helpers'
 const headers: Record<string, string> = process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {}
 type Sources = { picked: unknown[]; proposed: unknown[]; recent: unknown[]; older: unknown[]; buckets: { client: unknown[]; insurer: unknown[] } }
 
-/** An open case whose threads the signed-in person may see; with `offers`, one that also has a thread to tick. Looked up once per worker. */
+/** An open case with an email from its client or an insurer that the signed-in person may see; with `offers`, one that also has a thread to tick. Looked up once per worker. */
 const found: { any?: string | null; offers?: string | null } = {}
 async function openCase(page: Page, offers = false): Promise<string | null> {
   const key = offers ? 'offers' : 'any'
@@ -22,7 +22,7 @@ async function openCase(page: Page, offers = false): Promise<string | null> {
     const res = await page.request.get(`/api/work/${id}/sources`, { headers })
     if (!res.ok()) continue
     const s = await res.json() as Sources
-    if (!s.picked.length) continue
+    if (!s.picked.length || s.buckets.client.length + s.buckets.insurer.length === 0) continue
     found.any ??= id
     if (s.proposed.length + s.recent.length + s.older.length > 0) found.offers ??= id
     if (found[key]) return found[key] ?? null
@@ -62,7 +62,8 @@ test('TOD-025 ticked threads open as one case to be: a client, a side per thread
   const side = dialog.locator('tbody tr').first().getByRole('combobox')
   await expect(side.locator('> option')).toHaveText(['Client', 'Internal', 'Other'])
   expect(await side.locator('optgroup[label="Insurer"] option').count()).toBeGreaterThan(1)
-  await expect(dialog.getByRole('combobox', { name: 'Case' })).toHaveValue('new')
+  // A thread's own subject may hold the word, so the name is matched from its start.
+  await expect(dialog.getByRole('combobox', { name: /^Case/ })).toHaveValue('new')
   await expect(dialog.getByRole('button', { name: /^(Start case|Add to case)/ })).toBeVisible()
   await dialog.getByRole('button', { name: 'Cancel' }).click()
   await expect(dialog).toHaveCount(0)
