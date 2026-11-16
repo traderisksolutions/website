@@ -1,9 +1,9 @@
 /**
- * GET   /api/settings/checklists → { lists, doc_types, staff } every line's document checklist with its items
+ * GET   /api/settings/checklists → { lists, doc_types, staff } the basic list and every line's document checklist with its items
  * POST  /api/settings/checklists → { action: 'list', line } starts a list for a line,
- *                                  { action: 'item', line, label, found_by, doc_types, words } adds a document,
+ *                                  { action: 'item', line, label, found_by, doc_types, words, required? } adds a document,
  *                                  { action: 'confirm', line } confirms the list as it stands.
- * PATCH /api/settings/checklists → { id, label?, found_by?, doc_types?, words?, active? } edits a document.
+ * PATCH /api/settings/checklists → { id, label?, found_by?, doc_types?, words?, required?, active? } edits a document.
  * Any signed-in staff member may edit; an edit returns the list to draft until it is confirmed again.
  */
 import { NextRequest, NextResponse } from 'next/server'

@@ -60,7 +60,7 @@ export type CaseMail = Omit<RoundsInput, 'caseType' | 'set'> & { item: Row; mess
 /** Everything the rounds are read from. */
 export async function caseMail(workItemId: string, viewer: string | null): Promise<CaseMail> {
   const item = await workItem(workItemId)
-  const { ids, sides } = await caseThreadIds(workItemId)
+  const { ids, sides, insurers: named } = await caseThreadIds(workItemId)
   const [visible, messages, dir, tags, threads, events] = await Promise.all([
     visibleThreadIds(ids, viewer),
     caseMessages(ids),
@@ -95,9 +95,15 @@ export async function caseMail(workItemId: string, viewer: string | null): Promi
     if (isWriter(e.detail?.by) && isMove(e.detail?.move)) set.set(id, { by: e.detail.by, move: e.detail.move })
     else set.delete(id)
   }
+  // The insurer a person named for a thread stands over its company and its subject.
+  const threadNamed = new Set<string>()
+  for (const [id, companyId] of named) {
+    const co = dir.byId.get(companyId)
+    if (co?.company_name) { threadInsurer.set(id, displayName(String(co.company_name))); threadNamed.add(id) }
+  }
   const referral = new Map<string, string | false>([...tags].map(([id, t]) => [id, t.referral ? t.company ?? 'referral' : false]))
   return {
-    item, messages, sides, sideSet, visible, domainKind: dir.domainKind, names, threadInsurer, set, referral,
+    item, messages, sides, sideSet, visible, domainKind: dir.domainKind, names, threadInsurer, threadNamed, set, referral,
     insurerName: a => { const c = at(a); return c && (c.kind === 'insurer' || c.kind === 'tpa') ? displayName(String(c.company_name)) : null },
     companyName: a => { const c = at(a); return c ? String(c.company_name) : null },
   }
@@ -105,7 +111,7 @@ export async function caseMail(workItemId: string, viewer: string | null): Promi
 
 const input = (c: CaseMail, set: ReadonlyMap<string, Call> = c.set): RoundsInput => ({
   messages: c.messages, sides: c.sides, sideSet: c.sideSet, visible: c.visible, domainKind: c.domainKind, insurerName: c.insurerName, companyName: c.companyName,
-  names: c.names, threadInsurer: c.threadInsurer, caseType: c.item.case_type, set, referral: c.referral,
+  names: c.names, threadInsurer: c.threadInsurer, threadNamed: c.threadNamed, caseType: c.item.case_type, set, referral: c.referral,
 })
 /** The rounds as the case's emails stand. */
 export const roundsOf = (c: CaseMail): Rounds => buildRounds(input(c))

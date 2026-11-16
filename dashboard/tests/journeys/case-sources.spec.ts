@@ -3,7 +3,7 @@
  * labelled mail lists that feed them. Read-only: the journeys open, tick and cancel; they never
  * add a thread, save a note, draft a step, set an email's type or start a read (a read is a
  * model call, started only by a person).
- * Guards TOD-024, CLI-033, CSE-011 to CSE-014, CSE-019 to CSE-022.
+ * Guards TOD-024, TOD-025, CLI-033, CSE-011 to CSE-014, CSE-019 to CSE-022, CSE-029 to CSE-032.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { dbRows, openClean } from './helpers'
@@ -37,9 +37,38 @@ test('TOD-024 Today › Mail lists labelled threads in one table', async ({ page
   await expect(mail).toBeVisible({ timeout: 30_000 })
   expect(await names(mail.getByRole('radiogroup', { name: 'Relevance' }))).toEqual(['All', 'Active', 'Back burner', 'Member movements'])
   await expect(mail.getByRole('combobox', { name: 'Label', exact: true })).toBeVisible()
-  await expect(mail.locator('table.trs-table thead th')).toHaveText(['Thread', 'Company', 'Label', 'Set by', 'Last message', 'Case'])
+  await expect(mail.locator('table.trs-table thead th')).toHaveText(['Pick', 'Thread', 'Company', 'Label', 'Set by', 'Last message', 'Case'])
   // Every row carries a label a person can change.
   await expect(mail.locator('tbody tr').first().getByRole('combobox')).toBeVisible()
+})
+
+test('TOD-025 ticked threads open as one case to be: a client, a side per thread, nothing made until Start case', async ({ page }) => {
+  await openClean(page, '/today?view=mail')
+  const mail = page.getByRole('region', { name: 'Mail' })
+  await expect(mail).toBeVisible({ timeout: 30_000 })
+  const combine = mail.getByRole('button', { name: /^Combine( \d+)? threads?$/ })
+  await expect(combine).toBeDisabled()
+  const ticks = mail.getByRole('checkbox')
+  test.skip(await ticks.count() < 2, 'fewer than two threads listed')
+  await ticks.nth(0).check()
+  await ticks.nth(1).check()
+  await expect(mail.getByRole('button', { name: 'Combine 2 threads' })).toBeEnabled()
+  await mail.getByRole('button', { name: 'Combine 2 threads' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Case from 2 threads' })
+  await expect(dialog).toBeVisible()
+  await expect(dialog.locator('thead th')).toHaveText(['Thread', 'Side', 'Filed under', 'Last message', 'On case'], { timeout: 30_000 })
+  await expect(dialog.locator('tbody tr')).toHaveCount(2)
+  // Each thread is marked as the client's or as an insurer on file, by name.
+  const side = dialog.locator('tbody tr').first().getByRole('combobox')
+  await expect(side.locator('> option')).toHaveText(['Client', 'Internal', 'Other'])
+  expect(await side.locator('optgroup[label="Insurer"] option').count()).toBeGreaterThan(1)
+  await expect(dialog.getByRole('combobox', { name: 'Case' })).toHaveValue('new')
+  await expect(dialog.getByRole('button', { name: /^(Start case|Add to case)/ })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Cancel' }).click()
+  await expect(dialog).toHaveCount(0)
+  // The ticks stand until the person clears them.
+  await mail.getByRole('button', { name: 'Clear' }).click()
+  await expect(combine).toBeDisabled()
 })
 
 test('CLI-033 a company’s threads open as a list by relevance, with the reader one click away', async ({ page }) => {
@@ -86,6 +115,9 @@ test('CSE-012 Sources lists what is on the case and what is offered; nothing is 
   await groups.getByRole('radio', { name: /^On case/ }).click()
   await expect(panel.locator('thead th').first()).toHaveText('Thread')
   await expect(panel.getByRole('button', { name: 'Remove from case' }).first()).toBeVisible()
+  // CSE-029: a thread on the case is the client's or a named insurer's.
+  const side = panel.locator('tbody tr').first().getByRole('combobox', { name: /^Side for / })
+  if (await side.count()) expect(await side.locator('optgroup[label="Insurer"] option').count()).toBeGreaterThan(1)
 
   // The first group that offers a thread: tick it, the button counts it; untick, nothing was sent.
   for (const g of ['Proposed', 'Recent', 'Over 90 days']) {
@@ -122,6 +154,8 @@ test('CSE-022 Rounds lists the next steps, then one round: its insurers and ever
   const panel = page.getByRole('region', { name: 'Rounds' })
   await expect(panel).toBeVisible({ timeout: 30_000 })
   await expect(panel.getByRole('heading', { level: 2 })).toHaveText([/^Next steps · \d+$/, /^Round \d+ of \d+/])
+  // CSE-030: Run drafts every step owed, by rule; it is the section's one primary and is not pressed here.
+  await expect(panel.getByRole('button', { name: /^Run( · \d+ drafts?)?$/ })).toBeVisible()
   const steps = panel.getByRole('table', { name: 'Next steps' })
   if (await steps.count()) await expect(steps.locator('thead th')).toHaveText(['Step', 'Since', 'Drafted by', 'Action'])
   else await expect(panel.getByText('Nothing is waiting to be passed on.')).toBeVisible()
@@ -167,23 +201,27 @@ async function checklistCase(page: Page): Promise<string | null> {
   return null
 }
 
-test('CSE-019 a renewal or new quote lists its line’s documents under the brief, each with where it stands', async ({ page }) => {
+test('CSE-019 a renewal or new quote lists the basic documents and its line’s under the brief, each required or optional', async ({ page }) => {
   const id = await checklistCase(page)
-  test.skip(!id, 'no open renewal or new quote on a line with a checklist')
+  test.skip(!id, 'no open renewal or new quote with a document listed')
   await openClean(page, `/today/${id}?section=brief`)
   const panel = page.getByRole('region', { name: 'Brief' })
-  await expect(panel.getByRole('heading', { name: /^Documents · .+ · \d+ of \d+/ })).toBeVisible({ timeout: 30_000 })
+  await expect(panel.getByRole('heading', { name: /^Documents( · \d+ of \d+ required)?$/ })).toBeVisible({ timeout: 30_000 })
   await expect(panel.getByRole('combobox', { name: 'Line of insurance' })).toBeVisible()
   const docs = panel.getByRole('table', { name: 'Documents' })
-  await expect(docs.locator('thead th')).toHaveText(['Document', 'Status', 'File', 'By', 'Action'])
-  const states = (await docs.locator('tbody td:nth-child(2)').allTextContents()).map(t => t.trim())
-  expect(states.length).toBeGreaterThan(0)
+  await expect(docs.locator('thead th')).toHaveText(['Document', 'Need', 'Status', 'File', 'By', 'Action'])
+  const needs = (await docs.locator('tbody td:nth-child(2)').allTextContents()).map(t => t.trim())
+  expect(needs.length).toBeGreaterThan(0)
+  for (const n of needs) expect(['Required', 'Optional']).toContain(n)
+  const states = (await docs.locator('tbody td:nth-child(3)').allTextContents()).map(t => t.trim())
   for (const s of states) expect(['Missing', 'Found', 'Confirmed', 'Not needed']).toContain(s)
+  // CSE-032: every file on the case's emails is listed, on a list or not.
+  await expect(panel.getByRole('heading', { name: /^Files · \d+$/ })).toBeVisible()
   // Every document carries a person's call: confirm or not needed, or undo once called.
   await expect(docs.locator('tbody tr').first().getByRole('button').first()).toBeVisible()
 })
 
-test('CSE-020 a claim shows the brief without a document checklist', async ({ page }) => {
+test('CSE-020 a claim shows the brief and its files without a document checklist', async ({ page }) => {
   const [claim] = await dbRows<{ id: string }>('work_items?closed_at=is.null&case_type=eq.claim&select=id&order=created_at.desc&limit=1')
   test.skip(!claim, 'no open claim')
   await openClean(page, `/today/${claim.id}?section=brief`)
@@ -191,13 +229,17 @@ test('CSE-020 a claim shows the brief without a document checklist', async ({ pa
   await expect(panel.getByRole('table', { name: 'Brief' })).toBeVisible({ timeout: 30_000 })
   await expect(panel.getByRole('table', { name: 'Documents' })).toHaveCount(0)
   await expect(panel.getByRole('combobox', { name: 'Line of insurance' })).toHaveCount(0)
+  await expect(panel.getByRole('heading', { name: /^Files · \d+$/ })).toBeVisible()
 })
 
-test('CSE-021 Settings › Document checklists holds one list per line; Add document asks for its name and how it is found', async ({ page }) => {
+test('CSE-021 Settings › Document checklists holds the basic list and one per line; Add document asks for its name, its need and how it is found', async ({ page }) => {
   await openClean(page, '/settings?section=checklists')
   const eb = page.getByRole('region', { name: 'Employment Benefits', exact: true })
   await expect(eb).toBeVisible({ timeout: 30_000 })
-  await expect(eb.locator('thead th')).toHaveText(['Document', 'Found by', 'File name says', 'Action'])
+  await expect(eb.locator('thead th')).toHaveText(['Document', 'Need', 'Found by', 'File name says', 'Action'])
+  const basic = page.getByRole('region', { name: 'Basic documents', exact: true })
+  await expect(basic).toBeVisible()
+  await expect(basic.getByRole('combobox', { name: /: required or optional$/ }).first()).toBeVisible()
   expect(await eb.locator('tbody tr').count()).toBeGreaterThan(0)
   await eb.getByRole('button', { name: 'Add document' }).click()
   const dialog = page.getByRole('dialog', { name: 'Document' })

@@ -8,6 +8,8 @@
  *
  * The server answers one view at a time: the counts for the tabs and the newest rows. A tab, a
  * label or "Show more" asks again.
+ *
+ * Ticked threads become one case (CombineDialog); the ticks hold across tabs and labels.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
@@ -18,9 +20,12 @@ import { LABELS, LABEL_NAME, type Label } from '@/lib/cases/labels'
 import { RELEVANCE, RELEVANCE_NAME } from '@/lib/cases/relevance'
 import { MAIL_PAGE, type MailRelevance, type MailRow, type MailView as View, type SetBy } from '@/lib/cases/mail'
 import { actorName, type Staff } from '@/lib/cases/names'
+import { selectCls } from '@/components/cases/shared'
+import { CombineDialog } from './CombineDialog'
 
 type Loaded = View & { staff: Staff[]; me: string }
-export const selectCls = 'h-8 max-w-full rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13px] text-trs-ink outline-none focus:border-trs-ink'
+// The screens that took it from this file still can; it lives in cases/shared.
+export { selectCls }
 
 const setByText = (s: SetBy, staff: readonly Staff[]) =>
   s.kind === 'person' ? [actorName(s.email, staff), s.at ? fmtDay(s.at) : null].filter(Boolean).join(' · ') : ['Rule', s.basis].filter(Boolean).join(' · ')
@@ -31,6 +36,8 @@ export function MailView({ onCount }: { onCount: (n: number | null) => void }) {
   const [label, setLabel] = useState<Label | 'all'>('all')
   const [limit, setLimit] = useState(MAIL_PAGE)
   const [saving, setSaving] = useState<string | null>(null)
+  const [ticked, setTicked] = useState<string[]>([])
+  const [combining, setCombining] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // Only the newest request may answer: a slow earlier view never overwrites the one on screen.
@@ -76,16 +83,22 @@ export function MailView({ onCount }: { onCount: (n: number | null) => void }) {
           <option value="all">Label: all</option>
           {LABELS.map(l => <option key={l} value={l}>{LABEL_NAME[l]}</option>)}
         </select>
+        <span className="ml-auto flex items-center gap-2">
+          {ticked.length > 0 && <Btn level="tertiary" onClick={() => setTicked([])}>Clear</Btn>}
+          <Btn level="primary" disabled={ticked.length === 0} onClick={() => setCombining(true)}>{ticked.length ? `Combine ${ticked.length} ${ticked.length === 1 ? 'thread' : 'threads'}` : 'Combine threads'}</Btn>
+        </span>
       </div>
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
       {view.total === 0 ? <Empty>No threads in this view.</Empty> : (
         <div className={`overflow-x-auto rounded-[10px] border border-trs-line bg-white transition-opacity ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
           <table className="trs-table table-fixed" style={{ minWidth: 980 }}>
-            <colgroup><col style={{ width: '26%' }} /><col style={{ width: '15%' }} /><col style={{ width: 170 }} /><col style={{ width: '15%' }} /><col style={{ width: 116 }} /><col /></colgroup>
-            <thead><tr><th>Thread</th><th>Company</th><th>Label</th><th>Set by</th><th>Last message</th><th>Case</th></tr></thead>
+            <colgroup><col style={{ width: 40 }} /><col style={{ width: '26%' }} /><col style={{ width: '15%' }} /><col style={{ width: 170 }} /><col style={{ width: '15%' }} /><col style={{ width: 116 }} /><col /></colgroup>
+            <thead><tr><th><span className="sr-only">Pick</span></th><th>Thread</th><th>Company</th><th>Label</th><th>Set by</th><th>Last message</th><th>Case</th></tr></thead>
             <tbody>
               {view.threads.map(t => (
-                <tr key={t.id}>
+                <tr key={t.id} aria-selected={ticked.includes(t.id)}>
+                  <td className="px-2"><input type="checkbox" aria-label={`Pick ${t.subject || 'No subject'}`} checked={ticked.includes(t.id)}
+                    onChange={e => setTicked(s => (e.target.checked ? [...s, t.id] : s.filter(id => id !== t.id)))} /></td>
                   <td className="px-3"><Link href={`/engagement?thread=${t.id}`} className="block truncate text-trs-ink no-underline hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</Link></td>
                   <td className="cell-left px-3">{t.company ? <Link href={`/companies/${t.company.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.company.name ?? 'Company'}</Link> : <span className="text-trs-muted">Unfiled</span>}</td>
                   <td className="px-2">
@@ -108,6 +121,7 @@ export function MailView({ onCount }: { onCount: (n: number | null) => void }) {
           <span className="text-[12.5px] tabular-nums text-trs-muted">{view.threads.length.toLocaleString('en-SG')} of {view.total.toLocaleString('en-SG')}</span>
         </div>
       )}
+      <CombineDialog threadIds={combining ? ticked : null} onClose={() => setCombining(false)} />
     </section>
   )
 }

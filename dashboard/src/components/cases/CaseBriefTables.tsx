@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * The two tables of the Brief tab: the brief in five parts, and the documents the case's line of
- * insurance needs. Code fills both from the case's emails and notes; a person confirms a document,
- * marks it not needed, or turns a finding down.
+ * The tables of the Brief tab: the brief in five parts, the documents the case is checked for
+ * (Required or Optional), and every file on the case's emails. Code fills all three from the case's
+ * emails and notes; a person confirms a document, marks it not needed, or turns a finding down.
  */
 import Link from 'next/link'
 import { Btn, Chip, Empty } from '@/components/crm/primitives'
@@ -12,7 +12,7 @@ import { DASH, fmtDay } from '@/lib/format'
 import { actorName, senderName, type Staff } from '@/lib/cases/names'
 import type { BriefRow } from '@/lib/cases/brief'
 import { ITEM_STATE_NAME, type ItemState } from '@/lib/cases/checklist'
-import type { CaseBriefView, CheckAction, CheckRow } from '@/lib/cases/brief-store'
+import type { CaseBriefView, CaseFileRow, CheckAction, CheckRow } from '@/lib/cases/brief-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import { headingCls, subjectBtn, tableFrame } from './shared'
 
@@ -85,27 +85,23 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
   return (
     <div className="flex flex-col gap-2 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <h2 className={`${headingCls} flex flex-wrap items-center gap-2`}>
-          {checklist ? `Documents · ${checklist.name} · ${checklist.ticked} of ${checklist.total}` : line ? `Documents · ${line.name}` : 'Documents'}
-          {checklist && !checklist.confirmed_by && <Chip tone="amber">Draft list</Chip>}
-        </h2>
+        <h2 className={headingCls}>{checklist?.required ? `Documents · ${checklist.required_ticked} of ${checklist.required} required` : 'Documents'}</h2>
         <select className={selectCls} aria-label="Line of insurance" value={line?.line ?? ''} disabled={busy !== null} onChange={e => onLine(e.target.value || null)}>
           {!line && <option value="">Choose a line</option>}
           {line?.by === 'person' && <option value="">Clear my choice</option>}
           {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
         </select>
       </div>
-      {!line ? <Empty compact>No line of insurance on this case.</Empty>
-        : !checklist ? <Empty compact>No document checklist for {line.name}. <Link href="/settings?section=checklists" className="text-trs-ink underline">Settings › Document checklists</Link></Empty>
-        : checklist.rows.length === 0 ? <Empty compact>The {checklist.name} list holds no document.</Empty> : (
+      {!checklist || checklist.rows.length === 0 ? <Empty compact>No document on the checklist. <Link href="/settings?section=checklists" className="text-trs-ink underline">Settings › Document checklists</Link></Empty> : (
           <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 860 }} aria-label="Documents">
-              <colgroup><col style={{ width: '24%' }} /><col style={{ width: 118 }} /><col /><col style={{ width: 150 }} /><col style={{ width: 252 }} /></colgroup>
-              <thead><tr><th>Document</th><th>Status</th><th>File</th><th>By</th><th><span className="sr-only">Action</span></th></tr></thead>
+            <table className="trs-table table-fixed" style={{ minWidth: 940 }} aria-label="Documents">
+              <colgroup><col style={{ width: '22%' }} /><col style={{ width: 96 }} /><col style={{ width: 118 }} /><col /><col style={{ width: 150 }} /><col style={{ width: 252 }} /></colgroup>
+              <thead><tr><th>Document</th><th>Need</th><th>Status</th><th>File</th><th>By</th><th><span className="sr-only">Action</span></th></tr></thead>
               <tbody>
                 {checklist.rows.map(r => (
                   <tr key={r.item_id} className="align-top">
                     <td className="cell-left px-3 py-2 text-[13px] text-trs-ink break-words">{r.label}</td>
+                    <td className={`cell-left px-3 py-2 text-[13px] ${r.required ? 'text-trs-ink' : 'text-trs-muted'}`}>{r.required ? 'Required' : 'Optional'}</td>
                     <td className="cell-left px-3 py-2"><Chip tone={STATE_TONE[r.state]}>{ITEM_STATE_NAME[r.state]}</Chip></td>
                     <td className="cell-left px-3 py-2 text-[13px] leading-[1.5]">{file(r)}</td>
                     <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{r.actor ? `${actorName(r.actor, staff)}${r.at ? ` · ${fmtDay(r.at)}` : ''}` : muted}</td>
@@ -124,6 +120,36 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
             </table>
           </div>
         )}
+    </div>
+  )
+}
+
+/** Every file on the case's emails, on a checklist or not. */
+export function CaseFiles({ files, onOpenThread }: { files: readonly CaseFileRow[]; onOpenThread: (threadId: string) => void }) {
+  return (
+    <div className="flex flex-col gap-2 min-w-0">
+      <h2 className={headingCls}>Files · {files.length}</h2>
+      {files.length === 0 ? <Empty compact>No file on the case’s emails.</Empty> : (
+        <div className={tableFrame}>
+          <table className="trs-table table-fixed" style={{ minWidth: 760 }} aria-label="Files">
+            <colgroup><col /><col style={{ width: 190 }} /><col style={{ width: 200 }} /><col style={{ width: 108 }} /></colgroup>
+            <thead><tr><th>File</th><th>Type</th><th>From</th><th>Date</th></tr></thead>
+            <tbody>
+              {files.map((f, i) => (
+                <tr key={`${f.message_id}-${i}`} className="align-top">
+                  <td className="cell-left px-3 py-2 text-[13px] leading-[1.5]">
+                    {f.private ? <span className="text-trs-muted">Colleague’s mailbox · file name withheld</span>
+                      : <button type="button" onClick={() => onOpenThread(f.thread_id)} className={`${subjectBtn} whitespace-normal [overflow-wrap:anywhere]`} title="Open the email thread">{f.filename}</button>}
+                  </td>
+                  <td className="cell-left px-3 py-2 text-[13px]">{f.type ?? muted}</td>
+                  <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{f.from ? senderName(f.from) : muted}</td>
+                  <td className="px-3 py-2 whitespace-nowrap tabular-nums">{f.at ? fmtDay(f.at) : muted}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

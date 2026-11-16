@@ -2,7 +2,7 @@
  * The reads and writes behind the case brief (brief.ts) and the document checklists (checklist.ts).
  * No model is called here.
  *
- *   loadBrief(caseId, viewer)                 the brief in five parts, the case's line and its checklist
+ *   loadBrief(caseId, viewer)                 the brief in five parts, the case's line, its checklist and every file on its emails
  *   setCheck(caseId, itemId, actor, action)   a person confirms an item, marks it not needed, turns a finding down, or undoes the call
  *   setCaseLine(caseId, line, actor)          a person names the case's line of insurance
  *   listChecklists() / addList / addItem / editItem / confirmList   the lists in Settings
@@ -19,18 +19,20 @@ import { isValidProductLine } from '@/lib/product-lines'
 import { CaseError, caseMessages, caseThreadIds } from './sources-store'
 import { BRIEF_PARTS, BRIEF_PART_NAME, buildBrief, type Brief, type BriefNote, type BriefPart } from './brief'
 import {
-  CHECKLIST_CASE_TYPES, caseLine, checklistLine, checklistState, cleanItem, lineName,
-  type Call, type ChecklistItem, type ChecklistRow, type ChecklistState, type FileRef, type LineBy,
+  BASIC_LIST, CHECKLIST_CASE_TYPES, caseFiles, caseItems, caseLine, checklistLine, checklistState, cleanItem, lineName,
+  type Call, type CaseFile, type ChecklistItem, type ChecklistRow, type ChecklistState, type FileRef, type LineBy,
 } from './checklist'
 import type { SourceMessage } from './sources'
 
 type Row = Record<string, any>
 const quiet = { Prefer: 'return=minimal' }
-const ITEM_COLS = 'id,line,label,found_by,doc_types,words,position,active'
+const ITEM_COLS = 'id,line,label,found_by,doc_types,words,position,active,required'
 const NOTE_COLS = 'id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,created_at'
 
 export type CheckRow = ChecklistRow & { /** The file is in a colleague's mailbox: its name is withheld. */ private?: boolean }
-type CaseChecklist = Omit<ChecklistState, 'rows'> & { line: string; name: string; confirmed_by: string | null; confirmed_at: string | null; rows: CheckRow[] }
+/** `line` is the line's own list when the case has one, else the basic list. */
+type CaseChecklist = Omit<ChecklistState, 'rows'> & { line: string; name: string; rows: CheckRow[] }
+export type CaseFileRow = CaseFile & { /** The file is in a colleague's mailbox: its name is withheld. */ private?: boolean }
 export type CaseBriefView = {
   item: { id: string; title: string | null; case_type: string; closed_at: string | null }
   brief: Brief
@@ -40,8 +42,10 @@ export type CaseBriefView = {
   line: { line: string; name: string; by: LineBy } | null
   /** Whether this kind of case runs on a document checklist. */
   checklist_applies: boolean
-  /** Null when the case has no line, or its line has no list. */
+  /** The basic documents and the line's own. Null for a kind of case that runs on no checklist. */
   checklist: CaseChecklist | null
+  /** Every file on the case's emails, newest first. */
+  files: CaseFileRow[]
 }
 export type ChecklistList = { line: string; name: string; confirmed_by: string | null; confirmed_at: string | null; updated_by: string | null; updated_at: string | null; items: ChecklistItem[] }
 
@@ -56,21 +60,27 @@ async function lineOf(item: Row) {
   return caseLine({ chosen: item.product_line, policyLine: policy?.product_line, policyClass: policy?.class_of_insurance, title: item.title })
 }
 
-const asItem = (r: Row): ChecklistItem => ({ id: r.id, line: r.line, label: r.label, found_by: r.found_by, doc_types: r.doc_types ?? [], words: r.words ?? [], position: r.position ?? 0, active: r.active !== false })
+const asItem = (r: Row): ChecklistItem => ({ id: r.id, line: r.line, label: r.label, found_by: r.found_by, doc_types: r.doc_types ?? [], words: r.words ?? [], position: r.position ?? 0, active: r.active !== false, required: r.required !== false })
 const asCall = (r: Row): Call => ({ item_id: r.item_id, status: r.status ?? null, message_id: r.message_id ?? null, filename: r.filename ?? null, found: !!r.found, rejected: Array.isArray(r.rejected) ? r.rejected : [], actor: r.actor, at: r.at })
 
-/** The list a case runs on, with where each item stands. Null when the case has no line or the line has no list. */
+/**
+ * The documents a case is checked for, with where each stands: the basic list, and the list of the
+ * case's line when it has one. Null for a kind of case that runs on no checklist.
+ */
 async function caseChecklist(item: Row, line: string | null, messages: readonly SourceMessage[], hasWish: boolean) {
-  const list = checklistLine(line)
-  if (!list || !CHECKLIST_CASE_TYPES.has(item.case_type)) return null
-  const [head] = await sbTry<Row[]>(`line_checklists?line=eq.${enc(list)}&select=line,confirmed_by,confirmed_at&limit=1`, [])
-  if (!head) return null
-  const [items, calls] = await Promise.all([
-    sbTry<Row[]>(`line_checklist_items?line=eq.${enc(list)}&select=${ITEM_COLS}&order=position.asc&limit=200`, []),
+  if (!CHECKLIST_CASE_TYPES.has(item.case_type)) return null
+  const own = checklistLine(line)
+  const [rows, calls] = await Promise.all([
+    sbTry<Row[]>(`line_checklist_items?line=in.(${[BASIC_LIST, own].filter(Boolean).map(l => enc(l!)).join(',')})&select=${ITEM_COLS}&order=position.asc&limit=400`, []),
     sbTry<Row[]>(`work_item_checklist?work_item_id=eq.${enc(item.id)}&select=item_id,status,message_id,filename,found,rejected,actor,at&limit=200`, []),
   ])
-  return { head, items: items.map(asItem), calls: calls.map(asCall), state: checklistState(items.map(asItem), calls.map(asCall), messages, hasWish) }
+  const all = rows.map(asItem)
+  const lineItems = all.filter(i => i.line !== BASIC_LIST)
+  const items = caseItems(all.filter(i => i.line === BASIC_LIST), lineItems)
+  return { list: lineItems.some(i => i.active) ? own! : BASIC_LIST, calls: calls.map(asCall), state: checklistState(items, calls.map(asCall), messages, hasWish) }
 }
+
+const FILES_MAX = 300
 
 export async function loadBrief(workItemId: string, viewer: string | null): Promise<CaseBriefView> {
   const item = await workItem(workItemId)
@@ -99,9 +109,10 @@ export async function loadBrief(workItemId: string, viewer: string | null): Prom
     line: found ? { line: found.line, name: lineName(found.line), by: found.by } : null,
     checklist_applies: CHECKLIST_CASE_TYPES.has(item.case_type),
     checklist: cl && {
-      ...cl.state, line: cl.head.line, name: lineName(cl.head.line), confirmed_by: cl.head.confirmed_by ?? null, confirmed_at: cl.head.confirmed_at ?? null,
+      ...cl.state, line: cl.list, name: lineName(cl.list),
       rows: cl.state.rows.map(r => (r.file && !visible.has(r.file.thread_id) ? { ...r, file: { ...r.file, filename: '', from: null }, private: true } : r)),
     },
+    files: caseFiles(messages).slice(0, FILES_MAX).map(f => (visible.has(f.thread_id) ? f : { ...f, filename: '', from: null, type: null, private: true })),
   }
 }
 
@@ -166,7 +177,7 @@ export async function listChecklists(): Promise<ChecklistList[]> {
   ])
   return lists
     .map(l => ({ line: l.line, name: lineName(l.line), confirmed_by: l.confirmed_by ?? null, confirmed_at: l.confirmed_at ?? null, updated_by: l.updated_by ?? null, updated_at: l.updated_at ?? null, items: items.filter(i => i.line === l.line).map(asItem) }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => Number(b.line === BASIC_LIST) - Number(a.line === BASIC_LIST) || a.name.localeCompare(b.name))
 }
 
 /** An edit returns a list to draft: it is confirmed again as it now stands. */
@@ -195,11 +206,11 @@ export async function addItem(line: string, raw: unknown, actor: string): Promis
   if ('error' in clean) throw new CaseError(clean.error, 400)
   if (await sameLabel(line, clean.item.label)) throw new CaseError('This document is already on the list.', 409)
   const [last] = await sbTry<Row[]>(`line_checklist_items?line=eq.${enc(line)}&select=position&order=position.desc&limit=1`, [])
-  await sb('line_checklist_items', { method: 'POST', headers: quiet, body: JSON.stringify({ line, ...clean.item, position: (last?.position ?? 0) + 1, updated_by: actor }) })
+  await sb('line_checklist_items', { method: 'POST', headers: quiet, body: JSON.stringify({ line, ...clean.item, required: (raw as Row | null)?.required !== false, position: (last?.position ?? 0) + 1, updated_by: actor }) })
   await edited(line, actor)
 }
 
-/** Changes an item's name, how it is found, or whether the list uses it. */
+/** Changes an item's name, how it is found, whether it is required, or whether the list uses it. */
 export async function editItem(itemId: string, patch: Record<string, unknown>, actor: string): Promise<void> {
   const [row] = await sbTry<Row[]>(`line_checklist_items?id=eq.${enc(itemId)}&select=${ITEM_COLS}&limit=1`, [])
   if (!row) throw new CaseError('This document is not on a list.', 404)
@@ -212,6 +223,7 @@ export async function editItem(itemId: string, patch: Record<string, unknown>, a
     Object.assign(body, clean.item)
   }
   if (typeof patch.active === 'boolean') body.active = patch.active
+  if (typeof patch.required === 'boolean') body.required = patch.required
   await sb(`line_checklist_items?id=eq.${enc(itemId)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify(body) })
   await edited(item.line, actor)
 }

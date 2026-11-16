@@ -2,6 +2,7 @@
  * A next step's email, written from the template for its kind (relay/compose.ts). No model is called.
  *
  *   draftStep(caseId, stepId, actor)   the unsent email for one step, made once
+ *   runSteps(caseId, actor)            the unsent email for every step that has one, in order
  *
  * The step is found again from the emails as they stand, so a step no longer owed is not drafted.
  * The email passes on the other side's own words and files, goes to whoever last wrote on the
@@ -30,6 +31,7 @@ const QUOTE_MAX = 800
 
 export const STEP_AGENT: Record<NonNullable<Step['to']>, string> = { client: 'client_agent', insurer: 'insurer_agent' }
 export type StepDrafted = { draft_id: string; to: string; /** The step already had an unsent email. */ existing: boolean }
+export type StepsRun = { made: number; existing: number; /** Steps left without an email, each with the reason. */ skipped: { step: string; reason: string }[] }
 
 export async function draftStep(workItemId: string, stepId: string, actor: string): Promise<StepDrafted> {
   const c = await caseMail(workItemId, actor)
@@ -84,4 +86,26 @@ export async function draftStep(workItemId: string, stepId: string, actor: strin
     body: JSON.stringify({ draft_class: CLASS_OF[kind], context_used: { agent: STEP_AGENT[step.to], kind, step: step.id, message_id: source.id, basis: `step started by ${actor}; address from email ${who.message_id}` } }),
   })
   return { draft_id: id, to: who.to, existing: false }
+}
+
+/**
+ * A person's Run: every step that has an email is drafted, one after another, so each draft joins
+ * the unsent emails the one before it left. A step that cannot be drafted is passed over with its reason.
+ */
+export async function runSteps(workItemId: string, actor: string): Promise<StepsRun> {
+  const c = await caseMail(workItemId, actor)
+  if (c.item.closed_at) throw new CaseError('This case is closed.', 400)
+  const run: StepsRun = { made: 0, existing: 0, skipped: [] }
+  for (const step of roundsOf(c).steps) {
+    if (step.act !== 'draft') continue
+    try {
+      const d = await draftStep(workItemId, step.id, actor)
+      if (d.existing) run.existing++
+      else run.made++
+    } catch (e) {
+      if (!(e instanceof CaseError)) throw e
+      run.skipped.push({ step: step.text, reason: e.message })
+    }
+  }
+  return run
 }

@@ -1,8 +1,9 @@
 'use client'
 
 /**
- * Document checklists: what a quote on each line of insurance needs before it goes to market.
- * One table per line. A list is a draft until a person confirms it; any edit returns it to draft.
+ * Document checklists: what a quote needs before it goes to market. The basic list is checked on
+ * every renewal and quote case; a line's own list adds to it. Each document is Required or Optional.
+ * One table per list. A list is a draft until a person confirms it; any edit returns it to draft.
  * Documents are retired, never deleted, so the calls made on past cases keep their meaning.
  */
 import { useCallback, useEffect, useState } from 'react'
@@ -17,7 +18,7 @@ import type { ChecklistList } from '@/lib/cases/brief-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 
 type Data = { lists: ChecklistList[]; staff: Staff[]; doc_types: { slug: string; label: string }[] }
-type Draft = { line: string; id: string | null; label: string; found_by: FoundBy; doc_types: string[]; words: string }
+type Draft = { line: string; id: string | null; label: string; found_by: FoundBy; doc_types: string[]; words: string; required: boolean }
 const wordsOf = (text: string) => text.split(',').map(w => w.trim()).filter(Boolean)
 
 export function ChecklistPanel() {
@@ -45,13 +46,13 @@ export function ChecklistPanel() {
   async function save() {
     if (!draft) return
     setDraftError(null)
-    const item = { label: draft.label, found_by: draft.found_by, doc_types: draft.doc_types, words: wordsOf(draft.words) }
+    const item = { label: draft.label, found_by: draft.found_by, doc_types: draft.doc_types, words: wordsOf(draft.words), required: draft.required }
     const ok = draft.id
       ? await send('save', 'PATCH', { id: draft.id, ...item }, setDraftError)
       : await send('save', 'POST', { action: 'item', line: draft.line, ...item }, setDraftError)
     if (ok) setDraft(null)
   }
-  const edit = (i: ChecklistItem) => { setDraftError(null); setDraft({ line: i.line, id: i.id, label: i.label, found_by: i.found_by, doc_types: i.doc_types, words: i.words.join(', ') }) }
+  const edit = (i: ChecklistItem) => { setDraftError(null); setDraft({ line: i.line, id: i.id, label: i.label, found_by: i.found_by, doc_types: i.doc_types, words: i.words.join(', '), required: i.required }) }
   const typeName = new Map(data.doc_types.map(t => [t.slug, t.label]))
   const says = (i: ChecklistItem) => [...i.doc_types.map(t => typeName.get(t) ?? t), ...i.words.map(w => `“${w}”`)].join(', ')
   const held = new Set(data.lists.map(l => l.line))
@@ -70,18 +71,25 @@ export function ChecklistPanel() {
                 : <Chip tone="amber">Draft</Chip>}
             </h3>
             <span className="flex flex-wrap gap-1.5">
-              <Btn size="xs" disabled={busy !== null} onClick={() => { setDraftError(null); setDraft({ line: l.line, id: null, label: '', found_by: 'file', doc_types: [], words: '' }) }}>Add document</Btn>
+              <Btn size="xs" disabled={busy !== null} onClick={() => { setDraftError(null); setDraft({ line: l.line, id: null, label: '', found_by: 'file', doc_types: [], words: '', required: true }) }}>Add document</Btn>
               {!l.confirmed_by && <Btn size="xs" disabled={busy !== null || !l.items.some(i => i.active)} loading={busy === `confirm:${l.line}`} onClick={() => void send(`confirm:${l.line}`, 'POST', { action: 'confirm', line: l.line })}>Confirm list</Btn>}
             </span>
           </div>
           {l.items.length === 0 ? <Empty compact>No document on this list.</Empty> : (
             <div className="relative overflow-x-auto">
-              <table className="trs-table w-full text-[13px]" style={{ minWidth: 640 }} aria-label={`${l.name} documents`}>
-                <thead><tr><th>Document</th><th>Found by</th><th>File name says</th><th><span className="sr-only">Action</span></th></tr></thead>
+              <table className="trs-table w-full text-[13px]" style={{ minWidth: 760 }} aria-label={`${l.name} documents`}>
+                <thead><tr><th>Document</th><th>Need</th><th>Found by</th><th>File name says</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>
                   {l.items.map(i => (
                     <tr key={i.id} className={i.active ? 'align-top' : 'align-top opacity-50'}>
                       <td className="cell-left py-1.5 px-3 min-w-[200px] text-trs-ink">{i.label}</td>
+                      <td className="cell-left py-1 px-3">
+                        <select className={selectCls} aria-label={`${i.label}: required or optional`} value={i.required ? 'required' : 'optional'} disabled={busy !== null}
+                          onChange={e => void send(`need:${i.id}`, 'PATCH', { id: i.id, required: e.target.value === 'required' })}>
+                          <option value="required">Required</option>
+                          <option value="optional">Optional</option>
+                        </select>
+                      </td>
                       <td className="cell-left py-1.5 px-3 whitespace-nowrap">{FOUND_BY_NAME[i.found_by]}</td>
                       <td className="cell-left py-1.5 px-3 [overflow-wrap:anywhere]">{says(i) || <span className="text-trs-muted">{DASH}</span>}</td>
                       <td className="py-1.5 px-3 whitespace-nowrap">
@@ -113,12 +121,18 @@ export function ChecklistPanel() {
         <DialogContent className="w-[calc(100vw-24px)] max-w-[560px] max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Document</DialogTitle>
-            <DialogDescription className="sr-only">A document on a line’s checklist.</DialogDescription>
+            <DialogDescription className="sr-only">A document on a checklist.</DialogDescription>
           </DialogHeader>
           {draft && (
             <div className="flex flex-col gap-3 min-w-0">
               <Field label="Document">
                 <input className={inputCls} maxLength={LABEL_MAX} value={draft.label} onChange={e => setDraft({ ...draft, label: e.target.value })} />
+              </Field>
+              <Field label="Need">
+                <select className={`${selectCls} w-full h-9`} value={draft.required ? 'required' : 'optional'} onChange={e => setDraft({ ...draft, required: e.target.value === 'required' })}>
+                  <option value="required">Required</option>
+                  <option value="optional">Optional</option>
+                </select>
               </Field>
               <Field label="Found by">
                 <select className={`${selectCls} w-full h-9`} value={draft.found_by} onChange={e => setDraft({ ...draft, found_by: e.target.value as FoundBy })}>

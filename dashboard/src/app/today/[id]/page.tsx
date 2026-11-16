@@ -413,11 +413,12 @@ function eventText(kind: string, actor: string, d: Record<string, any>): string 
     case 'reopened': return `Reopened by ${who}`
     case 'read': return `Case read by ${who}${d.note ? ` · ${d.note}` : d.status ? ` · ${String(d.status).replace(/_/g, ' ')}` : ''}`
     case 'note': return d.opened ? `Opened ${String(d.opened).replace(/_/g, ' ')}` : d.note ? `Note by ${who} · ${d.note}` : `Note by ${who}`
+    case 'started': return `Case started by ${who}${d.threads ? ` from ${d.threads} ${d.threads === 1 ? 'thread' : 'threads'}` : ''}`
     case 'source_picked': return d.moved_from ? `Thread moved to this case by ${who}` : `Thread added by ${who}`
     case 'source_moved': return `Thread moved to ${d.to_title ?? 'another case'} by ${who}`
     case 'source_excluded': return `Thread removed by ${who}`
     case 'source_restored': return `Thread restored by ${who}`
-    case 'source_side': return `Thread side set to ${String(d.side ?? 'other')} by ${who}`
+    case 'source_side': return `Thread side set to ${d.insurer ? `insurer: ${String(d.insurer)}` : String(d.side ?? 'other')} by ${who}`
     case 'agent_turn': return d.note ? `${who} · ${d.note}` : `Turn by ${who}`
     case 'note_rejected': return `Note set aside by ${who}`
     case 'note_restored': return `Note restored by ${who}`

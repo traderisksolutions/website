@@ -4,13 +4,13 @@
  * Case sources: the threads a case is built from (GET/POST /api/work/:id/sources). A person ticks
  * threads the rules propose, or any other thread of the client, and adds them; a thread that sits
  * on another case asks first (MoveThreadDialog). A thread taken off the case moves to Removed and
- * no agent puts it back. Threads in a colleague's mailbox are counted, never listed.
+ * no agent puts it back. Threads in a colleague's mailbox are counted, never listed. The Side of a
+ * thread is Client, Internal, Other, or an insurer on file by name.
  */
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Empty, Segmented, Spinner } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
-import { selectCls } from '@/components/today/MailView'
 import { DASH, fmtDate, fmtDay } from '@/lib/format'
 import { LABEL_NAME } from '@/lib/cases/labels'
 import { actorName, type Staff } from '@/lib/cases/names'
@@ -18,10 +18,9 @@ import type { Candidate, Proposal, Side } from '@/lib/cases/sources'
 import type { CaseSources } from '@/lib/cases/sources-store'
 import { MoveThreadDialog, type Conflict } from './MoveThreadDialog'
 import { count, subjectBtn, tableFrame } from './shared'
+import { SideSelect, type From } from './SideSelect'
 
 type Tab = 'proposed' | 'recent' | 'older' | 'on' | 'removed'
-const SIDE_NAME: Record<Side, string> = { client: 'Client', insurer: 'Insurer', internal: 'Internal', other: 'Other' }
-const SIDE_ORDER: Side[] = ['client', 'insurer', 'internal', 'other']
 /** What the rule matched, in the words of the column. */
 const matchedOn = (t: Candidate | Proposal) => {
   if (!('reason' in t)) return DASH
@@ -52,7 +51,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
   const [tab, setTab] = useState<Tab>('proposed')
   const [ticked, setTicked] = useState<Set<string>>(new Set())
   // A side chosen on a row before it is added.
-  const [sides, setSides] = useState<Record<string, Side>>({})
+  const [sides, setSides] = useState<Record<string, From>>({})
   const [busy, setBusy] = useState<string | null>(null)
   const [conflicts, setConflicts] = useState<Conflict[]>([])
 
@@ -72,10 +71,10 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
   const offered: Record<'proposed' | 'recent' | 'older', (Candidate | Proposal)[]> = { proposed: data.proposed, recent: data.recent, older: data.older }
   const all = [...data.proposed, ...data.recent, ...data.older]
   const chosen = all.filter(t => ticked.has(t.id))
-  const sideOf = (t: Candidate) => sides[t.id] ?? t.side
+  const sideOf = (t: Candidate): From => sides[t.id] ?? { side: t.side, insurer: null }
 
   /** Adds each thread; a thread on another case is held back for the person to decide. */
-  async function add(threads: { id: string; subject: string | null; side: Side }[], move: boolean) {
+  async function add(threads: ({ id: string; subject: string | null } & From)[], move: boolean) {
     setBusy('add'); onError(null)
     const held: Conflict[] = []
     const errors: string[] = []
@@ -85,7 +84,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
         const { status, body } = await pick(id, t.id, move)
         if (status === 409 && body.conflict) { held.push({ thread_id: t.id, subject: t.subject, held: body.conflict }); continue }
         if (status >= 400) { errors.push(body.error ?? `Request failed (${status}).`); continue }
-        if (body.side && body.side !== t.side) await callApi(`/api/work/${id}/sources`, { method: 'POST', body: { action: 'side', thread_id: t.id, side: t.side } })
+        if (t.insurer || (body.side && body.side !== t.side)) await callApi(`/api/work/${id}/sources`, { method: 'POST', body: { action: 'side', thread_id: t.id, side: t.side, insurer_id: t.insurer } })
         added++
       } catch (e) { errors.push(errText(e)) }
     }
@@ -97,10 +96,10 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
     if (errors.length) onError(Array.from(new Set(errors)).join(' '))
   }
 
-  async function act(action: 'exclude' | 'restore' | 'side', threadId: string, done: string | null, side?: Side) {
+  async function act(action: 'exclude' | 'restore' | 'side', threadId: string, done: string | null, from?: From) {
     setBusy(threadId); onError(null)
     try {
-      const d = await callApi<{ sources: CaseSources }>(`/api/work/${id}/sources`, { method: 'POST', body: { action, thread_id: threadId, side } })
+      const d = await callApi<{ sources: CaseSources }>(`/api/work/${id}/sources`, { method: 'POST', body: { action, thread_id: threadId, side: from?.side, insurer_id: from?.insurer } })
       setData(d.sources)
       if (done) onNotice(done)
       onChanged()
@@ -115,10 +114,8 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
     { value: 'removed', label: 'Removed', count: data.excluded.length },
   ]
   const rows = tab === 'on' || tab === 'removed' ? [] : offered[tab]
-  const sideSelect = (subject: string | null, value: Side, onChange: (s: Side) => void, disabled = false) => (
-    <select className={selectCls} aria-label={`Side for ${subject || 'No subject'}`} value={value} disabled={disabled} onChange={e => onChange(e.target.value as Side)}>
-      {SIDE_ORDER.map(s => <option key={s} value={s}>{SIDE_NAME[s]}</option>)}
-    </select>
+  const sideSelect = (subject: string | null, value: From, onChange: (f: From) => void, disabled = false) => (
+    <SideSelect subject={subject} value={value} insurers={data.insurers} onChange={onChange} disabled={disabled} />
   )
   const subject = (t: { id: string; subject: string | null }) => (
     <button type="button" onClick={() => onOpenThread(t.id)} className={subjectBtn} title={t.subject ?? undefined}>{t.subject || 'No subject'}</button>
@@ -129,7 +126,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
         <Segmented<Tab> value={tab} onChange={setTab} label="Sources" options={tabs} />
         <Btn level="primary" disabled={busy !== null || chosen.length === 0} loading={busy === 'add'}
-          onClick={() => void add(chosen.map(t => ({ id: t.id, subject: t.subject, side: sideOf(t) })), false)}>
+          onClick={() => void add(chosen.map(t => ({ id: t.id, subject: t.subject, ...sideOf(t) })), false)}>
           {chosen.length ? `Add ${chosen.length} to case` : 'Add to case'}
         </Btn>
       </div>
@@ -143,7 +140,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
                 {data.picked.map(t => (
                   <tr key={t.id}>
                     <td className="px-3 max-w-[320px]">{subject(t)}</td>
-                    <td className="px-2">{sideSelect(t.subject, t.side, s => void act('side', t.id, null, s), busy !== null)}</td>
+                    <td className="px-2">{sideSelect(t.subject, { side: t.side, insurer: t.insurer?.id ?? null }, f => void act('side', t.id, null, f), busy !== null)}</td>
                     <td className="px-3"><Chip>{LABEL_NAME[t.label]}</Chip></td>
                     <td className="cell-left px-3 whitespace-nowrap">{t.picked_by ? actorName(t.picked_by, staff) : t.joined_by ? actorName(t.joined_by, staff) : DASH}</td>
                     <td className="px-3 tabular-nums">{t.messages}</td>
@@ -199,7 +196,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
 
       <MoveThreadDialog conflicts={conflicts} caseTitle={data.item.title ?? 'This case'} staff={staff} busy={busy === 'add'}
         onCancel={() => { setConflicts([]); setTicked(new Set()) }}
-        onMove={() => void add(conflicts.map(c => ({ id: c.thread_id, subject: c.subject, side: sideOf(all.find(t => t.id === c.thread_id) ?? { id: c.thread_id, subject: c.subject, last_message_at: null, label: null, side: 'other', onCase: null }) })), true)} />
+        onMove={() => void add(conflicts.map(c => ({ id: c.thread_id, subject: c.subject, ...sideOf(all.find(t => t.id === c.thread_id) ?? { id: c.thread_id, subject: c.subject, last_message_at: null, label: null, side: 'other', onCase: null }) })), true)} />
     </section>
   )
 }

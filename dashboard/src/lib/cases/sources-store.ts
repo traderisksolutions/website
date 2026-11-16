@@ -3,7 +3,8 @@
  * relevance groups of a client's threads (relevance.ts). No model is called here.
  *
  *   loadSources(caseId, viewer)        picked threads, proposals, excluded threads and the two buckets
- *   pickThread / excludeThread / restoreThread / setSide   a person's choices, each written to the case's events
+ *   pickThread / excludeThread / restoreThread / setSide   a person's choices, each written to the case's events;
+ *                                      setSide also takes the insurer a person names for the thread
  *   setLabel(threadId, label, actor)   a person's label; the rule's label is kept beside it
  *   labelThreadsByRule(threadIds)      the rule's label, at ingest and in the backfill; never over a person's
  *   companyRelevance(companyId, viewer) Active, Back burner and Member movements for one client
@@ -14,6 +15,7 @@
 import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { partyOf } from '@/lib/admin/k/shape'
+import { displayName } from '@/lib/insurers'
 import { visibleThreadIds, threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
 import { ownText } from '@/lib/followups/rules'
 import { labelOf, isLabel, type Label, type LabelMessage } from './labels'
@@ -76,22 +78,34 @@ export async function caseMessages(threadIds: readonly string[]): Promise<Source
     .sort((a, b) => String(a.sent_at ?? '').localeCompare(String(b.sent_at ?? '')))
 }
 
+/** The insurer a person named for a thread of the case, by thread: the company's id. */
+async function namedInsurers(workItemId: string): Promise<Map<string, string>> {
+  const rows = await sbTry<Row[]>(`work_item_threads?work_item_id=eq.${enc(workItemId)}&insurer_company_id=not.is.null&select=thread_id,insurer_company_id`, [])
+  return new Map(rows.map(r => [r.thread_id as string, r.insurer_company_id as string]))
+}
+
 /** The threads a case is built from: what is linked to it, less what a person took off. */
-export async function caseThreadIds(workItemId: string): Promise<{ ids: string[]; sides: Map<string, Side> }> {
-  const [links, excluded] = await Promise.all([
+export async function caseThreadIds(workItemId: string): Promise<{ ids: string[]; sides: Map<string, Side>; insurers: Map<string, string> }> {
+  const [links, excluded, named] = await Promise.all([
     sbTry<Row[]>(`work_item_threads?work_item_id=eq.${enc(workItemId)}&select=thread_id,side`, []),
     sbTry<Row[]>(`work_item_thread_excluded?work_item_id=eq.${enc(workItemId)}&select=thread_id`, []),
+    namedInsurers(workItemId),
   ])
   const off = new Set(excluded.map(e => e.thread_id as string))
   const on = links.filter(l => !off.has(l.thread_id))
-  return { ids: on.map(l => l.thread_id as string), sides: new Map(on.map(l => [l.thread_id as string, isSide(l.side) ? l.side : 'other'])) }
+  return {
+    ids: on.map(l => l.thread_id as string), sides: new Map(on.map(l => [l.thread_id as string, isSide(l.side) ? l.side : 'other'])),
+    insurers: new Map(on.filter(l => l.side === 'insurer' && named.has(l.thread_id)).map(l => [l.thread_id as string, named.get(l.thread_id)!])),
+  }
 }
 
-export type PickedThread = { id: string; subject: string | null; last_message_at: string | null; label: Label; label_by: string | null; side: Side; joined_by: string | null; picked_by: string | null; messages: number }
+export type PickedThread = { id: string; subject: string | null; last_message_at: string | null; label: Label; label_by: string | null; side: Side; /** The insurer a person named for the thread. */ insurer: { id: string; name: string } | null; joined_by: string | null; picked_by: string | null; messages: number }
 export type ExcludedThread = { id: string; subject: string | null; last_message_at: string | null; label: Label; excluded_by: string; excluded_at: string }
 export type CaseSources = {
   item: { id: string; title: string | null; case_type: string; company_id: string | null; client_name: string | null; policy_number: string | null; closed_at: string | null }
   picked: PickedThread[]
+  /** The insurers and administrators on file, for naming a thread's insurer. */
+  insurers: { id: string; name: string }[]
   /** Threads on the case that sit in a colleague's mailbox: counted, not shown. */
   hidden: number
   proposed: Proposal[]; recent: Candidate[]; older: Candidate[]
@@ -110,14 +124,23 @@ async function similarityTo(reference: string[], candidates: string[]): Promise<
   return new Map(rows.filter(r => typeof r.similarity === 'number').map(r => [r.thread_id as string, r.similarity as number]))
 }
 
+/** The insurers and administrators on file, by the name staff know them by. */
+export function insurersOnFile(dir: { byId: Map<string, Row> }): { id: string; name: string }[] {
+  return [...dir.byId.values()].filter(c => (c.kind === 'insurer' || c.kind === 'tpa') && c.company_name)
+    .map(c => ({ id: String(c.id), name: displayName(String(c.company_name)) })).sort((a, b) => a.name.localeCompare(b.name))
+}
+
 export async function loadSources(workItemId: string, viewer: string | null, today = todayIso()): Promise<CaseSources> {
   const item = await caseRow(workItemId)
   const dir = await directory()
-  const [links, excludedRows, client] = await Promise.all([
+  const [links, excludedRows, client, named] = await Promise.all([
     sb<Row[]>(`work_item_threads?work_item_id=eq.${enc(workItemId)}&select=thread_id,side,joined_by,joined_evidence`),
     sb<Row[]>(`work_item_thread_excluded?work_item_id=eq.${enc(workItemId)}&select=thread_id,excluded_by,created_at`),
     item.company_id ? clientThreads(item.company_id) : Promise.resolve({ rows: [] as Row[], named: new Set<string>() }),
+    namedInsurers(workItemId),
   ])
+  const insurers = insurersOnFile(dir)
+  const insurerName = new Map(insurers.map(i => [i.id, i.name]))
   const byId = new Map<string, Row>(client.rows.map(t => [t.id as string, t]))
   const extra = [...links, ...excludedRows].map(r => r.thread_id as string).filter(id => !byId.has(id))
   for (const t of await threadsById(extra)) byId.set(t.id, t)
@@ -149,8 +172,10 @@ export async function loadSources(workItemId: string, viewer: string | null, tod
     item: { id: item.id, title: item.title ?? null, case_type: item.case_type, company_id: item.company_id ?? null, client_name: item.client_name ?? null, policy_number: item.policy_number ?? null, closed_at: item.closed_at ?? null },
     picked: shown.map(l => { const t = byId.get(l.thread_id)!; return {
       id: t.id, subject: subjectOf(t), last_message_at: t.last_message_at ?? null, label: labelFor(t), label_by: t.label_by ?? null, side: sides.get(t.id) ?? 'other',
+      insurer: sides.get(t.id) === 'insurer' && insurerName.has(named.get(t.id) ?? '') ? { id: named.get(t.id)!, name: insurerName.get(named.get(t.id)!)! } : null,
       joined_by: l.joined_by ?? null, picked_by: l.joined_by === PERSON ? l.joined_evidence ?? null : null, messages: count.get(t.id) ?? 0,
     } }).sort(newest),
+    insurers,
     hidden: on.length - shown.length,
     ...offered,
     excluded: excludedRows.filter(e => byId.has(e.thread_id) && visible.has(e.thread_id)).map(e => { const t = byId.get(e.thread_id)!; return {
@@ -224,12 +249,18 @@ export async function restoreThread(workItemId: string, threadId: string, actor:
   await event(workItemId, 'source_restored', actor, { thread_id: threadId, note: 'Thread can be offered again' })
 }
 
-/** Which bucket a picked thread's TRS messages fall in. */
-export async function setSide(workItemId: string, threadId: string, side: Side, actor: string): Promise<void> {
+/**
+ * Which bucket a picked thread's TRS messages fall in, and for the insurer side, which insurer the
+ * thread is with when a person names one. A named insurer stands over the thread's own company and
+ * the insurer its subject names.
+ */
+export async function setSide(workItemId: string, threadId: string, side: Side, actor: string, insurerId: string | null = null): Promise<void> {
   if (!(await threadVisibleTo(threadId, actor))) throw new CaseError(PRIVATE_THREAD.error, 403)
-  const rows = await sb<Row[]>(`work_item_threads?work_item_id=eq.${enc(workItemId)}&thread_id=eq.${enc(threadId)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ side }) })
+  const insurer = side === 'insurer' && insurerId ? insurersOnFile(await directory()).find(i => i.id === insurerId) ?? null : null
+  if (side === 'insurer' && insurerId && !insurer) throw new CaseError('Choose an insurer on file.', 400)
+  const rows = await sb<Row[]>(`work_item_threads?work_item_id=eq.${enc(workItemId)}&thread_id=eq.${enc(threadId)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({ side, insurer_company_id: insurer?.id ?? null }) })
   if (!rows.length) throw new CaseError('This thread is not on the case.', 404)
-  await event(workItemId, 'source_side', actor, { thread_id: threadId, side, note: `Thread set to the ${side} side` })
+  await event(workItemId, 'source_side', actor, { thread_id: threadId, side, insurer_id: insurer?.id ?? null, insurer: insurer?.name ?? null, note: insurer ? `Thread set to ${insurer.name}` : `Thread set to the ${side} side` })
 }
 
 /**

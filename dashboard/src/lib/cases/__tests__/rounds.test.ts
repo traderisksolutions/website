@@ -168,3 +168,23 @@ describe('who a step’s email goes to', () => {
     expect(recipientFor({ to: 'insurer', insurer: 'Harbour Insurance' }, rounds, messages, new Set(['tc', 'tp']), domainKind)).toBeNull()
   })
 })
+
+describe('the insurer a person named for a thread', () => {
+  const named = { threadInsurer: new Map([['th', 'Quay Mutual']]), sideSet: new Set(['th']) }
+  it('stands over what the addresses say, for the request and the reply alike', () => {
+    const r = buildRounds(input([request, askHarbour, harbourQuote], { ...named, threadNamed: new Set(['th']) }))
+    expect(r.rounds[0].chains.map(c => c.insurer)).toEqual(['Quay Mutual'])
+    expect(r.rounds[0].chains[0].thread_id).toBe('th')
+  })
+  it('leaves the address to name the insurer when the thread’s insurer is only read from its subject', () => {
+    const r = buildRounds(input([request, askHarbour, harbourQuote], named))
+    expect(r.rounds[0].chains.map(c => c.insurer)).toEqual(['Harbour Insurance'])
+  })
+  it('names the insurer on a thread whose addresses name none', () => {
+    const ask = ours({ id: 'g1', thread_id: 'tg', sent_at: at(2), to: ['ms.lee.underwriting@gmail.com'], body_text: askHarbour.body_text, files: askHarbour.files })
+    const o = { sides: new Map<string, Side>([...sides, ['tg', 'insurer']]), visible: new Set(['tc', 'tg']), sideSet: new Set(['tg']), threadInsurer: new Map([['tg', 'Quay Mutual']]), threadNamed: new Set(['tg']) }
+    const r = buildRounds(input([request, ask], o))
+    expect(r.rounds[0].chains.map(c => [c.insurer, c.state])).toEqual([['Quay Mutual', 'asked']])
+  })
+})
+

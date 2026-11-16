@@ -6,6 +6,8 @@ Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screen
 
 Live the same day (6cbf02a5): the brief in five parts with a document checklist per line (phase 2, below), and Today › Mail loading a page at a time. Their two migrations are applied to production and are additive. The nightly job that embeds new threads is running.
 
+Built 16 Nov 2026, not deployed: the manual journey (Combine on Today › Mail, a named insurer per thread, Run on Rounds, the basic documents and Files). Its migration, `20261116_manual_journey.sql`, is additive and is not yet applied to production; the code must not deploy before it.
+
 ## Rules
 
 1. A person's pick is the truth. A thread a person put on a case is never moved or removed by an agent; a thread a person took off a case is never put back on it by an agent.
@@ -24,11 +26,12 @@ Migration `supabase/migrations/20261115_case_sources.sql` (additive; safe to run
 | --- | --- |
 | `email_threads.label`, `label_rule`, `label_basis`, `label_by`, `label_at` | The thread's label, what the rule said, what it matched on, and who set it (`rule` or a person's address). |
 | `work_item_threads.joined_by = 'person'`, `joined_evidence` | A person's pick and who made it. Existing table. |
+| `work_item_threads.insurer_company_id` | The insurer on file a person named for an insurer-side thread. Empty for every other side. Migration `20261116_manual_journey.sql`. |
 | `work_item_thread_excluded` | Threads a person took off a case, and who. |
 | `work_item_notes` | Case memory: section, text, the quote and its email, author, status (current, superseded, rejected). |
 | `work_item_reads` | Which agent has read which email of the case. |
-| `line_checklists` | One row per line of insurance that has a list: who confirmed it and when (empty while it is a draft), who last edited it. Migration `20261115_case_brief.sql`. |
-| `line_checklist_items` | The documents of a list: name, how it is found (`file`, `wish`, `person`), document types, words a file name carries, position, active. |
+| `line_checklists` | One row per list: the basic list (`basic`) and one per line of insurance that has a list. Who confirmed it and when, who last edited it. Migration `20261115_case_brief.sql`. |
+| `line_checklist_items` | The documents of a list: name, how it is found (`file`, `wish`, `person`), document types, words a file name carries, `required` (false is Optional), position, active. |
 | `work_item_checklist` | A person's calls on one document of one case: confirmed or not needed, the file confirmed, the files turned down, who and when. What code finds is never stored. |
 | `work_items.product_line`, `product_line_by` | The line of insurance a person chose for the case, and who. |
 | `rpc/today_mail` | Today › Mail in one query: counts per relevance and the newest rows. Migration `20261115_today_mail.sql`. |
@@ -81,6 +84,22 @@ Renewal season is on for a client when a policy ends within 90 days, or a renewa
 
 Proposals are computed on every load and never stored.
 
+A thread on a case has a side: client, insurer, internal or other. An insurer-side thread can name the insurer on file it is with (`setSide(case, thread, side, actor, insurerId)`, kept in `work_item_threads.insurer_company_id`); the list is every company of kind insurer or third-party administrator. A named insurer stands over the company the thread is filed under and over its subject when Rounds groups the thread's emails (`threadNamed`). Any other side clears the name.
+
+## Combine (`combine.ts`, `combine-store.ts`, `CombineDialog.tsx`)
+
+The manual journey, step 1. A person ticks threads on Today › Mail and presses Combine; nothing is made until Start case or Add to case. No model is called.
+
+| The form opens with | From |
+| --- | --- |
+| Client | The client most of the ticked threads are filed under or linked to (`clientAmong`); a person can choose another or add one. |
+| Case | New case, or one of that client's open cases. |
+| Kind | The kind most of the threads' labels point to (`caseTypeAmong`); a renewal among them makes a quotation a renewal; Other when no label points to a kind. |
+| Title | The oldest thread's subject without its reply and forward marks, 140 characters at most (`titleAmong`). |
+| Side per thread | Insurer with its name when the thread is filed under an insurer or administrator, or is an insurer's thread about this client; Client when it is filed under the client; else Other (`fromOfThread`). The person changes any of them. |
+
+`combineThreads` starts the case with a `started` event, or takes the open one, then picks each thread and sets its side through the same store calls as Case › Sources, so the rules hold: one thread, one case (409 with `conflicts` unless the thread is listed in `move`; the button names the move), a colleague's thread answers 403, the same call twice changes nothing. A new case with no thread attached is removed. 40 threads at most in one call.
+
 ## Order by closeness (`similarity.ts`, `thread_vectors`)
 
 Each thread has one vector, made from its subject and what its first three messages say themselves (`threadText`), by `scripts/embed-threads.mts` on a CPU with bge-small-en-v1.5. No model API is called. `rpc/thread_similarity(p_reference, p_candidates)` answers how close each candidate is to the centre of the reference threads: the threads the viewer sees on the case.
@@ -121,7 +140,7 @@ Every row carries its source email; a row with none (a person's own note, a next
 
 ## Document checklists (`checklist.ts`, `brief-store.ts`)
 
-A list belongs to a line of insurance and is held in Settings › Document checklists. It applies to renewal and new-quote cases; a claim has none. It is not the binding gate (`src/lib/admin/b/documents/gate.ts`), which is untouched.
+The basic list (`basic`, "Basic documents") applies to every renewal and new-quote case. A line of insurance can hold a list of its own, shown before the basic one on a case of that line; a document already on the line's list is not repeated (`caseItems`). Lists are held in Settings › Document checklists. A claim has none. It is not the binding gate (`src/lib/admin/b/documents/gate.ts`), which is untouched.
 
 The case's line is a person's choice, else the policy's line or class, else what the title says (`caseLine`). Group health and group personal accident share the Employment Benefits list.
 
@@ -131,9 +150,13 @@ The case's line is a person's choice, else the policy's line or class, else what
 | Client wish on the brief | The brief holds a client wish. |
 | A person only | Never by code; a person confirms it. |
 
-Status on a case: Missing, Found, Confirmed, Not needed. A person's call stands over what code finds. "Not this file" keeps the file on a turned-down list for that case and offers the next. Only a person's calls are stored. The list is complete when no document is Missing.
+Status on a case: Missing, Found, Confirmed, Not needed. A person's call stands over what code finds. "Not this file" keeps the file on a turned-down list for that case and offers the next. Only a person's calls are stored.
 
-A list is a draft until a person confirms it; any edit returns it to draft. A document is retired, not deleted, so calls already made stay on record. Five lists were seeded as drafts (Employment Benefits, group travel, commercial vehicle, directors and officers, work injury compensation); none is confirmed.
+Each document is Required or Optional (`required`). The list is complete when no Required document is Missing; an Optional one never holds it back. The heading counts the required documents ("Documents · 2 of 3 required").
+
+A list applies to a case as it stands, confirmed or not (16 Nov 2026: a case takes whatever the list holds; before, an unconfirmed list showed as a draft on the case). Settings still records who confirmed a list and when. A document is retired, not deleted, so calls already made stay on record. Five line lists were seeded on 15 Nov (Employment Benefits, group travel, commercial vehicle, directors and officers, work injury compensation). The basic list is seeded with last year's policy schedule and claims history as Required and the authorisation form as Optional.
+
+Files (`caseFiles`): under Documents, every case of every kind lists the files on its emails (File, Type, From, Date), newest first, whether a list asks for them or not. A file in a colleague's private thread shows no name.
 
 Measured on production, 15 Nov 2026 (no model):
 
@@ -202,6 +225,8 @@ A person's call on one email (who wrote it and what it is) replaces the rule's r
 
 Draft (`draftStep`) writes one step's email from its template (`src/lib/admin/b/relay/compose.ts`) in the other side's own words, with the files of the email it rests on. It goes to whoever last wrote on that side of the case, else whoever TRS last wrote to there, on that thread. Copied: an insurer's colleagues at the same domain, or everyone on the client's email who is not at an insurer. The draft is the case's unsent email when the case has none, and sits beside it otherwise. It records the agent (`client_agent` or `insurer_agent`), the step and the email it rests on in `ai_drafts.context_used`, so the share sent as written can be counted per agent. The same step twice makes one draft. A person edits and sends it from Overview; nothing sends from Rounds.
 
+Run (`runSteps`) is the manual journey, step 2: it drafts every next step that has an email, one after another, by the same `draftStep`. It answers `{ made, existing, skipped: [{ step, reason }] }`: a step already drafted is counted, not drafted twice; a step that cannot be drafted is passed over with its reason. A closed case answers 400. Nothing sends, and no model is called.
+
 Measured on production, 16 Nov 2026 (read-only): 539 open cases, 403 with emails; 18 hold more than one round (the most is 22, weekly member movements); 354 steps to act on across 212 cases, of which 312 draft an email and 42 name no insurer to write to, and 97 steps that wait. TRS wrote to the same side after the email on 44 of the 354, 36 of them among the 42: those cases have no insurer thread attached. Read by hand, 30 sampled steps: 16 exactly right, 25 with the right recipient, 5 wrong; the rules were tightened after the sample and it was not repeated. The sender read placed 108 of the 280 senders the domain map leaves unplaced.
 
 ## Routes
@@ -211,17 +236,19 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | Route | Does |
 | --- | --- |
 | `GET /api/work/:id/sources` | The sources of a case. |
-| `POST /api/work/:id/sources` | `{ action: pick, exclude, restore or side, thread_id, move?, side? }`; answers the sources as they then stand. |
+| `POST /api/work/:id/sources` | `{ action: pick, exclude or restore, thread_id, move? }`, or `{ action: side, thread_id, side, insurer_id? }` where `insurer_id` names the insurer on file; answers the sources as they then stand. |
+| `GET /api/work/combine?threads=a,b,c&company=` | What Combine opens with: each thread's side, named insurer and the case that holds it, the insurers on file, the client and its open cases, a kind and a title. Writes nothing. |
+| `POST /api/work/combine` | `{ company_id, case_type, title, threads: [{ id, side, insurer_id? }], move? }` starts a case; `{ work_item_id, threads, move? }` adds to an open one. Answers `{ id, created }`. |
 | `GET /api/work/:id/memory` | The nine sections, notes set aside, where the case stands, the emails without their bodies. |
 | `POST /api/work/:id/memory` | `{ action: note, section, text, message_id? }`, or `{ action: reject or restore, note_id }`. |
 | `POST /api/work/:id/read` | The case reader on this case's threads; answers `{ ok, notes, read }`. Started by a person only. |
 | `GET /api/work/:id/brief` | The brief in five parts, the case's line of insurance and its document checklist. |
 | `POST /api/work/:id/brief` | `{ action: confirm, not_needed, reject or clear, item_id }`: a person's call on one document. `{ action: line, line }`: the case's line (null clears the choice). |
 | `GET /api/work/:id/rounds` | The rounds: every email as one move, each insurer's chain, the next steps and the unsent email already made for a step. No email bodies beyond each email's own words. |
-| `POST /api/work/:id/rounds` | `{ action: draft, step }` writes the step's email and answers the rounds with `made`; `{ action: move, message_id, by, move }` is a person's call on one email (both null hand it back to the rule). |
+| `POST /api/work/:id/rounds` | `{ action: draft, step }` writes the step's email and answers the rounds with `made`; `{ action: run }` drafts every step owed and answers the rounds with `ran`; `{ action: move, message_id, by, move }` is a person's call on one email (both null hand it back to the rule). |
 | `GET /api/settings/checklists` | Every line's list with its documents, the document types and the staff names. |
-| `POST /api/settings/checklists` | `{ action: list, line }` starts a list; `{ action: item, line, label, found_by, doc_types, words }` adds a document; `{ action: confirm, line }` confirms the list. |
-| `PATCH /api/settings/checklists` | `{ id, label?, found_by?, doc_types?, words?, active? }` edits or retires a document. |
+| `POST /api/settings/checklists` | `{ action: list, line }` starts a list; `{ action: item, line, label, found_by, doc_types, words, required? }` adds a document; `{ action: confirm, line }` confirms the list. |
+| `PATCH /api/settings/checklists` | `{ id, label?, found_by?, doc_types?, words?, required?, active? }` edits or retires a document. |
 | `GET /api/today/mail?relevance=&label=&limit=` | The count per relevance under the label filter and the newest `limit` rows (200 by default, 20,000 at most) the person may see, with company, label, who set it and the open case. One database call (`rpc/today_mail`). |
 | `POST /api/threads/:id/label` | `{ label }`: a person's label. |
 | `GET /api/engagement/thread/:id/referral` | `{ tag, suggestion }`: the person's mark on the thread and the rules' reading of its senders. |
@@ -245,14 +272,14 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 
 | Screen | Where | Shows |
 | --- | --- | --- |
-| Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: Thread, Company, Label, Set by, Last message, Case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
+| Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: a tick box, Thread, Company, Label, Set by, Last message, Case. Ticked threads open Combine (`CombineDialog.tsx`): Client, Case, Kind, Title, then Thread, Side, Filed under, Last message, On case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
 | Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
-| Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side, Add. A thread on another case opens `MoveThreadDialog`. |
+| Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side (Client, an insurer by name, Internal, Other: `SideSelect.tsx`), Add. A thread on another case opens `MoveThreadDialog`. |
 | Case › Conversation | `?section=conversation` (`CaseConversation.tsx`) | Client table above Insurer table: Date, From, Message, Files. |
-| Case › Rounds | `?section=rounds` (`CaseRounds.tsx`) | Next steps (Step, Since, Drafted by, and Draft, Open draft or Open thread). Then one round at a time: its insurers (Insurer, Asked, Replied, Sent to client, State) and its emails (Date, From, Insurer, Type, Message, Files). Type is a list a person can change. |
-| Case › Brief | `?section=brief` (`CaseBrief.tsx`, `CaseBriefTables.tsx`) | Tabs Brief, Notes, Set aside. Brief: the five parts in one table (Part, Item, Who, Date, Source), then on a renewal or new quote the line of insurance and Documents (Document, Status, File, By, Action). Notes: every note with its source; Set aside, Restore, Add note. |
-| Settings › Document checklists | `/settings?section=checklists` (`ChecklistPanel.tsx`) | One table per line: Document, Found by, File name says, Action. Add document, Edit, Retire, Confirm list; Add list for a line that has none. |
+| Case › Rounds | `?section=rounds` (`CaseRounds.tsx`) | Run, the one primary button, drafts every step owed. Next steps (Step, Since, Drafted by, and Draft, Open draft or Open thread). Then one round at a time: its insurers (Insurer, Asked, Replied, Sent to client, State) and its emails (Date, From, Insurer, Type, Message, Files). Type is a list a person can change. |
+| Case › Brief | `?section=brief` (`CaseBrief.tsx`, `CaseBriefTables.tsx`) | Tabs Brief, Notes, Set aside. Brief: the five parts in one table (Part, Item, Who, Date, Source), then on a renewal or new quote the line of insurance and Documents (Document, Need, Status, File, By, Action), then on every case Files (File, Type, From, Date). Notes: every note with its source; Set aside, Restore, Add note. |
+| Settings › Document checklists | `/settings?section=checklists` (`ChecklistPanel.tsx`) | The basic list, then one table per line: Document, Need, Found by, File name says, Action. Add document, Edit, Retire, Confirm list; Add list for a line that has none. |
 
 A panel that changes the case refreshes the page's events and threads without reloading the draft, so words typed in the draft survive.
 
@@ -264,6 +291,8 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 ## Not built yet
 
+- The automatic layer (journey 2): a model that selects a case's threads, sets their sides and runs the steps. Every step of the manual journey is a person's click today.
+- Combine has not been walked against the database with test records; the dogfood script does not cover it yet.
 - Rounds: the case agent that decides between the client agent and the insurer agent with a model, and the share of drafts sent as written per agent on `/analytics/autonomy`.
 - Referral marks live in `app_settings`, so the Inbox list cannot filter on them; a column on `email_threads` would allow it.
 - Rounds: an insurer's follow-up and a third-party administrator's reminder can read as a question or as terms; a client's answer with no insurer named is offered to every insurer asked. A person's Type corrects one email.

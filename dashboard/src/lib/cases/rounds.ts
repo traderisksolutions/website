@@ -125,6 +125,8 @@ export type RoundsInput = {
   names: NameIndex
   /** The insurer a thread is with when its addresses do not say. */
   threadInsurer: Map<string, string>
+  /** Threads whose insurer a person named: that name stands over what the addresses say. */
+  threadNamed?: ReadonlySet<string>
   caseType: string | null
   /** A person's call per email. */
   set: ReadonlyMap<string, Call>
@@ -309,9 +311,14 @@ export function buildRounds(i: RoundsInput): Rounds {
     const on = seen.get(threadId)
     return on?.size === 1 ? [...on][0] : i.sides.get(threadId)
   }
+  /** The insurer a person named for a thread. */
+  const namedOn = (threadId: string) => (i.threadNamed?.has(threadId) ? i.threadInsurer.get(threadId) ?? null : null)
   /** The insurer behind an address, by name. */
-  const insurerAt = (address: string, threadId: string) =>
-    i.insurerName(address) ?? (place(address)?.side === 'insurer' ? i.threadInsurer.get(threadId) ?? unnamed(address) : null)
+  const insurerAt = (address: string, threadId: string) => {
+    const own = i.insurerName(address)
+    if (!own && place(address)?.side !== 'insurer') return null
+    return namedOn(threadId) ?? own ?? i.threadInsurer.get(threadId) ?? unnamed(address)
+  }
   /** The insurers an email of TRS's was written to. */
   const insurersOn = (m: SourceMessage): string[] => {
     const named = (list: readonly string[] | undefined) => Array.from(new Set((list ?? []).map(a => insurerAt(a, m.thread_id)).filter((n): n is string => !!n)))
@@ -451,7 +458,7 @@ export function buildRounds(i: RoundsInput): Rounds {
     }
 
     // The insurer side.
-    const who = i.insurerName(m.from_address) ?? i.threadInsurer.get(m.thread_id) ?? unnamed(m.from_address ?? '')
+    const who = namedOn(m.thread_id) ?? i.insurerName(m.from_address) ?? i.threadInsurer.get(m.thread_id) ?? unnamed(m.from_address ?? '')
     const rule = insurerMove(m, i.caseType)
     const move = person ?? rule.move
     const round = rounds[(askedIn.get(who) ?? cur().n) - 1]

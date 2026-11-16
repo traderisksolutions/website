@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { caseLine, checklistLine, checklistState, cleanItem, fileMatches, findFile, lineName, type Call, type ChecklistItem } from '../checklist'
+import { BASIC_LIST, caseFiles, caseItems, caseLine, checklistLine, checklistState, cleanItem, fileMatches, findFile, lineName, type Call, type ChecklistItem } from '../checklist'
 import type { SourceMessage } from '../sources'
 
-const item = (o: Partial<ChecklistItem> & { id: string; label: string }): ChecklistItem => ({ line: 'employee_benefits', found_by: 'file', doc_types: [], words: [], position: 0, active: true, ...o })
+const item = (o: Partial<ChecklistItem> & { id: string; label: string }): ChecklistItem => ({ line: 'employee_benefits', found_by: 'file', doc_types: [], words: [], position: 0, active: true, required: true, ...o })
 const census = item({ id: 'i1', label: 'Census', doc_types: ['member_list'], position: 1 })
 const premium = item({ id: 'i2', label: 'Last year’s premium', doc_types: ['insurer_debit_note'], words: ['premium'], position: 2 })
 const wish = item({ id: 'i3', label: 'Client wish list', found_by: 'wish', position: 3 })
@@ -91,5 +91,52 @@ describe('checklistState', () => {
   })
   it('is never complete with nothing on the list', () => {
     expect(checklistState([], [], messages, true)).toMatchObject({ total: 0, complete: false })
+  })
+})
+
+describe('Required and Optional', () => {
+  const schedule = item({ id: 'b1', line: BASIC_LIST, label: 'Last year’s policy schedule', doc_types: ['policy_schedule'], position: 1 })
+  const claims = item({ id: 'b2', line: BASIC_LIST, label: 'Claims history', doc_types: ['claims_history'], position: 2 })
+  const form = item({ id: 'b3', line: BASIC_LIST, label: 'Authorisation form', doc_types: ['broker_appointment'], words: ['authorisation', 'loa'], position: 3, required: false })
+  it('is complete when no Required document is missing, whatever the Optional ones show', () => {
+    const s = checklistState([census, form], [], messages, false)
+    expect(s.rows.map(r => [r.label, r.required, r.state])).toEqual([['Census', true, 'found'], ['Authorisation form', false, 'missing']])
+    expect(s).toMatchObject({ ticked: 1, total: 2, required: 1, required_ticked: 1, complete: true })
+  })
+  it('is not complete while a Required document is missing', () => {
+    expect(checklistState([census, workshop, form], [], messages, false)).toMatchObject({ required: 2, required_ticked: 1, complete: false })
+  })
+  it('ticks the Optional form from its file name', () => {
+    const s = checklistState([form], [], [msg('m3', '2026-11-05T02:00:00Z', ['Signed LOA - Orchard Foods.pdf'])], false)
+    expect(s.rows[0]).toMatchObject({ state: 'found', required: false })
+  })
+  it('puts the line’s own documents before the basic ones', () => {
+    const s = checklistState(caseItems([form, claims, schedule], [premium, census]), [], [], false)
+    expect(s.rows.map(r => r.label)).toEqual(['Census', 'Last year’s premium', 'Last year’s policy schedule', 'Claims history', 'Authorisation form'])
+  })
+  it('leaves out a basic document the line’s list already asks for, by name or by document type', () => {
+    const own = [item({ id: 'l1', label: 'Policy schedule 2025', doc_types: ['policy_schedule'] }), item({ id: 'l2', label: 'claims history', words: ['claims'] })]
+    expect(caseItems([schedule, claims, form], own).map(i => i.id)).toEqual(['l1', 'l2', 'b3'])
+  })
+  it('passes over a retired document on either list', () => {
+    expect(caseItems([{ ...claims, active: false }, form], [{ ...census, active: false }]).map(i => i.id)).toEqual(['b3'])
+    expect(caseItems([schedule], []).map(i => i.id)).toEqual(['b1'])
+  })
+  it('names the basic list', () => {
+    expect(lineName(BASIC_LIST)).toBe('Basic documents')
+  })
+})
+
+describe('caseFiles', () => {
+  it('lists every file on the case’s emails, newest first, without signature images', () => {
+    const files = caseFiles([...messages, msg('m3', '2026-11-06T02:00:00Z', ['Notes from call.docx'], 't2')])
+    expect(files.map(f => f.filename)).toEqual(['Notes from call.docx', 'Census update Nov.xlsx', 'Premium summary 2025.pdf', 'Employee Census 2026.xlsx'])
+    expect(files[0]).toMatchObject({ thread_id: 't2', message_id: 'm3', from: 'hr@orchard-foods.example', at: '2026-11-06T02:00:00Z' })
+  })
+  it('names the document type a file name says, and none when it says nothing', () => {
+    const files = caseFiles(messages)
+    expect(files.find(f => f.filename === 'Employee Census 2026.xlsx')?.type).toBeTruthy()
+    expect(caseFiles([msg('m4', '2026-11-07T02:00:00Z', ['scan0001.pdf'])])[0].type).toBeNull()
+    expect(caseFiles([])).toEqual([])
   })
 })

@@ -3,7 +3,7 @@
 /**
  * Case brief. Brief is what a person needs to send the next email, in five parts (communicated,
  * client wish list, known risks and success factors, open questions, next step), above the
- * documents the case's line of insurance needs. Notes lists every note the case holds, one per
+ * documents the case is checked for and every file on its emails. Notes lists every note the case holds, one per
  * row with the email it came from; Set aside takes a note off the brief without deleting it and
  * Restore puts it back. Words from a colleague's mailbox are withheld.
  */
@@ -17,7 +17,7 @@ import { actorName, senderName } from '@/lib/cases/names'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
 import type { CheckAction, CheckRow } from '@/lib/cases/brief-store'
 import type { CaseBriefAnswer } from '@/app/api/work/[id]/brief/route'
-import { BriefTable, CaseDocuments } from './CaseBriefTables'
+import { BriefTable, CaseDocuments, CaseFiles } from './CaseBriefTables'
 import { subjectBtn, tableFrame } from './shared'
 
 type Tab = 'brief' | 'current' | 'aside'
@@ -113,6 +113,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
         <div className="flex flex-col gap-5 min-w-0">
           <BriefTable view={brief} staff={brief.staff} onOpenThread={onOpenThread} />
           {brief.checklist_applies && <CaseDocuments view={brief} staff={brief.staff} busy={busy} onOpenThread={onOpenThread} onCheck={onCheck} onLine={onLine} />}
+          <CaseFiles files={brief.files} onOpenThread={onOpenThread} />
         </div>
       ) : rows.length === 0 ? <Empty compact>{tab === 'current' ? 'No notes on the case.' : 'No notes set aside.'}</Empty> : (
         <div className={tableFrame}>

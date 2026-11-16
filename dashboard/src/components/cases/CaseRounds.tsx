@@ -3,7 +3,8 @@
 /**
  * Case rounds: who is owed what next, read from the case's emails by rule (no model reads here).
  * Next steps lists the emails not yet passed on, each with the button that drafts it from its
- * template; the draft lands on Overview, where a person edits and sends it. Under it, one round
+ * template, and Run, which drafts every one of them; the drafts land on Overview, where a person
+ * edits and sends them. Under it, one round
  * at a time: each insurer's chain (asked, replied, sent to client), then every email as one move.
  * Type is the rule's reading of an email; a person's choice there replaces it for that email.
  * Words from a colleague's mailbox are withheld.
@@ -16,7 +17,7 @@ import { DASH, fmtDay, fmtDayTime } from '@/lib/format'
 import type { StageTone } from '@/lib/crm/types'
 import type { ChainState, RoundMove, Step, Writer } from '@/lib/cases/rounds'
 import type { CaseRoundsView } from '@/lib/cases/rounds-store'
-import type { StepDrafted } from '@/lib/cases/rounds-draft'
+import type { StepDrafted, StepsRun } from '@/lib/cases/rounds-draft'
 import { count, headingCls, subjectBtn, tableFrame } from './shared'
 
 const STATE_TONE: Record<ChainState, StageTone> = { to_ask: 'amber', asked: 'neutral', heard: 'neutral', replied: 'amber', sent: 'green', declined: 'red' }
@@ -58,6 +59,17 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
       onChanged()
     } catch (e) { onError(errText(e)) } finally { setBusy(null) }
   }
+  async function run() {
+    setBusy('run'); onError(null)
+    try {
+      const d = await callApi<CaseRoundsView & { ran: StepsRun }>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'run' } })
+      setView(d)
+      const { made, existing, skipped } = d.ran
+      if (made || existing) onNotice([made ? `${count(made, 'draft')} written` : null, existing ? `${existing} already drafted` : null].filter(Boolean).join(', ') + '. On Overview.')
+      if (skipped.length) onError(skipped.map(s => `${s.step}: ${s.reason}`).join(' '))
+      if (made) onChanged()
+    } catch (e) { onError(errText(e)) } finally { setBusy(null) }
+  }
   async function call(m: RoundMove, value: string) {
     const [by, move] = value === 'rule' ? [null, null] : value.split(':')
     setBusy(m.message_id); onError(null)
@@ -73,11 +85,11 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
   if (moves === 0) return <Empty>No emails on the case. Add its threads under Sources.</Empty>
 
   const shown = rounds.find(r => r.n === round) ?? rounds[rounds.length - 1]
-  const firstDraft = steps.find(s => s.act === 'draft' && !view.drafted[s.id])?.id
+  const toDraft = steps.filter(s => s.act === 'draft' && !view.drafted[s.id]).length
   const options = [...rounds].reverse().map(r => ({ value: String(r.n), label: `Round ${r.n}`, count: r.moves.length }))
   const action = (s: Step) => {
     if (s.act === 'draft' && view.drafted[s.id]) return <Btn size="xs" onClick={onOpenDraft}>Open draft</Btn>
-    if (s.act === 'draft') return <Btn size="xs" level={s.id === firstDraft ? 'primary' : 'secondary'} disabled={busy !== null || !!view.item.closed_at} loading={busy === s.id} onClick={() => void draft(s)}>Draft</Btn>
+    if (s.act === 'draft') return <Btn size="xs" disabled={busy !== null || !!view.item.closed_at} loading={busy === s.id} onClick={() => void draft(s)}>Draft</Btn>
     return s.thread_id ? <Btn size="xs" onClick={() => onOpenThread(s.thread_id!)}>Open thread</Btn> : null
   }
   const type = (m: RoundMove) => {
@@ -98,7 +110,10 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
   return (
     <section aria-label="Rounds" className="flex flex-col gap-5 min-w-0">
       <div className="flex flex-col gap-2 min-w-0">
-        <h2 className={headingCls}>Next steps · {steps.length}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
+          <h2 className={headingCls}>Next steps · {steps.length}</h2>
+          <Btn level="primary" disabled={busy !== null || toDraft === 0 || !!view.item.closed_at} loading={busy === 'run'} onClick={() => void run()}>{toDraft ? `Run · ${count(toDraft, 'draft')}` : 'Run'}</Btn>
+        </div>
         {steps.length === 0 ? <Empty compact>Nothing is waiting to be passed on.</Empty> : (
           <div className={tableFrame}>
             <table className="trs-table table-fixed" style={{ minWidth: 680 }} aria-label="Next steps">

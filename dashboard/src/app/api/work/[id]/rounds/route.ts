@@ -3,13 +3,14 @@
  *                             the next steps and the unsent email already made for a step.
  * POST /api/work/:id/rounds → { action: 'move', message_id, by, move } a person's call on one email
  *                             (by and move null hand it back to the rule),
- *                             { action: 'draft', step } the email for one next step, from its template.
+ *                             { action: 'draft', step } the email for one next step, from its template,
+ *                             { action: 'run' } the email for every next step that has one.
  * Words and file names from a colleague's private thread are withheld. No model is called.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { caseActor, caseFail } from '@/lib/cases/http'
 import { isMove, isWriter } from '@/lib/cases/rounds'
-import { draftStep } from '@/lib/cases/rounds-draft'
+import { draftStep, runSteps } from '@/lib/cases/rounds-draft'
 import { loadRounds, setCall } from '@/lib/cases/rounds-store'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -35,6 +36,10 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       if (typeof body.step !== 'string' || !body.step) return NextResponse.json({ error: 'Name the step to draft.' }, { status: 400 })
       const drafted = await draftStep(id, body.step, who.actor)
       return NextResponse.json({ ...(await loadRounds(id, who.actor)), made: drafted })
+    }
+    if (body?.action === 'run') {
+      const ran = await runSteps(id, who.actor)
+      return NextResponse.json({ ...(await loadRounds(id, who.actor)), ran })
     }
     if (body?.action === 'move') {
       if (typeof body.message_id !== 'string' || !body.message_id) return NextResponse.json({ error: 'Name the email.' }, { status: 400 })
