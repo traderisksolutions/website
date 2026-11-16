@@ -4,20 +4,20 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-16 — Manual journey: combine threads, name the insurer, run (not deployed; migration not applied)
+## 2026-11-16 — Manual journey: combine threads, name the insurer, run (migration applied)
 
 - **Combine** (Today › Mail, `CombineDialog.tsx`, `src/lib/cases/combine.ts`, `combine-store.ts`, `GET/POST /api/work/combine`): a tick box on every thread and one primary button. "Case from N threads" opens with the client most of the threads belong to, that client's open cases, a kind and a title read from the threads, and a side per thread. Start case or Add to case, then the page opens on the case's Rounds. A thread another case holds moves only when the button names the move. Nothing is made until the person presses the button.
 - **Named insurer per thread** (`SideSelect.tsx`, `setSide`): a thread's side is Client, an insurer on file by name, Internal or Other, on Combine and on Case › Sources. The named insurer stands over the thread's company and subject in Rounds.
 - **Run** (Case › Rounds, `runSteps`, `{ action: run }`): drafts every next step that has an email by the existing templates. The drafts join the case's unsent emails on Overview; a person edits and sends. Run is the view's primary button; Draft on a row stays.
 - **Documents**: one basic list for every renewal and new-quote case (last year's policy schedule and claims history Required, authorisation form Optional), ahead of any list the line holds. Each document is Required or Optional; the list is complete when no Required document is missing. A list applies as it stands; the draft mark is gone from the case.
 - **Files** (Case › Brief): every file on the case's emails in one table, on every kind of case.
-- **Migration** `20261116_manual_journey.sql` (additive): `work_item_threads.insurer_company_id`, `line_checklist_items.required`, the basic list and its three documents. Not applied; the code must not deploy before it.
+- **Migration** `20261116_manual_journey.sql` (additive): `work_item_threads.insurer_company_id`, `line_checklist_items.required`, the basic list and its three documents. Applied to production 16 Nov 2026.
 - **Home › Mail** (`HomeMail.tsx`): the newest 15 active threads under the To do list: a tick box, Company, Thread, Label, Source. A thread opens in the Inbox; ticked threads open the same Combine form ("Next steps for N threads") and the case opens on Rounds. Behaviour TOD-026, journey case-sources TOD-026.
 - No model is called anywhere in the journey. Not built: the automatic layer, where a model selects the threads, sets the sides and runs the steps.
-- Not verified against the database: starting a case from Combine, a named insurer saved on a thread, Run pressed on a case.
+- Walked against the database with test records (`scripts/dogfood-case-sources.mts`: stores 220 checks, routes 129): a case from three ticked threads, a named insurer standing over a thread's own company, Run writing one email per insurer to the client and none on a second press, Required and Optional documents, every refusal leaving no case behind. Records removed.
 - Behaviours TOD-024, TOD-025, CSE-019 to CSE-021, CSE-029 to CSE-032. Journey `case-sources.spec.ts` TOD-025 and updates to TOD-024, CSE-012, CSE-019 to CSE-022. Tests `combine.test.ts` (20), `checklist.test.ts`, `rounds.test.ts`.
 
-## 2026-11-16 — Referral mark on the Inbox rail, referrals review (not deployed)
+## 2026-11-16 — Referral mark on the Inbox rail, referrals review
 
 - **Referral row on the rail** (`ThreadReferral.tsx`, `src/lib/crm/thread-referral.ts`): under From, when the rules read a referral among the thread's senders. Tag as referral or Not a referral is kept for that thread alone (`app_settings`, `thread_referral:<id>`); the company keeps its kind and the thread stays filed where it is. Rounds read the mark. No model is called and no table was added.
 - **Checked rule**: a sender at a referral's domain counts by address only when a person has checked that referral; an unchecked one counts when the sender also writes as a referral. On the 266 latest threads filed elsewhere: 8 suggestions, against 43 with every referral's domain counted.

@@ -15,8 +15,9 @@
  *       checklist on a line that has none (started, filled, confirmed, removed), a person's calls
  *       on its documents, the rounds (every email as one move, the insurer's chain, a next
  *       step drafted once from its template, a person's call on an email), the case worker's
- *       guard and the ingest hook.
- * http  seeds the same records and walks the nine routes with a signed-in session (the dev
+ *       guard, Combine (a case from ticked threads, a named insurer per thread, Run) and the
+ *       ingest hook.
+ * http  seeds the same records and walks the ten routes with a signed-in session (the dev
  *       server must run on the same database: API_GATE_MODE=log-only npx next dev -p 3117).
  * clean removes the test records, for a run that was cut short.
  *
@@ -35,7 +36,8 @@ import { mailByLabel } from '@/lib/cases/mail-store'
 import { addItem, addList, confirmList, editItem, listChecklists, loadBrief, setCaseLine, setCheck, type CaseBriefView } from '@/lib/cases/brief-store'
 import { checklistLine } from '@/lib/cases/checklist'
 import { loadRounds, setCall } from '@/lib/cases/rounds-store'
-import { draftStep } from '@/lib/cases/rounds-draft'
+import { draftStep, runSteps } from '@/lib/cases/rounds-draft'
+import { combinePreview, combineThreads } from '@/lib/cases/combine-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import { labelled, mailView, type MailRelevance, type MailRow } from '@/lib/cases/mail'
 import { RELEVANCE, relevanceOf } from '@/lib/cases/relevance'
@@ -52,13 +54,14 @@ const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://missing').h
 const local = /^(127\.0\.0\.1|localhost)(:|$)/.test(host)
 
 const u = (n: number) => `d09f00d0-0000-4000-8000-${String(n).padStart(12, '0')}`
-const CLIENT = u(1), INSURER = u(2), POLICY = u(5)
+const CLIENT = u(1), INSURER = u(2), SECOND = u(3), POLICY = u(5)
 const W1 = u(11), W2 = u(12)
-const T = { renewal: u(21), insurer: u(22), movement: u(23), old: u(24), hidden: u(25), other_case: u(26), pantry: u(27), fresh: u(28) }
-const M = { client: u(31), trs: u(32), ask: u(33), quote: u(34), movement: u(35), old: u(36), hidden: u(37), timeline: u(38), pantry: u(39), later: u(40), fresh: u(41), terms: u(42), reask: u(43) }
-const COMPANIES = [CLIENT, INSURER], THREADS = Object.values(T), CASES = [W1, W2]
+const T = { renewal: u(21), insurer: u(22), movement: u(23), old: u(24), hidden: u(25), other_case: u(26), pantry: u(27), fresh: u(28), ask: u(61), first: u(62), second: u(63) }
+const M = { client: u(31), trs: u(32), ask: u(33), quote: u(34), movement: u(35), old: u(36), hidden: u(37), timeline: u(38), pantry: u(39), later: u(40), fresh: u(41), terms: u(42), reask: u(43), c_ask: u(71), c_req1: u(72), c_quote1: u(73), c_req2: u(74), c_quote2: u(75) }
+const COMPANIES = [CLIENT, INSURER, SECOND], THREADS = Object.values(T), CASES = [W1, W2]
 const ME = 'dogfood.staff@trade-risksol.com', COLLEAGUE = 'dogfood.colleague@trade-risksol.com'
-const HR = 'hr@dogfood-client.invalid', UW = 'uw@dogfood-insurer.invalid'
+const HR = 'hr@dogfood-client.invalid', UW = 'uw@dogfood-insurer.invalid', DESK = 'desk@dogfood-market.invalid'
+const SECOND_NAME = 'Dogfood Second Insurer (test)'
 const CLIENT_NAME = 'Dogfood Client Pte Ltd (test)'
 const NOWHERE = u(99)
 
@@ -167,7 +170,7 @@ async function leftovers(): Promise<Record<string, number>> {
     work_item_notes: await count(`work_item_notes?work_item_id=${list(cases)}&select=id`),
     work_item_reads: await count(`work_item_reads?work_item_id=${list(cases)}&select=message_id`),
     ai_drafts: await count(`ai_drafts?work_item_id=${list(cases)}&select=id`),
-    contacts: await count(`contacts?or=(company_id.${list(COMPANIES)},email.${list([HR, UW])})&select=id`),
+    contacts: await count(`contacts?or=(company_id.${list(COMPANIES)},email.${list([HR, UW, DESK])})&select=id`),
     thread_vectors: await count(`thread_vectors?thread_id=${list(THREADS)}&select=thread_id`),
     company_ledger: await count(`company_ledger?or=(company_id.${list(COMPANIES)},group_id.${list(COMPANIES)})&select=id`),
     line_checklists: await count(`line_checklists?updated_by=eq.${enc(ME)}&select=line`),
@@ -186,6 +189,7 @@ async function seed(): Promise<void> {
   await put('companies', [
     { id: CLIENT, company_name: CLIENT_NAME, kind: 'client', domain: 'dogfood-client.invalid', domains: ['dogfood-client.invalid'], owner_emails: [] },
     { id: INSURER, company_name: 'Dogfood Insurer (test)', kind: 'insurer', domain: 'dogfood-insurer.invalid', domains: ['dogfood-insurer.invalid'], owner_emails: [] },
+    { id: SECOND, company_name: SECOND_NAME, kind: 'insurer', domain: 'dogfood-second.invalid', domains: ['dogfood-second.invalid'], owner_emails: [] },
   ])
   await put('policies', [{ id: POLICY, company_id: CLIENT, policy_number: 'GHS-778899', end_date: new Date(Date.now() + 40 * 86_400_000).toISOString().slice(0, 10) }])
   await put('email_threads', [
@@ -246,7 +250,8 @@ const notes = async (workItemId: string) => sb<Row[]>(`work_item_notes?work_item
 
 async function walkStores(): Promise<void> {
   console.log('\nLabels by rule')
-  const seven = THREADS.filter(t => t !== T.fresh)
+  const later: string[] = [T.fresh, T.ask, T.first, T.second]
+  const seven = THREADS.filter(t => !later.includes(t))
   const first = await labelThreadsByRule(seven)
   let L = await labels()
   const label = (id: string) => L.get(id)?.label
@@ -471,7 +476,10 @@ async function walkStores(): Promise<void> {
   await setCaseLine(W1, LINE, ME)
   b = await loadBrief(W1, ME)
   ok('a person\'s choice stands over the title', b.line?.line === LINE && b.line?.by === 'person', b.line)
-  ok('a line with no list shows none', b.checklist === null && b.checklist_applies === true)
+  const basic = (await listChecklists()).find(l => l.line === 'basic')?.items.filter(i => i.active) ?? []
+  const needed = basic.filter(i => i.required).length
+  ok('the basic documents are on file, Required and Optional', basic.length > 0 && needed > 0 && needed < basic.length, basic.map(i => [i.label, i.required]))
+  ok('a line with no list of its own runs on the basic documents', b.checklist?.line === 'basic' && b.checklist.total === basic.length && b.checklist.required === needed && b.checklist.complete === false && b.checklist_applies === true, b.checklist && { line: b.checklist.line, total: b.checklist.total, required: b.checklist.required })
 
   console.log('\nA checklist in Settings')
   const listsBefore = await listChecklists()
@@ -502,19 +510,19 @@ async function walkStores(): Promise<void> {
   ok('a document on no list is 404', (await refusal(() => editItem(NOWHERE, { label: 'Anything' }, ME))).status === 404)
   ok('confirming a line with no list is 404', (await refusal(() => confirmList('snacks', ME))).status === 404)
   const after = await listChecklists()
-  ok('no other list was written to', listsBefore.every(l => { const a = after.find(x => x.line === l.line); return !!a && a.updated_at === l.updated_at && a.confirmed_by === l.confirmed_by && a.items.length === l.items.length }), after.map(l => [l.line, l.updated_at]))
+  ok('no other list was written to, the basic documents among them', listsBefore.some(l => l.line === 'basic') && listsBefore.every(l => { const a = after.find(x => x.line === l.line); return !!a && a.updated_at === l.updated_at && a.confirmed_by === l.confirmed_by && a.items.length === l.items.length }), after.map(l => [l.line, l.updated_at]))
 
   console.log('\nDocuments on the case')
   await put('email_attachments', [{ message_id: M.hidden, thread_id: T.hidden, filename: 'Budget_Dogfood_2027.xlsx' }])
   b = await loadBrief(W1, ME)
   const doc = (v: CaseBriefView, id: string) => v.checklist?.rows.find(r => r.item_id === id)
-  ok('the case runs on the list of its line, marked draft', b.checklist?.line === LINE && b.checklist?.confirmed_by === null && b.checklist?.total === 4, b.checklist && { line: b.checklist.line, total: b.checklist.total })
+  ok('the case runs on the list of its line, the basic documents after it', b.checklist?.line === LINE && b.checklist?.total === 4 + basic.length && b.checklist.rows.slice(0, 4).every(r => r.required) && same(b.checklist.rows.slice(4).map(r => r.item_id), basic.map(i => i.id)), b.checklist && { line: b.checklist.line, total: b.checklist.total, rows: b.checklist.rows.map(r => r.label) })
   ok('a file on the case ticks its document: name, sender, email', doc(b, quotation)?.state === 'found' && doc(b, quotation)?.file?.filename === 'Quotation_Dogfood_GHS.pdf' && doc(b, quotation)?.file?.message_id === M.quote && doc(b, quotation)?.file?.thread_id === T.insurer, doc(b, quotation))
   ok('a client wish on the brief ticks the wish list', doc(b, wishItem)?.state === 'found' && doc(b, wishItem)?.file === null, doc(b, wishItem))
   ok('a document only a person can confirm is missing', doc(b, form)?.state === 'missing', doc(b, form))
   ok('a file in a colleague\'s mailbox is found with its name withheld', doc(b, budget)?.state === 'found' && doc(b, budget)?.private === true && doc(b, budget)?.file?.filename === '' && doc(b, budget)?.file?.from === null, doc(b, budget))
   ok('the colleague reads the file name', doc(await loadBrief(W1, COLLEAGUE), budget)?.file?.filename === 'Budget_Dogfood_2027.xlsx')
-  ok('three of four ticked, none confirmed, not complete', b.checklist?.ticked === 3 && b.checklist?.confirmed === 0 && b.checklist?.complete === false, b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed })
+  ok('three of the line\'s four ticked, no basic document found, none confirmed, not complete', b.checklist?.ticked === 3 && b.checklist?.confirmed === 0 && b.checklist?.complete === false, b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed })
   await setCheck(W1, quotation, ME, 'confirm')
   b = await loadBrief(W1, ME)
   let C = await calls(W1)
@@ -536,15 +544,18 @@ async function walkStores(): Promise<void> {
   await setCheck(W1, form, ME, 'confirm')
   await setCheck(W1, budget, COLLEAGUE, 'confirm')
   b = await loadBrief(W1, ME)
-  ok('every document ticked: the list is complete', b.checklist?.complete === true && b.checklist?.ticked === 4 && b.checklist?.confirmed === 3 && doc(b, quotation)?.state === 'not_needed', b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed, complete: b.checklist.complete })
+  ok('the line\'s documents ticked, the basic Required ones missing: not complete', b.checklist?.complete === false && b.checklist?.ticked === 4 && b.checklist?.confirmed === 3 && b.checklist.required_ticked === 4 && doc(b, quotation)?.state === 'not_needed', b.checklist && { ticked: b.checklist.ticked, confirmed: b.checklist.confirmed, required_ticked: b.checklist.required_ticked, complete: b.checklist.complete })
+  for (const i of basic.filter(x => x.required)) await setCheck(W1, i.id, ME, 'confirm')
+  b = await loadBrief(W1, ME)
+  ok('every Required document ticked: complete with the Optional ones missing', b.checklist?.complete === true && b.checklist.required_ticked === b.checklist.required && b.checklist.required === 4 + needed && b.checklist.ticked === 4 + needed && basic.filter(i => !i.required).every(i => doc(b, i.id)?.state === 'missing' && doc(b, i.id)?.required === false), b.checklist && { ticked: b.checklist.ticked, required: b.checklist.required, required_ticked: b.checklist.required_ticked, complete: b.checklist.complete })
   ok('a confirmed file in a colleague\'s mailbox stays withheld', doc(b, budget)?.state === 'confirmed' && doc(b, budget)?.private === true && doc(b, budget)?.file?.filename === '' && doc(b, budget)?.actor === COLLEAGUE, doc(b, budget))
   ok('a document that is not on the list is 404', (await refusal(() => setCheck(W1, NOWHERE, ME, 'confirm'))).status === 404)
   ok('a call on a case with no checklist is 404', (await refusal(() => setCheck(W2, quotation, ME, 'confirm'))).status === 404)
   await editItem(form, { active: false }, ME)
   b = await loadBrief(W1, ME)
-  ok('a retired document leaves the case\'s list; its call stays on record', b.checklist?.total === 3 && !doc(b, form) && (await calls(W1)).some(c => c.item_id === form && c.status === 'confirmed'), b.checklist && { total: b.checklist.total })
+  ok('a retired document leaves the case\'s list; its call stays on record', b.checklist?.total === 3 + basic.length && !doc(b, form) && (await calls(W1)).some(c => c.item_id === form && c.status === 'confirmed'), b.checklist && { total: b.checklist.total })
   const E = await events(W1)
-  ok('every call and the line choice are on the case\'s events', E.filter(e => e.kind === 'checklist').length === 8 && E.filter(e => e.kind === 'line').length === 1 && E.some(e => e.detail?.note === 'Finding turned down: Insurer quotation') && E.some(e => /^Line set: /.test(e.detail?.note ?? '')), E.filter(e => e.kind === 'checklist' || e.kind === 'line').map(e => e.detail?.note))
+  ok('every call and the line choice are on the case\'s events', E.filter(e => e.kind === 'checklist').length === 8 + needed && E.filter(e => e.kind === 'line').length === 1 && E.some(e => e.detail?.note === 'Finding turned down: Insurer quotation') && E.some(e => /^Line set: /.test(e.detail?.note ?? '')), E.filter(e => e.kind === 'checklist' || e.kind === 'line').map(e => e.detail?.note))
   await setCaseLine(W1, null, ME)
   b = await loadBrief(W1, ME)
   ok('clearing the choice returns the case to its title\'s line', b.line?.by === 'title' && b.checklist?.line === 'employee_benefits' && (b.checklist?.total ?? 0) > 0, b.line)
@@ -638,6 +649,84 @@ async function walkStores(): Promise<void> {
   const sent = await storeCase(input, read({ case_type: 'documents', title: 'Policy schedule request', threads: [T.renewal] }))
   ok('a case made only of a person\'s picks opens nothing new', sent === W1 && (await caseIds()).length === before, { sent, cases: (await caseIds()).length })
 
+  console.log('\nCombine')
+  const FIRST_NAME = 'Dogfood Insurer (test)'
+  await seedCombine()
+
+  const pv = await combinePreview([T.ask, T.first, T.second], ME)
+  const pvOf = (id: string) => pv.threads.find(t => t.id === id)
+  ok('the form opens on the client most threads belong to, with its open cases', pv.client?.id === CLIENT && pv.cases.some(c => c.id === W1) && pv.cases.some(c => c.id === W2), { client: pv.client, cases: pv.cases })
+  ok('a kind of case from the labels and a title from the oldest subject', pv.case_type === 'new_quote' && pv.title === 'Request for quotation - Public Liability 2027', { type: pv.case_type, title: pv.title })
+  ok('the client\'s thread opens as Client, the insurer\'s thread as its insurer', pvOf(T.ask)?.side === 'client' && pvOf(T.ask)?.insurer_id === null && pvOf(T.first)?.side === 'insurer' && pvOf(T.first)?.insurer_id === INSURER, pv.threads.map(t => [t.side, t.insurer_id]))
+  ok('both test insurers are offered by name', pv.insurers.some(x => x.id === INSURER) && pv.insurers.some(x => x.id === SECOND && x.name === SECOND_NAME))
+  ok('no thread is held by a case yet', pv.threads.every(t => t.held === null))
+  ok('a thread a case holds says which case and who picked it', (await combinePreview([T.renewal], ME)).threads[0]?.held?.id === W1)
+  ok('no thread ticked is 400', (await refusal(() => combinePreview([], ME))).status === 400)
+  ok('a thread that is gone is 404', (await refusal(() => combinePreview([NOWHERE], ME))).status === 404)
+  ok('a colleague\'s thread is 403', (await refusal(() => combinePreview([T.ask, T.hidden], ME))).status === 403)
+
+  const pick3 = [{ id: T.ask, side: 'client' as const, insurer_id: null }, { id: T.first, side: 'insurer' as const, insurer_id: INSURER }, { id: T.second, side: 'insurer' as const, insurer_id: SECOND }]
+  const start = { company_id: CLIENT, case_type: 'new_quote' as const, title: 'Public Liability 2027', work_item_id: null, move: [] as string[] }
+  const casesNow = async () => (await caseIds()).length
+  const n0 = await casesNow()
+  ok('an insurer that is not on file is 400', (await refusal(() => combineThreads({ ...start, threads: [{ id: T.ask, side: 'insurer', insurer_id: CLIENT }] }, ME))).status === 400)
+  ok('a company that is not on file is 400', (await refusal(() => combineThreads({ ...start, company_id: NOWHERE, threads: pick3 }, ME))).status === 400)
+  ok('an insurer as the client is 400', (await refusal(() => combineThreads({ ...start, company_id: INSURER, threads: pick3 }, ME))).status === 400)
+  ok('a colleague\'s thread is 403', (await refusal(() => combineThreads({ ...start, threads: [...pick3, { id: T.hidden, side: 'client', insurer_id: null }] }, ME))).status === 403)
+  const onOther = await refusal(() => combineThreads({ ...start, threads: [...pick3, { id: T.renewal, side: 'client', insurer_id: null }] }, ME))
+  ok('a thread on another case is 409, naming the case', onOther.status === 409 && (onOther.error?.extra as Row | undefined)?.conflicts?.[0]?.thread_id === T.renewal && (onOther.error?.extra as Row | undefined)?.conflicts?.[0]?.held?.id === W1, onOther.error?.extra)
+  ok('no refusal left a case behind', (await casesNow()) === n0, { before: n0, after: await casesNow() })
+
+  const made = await combineThreads({ ...start, threads: pick3 }, ME)
+  const W3 = made.id
+  const [w3] = await sb<Row[]>(`work_items?id=eq.${W3}&select=company_id,case_type,title,owner_email,source,status,closed_at`)
+  ok('one case is started for the client, owned by the person', made.created && w3?.company_id === CLIENT && w3.case_type === 'new_quote' && w3.title === 'Public Liability 2027' && w3.owner_email === ME && w3.source === 'person' && (await casesNow()) === n0 + 1, w3)
+  let l3 = await sb<Row[]>(`work_item_threads?work_item_id=eq.${W3}&select=thread_id,side,joined_by,joined_evidence,insurer_company_id`)
+  const l3Of = (id: string) => l3.find(l => l.thread_id === id)
+  ok('all three threads are on it as the person\'s picks', l3.length === 3 && l3.every(l => l.joined_by === 'person' && l.joined_evidence === ME), l3)
+  ok('each thread carries its side and its named insurer', l3Of(T.ask)?.side === 'client' && l3Of(T.ask)?.insurer_company_id === null && l3Of(T.first)?.insurer_company_id === INSURER && l3Of(T.second)?.side === 'insurer' && l3Of(T.second)?.insurer_company_id === SECOND, l3)
+  const e3 = await events(W3)
+  ok('started, three picks and three sides are on the case\'s events', e3.filter(e => e.kind === 'started').length === 1 && e3.filter(e => e.kind === 'source_side').length === 3 && e3.every(e => e.actor === ME), e3.map(e => e.kind))
+
+  let rv3 = await loadRounds(W3, ME)
+  const chain = (name: string) => rv3.rounds[0]?.chains.find(c => c.insurer === name)
+  const QUOTE1 = `quote:${M.c_quote1}:${FIRST_NAME}`, QUOTE2 = `quote:${M.c_quote2}:${SECOND_NAME}`
+  ok('one round, two insurers, each asked and replied', rv3.rounds.length === 1 && rv3.rounds[0].chains.length === 2 && chain(FIRST_NAME)?.state === 'replied' && chain(SECOND_NAME)?.state === 'replied', rv3.rounds[0]?.chains)
+  ok('the named insurer stands over the thread\'s own company and its sender', rv3.rounds[0].moves.find(m => m.message_id === M.c_quote2)?.insurer === SECOND_NAME && rv3.rounds[0].moves.find(m => m.message_id === M.c_quote2)?.by === 'insurer' && chain(SECOND_NAME)?.thread_id === T.second, rv3.rounds[0]?.moves.map(m => [m.by, m.move, m.insurer]))
+  ok('two next steps: each insurer\'s terms to the client', same(rv3.steps.map(x => x.id), [QUOTE1, QUOTE2]) && rv3.steps.every(x => x.act === 'draft' && x.to === 'client' && x.agent === 'Client agent'), rv3.steps.map(x => [x.id, x.act, x.to]))
+
+  const ran = await runSteps(W3, ME)
+  const d3 = await sb<Row[]>(`ai_drafts?work_item_id=eq.${W3}&select=id,to_email,thread_id,status,party,generated_by,pair_id,attachments,context_used,body&order=created_at.asc`)
+  ok('Run writes both emails, none passed over', ran.made === 2 && ran.existing === 0 && ran.skipped.length === 0 && d3.length === 2, ran)
+  ok('each to the client\'s HR on the client\'s thread, unsent, from the template', d3.every(d => d.to_email === HR && d.thread_id === T.ask && d.status === 'pending' && d.party === 'client' && d.generated_by === 'template' && d.context_used?.agent === 'client_agent'), d3.map(d => [d.to_email, d.thread_id, d.status, d.party, d.generated_by]))
+  ok('each carries its own insurer\'s file and figure, and they sit as one pair', same(d3.map(d => d.attachments?.[0]?.filename), ['PL_Quotation_First.pdf', 'PL_Quotation_Second.pdf']) && d3.some(d => /\$2,400/.test(d.body)) && d3.some(d => /\$2,150/.test(d.body)) && !!d3[0].pair_id && d3[0].pair_id === d3[1].pair_id, d3.map(d => [d.attachments?.[0]?.filename, d.pair_id]))
+  const rerun = await runSteps(W3, ME)
+  ok('Run again writes nothing new', rerun.made === 0 && rerun.existing === 2 && (await sb<Row[]>(`ai_drafts?work_item_id=eq.${W3}&select=id`)).length === 2, rerun)
+  rv3 = await loadRounds(W3, ME)
+  ok('each step shows its unsent email', same(Object.keys(rv3.drafted), [QUOTE1, QUOTE2]), rv3.drafted)
+
+  await setSide(W3, T.second, 'insurer', ME, INSURER)
+  rv3 = await loadRounds(W3, ME)
+  ok('naming another insurer for a thread moves its emails to that insurer', rv3.rounds[0].moves.find(m => m.message_id === M.c_quote2)?.insurer === FIRST_NAME && rv3.rounds[0].chains.length === 1, rv3.rounds[0]?.chains)
+  await setSide(W3, T.second, 'client', ME)
+  l3 = await sb<Row[]>(`work_item_threads?work_item_id=eq.${W3}&select=thread_id,side,insurer_company_id`)
+  ok('a thread set to Client keeps no insurer', l3Of(T.second)?.side === 'client' && l3Of(T.second)?.insurer_company_id === null, l3Of(T.second))
+  ok('an insurer that is not on file is 400', (await refusal(() => setSide(W3, T.second, 'insurer', ME, CLIENT))).status === 400)
+  await setSide(W3, T.second, 'insurer', ME, SECOND)
+
+  const added = await combineThreads({ company_id: null, case_type: 'other', title: '', work_item_id: W3, threads: [{ id: T.pantry, side: 'client', insurer_id: null }], move: [] }, ME)
+  ok('threads are added to an open case: no second case', !added.created && added.id === W3 && (await casesNow()) === n0 + 1 && (await links(W3)).length === 4, added)
+  const taken = await refusal(() => combineThreads({ company_id: null, case_type: 'other', title: '', work_item_id: W2, threads: [{ id: T.pantry, side: 'client', insurer_id: null }], move: [] }, ME))
+  ok('adding a thread another case holds is 409 until the person agrees', taken.status === 409 && (await links(W3)).some(l => l.thread_id === T.pantry), taken.error?.extra)
+  await combineThreads({ company_id: null, case_type: 'other', title: '', work_item_id: W2, threads: [{ id: T.pantry, side: 'client', insurer_id: null }], move: [T.pantry] }, ME)
+  ok('agreed, the thread moves: one thread, one case', !(await links(W3)).some(l => l.thread_id === T.pantry) && (await links(W2)).some(l => l.thread_id === T.pantry && l.joined_by === 'person'))
+  ok('the same combine again changes nothing', (await combineThreads({ company_id: null, case_type: 'other', title: '', work_item_id: W3, threads: pick3, move: [] }, ME)).id === W3 && (await links(W3)).length === 3)
+  await sb(`work_items?id=eq.${W3}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: new Date().toISOString() }) })
+  ok('a closed case takes no thread and runs nothing', (await refusal(() => combineThreads({ company_id: null, case_type: 'other', title: '', work_item_id: W3, threads: [{ id: T.movement, side: 'client', insurer_id: null }], move: [] }, ME))).status === 400 && (await refusal(() => runSteps(W3, ME))).status === 400)
+  await sb(`work_items?id=eq.${W3}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ closed_at: null }) })
+  const b3 = await loadBrief(W3, ME)
+  ok('a quotation case made by Combine is checked for the basic documents', b3.checklist_applies === true && (b3.checklist?.total ?? 0) >= basic.length && basic.every(i => b3.checklist?.rows.some(r => r.item_id === i.id && r.required === i.required)), b3.checklist && { line: b3.checklist.line, total: b3.checklist.total })
+
   console.log('\nIngest')
   await put('email_threads', [thread(T.fresh, CLIENT, 'Request for quotation - Work Injury Compensation', 0)])
   await put('email_messages', [message(M.fresh, T.fresh, 'inbound', HR, 'Request for quotation - Work Injury Compensation', 'Please quote Work Injury Compensation for 40 staff.', 0)])
@@ -653,6 +742,32 @@ async function walkStores(): Promise<void> {
 }
 
 // ── the routes ────────────────────────────────────────────────────────────────────────────────
+
+/** Three threads for Combine: the client's ask and two insurers' terms, the second from a sender no company on file owns. */
+async function seedCombine(): Promise<void> {
+  await put('email_threads', [
+    thread(T.ask, CLIENT, 'Request for quotation - Public Liability 2027', 3),
+    thread(T.first, INSURER, 'RE: Quotation for Dogfood Client - Public Liability', 2),
+    thread(T.second, CLIENT, 'Public Liability terms - second market', 1),
+  ])
+  await put('thread_insurers', [{ thread_id: T.first, insurer_company_id: INSURER, client_company_id: CLIENT, via: 'sender_domain' }])
+  await put('email_messages', [
+    message(M.c_ask, T.ask, 'inbound', `HR <${HR}>`, 'Request for quotation - Public Liability 2027', 'Please quote Public Liability for our new warehouse, limit $1,000,000.', 3),
+    message(M.c_req1, T.first, 'outbound', ME, 'Quotation for Dogfood Client - Public Liability', 'Please quote Public Liability for a warehouse, limit $1,000,000.', 2.5),
+    message(M.c_quote1, T.first, 'inbound', `Underwriting <${UW}>`, 'RE: Quotation for Dogfood Client - Public Liability', 'Our terms: annual premium $2,400. Quotation attached.', 2),
+    message(M.c_req2, T.second, 'outbound', ME, 'Public Liability terms - second market', 'Please quote Public Liability for a warehouse, limit $1,000,000.', 1.5),
+    message(M.c_quote2, T.second, 'inbound', `Desk <${DESK}>`, 'RE: Public Liability terms - second market', 'We can offer an annual premium of $2,150. Quotation attached.', 1),
+  ])
+  await put('email_participants', [
+    person(M.c_ask, T.ask, HR, 'from'), person(M.c_ask, T.ask, ME, 'to'),
+    person(M.c_req1, T.first, ME, 'from'), person(M.c_req1, T.first, UW, 'to'),
+    person(M.c_quote1, T.first, UW, 'from'), person(M.c_quote1, T.first, ME, 'to'),
+    person(M.c_req2, T.second, ME, 'from'), person(M.c_req2, T.second, DESK, 'to'),
+    person(M.c_quote2, T.second, DESK, 'from'), person(M.c_quote2, T.second, ME, 'to'),
+  ])
+  await put('email_attachments', [{ message_id: M.c_quote1, thread_id: T.first, filename: 'PL_Quotation_First.pdf' }, { message_id: M.c_quote2, thread_id: T.second, filename: 'PL_Quotation_Second.pdf' }])
+  await labelThreadsByRule([T.ask, T.first, T.second])
+}
 
 async function walkRoutes(base: string): Promise<void> {
   const secret = process.env.AUTH_SECRET
@@ -775,7 +890,10 @@ async function walkRoutes(base: string): Promise<void> {
     ok('a document that is not on the list → 404', (await call('POST', `/api/work/${W1}/brief`, { action: 'confirm', item_id: NOWHERE })).status === 404)
     ok('turning down with no finding → 409', (await call('POST', `/api/work/${W1}/brief`, { action: 'reject', item_id: itemId })).status === 409)
     r = await call('POST', `/api/work/${W1}/brief`, { action: 'confirm', item_id: itemId })
-    ok('confirm → 200, by the signed-in person, list complete', r.status === 200 && docRow(r)?.state === 'confirmed' && docRow(r)?.actor === ME && r.json?.brief?.checklist?.complete === true, r.json?.error ?? docRow(r))
+    ok('confirm → 200, by the signed-in person; the basic Required documents still missing', r.status === 200 && docRow(r)?.state === 'confirmed' && docRow(r)?.actor === ME && r.json?.brief?.checklist?.complete === false && r.json.brief.checklist.required_ticked === 1 && r.json.brief.checklist.required > 1, r.json?.error ?? docRow(r))
+    const basicNeeded = (r.json?.brief?.checklist?.rows as Row[]).filter(d => d.item_id !== itemId && d.required)
+    for (const d of basicNeeded) r = await call('POST', `/api/work/${W1}/brief`, { action: 'confirm', item_id: d.item_id })
+    ok('every Required document confirmed → the list is complete, the Optional ones missing', r.status === 200 && r.json?.brief?.checklist?.complete === true && (r.json.brief.checklist.rows as Row[]).some(d => !d.required && d.state === 'missing'), r.json?.brief?.checklist && { required: r.json.brief.checklist.required, ticked: r.json.brief.checklist.required_ticked })
     r = await call('POST', `/api/work/${W1}/brief`, { action: 'not_needed', item_id: itemId })
     ok('not needed → 200', r.status === 200 && docRow(r)?.state === 'not_needed', r.json?.error)
     r = await call('POST', `/api/work/${W1}/brief`, { action: 'clear', item_id: itemId })
@@ -842,6 +960,41 @@ async function walkRoutes(base: string): Promise<void> {
   ok('move → 200, the email reads as the person called it and the step follows', r.status === 200 && r.json?.rounds?.[0]?.moves?.find((m: Row) => m.message_id === M.quote)?.move === 'decline' && r.json.rounds[0].moves.find((m: Row) => m.message_id === M.quote)?.set_by === 'person' && r.json.steps?.[0]?.id === `decline:${M.quote}:Dogfood Insurer (test)`, r.json && { status: r.status, steps: r.json.steps?.map((x: Row) => x.id), error: r.json.error })
   r = await call('POST', `/api/work/${W1}/rounds`, { action: 'move', message_id: M.quote, by: null, move: null })
   ok('handing it back → 200, the rule\'s reading again', r.status === 200 && r.json?.rounds?.[0]?.moves?.find((m: Row) => m.message_id === M.quote)?.move === 'quote' && r.json.steps?.[0]?.id === terms, r.json && { status: r.status, steps: r.json.steps?.map((x: Row) => x.id), error: r.json.error })
+
+  console.log('\nGET/POST /api/work/combine')
+  await seedCombine()
+  const ticked = [T.ask, T.first, T.second].join(',')
+  ok('no session → 401', (await call('GET', `/api/work/combine?threads=${ticked}`, undefined, null)).status === 401 && (await call('POST', '/api/work/combine', {}, null)).status === 401)
+  ok('a session outside TRS → 401', (await call('GET', `/api/work/combine?threads=${ticked}`, undefined, outsider)).status === 401)
+  ok('no thread ticked → 400', (await call('GET', '/api/work/combine?threads=')).status === 400)
+  ok('more than forty threads → 400', (await call('GET', `/api/work/combine?threads=${Array.from({ length: 41 }, (_, n) => u(500 + n)).join(',')}`)).status === 400)
+  ok('a colleague\'s thread → 403', (await call('GET', `/api/work/combine?threads=${T.ask},${T.hidden}`)).status === 403)
+  r = await call('GET', `/api/work/combine?threads=${ticked}`)
+  ok('the form → 200: the client, each thread\'s side and insurer, a kind of case and a title', r.status === 200 && r.json?.client?.id === CLIENT && r.json.case_type === 'new_quote' && r.json.threads?.length === 3 && r.json.threads.find((t: Row) => t.id === T.first)?.insurer_id === INSURER && r.json.insurers?.some((x: Row) => x.id === SECOND), r.json && { status: r.status, client: r.json.client, type: r.json.case_type, threads: r.json.threads?.map((t: Row) => [t.side, t.insurer_id]), error: r.json.error })
+  ok('no email body leaves the route', !JSON.stringify(r.json).includes('annual premium'))
+  const body3 = { company_id: CLIENT, case_type: 'new_quote', title: 'Public Liability 2027', threads: [{ id: T.ask, side: 'client' }, { id: T.first, side: 'insurer', insurer_id: INSURER }, { id: T.second, side: 'insurer', insurer_id: SECOND }] }
+  ok('no body → 400', (await call('POST', '/api/work/combine')).status === 400)
+  ok('a thread with no side → 400', (await call('POST', '/api/work/combine', { ...body3, threads: [{ id: T.ask }] })).status === 400)
+  ok('no title → 400', (await call('POST', '/api/work/combine', { ...body3, title: ' ' })).status === 400)
+  ok('an insurer that is not on file → 400', (await call('POST', '/api/work/combine', { ...body3, threads: [{ id: T.second, side: 'insurer', insurer_id: CLIENT }] })).status === 400)
+  r = await call('POST', '/api/work/combine', { ...body3, threads: [...body3.threads, { id: T.renewal, side: 'client' }] })
+  ok('a thread on another case → 409 with the case that holds it', r.status === 409 && r.json?.conflicts?.[0]?.thread_id === T.renewal && r.json.conflicts[0].held?.id === W1, r)
+  const n0 = (await caseIds()).length
+  r = await call('POST', '/api/work/combine', body3)
+  const W3 = r.json?.id as string
+  ok('combine → 200 with the case started', r.status === 200 && !!W3 && r.json.created === true && (await caseIds()).length === n0 + 1 && (await links(W3)).length === 3, r)
+  ok('the named insurer is kept on the thread', (await sb<Row[]>(`work_item_threads?work_item_id=eq.${W3}&thread_id=eq.${T.second}&select=side,insurer_company_id`))[0]?.insurer_company_id === SECOND)
+  r = await call('POST', `/api/work/${W3}/sources`, { action: 'side', thread_id: T.second, side: 'insurer', insurer_id: INSURER })
+  ok('the insurer of a thread is changed on the case → 200', r.status === 200 && (await sb<Row[]>(`work_item_threads?work_item_id=eq.${W3}&thread_id=eq.${T.second}&select=insurer_company_id`))[0]?.insurer_company_id === INSURER, r)
+  await call('POST', `/api/work/${W3}/sources`, { action: 'side', thread_id: T.second, side: 'insurer', insurer_id: SECOND })
+
+  console.log('\nPOST /api/work/:id/rounds { action: run }')
+  ok('no session → 401', (await call('POST', `/api/work/${W3}/rounds`, { action: 'run' }, null)).status === 401)
+  r = await call('POST', `/api/work/${W3}/rounds`, { action: 'run' })
+  ok('run → 200: two emails written, each step showing its email', r.status === 200 && r.json?.ran?.made === 2 && r.json.ran.existing === 0 && r.json.ran.skipped?.length === 0 && Object.keys(r.json.drafted ?? {}).length === 2 && r.json.rounds?.[0]?.chains?.length === 2, r.json && { status: r.status, ran: r.json.ran, drafted: r.json.drafted, error: r.json.error })
+  r = await call('POST', `/api/work/${W3}/rounds`, { action: 'run' })
+  ok('run again → nothing new', r.status === 200 && r.json?.ran?.made === 0 && r.json.ran.existing === 2 && (await sb<Row[]>(`ai_drafts?work_item_id=eq.${W3}&select=id`)).length === 2, r.json?.ran)
+  ok('nothing was sent', (await sb<Row[]>(`ai_drafts?work_item_id=eq.${W3}&select=status`)).every(d => d.status === 'pending' || d.status === 'draft'))
 }
 
 // ── run ───────────────────────────────────────────────────────────────────────────────────────

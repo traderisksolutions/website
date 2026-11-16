@@ -6,7 +6,7 @@ Status, 15 Nov 2026: data model, rules, stores, routes and the journey v2 screen
 
 Live the same day (6cbf02a5): the brief in five parts with a document checklist per line (phase 2, below), and Today › Mail loading a page at a time. Their two migrations are applied to production and are additive. The nightly job that embeds new threads is running.
 
-Built 16 Nov 2026, not deployed: the manual journey (Combine on Today › Mail, a named insurer per thread, Run on Rounds, the basic documents and Files). Its migration, `20261116_manual_journey.sql`, is additive and is not yet applied to production; the code must not deploy before it.
+Live 16 Nov 2026: the manual journey (Combine on Today › Mail and Home › Mail, a named insurer per thread, Run on Rounds, the basic documents and Files). Its migration, `20261116_manual_journey.sql`, is additive and applied to production.
 
 ## Rules
 
@@ -260,7 +260,7 @@ Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unkno
 
 ## Dogfood
 
-`scripts/dogfood-case-sources.mts` seeds two companies, eight threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 182 checks) and every route (`http <base>`, 109 checks), removes the records and verifies none are left. The checklist checks start a list on a line that has none and remove it; the lists staff keep are read, never written, and compared before and after. It refuses a database that is not local unless `--live` is given. No model is called.
+`scripts/dogfood-case-sources.mts` seeds three companies, eleven threads and two cases on `.invalid` domains under fixed ids, walks every store function (`lib`, 220 checks) and every route (`http <base>`, 129 checks), removes the records and verifies none are left. The Combine walk starts a case from three ticked threads, names an insurer on a thread whose sender no company on file owns, presses Run (two emails to the client, one per insurer, a second Run writing none) and checks every refusal leaves no case behind. The checklist checks start a list on a line that has none and remove it; the lists staff keep are read, never written, and compared before and after. It refuses a database that is not local unless `--live` is given. No model is called.
 
 Run of 15 Nov 2026 on production (`--live`, test records removed): 88 of 88 and 37 of 37; 91 of 91 with the order by closeness; 54 of 54 on the routes with Today mail and the read a person starts. With the brief, the checklists and Today mail by page: 154 of 154 on the stores and 90 of 90 on the routes. The stores walk also compares `rpc/today_mail` with the code rules (`mailView`) for every mailbox on file, a person with none, a colleague and the scheduler: 320 views, all equal.
 
@@ -293,7 +293,6 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 ## Not built yet
 
 - The automatic layer (journey 2): a model that selects a case's threads, sets their sides and runs the steps. Every step of the manual journey is a person's click today.
-- Combine has not been walked against the database with test records; the dogfood script does not cover it yet.
 - Rounds: the case agent that decides between the client agent and the insurer agent with a model, and the share of drafts sent as written per agent on `/analytics/autonomy`.
 - Referral marks live in `app_settings`, so the Inbox list cannot filter on them; a column on `email_threads` would allow it.
 - Rounds: an insurer's follow-up and a third-party administrator's reminder can read as a question or as terms; a client's answer with no insurer named is offered to every insurer asked. A person's Type corrects one email.
