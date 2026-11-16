@@ -8,11 +8,17 @@ import { dbRows, openClean } from './helpers'
 
 const from = (page: import('@playwright/test').Page) => page.getByRole('complementary', { name: 'Context' }).getByRole('combobox', { name: 'Thread from' })
 
+const WHO = process.env.JOURNEY_USER_EMAIL ?? 'nathan.budiutomo@trade-risksol.com'
+
+/** The newest thread of that company kind the signed-in user's mailbox holds: a colleague's private thread does not open. */
 async function threadOf(kind: string, withClient = false) {
   const links = withClient ? await dbRows<{ thread_id: string }>(`thread_insurers?client_company_id=not.is.null&select=thread_id,companies!thread_insurers_insurer_company_id_fkey!inner(kind)&companies.kind=eq.${kind}&order=last_message_at.desc.nullslast&limit=1`) : []
   if (withClient) return links[0]?.thread_id ?? null
-  const [t] = await dbRows<{ id: string }>(`email_threads?select=id,companies!inner(kind)&companies.kind=eq.${kind}&deleted_at=is.null&order=last_message_at.desc&limit=1`)
-  return t?.id ?? null
+  const newest = await dbRows<{ id: string }>(`email_threads?select=id,companies!inner(kind)&companies.kind=eq.${kind}&deleted_at=is.null&order=last_message_at.desc&limit=40`)
+  if (!newest.length) return null
+  const held = await dbRows<{ thread_id: string }>(`email_thread_aliases?select=thread_id&mailbox=eq.${encodeURIComponent(WHO)}&thread_id=in.(${newest.map(t => t.id).join(',')})`)
+  const mine = new Set(held.map(a => a.thread_id))
+  return newest.find(t => mine.has(t.id))?.id ?? null
 }
 
 test('a client thread reads Client, with Read thread', async ({ page }) => {
