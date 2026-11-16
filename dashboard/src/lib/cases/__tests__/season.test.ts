@@ -112,13 +112,13 @@ describe('the rows', () => {
       policies: [policy({ id: 'p1', end_date: '2027-01-24', class_of_insurance: 'Employee Benefit Insurance', is_eb: true }), policy({ id: 'p2', end_date: '2026-11-01', label: 'Workers cover' })],
       cases: [kase({ id: 'k1', policy_id: 'p1', stage: 'terms_received' }), kase({ id: 'k2', company_id: 'c2', title: 'Cyber renewal' }), kase({ id: 'k3', company_id: 'c3', deadline: '2026-08-01' })],
       names: new Map([['c1', 'Example Logistics'], ['c2', 'Demo Foods']]),
-      states: new Map([['k1', { threads: 3, wishes: 1, documents: { ticked: 2, required: 5 } }]]),
-      compare: r => (r.group === 'employment_benefits' ? { kind: 'new_quotation', href: '/pricing-matrix/new' } : null),
+      states: new Map([['k1', { threads: 3, wishes: 1, documents: { ticked: 2, required: 5 }, options: 2 }]]),
+      compare: r => (r.group === 'employment_benefits' ? { kind: 'new_quotation', href: '/pricing-matrix/new' } : r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null),
     }, TODAY)
     expect(rows.map(r => r.key)).toEqual(['p2', 'p1', 'case:k2'])
     expect(rows[0]).toMatchObject({ company: 'Example Logistics', policy: { name: 'Workers cover' }, days: -15, bucket: OVERDUE, line: 'wica', group: 'general', case: null, compare: null })
-    expect(rows[1]).toMatchObject({ days: 69, bucket: '2027-01', group: 'employment_benefits', case: { id: 'k1', stage: 'terms_received', threads: 3, wishes: 1, documents: { ticked: 2, required: 5 }, paired_by: 'link' }, compare: { kind: 'new_quotation' } })
-    expect(rows[2]).toMatchObject({ company: 'Demo Foods', policy: null, end_date: null, days: null, bucket: NO_DATE, line: 'cyber', case: { id: 'k2', threads: 0, documents: null, paired_by: null } })
+    expect(rows[1]).toMatchObject({ days: 69, bucket: '2027-01', group: 'employment_benefits', case: { id: 'k1', stage: 'terms_received', threads: 3, wishes: 1, documents: { ticked: 2, required: 5 }, options: 2, paired_by: 'link' }, compare: { kind: 'new_quotation' } })
+    expect(rows[2]).toMatchObject({ company: 'Demo Foods', policy: null, end_date: null, days: null, bucket: NO_DATE, line: 'cyber', case: { id: 'k2', threads: 0, documents: null, options: 0, paired_by: null }, compare: { kind: 'comparison', href: '/today/k2?section=comparison' } })
   })
 })
 

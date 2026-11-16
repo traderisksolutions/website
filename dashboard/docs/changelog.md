@@ -4,6 +4,14 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-16 — Renewal Season: wish list, comparison and client summary
+
+- **Client wish list** (`WishListDialog.tsx`, `work_item_notes.need`): the Wish list count on a Renewal Season row opens the case's wish list. A person types a wish and grades it Must have or Good to have; Set aside takes one off. The grade shows on the Brief.
+- **Comparison** (a section of every renewal case; `src/lib/cases/compare.ts`, `compare-store.ts`, `CaseComparison.tsx`, `GET/PUT /api/work/:id/compare`, table `work_item_comparisons`): Options (the current policy and up to four offers, each with an insurer and a source document from the case's files), Policy terms (one row per term, one column per option, Premium before GST last with the change from the current policy worked out by code), Client wish list (Met, Partly met or Not met per option, and the must-have wishes met) and Recommendation. The opening terms follow the line: general lines by policy architecture, Employment Benefits with its soft factors. Every cell is typed by a person.
+- **Client summary** (`compare-summary.ts`, `compare-summary-pdf.tsx`, `GET /api/work/:id/compare/summary`): the saved comparison as a PDF on the TRS letterhead, shown in a dialog with Download. A term left blank for every option is not printed.
+- **Renewal Season**: a general-line row with a case now links to the case's Comparison and shows the number of options; it used to link to the company's placements. Employment Benefits rows keep Compare cover and New quotation.
+- Migration `20261116_renewal_compare.sql` (additive; applied 16 Nov). No model is called.
+
 ## 2026-11-16 — Renewal Season: every policy ending soon, worked by hand (live, a0d592a0)
 
 - **Renewal Season** (`/renewal-season`, a tab under Today; `src/lib/cases/season.ts`, `season-store.ts`, `GET/POST /api/renewal-season`): one row per policy ending from 30 days back to the end of the third month ahead, and per open renewal case no listed policy takes. Columns: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare. Filters: Month (All, Overdue, each month, No date) and Line (All lines, Employment Benefits, General).

@@ -4,7 +4,8 @@
  * Renewal Season: every policy ending from 30 days back to the end of the third month ahead, with
  * the renewal case that works it (src/lib/cases/season.ts). The work is by hand: start the case,
  * select the client's conversations, mark each as the client's or an insurer's, then the case's
- * Brief holds the wish list and the documents, and Compare opens the comparison. No model is called.
+ * wish list is typed and graded, the Brief holds the documents, and Compare opens the comparison.
+ * No model is called.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Segmented, Spinner } from '@/components/crm/primitives'
@@ -14,6 +15,7 @@ import { count } from '@/components/cases/shared'
 import { CombineDialog } from '@/components/today/CombineDialog'
 import { SeasonTable } from '@/components/season/SeasonTable'
 import { ThreadPicker, type PickTarget } from '@/components/season/ThreadPicker'
+import { WishListDialog } from '@/components/cases/WishListDialog'
 import { fmtDate } from '@/lib/format'
 import { LINE_GROUP_NAME, NO_DATE, OVERDUE, type LineGroup, type SeasonRow } from '@/lib/cases/season'
 import type { SeasonView } from '@/lib/cases/season-store'
@@ -28,6 +30,7 @@ export default function RenewalSeasonPage() {
   const [starting, setStarting] = useState<string | null>(null)
   const [picking, setPicking] = useState<PickTarget | null>(null)
   const [combining, setCombining] = useState<{ threads: string[]; target: PickTarget } | null>(null)
+  const [wishing, setWishing] = useState<{ id: string; title: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => callApi<SeasonView>('/api/renewal-season').then(setView).catch(e => setError(errText(e))), [])
@@ -67,12 +70,14 @@ export default function RenewalSeasonPage() {
       </PageHeader>
 
       {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      {!view ? (error ? null : <Spinner label="Loading the renewals…" />) : <SeasonTable rows={shown} starting={starting} onStart={r => void start(r)} onPick={pick} />}
+      {!view ? (error ? null : <Spinner label="Loading the renewals…" />) : <SeasonTable rows={shown} starting={starting} onStart={r => void start(r)} onPick={pick}
+        onWishes={r => { if (r.case) setWishing({ id: r.case.id, title: [r.company, r.policy?.name ?? r.case.title].filter(Boolean).join(' · ') }) }} />}
 
       <ThreadPicker target={picking} today={view?.today ?? ''} onClose={() => setPicking(null)}
         onContinue={threads => { if (picking) setCombining({ threads, target: picking }); setPicking(null) }} />
       <CombineDialog threadIds={combining?.threads ?? null} presetCompany={combining?.target.company_id} presetCase={combining?.target.case_id}
         onClose={() => { setCombining(null); void load() }} />
+      <WishListDialog caseId={wishing?.id ?? null} title={wishing?.title} onClose={() => { setWishing(null); void load() }} />
     </div>
   )
 }

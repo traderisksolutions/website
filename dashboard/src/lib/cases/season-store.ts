@@ -13,6 +13,7 @@ import { normCompany } from '@/lib/gb/intake'
 import { looksLikeEndorsement } from '@/lib/policies/endorsement'
 import { ITEM_COLS, asCall, asItem } from './brief-store'
 import { BASIC_LIST, caseItems, caseLine, checklistLine, checklistState, type Call, type FileMessage } from './checklist'
+import { cleanComparison, offered } from './compare'
 import { CaseError, PERSON } from './sources-store'
 import {
   isRenewed, keepsOwnRow, pairCases, renewalTitle, seasonMonths, seasonRows, seasonWindow,
@@ -63,7 +64,6 @@ export async function loadSeason(today = seasonToday()): Promise<SeasonView> {
   ])
   for (const c of extra) if (c.company_name) names.set(c.id, c.company_name)
   const packs = new Set(analysed.map(r => r.key.slice('gb_analysis:'.length)))
-  const placements = new Map(open.filter(c => c.placement_id).map(c => [c.id as string, c.placement_id as string]))
 
   const compare = (r: Omit<SeasonRow, 'compare'>): SeasonCompare | null => {
     if (r.group === 'employment_benefits') {
@@ -73,29 +73,32 @@ export async function loadSeason(today = seasonToday()): Promise<SeasonView> {
       if (q && packs.has(q.id)) return { kind: 'compare_cover', href: `/pricing-matrix/quote/${q.id}/compare` }
       return r.company_id ? { kind: 'new_quotation', href: `/pricing-matrix/new?company=${enc(r.company)}&companyId=${r.company_id}` } : null
     }
-    return r.case && r.company_id && placements.has(r.case.id) ? { kind: 'quotes', href: `/companies/${r.company_id}?tab=quotes` } : null
+    // Any other line is compared by hand on its case.
+    return r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null
   }
   return { rows: seasonRows({ policies, cases, names, states, compare }, today), today, window, months: seasonMonths(today) }
 }
 
-/** Threads, client wishes and required documents for each case, in a handful of reads. */
+/** Threads, client wishes, required documents and options compared for each case, in a handful of reads. */
 async function caseStates(cases: readonly Row[]): Promise<Map<string, SeasonCaseState>> {
   const ids = cases.map(c => c.id as string)
   const out = new Map<string, SeasonCaseState>()
   if (!ids.length) return out
-  const [links, excluded, wishes, calls, items, policies] = await Promise.all([
+  const [links, excluded, wishes, calls, items, policies, compared] = await Promise.all([
     readIn(ids, 40, list => `work_item_threads?work_item_id=in.(${list})&select=work_item_id,thread_id&limit=5000`),
     readIn(ids, 40, list => `work_item_thread_excluded?work_item_id=in.(${list})&select=work_item_id,thread_id&limit=5000`),
     readIn(ids, 40, list => `work_item_notes?work_item_id=in.(${list})&section=eq.wish&status=eq.current&select=work_item_id&limit=5000`),
     readIn(ids, 40, list => `work_item_checklist?work_item_id=in.(${list})&select=work_item_id,item_id,status,message_id,filename,found,rejected,actor,at&limit=5000`),
     sbTry<Row[]>(`line_checklist_items?select=${ITEM_COLS}&order=position.asc&limit=2000`, []),
     readIn(cases.map(c => c.policy_id as string | null).filter((id): id is string => !!id), 40, list => `policies?id=in.(${list})&select=id,product_line,class_of_insurance`),
+    readIn(ids, 40, list => `work_item_comparisons?work_item_id=in.(${list})&select=work_item_id,options&limit=5000`),
   ])
   const off = new Set(excluded.map(e => `${e.work_item_id}:${e.thread_id}`))
   const threads = new Map<string, string[]>()
   for (const l of links) if (!off.has(`${l.work_item_id}:${l.thread_id}`)) threads.set(l.work_item_id, [...(threads.get(l.work_item_id) ?? []), l.thread_id])
   const wished = new Map<string, number>()
   for (const w of wishes) wished.set(w.work_item_id, (wished.get(w.work_item_id) ?? 0) + 1)
+  const options = new Map(compared.map(k => [k.work_item_id as string, offered(cleanComparison(k))]))
   const called = new Map<string, Call[]>()
   for (const c of calls) called.set(c.work_item_id, [...(called.get(c.work_item_id) ?? []), asCall(c)])
 
@@ -115,7 +118,7 @@ async function caseStates(cases: readonly Row[]): Promise<Map<string, SeasonCase
     const p = c.policy_id ? policy.get(c.policy_id) : undefined
     const own = checklistLine(caseLine({ chosen: c.product_line, policyLine: p?.product_line, policyClass: p?.class_of_insurance, title: c.title })?.line)
     const state = checklistState(caseItems(basic, own ? all.filter(i => i.line === own) : []), called.get(c.id) ?? [], on.flatMap(t => byThread.get(t) ?? []), wishCount > 0)
-    out.set(c.id, { threads: on.length, wishes: wishCount, documents: state.total ? { ticked: state.required_ticked, required: state.required } : null })
+    out.set(c.id, { threads: on.length, wishes: wishCount, documents: state.total ? { ticked: state.required_ticked, required: state.required } : null, options: options.get(c.id) ?? 0 })
   }
   return out
 }

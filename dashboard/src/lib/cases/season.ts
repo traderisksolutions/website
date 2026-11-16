@@ -110,8 +110,8 @@ export const keepsOwnRow = (c: SeasonCase, w: SeasonWindow): boolean =>
   !DONE_STAGES.has(c.stage ?? '') && (!c.deadline || (c.deadline.slice(0, 10) >= w.from && c.deadline.slice(0, 10) <= w.to))
 
 /** What the list shows of a case. Counted in season-store.ts. */
-export type SeasonCaseState = { threads: number; wishes: number; documents: { ticked: number; required: number } | null }
-export type SeasonCompare = { kind: 'compare_cover' | 'new_quotation' | 'quotes'; href: string }
+export type SeasonCaseState = { threads: number; wishes: number; documents: { ticked: number; required: number } | null; /** Options on offer in the case's saved comparison. */ options: number }
+export type SeasonCompare = { kind: 'compare_cover' | 'new_quotation' | 'comparison'; href: string }
 export type SeasonRow = {
   key: string
   company_id: string | null; company: string
@@ -137,7 +137,7 @@ export function seasonRows(i: SeasonInput, today: string): SeasonRow[] {
   const pairs = pairCases(i.policies, i.cases)
   const byId = new Map(i.cases.map(c => [c.id, c]))
   const paired = new Set([...pairs.values()].map(p => p.case_id))
-  const none: SeasonCaseState = { threads: 0, wishes: 0, documents: null }
+  const none: SeasonCaseState = { threads: 0, wishes: 0, documents: null, options: 0 }
   const caseOf = (c: SeasonCase, by: PairBy | null) => ({ id: c.id, title: c.title, stage: c.stage, owner: c.owner_email, paired_by: by, ...(i.states.get(c.id) ?? none) })
   const dated = (end: string | null) => ({ end_date: end, days: end ? daysBetween(today, end) : null, bucket: bucketOf(end, today) })
   const named = (line: string | null) => ({ line, line_name: line ? lineName(line) : null })

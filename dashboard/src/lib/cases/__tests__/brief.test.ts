@@ -63,6 +63,10 @@ describe('notes on the brief', () => {
   it('names who stated a wish', () => {
     expect(part('wish')).toMatchObject([{ text: 'Keep the same hospital plan', who: 'Client', date: '2026-11-01', source: { message_id: 'c1', quote: 'keep the same hospital plan' } }])
   })
+  it('carries the grade a person gave a wish', () => {
+    const graded = buildBrief(input({ notes: [note({ id: 'w1', section: 'wish', text: 'Keep the 1-bedded ward', need: 'must' }), note({ id: 'w2', section: 'wish', text: 'Dental', need: 'nice' }), note({ id: 'w3', section: 'wish', text: 'Lower excess' })] })).rows.filter(r => r.part === 'wish')
+    expect(graded.map(r => r.kind)).toEqual(['Must have', 'Good to have', undefined])
+  })
   it('keeps an agent’s risk or success factor only when the client or an insurer wrote the words', () => {
     expect(part('stated').map(r => [r.kind, r.who, r.note_id])).toEqual([['Risk', 'Harbour Insurance', 'n2'], ['Success factor', 'Harbour Insurance', 'n3'], ['Risk', null, 'n5']])
     expect(brief.left_off).toBe(1) // n4 rests on TRS's own words

@@ -9,7 +9,8 @@
  *
  * Sections (?section=): Overview is the draft with the resume point under it; Sources, Conversation,
  * Rounds and Brief are the case's threads, what was said on them, who is owed what next and what the
- * case knows (docs/case-sources.md).
+ * case knows (docs/case-sources.md). A renewal case also has Comparison: the current policy beside
+ * each option on offer, typed by a person.
  * Draft edits live in the page, so they survive a change of section.
  */
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
@@ -34,6 +35,7 @@ import { CASE_SECTIONS, asCaseSection, type CaseSection } from '@/components/cas
 import { CaseSourcesPanel } from '@/components/cases/CaseSourcesPanel'
 import { CaseConversation } from '@/components/cases/CaseConversation'
 import { CaseBrief } from '@/components/cases/CaseBrief'
+import { CaseComparison } from '@/components/cases/CaseComparison'
 import { CaseRounds } from '@/components/cases/CaseRounds'
 import { ResumePoint } from '@/components/cases/ResumePoint'
 
@@ -191,12 +193,13 @@ function Review() {
       </header>
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      <div><Segmented<CaseSection> value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.map(s => ({ ...s }))} /></div>
+      <div><Segmented<CaseSection> value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.filter(s => s.value !== 'comparison' || item.case_type === 'renewal').map(s => ({ ...s }))} /></div>
 
       {section === 'sources' && <CaseSourcesPanel id={item.id} staff={staff} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'conversation' && <CaseConversation id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'rounds' && <CaseRounds id={item.id} onOpenThread={setThread} onOpenDraft={() => go('overview')} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'brief' && <CaseBrief id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
+      {section === 'comparison' && <CaseComparison id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
 
       {section === 'overview' && <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-4 items-start">
         <div className="flex flex-col gap-6 min-w-0">
@@ -422,6 +425,8 @@ function eventText(kind: string, actor: string, d: Record<string, any>): string 
     case 'agent_turn': return d.note ? `${who} · ${d.note}` : `Turn by ${who}`
     case 'note_rejected': return `Note set aside by ${who}`
     case 'note_restored': return `Note restored by ${who}`
+    case 'wish_need': return `Wish graded by ${who}${d.note ? ` · ${d.note}` : ''}`
+    case 'comparison': return `Comparison saved by ${who}${d.note ? ` · ${d.note}` : ''}`
     default: return `${kind.replace(/_/g, ' ')} · ${who}`
   }
 }

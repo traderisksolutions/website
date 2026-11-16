@@ -27,7 +27,7 @@ import type { SourceMessage } from './sources'
 type Row = Record<string, any>
 const quiet = { Prefer: 'return=minimal' }
 export const ITEM_COLS = 'id,line,label,found_by,doc_types,words,position,active,required'
-const NOTE_COLS = 'id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,created_at'
+const NOTE_COLS = 'id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,created_at,need'
 
 export type CheckRow = ChecklistRow & { /** The file is in a colleague's mailbox: its name is withheld. */ private?: boolean }
 /** `line` is the line's own list when the case has one, else the basic list. */

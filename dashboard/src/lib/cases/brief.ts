@@ -20,6 +20,7 @@ import { isAutoReply, isInternalOnly } from '@/lib/threads/waiting'
 import { bucketOf, type Side, type SourceMessage } from './sources'
 import { quoteSource } from './memory'
 import { senderName } from './names'
+import { isNeed, type Need } from './compare'
 
 export const BRIEF_PARTS = ['communicated', 'wish', 'stated', 'open', 'next'] as const
 export type BriefPart = typeof BRIEF_PARTS[number]
@@ -31,7 +32,8 @@ type BriefSource = { thread_id: string; message_id: string; /** The sender of th
 export type BriefRow = {
   part: BriefPart
   text: string
-  kind?: 'Risk' | 'Success factor'
+  /** A risk or a success factor; on a wish, the grade a person gave it. */
+  kind?: 'Risk' | 'Success factor' | 'Must have' | 'Good to have'
   /** Who was written to, who stated it, who owes the answer, or who drafts. Null when the email does not say. */
   who: string | null
   date: string | null
@@ -53,6 +55,8 @@ export type Brief = {
 export type BriefNote = {
   id: string; section: string; text: string; quote: string | null; message_id: string | null; thread_id: string | null
   source_date: string | null; author: string; author_kind: 'agent' | 'person'; status: string; created_at: string
+  /** On a wish: 'must' or 'nice', set by a person. */
+  need?: string | null
 }
 
 export type BriefInput = {
@@ -71,6 +75,7 @@ export type BriefInput = {
 }
 
 const COMMUNICATED_MAX = 400
+const NEED_KIND: Record<Need, 'Must have' | 'Good to have'> = { must: 'Must have', nice: 'Good to have' }
 const INSURER = new Set(['insurer', 'tpa'])
 const day = (s: string | null | undefined) => (s ? s.slice(0, 10) : null)
 
@@ -141,7 +146,7 @@ export function buildBrief(i: BriefInput): Brief {
   let leftOff = 0
   const wish: BriefRow[] = [], stated: BriefRow[] = [], open: BriefRow[] = []
   for (const n of current) {
-    if (n.section === 'wish') { const w = writerOf(n); wish.push(fromNote(n, 'wish', w, w ? stater(w) : null)) }
+    if (n.section === 'wish') { const w = writerOf(n); wish.push(fromNote(n, 'wish', w, w ? stater(w) : null, isNeed(n.need) ? { kind: NEED_KIND[n.need] } : {})) }
     else if (n.section === 'risk' || n.section === 'success_factor') {
       const w = writerOf(n)
       // An agent's reading counts only as a statement by the client or an insurer.

@@ -7,6 +7,7 @@
  *   recordTurn(caseId, agent, turn)            notes kept with their source, emails marked read, one event on the case
  *   addPersonNote(caseId, actor, note)         a person's note: what was said outside the system
  *   setNoteStatus(noteId, actor, status)       a person rejects a note, or puts it back
+ *   setWishNeed(noteId, actor, need)           a person grades a wish: must have, or good to have
  *
  * The ledger gets counts for an agent's turn and the words of a person's note; an agent's notes
  * stay on the case, since they may quote a colleague's private thread.
@@ -17,14 +18,17 @@ import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { CaseError, caseRow, caseMessages, caseThreadIds } from './sources-store'
 import { agentRows, cleanNotes, evidenceNotes, ownWords, resumePoint, unreadFor, isSection, SECTION_NAME, SINGLE, type AgentRow, type CaseMessage, type CleanNote, type Dropped, type Resume, type Section } from './memory'
 import type { Side, SourceMessage } from './sources'
+import { isNeed, NEED_NAME, type Need } from './compare'
 
 type Row = Record<string, any>
 const quiet = { Prefer: 'return=minimal' }
-const NOTE_COLS = 'id,work_item_id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,superseded_by,rejected_by,rejected_at,created_at'
+const NOTE_COLS = 'id,work_item_id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,superseded_by,rejected_by,rejected_at,created_at,need'
 
 export type Note = {
   id: string; section: Section; text: string; quote: string | null; message_id: string | null; thread_id: string | null; source_date: string | null
   author: string; author_kind: 'agent' | 'person'; status: 'current' | 'superseded' | 'rejected'; created_at: string
+  /** On a wish: whether the client must have it. Null until a person grades it. */
+  need: Need | null
   /** The source email is in a colleague's mailbox: its words are withheld. */
   private?: boolean
 }
@@ -144,7 +148,7 @@ export async function recordTurn(workItemId: string, agent: string, turn: Turn):
 }
 
 /** A person's note. It needs no source email; a source it names must be on the case. */
-export async function addPersonNote(workItemId: string, actor: string, note: { section: unknown; text: unknown; message_id?: unknown }): Promise<Note> {
+export async function addPersonNote(workItemId: string, actor: string, note: { section: unknown; text: unknown; message_id?: unknown; need?: unknown }): Promise<Note> {
   await caseRow(workItemId)
   const { ids } = await caseThreadIds(workItemId)
   const messages = note.message_id ? asCaseMessages(await caseMessages(ids)) : []
@@ -152,6 +156,7 @@ export async function addPersonNote(workItemId: string, actor: string, note: { s
   if (!kept.length) throw new CaseError(`The note was not kept: ${dropped[0]?.reason ?? 'no text'}.`, 400)
   // The same words in the same section are one note, whoever writes them again.
   if (!(await storeNotes(workItemId, kept)).length) throw new CaseError('This note is already on the case.', 409)
+  if (kept[0].section === 'wish' && isNeed(note.need)) await sb(`work_item_notes?idem_key=eq.${enc(kept[0].idem_key)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ need: note.need }) })
   const [row] = await sb<Row[]>(`work_item_notes?idem_key=eq.${enc(kept[0].idem_key)}&select=${NOTE_COLS}&limit=1`)
   const [ev] = await sb<Row[]>('work_item_events', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({
     work_item_id: workItemId, kind: 'note', actor, detail: { section: kept[0].section, note: `${SECTION_NAME[kept[0].section]}: ${kept[0].text}` },
@@ -169,4 +174,14 @@ export async function setNoteStatus(workItemId: string, noteId: string, actor: s
   await sb(`work_item_notes?id=eq.${enc(noteId)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify(body) })
   if (status === 'current' && SINGLE.has(n.section)) await sb(`work_item_notes?work_item_id=eq.${enc(workItemId)}&section=eq.${n.section}&status=eq.current&id=neq.${enc(noteId)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ status: 'superseded', superseded_by: noteId }) })
   await sb('work_item_events', { method: 'POST', headers: quiet, body: JSON.stringify({ work_item_id: workItemId, kind: status === 'rejected' ? 'note_rejected' : 'note_restored', actor, detail: { note_id: noteId, section: n.section } }) })
+}
+
+/** A person grades a wish as must have or good to have, or clears the grade. */
+export async function setWishNeed(workItemId: string, noteId: string, actor: string, need: Need | null): Promise<void> {
+  const [n] = await sb<Row[]>(`work_item_notes?id=eq.${enc(noteId)}&work_item_id=eq.${enc(workItemId)}&select=id,section,need&limit=1`)
+  if (!n) throw new CaseError('This note is not on the case.', 404)
+  if (n.section !== 'wish') throw new CaseError('Only a wish is graded.', 400)
+  if ((n.need ?? null) === need) return
+  await sb(`work_item_notes?id=eq.${enc(noteId)}`, { method: 'PATCH', headers: quiet, body: JSON.stringify({ need }) })
+  await sb('work_item_events', { method: 'POST', headers: quiet, body: JSON.stringify({ work_item_id: workItemId, kind: 'wish_need', actor, detail: { note_id: noteId, need, note: need ? NEED_NAME[need] : 'Not graded' } }) })
 }

@@ -28,7 +28,8 @@ Migration `supabase/migrations/20261115_case_sources.sql` (additive; safe to run
 | `work_item_threads.joined_by = 'person'`, `joined_evidence` | A person's pick and who made it. Existing table. |
 | `work_item_threads.insurer_company_id` | The insurer on file a person named for an insurer-side thread. Empty for every other side. Migration `20261116_manual_journey.sql`. |
 | `work_item_thread_excluded` | Threads a person took off a case, and who. |
-| `work_item_notes` | Case memory: section, text, the quote and its email, author, status (current, superseded, rejected). |
+| `work_item_notes` | Case memory: section, text, the quote and its email, author, status (current, superseded, rejected). `need` grades a wish `must` or `nice`; empty is not graded. Migration `20261116_renewal_compare.sql`. |
+| `work_item_comparisons` | One row per case: the options, the term rows with a cell per option, each wish's mark per option, the option recommended and the reason, who saved it and when. Same migration. |
 | `work_item_reads` | Which agent has read which email of the case. |
 | `line_checklists` | One row per list: the basic list (`basic`) and one per line of insurance that has a list. Who confirmed it and when, who last edited it. Migration `20261115_case_brief.sql`. |
 | `line_checklist_items` | The documents of a list: name, how it is found (`file`, `wish`, `person`), document types, words a file name carries, `required` (false is Optional), position, active. |
@@ -257,6 +258,10 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | `GET /api/companies/:id/relevance` | A client's threads by group, the hidden count and renewal season. |
 | `GET /api/renewal-season` | `{ rows, today, window, months }`: the Renewal Season list. Writes nothing. |
 | `POST /api/renewal-season` | `{ policy_id }` opens the renewal case for a policy, or answers the open one; `{ id, created }`. |
+| `POST /api/work/:id/memory` | `{ action: note, section: wish, text, need? }` adds a wish with its grade; `{ action: need, note_id, need }` grades one (`must`, `nice` or null). |
+| `GET /api/work/:id/compare` | `{ item, group, comparison, saved, wishes, files, withheld, staff }`: the saved comparison, or a new one with the terms of the case's line. Writes nothing. |
+| `PUT /api/work/:id/compare` | `{ comparison }` saves it, bounded by `cleanComparison`; a source document must be a file on the case. |
+| `GET /api/work/:id/compare/summary` | The saved comparison as a PDF; 404 until one is saved. |
 
 Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unknown case, thread, note, list or document, 409 a thread on another case, a note already on the case, a document already on the list, an empty list confirmed, or a finding turned down when there is none.
 
@@ -276,13 +281,14 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 | --- | --- | --- |
 | Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: a tick box, Thread, Company, Label, Set by, Last message, Case. Ticked threads open Combine (`CombineDialog.tsx`): Client, Case, Kind, Title, then Thread, Side, Filed under, Last message, On case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
 | Home › Mail | `/` (`HomeMail.tsx`, `GET /api/today/mail?relevance=active`) | The newest 15 active threads: a tick box, Company, Thread, Label, Source (the rule's basis, or the person who set the label). A thread opens in the Inbox. Ticked threads open Combine ("Next steps for N threads"); the case opens on Rounds. |
-| Today › Renewal Season | `/renewal-season` (`SeasonTable.tsx`, `ThreadPicker.tsx`, `GET /api/renewal-season`) | One row per policy ending in the window: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare, and Start, Select conversations or Open. Month and Line filters. Select conversations lists the client's threads by group (a tick box, Thread, Label, Last message, On case) and continues into Combine on the row's case. |
+| Today › Renewal Season | `/renewal-season` (`SeasonTable.tsx`, `ThreadPicker.tsx`, `GET /api/renewal-season`) | One row per policy ending in the window: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare, and Start, Select conversations or Open. Month and Line filters. Select conversations lists the client's threads by group (a tick box, Thread, Label, Last message, On case) and continues into Combine on the row's case. The Wish list count opens the wish list (`WishListDialog.tsx`: Wish, Need, By, Set aside; Add wish). |
 | Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
 | Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side (Client, an insurer by name, Internal, Other: `SideSelect.tsx`), Add. A thread on another case opens `MoveThreadDialog`. |
 | Case › Conversation | `?section=conversation` (`CaseConversation.tsx`) | Client table above Insurer table: Date, From, Message, Files. |
 | Case › Rounds | `?section=rounds` (`CaseRounds.tsx`) | Run, the one primary button, drafts every step owed. Next steps (Step, Since, Drafted by, and Draft, Open draft or Open thread). Then one round at a time: its insurers (Insurer, Asked, Replied, Sent to client, State) and its emails (Date, From, Insurer, Type, Message, Files). Type is a list a person can change. |
 | Case › Brief | `?section=brief` (`CaseBrief.tsx`, `CaseBriefTables.tsx`) | Tabs Brief, Notes, Set aside. Brief: the five parts in one table (Part, Item, Who, Date, Source), then on a renewal or new quote the line of insurance and Documents (Document, Need, Status, File, By, Action), then on every case Files (File, Type, From, Date). Notes: every note with its source; Set aside, Restore, Add note. |
+| Case › Comparison | `?section=comparison` (`CaseComparison.tsx`), renewal cases only | Save is the one primary button; Client summary opens the PDF. Options (Option, Insurer, Source document), Policy terms (Term, then one column per option; Premium before GST last), Client wish list (Wish, Need, then one column per option; Must have met), Recommendation (Recommended option, Reason). |
 | Settings › Document checklists | `/settings?section=checklists` (`ChecklistPanel.tsx`) | The basic list, then one table per line: Document, Need, Found by, File name says, Action. Add document, Edit, Retire, Confirm list; Add list for a line that has none. |
 
 A panel that changes the case refreshes the page's events and threads without reloading the draft, so words typed in the draft survive.
@@ -296,9 +302,21 @@ The list a person works renewals from, by hand. No model is called and nothing i
 - **Rows without a policy** (`keepsOwnRow`): an open renewal case no policy takes keeps a row unless it is at policy issue or billing, or its deadline falls outside the window.
 - **Line**: Employment Benefits or General. The policy's known line decides; without one, the Employment Benefits flag or the wording does. Foreign worker medical is General.
 - **Counts**: Conversations is the threads on the case, less the removed. Wish list is the notes in the wish-list section. Documents is required documents on file out of required, by the Brief's own rule (`checklistState`).
-- **Compare**: Compare cover when the client's latest census quotation is analysed, New quotation for Employment Benefits without one, the company's placements for a general line with a placement, else nothing.
+- **Compare**: Compare cover when the client's latest census quotation is analysed, New quotation for Employment Benefits without one, the case's Comparison for a general line with a case (with the number of options saved), else nothing.
 - **Start** (`startRenewal`): returns the open renewal case on the policy, or opens one: title from the policy, deadline its end date, stage Request, start point Renewal, the person as owner. One event, `started`.
 - **Select conversations** groups by `pickGroupOf`: member movements by label, back burner by age, the rest active. On Today › Mail a thread is active only once it is on an open case; here the person is choosing what goes on the case, so age and label alone decide.
+
+## Comparison (`compare.ts`, `compare-store.ts`, `compare-summary.ts`)
+
+How a person compares the offers on a renewal, by hand. Code lays the cells side by side and does the arithmetic; no model reads a brochure.
+
+- **Options**: the current policy is always first and cannot be removed; up to four offers follow (five columns, `OPTIONS_MAX`). Each has a name, an insurer and one source document, chosen from the files on the case's threads. A file in a colleague's mailbox is counted and its name withheld; a saved choice the person cannot see is kept as it was (`keepFiles`).
+- **Policy terms**: `newComparison` opens with the terms of the line group. General: scope of cover, sum insured or limit, sub-limits, excess, extensions, exclusions, conditions and warranties, period. Employment Benefits: hospital ward, annual limit, pre-existing conditions, outpatient, panel and non-panel clinics, exclusions, underwriting terms, period. A person adds, renames and removes terms, up to 30 rows of 500 characters a cell.
+- **Premium**: the last row, typed per option. `premiumLines` reads the amount (`amountOf`) and works out the change from the current policy in dollars and per cent; a cell that is not an amount is kept as words and has no change.
+- **Wish list**: the case's current wishes, must-have first (`byNeed`). A person marks each option Met, Partly met or Not met; `wishCounts` counts the must-have wishes met per option. Marks on a wish that was set aside are dropped at the next save.
+- **Recommendation**: one option and a reason of up to 1,200 characters.
+- **Save** (`saveComparison`) passes everything through `cleanComparison`, upserts `work_item_comparisons` and writes one event, `comparison`. Typing that is not saved stays in the page while the person looks at another section, and the browser warns before the tab closes.
+- **Client summary** (`summaryModel`, `CompareSummaryDocument`): the saved comparison on the TRS letterhead, A4 landscape, one table per section: Recommendation, Premium, Policy terms, Client wish list, Source documents. A term blank for every option is left out. The page fetches the PDF and shows it in a dialog with Download.
 
 ## The read a person starts (`POST /api/work/:id/read`, `workCase`)
 
@@ -308,7 +326,7 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 ## Not built yet
 
-- Renewal Season: comparison of general-line brochures by policy architecture, soft factors beside a comparison, and a client-facing summary. Employment Benefits has Compare cover; the general lines have the placement's quotes.
+- Comparison: a draft email to the client with the summary attached, and a read of a brochure into the term cells (a person's button, by the AI rule). Every cell is typed today.
 - The automatic layer (journey 2): a model that selects a case's threads, sets their sides and runs the steps. Every step of the manual journey is a person's click today.
 - Rounds: the case agent that decides between the client agent and the insurer agent with a model, and the share of drafts sent as written per agent on `/analytics/autonomy`.
 - Referral marks live in `app_settings`, so the Inbox list cannot filter on them; a column on `email_threads` would allow it.

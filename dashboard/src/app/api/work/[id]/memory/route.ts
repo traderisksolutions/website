@@ -2,14 +2,16 @@
  * GET  /api/work/:id/memory → what the case knows: notes by section with their source, where it
  *                             stands (last touch, next step, open questions, hand-over), and how
  *                             many emails each agent has not read (one row per agent).
- * POST /api/work/:id/memory → { action: 'note', section, text, message_id? } a person's note,
- *                             { action: 'reject' | 'restore', note_id } on one note.
+ * POST /api/work/:id/memory → { action: 'note', section, text, message_id?, need? } a person's note,
+ *                             { action: 'reject' | 'restore', note_id } on one note,
+ *                             { action: 'need', note_id, need: 'must' | 'nice' | null } grades a wish.
  * Words quoted from a colleague's private thread are withheld.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { caseActor, caseFail } from '@/lib/cases/http'
-import { loadCaseState, addPersonNote, setNoteStatus, type CaseMemory } from '@/lib/cases/memory-store'
+import { loadCaseState, addPersonNote, setNoteStatus, setWishNeed, type CaseMemory } from '@/lib/cases/memory-store'
 import { isSection, SECTIONS, SECTION_NAME } from '@/lib/cases/memory'
+import { isNeed } from '@/lib/cases/compare'
 import { currentStaff } from '@/lib/casework/queue'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -46,17 +48,23 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   const who = await caseActor(req)
   if ('refused' in who) return who.refused
   const { id } = await params
-  const body = await req.json().catch(() => null) as { action?: string; section?: unknown; text?: unknown; message_id?: unknown; note_id?: unknown } | null
+  const body = await req.json().catch(() => null) as { action?: string; section?: unknown; text?: unknown; message_id?: unknown; note_id?: unknown; need?: unknown } | null
   try {
     if (body?.action === 'note') {
       if (!isSection(body.section)) return NextResponse.json({ error: 'Choose a section for the note.' }, { status: 400 })
       if (typeof body.text !== 'string' || !body.text.trim()) return NextResponse.json({ error: 'Write the note.' }, { status: 400 })
-      const note = await addPersonNote(id, who.actor, { section: body.section, text: body.text, message_id: typeof body.message_id === 'string' ? body.message_id : undefined })
+      const note = await addPersonNote(id, who.actor, { section: body.section, text: body.text, message_id: typeof body.message_id === 'string' ? body.message_id : undefined, need: body.need })
       return NextResponse.json({ ok: true, note, memory: await view(id, who.actor) })
     }
     if (body?.action === 'reject' || body?.action === 'restore') {
       if (typeof body.note_id !== 'string' || !body.note_id) return NextResponse.json({ error: 'Name the note.' }, { status: 400 })
       await setNoteStatus(id, body.note_id, who.actor, body.action === 'reject' ? 'rejected' : 'current')
+      return NextResponse.json({ ok: true, memory: await view(id, who.actor) })
+    }
+    if (body?.action === 'need') {
+      if (typeof body.note_id !== 'string' || !body.note_id) return NextResponse.json({ error: 'Name the note.' }, { status: 400 })
+      if (body.need != null && !isNeed(body.need)) return NextResponse.json({ error: 'Choose must have or good to have.' }, { status: 400 })
+      await setWishNeed(id, body.note_id, who.actor, isNeed(body.need) ? body.need : null)
       return NextResponse.json({ ok: true, memory: await view(id, who.actor) })
     }
     return NextResponse.json({ error: 'Unknown action.' }, { status: 400 })

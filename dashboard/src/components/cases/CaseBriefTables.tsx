@@ -17,6 +17,7 @@ import { PRODUCT_LINES } from '@/lib/product-lines'
 import { headingCls, subjectBtn, tableFrame } from './shared'
 
 const muted = <span className="text-trs-muted">{DASH}</span>
+const KIND_TONE: Record<NonNullable<BriefRow['kind']>, 'neutral' | 'blue' | 'amber' | 'green'> = { Risk: 'amber', 'Success factor': 'green', 'Must have': 'blue', 'Good to have': 'neutral' }
 const STATE_TONE: Record<ItemState, 'neutral' | 'blue' | 'amber' | 'green'> = { missing: 'amber', found: 'blue', confirmed: 'green', not_needed: 'neutral' }
 
 export function BriefTable({ view, staff, onOpenThread }: { view: Pick<CaseBriefView, 'brief' | 'parts'>; staff: readonly Staff[]; onOpenThread: (threadId: string) => void }) {
@@ -46,7 +47,7 @@ export function BriefTable({ view, staff, onOpenThread }: { view: Pick<CaseBrief
               <tr key={`${part}-${i}`} className="align-top">
                 <td className="cell-left px-3 py-2 text-[13px] font-medium text-trs-ink">{i === 0 ? name : <span className="sr-only">{name}</span>}</td>
                 <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words whitespace-pre-line">
-                  {r.kind && <Chip tone={r.kind === 'Risk' ? 'amber' : 'green'} className="mr-1.5 align-middle">{r.kind}</Chip>}
+                  {r.kind && <Chip tone={KIND_TONE[r.kind]} className="mr-1.5 align-middle">{r.kind}</Chip>}
                   {r.private && !r.text ? <span className="text-trs-muted">Words withheld</span> : r.text}
                 </td>
                 <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{r.who ?? muted}</td>

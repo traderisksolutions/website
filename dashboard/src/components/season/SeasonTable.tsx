@@ -3,7 +3,8 @@
 /**
  * The Renewal Season list: one row per policy ending in the window (and per renewal case no policy
  * takes), with where its case stands and one action. Start opens the renewal case for a policy
- * without one; Select conversations opens the client's threads to tick; Open goes to the case's Brief.
+ * without one; Select conversations opens the client's threads to tick; the Wish list count opens
+ * the list to type into; Open goes to the case's Brief.
  */
 import Link from 'next/link'
 import { Btn, Empty, LinkBtn } from '@/components/crm/primitives'
@@ -12,16 +13,17 @@ import { DASH, fmtDate } from '@/lib/format'
 import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import type { SeasonCompare, SeasonRow } from '@/lib/cases/season'
 
-const COMPARE_NAME: Record<SeasonCompare['kind'], string> = { compare_cover: 'Compare cover', new_quotation: 'New quotation', quotes: 'Placement' }
+const COMPARE_NAME: Record<SeasonCompare['kind'], string> = { compare_cover: 'Compare cover', new_quotation: 'New quotation', comparison: 'Comparison' }
 const link = 'text-trs-ink no-underline hover:underline'
 const none = <span className="text-trs-muted">{DASH}</span>
 
-export function SeasonTable({ rows, starting, onStart, onPick }: {
+export function SeasonTable({ rows, starting, onStart, onPick, onWishes }: {
   rows: SeasonRow[]
   /** The row whose case is being started. */
   starting: string | null
   onStart: (row: SeasonRow) => void
   onPick: (row: SeasonRow) => void
+  onWishes: (row: SeasonRow) => void
 }) {
   if (!rows.length) return <Empty>No renewals in this view.</Empty>
   return (
@@ -50,9 +52,9 @@ export function SeasonTable({ rows, starting, onStart, onPick }: {
                 <td className="px-3 tabular-nums">
                   {c && r.company_id ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-[13.5px] ${link}`} aria-label={`Select conversations for ${r.company}, ${c.threads} on the case`} onClick={() => onPick(r)}>{c.threads}</button> : c ? c.threads : none}
                 </td>
-                <td className="px-3 tabular-nums">{c ? <Link href={brief!} className={link}>{c.wishes}</Link> : none}</td>
+                <td className="px-3 tabular-nums">{c ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-[13.5px] ${link}`} aria-label={`Wish list for ${r.company}, ${c.wishes} on the case`} onClick={() => onWishes(r)}>{c.wishes}</button> : none}</td>
                 <td className="px-3 tabular-nums whitespace-nowrap">{c?.documents ? <Link href={brief!} className={link}>{c.documents.ticked} of {c.documents.required}</Link> : none}</td>
-                <td className="px-3 whitespace-nowrap">{r.compare ? <Link href={r.compare.href} className={link}>{COMPARE_NAME[r.compare.kind]}</Link> : none}</td>
+                <td className="px-3 whitespace-nowrap">{r.compare ? <Link href={r.compare.href} className={link}>{COMPARE_NAME[r.compare.kind]}{r.compare.kind === 'comparison' && c && c.options > 0 ? ` · ${c.options}` : ''}</Link> : none}</td>
                 <td className="px-3">
                   {!c ? <Btn size="xs" loading={starting === r.key} disabled={starting !== null} onClick={() => onStart(r)}>Start</Btn>
                     : c.threads === 0 && r.company_id ? <Btn size="xs" onClick={() => onPick(r)}>Select conversations</Btn>
