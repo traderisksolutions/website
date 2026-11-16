@@ -4,7 +4,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-16 — Renewal Season: every policy ending soon, worked by hand (built, not deployed)
+## 2026-11-16 — Renewal Season: every policy ending soon, worked by hand (live, a0d592a0)
 
 - **Renewal Season** (`/renewal-season`, a tab under Today; `src/lib/cases/season.ts`, `season-store.ts`, `GET/POST /api/renewal-season`): one row per policy ending from 30 days back to the end of the third month ahead, and per open renewal case no listed policy takes. Columns: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare. Filters: Month (All, Overdue, each month, No date) and Line (All lines, Employment Benefits, General).
 - **Case per policy**: a renewal case pairs with a policy by its link, then the policy number, then the line of insurance, then as the client's only case. Start opens the renewal case for a policy without one (title, deadline and insurer from the policy) and is safe to press twice.
