@@ -255,6 +255,8 @@ Every route needs a signed-in TRS person; the scheduler has no view of mail.
 | `POST /api/engagement/thread/:id/referral` | `{ referral: true, false or null }`: tag, not a referral, or hand back to the rule. |
 | `GET /api/companies/referrals` | `{ rows, unchecked }`: the referrals review. |
 | `GET /api/companies/:id/relevance` | A client's threads by group, the hidden count and renewal season. |
+| `GET /api/renewal-season` | `{ rows, today, window, months }`: the Renewal Season list. Writes nothing. |
+| `POST /api/renewal-season` | `{ policy_id }` opens the renewal case for a policy, or answers the open one; `{ id, created }`. |
 
 Statuses: 401 no TRS session, 400 bad input, 403 a colleague's thread, 404 unknown case, thread, note, list or document, 409 a thread on another case, a note already on the case, a document already on the list, an empty list confirmed, or a finding turned down when there is none.
 
@@ -274,6 +276,7 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 | --- | --- | --- |
 | Today › Mail | `/today?view=mail` (`MailView.tsx`, `GET /api/today/mail`) | Labelled threads the person may see: a tick box, Thread, Company, Label, Set by, Last message, Case. Ticked threads open Combine (`CombineDialog.tsx`): Client, Case, Kind, Title, then Thread, Side, Filed under, Last message, On case. Relevance and label filters; the label is changed in the row. The newest 200 rows load first; "Show N more" adds 200. |
 | Home › Mail | `/` (`HomeMail.tsx`, `GET /api/today/mail?relevance=active`) | The newest 15 active threads: a tick box, Company, Thread, Label, Source (the rule's basis, or the person who set the label). A thread opens in the Inbox. Ticked threads open Combine ("Next steps for N threads"); the case opens on Rounds. |
+| Today › Renewal Season | `/renewal-season` (`SeasonTable.tsx`, `ThreadPicker.tsx`, `GET /api/renewal-season`) | One row per policy ending in the window: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare, and Start, Select conversations or Open. Month and Line filters. Select conversations lists the client's threads by group (a tick box, Thread, Label, Last message, On case) and continues into Combine on the row's case. |
 | Company › Threads | `/companies/:id?tab=threads` (`CompanyThreadList.tsx`) | List by relevance; `&view=reader` is the two-pane reader. |
 | Case › Overview | `/today/:id` | The draft, then Resume point and Agents (`ResumePoint.tsx`). The rail shows on Overview only. |
 | Case › Sources | `?section=sources` (`CaseSourcesPanel.tsx`) | Proposed, Recent, Over 90 days, On case, Removed. Tick, set the side (Client, an insurer by name, Internal, Other: `SideSelect.tsx`), Add. A thread on another case opens `MoveThreadDialog`. |
@@ -284,6 +287,19 @@ Found by the run and fixed: a quotation request for Work Injury Compensation was
 
 A panel that changes the case refreshes the page's events and threads without reloading the draft, so words typed in the draft survive.
 
+## Renewal Season (`season.ts`, `season-store.ts`)
+
+The list a person works renewals from, by hand. No model is called and nothing is stored: every figure is read from the policy register and the cases.
+
+- **Window**: policies ending from 30 days back (`SEASON_BACK_DAYS`) to the end of the third month ahead (`SEASON_MONTHS_AHEAD`), on Singapore's date. Left out: endorsements, policies not bound, live or due for renewal, companies that are not clients, and a policy whose next term is on the register (same client, line and insurer, starting within 45 days of the end).
+- **Case per policy** (`pairCases`), in four passes over the client's open renewal cases: the case linked to the policy; the case that names the policy number; the case on the same line of insurance; the client's only open case beside its only listed policy. A case linked to a policy outside the list still pairs by number or line. Each case pairs once.
+- **Rows without a policy** (`keepsOwnRow`): an open renewal case no policy takes keeps a row unless it is at policy issue or billing, or its deadline falls outside the window.
+- **Line**: Employment Benefits or General. The policy's known line decides; without one, the Employment Benefits flag or the wording does. Foreign worker medical is General.
+- **Counts**: Conversations is the threads on the case, less the removed. Wish list is the notes in the wish-list section. Documents is required documents on file out of required, by the Brief's own rule (`checklistState`).
+- **Compare**: Compare cover when the client's latest census quotation is analysed, New quotation for Employment Benefits without one, the company's placements for a general line with a placement, else nothing.
+- **Start** (`startRenewal`): returns the open renewal case on the policy, or opens one: title from the policy, deadline its end date, stage Request, start point Renewal, the person as owner. One event, `started`.
+- **Select conversations** groups by `pickGroupOf`: member movements by label, back burner by age, the rest active. On Today › Mail a thread is active only once it is on an open case; here the person is choosing what goes on the case, so age and label alone decide.
+
 ## The read a person starts (`POST /api/work/:id/read`, `workCase`)
 
 "Read N new emails" is the one button that sends a case to a model. It takes the threads on the case that the person may see and nothing else of the client, keeps the notes that quote those emails, and records which emails were read. It answers 400 for a closed case, a case with no client, no thread or no email. It never closes the case and never changes its client, kind or title (`personsCaseRow` in `src/lib/casework/clean.ts`): when the reader finds the matter complete, the Decision slot says so and the person closes it. It writes no draft.
@@ -292,6 +308,7 @@ The whole-client read (the queue, run from Today › AI approvals) still takes m
 
 ## Not built yet
 
+- Renewal Season: comparison of general-line brochures by policy architecture, soft factors beside a comparison, and a client-facing summary. Employment Benefits has Compare cover; the general lines have the placement's quotes.
 - The automatic layer (journey 2): a model that selects a case's threads, sets their sides and runs the steps. Every step of the manual journey is a person's click today.
 - Rounds: the case agent that decides between the client agent and the insurer agent with a model, and the share of drafts sent as written per agent on `/analytics/autonomy`.
 - Referral marks live in `app_settings`, so the Inbox list cannot filter on them; a column on `email_threads` would allow it.

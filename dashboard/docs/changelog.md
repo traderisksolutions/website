@@ -4,6 +4,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-16 — Renewal Season: every policy ending soon, worked by hand (built, not deployed)
+
+- **Renewal Season** (`/renewal-season`, a tab under Today; `src/lib/cases/season.ts`, `season-store.ts`, `GET/POST /api/renewal-season`): one row per policy ending from 30 days back to the end of the third month ahead, and per open renewal case no listed policy takes. Columns: Client, Policy, Ends, Stage, Conversations, Wish list, Documents, Compare. Filters: Month (All, Overdue, each month, No date) and Line (All lines, Employment Benefits, General).
+- **Case per policy**: a renewal case pairs with a policy by its link, then the policy number, then the line of insurance, then as the client's only case. Start opens the renewal case for a policy without one (title, deadline and insurer from the policy) and is safe to press twice.
+- **Select conversations** (`ThreadPicker.tsx`): the client's threads in three groups by label and age: Active, Back burner (last message over three months ago), Member movements. A person ticks up to 40; Continue opens "Case from N threads" on the row's case, where each thread is marked the client's or an insurer's by name. `CombineDialog` takes `presetCompany` and `presetCase`.
+- **Counts** come from the case as the Brief shows it: threads on the case, wish-list notes, required documents on file out of required. Compare opens Compare cover (an analysed Employment Benefits quotation), New quotation (Employment Benefits without one) or the company's placements (a general line with a placement).
+- Left out: endorsements, policies of companies that are not clients, policies whose next term is already on the register, cases at policy issue or billing and cases dated outside the window with no policy.
+- No model is called and no migration is needed. Not built: comparison of general-line brochures by policy architecture, the soft factors beside a comparison, and the automatic layer.
+- Behaviours TOD-027 to TOD-029. Journey `renewal-season.spec.ts`. Tests `season.test.ts` (19).
+
 ## 2026-11-16 — Manual journey: combine threads, name the insurer, run (migration applied)
 
 - **Combine** (Today › Mail, `CombineDialog.tsx`, `src/lib/cases/combine.ts`, `combine-store.ts`, `GET/POST /api/work/combine`): a tick box on every thread and one primary button. "Case from N threads" opens with the client most of the threads belong to, that client's open cases, a kind and a title read from the threads, and a side per thread. Start case or Add to case, then the page opens on the case's Rounds. A thread another case holds moves only when the button names the move. Nothing is made until the person presses the button.

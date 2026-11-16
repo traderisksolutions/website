@@ -43,6 +43,7 @@ One screen enters a census and last year's policy: New quotation (`NewEb.tsx`). 
 | Today › Coming up | A renewal's policy line | Policy |
 | Today › Coming up | A payment's debit note line | Debit note |
 | Today › EB renewals | Policy | Policy |
+| Today › Renewal Season | Client, Policy, Wish list or Documents, Compare, Open | Company, policy, the case's Brief, Compare cover or New quotation or the company's placements, the case's Brief |
 | Placement line, bound | Policy | Policy |
 | Debit note issued | Open debit note | Debit note |
 

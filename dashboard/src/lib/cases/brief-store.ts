@@ -26,7 +26,7 @@ import type { SourceMessage } from './sources'
 
 type Row = Record<string, any>
 const quiet = { Prefer: 'return=minimal' }
-const ITEM_COLS = 'id,line,label,found_by,doc_types,words,position,active,required'
+export const ITEM_COLS = 'id,line,label,found_by,doc_types,words,position,active,required'
 const NOTE_COLS = 'id,section,text,quote,message_id,thread_id,source_date,author,author_kind,status,created_at'
 
 export type CheckRow = ChecklistRow & { /** The file is in a colleague's mailbox: its name is withheld. */ private?: boolean }
@@ -60,8 +60,8 @@ async function lineOf(item: Row) {
   return caseLine({ chosen: item.product_line, policyLine: policy?.product_line, policyClass: policy?.class_of_insurance, title: item.title })
 }
 
-const asItem = (r: Row): ChecklistItem => ({ id: r.id, line: r.line, label: r.label, found_by: r.found_by, doc_types: r.doc_types ?? [], words: r.words ?? [], position: r.position ?? 0, active: r.active !== false, required: r.required !== false })
-const asCall = (r: Row): Call => ({ item_id: r.item_id, status: r.status ?? null, message_id: r.message_id ?? null, filename: r.filename ?? null, found: !!r.found, rejected: Array.isArray(r.rejected) ? r.rejected : [], actor: r.actor, at: r.at })
+export const asItem = (r: Row): ChecklistItem => ({ id: r.id, line: r.line, label: r.label, found_by: r.found_by, doc_types: r.doc_types ?? [], words: r.words ?? [], position: r.position ?? 0, active: r.active !== false, required: r.required !== false })
+export const asCall = (r: Row): Call => ({ item_id: r.item_id, status: r.status ?? null, message_id: r.message_id ?? null, filename: r.filename ?? null, found: !!r.found, rejected: Array.isArray(r.rejected) ? r.rejected : [], actor: r.actor, at: r.at })
 
 /**
  * The documents a case is checked for, with where each stands: the basic list, and the list of the

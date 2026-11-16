@@ -22,6 +22,7 @@ export type Place = {
 export const PLACES: Place[] = [
   { label: 'Today', href: '/today', icon: ListChecks, tabs: [
     { title: 'Today', href: '/today' },
+    { title: 'Renewal Season', href: '/renewal-season' },
     { title: 'Queue', href: '/work' },
     { title: 'Follow-ups', href: '/followups' },
     { title: 'AI approvals', href: '/work/ai' },

@@ -22,10 +22,14 @@ import type { CombinePreview } from '@/lib/cases/combine'
 const NEW = 'new'
 const fieldSelect = `${selectCls} h-9 w-full`
 
-export function CombineDialog({ threadIds, onClose }: {
+export function CombineDialog({ threadIds, onClose, presetCompany = null, presetCase = null }: {
   /** The ticked threads; null keeps the dialog shut. */
   threadIds: string[] | null
   onClose: () => void
+  /** The client the form opens on, over the one the threads name (Renewal Season). */
+  presetCompany?: string | null
+  /** The open case the form opens on, when it is one of the client's. */
+  presetCase?: string | null
 }) {
   const router = useRouter()
   const [view, setView] = useState<CombinePreview | null>(null)
@@ -47,16 +51,16 @@ export function CombineDialog({ threadIds, onClose }: {
       const next = await callApi<CombinePreview>(`/api/work/combine?threads=${key}${companyId ? `&company=${companyId}` : ''}`)
       if (n !== asked.current) return
       setView(next)
-      setTarget(t => (next.cases.some(c => c.id === t) ? t : NEW))
+      setTarget(t => (first && presetCase && next.cases.some(c => c.id === presetCase) ? presetCase : next.cases.some(c => c.id === t) ? t : NEW))
       if (first) { setCompany(next.client ? { id: next.client.id, name: next.client.name } : { id: null, name: '' }); setCaseType(next.case_type); setTitle(next.title); setError(null) }
     } catch (e) {
       if (n === asked.current) setError(errText(e))
     }
-  }, [key])
+  }, [key, presetCase])
   useEffect(() => {
     setView(null); setSides({}); setTarget(NEW); setError(null); setBusy(false)
-    void load(null, true)
-  }, [load])
+    void load(presetCompany, true)
+  }, [load, presetCompany])
 
   function pickCompany(next: CompanyPick) {
     setCompany(next)

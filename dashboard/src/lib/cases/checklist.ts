@@ -49,6 +49,8 @@ export type FileRef = { message_id: string; filename: string }
 /** A person's stored calls on one item of one case. */
 export type Call = { item_id: string; status: 'confirmed' | 'not_needed' | null; message_id: string | null; filename: string | null; found: boolean; rejected: FileRef[]; actor: string; at: string }
 export type Finding = FileRef & { thread_id: string; at: string | null; from: string | null }
+/** What the checklist reads of an email: who sent it, when, and its file names. */
+export type FileMessage = Pick<SourceMessage, 'id' | 'thread_id' | 'sent_at' | 'from_address' | 'files'>
 
 export const LABEL_MAX = 80
 const WORD_MAX = 40
@@ -83,7 +85,7 @@ export function fileMatches(item: Pick<ChecklistItem, 'doc_types' | 'words'>, fi
 
 const sameFile = (a: FileRef, b: FileRef) => a.message_id === b.message_id && a.filename === b.filename
 /** The newest file on the case that is this document, leaving out the findings a person turned down. */
-export function findFile(item: ChecklistItem, messages: readonly SourceMessage[], rejected: readonly FileRef[] = []): Finding | null {
+export function findFile(item: ChecklistItem, messages: readonly FileMessage[], rejected: readonly FileRef[] = []): Finding | null {
   if (item.found_by !== 'file') return null
   const newest = [...messages].sort((a, b) => String(b.sent_at ?? '').localeCompare(String(a.sent_at ?? '')))
   for (const m of newest) for (const filename of m.files ?? []) {
@@ -128,7 +130,7 @@ export function caseItems(basic: readonly ChecklistItem[], line: readonly Checkl
  * ones. A person's call stands over what code finds; without one, an item is found when a file (or a
  * client wish) is on the case.
  */
-export function checklistState(items: readonly ChecklistItem[], calls: readonly Call[], messages: readonly SourceMessage[], hasWish: boolean): ChecklistState {
+export function checklistState(items: readonly ChecklistItem[], calls: readonly Call[], messages: readonly FileMessage[], hasWish: boolean): ChecklistState {
   const byItem = new Map(calls.map(c => [c.item_id, c]))
   const byMessage = new Map(messages.map(m => [m.id, m]))
   const basicLast = (i: ChecklistItem) => Number(i.line === BASIC_LIST)
