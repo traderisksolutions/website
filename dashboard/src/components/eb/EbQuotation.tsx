@@ -3,8 +3,10 @@
 /**
  * Employment Benefits quotation (Jarod, 17 Nov 2026): one page, three steps.
  *
- * Census: the client's spreadsheet from the thread (or uploaded), read in full; employees counted
- * apart from spouses and children, by the census category column. Up to four categories are priced.
+ * Documents: the census (from the thread or uploaded) and last year's policy side by side, as on
+ * New quotation. The census gives the categories: employees counted apart from spouses and children,
+ * up to four priced. Last year's policy, read on a person's press, sets today's cover per category
+ * and today's premium for the whole quotation.
  *
  * Cover design: categories down, covers across, the category column fixed. Each cell opens on one
  * tier below what the category holds today (read from the census plan), today itself second, any
@@ -20,8 +22,9 @@ import { CompanyField, type CompanyPick } from '@/components/group-benefits/Comp
 import { fmtDate } from '@/lib/format'
 import type { Member } from '@/lib/gb-quote'
 import type { SheetRead } from '@/lib/gb/census-parse'
+import type { LastYear } from '@/lib/gb/last-year'
 import { applyRules } from '@/lib/gb/plan-pairs'
-import { categoryTotal, censusCategories, lowerTier, MAX_CATEGORIES, startDesign, TIERS, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
+import { categoryTotal, censusCategories, lastYearNet, lowerTier, MAX_CATEGORIES, startDesign, TIERS, todayFromLastYear, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
 
 type Source = { attachment_id: string; filename: string; at: string; subject: string | null }
 type Picks = Record<string, Record<string, Record<CoverKey, string>>>   // category → product → cover → plan
@@ -31,6 +34,27 @@ const INSURERS = ['', 'QBE (Steadfast MCare+)', 'Raffles Health (RCC Enhanced II
 const NOT_KNOWN = 'Not on the census'
 const f0 = (n: number) => Math.round(n).toLocaleString('en-SG')
 const nextMonthFirst = () => { const t = new Date(Date.now() + 8 * 3600_000); const y = t.getUTCMonth() === 11 ? t.getUTCFullYear() + 1 : t.getUTCFullYear(); return `${y}-${String((t.getUTCMonth() + 1) % 12 + 1).padStart(2, '0')}-01` }
+
+function FileRow({ name, meta, action }: { name: string; meta?: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[8px] px-3 py-2 text-[13.5px] bg-white" style={{ border: `1px solid ${LINE}` }}>
+      <span className="min-w-0"><span className="block truncate" style={{ color: INK }}>{name}</span>{meta && <span className="block text-[12px]" style={{ color: MUTED }}>{meta}</span>}</span>
+      {action}
+    </div>
+  )
+}
+
+function Drop({ id, label, accept, multiple, disabled, onFiles }: { id: string; label: string; accept: string; multiple?: boolean; disabled?: boolean; onFiles: (f: File[]) => void }) {
+  return (
+    <label htmlFor={id} className="flex flex-col items-center justify-center gap-1.5 rounded-[10px] px-4 py-6 cursor-pointer text-center" style={{ background: FIELD, color: MUTED }}
+      onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const fs = [...e.dataTransfer.files]; if (fs.length) onFiles(multiple ? fs : fs.slice(0, 1)) }}>
+      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full text-[18px] leading-none" style={{ background: GREEN, color: 'white' }}>+</span>
+      <span className="text-[13.5px]" style={{ color: INK }}>{label}</span>
+      <span className="text-[12px]">{accept.split(',').join(' · ')}</span>
+      <input id={id} type="file" accept={accept} multiple={multiple} className="sr-only" disabled={disabled} onChange={e => { const fs = [...(e.target.files ?? [])]; if (fs.length) onFiles(fs); e.target.value = '' }} />
+    </label>
+  )
+}
 
 function Against({ v, today }: { v: number | null; today: number | null }) {
   if (v == null || today == null) return <span style={{ color: SUBTLE }}>—</span>
@@ -56,14 +80,20 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
   const [picks, setPicks] = useState<Picks>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Source[]>([])
+  const [uploads, setUploads] = useState<File[]>([])
+  const [docIds, setDocIds] = useState<string[]>([])
+  const [readingPolicy, setReadingPolicy] = useState(false)
+  const [lastYear, setLastYear] = useState<LastYear | null>(null)
+  const [lyToday, setLyToday] = useState<Record<string, Partial<Design>>>({})
 
   useEffect(() => {
     if (!threadId && !pick.id) return
     const q = new URLSearchParams(); if (threadId) q.set('thread', threadId); if (pick.id) q.set('company', pick.id)
     let cancelled = false
-    fetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: Source[]; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
+    fetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: Source[]; documents?: Source[]; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
       if (cancelled) return
-      setSources(d.sources ?? [])
+      setSources(d.sources ?? []); setDocs(d.documents ?? [])
       if (d.companyName) setPick(p => p.name ? p : { id: d.companyId ?? null, name: d.companyName! })
       if (d.currentInsurer) setCurrent(c => c || INSURERS.find(i => i && i.toLowerCase().includes(d.currentInsurer!.toLowerCase().split(' ')[0])) || 'Other insurer')
     }).catch(() => {})
@@ -72,6 +102,38 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
 
   const cats: CensusCategory[] = useMemo(() => members ? censusCategories(members) : [], [members])
   const chosen = cats.filter(c => included.includes(c.name))
+  // Today: the census plan, overlaid by last year's policy where it was read.
+  const todayFor = (c: CensusCategory): Partial<Design> => ({ ...c.today, ...lyToday[c.name] })
+  const lyNet = lastYearNet(lastYear)
+
+  // Last year's policy laid over the census: today's cover per category, and the design restarted from it.
+  useEffect(() => {
+    if (!lastYear || !cats.length) { setLyToday({}); return }
+    const t = todayFromLastYear(lastYear, cats.map(c => c.name))
+    setLyToday(t)
+    setDesigns(d => ({ ...d, ...Object.fromEntries(cats.filter(c => t[c.name]).map(c => [c.name, startDesign({ ...c.today, ...t[c.name] })])) }))
+    setPriced(null)
+  }, [lastYear, cats])
+
+  async function readPolicy() {
+    setReadingPolicy(true); setError(null)
+    try {
+      const fd = new FormData()
+      for (const f of uploads) fd.append('files', f)
+      for (const id of docIds) fd.append('attachment_ids', id)
+      const res = await fetch('/api/group-benefits/last-year/read', { method: 'POST', body: fd })
+      const d = await res.json().catch(() => ({})) as { read?: LastYear; error?: string }
+      if (!res.ok || !d.read) { setError(d.error ?? `Last year's policy could not be read (${res.status}).`); return }
+      const ly = d.read
+      setLastYear(ly)
+      if (ly.periodTo) { const n = new Date(`${ly.periodTo}T00:00:00Z`); n.setUTCDate(n.getUTCDate() + 1); setEffDate(n.toISOString().slice(0, 10)) }
+      setBasis('renewal')
+      const named = `${ly.insurer ?? ''} ${ly.product ?? ''}`.toLowerCase()
+      const hit = INSURERS.find(i => i && i.toLowerCase().split(/[ ()]+/).some(w => w.length > 3 && named.includes(w)))
+      if (hit) setCurrent(hit)
+    } catch (e) { setError(e instanceof Error ? e.message : "Last year's policy could not be read.") }
+    finally { setReadingPolicy(false) }
+  }
 
   async function readCensus(src: { name: string; upload?: File; attachmentId?: string }, pw?: string) {
     setReading(true); setError(null); setFile(src); setPriced(null)
@@ -104,7 +166,7 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
     try {
       const res = await fetch('/api/eb/price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         effective_date: effDate, basis, current_insurer: current && current !== 'Other insurer' ? current : null,
-        categories: chosen.map(c => ({ name: c.name, members: c.members, design: designs[c.name], today: c.today })),
+        categories: chosen.map(c => ({ name: c.name, members: c.members, design: designs[c.name], today: todayFor(c) })),
       }) })
       const d = await res.json().catch(() => ({})) as Priced & { error?: string }
       if (!res.ok || !d.categories) { setError(d.error ?? `The premiums were not worked out (${res.status}).`); return }
@@ -127,36 +189,49 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <ol className="m-0 p-0 list-none flex flex-wrap gap-1.5" aria-label="Steps">
-        {['Census', 'Cover design', 'Premiums'].map((s, i) => {
-          const at = priced ? 2 : members ? 1 : 0
-          return <li key={s}><span className="inline-flex items-center h-7 px-3 rounded-full text-[12.5px]" aria-current={i === at ? 'step' : undefined} style={{ background: i === at ? GREEN : i < at ? SOFT : FIELD, color: i === at ? 'white' : i < at ? GREEN : MUTED }}>{s}</span></li>
-        })}
-      </ol>
-
-      <section className="flex flex-col gap-4" aria-labelledby="eb-census">
-        <h2 id="eb-census" className="m-0 text-[17px] font-semibold">Census</h2>
+      <section className="flex flex-col gap-4" aria-label="Documents">
         <div className="max-w-[560px]"><CompanyField value={pick} onChange={setPick} allowCreate listId="eb-company-options" /></div>
-        <div className="flex flex-col gap-2 max-w-[760px]">
-          {sources.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Spreadsheets on {pick.name ? `${pick.name}'s` : 'this thread’s'} emails</p>}
-          {sources.slice(0, 8).map(s => (
-            <div key={s.attachment_id} className="flex items-center justify-between gap-3 rounded-[8px] px-3 py-2 text-[13.5px]" style={{ border: `1px solid ${LINE}` }}>
-              <span className="min-w-0"><span className="block truncate">{s.filename}</span><span className="block text-[12px]" style={{ color: MUTED }}>{fmtDate(s.at)}{s.subject ? ` · ${s.subject}` : ''}</span></span>
-              <Btn size="sm" level={file?.attachmentId === s.attachment_id ? 'primary' : 'secondary'} loading={reading && file?.attachmentId === s.attachment_id} disabled={reading} onClick={() => void readCensus({ name: s.filename, attachmentId: s.attachment_id })}>{file?.attachmentId === s.attachment_id && members ? 'Read' : 'Use'}</Btn>
-            </div>
-          ))}
-          <label htmlFor="eb-upload" className="flex items-center justify-center gap-2 rounded-[10px] px-4 py-4 cursor-pointer text-[13.5px]" style={{ background: FIELD, color: MUTED }}>
-            {reading && file?.upload ? 'Reading every tab…' : 'Upload a census · .xlsx .xls .xlsm .csv'}
-            <input id="eb-upload" type="file" accept=".xlsx,.xls,.xlsm,.csv" className="sr-only" disabled={reading} onChange={e => { const x = e.target.files?.[0]; if (x) void readCensus({ name: x.name, upload: x }); e.target.value = '' }} />
-          </label>
-          {needsPassword && file && (
-            <div className="flex items-end gap-2 flex-wrap">
-              <Field label={needsPassword.wrong ? 'That password does not open the file' : 'This file is password-protected'}>
-                <input id="eb-password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} placeholder="Password" />
-              </Field>
-              <Btn level="primary" onClick={() => void readCensus(file, password)} loading={reading}>Open</Btn>
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="eb-census">
+            <h2 id="eb-census" className="m-0 text-[15px] font-medium">Census</h2>
+            <Drop id="eb-upload" label={reading && file?.upload ? 'Reading every tab…' : 'Add census'} accept=".xlsx,.xls,.xlsm,.csv" disabled={reading} onFiles={fs => void readCensus({ name: fs[0].name, upload: fs[0] })} />
+            {file && members && <FileRow name={file.name} meta={`${members.length} lives`} action={<span className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: SOFT, color: GREEN }}>Read</span>} />}
+            {needsPassword && file && (
+              <div className="flex items-end gap-2 flex-wrap">
+                <Field label={needsPassword.wrong ? 'That password does not open the file' : 'This file is password-protected'}>
+                  <input id="eb-password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} placeholder="Password" />
+                </Field>
+                <Btn level="primary" onClick={() => void readCensus(file, password)} loading={reading}>Open</Btn>
+              </div>
+            )}
+            {sources.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread\u2019s'} emails</p>}
+            {sources.slice(0, 8).map(s => {
+              const on = file?.attachmentId === s.attachment_id
+              return <FileRow key={s.attachment_id} name={s.filename} meta={`${fmtDate(s.at)}${s.subject ? ` · ${s.subject}` : ''}`}
+                action={<Btn size="sm" level={on ? 'primary' : 'secondary'} loading={reading && on} disabled={reading} onClick={() => void readCensus({ name: s.filename, attachmentId: s.attachment_id })}>{on && members ? 'Added' : 'Add'}</Btn>} />
+            })}
+          </section>
+          <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="eb-policy">
+            <h2 id="eb-policy" className="m-0 text-[15px] font-medium">Last year&apos;s policy and premium</h2>
+            <Drop id="eb-policy-files" label="Add policy documents" accept=".pdf,.png,.jpg,.jpeg,.xlsx" multiple disabled={readingPolicy} onFiles={fs => setUploads(u => [...u, ...fs].slice(0, 12))} />
+            {uploads.map((f, i) => <FileRow key={`${f.name}-${i}`} name={f.name} meta={`${Math.max(1, Math.round(f.size / 1024))} KB`} action={<button type="button" aria-label={`Remove ${f.name}`} onClick={() => setUploads(u => u.filter((_, j) => j !== i))} className="bg-transparent border-0 p-1 cursor-pointer text-[15px]" style={{ color: MUTED }}>×</button>} />)}
+            {docs.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread\u2019s'} emails</p>}
+            {docs.slice(0, 10).map(s => { const on = docIds.includes(s.attachment_id); return (
+              <FileRow key={s.attachment_id} name={s.filename} meta={`${fmtDate(s.at)}${s.subject ? ` · ${s.subject}` : ''}`}
+                action={<Btn size="sm" level={on ? 'primary' : 'secondary'} disabled={readingPolicy} onClick={() => setDocIds(d => on ? d.filter(x => x !== s.attachment_id) : [...d, s.attachment_id])}>{on ? 'Added' : 'Add'}</Btn>} />
+            ) })}
+            {(uploads.length > 0 || docIds.length > 0) && (
+              <div><Btn level="primary" loading={readingPolicy} disabled={readingPolicy} onClick={() => void readPolicy()}>{readingPolicy ? `Reading ${uploads.length + docIds.length} ${uploads.length + docIds.length === 1 ? 'document' : 'documents'}…` : 'Read policy'}</Btn></div>
+            )}
+            {lastYear && (
+              <div className="flex flex-col gap-1 text-[13px]">
+                <div className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</div>
+                <div style={{ color: MUTED }}>{[lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null && `S$${f0(lyNet)} a year, net of GST`].filter(Boolean).join(' · ')}</div>
+                <div style={{ color: MUTED }}>{Object.keys(lyToday).length ? `Today's cover set for ${Object.keys(lyToday).length} of ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}` : cats.length ? 'No census category matched the policy categories' : 'Add the census to set today\u2019s cover'}</div>
+                {lastYear.conflicts.map(c => <div key={c} style={{ color: '#8a5a00' }}>{c}</div>)}
+              </div>
+            )}
+          </section>
         </div>
         {error && <p className="m-0 text-[13.5px]" style={{ color: DOWN }} role="alert">{error}</p>}
 
@@ -219,7 +294,7 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
                       <div className="text-[12px]" style={{ color: MUTED }}>{c.employees} employees{c.plan ? ` · today ${c.plan}` : ''}</div>
                     </td>
                     {TIERS.map(t => {
-                      const today = c.today[t.key], cur = designs[c.name]?.[t.key] ?? 0
+                      const today = todayFor(c)[t.key], cur = designs[c.name]?.[t.key] ?? 0
                       const lo = today != null ? lowerTier(t.key, today) : null
                       const choices: { tier: number; label: string }[] = today == null ? [] : lo === today ? [{ tier: today, label: 'Same' }] : [{ tier: lo!, label: 'Lower' }, { tier: today, label: 'Same' }]
                       const other = !choices.some(x => x.tier === cur)
@@ -253,12 +328,12 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
       )}
 
       {busy && !priced && <Spinner label="Pricing every product…" />}
-      {priced && <Premiums priced={priced} picks={picks} onChoose={choose} />}
+      {priced && <Premiums priced={priced} picks={picks} onChoose={choose} lastYearTotal={chosen.length === cats.length ? lyNet : null} />}
     </div>
   )
 }
 
-function Premiums({ priced, picks, onChoose }: { priced: Priced; picks: Picks; onChoose: (c: PricedCategory, product: string, key: CoverKey, plan: string) => void }) {
+function Premiums({ priced, picks, onChoose, lastYearTotal }: { priced: Priced; picks: Picks; onChoose: (c: PricedCategory, product: string, key: CoverKey, plan: string) => void; lastYearTotal: number | null }) {
   const C1 = 190, C2 = 210
   const head = (
     <thead><tr className="text-[12px]" style={{ color: MUTED }}>
@@ -272,7 +347,8 @@ function Premiums({ priced, picks, onChoose }: { priced: Priced; picks: Picks; o
   const todayOf = (c: PricedCategory) => TIERS.some(t => c.today.words[t.key] === NOT_KNOWN) ? null : TIERS.reduce((a, t) => a + (c.today.premium[t.key] ?? 0), 0)
   const grand = priced.products.map(p => priced.categories.reduce((a, c) => a + categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)), 0))
   const todays = priced.categories.map(todayOf)
-  const grandToday = todays.some(x => x == null) ? null : todays.reduce<number>((a, b) => a + (b ?? 0), 0)
+  // Last year's policy is today's premium for the whole quotation when it was read and every category is priced.
+  const grandToday = lastYearTotal ?? (todays.some(x => x == null) ? null : todays.reduce<number>((a, b) => a + (b ?? 0), 0))
   const lives = priced.categories.reduce((a, c) => a + c.lives, 0)
   const table = 'w-full text-[13px] tabular-nums'
   const tstyle = { borderCollapse: 'separate' as const, borderSpacing: 0, minWidth: 1860 }

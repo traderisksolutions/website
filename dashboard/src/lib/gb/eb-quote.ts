@@ -11,6 +11,7 @@
  * Tested in src/__tests__/gb-eb-quote.test.ts.
  */
 import type { Member } from '@/lib/gb-quote'
+import type { CategoryFacts, LastYear, LastYearCategory } from './last-year'
 import type { PlanRule } from './plan-pairs'
 import type { COVERS, Workbook } from './workbook'
 
@@ -87,6 +88,48 @@ export function startDesign(today: Partial<Design>): Design {
   const d = { ...DEFAULT_DESIGN }
   for (const t of TIERS) if (today[t.key] != null) d[t.key] = lowerTier(t.key, today[t.key]!)
   return d
+}
+
+
+const nearest = (key: CoverKey, want: number) => {
+  const t = TIER_OF[key].tiers
+  let best = -1, gap = Infinity
+  t.forEach((x, i) => { if (x.amount == null) return; const g = Math.abs(Math.log((x.amount + 1) / (want + 1))); if (g < gap) { gap = g; best = i } })
+  return best
+}
+/** Today's tiers from last year's policy, as read for one category: the nearest tier per cover; None where the policy has no such cover. */
+export function tiersFromFacts(f: CategoryFacts, plans: LastYearCategory['plans']): Partial<Design> {
+  const out: Partial<Design> = {}
+  if (f.hospital && f.beds) {
+    const hs = TIER_OF.hs.tiers
+    let best = 0, score = Infinity
+    hs.forEach((x, i) => {
+      const h = x.hosp!
+      const sc = (h.hospital !== f.hospital ? 100 : 0) + Math.abs(Math.log2(h.beds / f.beds!)) * 20 + (f.limitKind && h.basis !== f.limitKind ? 6 : 0) + (f.limit ? Math.abs(Math.log((h.limit + 1) / (f.limit + 1))) : 0)
+      if (sc < score) { score = sc; best = i }
+    })
+    out.hs = best
+  }
+  const held = (c: string, v: number | null, key: CoverKey) => { if (v != null && v > 0) out[key] = nearest(key, v); else if (!(c in plans)) out[key] = 0 }
+  held('EMM', f.gmm, 'mm'); held('GOSC', f.spLimit, 'sp'); held('GD', f.dentalLimit, 'gd'); held('GPA', f.pa, 'pa')
+  if (f.gpCopay != null) out.gp = nearest('gp', f.gpCopay)
+  return out
+}
+/** Last year's policy laid over the census: each census category takes the policy category of the same name, or the only one. */
+export function todayFromLastYear(ly: LastYear, names: string[]): Record<string, Partial<Design>> {
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5)
+  const out: Record<string, Partial<Design>> = {}
+  for (const n of names) {
+    const c = ly.categories.length === 1 ? ly.categories[0] : ly.categories.find(x => key(x.name) && key(x.name) === key(n))
+    if (c) out[n] = tiersFromFacts(c.facts, c.plans)
+  }
+  return out
+}
+/** Last year's total premium, net of GST. */
+export const lastYearNet = (ly: LastYear | null): number | null => {
+  if (!ly) return null
+  const t = ly.total ?? (Object.keys(ly.premiumByCover).length ? Object.values(ly.premiumByCover).reduce<number>((a, b) => a + (b ?? 0), 0) : null)
+  return t == null ? null : Math.round((ly.gst === 'included' ? t / 1.09 : t) * 100) / 100
 }
 
 export type PlanOption = { plan: string; words: string; premium: number | null }
