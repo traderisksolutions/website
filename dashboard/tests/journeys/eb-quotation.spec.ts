@@ -49,3 +49,22 @@ test('a census in categories, one tier lower first, then premiums per category w
   await expect(directors.getByRole('cell', { name: 'Directors · premium a year' })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Total premium' }).getByRole('cell', { name: 'Premium a year' })).toBeVisible()
 })
+
+test('a census read can be removed, and nothing from it stays', async ({ page }) => {
+  await openClean(page, '/eb')
+  await page.locator('#eb-upload').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
+  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await page.getByRole('region', { name: 'Census' }).getByRole('button', { name: 'Remove' }).click()
+  await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
+  await expect(page.getByRole('table', { name: 'Cover by category' })).toHaveCount(0)
+})
+
+test('changing the company clears the census read for the last one', async ({ page }) => {
+  await openClean(page, '/eb')
+  const company = page.getByRole('combobox', { name: 'Company' })
+  await company.fill('Zzq Journey First Co')
+  await page.locator('#eb-upload').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
+  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await company.fill('Zzq Journey Second Co')
+  await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
+})

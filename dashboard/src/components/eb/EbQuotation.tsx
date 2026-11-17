@@ -16,7 +16,7 @@
  * house workbook (src/lib/gb/eb-quote.ts); each cover's heading carries its premium; each product's
  * plan can be changed per cover, plan rules applied. The first two columns stay in place.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Btn, Field, inputCls, Segmented, Spinner } from '@/components/crm/primitives'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { fmtDate } from '@/lib/format'
@@ -104,6 +104,16 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
   const chosen = cats.filter(c => included.includes(c.name))
   // Today: the census plan, overlaid by last year's policy where it was read.
   const todayFor = (c: CensusCategory): Partial<Design> => ({ ...c.today, ...lyToday[c.name] })
+
+  function clearCensus() { setFile(null); setMembers(null); setIncluded([]); setDesigns({}); setPriced(null); setPicks({}); setNeedsPassword(null); setPassword('') }
+  function clearPolicy() { setUploads([]); setDocIds([]); setLastYear(null); setPriced(null) }
+  // Another company: nothing read for the last one stays.
+  const lastCompany = useRef<string | null>(null)
+  useEffect(() => {
+    const key = pick.id ?? (pick.name.trim().toLowerCase() || null)
+    if (lastCompany.current && key !== lastCompany.current) { clearCensus(); clearPolicy(); setSources([]); setDocs([]); setCurrent(''); setError(null) }
+    lastCompany.current = key
+  }, [pick.id, pick.name])
   const lyNet = lastYearNet(lastYear)
 
   // Last year's policy laid over the census: today's cover per category, and the design restarted from it.
@@ -195,7 +205,7 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
           <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="eb-census">
             <h2 id="eb-census" className="m-0 text-[15px] font-medium">Census</h2>
             <Drop id="eb-upload" label={reading && file?.upload ? 'Reading every tab…' : 'Add census'} accept=".xlsx,.xls,.xlsm,.csv" disabled={reading} onFiles={fs => void readCensus({ name: fs[0].name, upload: fs[0] })} />
-            {file && members && <FileRow name={file.name} meta={`${members.length} lives`} action={<span className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: SOFT, color: GREEN }}>Read</span>} />}
+            {file && members && <FileRow name={file.name} meta={`${members.length} lives`} action={<span className="flex items-center gap-2"><span className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: SOFT, color: GREEN }}>Read</span><Btn size="xs" level="tertiary" onClick={clearCensus}>Remove</Btn></span>} />}
             {needsPassword && file && (
               <div className="flex items-end gap-2 flex-wrap">
                 <Field label={needsPassword.wrong ? 'That password does not open the file' : 'This file is password-protected'}>
@@ -225,7 +235,7 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
             )}
             {lastYear && (
               <div className="flex flex-col gap-1 text-[13px]">
-                <div className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</div>
+                <div className="flex items-center justify-between gap-3"><span className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</span><Btn size="xs" level="tertiary" onClick={clearPolicy}>Remove</Btn></div>
                 <div style={{ color: MUTED }}>{[lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null && `S$${f0(lyNet)} a year, net of GST`].filter(Boolean).join(' · ')}</div>
                 <div style={{ color: MUTED }}>{Object.keys(lyToday).length ? `Today's cover set for ${Object.keys(lyToday).length} of ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}` : cats.length ? 'No census category matched the policy categories' : 'Add the census to set today\u2019s cover'}</div>
                 {lastYear.conflicts.map(c => <div key={c} style={{ color: '#8a5a00' }}>{c}</div>)}
