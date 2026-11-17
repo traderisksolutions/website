@@ -7,15 +7,12 @@
  * Headcount is employees only; spouses and children are counted apart and priced on the medical
  * covers. Term life is not in the house workbook, so it is not designed or priced here.
  *
- * Pure apart from nothing: the route loads the workbook and rules and calls priceDesign.
+ * Browser-safe: the census and design here; pricing in eb-price.ts (server).
  * Tested in src/__tests__/gb-eb-quote.test.ts.
  */
 import type { Member } from '@/lib/gb-quote'
-import { memberAge } from '@/lib/gb-quote'
-import { amountOf, coverWords } from './compare-words'
-import { indexRates, matchPlan, priceCover, productOf } from './compare-cover'
-import { applyRules, type PlanRule } from './plan-pairs'
-import { COVERS, PRODUCTS, type Workbook } from './workbook'
+import type { PlanRule } from './plan-pairs'
+import type { COVERS, Workbook } from './workbook'
 
 export const MAX_CATEGORIES = 4
 export type CoverKey = 'hs' | 'mm' | 'gp' | 'sp' | 'gd' | 'pa'
@@ -25,6 +22,7 @@ type HospTier = { hospital: 'private' | 'government'; beds: number; limit: numbe
 export const TIERS: { key: CoverKey; cover: (typeof COVERS)[number]; label: string; tiers: { words: string; hosp?: HospTier; amount?: number | null }[] }[] = [
   { key: 'hs', cover: 'Hospital & Surgical', label: 'Hospital & Surgical', tiers: [
     { words: 'Government 4-bed · S$15,000 per disability', hosp: { hospital: 'government', beds: 4, limit: 15_000, basis: 'per_disability' } },
+    { words: 'Government 1-bed · S$15,000 per disability', hosp: { hospital: 'government', beds: 1, limit: 15_000, basis: 'per_disability' } },
     { words: 'Private 4-bed · S$15,000 per disability', hosp: { hospital: 'private', beds: 4, limit: 15_000, basis: 'per_disability' } },
     { words: 'Private 2-bed · S$20,000 per disability', hosp: { hospital: 'private', beds: 2, limit: 20_000, basis: 'per_disability' } },
     { words: 'Private 1-bed · S$25,000 per disability', hosp: { hospital: 'private', beds: 1, limit: 25_000, basis: 'per_disability' } },
@@ -40,7 +38,7 @@ export const TIER_OF: Record<CoverKey, (typeof TIERS)[number]> = Object.fromEntr
 /** A design: the tier index per cover. */
 export type Design = Record<CoverKey, number>
 /** Where nothing on the census says what a category holds: a plain private 4-bed programme. */
-export const DEFAULT_DESIGN: Design = { hs: 1, mm: 0, gp: 1, sp: 2, gd: 2, pa: 0 }
+export const DEFAULT_DESIGN: Design = { hs: 2, mm: 0, gp: 1, sp: 2, gd: 2, pa: 0 }
 
 /** One tier below today; never down to None for a cover held today; today itself at the floor. */
 export function lowerTier(key: CoverKey, today: number): number {
@@ -66,8 +64,8 @@ export function tiersFromPlan(plan: string | null | undefined): Partial<Design> 
   const gov = /\b(grh|gov|government|restructured|public)\b/i.test(s), pte = /\b(pte|private)\b/i.test(s)
   const beds = Number(s.match(/(\d)\s*-?\s*bed/i)?.[1] ?? NaN)
   if (!gov && !pte && !Number.isFinite(beds)) return {}
-  if (gov) return { hs: 0 }
-  return { hs: beds === 1 ? 3 : beds === 2 ? 2 : 1 }
+  if (gov) return { hs: beds === 1 || beds === 2 ? 1 : 0 }
+  return { hs: beds === 1 ? 4 : beds === 2 ? 3 : 2 }
 }
 
 /** The census in categories by its category column, employees counted apart from spouses and children. */
@@ -95,79 +93,6 @@ export type PlanOption = { plan: string; words: string; premium: number | null }
 export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean }
 export type PricedCategory = { name: string; employees: number; lives: number; today: { words: Record<CoverKey, string>; premium: Record<CoverKey, number | null>; product: string | null }; products: Record<string, Record<CoverKey, PricedCover>> }
 export type Priced = { products: string[]; categories: PricedCategory[]; notes: string[]; workbook: Workbook['file']; rules: PlanRule[] }
-
-const target = (d: Partial<Design>) => {
-  const h = d.hs != null ? TIER_OF.hs.tiers[d.hs].hosp! : null
-  const amt = (k: CoverKey) => (d[k] != null ? TIER_OF[k].tiers[d[k]!].amount ?? null : null)
-  return { hosp: h ? { hospital: h.hospital, beds: h.beds, limit: h.limit, basis: h.basis, coins: 0 } : null, gmm: amt('mm'), gpCopay: amt('gp'), spLimit: amt('sp'), dental: amt('gd') }
-}
-
-/** The plan at a product for one cover of a design; '' when the design has no such cover. */
-function matchOne(benefitsOf: (c: string, p: string) => Record<string, string>, options: string[], key: CoverKey, d: Partial<Design>): string {
-  const t = TIER_OF[key]
-  if (d[key] == null) return ''
-  if (key !== 'hs' && t.tiers[d[key]!].amount === null) return ''
-  if (key === 'pa') {
-    const want = t.tiers[d[key]!].amount!
-    const scored = options.map(p => ({ p, a: amountOf(benefitsOf(t.cover, p)['pa.death']) })).filter(x => x.a != null)
-    return scored.sort((x, y) => Math.abs(Math.log(x.a! / want)) - Math.abs(Math.log(y.a! / want)))[0]?.p ?? options[0] ?? ''
-  }
-  return matchPlan(benefitsOf, options, t.cover, target(d)).plan
-}
-
-/**
- * Every product priced for every category: each cover's plans with their premium for that
- * category's members, the plan matched to the design, and plan rules applied (Income's major
- * medical follows its hospital plan and is priced in it). Today is the current insurer's renewal of
- * the plans nearest today's cover, when the current insurer is one of the five products.
- */
-export function priceDesign(input: {
-  wb: Workbook; rules: PlanRule[]; effectiveDate: string; basis: 'renewal' | 'new_business'; currentInsurer: string | null
-  categories: { name: string; members: Member[]; design: Partial<Design>; today: Partial<Design> }[]
-}): Priced {
-  const { wb } = input
-  const idx = indexRates(wb)
-  const benefits: Record<string, Record<string, string>> = {}
-  for (const b of wb.benefits) (benefits[`${b.insurer}|${b.cover}|${b.plan}`] ??= {})[b.id] = b.value
-  const benefitsOf = (p: string) => (c: string, plan: string) => benefits[`${p}|${c}|${plan}`] ?? {}
-  const all = input.categories.flatMap(c => c.members)
-  const employeesInCompany = all.filter(m => m.relationship === 'self').length
-  const current = productOf(input.currentInsurer)
-  const optionsOf = (p: string, cover: string) => (wb.lists[p]?.[cover] ?? []).filter(x => !/FW|WP\/S Pass|WP\/SP/i.test(x))
-  const included = (p: string, cover: string) => input.rules.some(r => r.product === p && r.cover === cover && r.premium === 'included')
-  const premium = (p: string, cover: string, plan: string, ms: Member[], renewal: boolean) =>
-    !plan ? 0 : included(p, cover) ? 0 : priceCover(idx, p, cover, plan, ms, { effectiveDate: input.effectiveDate, renewal, employeesInCompany }).premium
-
-  const categories: PricedCategory[] = input.categories.map(cat => {
-    const products: PricedCategory['products'] = {}
-    for (const p of PRODUCTS) {
-      const renewal = input.basis === 'renewal' && p === current
-      const picks: Record<string, string> = {}, opts: Record<string, string[]> = {}
-      for (const t of TIERS) { opts[t.cover] = optionsOf(p, t.cover); picks[t.cover] = matchOne(benefitsOf(p), opts[t.cover], t.key, cat.design) }
-      const ruled = applyRules(input.rules, p, picks, opts)
-      products[p] = Object.fromEntries(TIERS.map(t => [t.key, {
-        options: opts[t.cover].map(plan => ({ plan, words: coverWords(t.cover, plan, benefitsOf(p)(t.cover, plan)), premium: premium(p, t.cover, plan, cat.members, renewal) })),
-        pick: ruled[t.cover] ?? '',
-        locked: input.rules.some(r => r.product === p && r.cover === t.cover && r.required && r.match === 'same_plan'),
-      }])) as Record<CoverKey, PricedCover>
-    }
-    const todayPremium = Object.fromEntries(TIERS.map(t => {
-      if (!current || cat.today[t.key] == null) return [t.key, null]
-      const plan = matchOne(benefitsOf(current), optionsOf(current, t.cover), t.key, cat.today)
-      return [t.key, premium(current, t.cover, plan, cat.members, input.basis === 'renewal')]
-    })) as Record<CoverKey, number | null>
-    return {
-      name: cat.name, employees: cat.members.filter(m => m.relationship === 'self').length, lives: cat.members.length,
-      today: { words: Object.fromEntries(TIERS.map(t => [t.key, cat.today[t.key] != null ? t.tiers[cat.today[t.key]!].words : 'Not on the census'])) as Record<CoverKey, string>, premium: todayPremium, product: current },
-      products,
-    }
-  })
-  const notes = ['Term life is not in the house workbook and is not priced here.', 'AIA personal accident is not priced until its rate rule is confirmed.']
-  if (!current) notes.push(input.currentInsurer ? `${input.currentInsurer} is not one of the five products; today shows the cover only.` : 'No current insurer stated; today shows the cover only.')
-  const unpriced = all.filter(m => memberAge(m, input.effectiveDate, 'last_birthday') == null).length
-  if (unpriced) notes.push(`${unpriced} ${unpriced === 1 ? 'life has' : 'lives have'} no date of birth or age and ${unpriced === 1 ? 'is' : 'are'} not priced.`)
-  return { products: [...PRODUCTS], categories, notes, workbook: wb.file, rules: input.rules }
-}
 
 /** A product's premium for one category, from the plans picked per cover. */
 export function categoryTotal(c: PricedCategory, product: string, picks: Record<CoverKey, string>): number {

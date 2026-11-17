@@ -28,6 +28,7 @@ type Picks = Record<string, Record<string, Record<CoverKey, string>>>   // categ
 
 const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', LINE = '#e6e8e4', LINE2 = '#d5d9d4', BAND = '#f0f2ee', FIELD = '#f1f2ee', GREEN = '#132c1c', SOFT = '#edf7e8', TODAY = '#f3f7f4', UP = '#1d6b3f', DOWN = '#a3361f'
 const INSURERS = ['', 'QBE (Steadfast MCare+)', 'Raffles Health (RCC Enhanced III)', 'Income (FlexCare)', 'Singlife (MyBenefits Plus)', 'AIA (Flexi Vital Care Plus)', 'Other insurer']
+const NOT_KNOWN = 'Not on the census'
 const f0 = (n: number) => Math.round(n).toLocaleString('en-SG')
 const nextMonthFirst = () => { const t = new Date(Date.now() + 8 * 3600_000); const y = t.getUTCMonth() === 11 ? t.getUTCFullYear() + 1 : t.getUTCFullYear(); return `${y}-${String((t.getUTCMonth() + 1) % 12 + 1).padStart(2, '0')}-01` }
 
@@ -263,17 +264,18 @@ function Premiums({ priced, picks, onChoose }: { priced: Priced; picks: Picks; o
     <thead><tr className="text-[12px]" style={{ color: MUTED }}>
       <th className="sticky left-0 z-20 px-3 py-2 text-left font-medium" style={{ background: BAND, width: C1, minWidth: C1 }} />
       <th className="sticky z-20 px-3 py-2 font-medium" style={{ left: C1, background: BAND, width: C2, minWidth: C2, boxShadow: `1px 0 0 ${LINE2}` }}>Today</th>
-      {priced.products.map(p => <th key={p} className="px-3 py-2 font-medium" style={{ background: BAND, minWidth: 250 }}>{p}</th>)}
+      {priced.products.map(p => <th key={p} className="px-3 py-2 font-medium" style={{ background: BAND, minWidth: 290 }}>{p}</th>)}
     </tr></thead>
   )
   const sticky = (bg: string) => ({ c1: { position: 'sticky' as const, left: 0, zIndex: 10, background: bg, width: C1, minWidth: C1 }, c2: { position: 'sticky' as const, left: C1, zIndex: 10, background: bg === 'white' ? TODAY : bg, width: C2, minWidth: C2, boxShadow: `1px 0 0 ${LINE2}` } })
-  const todayOf = (c: PricedCategory) => { const v = TIERS.map(t => c.today.premium[t.key]); return v.every(x => x == null) ? null : v.reduce<number>((a, b) => a + (b ?? 0), 0) }
+  // Today's total only when every cover's plan today is known; a part-known total would understate it.
+  const todayOf = (c: PricedCategory) => TIERS.some(t => c.today.words[t.key] === NOT_KNOWN) ? null : TIERS.reduce((a, t) => a + (c.today.premium[t.key] ?? 0), 0)
   const grand = priced.products.map(p => priced.categories.reduce((a, c) => a + categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)), 0))
   const todays = priced.categories.map(todayOf)
   const grandToday = todays.some(x => x == null) ? null : todays.reduce<number>((a, b) => a + (b ?? 0), 0)
   const lives = priced.categories.reduce((a, c) => a + c.lives, 0)
   const table = 'w-full text-[13px] tabular-nums'
-  const tstyle = { borderCollapse: 'separate' as const, borderSpacing: 0, minWidth: 1660 }
+  const tstyle = { borderCollapse: 'separate' as const, borderSpacing: 0, minWidth: 1860 }
   return (
     <section id="eb-premiums" className="flex flex-col gap-6" aria-labelledby="eb-prem-h">
       <div className="flex flex-col gap-1">

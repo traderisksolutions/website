@@ -8,7 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { Member } from '@/lib/gb-quote'
-import { MAX_CATEGORIES, priceDesign, TIERS, type Design } from '@/lib/gb/eb-quote'
+import { MAX_CATEGORIES, TIERS, type Design } from '@/lib/gb/eb-quote'
+import { priceDesign } from '@/lib/gb/eb-price'
 
 export const maxDuration = 60
 

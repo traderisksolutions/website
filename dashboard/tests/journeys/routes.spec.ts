@@ -20,7 +20,7 @@ const back = (p: Page) => p.getByRole('navigation', { name: 'Breadcrumb' }).getB
 test('company page › Employment Benefits opens its Compare cover; Back returns to the company', async ({ page }) => {
   const id = await companyId(page, 'OUE')
   await openClean(page, `/companies/${id}`)
-  const tab = await opensTab(page, () => page.getByRole('link', { name: 'Employment Benefits', exact: true }).first().click())
+  const tab = await opensTab(page, () => page.getByRole('link', { name: 'Employment Benefits', exact: true }).and(page.locator(':not([href="/eb"])')).first().click())
   await expect(tab).toHaveURL(/\/pricing-matrix\/quote\/[^/]+\/compare/)
   await expect(back(tab)).toHaveAttribute('href', new RegExp(`/companies/${id}`))
   await expect(back(tab)).toContainText('OUE')
