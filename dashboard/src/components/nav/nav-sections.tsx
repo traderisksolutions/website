@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ListChecks, Building2, Inbox, Table2, ShieldCheck, FileText, Landmark, FolderOpen, Megaphone,
-  Settings, History, AlertTriangle, Cpu, TrendingUp, Users, Gauge } from 'lucide-react'
+  Settings, History, AlertTriangle, Cpu, TrendingUp, Users, Gauge, HeartPulse } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
 
@@ -37,6 +37,9 @@ export const PLACES: Place[] = [
     { title: 'Nexus', href: '/nexus' },
     { title: 'Portfolio', href: '/companies/portfolio' },
     { title: 'Admin desk', href: '/companies/portfolio/desk' },
+  ] },
+  { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
+    { title: 'Quotation', href: '/eb' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
     { title: 'Inbox', href: '/engagement' },
