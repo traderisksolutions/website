@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import type { RealMsg } from './types'
 import { fmtWhen, stripQuotedContent, parseAddress, initialOf, formatBytes, fileBadge, splitSignatureHtml, splitSignatureText } from './helpers'
 import { cleanEmailBody } from '@/lib/clean-email-body'
-import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
+import { sanitizeEmailHtml, useIsClient } from '@/lib/sanitize-email-html'
 
 /**
  * One email in the reader. The sender's HTML keeps its structure (paragraphs, lists, tables,
@@ -286,13 +286,14 @@ function MessageBody({ msg, name, textBody, earlier }: { msg: RealMsg; name: str
   const [quotedOpen, setQuotedOpen] = useState(false)
   const [original, setOriginal] = useState(false)
 
+  const client = useIsClient()
   const html = useMemo(() => {
-    if (!msg.body_html) return null
+    if (!client || !msg.body_html) return null
     const clean = collapseBlankBlocks(sanitizeEmailHtml(msg.body_html))
     const { main, quoted } = splitQuotedHtml(clean)
     const { main: body, signature } = splitSignatureHtml(main)
     return { body: wrapTables(body), signature, chain: quoted ? splitQuotedChain(clean) : [] }
-  }, [msg.body_html])
+  }, [client, msg.body_html])
   const text = useMemo(() => {
     if (html) return null
     const own = stripQuotedContent(textBody)

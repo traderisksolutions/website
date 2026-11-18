@@ -5,10 +5,23 @@
  * <script>, event handler attributes, and dangerous hrefs; the only thing added here is forcing
  * every link to open in a new tab, since a reviewer clicking a link inside an email shouldn't
  * navigate the whole app away from their inbox.
+ *
+ * Browser only. The server build of isomorphic-dompurify loads jsdom, whose ESM dependency fails to
+ * load on Vercel (ERR_REQUIRE_ESM, a 500 on every page with an email). Callers render the plain
+ * text on the server and switch to the HTML once mounted (`useIsClient`).
  */
-import DOMPurify from 'isomorphic-dompurify'
+import DOMPurify from 'dompurify'
+import { useSyncExternalStore } from 'react'
+
+const noop = () => () => {}
+
+/** False on the server and during hydration, true after — so the first client render matches the server's. */
+export function useIsClient(): boolean {
+  return useSyncExternalStore(noop, () => true, () => false)
+}
 
 export function sanitizeEmailHtml(html: string): string {
+  if (typeof window === 'undefined') return ''
   const clean = DOMPurify.sanitize(html)
     // A cid: reference is only ever resolvable at ingest time (against that message's own MIME
     // parts) — one that reaches here unresolved (an email ingested before inline-image

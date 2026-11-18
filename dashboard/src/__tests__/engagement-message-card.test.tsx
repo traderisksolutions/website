@@ -3,9 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { MessageBlock, splitQuotedChain, splitQuotedTextChain, wrapTables } from '@/components/engagement/MessageBlock'
 import type { RealMsg } from '@/components/engagement/types'
 
-// isomorphic-dompurify's jsdom fallback doesn't load under this repo's vitest/jsdom/undici
-// combination, so sanitisation is stubbed; nothing here tests DOMPurify itself.
-vi.mock('@/lib/sanitize-email-html', () => ({ sanitizeEmailHtml: (html: string) => html }))
+// Sanitisation is stubbed; nothing here tests DOMPurify itself.
+vi.mock('@/lib/sanitize-email-html', () => ({ sanitizeEmailHtml: (html: string) => html, useIsClient: () => true }))
 
 function makeMsg(overrides: Partial<RealMsg> = {}): RealMsg {
   return {

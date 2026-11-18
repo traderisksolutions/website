@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import type { RealMsg } from '@/components/engagement/types'
 import { fmtWhen, stripQuotedContent, parseAddress, initialOf, formatBytes, fileBadge } from '@/components/engagement/helpers'
 import { cleanEmailBody } from '@/lib/clean-email-body'
-import { sanitizeEmailHtml } from '@/lib/sanitize-email-html'
+import { sanitizeEmailHtml, useIsClient } from '@/lib/sanitize-email-html'
 
 /**
  * One email on the company page (CompanyMail). Renders the way engagement/MessageBlock renders
@@ -50,7 +50,8 @@ export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: En
 
   // Only emails ingested from 2026-07-10 onward have body_html stored — older rows only ever
   // had the flattened plain text saved, so this falls back to that unchanged for them.
-  const bodyHtml = useMemo(() => (msg.body_html ? sanitizeEmailHtml(msg.body_html) : null), [msg.body_html])
+  const client = useIsClient()
+  const bodyHtml = useMemo(() => (client && msg.body_html ? sanitizeEmailHtml(msg.body_html) : null), [client, msg.body_html])
 
   function expand() {
     setOpen(true)
