@@ -139,7 +139,7 @@ function SuggestedRow({ s, onThread, onDone, onError }: { s: ThreadSuggestion; o
         <div className="flex flex-wrap items-start md:justify-end gap-1.5">
           {!result && (s.kind === 'eb_scenarios'
             ? <Link href={`/pricing-matrix/new?thread=${s.threadId}`} className="inline-flex items-center h-[26px] px-2.5 rounded-[6px] text-white text-[12.5px] font-medium no-underline" style={{ background: '#132c1c' }}>Open census</Link>
-            : <Btn size="xs" level="primary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>)}
+            : <Btn size="xs" level="secondary" loading={busy === 'yes'} onClick={yes}>Yes, {s.yes.charAt(0).toLowerCase()}{s.yes.slice(1)}</Btn>)}
           {!result && <Btn size="xs" level="secondary" loading={busy === 'no'} onClick={notNow}>Not now</Btn>}
           <Btn size="xs" level="secondary" onClick={() => onThread(s.threadId)}>Thread</Btn>
         </div>
@@ -212,11 +212,11 @@ function Row({ item: i, section, panel, onPanel, onThread, onDone, onError }: {
         </div>
         <div className="flex flex-wrap items-start md:justify-end gap-1.5">
           {section === 'send' && (paired
-            ? <LinkBtn size="xs" level="primary" href={`/today/${i.id}`}>Review and send {1 + i.paired.length}</LinkBtn>
-            : <Btn size="xs" level="primary" onClick={() => onPanel(panel === 'send' ? null : 'send')} aria-expanded={panel === 'send'}>{panel === 'send' ? 'Close' : 'Send'}</Btn>)}
+            ? <LinkBtn size="xs" level="secondary" href={`/today/${i.id}`}>Review and send {1 + i.paired.length}</LinkBtn>
+            : <Btn size="xs" level="secondary" onClick={() => onPanel(panel === 'send' ? null : 'send')} aria-expanded={panel === 'send'}>{panel === 'send' ? 'Close' : 'Send'}</Btn>)}
           {section === 'send' && !paired && <Btn size="xs" onClick={() => onPanel('send')}>Edit</Btn>}
           {(section === 'send' || section === 'act') && <Btn size="xs" onClick={() => onPanel(panel === 'ask' ? null : 'ask')} aria-expanded={panel === 'ask'}>Ask AI</Btn>}
-          {section === 'decide' && <LinkBtn size="xs" level="primary" href={`/today/${i.id}`}>Decide</LinkBtn>}
+          {section === 'decide' && <LinkBtn size="xs" level="secondary" href={`/today/${i.id}`}>Decide</LinkBtn>}
           {section === 'act' && <LinkBtn size="xs" href={`/today/${i.id}`}>Open</LinkBtn>}
           {section === 'read' && <Btn size="xs" loading={busy === 'seen'} onClick={seen}>Mark read</Btn>}
           {section !== 'read' && <LinkBtn size="xs" href={nexus}>Nexus</LinkBtn>}

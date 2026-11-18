@@ -9,6 +9,7 @@ import { ThreadRow, type Density } from './ThreadRow'
 import { leadNeedsReply } from './helpers'
 import type { NewEmailDraft } from './NewEmailComposeModal'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
+import { useConfirm } from '@/components/ui/confirm'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
 
 /** One saved threadless "new compose" draft — shape returned by GET /api/engagement/drafts. */
@@ -93,9 +94,10 @@ export function ConversationList({
   useEffect(() => { if (activeTab === 'drafts') loadDrafts() }, [activeTab])
   useEffect(() => { setCounts(c => ({ ...c, drafts: drafts.length })) }, [drafts.length, setCounts])
 
+  const confirmBox = useConfirm()
   async function discardDraft(id: string, e: MouseEvent) {
     e.stopPropagation()
-    if (!window.confirm('Discard this draft?')) return
+    if (!(await confirmBox({ title: 'Discard this draft?', body: 'It comes off Drafts. Nothing has been sent.', action: 'Discard', danger: true }))) return
     await fetch(`/api/engagement/drafts/${id}`, { method: 'DELETE' })
     loadDrafts()
   }

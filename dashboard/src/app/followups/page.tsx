@@ -32,7 +32,7 @@ export default function FollowupsPage() {
   const rows = data.rows.filter(r => !type || r.email_type === type)
   const overdue = data.rows.filter(r => r.status === 'waiting' && r.next_chase_at && Date.parse(r.next_chase_at) < now).length
   return (
-    <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto flex flex-col gap-6">
+    <div className="w-full min-w-0 px-4 md:px-8 py-6 max-w-[1180px] mx-auto flex flex-col gap-6">
       <PageHeader title="Follow-ups" meta={`${data.rows.filter(r => r.status === 'waiting').length} waiting · ${overdue} due for a chase · last 60 days`} />
       <section className="min-w-0">
         <h2 className="m-0 mb-2 text-[15px] font-semibold">By type</h2>

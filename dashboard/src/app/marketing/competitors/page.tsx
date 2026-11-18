@@ -8,6 +8,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
 import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { fmtDay, n } from '@/lib/marketing/labels'
+import { useConfirm } from '@/components/ui/confirm'
 import type { Competitor, GeoAnalysis, GeoPrompt, GeoPromptResult, SiteSummary } from '@/lib/marketing/types'
 
 const INK = '#0f1412'
@@ -39,6 +40,7 @@ function Competitors() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
+  const confirmBox = useConfirm()
   const initialTab = search.get('tab')
   const [tab, setTab] = useState<Tab>(initialTab === 'prompts' || initialTab === 'history' ? initialTab : 'companies')
   const [busy, setBusy] = useState(false)
@@ -83,7 +85,7 @@ function Competitors() {
     return !!r
   }
   async function removeCompetitor(c: Competitor) {
-    if (!confirm(`Remove ${c.name} (${c.domain}) from the list?`)) return
+    if (!(await confirmBox({ title: `Remove ${c.name}?`, body: `${c.domain} comes off the competitor list.`, action: 'Remove', danger: true }))) return
     const r = await api('', { method: 'DELETE', body: JSON.stringify({ id: c.id }) })
     if (r) await load()
   }

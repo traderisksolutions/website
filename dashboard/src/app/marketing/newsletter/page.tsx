@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { Btn, inputCls, textareaCls } from '@/components/crm/primitives'
 import { MarketingPage, MUTED, RULE } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
+import { useConfirm } from '@/components/ui/confirm'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
 const INK = '#0f1412'
@@ -172,6 +173,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const [preview, setPreview] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const confirmBox = useConfirm()
   const [progress, setProgress] = useState<string | null>(null)
   const dirty = subject !== issue.subject || intro !== issue.intro || ids.join() !== issue.article_ids.join()
 
@@ -195,7 +197,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const test = () => act('test', async () => { if (dirty) await call('PATCH', { subject, intro, article_ids: ids }); const j = await call('POST', { action: 'test' }); setMsg(`Test sent to ${j.to}.`); onChanged() })
   const sendAll = () => act('send', async () => {
     if (issue.status === 'draft') {
-      if (!window.confirm('Send this issue to every confirmed subscriber now? This cannot be undone.')) return
+      if (!(await confirmBox({ title: 'Send to every confirmed subscriber?', body: 'This cannot be undone.', action: 'Send now' }))) return
       if (dirty) await call('PATCH', { subject, intro, article_ids: ids })
       await call('POST', { action: 'approve' })
     }
@@ -208,7 +210,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
     }
     onChanged()
   })
-  const remove = () => act('delete', async () => { if (!window.confirm('Delete this draft?')) return; await call('DELETE'); onClose(); onChanged() })
+  const remove = () => act('delete', async () => { if (!(await confirmBox({ title: 'Delete this draft?', action: 'Delete', danger: true }))) return; await call('DELETE'); onClose(); onChanged() })
   const toggle = (id: string) => setIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : cur.length >= 6 ? cur : [...cur, id])
 
   return (

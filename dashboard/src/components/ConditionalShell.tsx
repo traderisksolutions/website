@@ -9,6 +9,8 @@ import { ChatDockProvider } from '@/providers/chat-dock-provider'
 import { FloatingChatDock } from '@/components/chat/floating-chat-dock'
 import { EngagementNavProvider, useEngagementNav } from '@/providers/engagement-nav-provider'
 import { RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
+import { ConfirmProvider } from '@/components/ui/confirm'
+import { TableAlign } from '@/components/ui/table-align'
 import { NewTabLinks } from '@/components/nav/NewTabLinks'
 
 function MainContent({ children }: { children: React.ReactNode }) {
@@ -55,7 +57,9 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
     // parent/child) so EngagementRail can render the Engagement folder-nav from state
     // /engagement/page.tsx pushes into it — mounted app-wide (cheap, no data fetching) rather
     // than gated by pathname so it never has to special-case "no provider mounted".
+    <ConfirmProvider>
     <EngagementNavProvider>
+      <TableAlign />
       <NewTabLinks />
       <TopBar />
       <EngagementRail />
@@ -66,5 +70,6 @@ export default function ConditionalShell({ children }: { children: React.ReactNo
         </ChatDockProvider>
       )}
     </EngagementNavProvider>
+    </ConfirmProvider>
   )
 }

@@ -6,6 +6,7 @@ import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
+import { useConfirm } from '@/components/ui/confirm'
 import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, externalDomain,
   BTN_PRIMARY, BTN_SECONDARY, BTN_TERTIARY, INK, BODY, FAINT,
@@ -168,10 +169,11 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
     to.trim() !== initial.toEmail.trim() || subject !== initial.subject || (cc.trim() !== (initial.cc ?? '').trim()) ||
     body.trim() !== htmlToPlain(plainToHtml(initial.body)).trim()
   )
-  function requestClose() {
+  const confirmBox = useConfirm()
+  async function requestClose() {
     // A backdrop click never closes (an accidental click used to silently discard the whole
     // email). Esc and Close do, behind one confirm when there are unsaved changes.
-    if (dirty && !window.confirm('Discard this email? Unsaved changes will be lost.')) return
+    if (dirty && !(await confirmBox({ title: 'Discard this email?', body: 'Unsaved changes will be lost.', action: 'Discard', danger: true }))) return
     onClose()
   }
 

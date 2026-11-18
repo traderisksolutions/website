@@ -16,6 +16,20 @@ test('policies in force are listed, not an empty register', async ({ page }) => 
   expect(await page.locator('tbody tr').count()).toBeGreaterThan(10)
 })
 
+test('closing an edited email asks first in the confirm box; Cancel keeps it, Discard closes it', async ({ page }) => {
+  await openClean(page, '/engagement')
+  await page.getByRole('button', { name: 'Compose' }).first().click()
+  await page.locator('#new-email-subject').fill('Journey draft · not sent')
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
+  const box = page.getByRole('dialog', { name: 'Discard this email?' })
+  await expect(box).toBeVisible()
+  await box.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.locator('#new-email-subject')).toHaveValue('Journey draft · not sent')
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.getByRole('dialog', { name: 'Discard this email?' }).getByRole('button', { name: 'Discard' }).click()
+  await expect(page.locator('#new-email-subject')).toHaveCount(0)
+})
+
 test('inbox opens a thread with the rail groups', async ({ page }) => {
   await openClean(page, '/engagement')
   const first = page.getByRole('list', { name: 'Conversations' }).getByRole('button').first()

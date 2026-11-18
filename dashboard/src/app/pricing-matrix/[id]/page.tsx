@@ -10,6 +10,7 @@ import { resolveProduct } from '@/lib/gb/resolve'
 import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/ui/confirm'
 import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -39,6 +40,7 @@ const STAGES = [
 export default function GbReviewPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const confirmBox = useConfirm()
   const [d, setD] = useState<Detail | null>(null)
   const [rates, setRates] = useState<Rate[]>([])
   const [benefits, setBenefits] = useState<Benefit[]>([])
@@ -107,7 +109,7 @@ export default function GbReviewPage() {
     load()
   }
   async function del() {
-    if (!confirm('Delete this rate table and its extraction? This cannot be undone.')) return
+    if (!(await confirmBox({ title: 'Delete this rate table?', body: 'Its extraction goes with it. This cannot be undone.', action: 'Delete', danger: true }))) return
     await fetch(`/api/group-benefits/rate-tables/${id}`, { method: 'DELETE' })
     router.push('/pricing-matrix')
   }
@@ -142,7 +144,7 @@ export default function GbReviewPage() {
 
   async function save(approveAfter = false) {
     if (approveAfter && (d?.conflicts?.length ?? 0) > 0 &&
-        !confirm(`${d!.conflicts.length} cell(s) are still flagged for review. Approve anyway?`)) return
+        !(await confirmBox({ title: 'Approve with cells flagged?', body: `${d!.conflicts.length} cell(s) are still flagged for review.`, action: 'Approve anyway' }))) return
     setSaving(approveAfter ? 'approve' : 'save'); setMsg(null)
     try {
       const metaPayload = {
@@ -169,7 +171,7 @@ export default function GbReviewPage() {
       setMsg('Saved'); setEditing(false); load()
     } finally { setSaving(null) }
   }
-  function cancelEdit() { if (dirty && !confirm('Discard unsaved changes?')) return; setEditing(false); setMsg(null); load() }
+  async function cancelEdit() { if (dirty && !(await confirmBox({ title: 'Discard unsaved changes?', body: 'The rate table goes back to its last saved version.', action: 'Discard', danger: true }))) return; setEditing(false); setMsg(null); load() }
 
   if (!d) return <div className="p-8"><Loader2 className="animate-spin text-muted-foreground" /></div>
 

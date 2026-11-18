@@ -710,3 +710,16 @@ table.trs-table tbody tr:last-child td { border-bottom: 0; }
 table.trs-table tbody tr:nth-child(even):not(.reg-group) > td { background-color: #f9faf8; }
 table.trs-table tbody tr:hover > td { background-color: #e9f2ec; }
 table.trs-table tbody tr[aria-selected="true"] > td, table.trs-table tbody tr.row-selected > td { background-color: var(--trs-soft); }
+
+/* ── Modal motion (Jarod, 14 Oct and 19 Nov 2026): the page behind fades to a grey blur, the panel
+   rises 28px and fades in; closing runs the same in reverse. Used by the confirm box. ── */
+.trs-modal-overlay { background: rgba(120, 124, 120, 0.35); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+.trs-modal-overlay[data-state="open"] { animation: trs-fade-in 0.32s ease both; }
+.trs-modal-overlay[data-state="closed"] { animation: trs-fade-out 0.24s ease both; }
+.trs-modal-panel[data-state="open"] { animation: trs-rise-in 0.36s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.trs-modal-panel[data-state="closed"] { animation: trs-rise-out 0.24s ease both; }
+@keyframes trs-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes trs-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes trs-rise-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 28px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
+@keyframes trs-rise-out { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, calc(-50% + 28px)); } }
+@media (prefers-reduced-motion: reduce) { .trs-modal-overlay, .trs-modal-panel { animation: none !important; } }

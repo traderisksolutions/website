@@ -21,7 +21,7 @@ export function PageHeader({ title, meta, actions, children, className }: PageHe
           <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
           {meta && <div className="mt-1 text-[13.5px] tabular-nums text-trs-muted">{meta}</div>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2 flex-shrink-0">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">{actions}</div>}
       </div>
       {children && <div className="flex flex-wrap items-center gap-2 min-w-0">{children}</div>}
     </header>
