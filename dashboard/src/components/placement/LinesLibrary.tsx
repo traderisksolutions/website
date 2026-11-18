@@ -181,7 +181,7 @@ function TableBlock({ title, part, cols, data, save }: { title: string; part: Pa
             {shown.map((r, i) => draft ? (
               <tr key={i} className="border-b border-trs-line align-top last:border-b-0">
                 <td className="px-4 py-1.5"><input aria-label={`${cols[0]} ${i + 1}`} value={r.item} onChange={e => set(i, 'item', e.target.value)} className={inputCls} /></td>
-                <td className="px-3 py-1.5"><input aria-label={`${cols[1]} ${i + 1}`} value={r.detail} onChange={e => set(i, 'detail', e.target.value)} className={inputCls} /></td>
+                <td className="cell-left px-3 py-1.5"><input aria-label={`${cols[1]} ${i + 1}`} value={r.detail} onChange={e => set(i, 'detail', e.target.value)} className={inputCls} /></td>
                 <td className="px-3 py-1.5"><input aria-label={`${cols[2]} ${i + 1}`} value={r.seen} onChange={e => set(i, 'seen', e.target.value)} className={`${inputCls} text-center`} /></td>
                 <td className="px-3 py-1.5 text-center"><Btn size="xs" onClick={async () => {
                   if (!await confirm({ title: 'Remove this row?', body: r.item || 'Blank row', action: 'Remove', danger: true })) return
@@ -191,7 +191,7 @@ function TableBlock({ title, part, cols, data, save }: { title: string; part: Pa
             ) : (
               <tr key={i} className="border-b border-trs-line align-top last:border-b-0">
                 <td className="px-4 py-2.5 text-trs-ink">{r.item}</td>
-                <td className="px-3 py-2.5 text-trs-muted">{r.detail || '—'}</td>
+                <td className="cell-left px-3 py-2.5 text-trs-muted">{r.detail || '—'}</td>
                 <td className="px-3 py-2.5 text-center text-trs-muted">{r.seen || '—'}</td>
               </tr>
             ))}

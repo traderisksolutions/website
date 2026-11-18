@@ -52,6 +52,8 @@ export interface Company {
   domain: string | null
   type: string | null
   industry: string | null
+  /** ACRA number; undefined until 20261031_client_structure.sql. */
+  uen?: string | null
   address: string | null
   notes: string | null
   source: string | null

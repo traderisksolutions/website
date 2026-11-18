@@ -2,34 +2,32 @@
 
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
-import Link from 'next/link'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { FileText, FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
-import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
-import { Btn, Chip, Field, LinkBtn, inputCls, textareaCls } from './primitives'
+import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
+import { PageHeader } from '@/components/page-header'
+import { fmtDate, num } from '@/lib/format'
+import type { CompanyFacts } from '@/lib/companies/facts'
+import type { LetterStatus } from '@/lib/letters/appointment'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { dialogCls } from '@/components/placement/shared'
 import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
-import type { PortfolioCount } from '@/lib/companies/portfolio'
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
 
 /** Strip the money segment: the header names the relationship, the Finance tab carries the figures. */
 function withoutMoney(line: string): string {
   return line.split(' · ').filter(p => !/outstanding$/i.test(p.trim())).join(' · ')
 }
 
-const ACTION_BTN = 'h-9 px-4 rounded-[10px] text-[14px]'
 const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#0f1412] focus:bg-[#faf9f6] data-[highlighted]:bg-[#faf9f6]'
 
-/** Name on one line, then stage, owner and domain on one row, then one muted status line. No stat boxes. */
-export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onCompany, onStage, onDrafts }: {
-  /** Every state the company's policies are in at once: "2 in force · 1 quoting". Null while loading. */
-  portfolio?: PortfolioCount[] | null
+/** The Workbench header: name, one facts line (UEN, business, relationship, owner, policies, premium, letter), Edit, More and New request. */
+export function CompanyHeader({ company, statusLine, facts, letter, draftsCount, onCompany, onStage, onDrafts, onLetter, onNewRequest }: {
+  /** Policies held, premium, client since; null while the policies load. */
+  facts: CompanyFacts | null
+  letter: LetterStatus | null
   company: Company
   statusLine: string
   /** Drafts waiting for approval across the company's placements and policies; null while unknown. */
@@ -37,10 +35,11 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
   onDrafts: () => void
+  onLetter: () => void
+  onNewRequest: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [addingTodo, setAddingTodo] = useState(false)
-  const [letterOpen, setLetterOpen] = useState(false)
   const [changing, setChanging] = useState(false)
   const [opening, setOpening] = useState(false)
   const [driveError, setDriveError] = useState<string | null>(null)
@@ -102,98 +101,56 @@ export function CompanyHeader({ company, statusLine, portfolio, draftsCount, onC
   }
 
   const status = withoutMoney(statusLine)
+  const fact = (label: string, value: React.ReactNode) => <span className="inline-flex items-center gap-1.5"><span className="text-trs-muted">{label}</span><span className="text-trs-ink">{value}</span></span>
 
   return (
-    <div className="mb-8">
+    <div className="mb-5">
       <Breadcrumbs current={{ label: company.name, href: `/companies/${company.id}` }} fallback={{ label: 'Companies', href: '/companies' }} />
-
-      {/* The name takes the full width on one line; stage, people, domain, pin and the actions share the row beneath. */}
-      <div className="mt-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[28px] sm:text-[30px] font-medium tracking-[-0.02em] leading-[1.15] whitespace-nowrap overflow-hidden text-ellipsis min-w-0" title={company.name} style={{ color: INK }}>{company.name}</h1>
-
-          <div className="mt-3 flex items-center gap-x-3 gap-y-2 flex-wrap text-[14px]" style={{ color: MUTED }}>
-            <select
-              value={company.stage}
-              disabled={changing}
-              onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
-              aria-label="Relationship"
-              title="Relationship with the company, set by hand"
-              className="h-9 rounded-[7px] border bg-white pl-2.5 pr-7 text-[13.5px] font-medium cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50"
-              style={{ borderColor: '#d5d9d4', color: INK }}
-            >
-              {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
-            </select>
-            {portfolio && portfolio.length > 0 && (
-              <span className="inline-flex items-center gap-1.5 flex-wrap" aria-label="Policies by state">
-                {portfolio.map(c => <Chip key={c.key} tone={c.tone === 'neutral' ? 'neutral' : c.tone}>{c.count} {c.label}</Chip>)}
-              </span>
-            )}
-            {/* Owners are chosen per company: one or many. Nobody is an owner by default. */}
-            <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="md" />
-            {company.domains.length > 0 && <span>{company.domains[0]}</span>}
-            {pinsAvailable && (
-              <button
-                type="button"
-                onClick={togglePin}
-                disabled={pinning}
-                aria-pressed={pinned}
-                className="inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px] disabled:opacity-50"
-                style={{ color: INK }}
-              >
-                <Pin size={12} /> {pinning ? 'Saving…' : pinned ? 'Unpin from Home' : 'Pin to Home'}
-              </button>
-            )}
-            {company.confirmed_at === null && (
-              <span className="inline-flex items-center gap-2">
-                <Chip title="Mail filing created this record from an email domain. Check the name, then confirm it.">Unconfirmed</Chip>
-                <button
-                  type="button"
-                  onClick={confirm}
-                  disabled={confirming}
-                  className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px] disabled:opacity-50"
-                  style={{ color: INK }}
-                >
-                  {confirming ? 'Saving…' : 'Confirm name'}
-                </button>
-              </span>
-            )}
-            {/* At the right of the stage row: drafts (only when some wait, then primary), the company's Employment Benefits and claims, and a More menu for the rest. Ask AI lives in the chat dock. */}
-            <span className="ml-auto inline-flex items-center gap-2 flex-wrap">
-              {draftsCount !== null && draftsCount > 0 && (
-                <Btn level="primary" className={ACTION_BTN} onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>
-              )}
-              <LinkBtn href={`/pricing-matrix/company/${company.id}`} level="secondary" className={ACTION_BTN}>Employment Benefits</LinkBtn>
-              <LinkBtn href={`/claims?company=${company.id}`} level="tertiary" className={ACTION_BTN}>Claims</LinkBtn>
-              <DropdownMenu modal={false}>
-                {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
-                <DropdownMenuTrigger
-                  type="button"
-                  aria-label="More actions"
-                  title="More actions"
-                  disabled={opening}
-                  className="inline-flex items-center justify-center h-9 w-9 rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ color: INK }}
-                >
-                  {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
-                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
-                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setLetterOpen(true)}><FileText size={14} /> Appointment letter</DropdownMenuItem>
-                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
-                  <DropdownMenuItem className={MENU_ITEM} onSelect={() => setEditing(true)}><Pencil size={14} /> Edit</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+      <PageHeader className="mt-3" title={<span className="block max-w-full truncate" title={company.name}>{company.name}</span>}
+        meta={<span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
+          {company.uen && fact('UEN', company.uen)}
+          {company.industry && fact('Business', company.industry)}
+          {fact('Relationship', <select value={company.stage} disabled={changing} aria-label="Relationship" title="Relationship with the company, set by hand"
+            onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
+            className="h-7 w-auto rounded-[6px] border border-trs-line-2 bg-white pl-2 pr-6 text-[13px] text-trs-ink cursor-pointer outline-none focus:border-trs-ink disabled:opacity-50">
+            {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
+          </select>)}
+          {fact('Owner', <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="sm" />)}
+          {facts?.clientSince && fact('Client since', fmtDate(facts.clientSince))}
+          {facts && fact('Policies', facts.held)}
+          {facts && fact('Annual premium', facts.annualPremium != null ? `S$${num(facts.annualPremium, 0)}` : '—')}
+          {letter && fact('Appointment letter', letter.state === 'signed' ? `Signed${letter.at ? ` · ${fmtDate(letter.at)}` : ''}` : letter.state === 'sent' ? 'Sent, not signed' : letter.state === 'needed' ? <span className="text-trs-warn">Needed</span> : 'Not on file')}
+          {company.domains.length > 0 && fact('Domain', company.domains[0])}
+          {company.confirmed_at === null && (
+            <span className="inline-flex items-center gap-2">
+              <Chip title="Mail filing created this record from an email domain. Check the name, then confirm it.">Unconfirmed</Chip>
+              <button type="button" onClick={confirm} disabled={confirming} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13px] text-trs-ink disabled:opacity-50">{confirming ? 'Saving…' : 'Confirm name'}</button>
             </span>
-          </div>
-          {status && <p className="m-0 mt-2 text-[14px]" style={{ color: MUTED }}>{status}</p>}
-          {driveError && <p className="m-0 mt-2 text-[13px]" style={{ color: '#a1242f' }}>{driveError}</p>}
-        </div>
-      </div>
+          )}
+        </span>}
+        actions={<>
+          {draftsCount !== null && draftsCount > 0 && <Btn onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>}
+          <Btn onClick={() => setEditing(true)}><Pencil size={14} /> Edit</Btn>
+          <DropdownMenu modal={false}>
+            {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
+            <DropdownMenuTrigger type="button" aria-label="More actions" title="More actions" disabled={opening}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-[8px] border border-trs-line-2 bg-white cursor-pointer hover:bg-trs-tint disabled:opacity-50 disabled:cursor-not-allowed text-trs-ink">
+              {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+              <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
+              <DropdownMenuItem className={MENU_ITEM} onSelect={onLetter}><FileText size={14} /> Appointment letter</DropdownMenuItem>
+              <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
+              {pinsAvailable && <DropdownMenuItem className={MENU_ITEM} disabled={pinning} onSelect={() => void togglePin()}><Pin size={14} /> {pinned ? 'Unpin from Home' : 'Pin to Home'}</DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Btn level="primary" onClick={onNewRequest}>New request</Btn>
+        </>} />
+      {status && <p className="m-0 mt-2 text-[13.5px] text-trs-muted">{status}</p>}
+      {driveError && <p className="m-0 mt-2 text-[13px] text-trs-neg">{driveError}</p>}
 
       <NewTodoDialog open={addingTodo} onClose={() => setAddingTodo(false)} companyId={company.id} staff={team} />
       <EditCompanyDialog open={editing} onClose={() => setEditing(false)} company={company} onSaved={onCompany} />
-      <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={company.id} />
     </div>
   )
 }

@@ -46,7 +46,8 @@ function StageSelect<T extends string>({ value, list, label, onChange }: { value
   )
 }
 
-export function WorkingOn({ filters }: { filters: React.ReactNode }) {
+/** Policies › Working on; with `company`, the Company page's Working on tab: that client's table only. */
+export function WorkingOn({ filters, company }: { filters?: React.ReactNode; company?: { id: string; name: string } }) {
   const [rows, setRows] = useState<WorkingRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<Record<string, boolean>>({})
@@ -64,9 +65,9 @@ export function WorkingOn({ filters }: { filters: React.ReactNode }) {
 
   const groups = useMemo(() => {
     const m = new Map<string, { id: string; name: string; rows: WorkingRow[] }>()
-    for (const r of rows ?? []) { const g = m.get(r.company_id) ?? { id: r.company_id, name: r.company_name, rows: [] }; g.rows.push(r); m.set(r.company_id, g) }
+    for (const r of rows ?? []) { if (company && r.company_id !== company.id) continue; const g = m.get(r.company_id) ?? { id: r.company_id, name: r.company_name, rows: [] }; g.rows.push(r); m.set(r.company_id, g) }
     return [...m.values()].sort((a, b) => a.name.localeCompare(b.name))
-  }, [rows])
+  }, [rows, company])
 
   async function patch(r: WorkingRow, body: Record<string, unknown>, words: string) {
     const res = await fetch(`/api/placements/lines/${r.line_id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -82,32 +83,7 @@ export function WorkingOn({ filters }: { filters: React.ReactNode }) {
   const takenThreads = useMemo(() => new Set((rows ?? []).map(r => r.thread_id).filter((x): x is string => !!x)), [rows])
   const d = today()
 
-  return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
-      <PageHeader title="Policies" meta={rows ? `${groups.length} ${groups.length === 1 ? 'client' : 'clients'} · ${rows.length} ${rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}
-        actions={<>
-          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-[11px] text-trs-muted">Pending AI build</span></span>
-          <Btn level="primary" onClick={() => setAdding({})}>Add from emails</Btn>
-        </>}>
-        {filters}
-      </PageHeader>
-      {note && <div className="text-[13px]" role="status">{note}</div>}
-      {error && <div className="text-[13px] text-trs-neg">{error}</div>}
-      {!rows && !error && <Spinner label="Loading the policies being worked on" />}
-      {rows && (
-        <Register label="Clients with policies being worked on" minWidth={480}>
-          <RegisterHead><RegisterTh first>Company</RegisterTh><RegisterTh last>Policies working on</RegisterTh></RegisterHead>
-          <tbody>
-            {groups.length === 0 && <RegisterEmpty colSpan={2}>No policies are being worked on. Add one from an email thread.</RegisterEmpty>}
-            {groups.map(g => {
-              const isOpen = !!open[g.id]
-              return [
-                <RegisterRow key={g.id} selected={isOpen} onClick={() => setOpen(o => ({ ...o, [g.id]: !o[g.id] }))}>
-                  <RegisterCell first identityWidth={320} primary={<span className="inline-flex items-center gap-2">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{g.name}</span>} />
-                  <RegisterCell last primary={g.rows.length} />
-                </RegisterRow>,
-                isOpen && (
-                  <tr key={g.id + ':detail'} className="reg-group"><td colSpan={2} className="cell-left px-4 pt-1 pb-4 bg-white">
+  const policyTable = (g: { id: string; name: string; rows: WorkingRow[] }) => (
                     <Register label={`Policies being worked on for ${g.name}`} minWidth={1060}>
                       <RegisterHead>
                         <RegisterTh first>Policy</RegisterTh><RegisterTh>Existing</RegisterTh><RegisterTh>Renewal</RegisterTh><RegisterTh>Previous premium S$</RegisterTh>
@@ -155,6 +131,62 @@ export function WorkingOn({ filters }: { filters: React.ReactNode }) {
                         })}
                       </tbody>
                     </Register>
+  )
+
+  const added = async (n: number, cos: string[], lineIds: string[]) => {
+    setAdding(null); setOpen(o => ({ ...o, ...Object.fromEntries(cos.map(c => [c, true])) })); await load()
+    setNote(<span className="inline-flex items-center gap-3"><span className="text-trs-pos">✓ Added {n} {n === 1 ? 'policy' : 'policies'} · {fmtDateTime(new Date().toISOString())}</span>
+      <button type="button" className="border-0 bg-transparent p-0 text-trs-muted underline cursor-pointer" onClick={async () => {
+        await Promise.all(lineIds.map(id => fetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
+        setNote(<span className="text-trs-muted">Undone · {n} {n === 1 ? 'policy' : 'policies'} taken off the list</span>); await load()
+      }}>Undo</button></span>)
+  }
+  const addModal = adding && <AddFromEmails company={adding.company} taken={takenThreads} onClose={() => setAdding(null)} onAdded={added} />
+
+  if (company) {
+    const g = groups[0] ?? { id: company.id, name: company.name, rows: [] }
+    return (
+      <div className="flex flex-col gap-3 min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[13px] text-trs-muted">{rows ? `${g.rows.length} ${g.rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}</span>
+          <Btn onClick={() => setAdding({ company })}>Add from emails</Btn>
+        </div>
+        {note && <div className="text-[13px]" role="status">{note}</div>}
+        {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+        {!rows && !error && <Spinner label="Loading the policies being worked on" />}
+        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-[8px] border border-trs-line-2 px-4 py-8 text-center text-[13px] text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
+        {addModal}
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
+      <PageHeader title="Policies" meta={rows ? `${groups.length} ${groups.length === 1 ? 'client' : 'clients'} · ${rows.length} ${rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}
+        actions={<>
+          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-[11px] text-trs-muted">Pending AI build</span></span>
+          <Btn level="primary" onClick={() => setAdding({})}>Add from emails</Btn>
+        </>}>
+        {filters}
+      </PageHeader>
+      {note && <div className="text-[13px]" role="status">{note}</div>}
+      {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+      {!rows && !error && <Spinner label="Loading the policies being worked on" />}
+      {rows && (
+        <Register label="Clients with policies being worked on" minWidth={480}>
+          <RegisterHead><RegisterTh first>Company</RegisterTh><RegisterTh last>Policies working on</RegisterTh></RegisterHead>
+          <tbody>
+            {groups.length === 0 && <RegisterEmpty colSpan={2}>No policies are being worked on. Add one from an email thread.</RegisterEmpty>}
+            {groups.map(g => {
+              const isOpen = !!open[g.id]
+              return [
+                <RegisterRow key={g.id} selected={isOpen} onClick={() => setOpen(o => ({ ...o, [g.id]: !o[g.id] }))}>
+                  <RegisterCell first identityWidth={320} primary={<span className="inline-flex items-center gap-2">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{g.name}</span>} />
+                  <RegisterCell last primary={g.rows.length} />
+                </RegisterRow>,
+                isOpen && (
+                  <tr key={g.id + ':detail'} className="reg-group"><td colSpan={2} className="cell-left px-4 pt-1 pb-4 bg-white">
+                    {policyTable(g)}
                     <Btn size="xs" level="tertiary" className="mt-2" onClick={() => setAdding({ company: { id: g.id, name: g.name } })}>+ Add policy for {g.name}</Btn>
                   </td></tr>
                 ),
@@ -163,15 +195,7 @@ export function WorkingOn({ filters }: { filters: React.ReactNode }) {
           </tbody>
         </Register>
       )}
-      {adding && <AddFromEmails company={adding.company} taken={takenThreads} onClose={() => setAdding(null)}
-        onAdded={async (n, cos, lineIds) => {
-          setAdding(null); setOpen(o => ({ ...o, ...Object.fromEntries(cos.map(c => [c, true])) })); await load()
-          setNote(<span className="inline-flex items-center gap-3"><span className="text-trs-pos">✓ Added {n} {n === 1 ? 'policy' : 'policies'} · {fmtDateTime(new Date().toISOString())}</span>
-            <button type="button" className="border-0 bg-transparent p-0 text-trs-muted underline cursor-pointer" onClick={async () => {
-              await Promise.all(lineIds.map(id => fetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
-              setNote(<span className="text-trs-muted">Undone · {n} {n === 1 ? 'policy' : 'policies'} taken off the list</span>); await load()
-            }}>Undo</button></span>)
-        }} />}
+      {addModal}
     </div>
   )
 }

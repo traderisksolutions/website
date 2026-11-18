@@ -18,9 +18,15 @@ import { CompanyMail } from '@/components/crm/CompanyMail'
 import { CompanyThreadList } from '@/components/crm/CompanyThreadList'
 import { CompanyLog } from '@/components/crm/CompanyLog'
 import { Segmented, Spinner } from '@/components/crm/primitives'
+import { ChevronDown } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
 import { DataRoom } from '@/components/documents/DataRoom'
-import { portfolio } from '@/lib/companies/portfolio'
+import { companyFacts } from '@/lib/companies/facts'
+import { CompanyRail } from '@/components/companies/CompanyRail'
+import { WorkingOn } from '@/components/policies/WorkingOn'
+import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
+import type { LetterStatus } from '@/lib/letters/appointment'
 import type { DataRoomStatus } from '@/lib/documents/taxonomy'
 import { MembersPanel } from '@/components/policies/MembersPanel'
 import type { PolicyFiles } from '@/components/policies/PoliciesRegister'
@@ -58,31 +64,32 @@ type Detail = {
 }
 
 /**
- * Two tabs carry the work: what the client has asked us to quote, and what they already pay for.
- * Employees and debit notes open under each policy row; everything else sits under More.
+ * The Workbench order (19 Nov 2026): what the client holds, what is being worked on, then quotes,
+ * mail, files, people, money and the log. The rest follow.
  */
 const MAIN_TABS = [
-  { key: 'quotes',   label: 'Quotes' },
-  { key: 'eb',       label: 'Employment Benefits' },
   { key: 'policies', label: 'Policies' },
-  { key: 'documents', label: 'Data room' },
+  { key: 'working',  label: 'Working on' },
+  { key: 'quotes',   label: 'Quotes' },
+  { key: 'threads',  label: 'Threads' },
+  { key: 'documents', label: 'Documents' },
+  { key: 'contacts', label: 'Contacts' },
+  { key: 'payments', label: 'Finance' },
+  { key: 'log',      label: 'Activity' },
 ] as const
 const MORE_TABS = [
-  { key: 'overview', label: 'Overview' },
+  { key: 'eb',       label: 'Employment Benefits' },
   { key: 'knowledge', label: 'Knowledge' },
   { key: 'renewals', label: 'Renewals' },
   { key: 'members',  label: 'Employees' },
-  { key: 'payments', label: 'Finance' },
-  { key: 'threads',  label: 'Threads' },
-  { key: 'log',      label: 'Log' },
   { key: 'nexus',    label: 'Nexus' },
 ] as const
 const TABS = [...MAIN_TABS, ...MORE_TABS]
 type Tab = typeof TABS[number]['key']
-const DEFAULT_TAB: Tab = 'quotes'
+const DEFAULT_TAB: Tab = 'policies'
 type ThreadView = 'list' | 'reader'
 /** Older links still name the tabs that were folded or renamed. */
-const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', people: 'overview', purchases: 'policies', employees: 'members' }
+const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', overview: 'contacts', people: 'contacts', purchases: 'policies', employees: 'members' }
 /** A policy still being quoted belongs with the requests; the rest are on the books. */
 const QUOTING = new Set(['quoting', 'presented'])
 const EMPTY_BUNDLE: PlacementData = { bundle: { placements: [], lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log: [] }, positions: [] }
@@ -121,6 +128,8 @@ function CompanyWorkspace() {
   const [draftsFocus, setDraftsFocus] = useState<string | null>(null)
   const openDrafts = useCallback((focus?: string) => { setDraftsFocus(focus ?? null); setDraftsOpen(true) }, [])
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [letter, setLetter] = useState<LetterStatus | null>(null)
+  const [letterOpen, setLetterOpen] = useState(false)
 
   const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {
     try { const r = await fetch(path, { cache: 'no-store' }); return r.ok ? await r.json() : fallback } catch { return fallback }
@@ -155,6 +164,7 @@ function CompanyWorkspace() {
   const loadPolicies = useCallback(() => j<{ policies: PolicyView[] }>(`/api/companies/${id}/policies`, { policies: [] }).then(r => setPolicies(r.policies)), [id, j])
   const loadActivity = useCallback(() => j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)), [id, j])
   const loadDrafts = useCallback(() => j<{ queue: QueueItem[] }>(`/api/companies/${id}/drafts`, { queue: [] }).then(r => setDraftsCount(r.queue.length)), [id, j])
+  const loadLetter = useCallback(() => j<{ status: LetterStatus | null }>(`/api/letters/appointment?company_id=${id}`, { status: null }).then(r => setLetter(r.status)), [id, j])
   const reloadDetail = useCallback(() => { void j<Detail>(`/api/companies/${id}`, EMPTY_DETAIL).then(setDetail) }, [id, j])
 
   // Everything else loads in the background so any tab is instant once open.
@@ -169,8 +179,9 @@ function CompanyWorkspace() {
       loadPolicies(),
       loadActivity(),
       loadDrafts(),
+      loadLetter(),
     ])
-  }, [id, j, loadThreads, loadCases, loadPlacements, loadPolicies, loadActivity, loadDrafts])
+  }, [id, j, loadThreads, loadCases, loadPlacements, loadPolicies, loadActivity, loadDrafts, loadLetter])
 
   /** After any placement, policy or draft changes: the spine, its log and the approval count. */
   const onSpineChanged = useCallback(() => { void loadPlacements(); void loadPolicies(); void loadActivity(); void loadDrafts(); reloadDetail() }, [loadPlacements, loadPolicies, loadActivity, loadDrafts, reloadDetail])
@@ -205,6 +216,7 @@ function CompanyWorkspace() {
   if (!ov) return <Spinner label="Loading company…" />
 
   const { company } = ov
+  const facts = policies ? companyFacts(policies, new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)) : null
   const existing = policies?.filter(p => !QUOTING.has(p.lifecycle)) ?? null
   // Policies being quoted that no request on this page covers (an employment-benefits rate run, say).
   const lineIds = new Set((placementData?.bundle.lines ?? []).map(l => l.id))
@@ -222,6 +234,7 @@ function CompanyWorkspace() {
       case 'threads': return threads?.length ?? null
       case 'log': return placementData === null && activity === null ? null : (placementData?.bundle.log.length ?? 0) + (activity?.length ?? 0)
       case 'nexus': return cases?.length ?? null
+      case 'contacts': return people?.people.length ?? null
       default: return null
     }
   }
@@ -290,28 +303,44 @@ function CompanyWorkspace() {
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1320px] px-6 sm:px-12 pt-12 pb-20">
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-10 pt-6 pb-20">
         <CompanyHeader
           company={company}
           statusLine={ov.statusLine}
-          portfolio={policies ? portfolio(policies) : null}
+          facts={facts}
+          letter={letter}
           draftsCount={draftsCount}
           onCompany={c => setOv(prev => prev ? { ...prev, company: c } : prev)}
           onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
           onDrafts={() => setDraftsOpen(true)}
+          onLetter={() => setLetterOpen(true)}
+          onNewRequest={() => setTab('working')}
         />
 
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0">
         {ov.alerts.length > 0 && <AlertsPanel alerts={ov.alerts} />}
 
-        {/* Every tab in one segmented row; wraps on a phone. */}
-        <div className="mb-6 min-w-0">
-          <Segmented<Tab> value={tab} onChange={setTab} label="Company sections" options={TABS.map(t => {
+        {/* The eight working tabs in one segmented row, the rest under More. */}
+        <div className="mb-6 flex flex-wrap items-center gap-2 min-w-0">
+          <Segmented<Tab> value={tab} onChange={setTab} label="Company sections" options={[...MAIN_TABS, ...MORE_TABS.filter(t => t.key === tab)].map(t => {
             const n = countFor(t.key)
             return { value: t.key, label: t.label, count: n !== null && n > 0 ? n : undefined }
           })} />
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger type="button" className="inline-flex h-[30px] items-center gap-1 rounded-[8px] border border-trs-line-2 bg-white px-3 text-[13px] font-medium text-trs-ink cursor-pointer hover:bg-trs-tint">More <ChevronDown size={13} /></DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="w-56 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+              {MORE_TABS.map(t => { const n = countFor(t.key); return (
+                <DropdownMenuItem key={t.key} onSelect={() => setTab(t.key)} className="flex justify-between px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-trs-ink data-[highlighted]:bg-trs-tint">
+                  {t.label}{n ? <span className="text-trs-muted tabular-nums">{n}</span> : null}
+                </DropdownMenuItem>) })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        {tab === 'overview' && (
+        {tab === 'working' && <WorkingOn company={{ id, name: company.name }} />}
+
+        {tab === 'contacts' && (
           <>
             {ov.alerts.length === 0 && <AlertsPanel alerts={ov.alerts} />}
             <LeftOffPanel leftOff={ov.leftOff} />
@@ -368,8 +397,13 @@ function CompanyWorkspace() {
             onCasesChanged={() => { void loadCases(); void loadThreads() }}
           />
         ) : <Spinner />)}
+        </div>
+        <CompanyRail company={company} facts={facts} letter={letter} contact={ov.stakeholders[0] ?? null} lastThread={ov.lastThreads[0] ?? null}
+          draftsCount={draftsCount} onTab={t => t === 'threads' ? setThreadView('list') : setTab(t)} onDrafts={() => setDraftsOpen(true)} onLetter={() => setLetterOpen(true)} />
+        </div>
       </div>
       {drafts}
+      <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={id} onDone={() => { void loadLetter() }} />
     </div>
   )
 }

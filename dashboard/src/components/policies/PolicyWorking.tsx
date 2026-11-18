@@ -2,7 +2,7 @@
 
 /**
  * The Policy page for a policy being worked on (the Workbench revamp, 19 Nov 2026): a facts line with
- * both stages, then Overview, Request, Quotes and Activity. Request is written by hand from the
+ * both stages, then Overview, Request, Quotes, Letter (broker appointment) and Activity. Request is written by hand from the
  * line's checklist (src/lib/placement/request.ts) and becomes drafts for review and send; Quotes is one
  * table across rounds with Record reply for a quote typed from an insurer's email.
  */
@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { Btn, Segmented, Spinner, inputCls } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
 import { ReviewDraftsDrawer } from '@/components/placement/ReviewDraftsDrawer'
+import { AppointmentLetterPanel } from '@/components/letters/AppointmentLetterPanel'
 import { fmtDate, fmtDateTime, num } from '@/lib/format'
 import { CLIENT_STAGES, INSURER_STAGES, REQUEST_TYPES, daysTo } from '@/lib/placement/working'
 import { missingItems, requestBody, type RequestItem } from '@/lib/placement/request'
@@ -33,7 +34,7 @@ type Ctx = {
   items: RequestItem[]; missing_asks: string[]; subject: string; deadline: string | null
   routes: Route[]; files: File[]; dispatches: Dispatch[]; quotes: Quote[]; log: LogRow[]; rounds: { id: string; round_no: number }[]
 }
-type Tab = 'overview' | 'request' | 'quotes' | 'activity'
+type Tab = 'overview' | 'request' | 'quotes' | 'letter' | 'activity'
 
 const word = (list: readonly (readonly [string, string])[], k: string | null) => list.find(([v]) => v === k)?.[1] ?? null
 const today = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
@@ -52,7 +53,7 @@ const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode
 
 export function PolicyWorking({ lineId }: { lineId: string }) {
   const router = useRouter(), sp = useSearchParams()
-  const tab = (['overview', 'request', 'quotes', 'activity'].includes(sp.get('tab') ?? '') ? sp.get('tab') : 'overview') as Tab
+  const tab = (['overview', 'request', 'quotes', 'letter', 'activity'].includes(sp.get('tab') ?? '') ? sp.get('tab') : 'overview') as Tab
   const [ctx, setCtx] = useState<Ctx | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [drawer, setDrawer] = useState<string | null | false>(false)
@@ -86,12 +87,13 @@ export function PolicyWorking({ lineId }: { lineId: string }) {
         </>}>
         <Segmented<Tab> value={tab} onChange={setTab} label="Policy sections" options={[
           { value: 'overview', label: 'Overview' }, { value: 'request', label: 'Request' },
-          { value: 'quotes', label: 'Quotes', count: current.length }, { value: 'activity', label: 'Activity', count: ctx.log.length }]} />
+          { value: 'quotes', label: 'Quotes', count: current.length }, { value: 'letter', label: 'Letter' }, { value: 'activity', label: 'Activity', count: ctx.log.length }]} />
       </PageHeader>
 
       {tab === 'overview' && <Overview ctx={ctx} onTab={setTab} />}
       {tab === 'request' && <RequestTab ctx={ctx} onDone={async () => { await load() }} onReview={id => setDrawer(id)} />}
       {tab === 'quotes' && <QuotesTab ctx={ctx} onChanged={load} onReview={id => setDrawer(id)} />}
+      {tab === 'letter' && <AppointmentLetterPanel companyId={ctx.company.id} companyName={ctx.company.name} placementId={ctx.placement.id} />}
       {tab === 'activity' && <LogTable rows={ctx.log} />}
       {drawer !== false && <ReviewDraftsDrawer companyId={ctx.company.id} open focus={drawer} onClose={() => setDrawer(false)} onChanged={() => void load()} />}
     </div>

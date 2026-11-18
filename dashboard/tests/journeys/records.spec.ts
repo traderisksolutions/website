@@ -7,6 +7,17 @@ test('company page opens with breadcrumbs and its sections', async ({ page }) =>
   await openClean(page, `/companies/${id}`)
   await expect(page.getByRole('navigation', { name: /breadcrumb/i })).toBeVisible()
   await expect(page.getByRole('radiogroup', { name: 'Company sections' })).toBeVisible()
+  // Workbench: Policies first, the facts line, the rail's three groups, Working on as a tab.
+  await expect(page.getByRole('radio', { name: /^Policies/ })).toHaveAttribute('aria-checked', 'true')
+  await expect(page.getByText('Appointment letter', { exact: true }).first()).toBeVisible()
+  const rail = page.getByRole('complementary', { name: 'Company context' })
+  for (const g of ['Actions', 'AI', 'Information']) await expect(rail.getByRole('region', { name: g })).toBeVisible()
+  await page.getByRole('button', { name: 'New request' }).click()
+  await expect(page).toHaveURL(/tab=working/)
+  await expect(page.getByRole('button', { name: 'Add from emails' })).toBeVisible()
+  await page.getByRole('button', { name: /^More$/ }).click()
+  await page.getByRole('menuitem', { name: /^Nexus/ }).click()
+  await expect(page).toHaveURL(/tab=nexus/)
 })
 
 test('policies in force are listed, not an empty register', async ({ page }) => {
@@ -49,6 +60,9 @@ test('a policy being worked on opens its Policy page: Overview, Request with the
   await expect(tab.getByRole('button', { name: /^Draft \d+ emails?$/ })).toBeVisible()
   await tab.getByRole('radio', { name: /^Quotes/ }).click()
   await expect(tab.getByRole('table', { name: 'Activity' })).toBeVisible()
+  await tab.getByRole('radio', { name: /^Letter/ }).click()
+  await expect(tab.getByRole('heading', { name: /^Appointment letter · / })).toBeVisible({ timeout: 30_000 })
+  await expect(tab.getByRole('button', { name: /^(Create|New) letter$/ })).toBeVisible()
   await tab.close()
 })
 
