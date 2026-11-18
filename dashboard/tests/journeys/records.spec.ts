@@ -85,3 +85,15 @@ test('no page offers a hand-made back link or button; breadcrumbs carry Back', a
   await openClean(page, '/pricing-matrix/new')
   await expect(page.getByRole('button', { name: /^←/ })).toHaveCount(0)
 })
+
+test('Quotes › Lines shows a line: client data beside insurer asks, both drafts, Knowledge for AI with versions', async ({ page }) => {
+  await openClean(page, '/lines?line=ear')
+  await expect(page.getByRole('heading', { name: 'EAR' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Data required from client · \d+/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^From insurer · \d+/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Draft to insurer' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Knowledge for AI' })).toBeVisible()
+  await page.getByRole('button', { name: /^Versions · \d+/ }).last().click()
+  await page.getByRole('navigation', { name: 'Lines' }).getByRole('button', { name: 'CAR' }).click()
+  await expect(page.getByRole('heading', { name: 'CAR' })).toBeVisible()
+})
