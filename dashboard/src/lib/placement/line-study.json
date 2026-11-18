@@ -1,0 +1,2931 @@
+[
+ {
+  "k": "car",
+  "s": "CAR",
+  "label": "Contractors' All Risks",
+  "rel": 76,
+  "read": 95,
+  "br": "No · tender ranges only",
+  "fields": [
+   [
+    "Project title",
+    "Full title from the LOA in CAPITALS, including lot number and planning area",
+    "24 of 26 submissions"
+   ],
+   [
+    "Contractor / Main contractor",
+    "{contractor} (UEN added by Angela)",
+    "18 of 26"
+   ],
+   [
+    "Principal / Employer",
+    "{principal or employer}; the road authority added as principal for road opening works where relevant",
+    "20 of 26"
+   ],
+   [
+    "Contract value / Contract sum",
+    "S$115,500,000 or 'Assume ~S$200 mil' at tender; GST excluded",
+    "26 of 26"
+   ],
+   [
+    "Period of insurance",
+    "{n} months from {date or [•]} + {6} months buffer period + {12|15|18|24} months DLP; small A&A: + 3 months buffer; prelim works stated as a separate period",
+    "22 of 26"
+   ],
+   [
+    "Insurance required",
+    "CAR and PEL / CAR, PL and PB / PEL (15% of CV) / CAR (Section I) and CGL",
+    "20 of 26"
+   ],
+   [
+    "Section I - Material Damage",
+    "Contract Value; Professional Fee ({5|10}% of CV); Removal of Debris ({5|3|2}% of CV); Plant & Machinery (exc. cranes) first loss S$100k-300k; Principal's Existing Property first loss; Total Sum Insured",
+    "14 of 26 as a full table; 8 more give PF/RoD percentages only"
+   ],
+   [
+    "Section II - Third Party Liability",
+    "S${1|2|5|10},000,000 any one accident / unlimited any one period",
+    "12 of 26"
+   ],
+   [
+    "RIBA 19(2)(a) / Vibration, Removal & Weakening of Support / Underground Services",
+    "Same limit as Section II, any one accident and in the aggregate",
+    "8 of 26"
+   ],
+   [
+    "Employer's Liability wages",
+    "Wages (20% of CV): S$23,100,000; road-authority contracts state 15%",
+    "10 of 26"
+   ],
+   [
+    "Type of piling / foundation; excavation depth",
+    "Bored pile / RC driven pile, {n} nos, max depth {m}m / concrete base slab / no piling",
+    "9 of 26"
+   ],
+   [
+    "Scope of works",
+    "Numbered list: piling, structural, architectural, M&E, external works; or one line for A&A",
+    "12 of 26"
+   ],
+   [
+    "Site / location",
+    "Address or contract site plus anywhere in Singapore for the contract",
+    "9 of 26"
+   ],
+   [
+    "Insurance requirements from contract",
+    "Pasted clause list: RoD %, PF %, existing property first loss S$10m, off-site fabrication and storage (SG and MY), inland transit",
+    "6 of 26"
+   ],
+   [
+    "Works status",
+    "'No works commenced' / 'currently preparation work' (drives backdating and LOU)",
+    "5 of 26"
+   ],
+   [
+    "Insured (full wording)",
+    "{contractor} as Main Contractor and/or their sub-contractors of all tiers and/or {principal} as Principal and/or consultants ... for their respective rights and interests",
+    "6 of 26 (mostly in quote slips and client-facing quotes)"
+   ]
+  ],
+  "docs": [
+   [
+    "Signed LOA / LOI / provisional LOA / PO",
+    "21 of 26"
+   ],
+   [
+    "Site plan, location plan, floor or elevation plans, architectural drawings",
+    "12 of 26"
+   ],
+   [
+    "Conditions of contract / SIA contract / PSSCOC appendix / insurance clauses / particular specification",
+    "11 of 26"
+   ],
+   [
+    "Soil investigation report (often by link, file too large)",
+    "8 of 26"
+   ],
+   [
+    "Piling plan / pile-cap layout",
+    "6 of 26"
+   ],
+   [
+    "Scope of works / design brief / development requirements",
+    "8 of 26"
+   ],
+   [
+    "TRS quote slip (.docx), sent in step 2",
+    "9 of 26"
+   ],
+   [
+    "Tender documents, BOQ, baseline programme",
+    "4 of 26"
+   ],
+   [
+    "ACRA profile, audited accounts, management accounts, directors' NOAs (when a bond is in the same request)",
+    "3 of 26"
+   ],
+   [
+    "Expiring schedules plus EOT letter (extensions)",
+    "3 of 3 extensions"
+   ]
+  ],
+  "asks": [
+   [
+    "Quote slip prepared by the broker",
+    8
+   ],
+   [
+    "Signed LOU / nil-claims declaration for backdated inception",
+    10
+   ],
+   [
+    "Soil investigation report / soil condition",
+    5
+   ],
+   [
+    "Detailed scope of works",
+    5
+   ],
+   [
+    "Site plan / location plan / drawings",
+    4
+   ],
+   [
+    "Piling plan, pile type, number of piles, max piling depth",
+    4
+   ],
+   [
+    "Have works commenced? (backdating)",
+    4
+   ],
+   [
+    "Who is leading / lead terms (for co-insurers)",
+    4
+   ],
+   [
+    "Method statement (piling, basement, general)",
+    3
+   ],
+   [
+    "Confirm period of insurance / commencement date",
+    3
+   ],
+   [
+    "Principal's existing property amount and what it covers",
+    2
+   ],
+   [
+    "Total deduction / brokerage split (co-insurance and RI)",
+    2
+   ],
+   [
+    "Finalised LOA before policy issue (cover note allowed first)",
+    1
+   ],
+   [
+    "Main contract timeline and value (when only piling is placed)",
+    1
+   ],
+   [
+    "Is maintenance period comprehensive maintenance or DLP",
+    1
+   ],
+   [
+    "Proximity to airport runway or hangar",
+    1
+   ],
+   [
+    "Inventory list of items insured (off-site materials)",
+    1
+   ],
+   [
+    "Nominated loss adjusters",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "Already approached by another intermediary (tender shopped earlier)",
+    5
+   ],
+   [
+    "Project below appetite size (one insurer's CAR team targets S$200m+ only)",
+    1
+   ],
+   [
+    "Deductible buy-back structure; all policies must insure full contract value",
+    1
+   ],
+   [
+    "Standalone piling preferred under main contract works (soft decline, lead insurer persuaded)",
+    1
+   ],
+   [
+    "Standalone contractors' plant and machinery: limited appetite, prefer bundled with CAR",
+    1
+   ],
+   [
+    "Insurer does not partner with RI brokers (double commission)",
+    1
+   ],
+   [
+    "Bond leg declined on contractor financials or liquidity (CAR leg still offered)",
+    2
+   ],
+   [
+    "Aggregate cap on RIBA/VRWS/underground services cannot be removed (partial)",
+    2
+   ]
+  ],
+  "cask": [
+   [
+    "Latest / signed letter of award (or 'is this tender stage or awarded?')",
+    6
+   ],
+   [
+    "Conditions of contract / PSCOC / insurance requirement or tender specs",
+    5
+   ],
+   [
+    "Soil investigation report",
+    4
+   ],
+   [
+    "Scope of works / design brief / tender brief",
+    5
+   ],
+   [
+    "Site plan and elevation plan / location plan",
+    3
+   ],
+   [
+    "Piling plan, pile type, number, max piling or excavation depth",
+    3
+   ],
+   [
+    "Method statement for basement works (if available)",
+    1
+   ],
+   [
+    "Confirm period of insurance: start date + months + buffer + DLP",
+    4
+   ],
+   [
+    "Sign LOU of nil claims for backdating; have works commenced?",
+    7
+   ],
+   [
+    "Estimated start date of works",
+    2
+   ],
+   [
+    "Next practicable submission deadline",
+    1
+   ],
+   [
+    "Main contract timeline, value and duration of piling (phase placements)",
+    1
+   ],
+   [
+    "Role on the project (main contractor or sub-contractor) and any design responsibility",
+    1
+   ],
+   [
+    "Missing appendix referenced in the insurance clause",
+    2
+   ]
+  ],
+  "rounds": "1 round on the request (a 3-7 item bullet list sent within 1 hour of the client's email, closing that the client should send what it has and TRS will handle the insurers). Then 1 relayed round from the insurer (pile details, soil report). Then 1 binding round (confirm period, sign LOU). Clients answer inline 'in blue' within 0-2 days.",
+  "priced": "Yes, for tenders only, and always labelled non-binding. 5 threads gave CAR rate ranges (0.06-0.12%) and premium ranges, PEL rate ranges (0.165-0.24% on 15-20% wages), deductible buy-down premium ranges, SPPI premium ranges, marine project cargo rate (0.10-0.13%), and CPE 'competitively priced' notes, 'preliminary conversation with insurers'. These come from phone soundings, not a rate card. No firm CAR price reached a client without an insurer quote. TRS also offered a fee rebate or lump-sum price (e.g. CAR+EL as one figure) after the insurer quote. Motor buses were roughly priced from insurer portals by Hasya.",
+  "cycle": "Small A&A or PO (S$1-5m): client request -> insurer same or next day -> quote back within 1 day (EQ often within 1-3 hours) -> client quote 1-6 days -> bind 5-15 days after request -> cover note same or next day. 8-14 messages across 2-3 threads. Mid/large (S$50m+): teaser day 0, quote slip day 1-3, NBI/rates 5-10 days, signed lead slip 6-40 days, client approval and co-insurer slips another 2-4 weeks, bound 70+ days after first submission in one case; 25-40 messages. Tender estimates: 3-12 days, no bind. Extensions: quote within 1-2 days of EOT, bind on client confirmation, endorsement 3-8 weeks later.",
+  "markets": "Bimodal. New or contested risk: 6 insurers in parallel, same email within 5 minutes, one thread per insurer, subject '(TRS) {insurer short code} - {client} | {project}'. Seen on a S$250m, a S$115m, a S$140m tender, a S$1.5m PO and a S$1.4m contract. Small A&A or repeat client: 1 to 3 insurers, EQ first (EQ quoted within hours in 8 threads). Large projects (S$100m+) become co-insurance: lead 50-72.5% plus followers 20-50%, or facultative RI behind a lead via an RI broker, with total deduction negotiated (20% seen).",
+  "deadline": "No fixed working-day rule. Deadline follows the client's: 'seeking a quote by tomorrow', 'indicative pricing before 3PM', 'quote by Monday please', 'your NBI by {date}' (tender: 6 days before the client's closing date). Median gap request-to-deadline about 2 working days. Tenders ask for NBI (non-binding indication) not firm terms.",
+  "tone": {
+   "to_insurer": "Collegial, first-name, short. Opens with 'As spoken,' after a call. Asks rather than instructs: 'Would you like to work on', 'let us know if you are keen'. Urgency stated plainly ('time-sensitive, but let's see'). Binding: 'Please proceed', 'Can we kindly get a Cover Note' today. Angela writes long, structured, clause-referenced emails (contract clause codes, table of Item/Details, numbered clarifications) and records phone agreements in writing.",
+   "to_client": "Courteous, service-led, explanatory. 'Thank you for your email and invitation' opener Gives market context (insurers seeking reinsurance, piling preferred within main works). Quotes presented as a full term block (Insured, Project Title, Contract Value, Period, Section I table, Section II, excesses, rate, premium before GST). Tender estimates labelled 'non-binding indicative estimate' for tender. Explains coverage concepts in plain bullets (PEL vs WICA gap, CAR vs EAR, retroactive date).",
+   "greeting": "'Dear {first name},' (multiple names comma-separated) for first contact and clients; 'Hi {first name},' in follow-ups. Ernest and Hasya: 'Dear {name},' or 'Hi {name},'.",
+   "sign_off": "Nathan: 'Warmest Regards, Nathan' (mobile number on key emails). Hasya: 'Warm regards, Hasya'. Ernest: 'Best, Cheng Sou (Ernest)' with mobile. Angela: name only. Shared mailbox: 'Best regards, Trade Risk Solutions'.",
+   "habits": [
+    "Ends almost every email with 'Thank you!' (Nathan); house copy rules ban exclamation marks, so templates drop it",
+    "Project title pasted in CAPITALS exactly as the LOA",
+    "Sum-insured tables as label/amount pairs, Section I then Section II then PEL",
+    "Revisions shown by striking old value and adding new (e.g. rate 0.10% -> 0.085%)",
+    "Bullets and numbered lists for asks; Ernest bolds key dates and asks with asterisks",
+    "Large files by share link with 'let me know if you cannot access'",
+    "Subject line convention '(TRS) {insurer code} - {client} | {project}' for insurer threads; '[Binding]' prefix for RI binding",
+    "Cover note first, policy documents 'to follow', then billing with TRS debit note and settlement via TRS",
+    "Internal delegation one-liners to Hasya: 'Can you prepare a Quote Slip' using the last project's draft"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer short code} - {client} | {project short name}\n\nDear {insurer contact first names},\n\n{As spoken, }our client, {contractor}, wishes to procure project insurance for the following project{, for which we have placed the preliminary works}:\n\n{PROJECT TITLE IN CAPITALS AS PER LOA}\n\nContractor: {contractor}{ (UEN {uen})}\nPrincipal: {principal}{ and {road authority} as Principal for road opening works}\nSite: {site address}\nContract value: S${contract_value} (excluding GST)\nPeriod of insurance: {construction_months} months from {start_date or [•]} + {buffer_months} months buffer period + {dlp_months} months DLP\nInsurance required: {CAR | EAR}{ and PEL}\nType of piling / foundation: {pile type, number, max depth}\nWorks status: {not commenced | commenced on {date}}\n\nContractors' All Risks\nSection I - Material Damage\n- Contract value: S${contract_value}\n- Professional fees ({pf_pct}% of CV): S${pf_amount}\n- Removal of debris ({rod_pct}% of CV): S${rod_amount}\n- Plant and machinery (excluding cranes), first loss: S${pm_amount}\n- Principal's existing property, first loss: S${pep_amount}\n- Total sum insured: S${total_si}\n\nSection II - Third Party Liability\n- S${tpl_limit} any one accident / unlimited any one period\n- RIBA 19(2)(a) / vibration, removal and weakening of support / underground services: S${tpl_limit} any one accident and in the aggregate\n\nProject Employers' Liability\n- Estimated wages ({wages_pct}% of CV): S${wages}\n\nContract insurance requirements:\n{clause list: PF %, RoD %, existing property, off-site storage and fabrication, inland transit, insured parties}\n\nGeneral scope of works:\n{numbered scope}\n\nAttached: letter of award, conditions of contract (insurance clauses), site plan, piling plan. Soil investigation report and drawings: {share link}.\n\nWe would appreciate your {indication | quotation} by {deadline}. Do let us know if you are keen to work with us on this project, and we will send the quote slip.\n\nWarmest regards,\n{staff first name}\n{mobile}",
+  "t_cli": "Subject: RE: {client's subject}\n\nDear {client contact first name},\n\nThank you for your email and invitation to quote. We will approach the insurers.\n\nTo obtain firm terms, may we request the following, where available:\n- Latest letter of award (or confirm whether this is still at tender stage)\n- Conditions of contract / PSSCOC and the insurance requirements\n- Scope of works\n- Site plan and elevation plan\n- Soil investigation report\n- Piling plan, pile type and maximum depth of excavation\n- Method statement for basement works, if available\n- Estimated commencement date{, and whether any works have started}\n\nDo send what you have, and we will manage the insurers on the rest.\n\nWarmest regards,\n{staff first name}",
+  "gaps": [
+   "No quote slip step. Insurers asked for a broker quote slip in 8 threads before quoting; TRS sends the email as a teaser and the slip (.docx from the last project) in step 2. lines.ts treats the email as the whole submission.",
+   "Professional fees default is wrong: lines.ts defaults to 10%. Nathan's submissions use 5% unless the contract states otherwise (5% in 7 submissions; 10% only where the contract specified it). RoD varies by contract (5%, 3%, 2%, 2.5%). Default PF 5% / RoD 5% and read both from the contract.",
+   "Section II default S$10m and RIBA fixed at S$10m aggregate regardless of size. Mail: S$1-2m for A&A and small projects, S$5-10m for large. RIBA/VRWS/underground services always mirror the Section II limit, in the aggregate. lines.ts prints only RIBA 19(2)(a); mail labels the line RIBA 19(2)(a) / vibration, removal and weakening of support / underground services.",
+   "Buffer fixed at 6 months. Mail: 6 months for main contracts, 3 months for small A&A, 14 days on EQ extensions; period often unknown at quote time and shown as 'from [•]'. Prelim works and main contract need separate periods.",
+   "PEL wages fixed at 20%. Road-authority and some tenders specify 15%. Add wages_pct field; PEL is sometimes 'Optional' or separately priced. Add PEL limit at common law (S$10m any one event).",
+   "Missing fields: plant and machinery (exc. cranes) first loss; insurance required (CAR/EAR/PEL/PB/SPPI mix); works commenced status; contractor UEN; off-site storage/fabrication and inland transit limits; bank interests (mortgagee, loss payee, security agent); maintenance type (extended maintenance vs visits); tender vs awarded status.",
+   "Insured line lacks 'for their respective rights and interests' and consultants/suppliers 'in respect of their on-site activities only', which clients' consultants insist on.",
+   "Deadline default 5 working days is too long. Observed: same day to 4 days, set by the client's tender deadline. Default to the client's deadline minus 1 working day, max 3 working days.",
+   "Markets: bySize(3,4,6) does not match. Observed 6 for any new or contested risk regardless of size (including S$1.4-1.5m), and 1-2 for repeat small A&A. Large projects go co-insurance (lead plus followers) or fac RI; comparison needs capacity share per insurer and a lead/follow step.",
+   "CONSTRUCTION_SMALL lists Zurich third; Zurich declined a S$1.5m CAR because its CAR team targets S$200m+ projects. Move Zurich to large only. HLAS and Great Eastern appear on small risks too.",
+   "No extension/endorsement template. EOT extensions (pro-rata AP, LOU), CV changes, adding insureds and bank clauses are a large share of CAR mail.",
+   "No binding step: LOU of nil claims for backdated inception was required in 10 threads; cover note before policy; placement slips signed by lead and co-insurers.",
+   "ASK map collapses project/value/period into one LOA ask. Mail asks for 7 documents (LOA, conditions of contract, scope, plans, soil report, piling plan, method statement) plus start date; documentsToAsk lacks conditions of contract wording and method statement for basement and the LOU.",
+   "Submission closing line 'within 5 working days' and the lines.ts opening (bring you the following project from {client}) fit tenders; for awarded projects the observed opening names the client as 'Our client, {X}' and ends with an appetite question."
+  ]
+ },
+ {
+  "k": "ear",
+  "s": "EAR",
+  "label": "Erection All Risks: installation of equipment (chillers, generators, thermal storage tanks, solar)",
+  "rel": 19,
+  "read": 19,
+  "br": "No · EQ quoted 0.085–0.10% on contract value",
+  "fields": [
+   [
+    "Equipment being installed",
+    "Chillers, generators, thermal storage tank, solar panels; owner-purchased or contractor-supplied",
+    "19 of 19"
+   ],
+   [
+    "Policy title",
+    "Erection All Risks, not Contractors' All Risks; consultants rejected a CAR-titled policy for equipment works",
+    "3 of 19"
+   ],
+   [
+    "Testing and commissioning",
+    "Period, and whether cover runs until taken over or put into service",
+    "5 of 19"
+   ],
+   [
+    "Project title",
+    "Full title from the LOA in CAPITALS, including lot number and planning area",
+    "24 of 26 submissions"
+   ],
+   [
+    "Contractor / Main contractor",
+    "{contractor} (UEN added by Angela)",
+    "18 of 26"
+   ],
+   [
+    "Contract value / Contract sum",
+    "S$115,500,000 or 'Assume ~S$200 mil' at tender; GST excluded",
+    "26 of 26"
+   ],
+   [
+    "Period of insurance",
+    "{n} months from {date or [•]} + {6} months buffer period + {12|15|18|24} months DLP; small A&A: + 3 months buffer; prelim works stated as a separate period",
+    "22 of 26"
+   ],
+   [
+    "Insurance required",
+    "CAR and PEL / CAR, PL and PB / PEL (15% of CV) / CAR (Section I) and CGL",
+    "20 of 26"
+   ],
+   [
+    "Section I - Material Damage",
+    "Contract Value; Professional Fee ({5|10}% of CV); Removal of Debris ({5|3|2}% of CV); Plant & Machinery (exc. cranes) first loss S$100k-300k; Principal's Existing Property first loss; Total Sum Insured",
+    "14 of 26 as a full table; 8 more give PF/RoD percentages only"
+   ],
+   [
+    "Section II - Third Party Liability",
+    "S${1|2|5|10},000,000 any one accident / unlimited any one period",
+    "12 of 26"
+   ],
+   [
+    "Employer's Liability wages",
+    "Wages (20% of CV): S$23,100,000; road-authority contracts state 15%",
+    "10 of 26"
+   ],
+   [
+    "Scope of works",
+    "Numbered list: piling, structural, architectural, M&E, external works; or one line for A&A",
+    "12 of 26"
+   ],
+   [
+    "Site / location",
+    "Address or contract site plus anywhere in Singapore for the contract",
+    "9 of 26"
+   ],
+   [
+    "Insurance requirements from contract",
+    "Pasted clause list: RoD %, PF %, existing property first loss S$10m, off-site fabrication and storage (SG and MY), inland transit",
+    "6 of 26"
+   ],
+   [
+    "Works status",
+    "'No works commenced' / 'currently preparation work' (drives backdating and LOU)",
+    "5 of 26"
+   ],
+   [
+    "Insured (full wording)",
+    "{contractor} as Main Contractor and/or their sub-contractors of all tiers and/or {principal} as Principal and/or consultants ... for their respective rights and interests",
+    "6 of 26 (mostly in quote slips and client-facing quotes)"
+   ]
+  ],
+  "docs": [
+   [
+    "Contract or purchase order with the installation scope",
+    "19 of 19"
+   ],
+   [
+    "Equipment list with values",
+    "6 of 19"
+   ],
+   [
+    "Testing and commissioning programme",
+    "4 of 19"
+   ],
+   [
+    "Signed LOA / LOI / provisional LOA / PO",
+    "21 of 26"
+   ],
+   [
+    "Conditions of contract / SIA contract / PSSCOC appendix / insurance clauses / particular specification",
+    "11 of 26"
+   ],
+   [
+    "ACRA profile, audited accounts, management accounts, directors' NOAs (when a bond is in the same request)",
+    "3 of 26"
+   ]
+  ],
+  "asks": [
+   [
+    "Cover for contract works taken over or put into service",
+    "3"
+   ],
+   [
+    "Testing and commissioning period and breakdown",
+    "3"
+   ],
+   [
+    "Owner-purchased equipment: who insures it",
+    "2"
+   ],
+   [
+    "Section II limit the principal accepts (S$1m or S$2m)",
+    "2"
+   ],
+   [
+    "Accumulation: total equipment value at one site",
+    "1"
+   ]
+  ],
+  "declines": [
+   [
+    "Insurer accumulation limit on high-value equipment at one site",
+    "1"
+   ]
+  ],
+  "cask": [
+   [
+    "Contract or purchase order and the installation scope",
+    "5"
+   ],
+   [
+    "Equipment list and values, and who purchased them",
+    "4"
+   ],
+   [
+    "Testing and commissioning dates",
+    "3"
+   ],
+   [
+    "Third party limit the principal requires",
+    "2"
+   ]
+  ],
+  "rounds": "1 round on the request (a 3-7 item bullet list sent within 1 hour of the client's email, closing that the client should send what it has and TRS will handle the insurers). Then 1 relayed round from the insurer (pile details, soil report). Then 1 binding round (confirm period, sign LOU). Clients answer inline 'in blue' within 0-2 days.",
+  "priced": "No firm EAR price without an insurer. EQ quoted Section I at 0.10% of contract value and later 0.085% after negotiation on three equipment jobs. Solar portfolios were discussed as an annual open cover with monthly declarations at about 0.25–0.30% (indications).",
+  "cycle": "Equipment job, Singapore: request to quote same day to 2 days at EQ; policy and PEL issued together. Malaysian project EAR alongside CAR: weeks, held by the insurer's accumulation limit on RM120m of equipment. 16 of the 19 EAR threads also discuss CAR.",
+  "markets": "Bimodal. New or contested risk: 6 insurers in parallel, same email within 5 minutes, one thread per insurer, subject '(TRS) {insurer short code} - {client} | {project}'. Seen on a S$250m, a S$115m, a S$140m tender, a S$1.5m PO and a S$1.4m contract. Small A&A or repeat client: 1 to 3 insurers, EQ first (EQ quoted within hours in 8 threads). Large projects (S$100m+) become co-insurance: lead 50-72.5% plus followers 20-50%, or facultative RI behind a lead via an RI broker, with total deduction negotiated (20% seen).",
+  "deadline": "No fixed working-day rule. Deadline follows the client's: 'seeking a quote by tomorrow', 'indicative pricing before 3PM', 'quote by Monday please', 'your NBI by {date}' (tender: 6 days before the client's closing date). Median gap request-to-deadline about 2 working days. Tenders ask for NBI (non-binding indication) not firm terms.",
+  "tone": {
+   "to_insurer": "Collegial, first-name, short. Opens with 'As spoken,' after a call. Asks rather than instructs: 'Would you like to work on', 'let us know if you are keen'. Urgency stated plainly ('time-sensitive, but let's see'). Binding: 'Please proceed', 'Can we kindly get a Cover Note' today. Angela writes long, structured, clause-referenced emails (contract clause codes, table of Item/Details, numbered clarifications) and records phone agreements in writing.",
+   "to_client": "Courteous, service-led, explanatory. 'Thank you for your email and invitation' opener Gives market context (insurers seeking reinsurance, piling preferred within main works). Quotes presented as a full term block (Insured, Project Title, Contract Value, Period, Section I table, Section II, excesses, rate, premium before GST). Tender estimates labelled 'non-binding indicative estimate' for tender. Explains coverage concepts in plain bullets (PEL vs WICA gap, CAR vs EAR, retroactive date).",
+   "greeting": "'Dear {first name},' (multiple names comma-separated) for first contact and clients; 'Hi {first name},' in follow-ups. Ernest and Hasya: 'Dear {name},' or 'Hi {name},'.",
+   "sign_off": "Nathan: 'Warmest Regards, Nathan' (mobile number on key emails). Hasya: 'Warm regards, Hasya'. Ernest: 'Best, Cheng Sou (Ernest)' with mobile. Angela: name only. Shared mailbox: 'Best regards, Trade Risk Solutions'.",
+   "habits": [
+    "Ends almost every email with 'Thank you!' (Nathan); house copy rules ban exclamation marks, so templates drop it",
+    "Project title pasted in CAPITALS exactly as the LOA",
+    "Sum-insured tables as label/amount pairs, Section I then Section II then PEL",
+    "Revisions shown by striking old value and adding new (e.g. rate 0.10% -> 0.085%)",
+    "Bullets and numbered lists for asks; Ernest bolds key dates and asks with asterisks",
+    "Large files by share link with 'let me know if you cannot access'",
+    "Subject line convention '(TRS) {insurer code} - {client} | {project}' for insurer threads; '[Binding]' prefix for RI binding",
+    "Cover note first, policy documents 'to follow', then billing with TRS debit note and settlement via TRS",
+    "Internal delegation one-liners to Hasya: 'Can you prepare a Quote Slip' using the last project's draft"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer short code} - {client} | {project short name}\n\nDear {insurer contact first names},\n\n{As spoken, }our client, {contractor}, wishes to procure project insurance for the following project{, for which we have placed the preliminary works}:\n\n{PROJECT TITLE IN CAPITALS AS PER LOA}\n\nContractor: {contractor}{ (UEN {uen})}\nPrincipal: {principal}{ and {road authority} as Principal for road opening works}\nSite: {site address}\nContract value: S${contract_value} (excluding GST)\nPeriod of insurance: {construction_months} months from {start_date or [•]} + {buffer_months} months buffer period + {dlp_months} months DLP\nInsurance required: EAR{ and PEL}\nType of piling / foundation: {pile type, number, max depth}\nEquipment: {equipment and owner (purchased by principal | supplied by contractor)}\nTesting and commissioning: {period}; cover to continue until taken over or put into service\nWorks status: {not commenced | commenced on {date}}\n\nErection All Risks\nSection I - Material Damage\n- Contract value: S${contract_value}\n- Professional fees ({pf_pct}% of CV): S${pf_amount}\n- Removal of debris ({rod_pct}% of CV): S${rod_amount}\n- Plant and machinery (excluding cranes), first loss: S${pm_amount}\n- Principal's existing property, first loss: S${pep_amount}\n- Total sum insured: S${total_si}\n\nSection II - Third Party Liability\n- S${tpl_limit} any one accident / unlimited any one period\n- RIBA 19(2)(a) / vibration, removal and weakening of support / underground services: S${tpl_limit} any one accident and in the aggregate\n\nProject Employers' Liability\n- Estimated wages ({wages_pct}% of CV): S${wages}\n\nContract insurance requirements:\n{clause list: PF %, RoD %, existing property, off-site storage and fabrication, inland transit, insured parties}\n\nGeneral scope of works:\n{numbered scope}\n\nAttached: letter of award, conditions of contract (insurance clauses), site plan, piling plan. Soil investigation report and drawings: {share link}.\n\nWe would appreciate your {indication | quotation} by {deadline}. Do let us know if you are keen to work with us on this project, and we will send the quote slip.\n\nWarmest regards,\n{staff first name}\n{mobile}",
+  "t_cli": "Subject: RE: {client's subject}\n\nDear {client contact first name},\n\nThank you for your email and invitation to quote. We will approach the insurers.\n\nTo obtain firm terms, may we request the following, where available:\n- Latest letter of award (or confirm whether this is still at tender stage)\n- Conditions of contract / PSSCOC and the insurance requirements\n- Scope of works\n- Site plan and elevation plan\n- Soil investigation report\n- Piling plan, pile type and maximum depth of excavation\n- Method statement for basement works, if available\n- Estimated commencement date{, and whether any works have started}\n\nDo send what you have, and we will manage the insurers on the rest.\n\nWarmest regards,\n{staff first name}",
+  "gaps": [
+   "No EAR entry in lines.ts. Same family as CAR, different policy title, period clause (testing and commissioning, taken over or put into service) and an equipment schedule.",
+   "Default third party limit for small equipment jobs is S$1m to S$2m, set by what the principal accepts.",
+   "Owner-purchased equipment must be asked for: the principal may require it insured under the contractor's EAR."
+  ]
+ },
+ {
+  "k": "pel",
+  "s": "PEL",
+  "label": "Project Employers' Liability (and project Public Liability)",
+  "rel": 33,
+  "read": 33,
+  "br": "No · tender ranges only",
+  "fields": [
+   [
+    "Project / contract title",
+    "As per LOA or tender ref",
+    "10 of 10"
+   ],
+   [
+    "Principal",
+    "{principal}",
+    "9 of 10"
+   ],
+   [
+    "Main contractor",
+    "{contractor}",
+    "8 of 10"
+   ],
+   [
+    "Contract value / contract sum",
+    "S$404.4 million / estimated BCV S$140,000,000",
+    "10 of 10"
+   ],
+   [
+    "Wages basis",
+    "Wages (20% of CV): S${amount}; tender-specified 15%",
+    "8 of 10"
+   ],
+   [
+    "Contract period and DLP",
+    "48 months; DLP 12 months; same period as CAR",
+    "7 of 10"
+   ],
+   [
+    "Limit of liability at common law",
+    "S$10 million any one claim or series of claims arising from one event",
+    "3 of 10 (tender estimates and client quotes)"
+   ],
+   [
+    "Segment / business unit",
+    "Contract segment or client business unit for large public tenders",
+    "2 of 10"
+   ]
+  ],
+  "docs": [
+   [
+    "Letter of acceptance / award",
+    "6 of 10"
+   ],
+   [
+    "Particular specification insurance clauses / PSSCOC appendix / preliminaries insurance part",
+    "6 of 10"
+   ],
+   [
+    "Location map",
+    "3 of 10"
+   ],
+   [
+    "Expiring PEL schedule (extensions)",
+    "2 of 2 extensions"
+   ]
+  ],
+  "asks": [
+   [
+    "Underwriting information / LOA and insurance specification before terms",
+    3
+   ],
+   [
+    "Signed LOU for backdated start",
+    4
+   ],
+   [
+    "Co-share appetite across CAR and PEL together",
+    2
+   ],
+   [
+    "Confirm wages basis (insurer used a higher figure than client's estimate)",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "Approached earlier by another intermediary (tender)",
+    3
+   ],
+   [
+    "Treaty constraints on PEL",
+    1
+   ],
+   [
+    "PEL employer-procured, nothing to buy down",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "PSCOC / insurance requirement / tender specs, to check what the principal already insures",
+    3
+   ],
+   [
+    "Missing appendix referenced by the insurance clause (e.g. employer master insurance programme)",
+    1
+   ],
+   [
+    "Estimated wages if different from 20% of CV",
+    1
+   ],
+   [
+    "Confirm period and sign LOU for backdating",
+    3
+   ]
+  ],
+  "rounds": "1-2 rounds. Advisory round is common: TRS explains why PEL is needed on top of WICA before the client asks for a quote.",
+  "priced": "Tender estimates only: PEL rate range 0.165-0.24% on 15-20% of CV, premium range, labelled non-binding (3 threads). No firm PEL price without an insurer quote.",
+  "cycle": "Bundled with CAR: same cycle as CAR. Standalone tender: request to NBI deadline 9 days; 2 of 6 insurers declined within 3 days. Standalone awarded large PEL: first teaser to UW pack 24 days, still open at 28 days. Extension: insurer quote within 1-2 days, client confirmation within 1 day.",
+  "markets": "Same insurers as the CAR round when bundled. Standalone tender PEL: 6 insurers (HLAS, TMIS, India International, ERGO, Great Eastern, Liberty). Standalone large awarded PEL: 3 (Chubb, China Taiping, Great Eastern).",
+  "deadline": "Tender: 'receiving your NBI by {date}', 6 days before the client's closing. Awarded: follows CAR deadline. Standalone large PEL had no deadline and was kept warm for 4 weeks ('keep you updated').",
+  "tone": {
+   "to_insurer": "Same as CAR. Standalone PEL opens with a warm-up note days or weeks before the information arrives.",
+   "to_client": "Advisory. TRS writes a short explainer when the client asks what else to buy: WICA covers own employees only; main contractor exposed to sub-contractors' workers and principal indemnity; uninsured or insolvent sub-contractors. Presents PEL as 'Wages / Rate / Premium + GST'.",
+   "greeting": "'Dear {first name},'",
+   "sign_off": "'Warmest Regards, Nathan' / 'Warm regards, Hasya' / 'Best, Cheng Sou (Ernest)'",
+   "habits": [
+    "PEL priced line shown as 'Wages: S$x / Rate: y% / Premium: S$z + GST'",
+    "Explainer emails use numbered scenarios",
+    "Extensions summarised per policy: policy, additional premium, calculation in brackets"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer short code} - {client} | {project}\n\nDear {insurer contact first names},\n\nWe wish to bring you the following project from {contractor} for your quotation:\n\nProject: {project title}\nPrincipal: {principal}\nMain contractor: {contractor}\nContract value: S${contract_value}\nContract period: {months} months + {buffer_months} months buffer + {dlp_months} months DLP\nInsurance required: Project Employers' Liability\nEstimated wages ({wages_pct}% of CV): S${wages}\nLimit of liability at common law: S${limit} any one claim or series of claims arising from one event\n{Note: CAR is arranged by the principal under {programme}.}\n\nAttached: letter of award and the insurance clauses of the contract.\n\nWe would appreciate your {indication | quotation} by {deadline}.\n\nWarmest regards,\n{staff first name}",
+  "t_cli": "Dear {client contact first name},\n\nThank you for your email.\n\nBefore we advise on Project Employers' Liability, may we have:\n- The particular specification / PSCOC insurance clauses, including {appendix referenced}\n- Your estimate of total wages for the project, if different from {wages_pct}% of the contract value\n- The expected commencement date\n\nWith these we can confirm what the principal already insures and what you need to arrange.\n\nWarmest regards,\n{staff first name}",
+  "gaps": [
+   "No PEL line in LINE_SPECS. PEL only appears as one printed line inside constructionSubmission. Standalone PEL (employer-procured CAR, road authority master programme) has no fields, panel or template.",
+   "Wages percentage hard-coded at 20%; tenders specify 15%. Needs wages_pct and an override for the client's own wage estimate.",
+   "No limit of liability at common law field (S$10m any one event is the norm).",
+   "No standard PEL condition captured (sub-contractors insure under annual WIC), which every EQ quote carries.",
+   "Standalone project public liability for MCST/landlord requirements is routed to general_liability (ok), but the 'existing_cover' field should flag 'CAR TPL not accepted' as the purpose; seen with 1 insurer declining as already approached.",
+   "Panel for standalone PEL should exclude insurers with treaty constraints on PEL (Great Eastern declined on treaty grounds once)."
+  ]
+ },
+ {
+  "k": "sppi",
+  "s": "SPPI",
+  "label": "Single Project Professional Indemnity",
+  "rel": 5,
+  "read": 5,
+  "br": "No · tender ranges only",
+  "fields": [
+   [
+    "Project / contract",
+    "Contract ref and title as per LOA",
+    "3 of 3"
+   ],
+   [
+    "Principal",
+    "{principal}",
+    "3 of 3"
+   ],
+   [
+    "Contract sum",
+    "S$404.4 million",
+    "3 of 3"
+   ],
+   [
+    "Estimated professional fees",
+    "Design/consultant fees, not construction cost, e.g. ~S$11m",
+    "1 of 3"
+   ],
+   [
+    "Limit of indemnity",
+    "S$5m / US$5m any one claim and in the aggregate",
+    "2 of 3 (in partner placement and tenders)"
+   ],
+   [
+    "Period",
+    "Contract period + DLP + extended reporting period (3 to 6 years)",
+    "2 of 3"
+   ],
+   [
+    "Automatic reinstatement option",
+    "1x reinstatement priced as an option",
+    "1 of 3"
+   ]
+  ],
+  "docs": [
+   [
+    "Insurer's SPPI proposal form (draft, partly completed by TRS)",
+    "3 of 3"
+   ],
+   [
+    "Letter of acceptance",
+    "3 of 3"
+   ],
+   [
+    "General preliminaries / particular specification (design responsibility clause)",
+    "3 of 3"
+   ],
+   [
+    "Preliminaries insurance part",
+    "2 of 3"
+   ]
+  ],
+  "asks": [
+   [
+    "Underwriting information / completed proposal form",
+    3
+   ],
+   [
+    "Signed and dated proposal form",
+    1
+   ],
+   [
+    "No-claims warranty letter with retroactive date",
+    1
+   ],
+   [
+    "Russia/Belarus exposure declaration",
+    1
+   ],
+   [
+    "Principal to be named on policy",
+    1
+   ],
+   [
+    "Details of any delay to the project schedule (renewal)",
+    1
+   ],
+   [
+    "No-claims declaration dated to expiring proposal (renewal)",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "None outright on SPPI; one insurer referred it from casualty to its financial lines team after declining the PEL leg",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Letter of award",
+    1
+   ],
+   [
+    "Detailed scope of work / design brief / tender brief",
+    1
+   ],
+   [
+    "SPPI proposal form, especially the professional fees section (fees for engineers, designers, consultants, not construction cost)",
+    2
+   ],
+   [
+    "Retroactive date (when design work on the project started)",
+    1
+   ],
+   [
+    "Confirm principal to be named",
+    1
+   ],
+   [
+    "Russia/Belarus exposure yes/no",
+    1
+   ],
+   [
+    "Where the PI requirement sits in the tender documents",
+    1
+   ]
+  ],
+  "rounds": "2 rounds: documents and proposal form, then subjectivities at hold-cover (signed form, warranty letter, sanctions question).",
+  "priced": "Tender estimates only, 4 threads: premium ranges for S$1m-25m limits over construction period + 6 years, with a note that a S$25m limit needs layered insurers. Labelled non-binding. No firm SPPI price without an insurer.",
+  "cycle": "Malaysian placement: quote to hold-cover about 3 weeks, COI 3 days later, policy 10 days after that. Singapore large project: SPPI first flagged to insurers 13 days after the PEL teaser; information sent 11 days later; insurers still reviewing at 4 days. Renewal of annual construction PI: 4 days to terms, 2 weeks to COI.",
+  "markets": "3 (Chubb Major Accounts financial lines, China Taiping, Great Eastern financial lines). In Malaysia, placed through a partner broker with Chubb.",
+  "deadline": "Client gave 2 days for PEL+SPPI; TRS asked insurers for a 'competitive NBI first' while the form is incomplete.",
+  "tone": {
+   "to_insurer": "Brief, relationship-led ('As spoken'), asks for an NBI before the form is complete.",
+   "to_client": "Educational. Explains claims-made basis, why the period cannot be backdated, what the retroactive date does, when an annual company PI could make SPPI unnecessary. Lists policy period, DLP and extended reporting period as dated lines.",
+   "greeting": "'Dear {first name},' / 'Hi {first name},'",
+   "sign_off": "'Warmest Regards, Nathan'",
+   "habits": [
+    "Explains PI concepts in 3-4 bullets (professional negligence, errors and omissions, breach of duty)",
+    "Quotes options side by side: limit / period / reinstatement / premium",
+    "Points to the specific proposal form sections the client must fill"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer short code} - {client} | {project} SPPI\n\nDear {insurer contact first names},\n\nFurther to our call, {contractor} requires single project professional indemnity for the following contract:\n\nProject: {project title}\nPrincipal: {principal}\nContract sum: S${contract_value}\nEstimated professional fees (design and consultants, not construction cost): S${professional_fees}\nDesign responsibility: {clause ref and summary}\nLimit of indemnity: S${limit} any one claim and in the aggregate\nPeriod: contract period {months} months + DLP {dlp_months} months + extended reporting {erp_years} years\nRetroactive date: {date design services started}\nInsureds: {contractor}{ and design consultants / QPs}\nOption: one automatic reinstatement\n\nAttached: letter of award, general preliminaries (design responsibility), insurance clauses, and your proposal form in draft. The form is not yet complete; we would appreciate a non-binding indication first while the client finalises it.\n\nWe would appreciate your indication by {deadline}.\n\nWarmest regards,\n{staff first name}",
+  "t_cli": "Dear {client contact first name},\n\nThank you for the instructions. We will approach several insurers.\n\nFor the insurers' review, may we request:\n1. Letter of award\n2. Detailed scope of work / design brief / tender brief\n3. The attached SPPI proposal form. We can fill most of it from the letter of award. We need your help on Section {n} (professional fees paid to engineers, designers and consultants, not construction cost) and Section {m}.\n4. The date design work on this project started, which becomes the retroactive date.\n\nNote: SPPI cannot be backdated. Cover starts on the date it is bound; work done from the retroactive date is still covered for claims made during the policy period.\n\nWarmest regards,\n{staff first name}",
+  "gaps": [
+   "No SPPI line. professional_indemnity uses FINANCIAL_FIELDS and financialSubmission, which assume an annual policy: 'Period of insurance: 12 months from {date}', revenue required, 'retroactive date as on the expiring policy'. SPPI needs project, contract sum, professional fees, design responsibility clause, period = construction + DLP + extended reporting (3-6 years), retro date = start of design, insureds (contractor plus consultants/QPs), reinstatement option.",
+   "required ['business','limit','revenue'] would hold every SPPI request: revenue is never asked for SPPI; professional fees and contract sum are.",
+   "documentsToAsk lacks the insurer's SPPI proposal form, design brief, and no-claims warranty letter with retro date; 'Audited accounts' and 'Claims history, 5 years' were never asked.",
+   "Panel: FINANCIAL list starts BHSI, Chubb, Berkley. Observed SPPI panel: Chubb (major accounts), China Taiping, Great Eastern financial lines; Liberty for annual construction-project PI. Large limits (S$25m) need layering.",
+   "No sanctions (Russia/Belarus) question in fields or asks; Chubb required it at hold-cover."
+  ]
+ },
+ {
+  "k": "wica",
+  "s": "WICA",
+  "label": "Work Injury Compensation (WICA)",
+  "rel": 122,
+  "read": 64,
+  "br": "Renewal notice passed on",
+  "fields": [
+   [
+    "Name / Company",
+    "{Client legal name}",
+    "22 of 22 submissions"
+   ],
+   [
+    "UEN No",
+    "{UEN}",
+    "19 of 22"
+   ],
+   [
+    "Nature of Business / Business / Scope of service",
+    "ACRA principal-activity sentence verbatim, or a 3-6 word description, or the company website link (once)",
+    "20 of 22"
+   ],
+   [
+    "Cover of Insurance / Type of cover",
+    "WIC",
+    "11 of 22 (Catherine's blocks always, Hasya's never; Hasya's opening sentence carries it)"
+   ],
+   [
+    "Date of renewal / Period of insurance / Policy start date",
+    "26 June 2026 or 01/01/2027 to 31/12/2027 (dd/mm/yyyy)",
+    "15 of 22"
+   ],
+   [
+    "No of pax / Headcount",
+    "16 pax. 13 florist & 3 operations",
+    "9 of 22"
+   ],
+   [
+    "Job Category & Est annual earnings",
+    "inline table: Job category | Est annual earnings | Pax, or 'Est Annual Earning (per head): {category}- $20,372.31'. Otherwise left to the attachment",
+    "6 of 22 inline; the rest in an attached breakdown or proposal form"
+   ],
+   [
+    "Claims history last three years / Claim last three years",
+    "NIL, or '1- SGD 223.32 (Status: completed)', or a table (Date of loss | Date reported | Description | Type and extent of injury | Paid | Outstanding/Reserve | Status), or 'attached excel file-tab 2'",
+    "15 of 22"
+   ],
+   [
+    "Address",
+    "{registered address}",
+    "6 of 22 (Catherine only)"
+   ],
+   [
+    "Current Insurer",
+    "{incumbent}",
+    "4 of 22"
+   ],
+   [
+    "Expiring premium",
+    "Expiring premium is at $500",
+    "2 of 22 (Nathan only)"
+   ],
+   [
+    "Job description (free text)",
+    "duties plus exclusions, e.g. 'No machinery or forklifts involved'",
+    "3 of 22"
+   ],
+   [
+    "Policy period note for lapsed or restructured cover",
+    "previous policy expiry date, the reason it lapsed, and the new structure (e.g. one policy per entity)",
+    "3 of 22"
+   ]
+  ],
+  "docs": [
+   [
+    "WIC Employee Breakdown (TRS xlsx template: category, job scope, headcount, estimated annual wages per head, total estimated annualised wages)",
+    "13 of 22"
+   ],
+   [
+    "Completed proposal form. The Chubb WorkGuard proposal PDF serves as TRS's generic WIC form even when sent to EQ, MSIG or Liberty; Liberty's own annual form is used for Liberty.",
+    "7 of 22"
+   ],
+   [
+    "Incumbent renewal notice or expiring schedule",
+    "4 of 22"
+   ],
+   [
+    "Claims record (insurer claims experience report or client spreadsheet)",
+    "3 of 22"
+   ],
+   [
+    "ACRA business profile",
+    "0 of 22 at first submission; sent later on request (3 threads)"
+   ],
+   [
+    "Letter of award, when the WIC risk changes because of a new project",
+    "1 of 22"
+   ]
+  ],
+  "asks": [
+   [
+    "Job scope per category: drivers, delivery, warehouse vs office, management duties, scaffolding, petrochemical-site staff. Rate depends on it.",
+    7
+   ],
+   [
+    "Completed and signed WIC proposal form before inception (Liberty, in every Liberty quote)",
+    5
+   ],
+   [
+    "Reconfirm wages per head or the wage figures; wages must include allowances, overtime, bonuses and AWS",
+    4
+   ],
+   [
+    "Claim found on the MOM portal: cause and claimant occupation (insurers check MOM themselves)",
+    3
+   ],
+   [
+    "ACRA business profile (multi-entity, change of policyholder)",
+    3
+   ],
+   [
+    "Target premium or budget; reason for a drop in headcount or wages vs last year",
+    3
+   ],
+   [
+    "Worker name and FIN/NRIC for a named-basis policy (1-2 workers)",
+    2
+   ],
+   [
+    "Letter of appointment, or clearance from the existing intermediary, when another broker submitted first",
+    3
+   ],
+   [
+    "Special-locations questionnaire (MSIG): vessels docked or offshore, rigs, underground, underwater, petrochemical sites, airside, aircraft. Yes/No plus scope.",
+    2
+   ],
+   [
+    "Security guards: deployment location, headcount and wages by age band (<65, 66-74, 75+), use of firearms",
+    1
+   ],
+   [
+    "Is this the only employee, and where do they work (home-based business)",
+    1
+   ],
+   [
+    "Extension clauses wanted, and whether the client has property cover to bundle",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "Another intermediary submitted first; the insurer needs a letter of appointment (Chubb)",
+    1
+   ],
+   [
+    "Cannot incept on the requested date: 7-working-day MOM rule, no backdating (Liberty twice, Allianz once). The insurer offers the earliest date instead.",
+    3
+   ],
+   [
+    "Price gap: incumbent keeps rates on lower wages; insurer doubts it can compete without a lower target (Zurich)",
+    1
+   ],
+   [
+    "Client rejected terms over wording exclusions (silica, tank demolition), not an insurer decline",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Current insurer",
+    11
+   ],
+   [
+    "Completed proposal form (attached)",
+    10
+   ],
+   [
+    "Claims history, past 3 years, if any",
+    12
+   ],
+   [
+    "Employee breakdown: category, job scope, headcount, estimated annual wages per head (template attached)",
+    9
+   ],
+   [
+    "Renewal date",
+    3
+   ],
+   [
+    "Job scope per employee: shop staff only, or also delivery, loading or manual work",
+    3
+   ],
+   [
+    "Complete the missing wage columns in the returned breakdown",
+    2
+   ],
+   [
+    "First-time buyers: number of employees, occupation, estimated annual wages per employee",
+    1
+   ],
+   [
+    "Target premium rate",
+    1
+   ],
+   [
+    "Claims table columns: date of loss, date reported, description, injury, paid, outstanding, status",
+    1
+   ],
+   [
+    "Signed renewal acceptance, letter of undertaking on letterhead, or signed declaration form",
+    3
+   ]
+  ],
+  "rounds": "1 to 2 rounds. About half the breakdowns come back incomplete (missing wages or job scope), which adds a second round. Unanswered first replies get 1-3 follow-ups about 7 days apart, and about 4 of 10 web leads never reply.",
+  "priced": "Partly. (1) Small renewals are priced from the incumbent's renewal notice and passed to the client with no market round, in 9 or more threads (Liberty, Income, Allianz, QBE). (2) No WICA rate card or brochure is used for new business; every new risk goes to insurers. (3) TRS estimates the cost of added staff on an unnamed policy itself: expiring rate % times declared wages, labelled 'roughly estimating'.",
+  "cycle": "New business, simple (1-20 staff): enquiry to first insurer quote in 1-3 days (EQ 1 day, Liberty same day to 2 days, MSIG and Sompo 2-6 days), client decision 1-14 days, bind to inception at least 7 working days. Typical 6-17 messages with the client and 3-7 per insurer; about 10 calendar days from enquiry to policy documents. Larger accounts (40-160 staff): 2-5 weeks, 2-3 negotiation rounds, 20+ client messages. Small pass-through renewals: 3-6 weeks from forwarding the notice to instruction, mostly spent waiting on the client (2-4 follow-ups). Several closed after expiry, so cover started late.",
+  "markets": "2 to 4; median 3. Observed rounds: 4 (Sompo, Zurich, Chubb, Liberty), 3 (Sompo, EQ, Liberty), 4 (Chubb, EQ, Sompo, Liberty), 3 (MSIG, EQ, Liberty), 2 (Zurich, Chubb), 2 (EQ, Liberty), 2 (MSIG, EQ). Frequency across 31 submissions: EQ 8, Liberty 7, Chubb 6, Zurich 5, Sompo 3, MSIG 3, Income, Allianz and QBE for renewals only, Tokio Marine for construction packages. All emails in a round go out within about 1 hour.",
+  "deadline": "None. 0 of 22 first submissions state a quote-by date. The time pressure comes from the insurers instead. Liberty and Tokio Marine require binding instructions at least 7 working days before inception, so the policy can be transmitted to the MOM portal. Liberty, Allianz and EQ do not backdate. Urgency is written as 'URGENT' at the top of the email (1 case) or as 'Client wishes to incept as earliest as possible'.",
+  "tone": {
+   "to_insurer": "Short, polite, label-colon blocks. Catherine and Hasya use fixed templates. Nathan writes short conversational notes after a phone call and negotiates openly: he gives last year's premium, names target rates ('X% or better?'), and asks for rates per category on TRS's sheet.",
+   "to_client": "Warm and plain. Explains WIC mechanics when asked: unnamed vs named basis, year-end wage adjustment, MOM-mandated benefits. Quotes are given as premium plus GST with a per-category rate table, and the subjectivities are copied from the insurer. Policy documents go out with a fixed cover note: pay TRS per the debit note, and TRS settles with the insurer.",
+   "greeting": "'Dear {first name},' for first contact and insurers (most common); 'Hi {first name},' in ongoing threads. Nathan opens client emails with 'Trust you're well!'; Hasya with 'I hope you are doing well.'",
+   "sign_off": "Hasya: 'Warm regards, Hasya'. Nathan: 'Warmest Regards, Nathan' plus mobile. Catherine: 'Best regards' or 'Regards' plus a full signature block. Ernest: 'Best, Cheng Sou (Ernest)'. Almost every email ends with 'Thank you!' or 'Thank you.' before the sign-off.",
+   "habits": [
+    "Label : value lines, one per line, blank line between (Hasya), or a tight block (Catherine)",
+    "Inline tables pasted from Excel: category | headcount | wages | rate | premium",
+    "QUOTE ... UNQUOTE around insurer text forwarded to the client",
+    "'Kindly' and 'May I kindly' for requests; 'Seek your help/assistance' (Nathan)",
+    "Exclamation marks in thanks and openers (Nathan, Hasya)",
+    "Follow-ups: 'May I follow up on…' or 'Just following up… as a friendly reminder' after 5-8 days",
+    "Received or acknowledgement one-liners: 'Received with thanks', 'Noted with thanks!'",
+    "Bullet lists for documents requested and documents enclosed"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer_short}- {client_name} | WIC{renewal_suffix}\n\nDear {underwriter_first_name},\n\nPlease find below a client we would like to place for Work Injury Compensation{new_company_note}:\n\nCompany: {client_name}\nUEN No: {uen}\nAddress: {address}\nNature of Business: {nature_of_business}\nPeriod of insurance: {start_dd/mm/yyyy} to {end_dd/mm/yyyy}\nNo of pax: {total_headcount}\nCurrent Insurer: {incumbent_or_None}\nExpiring premium: {expiring_premium_if_renewal}\n\nJob category and estimated annual earnings:\n{category_1} | {headcount_1} pax | S${annual_wages_1}\n{category_2} | {headcount_2} pax | S${annual_wages_2}\n\nJob scope: {duties_and_exclusions e.g. no machinery, no delivery, no work at height}\nClaims history, last three years: {NIL | count, amount and status | see attached}\n\nPlease find the WIC employee breakdown{and_proposal_form} attached. Inception is {start_date}; we would appreciate your terms by {inception_minus_7_working_days_less_buffer} so the policy can be issued and transmitted to MOM in time.\n\nPlease let me know if you need further information. Thank you.\n\nWarm regards,\n{staff_first_name}",
+  "t_cli": "Subject: (TRS) {client_name}- WIC {Enquiry|Renewal {year}}\n\nDear {contact_first_name},\n\nThank you for reaching out to Trade Risk Solutions. I understand you are looking for Work Injury Compensation insurance{for_n_employees}.\n\nFor the insurers to assess and quote, kindly provide the following:\n\nWork Injury Compensation (WIC)\n- Current insurer and renewal date: {or 'first-time cover'}\n- Employee breakdown (attached): job category, brief job scope, headcount and estimated annual wages per employee. Wages include allowances, overtime, bonus and AWS.\n- Completed proposal form (attached)\n- Claims history, past 3 years, if any: date of loss, description, injury, amount paid, outstanding, status\n\nWIC must be in force before your employees start work, and insurers need at least 7 working days before the start date to issue the policy to MOM. We would appreciate the above by {date}.\n\nFeel free to reach out if you have any questions.\n\nWarm regards,\n{staff_first_name}",
+  "gaps": [
+   "The deadline line is wrong for WICA. wicaSubmission always adds a 'by {date}' or 'within 5 working days' sentence; 0 of 22 real submissions carry one. The binding constraint is the insurer's 7-working-day lead time before inception, plus no backdating. insurerDeadline subtracts 2 working days; for WICA it should be inception minus 7 working days, minus a quote buffer, and should flag a request that is already inside 7 working days.",
+   "Headcount is missing as its own field ('No of pax'); it is printed in 9 of 22 submissions. Add 'headcount'.",
+   "There is no job-scope field. Insurers asked about duties in 7 threads (delivery, drivers, warehouse, site vs office, work at height, petrochemical sites). Add 'job_scope' with a hint about exclusions such as no machinery or no delivery.",
+   "Named vs unnamed basis is missing. 1-2 staff go on a named basis and need worker name and FIN; the rest are unnamed with wage adjustment at expiry. Add 'basis' and 'named_workers'.",
+   "The current-insurer label is wrong. lines.ts prints 'Expiring insurer' only when incumbent is set and flips 'Inception' to 'Date of renewal'. Mail uses 'Current Insurer' and 'Period of insurance dd/mm/yyyy to dd/mm/yyyy'. 'Expiring premium' appears only in Nathan's notes; keep it as a separate optional field.",
+   "The claims history format is too thin. Mail uses either 'NIL', a one-line count and amount, or a 7-column table. The hint should name the table columns. Insurers also check the MOM portal themselves, so open or withdrawn claims must be stated.",
+   "The closing attachment sentence is fixed ('scope of work and wages are attached'). The real attachments vary: WIC Employee Breakdown xlsx (13 of 22), proposal form (7 of 22, usually the Chubb WorkGuard PDF), renewal notice (4 of 22). It should list what is actually attached.",
+   "documentsToAsk lacks two items: the completed proposal form (asked in 10 client emails, and a hard pre-inception condition at Liberty) and the current insurer (asked in 11). Add both.",
+   "The required fields are too strict. Hasya submits with only a proposal form attached and no inline categories (2 cases). 'categories' should also count as present when a proposal form or breakdown is attached.",
+   "The preferred panel does not match the mail. Observed new-business order: EQ (8), Liberty (7), Chubb (6), Zurich (5), Sompo (3), MSIG (3). Allianz and Great Eastern were never approached for new WICA in this sample (Allianz renewals only). Sompo is missing from the list. Suggested order: EQ, Liberty, Chubb, Zurich, Sompo, MSIG, Income.",
+   "No renewal pass-through path. Most small renewals forward the incumbent's notice and the breakdown form to the client, with no market round. LINE_SPECS has no 'renew as is' flow.",
+   "comparisonHead('workforce') includes 'Lead / share', which does not apply to WICA. Insurers quote a rate % per category on wages. The comparison needs category | headcount | wages | rate % | premium, plus common-law limit, medical expenses, key extensions (travel to and from work, overseas medical, TCM) and brokerage %.",
+   "The subject-line convention is not modelled: '(TRS) {Insurer}- {Client} | WIC'. The insurer is named in the subject even though the body is identical.",
+   "Endorsement logic is missing. Additions in existing categories on an unnamed policy are not endorsed; the adjustment happens at expiry. New categories or a change of 10 or more heads must be notified. A new entity means a new policy.",
+   "There is no WICA-specific ASK text for job scope, current insurer or proposal form. ASK covers only business, categories and start_date."
+  ]
+ },
+ {
+  "k": "cyber",
+  "s": "Cyber",
+  "label": "Cyber liability (standalone and bundled with Tech PI)",
+  "rel": 25,
+  "read": 40,
+  "br": "Yes · Chubb Cyber SME, Delta SME",
+  "fields": [
+   [
+    "Name of client / Company",
+    "{Legal name} (and subsidiaries / associated companies)",
+    "6 of 7 submissions"
+   ],
+   [
+    "UEN No",
+    "{UEN}",
+    "2 of 7"
+   ],
+   [
+    "Nature of Business",
+    "ACRA principal and secondary activity, one sentence",
+    "3 of 7"
+   ],
+   [
+    "Company website",
+    "{url}",
+    "2 of 7"
+   ],
+   [
+    "Limit / coverage required",
+    "USD 3 mil; or two options S$500K / S$1 mil",
+    "3 of 7"
+   ],
+   [
+    "Period of insurance",
+    "'New' or dd/mm/yyyy to dd/mm/yyyy",
+    "2 of 7"
+   ],
+   [
+    "Turnover by territory (follow-up)",
+    "Current FY / Next FY for USA-Canada, Singapore-Asia, Australia, UK-Europe",
+    "2 of 7 (sent as a second email)"
+   ],
+   [
+    "Revenue",
+    "not in the email body; carried in the proposal form",
+    "0 of 7 in body"
+   ]
+  ],
+  "docs": [
+   [
+    "Insurer's own cyber proposal form, client-completed (Delta cyber PF or Chubb short-form ERM PF)",
+    "6 of 7"
+   ],
+   [
+    "Tech liability proposal form when bundled",
+    "4 of 7"
+   ],
+   [
+    "Annual report / 20-F filing and a supplemental information note",
+    "4 of 7 (one account)"
+   ],
+   [
+    "VAPT / penetration test report at renewal",
+    "1 of 3 renewals"
+   ],
+   [
+    "Audited accounts",
+    "0 of 7"
+   ]
+  ],
+  "asks": [
+   [
+    "Broker of record letter / letter of appointment because another intermediary approached first",
+    4
+   ],
+   [
+    "Estimated annual turnover and growth by territory, especially USA/Canada",
+    2
+   ],
+   [
+    "Clarify product use or scope (what the device/service actually does)",
+    2
+   ],
+   [
+    "Is this a remarketing exercise; any target terms",
+    1
+   ],
+   [
+    "Expiring terms",
+    1
+   ],
+   [
+    "Completed custom proposal form when SME platform cannot take the risk",
+    2
+   ]
+  ],
+  "declines": [
+   [
+    "Already approached by another intermediary (block, BORL needed)",
+    3
+   ],
+   [
+    "Nature of business and operating geography (healthtech, US exposure)",
+    2
+   ],
+   [
+    "Ineligible for SME pre-priced package (fund manager; regulated financial institution; cybersecurity firm)",
+    3
+   ],
+   [
+    "Individuals without a registered entity cannot buy cyber/PI/PL (market-wide, stated by TRS)",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Complete the insurer's cyber proposal form (often with the client's IT team)",
+    6
+   ],
+   [
+    "Any contract requirement or limit to meet",
+    2
+   ],
+   [
+    "Corporate profile / brochures",
+    2
+   ],
+   [
+    "Latest financial statements or annual report",
+    1
+   ],
+   [
+    "Standard client contracts / service agreements",
+    2
+   ],
+   [
+    "CVs of principals or directors; ACRA business profile",
+    1
+   ],
+   [
+    "Check eligibility against the SME package criteria",
+    2
+   ],
+   [
+    "Security controls in place (backups, MFA) for the pre-priced form",
+    1
+   ]
+  ],
+  "rounds": "1 ask plus 1 chaser at about 7 days; the form returns in 7 to 10 days.",
+  "priced": "Yes, for SME pre-priced packages. Chubb Cyber SME (off-the-shelf; S$500K and S$1M limits priced from a grid up to S$2.5M revenue, eligibility cleared with the underwriter first) and Delta SME Data & Cyber Security package (fixed premium). Berkley CyberSure360 is an online pre-underwriting platform but excludes regulated financial institutions. In 1 of 3 cases the packaged price given to the client was withdrawn after the insurer ruled the client ineligible, so eligibility must be confirmed before quoting.",
+  "cycle": "Renewal with incumbent: client request to proposal form back 9 days (1 chaser), insurer quote 4 days, price negotiation 3 days (insurer 5% goodwill, TRS countered and bound at 7.5%), documents 4 days: about 35 days and 25 messages across the client and insurer threads. New SME: request to indicative options 21 days (client chased once). New Tech PI plus cyber: 1 day to first quote from Delta; complex US-exposed risk 8 weeks with 2 information rounds.",
+  "markets": "2 to 4, separate email per insurer, sent within minutes. Seen: Chubb and Delta (2); Chubb, Delta, AIG, Zurich (4); Chubb, Delta, Berkley sounded for indications (3). Renewals go to the incumbent only (Delta, 3 of 3).",
+  "deadline": "Never a quote-by date (0 of 7). Renewals cite the expiry ('up for renewal in 2 weeks'). Chasers follow at 7 to 14 days: 'May I kindly check on this please?'.",
+  "tone": {
+   "to_insurer": "Warm, brief, collegial. First-name salutation to the named underwriter, one-line context, a 'Label: value' block, attachments named in one sentence, open offer to supply more. Never states a quote-by date; urgency comes from the expiry date or 'ASAP'.",
+   "to_client": "Advisory and courteous. Explains options before prices; recommends a limit (S$500K to start, S$1M recommended); presents each insurer with a one-line view of its appetite, then premium before GST.",
+   "greeting": "'Dear {First name},' or 'Hi {First name},'; to clients 'Dear Mr. {Surname},' when the client signs formally",
+   "sign_off": "Nathan: 'Warmest Regards, Nathan' plus mobile. Catherine: 'Best regards' plus full signature. Hasya: 'Warm regards, Hasya'.",
+   "habits": [
+    "Subject line: '(TRS) {Insurer} - {Client} | {Line(s)}'",
+    "'Thank you!' before the sign-off in almost every email",
+    "Relays insurer wording to clients inside QUOTE / UNQUOTE",
+    "Bulleted comparison per insurer: appetite, then premium bef. GST per limit",
+    "Asks insurer for a cover note while the schedule is being issued",
+    "Billing email: policy docs first, debit note in a second email; client pays TRS, TRS settles insurer"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client short name} | {Line(s)}\n\nDear {Underwriter first name},\n\nWe would like to request a {Cyber Liability | Technology Liability and Cyber Liability} quotation for the following client:\n\nName of client: {Legal name}{ and subsidiaries, if any}\nUEN No: {UEN}\nNature of business: {principal activity, one sentence}\nCompany website: {url}\nLimit of liability: {limit or options}\nPeriod of insurance: {New, from dd/mm/yyyy | dd/mm/yyyy to dd/mm/yyyy}\nCurrent insurer: {incumbent, or Nil}\nTurnover by territory: {USA/Canada}, {Singapore/Asia}, {Rest of world} (current FY / next FY)\n\nPlease find attached the completed proposal form{s} for your review. Let me know if you need further information.\n\nLook forward to hearing from you. Thank you!\n\nWarmest Regards,\n{Staff first name}\n{mobile}",
+  "t_cli": "Subject: (TRS) {Client short name} - Cyber Insurance\n\nDear {Client first name},\n\nThank you for your enquiry. For the insurers to review your request, they will need your help to complete the attached proposal form, along with some additional information:\n\n- {Insurer} Cyber proposal form (attached), reviewed by your IT team\n- Any contract requirement or limit you need to meet\n- Corporate profile or brochure\n- Latest financial statements\n- Standard contract or service agreement with your clients\n\nIf your business qualifies, an SME package needs a shorter form and less underwriting; we will confirm eligibility with the insurer first.\n\nDo not hesitate to reach out if you have any questions. Happy to arrange a short call.\n\nThank you!\n\nWarmest Regards,\n{Staff first name}\n{mobile}",
+  "gaps": [
+   "Opening is wrong. lines.ts asks whether the risk is one the insurer would be keen to write; cyber mail asks for a quotation and names the lines. Keep 'keen' only for large or unusual risks.",
+   "No quote-by date appears in 0 of 7 cyber submissions. lines.ts prints 'We would appreciate your terms by {date} / within 5 working days'. Use the expiry date or omit.",
+   "FINANCIAL_FIELDS lacks UEN, Nature of business (ACRA activity), Company website and Turnover by territory (USA/Canada split). All appear in mail; website is how underwriters screen.",
+   "Retroactive date, Staff and Assets under management never appear in cyber submissions; drop them from the cyber block.",
+   "Revenue is required in lines.ts, but mail carries it inside the proposal form. Required should be: business, proposal form attached; limit optional (insurers or TRS propose one).",
+   "Attachment sentence says 'proposal form and the latest audited accounts'; cyber never sends accounts. Insurer-specific proposal form is the key document, plus VAPT at renewal.",
+   "preferred list Chubb, Delta, Allianz, MSIG, APRIL: Allianz and APRIL appear only in developer test emails; MSIG not seen. Mail order: Delta, Chubb, Berkley, then AIG, Zurich, QBE.",
+   "No renewal path: renewals start from the insurer's notice and go to the incumbent only (markets = 1). lines.ts always asks 3.",
+   "No SME package path: Chubb Cyber SME and Delta SME Data & Cyber are priced from a grid after an eligibility check, with no insurer round.",
+   "No handling for the 'approached by another intermediary' block (4 of 7 new-business rounds hit it). Needs a BORL step and a decline reason code.",
+   "documentsToAsk lacks corporate profile, standard client contract, and IT-team completion of the form; 'Revenue and headcount' is not asked separately in mail.",
+   "Subject line convention '(TRS) {Insurer} - {Client} | {Lines}' is not generated; each insurer gets its own email addressed to a named underwriter, not one email naming no one."
+  ]
+ },
+ {
+  "k": "pi",
+  "s": "PI",
+  "label": "Professional indemnity, incl. Tech PI and investment-manager PI/D&O (IMI); excludes single-project PI",
+  "rel": 41,
+  "read": 50,
+  "br": "Yes · Berkley B.Spoke",
+  "fields": [
+   [
+    "Insured",
+    "{Legal name} (+ website link; MAS register link for licensed advisers)",
+    "12 of 12 submissions"
+   ],
+   [
+    "Policy type",
+    "D&O, E&O/PI (IMI combined)",
+    "3 of 12"
+   ],
+   [
+    "Policy expiration / Period of insurance",
+    "11 July 2026; or 1 January 2027 to 31 December 2027",
+    "9 of 12"
+   ],
+   [
+    "Limit of liability",
+    "PI: SGD 500,000 / D&O: SGD 500,000 / Aggregate: SGD 500,000; or options S$5 mil and S$10 mil",
+    "11 of 12"
+   ],
+   [
+    "Excess / deductible",
+    "$50,000; $75,000 USA/Canada; or target $75-100K",
+    "3 of 12"
+   ],
+   [
+    "Current insurer",
+    "{incumbent} at S$1 mil limit",
+    "4 of 12"
+   ],
+   [
+    "Fee income",
+    "2025: $865K; 2026 forecast: $950K",
+    "3 of 12"
+   ],
+   [
+    "Business activities / scope of services",
+    "one paragraph, plus the contract clause requiring PI when relevant",
+    "6 of 12"
+   ],
+   [
+    "Reason for change",
+    "why the limit is increasing",
+    "2 of 12"
+   ],
+   [
+    "Management CV",
+    "link or attached",
+    "3 of 12"
+   ],
+   [
+    "Territorial scope",
+    "Worldwide",
+    "1 of 12"
+   ],
+   [
+    "Retroactive date",
+    "never stated in a submission",
+    "0 of 12"
+   ],
+   [
+    "Claims history",
+    "'Nil claims' given only when asked",
+    "1 of 12 (in follow-up)"
+   ]
+  ],
+  "docs": [
+   [
+    "Proposal form, completed and usually signed (last year's form plus this year's renewal form when switching)",
+    "11 of 12"
+   ],
+   [
+    "Expiring policy schedule / policy",
+    "7 of 12"
+   ],
+   [
+    "ACRA business profile",
+    "5 of 12"
+   ],
+   [
+    "Latest financial statements",
+    "4 of 12"
+   ],
+   [
+    "CVs of principals",
+    "4 of 12"
+   ],
+   [
+    "Company profile / brochure",
+    "3 of 12"
+   ],
+   [
+    "Entities and insured appendix (groups)",
+    "3 of 12"
+   ],
+   [
+    "PPM, fund structure, IMA (fund managers)",
+    "sent in follow-up, 4 accounts"
+   ]
+  ],
+  "asks": [
+   [
+    "Proposal form signed and dated within 30 days of inception (bind subjectivity)",
+    6
+   ],
+   [
+    "No known claims or circumstances / no material change confirmation",
+    6
+   ],
+   [
+    "Fund managers: PPM or term sheet, fund structure, fund performance, investor profile (HNW vs institutional)",
+    4
+   ],
+   [
+    "Fund managers: AUM breakdown by investment type; reasons for AUM growth",
+    3
+   ],
+   [
+    "Fund managers: confirm no crypto/digital assets; AML/KYC in place; leverage cap; valuation and liquidity policy",
+    4
+   ],
+   [
+    "Standard investment management agreement",
+    3
+   ],
+   [
+    "Claims history, last 5 years",
+    2
+   ],
+   [
+    "Expiring terms",
+    1
+   ],
+   [
+    "Clearer description of the specific services needing PI",
+    1
+   ],
+   [
+    "USA/Canada exposure: raise excess, review 5 largest US contracts",
+    1
+   ],
+   [
+    "Which layer to support (primary or excess); can the incumbent write the higher limit",
+    3
+   ],
+   [
+    "Licence scope clarification (CMS vs fund management)",
+    2
+   ],
+   [
+    "Latest audited financial statements",
+    2
+   ]
+  ],
+  "declines": [
+   [
+    "Excess-of-loss only, will not lead (BHSI)",
+    2
+   ],
+   [
+    "Notified claim: renewal deferred, 3-month extension only",
+    1
+   ],
+   [
+    "Healthtech / nature of business not in appetite (Tech PI)",
+    2
+   ],
+   [
+    "Timeline too tight: indication only",
+    1
+   ],
+   [
+    "Limit requested high relative to income",
+    1
+   ],
+   [
+    "Individual without a registered entity cannot buy PI",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Complete or refresh the proposal form / renewal declaration",
+    10
+   ],
+   [
+    "Latest audited accounts or annual report; interim financials if available",
+    4
+   ],
+   [
+    "PPM for new funds or latest fund performance report",
+    2
+   ],
+   [
+    "Insurer's clarification list relayed in one numbered email (AUM growth, investor counts, crypto, side letters, valuation, liquidity, AML)",
+    3
+   ],
+   [
+    "Sign and date the proposal form for binding",
+    5
+   ],
+   [
+    "Confirm no claims, circumstances or material change since expiry",
+    3
+   ],
+   [
+    "Corporate profile, standard contracts, CVs of principals, ACRA profile (new business)",
+    3
+   ]
+  ],
+  "rounds": "Renewal: 1 to 2 rounds (form, then insurer questions). Fund managers: 2 to 3 rounds of numbered questions. Form return takes 7 to 50 days; one chaser common.",
+  "priced": "Yes for SME packages: Berkley B.Spoke (PI, D&O, PL; pre-set premium from about S$1,650; PL extension S$675 with S$500 deductible on a shared S$1M limit; eligibility excludes US, Canada and Australia revenue). TRS reads the price from the application form and sends it to the client; insurer confirms by endorsement. Liberty SME D&O form is immediately binding at the premium printed on the form. Delta returns custom PI quotes within 30 minutes for clean risks, which is near-instant but still an insurer round.",
+  "cycle": "Clean renewal with incumbent: submission to quote same day to 9 days; bind 1 to 4 days after client instruction; policy 2 to 4 weeks later. Fund manager renewal: insurer notice to bind about 10 weeks, 18 messages, then signed form 1 month later. Remarketing for a limit increase: quotes in 1 to 7 days. Lost renewal when not bound: Chubb Express lapsed the policy on expiry after 3 automated chasers.",
+  "markets": "Renewal: incumbent first, alone (6 of 8). Remarketing: 3 to 4 at once (BHSI renewal plus Liberty, Chubb, Berkley; or Great American plus BHSI for a limit increase). Large PI (S$50M): appetite sounding to 4 (Zurich, BHSI, Berkley, QBE) before any submission; insurers reply with the layer they want.",
+  "deadline": "No quote-by date in any submission. Urgency via expiry ('expiring on 3 Nov 2026', 'up for renewal in 2 weeks') and 'Look forward to hearing from you ASAP'. Chasers after 7 to 21 days: 'Any thoughts on this account?'.",
+  "tone": {
+   "to_insurer": "Warm, brief, collegial. First-name salutation to the named underwriter, one-line context, a 'Label: value' block, attachments named in one sentence, open offer to supply more. Never states a quote-by date; urgency comes from the expiry date or 'ASAP'. Large risks open with a relationship line (met at an event, worked together on other lines).",
+   "to_client": "Explains the mechanism before asking: why the form is needed, what moves the premium, why to stay with the incumbent in year 2. Uses numbered lists for insurer questions and QUOTE/UNQUOTE for insurer wording. Comparison table across insurers for remarketing.",
+   "greeting": "'Dear {First name},' or 'Hi {First name},'; 'Trust you're well!' as the first line",
+   "sign_off": "Nathan 'Warmest Regards, Nathan'; Hasya 'Warm regards, Hasya'; Angela 'Best regards, Angela'",
+   "habits": [
+    "Subject: '(TRS) {Insurer} - {Client} PI' or '(TRS) {Client} - PI {year} Renewal'",
+    "Options by limit side by side with excess, premium incl. or bef. GST, sublimits, extensions, subjectivities, validity date",
+    "Recommends renewing with the incumbent unless there is a push factor",
+    "Negotiates on renewal: asks insurer to review premium or offer a lower limit; reports 'maintained despite X% growth'",
+    "Asks the insurer for a cover note when the client needs proof of cover",
+    "Billing email: policy, tax invoice, TRS debit note; pay TRS, TRS settles insurer"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client short name} PI{ Renewal {year}}\n\nDear {Underwriter first name},\n\nTrust you're well! One of our clients, {Legal name} ({website}), has a {PI | PI and D&O} policy that is up for renewal on {expiry date}. May I check if you are keen to quote on this?\n\nInsured: {Legal name}\nBusiness: {scope of professional services, one paragraph}{; licence: {regulator licence}}\nPolicy type: {PI | D&O, E&O/PI}\nCurrent insurer: {incumbent}\nPolicy expiration: {date}\nLimit of liability: {limit any one claim and in the aggregate}{; options {limit 2}}\nExcess: {excess}{; USA/Canada {excess}}\nFee income: {last FY}: {amount}; {current FY} forecast: {amount}\n{Reason for change: {e.g. higher limit for business growth}}\n\nPlease see the attached proposal form, expiring policy schedule, ACRA profile, financial statements and CVs of the principals. Do let us know if you have any questions.\n\nThank you!\n\nWarmest Regards,\n{Staff first name}\n{mobile}",
+  "t_cli": "Subject: (TRS) {Client short name} - PI {year} Renewal\n\nDear {Client first name},\n\nWe wish to update you that your Professional Indemnity policy with {Insurer} is up for renewal on {expiry date}. For the insurer to release the renewal terms, we are required to complete the proposal form.\n\nMay we kindly request the following:\n- Proposal form (attached, to be completed)\n- The last annual report and audited accounts\n- {Fund managers: the PPM for new funds or the latest fund performance report}\n- The last interim financials (if available)\n\nIf fee income and the overall risk are unchanged, we expect the premium to be maintained. A significant increase may lead to an adjustment.\n\nDo let us know if you have any questions. Happy to jump on a call.\n\nThank you!\n\nWarmest Regards,\n{Staff first name}\n{mobile}",
+  "gaps": [
+   "Retroactive date is a field in lines.ts but appears in 0 of 12 PI submissions; it lives in the expiring schedule. Make it optional and fill from the schedule.",
+   "Revenue is required in lines.ts; mail uses 'Fee income' with last FY and forecast (3 of 12) and often omits it, relying on the form. Rename to fee income and keep optional when the form is attached.",
+   "Missing fields: Policy type, Current insurer at limit, Excess (with a separate USA/Canada excess), Website, Reason for change, Management CV, Territorial scope.",
+   "Limit format: mail writes PI / D&O / Aggregate on three lines for combined policies; lines.ts has one 'Limit of liability' string.",
+   "No quote-by date in 0 of 12 submissions; replace the 5-working-day line with the expiry date.",
+   "Opening for new large risks ('keen on working on') matches lines.ts, but renewal remarketing opens with 'up for renewal on {date}'; lines.ts has one opening for both.",
+   "markets=3 for every case is wrong: renewal goes to the incumbent alone (6 of 8); remarketing goes to 3 or 4; large risks need a layer question.",
+   "Fund-manager PI is placed under 'pi' in mail but its documents (PPM, IMA, AUM by asset type, investor profile, crypto/AML/leverage confirmations) sit only in the 'imi' spec. Route asset managers to imi or add these asks to pi.",
+   "documentsToAsk says 'Claims history, 5 years' as a document; mail never asks the client for it upfront, insurers ask and TRS answers 'nil'. Bind-time subjectivities missing: signed and dated proposal form within 30 days of inception; no-claims declaration.",
+   "No SME package path (Berkley B.Spoke, Liberty SME D&O) priced from the application form without an insurer round.",
+   "preferred order for PI: mail shows BHSI, Liberty, Chubb, Berkley, Delta, Great American, Zurich, QBE, Allianz. Great American and QBE are missing from FINANCIAL.",
+   "No 'approached by another intermediary' / BORL handling."
+  ]
+ },
+ {
+  "k": "do",
+  "s": "D&O",
+  "label": "Directors' and officers' liability (private, pre-IPO and listed; standalone or in a corporate programme)",
+  "rel": 31,
+  "read": 28,
+  "br": "Liberty SME D&O form only",
+  "fields": [
+   [
+    "Company / Insured",
+    "{Legal name}; entities listed when more than one",
+    "6 of 6 submissions"
+   ],
+   [
+    "UEN Number",
+    "{UEN}",
+    "5 of 6"
+   ],
+   [
+    "Principal business of the company",
+    "ACRA activity, e.g. holding company and wholesale",
+    "3 of 6"
+   ],
+   [
+    "Limit of liability",
+    "options: i) $10M any one claim in the aggregate ii) $12M",
+    "4 of 6"
+   ],
+   [
+    "Territory",
+    "Worldwide incl USA & Canada",
+    "2 of 6"
+   ],
+   [
+    "Required coverage and extensions",
+    "numbered list (legal costs, regulatory investigation, bail bond, crisis PR; pre-investigation, M&A, e-discovery, cyber sublimit)",
+    "1 of 6"
+   ],
+   [
+    "Mandatory clause",
+    "innocent-director severability",
+    "1 of 6"
+   ],
+   [
+    "Renewal date",
+    "expires on 31 Dec {year}",
+    "3 of 6"
+   ],
+   [
+    "Underwriting context (follow-up)",
+    "first-time buyer, IPO planned, Side A and balance-sheet protection, all subsidiaries, outside directorships, M&A in 12 months, listing structure",
+    "2 of 6 (second email)"
+   ]
+  ],
+  "docs": [
+   [
+    "D&O proposal form (any insurer's form; the incumbent broker's form is reused)",
+    "6 of 6"
+   ],
+   [
+    "Audited financial statements (or a public link to annual reports)",
+    "5 of 6"
+   ],
+   [
+    "Expiring policy schedule and wording",
+    "2 of 6"
+   ],
+   [
+    "Renewal worksheet across all classes (programme submissions)",
+    "2 of 6"
+   ],
+   [
+    "Group structure chart",
+    "1 of 6 (follow-up)"
+   ]
+  ],
+  "asks": [
+   [
+    "Latest audited financial statements, or management accounts if audit not ready",
+    4
+   ],
+   [
+    "Complete the insurer's own D&O proposal form",
+    4
+   ],
+   [
+    "Broker of record letter: another intermediary approached first",
+    3
+   ],
+   [
+    "Group structure / ultimate holding company / org chart",
+    1
+   ],
+   [
+    "Sector screens: property development, China 'three red lines'",
+    1
+   ],
+   [
+    "Confirm entities headquartered in Singapore",
+    1
+   ],
+   [
+    "Steps taken on prior employment-related claims",
+    1
+   ],
+   [
+    "When the current D&O expires",
+    1
+   ],
+   [
+    "Business plan deck; updated proposal form to revalidate an old quote",
+    1
+   ],
+   [
+    "Claims statistics 3 to 5 years and quote slips (programme)",
+    1
+   ],
+   [
+    "Confirm no material change and no known claims before inception or date change",
+    2
+   ]
+  ],
+  "declines": [
+   [
+    "Approached by another intermediary first (BORL needed)",
+    3
+   ],
+   [
+    "Insured's financials",
+    1
+   ],
+   [
+    "Excess layer only, subject to a firm primary quote",
+    1
+   ],
+   [
+    "Offered SME D&O product instead of bespoke",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Complete the D&O proposal form, or forward the form filled for the previous broker",
+    4
+   ],
+   [
+    "Latest audited financial statements",
+    2
+   ],
+   [
+    "Discovery questions: first-time or renewal; trigger event (IPO, contract, lender covenant, board request); Side A vs company balance-sheet protection; entities to cover; JV/outside directorships; M&A in 12 months",
+    1
+   ],
+   [
+    "Client to email the signed form directly to TRS for compliance and audit (when a partner sits in between)",
+    2
+   ],
+   [
+    "Confirm no material change and no known claims at binding",
+    1
+   ],
+   [
+    "Signed letter of broker appointment",
+    1
+   ]
+  ],
+  "rounds": "1 to 2 rounds: form, then financial statements; listing or M&A adds a discovery round.",
+  "priced": "No for bespoke D&O. Liberty's SME D&O proposal form carries printed premiums and binds on positive answers, so TRS can price from the form once the insurer points to it (1 case). Insurer brokerage is stated in quotes: BHSI 15%, Allianz 20%.",
+  "cycle": "New pre-IPO D&O: submission to first quote 1 day (BHSI) and 8 days (Liberty NBI); revised quotes over 5 weeks; client instruction at 8 weeks; bound 1 day after signed form; inception moved once; policy 2 weeks after inception. About 64 days and 29 insurer-thread messages. Programme renewal from another broker: 4 weeks from submission to first D&O quote, 2 chasers.",
+  "markets": "3 to 4 in the same minute, one email per insurer: BHSI, Liberty, Chubb (3); Chubb, BHSI, Liberty, Berkley (4); programme: Allianz, Tokio Marine, Liberty, then BHSI (4). Chubb blocked twice by an earlier intermediary.",
+  "deadline": "No quote-by date to insurers. The client's close-by date (e.g. close by early December) drives chasers; Hasya chases at 8 to 14 days ('May I follow up on our quotation request').",
+  "tone": {
+   "to_insurer": "Warm, brief, collegial. First-name salutation to the named underwriter, one-line context, a 'Label: value' block, attachments named in one sentence, open offer to supply more. Never states a quote-by date; urgency comes from the expiry date or 'ASAP'. Ernest calls the underwriter first, then emails 'Thanks for the call this morning'.",
+   "to_client": "Advisory with reasoning: Ernest explains why a listing changes D&O exposure and recommends a specific sublimit with the reasons; formal congratulations on IPO milestones.",
+   "greeting": "'Dear {First name},'; 'Dear {First name} and {First name},' for two contacts",
+   "sign_off": "Hasya 'Warm regards, Hasya'; Nathan 'Warmest Regards, Nathan'; Ernest 'Best, Cheng Sou (Ernest)' plus mobile",
+   "habits": [
+    "Subject: '(TRS) {Insurer}- {Client} | D&O Insurance Request'",
+    "Two limit options in one request",
+    "Confirmations relayed in QUOTE/UNQUOTE with bold terms",
+    "'For good contract certainty' when asking the client to confirm subjectivities",
+    "Policy documents typically 1 to 2 weeks after inception; TRS tells the client so"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client short name} | D&O Insurance Request\n\nDear {Underwriter first name},\n\nWe would like to work with you on the following for D&O Insurance:\n\nCompany: {Legal name}{ and subsidiaries}\nUEN Number: {UEN}\nPrincipal business of the company: {ACRA activity}\nCurrent insurer and expiry: {incumbent, expiry date | First-time buyer}\nTerritory: {Worldwide incl. USA & Canada | Worldwide excl. USA & Canada}\nLimit of liability (please quote both options):\n i) {limit 1} any one claim and in the aggregate\n ii) {limit 2} any one claim and in the aggregate\n{Context: {IPO / M&A / listing plans; outside directorships; entities to cover}}\n{Extensions requested: {list}}\n\nPlease find attached the proposal form and the latest audited financial statements for your review. Should you require more information, feel free to reach out.\n\nWe look forward to hearing from you soon. Thank you.\n\nWarm regards,\n{Staff first name}",
+  "t_cli": "Subject: (TRS) {Client short name} - Directors & Officers\n\nDear {Client first name},\n\nWe have reached out to a few insurers, and they have requested some additional information to assess the risk:\n\n- D&O proposal form (attached). If you completed a similar form recently, you may forward that instead, provided the information is current.\n- Latest audited financial statements\n\nTo match the cover to your needs, may we also confirm:\n1. Is this the first D&O policy, or a renewal or replacement?\n2. Has an event prompted it (listing, fundraising, contract, lender requirement)?\n3. Is the priority the directors' personal assets, the company's balance sheet, or both?\n4. Which entities should be covered, including overseas subsidiaries?\n5. Do any directors sit on boards of joint ventures or other companies?\n6. Any M&A or restructuring planned in the next 12 months?\n\nWe will keep you updated on progress.\n\nWarm regards,\n{Staff first name}",
+  "gaps": [
+   "D&O reuses FINANCIAL_FIELDS; mail never uses Retroactive date, Revenue, AUM or Staff in D&O submissions. It uses UEN, Principal business (ACRA), Territory (with or without USA/Canada) and two limit options.",
+   "Revenue required in lines.ts; D&O underwriting reads it from the audited accounts attached. Required should be: company, limit, proposal form, financial statements.",
+   "Missing fields: UEN, Territory, Limit options (i/ii), Requested extensions, Listing/IPO/M&A context, Entities to cover, Expiry of current policy (insurers ask for it).",
+   "Opening 'check whether this is a risk you would be keen to write' is not used; mail says 'We would like to work with you on the following for D&O Insurance'.",
+   "No quote-by date in mail; drop the 5-working-day line.",
+   "preferred order for D&O: BHSI, Liberty, Chubb, Berkley, Allianz, Tokio Marine. Tokio Marine is missing; Delta, QBE (as insurer), AIG and Zurich not used for D&O in this mail.",
+   "documentsToAsk 'Claims history, 5 years' is not asked of D&O clients; the proposal form covers it. Add: group structure chart, discovery questions, broker appointment letter.",
+   "No discovery-question step (Side A vs B/C, IPO, subsidiaries, outside directorships, M&A); the most valuable D&O ask in the corpus.",
+   "No mid-term event handling: a listing ends the future-offering cover 30 days later and needs a securities endorsement.",
+   "No BORL / 'approached by another intermediary' handling (3 of 11 approaches)."
+  ]
+ },
+ {
+  "k": "sme",
+  "s": "SME",
+  "label": "SME package policies (office, shop, warehouse/wholesale packages; SME PI/PL and cyber packages)",
+  "rel": 17,
+  "read": 45,
+  "br": "Yes · 7 package brochures",
+  "fields": [
+   [
+    "Name of insured",
+    "{legal name}",
+    "3 of 3 insurer instructions"
+   ],
+   [
+    "UEN",
+    "{UEN}",
+    "2 of 3"
+   ],
+   [
+    "Policy start date",
+    "DD/MM/YYYY",
+    "2 of 3"
+   ],
+   [
+    "Plan chosen",
+    "Standard plan + top-up {section} to {sum}",
+    "2 of 3"
+   ],
+   [
+    "Nature of business",
+    "ACRA principal activity",
+    "1 of 3"
+   ],
+   [
+    "Website",
+    "{url}",
+    "1 of 3"
+   ]
+  ],
+  "docs": [
+   [
+    "Insurer proposal / application form, signed and company-stamped (DocuSign accepted)",
+    "3 of 3"
+   ],
+   [
+    "Broker letter of appointment listing all entities (takeover)",
+    "1 of 3"
+   ],
+   [
+    "Tenancy agreement as proof when the policyholder changes",
+    "1 of 3"
+   ],
+   [
+    "Cyber and technology liability proposal forms (non-packaged)",
+    "1 of 3"
+   ]
+  ],
+  "asks": [
+   [
+    "Broker LOA covering every entity; insurer clears with the existing intermediary before releasing renewal terms",
+    2
+   ],
+   [
+    "Policy numbers and locations for each outlet; list of other policies expiring in the next 2 months",
+    1
+   ],
+   [
+    "Proposal form signed by proposer with company stamp (compliance)",
+    1
+   ],
+   [
+    "Tenancy agreement as proof for a policyholder change",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "Another intermediary submitted an LOA for the same client; insurer withdraws",
+    1
+   ],
+   [
+    "Package eligibility: revenue from USA, Canada or Australia excludes PI/PL packaged plans; goes to customised underwriting",
+    2
+   ]
+  ],
+  "cask": [
+   [
+    "Sum insured for each section (contents, fixtures and fittings, renovation, equipment/computers, stock), or a copy of the current policy to read them from",
+    3
+   ],
+   [
+    "Public liability limit the landlord requires (check the tenancy agreement) and the landlord's exact name if it must be named",
+    3
+   ],
+   [
+    "Nature of business and whether it fits the package's eligible segments",
+    2
+   ],
+   [
+    "Revenue territories (any USA, Canada, Australia revenue)",
+    2
+   ],
+   [
+    "Completed proposal forms for customised PI / PL / cyber when not eligible for a package",
+    3
+   ],
+   [
+    "For bundled WIC: current WIC insurer, completed proposal form, claims history 3 years",
+    1
+   ],
+   [
+    "Type of property cover: packaged fire and all-risk contents, or customised building and contents",
+    1
+   ],
+   [
+    "Sign and stamp the proposal form; tenancy agreement for policyholder change",
+    2
+   ]
+  ],
+  "rounds": "1 round for packaged quotes (TRS quotes in the first email, standard plan plus top-ups). Takeovers and chain renewals run 2-3 rounds of inline replies per policy. One office quote took 32 days to produce and the client dropped it.",
+  "priced": "Almost all of it. Packaged office, shop and warehouse cover is priced by TRS from insurer brochures and rate tables: Great Eastern BizSupreme (office, wholesale/light industrial), Liberty OfficeCare, ShopCare and SME Care, MSIG Sumo, AIG Select+, QBE Business Insurance Solution (Steadfast), Income SmartBiz 360 (from 1 Oct 2026, 20% commission). Packaged PI/PL/D&O (Berkley B.Spoke from S$1,650) and Delta SME cyber are self-quoted or instant. Chubb PAL is sold by a broker-coded online link with instant activation. TRS goes to insurers only for customised cover: revenue from USA/Canada/Australia, building cover, sums or occupations outside package limits, technology liability, overseas entities (via partner broker).",
+  "cycle": "Packaged quote: same day as the call (2 of 4) to 2 weeks. Client instruction to TRS instruction to insurer: 0-5 days; policy and tax invoice about 1 week later; 8-10 messages request to bind. Takeovers across multiple entities: 4-6 weeks of clearance and per-policy confirmation. Payment chased by TRS on the insurer's behalf.",
+  "markets": "Packaged: 0 insurers before the client decides. TRS compares 2-4 packages from brochures (Great Eastern BizSupreme, Liberty OfficeCare / ShopCare / SME Care, MSIG Sumo, AIG Select+, QBE Business Insurance Solution, Income SmartBiz 360; Berkley B.Spoke for PI/PL/D&O; Delta SME cyber) and instructs 1 insurer. Non-packaged PI/PL/cyber: 'a few insurers' with proposal forms.",
+  "deadline": "None stated. Package insurers issue the policy and tax invoice in about 1 week (Great Eastern: instruction 1 Jul, documents 8 Jul). Delta returned tech and cyber terms in 1 day.",
+  "tone": {
+   "to_insurer": "Short and transactional: 'Dear {name}', plan chosen, signed form attached, 'let me know if anything else is required'. Takeover threads are detailed tables of entity, product, policy number and dates.",
+   "to_client": "Advisory and plain. Opens by thanking for the call, recommends a pre-packaged SME plan and says why (lower premium, no underwriting, instant quote, renewals not driven by claims), names the 2 most competitive insurers, then a premium table. Explains each cover in one or two lines (what PI and PL protect).",
+   "greeting": "'Dear {first name}' first contact, 'Hi {first name}' in threads.",
+   "sign_off": "'Regards' / 'Best regards' (Catherine), 'Warm regards' (Hasya), 'Thank you!' then name (Nathan).",
+   "habits": [
+    "Premium table per package in the body: section, standard sum insured, top-up amount, additional premium, premium, 9% GST, premium after GST.",
+    "Premiums quoted inclusive of GST for SME packages (EB is quoted excluding GST).",
+    "Brochures and proposal forms attached to the first email.",
+    "Consolidated multi-policy renewal email with numbered items and inline replies in colour.",
+    "Cross-sell paragraph on other lines (trade credit, crime, WICA) at the end of service emails."
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client} | {Package name} {new business|renewal}\n\nDear {Insurer contact},\n\nWe would like to incept the following client under the {Package name}:\n\nName of insured : {Legal name}\nUEN : {UEN}\nNature of business : {Business}\nPremises : {Address and unit}\nPolicy start date : {DD/MM/YYYY}\nPlan chosen : {Standard|Enhanced} plan\nTop-ups : {Section} to {Sum insured}; {Section} to {Sum insured}\nPublic liability : {Limit}{, landlord {Landlord name} named as additional insured if required}\nBundled WIC : {headcount and wages, or not required}\n\nThe signed and stamped proposal form is attached{, with the tenancy agreement for the change of policyholder}.\n\nDo let me know if anything else is required.\n\n{Sign-off},\n{TRS staff first name}",
+  "t_cli": "Subject: {Client} - {Office|Shop|Warehouse} insurance {renewal|quotation}\n\nDear {Client contact first name},\n\nThank you for speaking with us on {date}. For a business of your size, a pre-packaged SME plan is usually the most cost-effective option: standard terms, no individual underwriting, and an instant quote.\n\nBased on {premises type} at {address}, the two most competitive options are:\n- {Insurer A} {Package}: S${premium} incl. GST, public liability S${limit}\n- {Insurer B} {Package}: S${premium} incl. GST, public liability S${limit}\n\nTo finalise, please send:\n- Sum insured for each item: contents, fixtures and renovation S${amount}; equipment and computers S${amount}; stock S${amount}. A copy of your current policy is enough if you are renewing.\n- Public liability limit required by your tenancy agreement, and the landlord's exact name if it must be named on the policy.\n- Confirmation that the business has no revenue from the USA, Canada or Australia (packages exclude it; we would then use full proposal forms).\n\nThe brochures and proposal form are attached. Once you choose a plan, please sign and stamp the form and we will arrange cover from {start date}.\n\n{Sign-off},\n{TRS staff first name}",
+  "gaps": [
+   "No LINE_SPECS entry for SME packages. The nearest are general_liability (liabilityFlow 'sme' sends a 3-insurer liability submission) and iar_fire (no fields, no submission). Neither matches the observed flow, where TRS prices the package itself and instructs one insurer.",
+   "Needed fields: premises address and type (office, shop, warehouse/wholesale, F&B), nature of business, sums insured per section (contents/fixtures/renovation, equipment, stock), top-ups chosen, PL limit and landlord name, money in premises/transit, business-interruption days, bundled WIC headcount and wages, expiring insurer and policy, revenue territories.",
+   "ASK lacks the SME asks: section sums insured, landlord PL requirement from the tenancy agreement, landlord name, revenue territories (USA/Canada/Australia), signed and stamped proposal form.",
+   "Package panel missing: Great Eastern BizSupreme, Liberty OfficeCare/ShopCare/SME Care, MSIG Sumo, AIG Select+, QBE Business Insurance Solution, Income SmartBiz 360; Berkley B.Spoke and Delta SME cyber for packaged financial lines. general_liability's 'sme' panel (Great Eastern, MSIG, Liberty, HLAS, EQ, Chubb, Allianz) partly overlaps but is used for an email round that does not happen.",
+   "Eligibility gate missing: package vs customised, decided by revenue territory, occupation and sums. When customised, the existing financial and liability submissions apply.",
+   "Takeover handling missing: broker LOA per entity, insurer clearance with the existing intermediary, conflict notices with a 2-working-day rescind window.",
+   "Client comparison for SME packages is per-section (standard SI, top-up, add-on premium, GST, total incl. GST), not comparisonHead's 'Insurer, Lead/share, Rate' row."
+  ]
+ },
+ {
+  "k": "pa",
+  "s": "PA",
+  "label": "Personal Accident (group PA, incl. per-unit rider PA and project visitor PA)",
+  "rel": 37,
+  "read": 34,
+  "br": "Yes · QBE, AIG packages",
+  "fields": [
+   [
+    "Background / nature of activities",
+    "a paragraph: who is insured, what they do, where (events, site visits, rides)",
+    "5 of 7 new-business requests"
+   ],
+   [
+    "Insured persons or units",
+    "approx. 1,000-1,200 participants; 25,000 bikes; 699 pax; 'for 10 pax'",
+    "7 of 7"
+   ],
+   [
+    "Class and sum insured",
+    "Class 1 - 22 Employees x $100K; Class 2 - 1 x $100K; Class 3 - 16 x $100K",
+    "3 of 7"
+   ],
+   [
+    "Sum insured per person (ADPD)",
+    "S$300,000 per authorised visitor; $10,000 per rider",
+    "6 of 7"
+   ],
+   [
+    "Medical expenses / reimbursement",
+    "up to S$12,000 accidental medical; $500 with $50 / 20% excess",
+    "3 of 7"
+   ],
+   [
+    "Requirement clause verbatim",
+    "the contract or consultant PA clause, quoted",
+    "2 of 7 (project PA)"
+   ],
+   [
+    "Basis",
+    "unnamed preferred; per person or per unit; 'Can we quote on a per person basis?'",
+    "3 of 7"
+   ],
+   [
+    "Budget and options",
+    "initial budget S$6,000; one option within budget plus higher alternatives",
+    "2 of 7"
+   ],
+   [
+    "Period",
+    "Annual policy; 1 July 2026 to 30 June 2027",
+    "5 of 7"
+   ],
+   [
+    "Claims breakdown",
+    "table: period of insurance | incurred claims (SGD), 3 years",
+    "2 of 7 (renewals)"
+   ],
+   [
+    "Renewal rate block",
+    "Plan | proposed rate | no. of pax | sum assured | premium",
+    "1 of 1 renewal instruction"
+   ]
+  ],
+  "docs": [
+   [
+    "Contract insurance specification, letter of acceptance, site plan, screenshot of the PA clause (project PA)",
+    "2 of 7"
+   ],
+   [
+    "Client's current GPA schedule or benefit schedule and endorsement",
+    "1 of 7"
+   ],
+   [
+    "None (body only)",
+    "4 of 7"
+   ]
+  ],
+  "asks": [
+   [
+    "ACRA business profile for compliance before policy issue",
+    2
+   ],
+   [
+    "Headcount per year, who exactly the 'visitors' are, height exposure, any manual work",
+    1
+   ],
+   [
+    "Average number of events each participant attends",
+    1
+   ],
+   [
+    "Premium split per class, as the client wants a per-class rate",
+    1
+   ],
+   [
+    "Signed group policy administration agreement (insurance not charged to the end user)",
+    1
+   ],
+   [
+    "How the insured persons are told about the cover (customer journey); sanctions disclaimer on the sign-up page; distributor disclaimer for an opt-in product; non-resident exclusion",
+    2
+   ],
+   [
+    "Broker appointment letter and AML/KYC documents (company certificates, shareholders, directors, annual return), e-invoice details: Malaysia via a partner broker",
+    1
+   ],
+   [
+    "Member listing and premium calculator check for packaged GPA (QBE)",
+    2
+   ]
+  ],
+  "declines": [
+   [
+    "Construction-site visitor PA: broad, vague visitor scope plus site exposure at S$300k ADPD. Zurich said it is usually covered under CAR third-party liability.",
+    1
+   ],
+   [
+    "Tourists / hotel guests cannot go under a standard GPA (Chubb)",
+    1
+   ],
+   [
+    "Most Malaysian insurers could not match the incumbent's terms (reported by the partner broker)",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Change in staffing per class (for a class-based requote)",
+    1
+   ],
+   [
+    "Member movement template: additions with name, ID, start date, plus email and bank account for onboarding",
+    2
+   ],
+   [
+    "Latest member listing, and whether benefits should stay the same or change",
+    2
+   ],
+   [
+    "Signature on the insurer agreement; disclaimer placement on the client's website or app",
+    2
+   ]
+  ],
+  "rounds": "1 round for corporate GPA. Affinity or rider schemes take 3-5 rounds, mostly compliance rather than underwriting data.",
+  "priced": "Yes, for three product types. (1) SME GPA inside the QBE Mcare+/Steadfast package: priced by TRS from QBE's Steadfast premium calculator and brochure (GPA Plan 1-4 by occupational class). TRS sends the calculator to QBE with the instruction; QBE only verifies it, and once corrected a renewal notice to the calculator rate. Seen in 5 or more threads. (2) AIG Steadfast Assure GPA: an online portal premium that TRS reads off the site and checks with AIG for GST treatment. (3) Chubb's embedded online PA for platform users: a broker-coded link that the client embeds; Chubb collects the premium, and there is no underwriting round. Rate-per-class corporate GPA (Chubb, Zurich) always goes through an insurer round.",
+  "cycle": "Corporate GPA quote: same day to 2 days (Chubb sent a quote 7 hours after a full brief; a project PA took 13 days at Chubb, and Zurich declined after 8 days with one round of questions). Renewal instruction to confirmation of cover: 1-3 days, with documents 4-6 weeks later. Bike-share renewal: option table to client choice in 2 days, bind on day 6, certificate on day 12 after the compliance agreement. 5-15 messages per insurer thread.",
+  "markets": "1-3. Chubb is approached in 7 of 7, Zurich in 4, Liberty in 2 (bike-share). Project PA went to Chubb and Zurich; the bike-share renewals compared Chubb, Zurich and Liberty. Usually 2 underwriters copied at Chubb (A&H head and underwriter).",
+  "deadline": "None stated in 7 of 7. Urgency is expressed in terms of the client's own dependency: a certificate of insurance needed for a licensing renewal, or 'May I get your quick NBI please?'. One escalation set a hard reply-by time, with the threat of moving the programme to other carriers.",
+  "tone": {
+   "to_insurer": "Conversational and relationship-led. Calls first, then an email that recaps the call. When the client is blocked, Nathan sets a reply-by time and says the programme will move to another carrier. Catherine's renewal instructions are a rate table plus a policy block (policyholder, type, renewal date, broker).",
+   "to_client": "Advisory. The renewal email is a market summary: 'we have negotiated with several insurers', an option table with each insurer's limits and premium before GST, 2-4 bullets naming the most competitive insurer and why, and a note on how little client data was disclosed. Explains insurer compliance asks in plain bullets before asking for a signature.",
+   "greeting": "'Dear {first name},' or 'Hi {first name},'. 'Trust you're well!' to open client updates.",
+   "sign_off": "'Warmest Regards, Nathan', 'Warm regards, Hasya', 'Best, Cheng Sou (Ernest)', 'Regards' plus signature (Catherine).",
+   "habits": [
+    "Class × sum insured lines ('Class 1 - 22 Employees x $100K')",
+    "Rates shown as % of sum insured and per head: 0.018% × S$100k = S$18 per employee",
+    "Option tables (Option 1 with medical reimbursement, Option 2 without), with Chubb, Zurich and Liberty side by side",
+    "'NBI' (non-binding indication) requested for quick checks",
+    "Policy documents sent with the fixed paragraph: pay TRS per the debit note, and TRS settles with the insurer"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer_short} - {client_name} GPA\n\nDear {underwriter_first_name},\n\nThank you for the call. As discussed, {client_name} needs Group Personal Accident cover{for_purpose}.\n\nBackground: {who_is_insured_and_activities_and_locations}\nInsured persons: {number} ({named|unnamed}; {per person|per unit})\nClasses and sum insured: {class_1}: {n1} x S${si1}; {class_2}: {n2} x S${si2}\nBenefits: accidental death and permanent disablement S${adpd}; accidental medical expenses S${med} {excess_or_co-insurance}; {extras}\nRequirement (verbatim): {contract_clause_if_any}\nPeriod of insurance: {start} to {end} (annual)\nCurrent insurer: {incumbent_or_new}\nClaims, last 3 years: {period}: S${incurred}; …\nBudget: {budget_if_any}. We would appreciate one option within budget and {n} alternatives.\n\n{attachments_line}\nThe client needs cover confirmed by {date} for {reason}; could we have your terms by {quote_by}?\n\nThank you!\n\nWarmest Regards,\n{staff_first_name}",
+  "t_cli": "Subject: (TRS) {client_name} - Group Personal Accident\n\nDear {contact_first_name},\n\nTo obtain group personal accident terms, kindly provide:\n\n- Number of persons to cover, by group (e.g. office, site, drivers), and whether the policy should be named or unnamed\n- Sum insured per person for accidental death and permanent disablement, and any medical expense benefit\n- What the insured persons do and where (activities, sites, any work at height or overseas travel)\n- Current insurer, current schedule of benefits and claims for the last 3 years, if any\n- For a contract requirement: the insurance clause from the contract\n- Budget, if you have one in mind\n\nWe would appreciate the above by {date} so cover can start on {start_date}.\n\nThank you!\n\nWarmest Regards,\n{staff_first_name}",
+  "gaps": [
+   "The opening is too formal and generic. Real GPA requests recap a phone call and carry a 'Background' paragraph. Add a 'background' or 'activities' field that prints first.",
+   "There is no class structure. Corporate GPA is priced by occupational class × sum insured ('Class 1 - 22 x $100K'). Add 'classes' (class, headcount, sum insured each); the rate is per class.",
+   "The requirement clause is missing. Project PA is driven by a contract clause quoted verbatim. Reuse the LIABILITY 'requirement' pattern.",
+   "Budget and options are missing. Requests ask for one option within budget plus alternatives. Add 'budget' and 'options_wanted'.",
+   "Medical expense benefit, excess and co-insurance are not separable from 'benefits'. Bike-share and programme cases price on them.",
+   "Claims history format: renewals send an incurred-by-policy-year table, not 'nil' or one line.",
+   "The deadline sentence does not match the mail; 0 of 7 requests carry one. The real constraint is a client dependency, such as a certificate needed for a licence. A 'needed_by' reason field would carry it.",
+   "SME GPA bundled in QBE Mcare+/Steadfast is priced by calculator (plan 1-4, occupational class) with no email round. LINE_SPECS sends all GPA to 3 markets. Add a calculator or house-rate path.",
+   "Compliance asks are not modelled for affinity or rider schemes: signed administration agreement, sanctions disclaimer on the sign-up page, distributor disclaimer, ACRA. These, not pricing data, cause most of the back-and-forth.",
+   "Preferred panel: Chubb was approached in 7 of 7, Zurich in 4 and Liberty in 2. QBE appears only for packaged SME GPA, and AIG only through the online portal. The order is fine, but markets should be 2, not 3, for small corporate GPA.",
+   "Endorsements: GPA headcount schemes reconcile at year end (adjustment debit note). There is no endorsement path or member-movement template field.",
+   "documentsToAsk lacks the member listing (named schemes), the contract clause (project PA) and ACRA."
+  ]
+ },
+ {
+  "k": "travel",
+  "s": "Travel",
+  "label": "Business and group travel (GBT/BTA), incl. key-person annual and individual trip",
+  "rel": 15,
+  "read": 15,
+  "br": "Yes · AIG, Chubb brochures",
+  "fields": [
+   [
+    "Insured persons",
+    "per person with role and DOB (named), or 'No. of pax: 10'",
+    "4 of 4 insurer requests"
+   ],
+   [
+    "Area",
+    "Regional (Asia) and/or International (worldwide incl. USA/Canada)",
+    "4 of 4"
+   ],
+   [
+    "Pre-existing condition rider",
+    "with or without, per person",
+    "2 of 4"
+   ],
+   [
+    "Spouse or family accompanying",
+    "Employee only vs Employee and spouse",
+    "1 of 4"
+   ],
+   [
+    "Brochure premium or competitor premium per person",
+    "table: plan × Regional/International, per pax",
+    "2 of 4"
+   ],
+   [
+    "Individual premium breakdown requested",
+    "per insured person (one reimburses the company)",
+    "1 of 4"
+   ],
+   [
+    "Current insurer and renewal date",
+    "Allianz SME plan, renewal 1 Feb 2027",
+    "1 of 4"
+   ],
+   [
+    "Claims history",
+    "'no claim history for travel insurance'",
+    "2 of 4"
+   ]
+  ],
+  "docs": [
+   [
+    "Employee breakdown and existing schedule of benefits (package via partner)",
+    "1 of 4"
+   ],
+   [
+    "None",
+    "3 of 4"
+   ]
+  ],
+  "asks": [
+   [
+    "Confirm the country of residence of the insured persons (default Singapore)",
+    1
+   ],
+   [
+    "Claims experience, past 3 years (partner broker)",
+    1
+   ],
+   [
+    "Travel-pattern questionnaire (Chubb, sent with the renewal pack)",
+    1
+   ],
+   [
+    "Whether the spouse travels on accompanied business trips (determines the employee-plus-spouse rating)",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "None observed for corporate travel. One individual case (a 77-year-old travelling to a conflict zone, needing war risk) was outside standard retail plans by the enquirer's own statement; no TRS reply was found.",
+    0
+   ]
+  ],
+  "cask": [
+   [
+    "Latest member listing (template attached), and whether benefits stay the same or change",
+    1
+   ],
+   [
+    "Current schedule of benefits for the existing travel and medical plans",
+    1
+   ],
+   [
+    "Policy start date (left as 'TBA' by the client)",
+    1
+   ],
+   [
+    "Password for protected claims files",
+    1
+   ]
+  ],
+  "rounds": "0-1 for small groups priced off brochures. Scope changes from the client (add PA, add a spouse, split per person) cause 2-3 extra rounds.",
+  "priced": "Yes, routinely for small groups and key persons. TRS quoted the client within 2 hours from brochures and factsheets: AIG Steadfast Assure BTA (no pre-existing exclusion) and Chubb Business Travel / GBT Enhanced (with or without the pre-existing rider), per pax for Regional and International. A 3-4 pax group was compared at Zurich and Chubb by TRS directly. For an individual spouse, TRS used retail annual-plan tiers (Region 2, Supreme/Ultimate). The insurer is asked only to sharpen, re-rate for spouse cover, or issue the policy.",
+  "cycle": "Brochure quote: 2 hours from request. Key-person case: request to bind 30 days and 14 messages, driven by scope changes, not underwriting; the insurer re-rated in 1 day. Renewal: client query to revised renewal notice 7 days, 7 messages (insurer granted a 10% cut in 3 days). EB-plus-travel package: request to proposal about 2.5 weeks.",
+  "markets": "1-2. Small groups: Chubb vs AIG (brochure), or Chubb vs Zurich (one 3-4 pax comparison). The incumbent alone for renewals. One partner broker for Malaysia.",
+  "deadline": "None stated. The client's own deadline is passed on informally ('mid-November', 'present the quotes before next week').",
+  "tone": {
+   "to_insurer": "Brief and commercial. A per-person comparison table with a competitor's figures and a direct ask to sharpen. Renewals are a one-line discount request.",
+   "to_client": "Fast and table-first: plan by area by premium per person, brochure PDFs attached, the area definitions listed in a follow-up. Options are labelled 'Option 1 / Option 2' with per-person premiums and a total.",
+   "greeting": "'Hi {first name},' or 'Dear {first name},'",
+   "sign_off": "'Warmest Regards, Nathan'; 'Best, Cheng Sou (Ernest)'; 'Warm regards, Hasya'",
+   "habits": [
+    "Per-person premium table: rows Regional / International, columns plan (with / without pre-existing rider)",
+    "Lists which countries each insurer counts as 'Regional'",
+    "QUOTE … UNQUOTE around renewal invitations",
+    "Two colleagues reply in the same thread within minutes (Nathan prices; Ernest adds definitions)"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer_short} - {client_name} | Group Business Travel\n\nDear {underwriter_first_name},\n\n{client_name} would like group business travel cover:\n\nInsured persons: {n} ({named: role, date of birth each | unnamed})\nCountry of residence: {Singapore}\nArea: {Regional (Asia) | International (worldwide incl. USA/Canada)}\nPlan basis: {employee only | employee and accompanying spouse}\nPre-existing condition rider: {with | without}, per person\nPeriod: annual, from {start_date}\nCurrent insurer: {incumbent_or_new}\nClaims, last 3 years: {nil | details}\n\nOn current figures we have {competitor_or_brochure} at:\n{plan} | Regional S${r} | International S${i} per person\n\nCould you sharpen your terms, with premium per insured person? We would appreciate your quotation by {date}.\n\nThank you!\n\nWarmest Regards,\n{staff_first_name}",
+  "t_cli": "Subject: (TRS) {client_name} - Business Travel\n\nDear {contact_first_name},\n\nTo prepare business travel options, kindly confirm:\n\n- Travellers: number, or names and dates of birth if the policy is named\n- Area: Regional (Asia) or International (worldwide incl. USA)\n- Whether any traveller needs pre-existing medical conditions covered\n- Whether spouses or family accompany on business trips\n- Policy start date and period (annual or a single trip, with dates)\n- Current insurer, schedule of benefits and any claims in the last 3 years\n\nWe would appreciate the above by {date}.\n\nThank you!\n\nWarmest Regards,\n{staff_first_name}",
+  "gaps": [
+   "There is no travel entry in LINE_SPECS: no fields, submission, documentsToAsk, ASK texts or panel. Suggested: family 'workforce' (or new 'travel'), markets 2, deadlineWorkingDays 2, preferred ['Chubb', 'AIG', 'Zurich', 'Tokio Marine', 'Allianz'].",
+   "Fields needed: travellers (count, or names and DOB), oldest age, area (Regional/International), basis (employee only / employee and spouse / family), pre_existing_rider, period (annual or trip dates), country_of_residence, incumbent, claims_history, per_person_breakdown_needed.",
+   "A brochure/rate-card path is needed. Most small-group and key-person requests are priced by TRS from the AIG Steadfast Assure BTA and Chubb Business Travel factsheets and sent to the client before any insurer contact. The insurer email is a sharpening request with a competitor table, not a submission.",
+   "Renewal is insurer-led (renewal invitation, travel-pattern questionnaire, riders). The flow is 'forward, negotiate discount, request updated notice', not a market round.",
+   "The comparison head needs Regional and International premium per person, with or without the pre-existing rider. The workforce head (Lead / share, Rate, Sum insured) does not fit.",
+   "Individual and leisure trip enquiries (web leads, students, elderly to conflict zones) need routing away from the corporate flow: retail online plans, or refer out for war-risk and evacuation needs."
+  ]
+ },
+ {
+  "k": "eb",
+  "s": "Employment Benefits",
+  "label": "Employee benefits (GHS, GMM, GP, SP, dental, GTL, GCI, GPA, FWMI inside EB packages)",
+  "rel": 128,
+  "read": 74,
+  "br": "Yes · 5 products, up to 100 lives",
+  "fields": [
+   [
+    "Company (legal name)",
+    "{LEGAL NAME PTE. LTD.}, bold",
+    "6 of 9 market submissions"
+   ],
+   [
+    "UEN No",
+    "{UEN}",
+    "7 of 9"
+   ],
+   [
+    "Address",
+    "{registered or office address}",
+    "7 of 9"
+   ],
+   [
+    "Website",
+    "{url}",
+    "3 of 9"
+   ],
+   [
+    "Business",
+    "ACRA SSIC line, e.g. '56122 - Operators of food courts ...' or 'Hotels and business support services'",
+    "6 of 9"
+   ],
+   [
+    "Cover",
+    "Employee Benefits Package (GHS, GP, SP, FWMI) or GTL, GCI",
+    "9 of 9"
+   ],
+   [
+    "Period of insurance",
+    "1 Jan 2027 to 31 Dec 2027",
+    "8 of 9"
+   ],
+   [
+    "Existing insurer",
+    "{incumbent}, in the opening sentence or as its own line",
+    "8 of 9"
+   ],
+   [
+    "No of pax",
+    "188, or '630 excl. dependants (see employee listing)'; FWMI-only submissions give the FW count",
+    "8 of 9"
+   ],
+   [
+    "Plan headcount breakdown",
+    "Plan 1: 36, Plan 2: 21 ... FWMI: 170, Sum: 602",
+    "2 of 9"
+   ],
+   [
+    "Requested options / alternative design",
+    "table per plan: room and board, overall limit, co-payment; plus 'quote current coverage' and 'GTL 3 tiers at 36x, 24x, 12x salary'; or 'open to $20 GP / $30 SP co-pay as comparison'",
+    "5 of 9"
+   ],
+   [
+    "Underwriting note",
+    "known serious condition of a named member, request to exclude pre-existing and include in GHS/GTL/GPA; or 'claims for last 2 years unavailable'",
+    "4 of 9"
+   ],
+   [
+    "Expiring premium / rates",
+    "per-plan rates by cover (GHS Plan 1-4, GMM, GP, SP) sent when an insurer asks for a target",
+    "1 of 9 (on request)"
+   ],
+   [
+    "Contact for binding (packaged placements)",
+    "HR contact name, email, mobile",
+    "2 of 2 packaged inceptions"
+   ]
+  ],
+  "docs": [
+   [
+    "Group Insurance Fact-Finding Form (GIFF), signed by client",
+    "7 of 9 (Singlife and Cigna will not start without it)"
+   ],
+   [
+    "Employee breakdown / member census (xlsx): name or ID, DOB, gender, relationship, plan per cover, pass type for FW split",
+    "9 of 9"
+   ],
+   [
+    "Existing policy schedule and schedule of benefits per plan (GHS, GP, SP, FWMI)",
+    "7 of 9"
+   ],
+   [
+    "Claims history: insurer claims report or loss ratio, 2-3 years; for large groups a claimant-level listing",
+    "8 of 9"
+   ],
+   [
+    "Insurer quotation forms (GHS Quotation Form, GP/SP Quotation Form)",
+    "1 of 9"
+   ],
+   [
+    "Incumbent's employee comms deck / renewal letter",
+    "3 of 9"
+   ],
+   [
+    "TRS claims analysis (xlsx) sent as a follow-up to argue the loss ratio",
+    "2 of 9"
+   ]
+  ],
+  "asks": [
+   [
+    "Signed GIFF / fact-finding form before quoting or before the quote is binding",
+    5
+   ],
+   [
+    "Past 3 years claims experience (Malaysia: at least 9 months of current-year claims listing)",
+    6
+   ],
+   [
+    "Claimant-level claims breakdown (by member, employee vs dependant, nature chronic/acute) for large groups; 2026-only data not enough",
+    3
+   ],
+   [
+    "Member census with DOB and plan breakdown, or confirmation of headcount per plan and FW split",
+    5
+   ],
+   [
+    "Job title / occupation of each insured (Indonesian GTL), GPA occupation class",
+    3
+   ],
+   [
+    "Medical details of members with serious conditions: diagnosis, stage, current status, age, sum assured, actively at work",
+    1
+   ],
+   [
+    "Letter of appointment (insurer already holds client direct or via another intermediary)",
+    3
+   ],
+   [
+    "Quotation slip / plan type to quote; dental schedule",
+    2
+   ],
+   [
+    "Indicative target premium and competing insurers",
+    1
+   ],
+   [
+    "Confirmation the data did not originate from or pass through a named TPA (Alliance Medinet)",
+    1
+   ],
+   [
+    "Clarifications: GST covered or not, which plan/entity a document applies to, which categories excluded from GMM",
+    1
+   ],
+   [
+    "Bind-stage KYC: ACRA within 6 months, MAS 314 form (connected parties, beneficial owners), bank statement, authorised signatory / director / administrator details with NRIC and proof of address, member FIN, application form signed and stamped",
+    6
+   ]
+  ],
+  "declines": [
+   [
+    "Already approached by another intermediary (first come first served)",
+    2
+   ],
+   [
+    "Unfavourable claims experience",
+    2
+   ],
+   [
+    "Member with active cancer: no GTL on takeover basis, or medical underwriting from first dollar",
+    2
+   ],
+   [
+    "TRS broker onboarding with the insurer not complete",
+    1
+   ],
+   [
+    "Minimum group size: specialist plan needs 3 employees; portfolio medical takeover needs 11 lives, else 12-month pre-existing waiting period",
+    2
+   ],
+   [
+    "Incumbent refuses further renewal reduction because annualised loss ratio rose",
+    1
+   ],
+   [
+    "Mid-term: new plan tier not allowed until renewal; entry age above 70 refused",
+    2
+   ]
+  ],
+  "cask": [
+   [
+    "Employee listing on the TRS template: DOB, gender, plan per staff (premium depends on age and plan)",
+    10
+   ],
+   [
+    "Confirm the renewal headcount / member list is current, and any plan changes",
+    7
+   ],
+   [
+    "Claims history for the past 3 years (from current agent/broker or the HR portal); claimant-level for large groups",
+    6
+   ],
+   [
+    "Current schedule of benefits for every plan, or the current policy",
+    4
+   ],
+   [
+    "Signed Group Insurance Fact-Finding Form (TRS pre-fills from existing cover and census)",
+    3
+   ],
+   [
+    "Plan entitlement per staff category for GP and SP; which staff go on which tier",
+    2
+   ],
+   [
+    "Current outpatient arrangement (TPA postpaid, GP caps, TCM, dental) and whether to quote GP/SP",
+    1
+   ],
+   [
+    "For multi-country reviews: legal entity, work country, seniority, salary where benefits are salary-linked, dependants, latest renewal quote and premiums paid",
+    1
+   ],
+   [
+    "Job titles of insured staff (overseas GTL)",
+    1
+   ],
+   [
+    "Bind documents: ACRA profile, member listing on insurer EMF template (incl. email, bank details for reimbursement), signed and stamped application form, existing renewal notice, authorised signatory details",
+    6
+   ]
+  ],
+  "rounds": "1-2 rounds. A recap email after the call restates each item with why it is needed. A gentle reminder after 7-13 days. Claims history is the item that slips most (clients must get it from the incumbent; 2 of 6 never arrived and TRS proceeded without it).",
+  "priced": "Most small-group EB is priced by TRS with no insurer round. Products: QBE Steadfast MCare+ (up to 50 lives; Steadfast calculator, brochure V11/V12 with Jul/Sep 2026 rate revisions), Raffles Health RCC Enhanced III, Singlife MyBenefits Plus, Income Employees FlexCare (up to 100 lives each), AIA Flexi Vital Care Plus (private-hospital only) and Singlife/Income GTL-GCI rates; TRS's own 'EB Package Calculator' (V1 to V1.5, Jun-Nov 2026) holds the rate cards and is revised when an insurer reprices (Singlife from 1 Dec 2026). Output: an xlsx proposal plus brochures, 3-4 insurers side by side, sent within 1-10 days of receiving DOBs. Insurer only sees the case at binding (EMF + application form + ACRA), and confirms GWP from its calculator. Malaysia SME packages (Allianz EliteChoice, MCIS SME Care+) are priced the same way by Hasya. TRS goes to insurers instead when: headcount is above the package caps (50/100), the client wants its existing custom design or tiered plans, there are large or serious claims (needs underwriting), private-hospital annual limits above package limits, expat or regional needs (Cigna, NowHealth, MSIG OTAI, Serenity), or the entity is overseas (partner brokers).",
+  "cycle": "Packaged small group, new business: census ask to proposal 1-10 days; 3-5 client question rounds; decision to inception 2-4 weeks; 20-28 messages. Packaged renewal with incumbent: renewal notice to client 4-8 weeks before expiry; proposal 5-15 days later; client decides same day to 2 weeks; 6-26 messages. Custom/large remarket: request to insurers 6-10 weeks before expiry; quotes 2-13 days; 1-2 clarification rounds per insurer; 2-3 of 5 insurers decline; client meeting then decision; 12-16 messages per insurer thread. Specialist small-group (Cigna/NowHealth) took 3.5 months request to bind because the client decided late. Policy documents and debit note follow 2-6 weeks after inception; welcome emails / e-cards are chased 1-2 times.",
+  "markets": "Custom or large scheme: 3-5 insurers in one round, all on the same day (case A, 188 lives: QBE, Income, Tokio Marine Life, Singlife, plus Great Eastern for FWMI only; case B, 602 lives: QBE, Singlife, Income, plus Mitsui-Pana as wholesale route; case C, 100 lives: QBE, Income, Singlife, Raffles Health; case D: QBE, Income, Singlife; case E, ~700 lives: QBE, Singlife, Cigna plus the incumbent Income renewal). Niche or expat needs: 2-3 specialist markets (Cigna, NowHealth/Sompo, Serenity, MSIG OTAI). Small groups under 50-100 lives: no insurer round; TRS prices 3-4 packaged products itself. Overseas entities go through partner brokers (a partner broker in Malaysia, a partner broker in Indonesia, a partner broker in Hong Kong) who source 1-3 local insurers. Life covers (GTL, GCI) under Singlife or Income are placed via a financial-adviser partner because QBE is a general insurer.",
+  "deadline": "Anchored to the client meeting, not to a fixed number of days: 'soonest, as we present to the client {early November}' or 'before {date}' (10-11 calendar days out). Chased at 3-4 days by replying on the same thread to bump it, then by phone. Some requests carry no deadline. Observed insurer turnaround: specialist/portfolio quotes 2-6 days (NowHealth 2, Cigna 6), QBE custom 5-13 days, Income 10-11 days, Singlife pending after 13 days.",
+  "tone": {
+   "to_insurer": "Semi-formal, brief, collegial. Insurers addressed by first name, often two contacts in one greeting. Field block in 'Label : value' lines with bold values. Asks are polite and direct: may we seek your quote; tell me if anything else is needed; a quick confirmation by {date, time} would help. Chasers are one line. Commission and target-price talk with partner brokers and in Bahasa Indonesia for Indonesian partners.",
+   "to_client": "Courteous, warm, explanatory. Opens with a pleasantry ('hope you are keeping well'), then 'pleased to enclose / present'. Explains price moves as insurer rate revisions for medical inflation and portfolio claims. Gives a recommendation with the reason when asked which insurer, including service and claims-handling experience. Offers a call to walk through options. Closes with an invitation to ask questions and thanks for trust.",
+   "greeting": "'Dear {first name}' for first contact and formal documents; 'Hi {first name}' in running threads. Insurers: 'Dear {name} and {name}' or 'Dear {insurer} team'.",
+   "sign_off": "Nathan: 'Warmest Regards, Nathan' (+ mobile). Ernest: 'Best, Cheng Sou (Ernest)' or 'Best CS'. Hasya: 'Warm regards, Hasya'. Catherine: 'Regards' / 'Best regards' with full signature. Angela: 'Best regards, Angela'.",
+   "habits": [
+    "Bullets for every list; bold for client name, dates and premium figures.",
+    "'Quick Notes:' / 'Quick Updates:' headers in Nathan's client mails.",
+    "Premium comparison table pasted in the body: rows = cover (Hospital & Surgical, Major Medical, Outpatient GP, Outpatient Specialist, Dental, Term Life, Critical Illness, Personal Accident, EAP), columns = insurer product; total and average per life; 'excl. GST' stated.",
+    "Same xlsx proposal versioned by date ('Proposal V1 dated {date}', 'V2'); brochures attached for each product compared.",
+    "Password-protected files; password sent in a separate email.",
+    "Inline replies 'in red' / 'in blue' / 'in pink' to multi-question emails.",
+    "Insurer replies forwarded to client between QUOTE / UNQUOTE.",
+    "One email thread per insurer per client; subject '(TRS) {Insurer} - {Client}' or 'TRS ({Insurer}) : {Client} - {cover/policy no}'.",
+    "Debit-note cover email lists the policy documents and the insurer invoice with the TRS debit note; client pays TRS, TRS settles with the insurer.",
+    "WhatsApp used for quick confirmations; email used as the record."
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client} | Employee Benefits {renewal|new business} {inception}\n\nDear {Insurer contact 1} and {Insurer contact 2},\n\nWe would like to invite you to quote for the employee benefits programme of our client, {Client}. The programme is with {Incumbent insurer} today and renews on {Renewal date}. TRS has been appointed to review it and approach the market.\n\nCompany : {Legal name}\nUEN No : {UEN}\nAddress : {Address}\nBusiness : {SSIC code and description}\nCover : {GHS, GMM, GP, SP, Dental, GTL, GCI, GPA, FWMI as applicable}\nPeriod of insurance : {Start date} to {End date}\nNo of pax : {Employees} employees, {Dependants} dependants, {Foreign workers} foreign workers (see employee listing)\nPlan breakdown : {Plan 1: n; Plan 2: n; ... FWMI: n}\n\nThe client asks for:\n1. {Cover} - a quote on current coverage\n2. {Cover} - an alternative design: {per plan room and board, overall limit, co-payment}\n3. {GTL basis, e.g. tiers at {x}x monthly salary}\n\nUnderwriting notes: {known large claims or serious conditions, data gaps, e.g. claims for {years} unavailable}\n\nAttached:\n- Group insurance fact-finding form (signed)\n- Employee breakdown with DOB, gender, relationship and plan\n- Existing policy schedule and schedule of benefits\n- Claims history {period}\n\nWe would be grateful for your quotation by {Deadline}, as we present options to the client on {Client meeting date}.\n\nDo let me know if you need anything further. We look forward to your proposal.\n\n{Sign-off},\n{TRS staff first name}",
+  "t_cli": "Subject: {Client} - Employee benefits {renewal|proposal} | information needed\n\nDear {HR contact first name},\n\nThank you for your time on {call date}. To prepare your {renewal|proposal} for {inception date}, could you please send the following:\n\n- Employee listing: please complete the attached template with each member's date of birth, gender, relationship (employee, spouse, child), plan for each cover, and pass type (work permit / S Pass staff go under FWMI). Premiums are priced on each member's age and plan.\n- Current schedule of benefits: a copy for each plan ({Plan list}), or the current policy.\n- Claims history: the claims report for the past 3 years. Your current insurer or broker can provide it, or it can be downloaded from the HR portal. Insurers need it to quote your current design; packaged plans for groups under {50|100} do not.\n- Fact-finding form: attached, for signature. We have pre-filled it from your current cover.\n- Outpatient: do you currently have GP and specialist cover? If not, should we quote it?\n\n{Underwriting note if relevant: a member with an ongoing condition may be covered with a loading or a claims cap; packaged plans may exclude the condition.}\n\nOnce we have these, we will prepare options from {n} insurers by {date}. Happy to go through any item on a short call.\n\n{Sign-off},\n{TRS staff first name}",
+  "gaps": [
+   "Wrong default route: lines.ts treats every EB request as an email round to 3 insurers. In the mail most small-group EB (under 50-100 lives) never goes to an insurer before the client decides; TRS prices QBE MCare+, Raffles RCC Enhanced III, Singlife MyBenefits Plus and Income FlexCare itself. The insurer round applies only to custom, large, claims-heavy, expat or overseas cases. LINE_SPECS needs a route decision (packaged vs market) on headcount and design.",
+   "Missing fields in EB_FIELDS: UEN, address, business (SSIC), period end date, plan headcount breakdown, foreign-worker count (FWMI split), requested alternative designs (room and board, overall limit, co-pay per plan), GTL basis (flat sum or salary multiple tiers), underwriting notes (serious conditions, data gaps), entities covered.",
+   "Missing document: the signed Group Insurance Fact-Finding Form (GIFF). It is attached to 7 of 9 market submissions and Singlife and Cigna will not quote or bind without it. Add to documentsToAsk and to the submission's attachment line.",
+   "Census definition too thin. ASK says DOB, gender, plan, dependants. Mail adds: relationship code, plan per cover (GHS, GP, SP, GTL, GPA can differ), pass type (WP/S Pass to FWMI, EP stays on GHS), job title or occupation class (GPA, overseas GTL), salary where GTL is a multiple, date of hire (Singlife GTL), entity for multi-entity groups, email and bank details at binding.",
+   "Claims experience: '3 years from the expiring insurer' is right for remarkets, but large groups need a claimant-level listing (member, employee vs dependant, diagnosis nature); Malaysia accepts 9+ months of current year; packaged plans need none. 'new scheme' should not block packaged quotes. Missing claims did not stop TRS in 2 of 6 cases.",
+   "required = [member_count, census, start_date] blocks too much for packaged quotes (TRS quotes from DOB list only) and too little for market rounds (GIFF, schedule of benefits and claims are what insurers chase).",
+   "Opening line differs: mail invites the insurer to quote, names the incumbent and renewal date, and says TRS was appointed to review. lines.ts opening and 'member census and expiring schedule are attached' line omit the incumbent context, the fact-finding form and the claims file.",
+   "Deadline: fixed 5 working days in lines.ts. Mail anchors to the client presentation date (10-11 calendar days out) and insurers took 2-13 days; QBE and Income custom quotes rarely land in 5 working days. Use client-meeting date minus 2 days, default 8 working days for market rounds.",
+   "Panel: preferred list omits Great Eastern (FWMI, Indonesian GTL), Tokio Marine Life, MSIG (expat OTAI), NowHealth/Sompo, Serenity, Prudential (incumbent). AIA is rarely approached (no restructured-hospital package; works via an agent). Overseas cases go through partner brokers (a Malaysian partner broker, an Indonesian partner broker, a Hong Kong partner broker): lines.ts has no partner-broker route. Life covers under QBE-led packages go to Singlife or Income via a financial-adviser partner.",
+   "No renewal-instruction template (instructed to renew on existing/invited terms, policy numbers, period, headcount, EMF attached). This is the most frequent EB email to an insurer in the corpus.",
+   "No movement / endorsement spec: insurer member template fields, QBE portal-first rule, 90-day backdating limit, GPA headcount reconciliation, plan tiers only at renewal, entry age 70.",
+   "No bind-stage KYC list: ACRA (within 6 months), MAS 314, authorised signatory / director / administrator with NRIC and proof of address, application form signed and stamped, renewal acceptance slip, GST input-tax declaration (Income), bank statement for billing-name changes.",
+   "Declines not modelled for EB: 'another intermediary got there first' (first-come-first-served at Singlife, Tokio Marine Life) means market rounds must go out fast and the panel should record 'blocked' per insurer; 'unfavourable claims'; minimum lives (3 for Serenity, 11 for Singlife takeover).",
+   "comparisonHead for eb is one row per insurer option. TRS client tables are a cover-by-insurer matrix: rows Hospital & Surgical, Major Medical, Outpatient GP, Outpatient Specialist, Dental, Term Life, Critical Illness, Personal Accident, EAP; columns per insurer product; total and average per life; premiums excl. GST. 'Valid until' is almost never shown; brokerage appears on insurer quotes, not client tables."
+  ]
+ },
+ {
+  "k": "pl",
+  "s": "PL",
+  "label": "Public liability and products liability (annual, landlord, contract/MCST, SME packages)",
+  "rel": 50,
+  "read": 50,
+  "br": "Yes · retail and office packages",
+  "fields": [
+   [
+    "Company",
+    "{Legal name}",
+    "9 of 9 submissions"
+   ],
+   [
+    "UEN No",
+    "{UEN}",
+    "6 of 9"
+   ],
+   [
+    "Nature of business / Business activities",
+    "one line, or bullets of what staff do on and off premises",
+    "8 of 9"
+   ],
+   [
+    "Public Liability limit",
+    "$500,000 / S$2,000,000 / $2.5 million",
+    "7 of 9"
+   ],
+   [
+    "Previous insurance",
+    "'Never purchased before' or existing policy",
+    "3 of 9"
+   ],
+   [
+    "Period of insurance",
+    "01/07/2026 to 30/06/2027",
+    "4 of 9"
+   ],
+   [
+    "Revenue",
+    "last one year S$1M; or projected next 12 months",
+    "4 of 9"
+   ],
+   [
+    "Claims for the past three years",
+    "Nil",
+    "2 of 9"
+   ],
+   [
+    "Contract: Buyer/Owner, Contract description, Contract value, Contract period",
+    "from the letter of award",
+    "3 of 9"
+   ],
+   [
+    "Joint insured / additional insured",
+    "in joint names of the contractor and {principal}; landlord's exact name; waiver of subrogation",
+    "3 of 9"
+   ],
+   [
+    "Purpose",
+    "why standalone PL is needed (MCST rejects CAR TPL)",
+    "1 of 9"
+   ],
+   [
+    "Location / premises",
+    "address",
+    "2 of 9"
+   ]
+  ],
+  "docs": [
+   [
+    "PL proposal form (excluding contract works), client-signed",
+    "6 of 9"
+   ],
+   [
+    "Letter of award / contract",
+    "3 of 9"
+   ],
+   [
+    "Existing CAR policy (when standalone PL needed)",
+    "1 of 9"
+   ],
+   [
+    "Fire proposal form, property questionnaire, site photos (combined property & PL)",
+    "2 of 9"
+   ],
+   [
+    "Term commencement letter and landlord's approved-insurer list (retail)",
+    "1 of 9"
+   ]
+  ],
+  "asks": [
+   [
+    "Broker of record letter: another intermediary approached first",
+    4
+   ],
+   [
+    "Describe daily operations and off-premises work",
+    2
+   ],
+   [
+    "Contract value for added scope; soil report for CAR/PL",
+    2
+   ],
+   [
+    "Correct legal name per UEN",
+    1
+   ],
+   [
+    "Standalone PL not preferred: quote with property and WIC (interest, sums insured, employee categories, wages, claims for all classes)",
+    1
+   ],
+   [
+    "Is this PI rather than PL?",
+    1
+   ],
+   [
+    "Premises hazard questionnaire (occupancy, cooking, smoking, hazardous storage, separation, SCDF licences)",
+    1
+   ],
+   [
+    "ESG questionnaire at binding: SSIC code, last revenue, green building certification",
+    1
+   ],
+   [
+    "Confirm claims experience before binding",
+    2
+   ],
+   [
+    "Turnover and approved trades for package eligibility",
+    2
+   ]
+  ],
+  "declines": [
+   [
+    "Approached by another intermediary",
+    4
+   ],
+   [
+    "Nature of business (new company, care services, specialist risk)",
+    3
+   ],
+   [
+    "Excluded trade under the SME package (mobile phone shops)",
+    1
+   ],
+   [
+    "Tourists not covered under GPA/PL scheme",
+    1
+   ],
+   [
+    "Tier-2 market: value too low",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Complete the PL proposal form",
+    7
+   ],
+   [
+    "Purpose of the cover: annual or project-related",
+    3
+   ],
+   [
+    "Previous or existing policy, if any",
+    4
+   ],
+   [
+    "Claims history, last 3 years",
+    3
+   ],
+   [
+    "Landlord or contract requirement: tenancy clause, exact landlord name for joint insured, approved insurers list",
+    3
+   ],
+   [
+    "Letter of award or contract and contract value of works",
+    3
+   ],
+   [
+    "Annual turnover",
+    2
+   ],
+   [
+    "Sums insured for contents and equipment when packaged",
+    2
+   ],
+   [
+    "Sign the package proposal form and verify security / fire-prevention answers",
+    2
+   ]
+  ],
+  "rounds": "1 round for SME and retail; 2 rounds for contract PL (scope, then value of added works).",
+  "priced": "Yes for retail, office and trade packages: GE BizSupreme (retail, office), GE Great BizFlexi, Liberty Shopcare, OfficeCare and BeautyCare (PL + WIC). TRS quotes premium from the brochure or a comparison sheet across AIG, GE, MSIG and Liberty, then sends the signed form to incept. Risk: in 1 of 2 retail cases GE refused the package on trade (mobile shops) after TRS quoted, and a customised quote replaced it. Mall schemes run by a landlord with GE are bought direct from the insurer; TRS cannot place them.",
+  "cycle": "Retail landlord PL: client request to cover note 1 to 2 days, policy 6 days. Project PL: quote to revised quote 4 days, bind and cover note next day, policy 1 month later. New-sector SME PL: first quote 7 days after submission, 3 of 5 insurers declined. Dormitory property & PL: 7 weeks to bind, 14 messages.",
+  "markets": "3 at once for contract and SME PL (EQ, Chubb, Sompo; EQ, Liberty, Chubb). Sequential widening when declined: 5 insurers over 3 weeks for a new-sector risk (Chubb, EQ, MSIG, Income, HLAS) and for a dormitory (AIG, GE, EQ, Sompo, ECICS). Retail landlord PL goes straight to a package insurer (GE or Liberty).",
+  "deadline": "No quote-by date. 'Urgent' at the top for contract deadlines (3 of 9); LOA submission deadline cited in 1. Chasers at 7 to 21 days: 'May I follow up on this PL request?'.",
+  "tone": {
+   "to_insurer": "Warm, brief, collegial. First-name salutation to the named underwriter, one-line context, a 'Label: value' block, attachments named in one sentence, open offer to supply more. Never states a quote-by date; urgency comes from the expiry date or 'ASAP'. Hasya uses one fixed block reused verbatim across 5 insurers; Catherine prefixes 'Urgent'.",
+   "to_client": "Practical and corrective: explains landlord requirements item by item, recommends staying with one insurer across outlets for chain and no-claim discounts, owns misquotes ('we'll absorb the difference').",
+   "greeting": "'Dear {First name},'; 'Dear Mr. {Surname},' for new web enquiries",
+   "sign_off": "Hasya 'Warm regards, Hasya'; Nathan 'Warmest Regards, Nathan'; Catherine 'Best regards' plus full signature",
+   "habits": [
+    "Subject: '(TRS) {Insurer}- {Client} | PL Request' or 'TRS ({Insurer}) : Quotation for Project Public Liability - {Client}'",
+    "Web-enquiry reply opens with a one-line TRS introduction, then a bulleted ask list per line",
+    "Options table: PL only vs CAR with TPL, contract value, limit any one accident / unlimited, VRWS/underground services, premium + GST",
+    "Cover note same day for urgent landlord or contract deadlines",
+    "Pro-rata cancellation refund computed by TRS and confirmed with the insurer"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {Insurer} - {Client short name} | PL Request\n\nDear {Underwriter first name},\n\nWe would like to request a Public Liability quotation for the following:\n\nCompany: {Legal name}\nUEN No: {UEN}\nNature of business: {one line}\nBusiness activities: {bullets: what staff do, on and off premises}\nPurpose: {annual business cover | contract/project | landlord or MCST requirement}\nLocation: {premises or works address}\nLimit of liability: {limit} any one occurrence\nPeriod of insurance: {dd/mm/yyyy} to {dd/mm/yyyy}\nRevenue: {last FY}; projected next 12 months {amount}\nExisting cover: {expiring insurer | Never purchased before}\nClaims for the past three years: {Nil | details}\n{Insurance required: {contract/lease clause}; joint names with {principal/landlord}; waiver of subrogation}\n\nPlease find attached the proposal form{ and letter of award} for your review and let me know if you need further information.\n\nThank you!\n\nWarm regards,\n{Staff first name}",
+  "t_cli": "Subject: (TRS) {Client short name} - Public Liability Insurance\n\nDear {Client first name},\n\nThank you for reaching out to Trade Risk Solutions. To prepare the quotation, kindly provide the following:\n\nPublic Liability\n- Purpose of the cover (annual or project-related)\n- The clause that requires it (contract, tenancy or MCST), with the exact name of any party to be added\n- Previous or existing policy, if any\n- Proposal form (attached), completed and signed\n- Claims in the past 3 years, if any\n- Annual turnover\n\nPlease feel free to reach out if you have any questions. I can also arrange a quick call.\n\nThank you.\n\nWarm regards,\n{Staff first name}",
+  "gaps": [
+   "liabilitySubmission opening 'Do let us know if you are keen to quote' matches only Nathan's standalone/MCST case (1 of 9). Default should be 'We would like to request a Public Liability quotation for the following:'; contract case 'present the following client ... letter of award as per attached'.",
+   "Missing fields: Nature of business as a separate short line, Previous insurance ('Never purchased before'), Revenue split last year vs next 12 months is present as turnover but not labelled that way; Claims history uses 3 years (correct).",
+   "No quote-by date in 0 of 9; contract cases instead put 'Urgent' at the top and cite the LOA deadline. Replace the 5-working-day line.",
+   "Closing line 'Kindly confirm the wording meets the requirement ... with the estimated premium' does not appear in mail; mail closes with 'let me know if you need further information'.",
+   "'The completed proposal form is attached' is printed always; mail attaches the LOA for contract PL and the proposal form for annual PL. Make the attachment line follow what is attached.",
+   "markets=3 is right for the first round, but declines are frequent (approached by another intermediary 4, nature of business 3), so the panel widens sequentially to 5. Need a second-round rule.",
+   "preferred (sme flow) Great Eastern, MSIG, Liberty, HLAS, EQ, Chubb, Allianz: mail shows EQ and Chubb first for SME PL, MSIG and HLAS declined care services, Sompo and Income also used. Contract flow list matches (EQ, Chubb, Liberty).",
+   "No package path: retail/office/beauty PL is priced from GE BizSupreme/BizFlexi and Liberty Shopcare/OfficeCare/BeautyCare brochures with no insurer round; landlord PL needs approved-insurer check and joint-names memorandum.",
+   "liabilityFlow lacks a 'landlord/retail' flow distinct from 'contract'; landlord deals need the exact landlord name, waiver of subrogation, approved-insurer list.",
+   "Insurer follow-ups not modelled: standalone PL bundled with property and WIC (Sompo), premises hazard questionnaire, ESG questionnaire (SSIC, revenue, green building) at binding.",
+   "ASK has no item for the landlord/contract clause text or the exact co-insured name; 'purpose' ask exists but not 'previous policy' or 'turnover'."
+  ]
+ },
+ {
+  "k": "cgl",
+  "s": "CGL",
+  "label": "Commercial General Liability",
+  "rel": 29,
+  "read": 60,
+  "br": "No",
+  "fields": [
+   [
+    "Insurance required (verbatim clause)",
+    "Contract clause pasted in full, then 'Limit: S$2 mil per occurrence. Occurrence-basis'",
+    "6 of 10 submissions"
+   ],
+   [
+    "Covers and limits list",
+    "1. CGL (public and product) US$5m per occurrence and aggregate; 2. PI/E&O ...; 3. Cyber ...; 4. WC",
+    "5 of 10"
+   ],
+   [
+    "Scope of works / business activities",
+    "Screenshot of PO scope, or activities line",
+    "8 of 10"
+   ],
+   [
+    "Location of works",
+    "Address",
+    "3 of 10"
+   ],
+   [
+    "Period of insurance",
+    "{start} to {end} + 24 months completed operations",
+    "3 of 10"
+   ],
+   [
+    "Contract value",
+    "Per PO, S$507,500 and S$890,000",
+    "4 of 10"
+   ],
+   [
+    "Turnover by territory",
+    "Table current FY / next FY: USA-Canada, Singapore-Asia, Australia, UK-Europe",
+    "3 of 10"
+   ],
+   [
+    "Product application / end use",
+    "e.g. devices for animals only, not humans",
+    "2 of 10"
+   ],
+   [
+    "Marine-liability specifics",
+    "Turnover, fuel type, vessels, location, onshore storage, terms of trade, 5-year loss record",
+    "1 of 10"
+   ],
+   [
+    "UEN",
+    "{uen}",
+    "2 of 10"
+   ],
+   [
+    "Target premium",
+    "'if any'",
+    "1 of 10"
+   ]
+  ],
+  "docs": [
+   [
+    "Completed CGL proposal form (Chubb form used as the market standard; accepted by AXA XL)",
+    "6 of 10"
+   ],
+   [
+    "Purchase order / contract with insurance clause",
+    "5 of 10"
+   ],
+   [
+    "Company profile / ACRA business profile / annual filing",
+    "4 of 10"
+   ],
+   [
+    "Product brochure / catalogue",
+    "2 of 10"
+   ],
+   [
+    "Customer terms and conditions / rider (hold-harmless)",
+    "2 of 10"
+   ],
+   [
+    "Tech E&O, cyber and WC proposal forms in the same pack",
+    "3 of 10"
+   ],
+   [
+    "Sample policy from buyer",
+    "1 of 10"
+   ]
+  ],
+  "asks": [
+   [
+    "Quote slip / proposal form",
+    4
+   ],
+   [
+    "Annual turnover for all contracts, and target premium",
+    2
+   ],
+   [
+    "Which contract paragraph defines contractual liability assumed",
+    1
+   ],
+   [
+    "Why CGL only (instead of CAR/EAR with TPL)",
+    1
+   ],
+   [
+    "Work near airport runway / hangar?",
+    1
+   ],
+   [
+    "Method statement",
+    1
+   ],
+   [
+    "Nil claims and circumstances, last 3 years",
+    1
+   ],
+   [
+    "Confirm sharp turnover growth and US exposure",
+    1
+   ],
+   [
+    "Product end use (animal vs human)",
+    1
+   ],
+   [
+    "Largest customer contract copy (not just PO)",
+    1
+   ],
+   [
+    "Role in supply chain, assets owned, standard terms, volumes, back-to-back recourse, quality testing",
+    1
+   ],
+   [
+    "Premises, IAR need, headcount and wages for WC (package)",
+    1
+   ]
+  ],
+  "declines": [
+   [
+    "Project-specific CGL not written; insured should endorse onto annual CGL/PL",
+    2
+   ],
+   [
+    "Product nature: healthcare / bio / R&D / healthtech outside appetite",
+    3
+   ],
+   [
+    "Requirement is tech E&O, not CGL",
+    1
+   ],
+   [
+    "Marine general liability not a product / outside binding authority / not written",
+    5
+   ],
+   [
+    "Nature of business and geography (US exposure)",
+    2
+   ],
+   [
+    "Already approached by another intermediary",
+    1
+   ]
+  ],
+  "cask": [
+   [
+    "Complete the CGL proposal form (attached, sometimes partly pre-filled by TRS)",
+    6
+   ],
+   [
+    "Company profile / corporate brochure / ACRA profile",
+    4
+   ],
+   [
+    "Product catalogue / advertising materials",
+    2
+   ],
+   [
+    "Customer contract or purchase agreement (assumed liability, hold-harmless)",
+    3
+   ],
+   [
+    "Confirm limit currency and basis (per claim and aggregate)",
+    2
+   ],
+   [
+    "Annual or project-specific cover?",
+    1
+   ],
+   [
+    "Contract insurance clause wording",
+    2
+   ],
+   [
+    "Claims history, last 3 years",
+    1
+   ],
+   [
+    "Turnover by territory, current and next FY",
+    2
+   ],
+   [
+    "Latest financial statements / management accounts",
+    1
+   ],
+   [
+    "Background / purpose of the enquiry and existing policy",
+    1
+   ],
+   [
+    "Letter of broker appointment when insurers say they were approached",
+    1
+   ]
+  ],
+  "rounds": "2-4 rounds. Round 1: TRS restates the clause as a numbered list of covers with the form and documents each needs. Round 2-3: insurer questions relayed (turnover, end use, contracts). Product/tech risks: 6-12 weeks.",
+  "priced": "No. Every CGL figure sent to a client came from an insurer quote or NBI.",
+  "cycle": "Project CGL (construction): client request to first insurer quote same day (Chubb); comparison 8 days; switched to EAR at client's request; bound 29 days after request. Product/tech/specialty liability: 6-12 weeks from first email to terms; 1 of 4 bound in the sample period. Marine liability: request to Lloyd's terms 16 days after 5 declines. 10-38 messages.",
+  "markets": "6 for project CGL (EQ, AIG, Great American, Tokio Marine, Chubb, Berkley). Product/tech liability: 3-6 casualty and financial-lines insurers (Chubb, Zurich, AIG, Liberty, QBE, BHSI, Delta); specialty risks go to 8+ including AXA XL, Markel/Lloyd's, Tokio Marine Kiln, HDI, Rokstone.",
+  "deadline": "Rarely stated to insurers. Pressure is expressed as 'client seems to be pressed' to incept for contract requirements or a note that the buyer wants to review the quote first. Chase after 7-10 days ('May I check if you have reviewed').",
+  "tone": {
+   "to_insurer": "Short appetite-check first; summarises requirements as a numbered cover list; flags urgency via the client's contract. Forwards client answers as 'additional information clarification below'.",
+   "to_client": "Consultative. First reply introduces TRS with credentials and lines, then a summary line ('I'd summarise the insurance requirements') before a numbered list. Flags hard spots honestly (contractual liability is often excluded). Progress updates list who declined and why, and who is pending. Angela's updates use numbered bold headings (Placement Update, Quotation, Next steps) and restate contractual consequences of not binding.",
+   "greeting": "'Dear {first names},' first contact; 'Hi {first name},' thereafter",
+   "sign_off": "'Warmest Regards, Nathan'; 'Warm regards, Hasya'; 'Best, Cheng Sou'; 'Angela'",
+   "habits": [
+    "Numbered cover list with sub-bullets: limit, note, information needed",
+    "Decline list quoted in short form per insurer, then 'Under Review / Pending'",
+    "Partly pre-fills the proposal form for the client and attaches a blank copy",
+    "Offers a call or WhatsApp to walk through structure",
+    "Cross-sells other lines in the first reply (EB, WIC)"
+   ]
+  },
+  "t_ins": "Subject: (TRS) {insurer short code} - {client} | {cover summary}\n\nDear {insurer contact first names},\n\nOur client, {client}, {has been awarded {n} contracts by {buyer} | supplies {products/services} to {customer}}, which require commercial general liability insurance. Are you keen to quote?\n\nRequirement (clause {ref}):\n{verbatim clause}\n\nSummary:\n- Limit: {currency} {limit} per occurrence{ and in the aggregate}, occurrence basis\n- Products / completed operations: {currency} {co_limit} for {co_months} months after final acceptance\n- Contractual liability: {as defined in clause {ref}}\n- Insured: {client} and/or {buyer} for their respective rights and interests\n- Period: {start} to {end}{ + {co_months} months completed operations}\n- Territory / jurisdiction: {territory}\n- Business / scope of works: {activities}\n- Location: {address}\n- Contract value / turnover: {amount}; turnover by territory: {table}\n- Claims history, last 3 years: {nil or details}\n\nAttached: completed CGL proposal form, contract or PO with the insurance clause, company profile{, product brochure, customer terms}.\n\nThe client needs the quote for the buyer's review before {date}.\n\nWarmest regards,\n{staff first name}",
+  "t_cli": "Dear {client contact first name},\n\nThank you for your enquiry.\n\nBased on the clause you sent, the requirement is:\n1. Commercial general liability (public and products): {currency} {limit} per occurrence and in the aggregate. Please confirm the currency and that this is per claim and in the aggregate.\n   Note: insurers usually exclude contractual liability; we will test this with the market.\n\nFor the insurers we need:\n- The attached CGL proposal form, completed and signed\n- Company profile or ACRA business profile\n- Product catalogue or service description\n- The customer contract or purchase agreement (for any liability you assume)\n- Turnover for the last and next financial year, split by country, including any USA or Canada sales\n- Claims history for the last 3 years\n\nPlease also confirm whether you need an annual policy covering all business, or cover for this contract only.\n\nWarmest regards,\n{staff first name}",
+  "gaps": [
+   "general_liability exists and fits the contract/products/sme flows, but misses occurrence vs claims-made basis, completed-operations period (24 months seen), contractual liability assumed, territory/jurisdiction and named additional insureds as structured fields.",
+   "No 'annual vs project-specific' field. Two insurers refused project CGL and asked for an annual CGL with the project endorsed in; the client is asked this question in the first reply.",
+   "Construction-contract CGL often ends as EAR/CAR with Section II TPL accepted by the buyer. No cross-line switch from general_liability to construction_car.",
+   "Contract-flow panel lists Zurich; Zurich does not write project CGL. Products panel lists Zurich and AIG; both declined healthcare/healthtech product risks; Allianz declined bio/R&D. Liberty (life science PI/cyber) and AXA XL (specialty GL with pollution) quoted and should be in the products panel.",
+   "No marine liability / bunker trader flow. Marine GL declined by 5 markets; quoted by Markel (Lloyd's). Needs its own question set (role in supply chain, assets, volumes, terms of trade, back-to-back recourse, testing).",
+   "required ['purpose','business','limit'] holds requests without the proposal form; mail shows insurers will not quote without the completed form (6 of 10 submissions carried it).",
+   "documentsToAsk lacks company profile/ACRA, product catalogue, customer contract (hold-harmless), and letter of broker appointment (needed when insurers report being approached).",
+   "liabilitySubmission opening the lines.ts liability opening (keen to quote the following liability risk) matches the mail; the closing 'The completed proposal form is attached' should be conditional on it being attached.",
+   "Turnover field needs a by-territory, current vs next FY table; insurers priced on US/Canada share."
+  ]
+ }
+]

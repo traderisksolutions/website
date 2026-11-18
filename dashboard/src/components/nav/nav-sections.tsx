@@ -48,6 +48,7 @@ export const PLACES: Place[] = [
   { label: 'Quotes', href: '/pricing-matrix', icon: Table2, tabs: [
     { title: 'Employment Benefits', href: '/pricing-matrix' },
     { title: 'Requests for quotes', href: '/rfq' },
+    { title: 'Lines', href: '/lines' },
     { title: 'Insurers', href: '/insurers' },
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
