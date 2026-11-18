@@ -11,9 +11,27 @@ test('company page opens with breadcrumbs and its sections', async ({ page }) =>
 
 test('policies in force are listed, not an empty register', async ({ page }) => {
   // The list once read 0 while 350 were live: a second policies→companies link made the join ambiguous.
-  await openClean(page, '/policies')
+  await openClean(page, '/policies?view=in_force')
   await expect(page.getByText('No policies in this view')).toHaveCount(0)
   expect(await page.locator('tbody tr').count()).toBeGreaterThan(10)
+})
+
+test('Policies opens on Working on: clients by count, a client opens to its policies, Add from emails lists threads', async ({ page }) => {
+  await openClean(page, '/policies')
+  await expect(page.getByText(/policies? working on/)).toBeVisible()
+  const clients = page.getByRole('table', { name: 'Clients with policies being worked on' })
+  await expect(clients.locator('tbody tr').first()).toBeVisible()
+  await clients.locator('tbody tr').first().click()
+  await expect(page.getByRole('table', { name: /^Policies being worked on for / })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: /^Client side, / }).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Add from emails' }).click()
+  const modal = page.getByRole('dialog', { name: 'Add from emails' })
+  await expect(modal.getByRole('listitem').first()).toBeVisible({ timeout: 30_000 })
+  await modal.getByRole('listitem').locator('input[type=checkbox]:not([disabled])').first().check()
+  await modal.getByRole('button', { name: 'Next' }).click()
+  await expect(page.getByRole('dialog', { name: 'Parties and policies' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Add 1 to the list$/ })).toBeVisible()
+  await page.keyboard.press('Escape')
 })
 
 test('closing an edited email asks first in the confirm box; Cancel keeps it, Discard closes it', async ({ page }) => {

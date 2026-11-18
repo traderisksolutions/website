@@ -35,6 +35,8 @@ export type NewLine = {
   contact_ids?: string[] | null
   /** Hold the line: the client still owes data the insurers cannot price without (lines.ts missingData). */
   missing?: string[]
+  /** Set when a person adds the policy from an email thread (Policies › Add from emails). */
+  request_type?: string | null; existing?: boolean | null; renewal_date?: string | null; previous_premium?: number | null
 }
 
 export async function createPlacement(input: {
@@ -54,6 +56,10 @@ export async function createPlacement(input: {
   const inserted = await store.insert<PlacementLine>('placement_lines', input.lines.map((l, i) => ({
     placement_id: placement.id, product_line: l.product_line, label: (l.label ?? '').trim() || productLineLabel(l.product_line),
     spec: normaliseSpec(l.spec), sort: i,
+    ...(l.request_type !== undefined ? { request_type: l.request_type } : {}),
+    ...(l.existing !== undefined ? { existing: l.existing } : {}),
+    ...(l.renewal_date !== undefined ? { renewal_date: l.renewal_date } : {}),
+    ...(l.previous_premium !== undefined ? { previous_premium: l.previous_premium } : {}),
   })))
   // The broker's pick of contacts per line, keyed by the new line id (rows come back in insert order).
   const contactIdsByLine = new Map<string, string[]>()

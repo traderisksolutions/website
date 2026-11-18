@@ -8,6 +8,7 @@ import { fmtDate } from '@/lib/crm/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { LIFECYCLE_LABEL, type PolicyLifecycle } from '@/lib/policies/types'
 import { todaySGT } from '@/lib/sgt-time'
+import { WorkingOn } from '@/components/policies/WorkingOn'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,21 +17,23 @@ type Row = {
   policy_number: string | null; start_date: string | null; end_date: string | null; lifecycle: PolicyLifecycle
   companies: { company_name: string | null } | null
 }
-type View = 'in_force' | 'renewing' | 'quoting' | 'ended' | 'all'
+type View = 'working' | 'in_force' | 'renewing' | 'quoting' | 'ended' | 'all'
 const VIEWS: { value: View; label: string }[] = [
-  { value: 'in_force', label: 'In force' }, { value: 'renewing', label: 'Renewing in 60 days' },
+  { value: 'working', label: 'Working on' }, { value: 'in_force', label: 'In force' }, { value: 'renewing', label: 'Renewing in 60 days' },
   { value: 'quoting', label: 'Quoting' }, { value: 'ended', label: 'Ended' }, { value: 'all', label: 'All' },
 ]
 const LIMIT = 500
 
-/** Every policy across clients. Ranked by expiry, soonest first. */
+/** Every policy across clients: Working on first, then the register ranked by expiry, soonest first. */
 export default async function PoliciesPage({ searchParams }: { searchParams: Promise<{ view?: string; q?: string }> }) {
   const sp = await searchParams
-  const view = (VIEWS.some(v => v.value === sp.view) ? sp.view : 'in_force') as View
+  const view = (VIEWS.some(v => v.value === sp.view) ? sp.view : 'working') as View
   const q = (sp.q ?? '').trim()
+  // Working on: the policies TRS is quoting or renewing, by client (the Workbench revamp, 19 Nov 2026).
+  if (view === 'working') return <WorkingOn filters={<UrlFilters<View> param="view" value={view} options={VIEWS} query={q} placeholder="Client, insurer or policy no." />} />
   const today = todaySGT()
   const in60 = new Date(Date.parse(today) + 60 * 86_400_000).toISOString().slice(0, 10)
-  const filter: Record<View, string> = {
+  const filter: Record<Exclude<View, 'working'>, string> = {
     in_force: 'lifecycle=in.(bound,live,renewal_due)',
     renewing: `lifecycle=in.(bound,live,renewal_due)&end_date=gte.${today}&end_date=lte.${in60}`,
     quoting: 'lifecycle=in.(quoting,presented)',

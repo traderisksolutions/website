@@ -1,6 +1,6 @@
 /**
  * POST /api/placements
- *   { company_id, title?, client_thread_id?, inception_date?, lines: [{ product_line, label?, spec?, contact_ids? }], dispatch?: boolean }
+ *   { company_id, title?, client_thread_id?, inception_date?, lines: [{ product_line, label?, spec?, contact_ids?, request_type?, existing?, renewal_date?, previous_premium? }], dispatch?: boolean }
  *   → { placement, lines, dispatched }
  * Opens the placement and, unless dispatch is false, round 1 on every line with a draft per insurer
  * contact — every contact on file for the line, or only the line's contact_ids when given.
@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { isValidProductLine } from '@/lib/product-lines'
 import { createPlacement, type NewLine } from '@/lib/placement/workflow'
+import { linePatchFrom } from '@/lib/placement/working'
 import { contactIdsFrom, errorResponse, fail, gate, isDate, isSpec, isText, isUuid, readBody, specFrom } from '@/lib/placement/api'
 
 export const dynamic = 'force-dynamic'
@@ -42,7 +43,12 @@ export async function POST(req: NextRequest) {
     if (l.spec != null && !isSpec(l.spec)) return fail('spec must be an object')
     const contact_ids = contactIdsFrom(l.contact_ids)
     if (contact_ids === false) return fail('contact_ids must be a list of contact ids')
-    lines.push({ product_line, label: typeof l.label === 'string' ? l.label : null, spec: specFrom(l.spec), contact_ids: contact_ids ?? null })
+    // The details a person sets when adding the policy from a thread, checked as an update would be.
+    const extra: Record<string, unknown> = {}
+    for (const k of ['request_type', 'existing', 'renewal_date', 'previous_premium'] as const) if (k in l) extra[k] = l[k]
+    const checked = Object.keys(extra).length ? linePatchFrom(extra) : { patch: {} }
+    if ('error' in checked) return fail(checked.error)
+    lines.push({ product_line, label: typeof l.label === 'string' ? l.label : null, spec: specFrom(l.spec), contact_ids: contact_ids ?? null, ...checked.patch })
   }
 
   try {

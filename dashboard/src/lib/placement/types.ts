@@ -75,6 +75,14 @@ export interface PlacementLine {
   confirm_draft_id?: string | null
   confirm_sent_at?: string | null
   insurer_confirmed_at?: string | null
+  /** Policies being worked on (20261119_policy_working.sql): set when the policy is added from an email thread. */
+  request_type?: string | null
+  /** Set by a person; null = worked out from the line's position (src/lib/placement/working.ts). */
+  client_stage?: string | null
+  insurer_stage?: string | null
+  existing?: boolean | null
+  renewal_date?: string | null
+  previous_premium?: number | null
   created_at: string
   updated_at: string
 }

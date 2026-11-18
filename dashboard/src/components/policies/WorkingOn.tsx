@@ -1,0 +1,177 @@
+'use client'
+
+/**
+ * Policies › Working on (19 Nov 2026, the Workbench revamp): one row per client with the number of
+ * policies TRS is working on; opening a client lists them, each linked to its email thread, with
+ * Existing, renewal, previous premium and the two stages a person can set. Add from emails puts new
+ * ones on the list; Remove asks first. Reads /api/placements/working; writes /api/placements/lines/[id].
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { ChevronDown, ChevronRight, X } from 'lucide-react'
+import { PageHeader } from '@/components/page-header'
+import { Btn, Spinner } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { useConfirm } from '@/components/ui/confirm'
+import { fmtDate, num, fmtDateTime } from '@/lib/format'
+import { CLIENT_STAGES, INSURER_STAGES, REQUEST_TYPES, daysTo, type ClientStage, type InsurerStage } from '@/lib/placement/working'
+import { AddFromEmails } from './AddFromEmails'
+
+export type WorkingRow = {
+  line_id: string; placement_id: string; policy_id: string | null; company_id: string; company_name: string
+  label: string; product_line: string; request_type: string | null; existing: boolean | null
+  renewal_date: string | null; previous_premium: number | null
+  client_stage: ClientStage; insurer_stage: InsurerStage; client_set: boolean; insurer_set: boolean
+  quoted: string[]; waiting: string[]; declined: string[]
+  thread_id: string | null; thread_subject: string | null; received: string
+}
+
+const typeWord = (t: string | null) => REQUEST_TYPES.find(([k]) => k === t)?.[1] ?? null
+const today = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
+
+function Track({ at }: { at: number }) {
+  return (
+    <span className="flex gap-[3px] w-[90px] mb-1.5" aria-hidden>
+      {[0, 1, 2, 3, 4].map(i => <i key={i} className="flex-1 h-1 rounded-[2px]" style={{ background: i < at ? 'var(--trs-green)' : i === at ? 'var(--trs-ink)' : 'var(--trs-line-2)' }} />)}
+    </span>
+  )
+}
+
+function StageSelect<T extends string>({ value, list, label, onChange }: { value: T; list: readonly (readonly [T, string])[]; label: string; onChange: (v: T) => void }) {
+  return (
+    <select value={value} aria-label={label} onChange={e => onChange(e.target.value as T)}
+      className="h-[30px] rounded-[7px] border border-trs-line-2 bg-white px-2 text-[13px] text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
+      {list.map(([k, w]) => <option key={k} value={k}>{w}</option>)}
+    </select>
+  )
+}
+
+export function WorkingOn({ filters }: { filters: React.ReactNode }) {
+  const [rows, setRows] = useState<WorkingRow[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const [note, setNote] = useState<React.ReactNode>(null)
+  const [adding, setAdding] = useState<{ company?: { id: string; name: string } } | null>(null)
+  const confirm = useConfirm()
+
+  const load = useCallback(async () => {
+    const r = await fetch('/api/placements/working', { cache: 'no-store' })
+    const j = await r.json().catch(() => ({}))
+    if (!r.ok) { setError(j.error ?? 'Could not load the policies being worked on'); return }
+    setRows(j.rows); setError(null)
+  }, [])
+  useEffect(() => { void load() }, [load])
+
+  const groups = useMemo(() => {
+    const m = new Map<string, { id: string; name: string; rows: WorkingRow[] }>()
+    for (const r of rows ?? []) { const g = m.get(r.company_id) ?? { id: r.company_id, name: r.company_name, rows: [] }; g.rows.push(r); m.set(r.company_id, g) }
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [rows])
+
+  async function patch(r: WorkingRow, body: Record<string, unknown>, words: string) {
+    const res = await fetch(`/api/placements/lines/${r.line_id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    if (!res.ok) { const j = await res.json().catch(() => ({})); setNote(<span className="text-trs-neg">{j.error ?? 'Could not save'}</span>); return false }
+    setNote(<span className="text-trs-pos">✓ Saved · {words} · {fmtDateTime(new Date().toISOString())}</span>)
+    await load(); return true
+  }
+  async function remove(r: WorkingRow) {
+    if (!(await confirm({ title: `Remove ${r.label} for ${r.company_name}?`, body: 'It comes off Policies › Working on. The email thread and the log stay.', action: 'Remove', danger: true }))) return
+    await patch(r, { status: 'dropped' }, `${r.label} removed`)
+  }
+
+  const takenThreads = useMemo(() => new Set((rows ?? []).map(r => r.thread_id).filter((x): x is string => !!x)), [rows])
+  const d = today()
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
+      <PageHeader title="Policies" meta={rows ? `${groups.length} ${groups.length === 1 ? 'client' : 'clients'} · ${rows.length} ${rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}
+        actions={<>
+          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-[11px] text-trs-muted">Pending AI build</span></span>
+          <Btn level="primary" onClick={() => setAdding({})}>Add from emails</Btn>
+        </>}>
+        {filters}
+      </PageHeader>
+      {note && <div className="text-[13px]" role="status">{note}</div>}
+      {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+      {!rows && !error && <Spinner label="Loading the policies being worked on" />}
+      {rows && (
+        <Register label="Clients with policies being worked on" minWidth={480}>
+          <RegisterHead><RegisterTh first>Company</RegisterTh><RegisterTh last>Policies working on</RegisterTh></RegisterHead>
+          <tbody>
+            {groups.length === 0 && <RegisterEmpty colSpan={2}>No policies are being worked on. Add one from an email thread.</RegisterEmpty>}
+            {groups.map(g => {
+              const isOpen = !!open[g.id]
+              return [
+                <RegisterRow key={g.id} selected={isOpen} onClick={() => setOpen(o => ({ ...o, [g.id]: !o[g.id] }))}>
+                  <RegisterCell first identityWidth={320} primary={<span className="inline-flex items-center gap-2">{isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{g.name}</span>} />
+                  <RegisterCell last primary={g.rows.length} />
+                </RegisterRow>,
+                isOpen && (
+                  <tr key={g.id + ':detail'} className="reg-group"><td colSpan={2} className="cell-left px-4 pt-1 pb-4 bg-white">
+                    <Register label={`Policies being worked on for ${g.name}`} minWidth={1060}>
+                      <RegisterHead>
+                        <RegisterTh first>Policy</RegisterTh><RegisterTh>Existing</RegisterTh><RegisterTh>Renewal</RegisterTh><RegisterTh>Previous premium S$</RegisterTh>
+                        <RegisterTh>Client side</RegisterTh><RegisterTh>Insurer side</RegisterTh><RegisterTh last> </RegisterTh>
+                      </RegisterHead>
+                      <tbody>
+                        {g.rows.map(r => {
+                          const days = daysTo(r.renewal_date, d)
+                          const ci = CLIENT_STAGES.findIndex(([k]) => k === r.client_stage), ii = INSURER_STAGES.findIndex(([k]) => k === r.insurer_stage)
+                          return (
+                            <RegisterRow key={r.line_id}>
+                              <RegisterCell first identityWidth={260} nowrap={false}>
+                                {r.thread_id
+                                  ? <Link href={`/engagement?lead=${r.thread_id}`} className="block text-[13.5px] font-medium text-trs-ink underline decoration-trs-line-2 underline-offset-[3px]" title="Open the email thread">{r.label} ↗</Link>
+                                  : <span className="block text-[13.5px] font-medium text-trs-ink">{r.label}</span>}
+                                <span className="block text-[12px] text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
+                                {r.thread_subject && <span className="block text-[12px] text-trs-muted truncate">Email · {r.thread_subject}</span>}
+                                {r.policy_id && <Link href={`/policies/${r.policy_id}`} className="text-[12px] text-trs-green">Policy page</Link>}
+                              </RegisterCell>
+                              <RegisterCell primary={r.existing == null ? '—' : r.existing ? 'Yes' : 'No'} />
+                              <RegisterCell primary={r.renewal_date ? fmtDate(r.renewal_date) : '—'} secondary={days != null ? <span className={days <= 21 ? 'text-trs-neg' : ''}>{days} days</span> : undefined} />
+                              <RegisterCell primary={r.previous_premium != null ? num(r.previous_premium, 0) : '—'} />
+                              <RegisterCell nowrap={false}>
+                                <div className="flex flex-col items-center"><Track at={ci} />
+                                  <StageSelect value={r.client_stage} list={CLIENT_STAGES} label={`Client side, ${r.label}`} onChange={v => void patch(r, { client_stage: v }, `${r.label} client side ${CLIENT_STAGES.find(([k]) => k === v)?.[1]}`)} /></div>
+                              </RegisterCell>
+                              <RegisterCell nowrap={false}>
+                                <div className="flex flex-col items-center"><Track at={ii} />
+                                  <StageSelect value={r.insurer_stage} list={INSURER_STAGES} label={`Insurer side, ${r.label}`} onChange={v => void patch(r, { insurer_stage: v }, `${r.label} insurer side ${INSURER_STAGES.find(([k]) => k === v)?.[1]}`)} />
+                                  {(r.quoted.length > 0 || r.waiting.length > 0 || r.declined.length > 0) && (
+                                    <span className="mt-1.5 max-w-[260px] whitespace-normal text-[12px] text-trs-muted">
+                                      {[r.quoted.length ? <span key="q" className="text-trs-pos">{r.quoted.join(', ')} quoted</span> : null,
+                                        r.waiting.length ? <span key="w">{r.waiting.join(', ')} waiting</span> : null,
+                                        r.declined.length ? <span key="d" className="text-trs-neg">{r.declined.join(', ')} declined</span> : null]
+                                        .filter(Boolean).flatMap((x, i) => i ? [' · ', x] : [x])}
+                                    </span>)}
+                                </div>
+                              </RegisterCell>
+                              <RegisterCell last>
+                                <button type="button" aria-label={`Remove ${r.label}`} onClick={() => void remove(r)}
+                                  className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full border-0 bg-transparent text-trs-subtle cursor-pointer hover:bg-trs-field hover:text-trs-ink"><X size={14} /></button>
+                              </RegisterCell>
+                            </RegisterRow>
+                          )
+                        })}
+                      </tbody>
+                    </Register>
+                    <Btn size="xs" level="tertiary" className="mt-2" onClick={() => setAdding({ company: { id: g.id, name: g.name } })}>+ Add policy for {g.name}</Btn>
+                  </td></tr>
+                ),
+              ]
+            })}
+          </tbody>
+        </Register>
+      )}
+      {adding && <AddFromEmails company={adding.company} taken={takenThreads} onClose={() => setAdding(null)}
+        onAdded={async (n, cos, lineIds) => {
+          setAdding(null); setOpen(o => ({ ...o, ...Object.fromEntries(cos.map(c => [c, true])) })); await load()
+          setNote(<span className="inline-flex items-center gap-3"><span className="text-trs-pos">✓ Added {n} {n === 1 ? 'policy' : 'policies'} · {fmtDateTime(new Date().toISOString())}</span>
+            <button type="button" className="border-0 bg-transparent p-0 text-trs-muted underline cursor-pointer" onClick={async () => {
+              await Promise.all(lineIds.map(id => fetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
+              setNote(<span className="text-trs-muted">Undone · {n} {n === 1 ? 'policy' : 'policies'} taken off the list</span>); await load()
+            }}>Undo</button></span>)
+        }} />}
+    </div>
+  )
+}
