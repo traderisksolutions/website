@@ -1,0 +1,116 @@
+'use client'
+
+/**
+ * Add email threads: tick Inbox threads, say for each whether it is with the client or an insurer,
+ * and which client it is about. Nothing else joins Today; every add and remove is kept, so a later
+ * version can learn which threads people put here and suggest them.
+ */
+import { useEffect, useMemo, useState } from 'react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { X } from 'lucide-react'
+import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
+import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
+import { callApi, errText } from '@/components/placement/shared'
+import { fmtDay } from '@/lib/format'
+import type { DeskSide } from '@/lib/today/desk'
+
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
+type Pick = { side: DeskSide; client: CompanyPick }
+
+const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
+const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
+const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13.5px] text-trs-ink'
+
+export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; onClose: () => void; onAdded: (n: number) => void }) {
+  const [convs, setConvs] = useState<Conv[] | null>(null)
+  const [q, setQ] = useState('')
+  const [picked, setPicked] = useState<Map<string, Pick>>(new Map())
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => { void (async () => {
+    const r = await fetch('/api/engagement/conversations', { cache: 'no-store' })
+    const j = await r.json().catch(() => [])
+    setConvs(Array.isArray(j) ? j : [])
+  })() }, [])
+
+  const nameOf = useMemo(() => new Map((convs ?? []).filter(c => c.companyId && c.companyName).map(c => [c.companyId!, c.companyName!])), [convs])
+  const shown = useMemo(() => {
+    const t = q.trim().toLowerCase()
+    return (convs ?? []).filter(c => !taken.has(c.thread_id))
+      .filter(c => !t || [subjectOf(c), senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
+  }, [convs, q, taken])
+
+  function toggle(c: Conv) {
+    setPicked(p => {
+      const n = new Map(p)
+      if (n.has(c.thread_id)) { n.delete(c.thread_id); return n }
+      const side: DeskSide = c.companyKind === 'insurer' ? 'insurer' : 'client'
+      const clientId = side === 'insurer' ? c.clientCompanyId : c.companyId
+      n.set(c.thread_id, { side, client: clientId ? { id: clientId, name: (side === 'insurer' ? nameOf.get(clientId) : c.companyName) ?? '' } : { id: null, name: '' } })
+      return n
+    })
+  }
+  const set = (id: string, f: (p: Pick) => Pick) => setPicked(p => { const n = new Map(p); const cur = n.get(id); if (cur) n.set(id, f(cur)); return n })
+
+  async function add() {
+    setBusy(true); setError(null)
+    try {
+      const threads = [...picked].map(([threadId, p]) => ({ threadId, side: p.side, companyId: p.client.id }))
+      const r = await callApi<{ added: number }>('/api/today/desk', { method: 'POST', body: { action: 'add', threads } })
+      onAdded(r.added)
+    } catch (e) { setError(errText(e)) } finally { setBusy(false) }
+  }
+
+  const clients = new Set([...picked.values()].map(p => p.client.id ?? p.client.name).filter(Boolean)).size
+
+  return (
+    <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(980px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-6 md:px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
+          <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold tracking-[-0.02em] text-trs-ink">Add email threads</DialogPrimitive.Title>
+          <input type="search" aria-label="Search threads" placeholder="Search subject, sender or company" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          <div className="min-h-0 flex-1 overflow-auto rounded-[10px] border border-trs-line-2">
+            {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-[13.5px] text-trs-muted">No threads match.</p> : (
+              <table className="trs-table min-w-[760px]">
+                <thead><tr><th className="w-10"><span className="sr-only">Add</span></th><th>Thread</th><th className="w-[92px]">Last</th><th className="w-[230px]">Client</th><th className="w-[130px]">Side</th></tr></thead>
+                <tbody>
+                  {shown.map(c => {
+                    const p = picked.get(c.thread_id)
+                    return (
+                      <tr key={c.thread_id} aria-selected={!!p}>
+                        <td><input type="checkbox" aria-label={`Add ${subjectOf(c)}`} checked={!!p} onChange={() => toggle(c)} /></td>
+                        <td className="cell-left !text-left">
+                          <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
+                          <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
+                        </td>
+                        <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
+                        <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>
+                        <td>{p ? (
+                          <select aria-label="Side" value={p.side} onChange={e => set(c.thread_id, x => ({ ...x, side: e.target.value as DeskSide }))} className={selCls}>
+                            <option value="client">Client</option>
+                            <option value="insurer">Insurer</option>
+                          </select>
+                        ) : null}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[13px] text-trs-muted">{picked.size} thread{picked.size === 1 ? '' : 's'} · {clients} client{clients === 1 ? '' : 's'}</span>
+            <div className="flex gap-2">
+              <Btn onClick={onClose} disabled={busy}>Cancel</Btn>
+              <Btn level="primary" onClick={add} loading={busy} disabled={busy || picked.size === 0}>Add to Today</Btn>
+            </div>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  )
+}

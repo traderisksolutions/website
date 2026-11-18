@@ -4,6 +4,14 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Today: clients added by hand, To client and To insurer, Read
+
+- **Today** (`src/app/today/page.tsx`, `src/components/today/desk/`): a person adds email threads by hand (Add email threads: tick threads, Client or Insurer, the client). One row per client, folded by default; open, it shows To client and To insurer with every unsent email on the row's threads, each with Edit and Send. Send runs the thread rail's path (`/api/drafts/:id`, then `/api/email/send`, unchanged). By client sorts the most emails to send first; By email lists every unsent email oldest first. An employee picker shows anyone's list or Everyone. Remove asks first and keeps the threads and drafts.
+- **Read** (`src/lib/today/desk-read.ts`, `POST /api/today/desk {action:'read'|'draft'}`): one deep-model read of a row, started by a button: every thread on the row in full, the client's other threads of 120 days, policies, open placements and unsent drafts. Returns a summary (under 20 words), up to five points and suggested emails to tick; Draft writes the ticked ones. Code keeps one unsent email per person (`oneEmailPerPerson`): a second email to someone with a draft becomes an action to add to it.
+- **Thread rail Read**: drafting moved to `writeStepDraft` in `src/lib/chief/read.ts`, shared with Today. A reply now always keeps the thread's subject.
+- The earlier case list moved to `/today/queue`; its old links (`?view=`, `?bridge=`) are sent there.
+- Table `today_threads` (`20261119_today_threads.sql`, additive; applied 19 Nov): one row per person per thread, every add and remove kept for a later learning loop. Requests to insurers from a placement are not on Today yet.
+
 ## 2026-11-16 — Renewal Season: wish list, comparison and client summary
 
 - **Client wish list** (`WishListDialog.tsx`, `work_item_notes.need`): the Wish list count on a Renewal Season row opens the case's wish list. A person types a wish and grades it Must have or Good to have; Set aside takes one off. The grade shows on the Brief.
