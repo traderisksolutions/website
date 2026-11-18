@@ -1,36 +1,27 @@
 'use client'
 
 /**
- * Today: the morning list. Every open case that needs a person, in four groups: Ready to send,
- * Decide, To act, Read. "Come back later" holds a case until a time or until the other side
- * replies. j/k move, Enter opens. Nothing sends from here; Review and send opens the case.
- * Mail lists every thread by label (MailView); the Inbox stays where mail is read.
+ * Today: the clients a person is working on, added by hand from their email threads, with every
+ * unsent email on those threads split into To client and To insurer. Clear it top to bottom: read,
+ * edit, send. By client groups the emails per client; By email lists them oldest first. The earlier
+ * case list lives at /today/queue; its old links (?view=, ?bridge=) are sent there.
  */
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Btn, Chip, Segmented, Spinner, Empty, LinkBtn } from '@/components/crm/primitives'
+import { Plus } from 'lucide-react'
+import { Btn, Chip, Empty, Segmented, Spinner } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
 import { callApi, errText } from '@/components/placement/shared'
-import { CASE_TYPE, STATUS, LaterMenu, fmtDate } from '@/components/assistant/shared'
-import { ComingUp } from '@/components/today/ComingUp'
-import { EbRenewals } from '@/components/today/EbRenewals'
-import { MailView } from '@/components/today/MailView'
-import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
-import { LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
-import { homeBridgeOf, BRIDGE_LABEL as HOME_BRIDGE_LABEL, LEVEL_LABEL, type PendingLevel, type Side } from '@/lib/today/pending'
-import type { TodayItem } from '@/lib/today/data'
+import { AddThreads } from '@/components/today/desk/AddThreads'
+import { ClientRow } from '@/components/today/desk/ClientRow'
+import { DraftCard, sendDraft } from '@/components/today/desk/DraftCard'
+import { timeAgo } from '@/lib/format'
+import { emailList, type DeskRow } from '@/lib/today/desk'
 
-type Who = 'mine' | 'all'
-type View = 'list' | 'coming' | 'mail'
-const asView = (v: string | null): View => (v === 'coming' || v === 'mail' ? v : 'list')
-type Group = 'send' | 'decide' | 'act' | 'read' | 'later'
-const GROUPS: { key: Group; label: string }[] = [
-  { key: 'send', label: 'Ready to send' }, { key: 'decide', label: 'Decide' },
-  { key: 'act', label: 'To act' }, { key: 'read', label: 'Read' }, { key: 'later', label: 'Come back later' },
-]
-const BRIDGE_LABEL: Record<string, string> = HOME_BRIDGE_LABEL
-const SIDE_LABEL: Record<string, string> = { client: 'waiting on client', insurer: 'waiting on insurer', trs: 'for TRS' }
+type View = 'client' | 'email'
+type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string }
+const OLD_PARAMS = ['view', 'bridge', 'level', 'side']
+const firstName = (email: string) => { const f = email.split('@')[0].split(/[._]/)[0]; return f.charAt(0).toUpperCase() + f.slice(1) }
 
 export default function TodayRoute() {
   return <Suspense fallback={null}><TodayPage /></Suspense>
@@ -39,149 +30,116 @@ export default function TodayRoute() {
 function TodayPage() {
   const router = useRouter()
   const params = useSearchParams()
-  const bridge = params.get('bridge')
-  const level = params.get('level') as PendingLevel | null
-  const side = params.get('side') as Side | null
-  const [items, setItems] = useState<TodayItem[] | null>(null)
-  const [me, setMe] = useState<string | null>(null)
-  const [who, setWho] = useState<Who>('mine')
-  const [view, setView] = useState<View>(asView(params.get('view')))
-  const [showLater, setShowLater] = useState(false)
-  const [mailCount, setMailCount] = useState<number | null>(null)
-  const [cursor, setCursor] = useState(0)
+  const old = OLD_PARAMS.some(p => params.has(p))
+  const [desk, setDesk] = useState<Desk | null>(null)
+  const [who, setWho] = useState<string | null>(null)
+  const [view, setView] = useState<View>('client')
+  const [open, setOpen] = useState<Set<string>>(new Set())
+  const [adding, setAdding] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { if (old) router.replace(`/today/queue?${params.toString()}`) }, [old, params, router])
 
   const load = useCallback(() => {
-    callApi<{ items: TodayItem[]; me: string | null }>('/api/today')
-      .then(d => { setItems(d.items); setMe(d.me); if (d.me && !d.items.some(i => i.owner_email === d.me)) setWho('all') })
-      .catch(e => setError(errText(e)))
-  }, [])
-  useEffect(() => { load() }, [load])
+    const q = who ? `?who=${encodeURIComponent(who)}` : ''
+    callApi<Desk>(`/api/today/desk${q}`).then(d => {
+      setDesk(d)
+      // The first time, open the client at the top so the page shows what a row holds.
+      setOpen(o => (o.size || !d.rows[0] ? o : new Set([d.rows[0].key])))
+    }).catch(e => setError(errText(e)))
+  }, [who])
+  useEffect(() => { if (!old) load() }, [load, old])
 
-  const scoped = useMemo(() => (items ?? [])
-    .filter(i => who === 'all' || i.owner_email === me || !i.owner_email)
-    .filter(i => !bridge || homeBridgeOf(i.case_type) === bridge)
-    .filter(i => !level || i.pending.level === level)
-    .filter(i => !side || i.side === side), [items, who, me, bridge, level, side])
-  const count = (g: Group) => scoped.filter(i => i.group === g).length
-  // The rows j/k walk: every visible group, Later only when it is open.
-  const flat = useMemo(() => GROUPS.filter(g => g.key !== 'later' || showLater).flatMap(g => scoped.filter(i => i.group === g.key)), [scoped, showLater])
+  const rows = useMemo(() => desk?.rows ?? [], [desk])
+  const emails = useMemo(() => emailList(rows), [rows])
+  const toClient = emails.filter(d => d.side === 'client').length
+  const me = desk?.me ?? ''
+  const people = useMemo(() => Array.from(new Set([me, ...(desk?.owners ?? [])].filter(Boolean))), [desk, me])
+  const allOpen = rows.length > 0 && rows.every(r => open.has(r.key))
+  const taken = useMemo(() => new Set(rows.filter(r => r.owner === me).flatMap(r => r.threads.map(t => t.threadId))), [rows, me])
+  const done = (m: string) => { setNotice(m); setError(null); load() }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement
-      if (t.closest('input,textarea,select,[contenteditable="true"],[role="menu"]')) return
-      if (e.key === 'j') setCursor(c => Math.min(c + 1, Math.max(flat.length - 1, 0)))
-      else if (e.key === 'k') setCursor(c => Math.max(c - 1, 0))
-      else if (e.key === 'Enter' && flat[cursor]) router.push(`/today/${flat[cursor].id}`)
-      else return
-      e.preventDefault()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [flat, cursor, router])
-  useEffect(() => { listRef.current?.querySelector<HTMLElement>(`[data-row="${cursor}"]`)?.scrollIntoView({ block: 'nearest' }) }, [cursor])
-
-  const done = (msg: string) => { setNotice(msg); setError(null); load() }
-  const active = scoped.filter(i => i.group !== 'later').length
-
+  if (old) return null
   return (
-    <div className={`px-4 md:px-8 py-6 mx-auto w-full min-w-0 ${view === 'mail' ? 'max-w-[1180px]' : 'max-w-[980px]'}`}>
+    <div className="px-4 md:px-8 py-6 mx-auto w-full max-w-[1320px] min-w-0">
       <PageHeader className="mb-5" title="Today"
-        meta={view === 'mail' ? (mailCount == null ? undefined : `${mailCount.toLocaleString('en-SG')} thread${mailCount === 1 ? '' : 's'}`) : items ? `${active} to go through · ${count('send')} ready to send · ${count('decide')} decisions · ${count('act')} to act · ${count('read')} to read` : undefined}
-        actions={view === 'list' && flat[0] && <LinkBtn level="primary" href={`/today/${flat[0].id}`}>Start</LinkBtn>}>
-        <Segmented<View> value={view} onChange={setView} label="View" options={[
-          { value: 'list', label: 'To do', count: items ? active : undefined },
-          { value: 'coming', label: 'Coming up' },
-          { value: 'mail', label: 'Mail' },
-        ]} />
-        {view === 'list' && <Segmented<Who> value={who} onChange={setWho} label="Owner" options={[
-          { value: 'mine', label: 'Mine', count: (items ?? []).filter(i => i.group !== 'later' && (i.owner_email === me || !i.owner_email)).length },
-          { value: 'all', label: 'Everyone', count: (items ?? []).filter(i => i.group !== 'later').length },
-        ]} />}
-        {view === 'list' && (bridge || level || side) && <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">{[bridge && (BRIDGE_LABEL[bridge] ?? bridge), level && LEVEL_LABEL[level], side && SIDE_LABEL[side]].filter(Boolean).join(' · ')}<Link href="/today" className="text-trs-ink">Show all</Link></span>}
+        meta={desk ? `${rows.length} client${rows.length === 1 ? '' : 's'} · ${toClient} to client · ${emails.length - toClient} to insurer` : undefined}
+        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads</Btn>}>
+        <select aria-label="Whose Today" value={desk?.who ?? 'me'} onChange={e => setWho(e.target.value)} className="h-[30px] rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13px] font-medium text-trs-ink">
+          {people.map(p => <option key={p} value={p}>{firstName(p)}{p === me ? ' (me)' : ''}</option>)}
+          <option value="all">Everyone</option>
+        </select>
+        <Segmented<View> value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }]} />
+        {view === 'client' && rows.length > 0 && <Btn size="xs" level="tertiary" onClick={() => setOpen(allOpen ? new Set() : new Set(rows.map(r => r.key)))}>{allOpen ? 'Fold all' : 'Unfurl all'}</Btn>}
       </PageHeader>
 
-      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
+      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
 
-      {view === 'mail' ? <MailView onCount={setMailCount} /> : view === 'coming' ? <><EbRenewals /><ComingUp /></> : !items ? <Spinner label="Loading today’s list…" /> : active === 0 && count('later') === 0 ? <Empty>Nothing waiting on you.</Empty> : (
-        <div ref={listRef} className="rounded-[10px] border border-trs-line bg-white overflow-hidden">
-          {GROUPS.map(g => {
-            const rows = scoped.filter(i => i.group === g.key)
-            if (!rows.length) return null
-            const collapsed = g.key === 'later' && !showLater
-            return (
-              <section key={g.key} aria-label={g.label}>
-                <div className="flex items-center justify-between px-4 h-9 bg-trs-canvas border-b border-trs-line">
-                  <h2 className="m-0 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">{g.label}</h2>
-                  {g.key === 'later'
-                    ? <button type="button" onClick={() => setShowLater(v => !v)} className="bg-transparent border-0 cursor-pointer text-[12.5px] text-trs-muted hover:text-trs-ink">{collapsed ? `Show ${rows.length}` : 'Hide'}</button>
-                    : <span className="font-mono text-[11.5px] text-trs-muted">{rows.length}</span>}
-                </div>
-                {!collapsed && rows.map(i => {
-                  const n = flat.indexOf(i)
-                  return <Row key={i.id} item={i} on={n === cursor} index={n} onFocus={() => setCursor(n)} onDone={done} onError={setError} />
-                })}
-              </section>
-            )
-          })}
-        </div>
-      )}
-      {view === 'list' && <p className="m-0 mt-3 text-[12px] text-trs-muted hidden md:block">j and k move · Enter opens</p>}
+      {!desk ? <Spinner label="Loading Today…" />
+        : rows.length === 0 ? <Empty>No clients on this list. Add email threads to start.</Empty>
+          : view === 'client' ? (
+            <div className="flex flex-col gap-3.5">
+              {rows.map(r => (
+                <ClientRow key={r.key} row={r} me={me} showOwner={desk.who === 'all'} open={open.has(r.key)}
+                  onToggle={() => setOpen(o => { const n = new Set(o); if (n.has(r.key)) n.delete(r.key); else n.add(r.key); return n })}
+                  onChange={load} onNotice={setNotice} />
+              ))}
+            </div>
+          ) : <ByEmail emails={emails} onDone={done} />}
+
+      {adding && <AddThreads taken={taken} onClose={() => setAdding(false)} onAdded={n => { setAdding(false); done(`${n} thread${n === 1 ? '' : 's'} added.`) }} />}
     </div>
   )
 }
 
-function Row({ item: i, on, index, onFocus, onDone, onError }: { item: TodayItem; on: boolean; index: number; onFocus: () => void; onDone: (m: string) => void; onError: (m: string) => void }) {
-  const [busy, setBusy] = useState(false)
-  const st = STATUS[i.status] ?? STATUS.trs_to_act
-  const forward = i.draft?.kind === 'forward_to_insurer'
-  const n = (i.draft ? 1 : 0) + i.paired.length
-
-  async function seen() {
-    setBusy(true)
-    try { await callApi(`/api/today/${i.id}`, { method: 'POST', body: { action: 'seen' } }); onDone(`Read: ${i.title}.`) }
-    catch (e) { onError(errText(e)) } finally { setBusy(false) }
+function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onDone: (m: string) => void }) {
+  const [editing, setEditing] = useState<string | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  if (!emails.length) return <Empty>No emails to send. Open a client and Read to get suggestions.</Empty>
+  async function send(d: (typeof emails)[number]) {
+    setBusy(d.id); setError(null)
+    try { await sendDraft(d, d); onDone(`Sent to ${d.to}.`) } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  async function back() {
-    setBusy(true)
-    try { await callApi(`/api/work/${i.id}/later`, { method: 'POST', body: { choice: null } }); onDone(`Back on the list: ${i.title}.`) }
-    catch (e) { onError(errText(e)) } finally { setBusy(false) }
-  }
-
   return (
-    <div data-row={index} onMouseEnter={onFocus}
-      className={`grid grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1fr)_auto] gap-3 px-4 py-3 border-b border-trs-line last:border-b-0 ${on ? 'bg-trs-canvas shadow-[inset_3px_0_0_var(--trs-green)]' : ''}`}>
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(i.pending.level === 'red' || i.pending.level === 'amber') && <span title={i.pending.reason} className={`inline-block w-2 h-2 rounded-full ${i.pending.level === 'red' ? 'bg-trs-neg' : 'bg-trs-warn'}`} />}
-          <Chip>{CASE_TYPE[i.case_type] ?? i.case_type}</Chip>
-          {isStage(i.stage) && <Chip tone="blue">{STAGE_LABEL[i.stage]}</Chip>}
-          <span className="text-[12.5px] text-trs-muted truncate">{i.client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}</span>
-          {i.group === 'act' && <Chip tone={st.tone}>{st.label}</Chip>}
-          {i.group === 'later' && <Chip>{i.later_when ? LATER_LABEL[i.later_when as LaterChoice] : `Back ${fmtDate(i.later_until)}`}</Chip>}
-        </div>
-        <Link href={`/today/${i.id}`} className="block mt-1 text-[15px] font-medium leading-snug text-trs-ink no-underline hover:underline">{i.title}</Link>
-        {i.needs_human && <p className="m-0 mt-1.5 text-[13.5px] text-trs-ink-2"><span className="text-trs-neg">Decide: </span>{i.needs_human}</p>}
-        {i.draft && !i.needs_human && (
-          <div className="mt-1.5 rounded-[8px] border border-trs-line bg-trs-canvas px-3 py-2 text-[13px] text-trs-ink-2">
-            <div className="text-[12px] text-trs-muted truncate">To {i.draft.to}{n > 1 ? ` · + ${n - 1} paired` : ''}</div>
-            <div className="line-clamp-2 whitespace-pre-line">{i.draft.body.replace(/\{owner_name\}/g, '').split('\n').filter(Boolean).slice(0, 3).join(' ')}</div>
-          </div>
-        )}
-        {!i.draft && !i.needs_human && i.next_action && <p className="m-0 mt-1.5 text-[13.5px] text-trs-ink-2">{i.next_action}</p>}
+    <>
+      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      <div className="overflow-x-auto rounded-[10px] border border-trs-line-2 bg-white">
+        <table className="trs-table min-w-[980px]">
+          <thead><tr><th className="sticky left-0 z-[1] bg-[#f0f2ee]">Client</th><th className="w-[110px]">Side</th><th className="w-[200px]">To</th><th>Subject</th><th className="w-[96px]">Drafted</th><th className="w-[150px]">Action</th></tr></thead>
+          <tbody>
+            {emails.map(d => (
+              <FragmentRow key={d.id} open={editing === d.id}
+                row={(
+                  <tr>
+                    <td className="cell-left !text-left sticky left-0 z-[1] bg-white font-medium">{d.companyName}</td>
+                    <td><Chip tone={d.side === 'insurer' ? 'green' : 'blue'}>{d.side === 'insurer' ? 'To insurer' : 'To client'}</Chip></td>
+                    <td className="!text-left truncate max-w-[200px]" title={d.to}>{d.person ?? d.to}</td>
+                    <td className="!text-left truncate max-w-[420px]" title={d.subject}>{d.subject}</td>
+                    <td className="font-mono text-[12px] text-trs-muted">{timeAgo(d.createdAt)}</td>
+                    <td>
+                      <span className="inline-flex gap-1.5">
+                        <Btn size="xs" onClick={() => setEditing(e => (e === d.id ? null : d.id))} disabled={!!busy}>{editing === d.id ? 'Close' : 'Edit'}</Btn>
+                        <Btn size="xs" level="primary" onClick={() => send(d)} loading={busy === d.id} disabled={!!busy || editing === d.id}>Send</Btn>
+                      </span>
+                    </td>
+                  </tr>
+                )}
+                detail={(
+                  <tr><td colSpan={6} className="!text-left !h-auto bg-trs-tint p-3">
+                    <DraftCard draft={d} startEditing onSent={to => { setEditing(null); onDone(`Sent to ${to}.`) }} onDiscarded={() => { setEditing(null); onDone('Email discarded.') }} />
+                  </td></tr>
+                )} />
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div className="flex flex-wrap items-start justify-start md:justify-end gap-1.5">
-        {i.group === 'later' ? <Btn size="xs" loading={busy} onClick={() => void back()}>Bring back</Btn> : <>
-          {i.group === 'read'
-            ? <Btn size="xs" loading={busy} onClick={() => void seen()}>Mark read</Btn>
-            : <LinkBtn size="xs" href={`/today/${i.id}`}>{i.group === 'decide' ? 'Decide' : i.draft ? (forward ? 'Review and forward' : 'Review and send') : 'Open'}</LinkBtn>}
-          <LaterMenu itemId={i.id} onSet={l => onDone(`${l}: ${i.title}.`)} onError={onError} />
-        </>}
-      </div>
-    </div>
+    </>
   )
+}
+
+function FragmentRow({ row, detail, open }: { row: React.ReactNode; detail: React.ReactNode; open: boolean }) {
+  return <>{row}{open && detail}</>
 }

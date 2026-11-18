@@ -145,6 +145,8 @@ export type AiFeature =
   | 'crm_next_reply'
   | 'thread_read'
   | 'thread_read_draft'
+  | 'today_read'
+  | 'today_read_draft'
   // The placement agent (27 Oct 2026): request → insurers → quotes → client, round after round.
   | 'placement_intake'
   | 'placement_dispatch_draft'

@@ -104,7 +104,7 @@ const trim = (s: string | null | undefined, n: number) => String(s ?? '').replac
 const bareAddress = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()
 const bareName = (a: string | null | undefined) => (String(a ?? '').includes('<') ? String(a).split('<')[0].replace(/"/g, '').trim() : '') || null
 
-async function routesOnFile(): Promise<ReadRoute[]> {
+export async function routesOnFile(): Promise<ReadRoute[]> {
   const products = await listProducts({ activeOnly: true }).catch(() => [])
   return products.flatMap((p: Row) => (p.contacts ?? []).filter((c: Row) => c.email).map((c: Row) => ({
     insurer: String(p.insurer_name ?? ''), productLine: String(p.product_line ?? ''), email: String(c.email).toLowerCase(), name: c.name ?? null, contactId: c.contact_id ?? null, isDefault: !!c.is_default,
@@ -179,32 +179,50 @@ export async function executePlan(threadId: string, stepIds: readonly string[], 
     if (!picked.has(step.id) || step.status !== 'proposed') continue
     if (step.kind === 'action') { step.status = 'todo'; continue }
     if (!step.to) continue
-    const prompt = [
-      `TO: ${step.to.name ?? step.to.email} <${step.to.email}>${step.party === 'insurer' ? ` at ${step.insurer}` : ' (the client)'}`,
-      `PURPOSE: ${step.title}. ${step.detail}`,
-      `THREAD SUBJECT: ${ctx.thread.subject ?? ''}`,
-      '', ctx.text.slice(0, 20_000),
-    ].join('\n')
-    const r = await callGemini({ agent: 'crm', feature: 'thread_read_draft', model: GEMINI_FLASH, system: DRAFT_SYSTEM, parts: [{ text: prompt }], json: true, maxOutputTokens: 2_500, thinkingShare: 0.2, temperature: 0.3, metadata: { thread_id: threadId, step: step.id } })
-    if (!r.text) throw new Error(r.error ?? `No draft for "${step.title}".`)
-    let out: { subject?: string; body?: string }
-    try { out = JSON.parse(r.text.replace(/^```(?:json)?\s*|\s*```$/g, '')) } catch { throw new Error(`The draft for "${step.title}" was not readable.`) }
-    const subject = (out.subject ?? '').trim() || (step.party === 'client' && ctx.thread.subject ? `Re: ${String(ctx.thread.subject).replace(/^\s*((re|fw|fwd)\s*:\s*)+/i, '')}` : step.title)
-    const body = (out.body ?? '').trim()
-    if (!body) throw new Error(`The draft for "${step.title}" came back empty.`)
-    const contactId = step.to.contactId ?? await contactIdFor(step.to.email, step.to.name)
-    if (!contactId) throw new Error(`Could not record ${step.to.email} as a contact.`)
-    const [d] = await sb<Row[]>('ai_drafts', {
-      method: 'POST', headers: { Prefer: 'return=representation' },
-      body: JSON.stringify({
-        contact_id: contactId, thread_id: step.party === 'client' ? threadId : null, channel: 'email', email_type: 'CASE_WORK', status: 'pending', generated_by: 'gemini',
-        to_email: step.to.email, subject, body, attachments: [], party: step.party, context_used: { agent: 'bar', kind: 'read_step', step: step.id, thread_id: threadId, insurer: step.insurer },
-      }),
+    step.draftId = await writeStepDraft(step, {
+      text: ctx.text, subject: ctx.thread.subject ?? null, replyThreadId: step.party === 'client' ? threadId : null,
+      feature: 'thread_read_draft', context: { agent: 'bar', kind: 'read_step', step: step.id, thread_id: threadId, insurer: step.insurer },
     })
-    step.status = 'drafted'; step.draftId = d?.id ?? null
+    step.status = 'drafted'
   }
   await savePlan(threadId, plan)
   return plan
+}
+
+/**
+ * One email step written as a pending draft, one address in To. The model writes the words; the
+ * recipient, thread and party come from the step. Returns the draft's id. Shared by the thread bar
+ * and Today (src/lib/today/desk-read.ts).
+ */
+export async function writeStepDraft(step: ReadStep, w: {
+  text: string; subject: string | null; replyThreadId: string | null
+  feature: 'thread_read_draft' | 'today_read_draft'; context: Row
+}): Promise<string | null> {
+  if (!step.to) throw new Error(`"${step.title}" has no recipient.`)
+  const prompt = [
+    `TO: ${step.to.name ?? step.to.email} <${step.to.email}>${step.party === 'insurer' ? ` at ${step.insurer}` : ' (the client)'}`,
+    `PURPOSE: ${step.title}. ${step.detail}`,
+    `THREAD SUBJECT: ${w.subject ?? ''}`,
+    '', w.text.slice(0, 20_000),
+  ].join('\n')
+  const r = await callGemini({ agent: 'crm', feature: w.feature, model: GEMINI_FLASH, system: DRAFT_SYSTEM, parts: [{ text: prompt }], json: true, maxOutputTokens: 2_500, thinkingShare: 0.2, temperature: 0.3, metadata: { thread_id: w.replyThreadId ?? w.context.thread_id ?? null, step: step.id } })
+  if (!r.text) throw new Error(r.error ?? `No draft for "${step.title}".`)
+  let out: { subject?: string; body?: string }
+  try { out = JSON.parse(r.text.replace(/^```(?:json)?\s*|\s*```$/g, '')) } catch { throw new Error(`The draft for "${step.title}" was not readable.`) }
+  // A reply keeps the thread's subject, so it lands in the same conversation on both sides.
+  const subject = w.replyThreadId && w.subject ? `Re: ${String(w.subject).replace(/^\s*((re|fw|fwd)\s*:\s*)+/i, '')}` : (out.subject ?? '').trim() || step.title
+  const body = (out.body ?? '').trim()
+  if (!body) throw new Error(`The draft for "${step.title}" came back empty.`)
+  const contactId = step.to.contactId ?? await contactIdFor(step.to.email, step.to.name)
+  if (!contactId) throw new Error(`Could not record ${step.to.email} as a contact.`)
+  const [d] = await sb<Row[]>('ai_drafts', {
+    method: 'POST', headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      contact_id: contactId, thread_id: w.replyThreadId, channel: 'email', email_type: 'CASE_WORK', status: 'pending', generated_by: 'gemini',
+      to_email: step.to.email, subject, body, attachments: [], party: step.party, context_used: w.context,
+    }),
+  })
+  return d?.id ?? null
 }
 
 export async function setStep(threadId: string, stepId: string, status: ReadStep['status']): Promise<ReadPlan> {

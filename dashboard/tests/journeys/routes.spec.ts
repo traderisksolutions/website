@@ -66,7 +66,7 @@ test('policy page links to its claims, debit notes and the company', async ({ pa
 })
 
 test('Today › Coming up: a renewal names its policy as a link', async ({ page }) => {
-  await openClean(page, '/today')
+  await openClean(page, '/today/queue')
   await page.getByRole('radio', { name: /^Coming up/ }).click()
   await expect(page.locator('a[href^="/policies/"]').first()).toBeVisible({ timeout: 30_000 })
 })
