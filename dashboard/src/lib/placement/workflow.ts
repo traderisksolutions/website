@@ -135,6 +135,10 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
   /** Use the line's current round when nobody has been asked on it yet (it holds only engine
    *  prices), so the first email to an insurer is round 1, not a "revised" round 2. */
   reuseEmptyRound?: boolean
+  /** The email written by a person on the Policy page (request.ts); used as is, no model writes it. */
+  presetText?: { subject: string; body: string }
+  /** Files to attach to the request draft (from the client thread or uploaded). */
+  attachments?: { filename: string; mime_type?: string; storage_url: string }[]
 } = {}): Promise<{ rounds: PlacementRound[]; dispatches: PlacementDispatch[]; drafts: number; unrouted: string[] }> {
   const bundle = await store.loadPlacement(placement.id)
   const company = await store.company(placement.company_id)
@@ -212,7 +216,7 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
   for (const { ask: a, recipients } of routed) {
     const round = roundOf.get(a.line.id)!
     const tiers = liveTiers(bundle, a.line.id)
-    const text = await agent.draftToInsurer({
+    const text = opts.presetText ?? await agent.draftToInsurer({
       insurerName: null, contactName: null, clientName: company?.company_name ?? 'the client',
       lines: [{ label: a.line.label ?? productLineLabel(a.line.product_line), productLine: a.line.product_line, spec: a.spec, tiers: tierAsks(tiers) }],
       roundNo: round.round_no, changeSummary: a.change_summary, previousPremium: null, inceptionDate: placement.inception_date, memory,
@@ -222,7 +226,7 @@ export async function openRounds(placement: Placement, asks: RoundAsk[], actor: 
     if (text) {
       const body = opts.extraBody?.trim() ? `${text.body}\n\n${opts.extraBody.trim()}` : text.body
       // The shared draft is addressed to the first recipient; fanoutDraft re-addresses a clone per dispatch.
-      const draft = await store.createDraft({ contact_id: recipients[0].contact_id, to_email: recipients[0].email, subject: withRef(text.subject, placement.ref), body, email_type: DRAFT_TYPE.dispatch })
+      const draft = await store.createDraft({ contact_id: recipients[0].contact_id, to_email: recipients[0].email, subject: withRef(text.subject, placement.ref), body, email_type: DRAFT_TYPE.dispatch, ...(opts.attachments?.length ? { attachments: opts.attachments } : {}) })
       if (tiers.some(t => t.status === 'proposed')) await store.patchNoTs('placement_tiers', `line_id=eq.${a.line.id}&status=eq.proposed`, { status: 'asked', asked_at: now() })
       draftId = draft?.id ?? null
       if (draftId) drafts++

@@ -34,6 +34,24 @@ test('Policies opens on Working on: clients by count, a client opens to its poli
   await page.keyboard.press('Escape')
 })
 
+test('a policy being worked on opens its Policy page: Overview, Request with the email, Quotes with the activity', async ({ page }) => {
+  await openClean(page, '/policies')
+  const clients = page.getByRole('table', { name: 'Clients with policies being worked on' })
+  await clients.locator('tbody tr').first().click()
+  // Record links open in a new tab (the shell's NewTabLinks); the Policy page is followed there.
+  const [tab] = await Promise.all([page.context().waitForEvent('page'), page.getByRole('link', { name: 'Policy page' }).first().click()])
+  await tab.waitForLoadState('load')
+  await expect(tab.getByRole('radiogroup', { name: 'Policy sections' })).toBeVisible({ timeout: 30_000 })
+  await expect(tab.getByText('Next steps', { exact: false }).first()).toBeVisible()
+  await tab.getByRole('radio', { name: /^Request/ }).click()
+  await expect(tab.getByText('Request details')).toBeVisible()
+  await expect(tab.getByRole('textbox', { name: 'Message' })).toHaveValue(/Dear Underwriter,/)
+  await expect(tab.getByRole('button', { name: /^Draft \d+ emails?$/ })).toBeVisible()
+  await tab.getByRole('radio', { name: /^Quotes/ }).click()
+  await expect(tab.getByRole('table', { name: 'Activity' })).toBeVisible()
+  await tab.close()
+})
+
 test('closing an edited email asks first in the confirm box; Cancel keeps it, Discard closes it', async ({ page }) => {
   await openClean(page, '/engagement')
   await page.getByRole('button', { name: 'Compose' }).first().click()

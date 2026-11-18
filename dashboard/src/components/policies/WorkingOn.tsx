@@ -125,7 +125,7 @@ export function WorkingOn({ filters }: { filters: React.ReactNode }) {
                                   : <span className="block text-[13.5px] font-medium text-trs-ink">{r.label}</span>}
                                 <span className="block text-[12px] text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
                                 {r.thread_subject && <span className="block text-[12px] text-trs-muted truncate">Email · {r.thread_subject}</span>}
-                                {r.policy_id && <Link href={`/policies/${r.policy_id}`} className="text-[12px] text-trs-green">Policy page</Link>}
+                                <Link href={`/policies/working/${r.line_id}`} className="text-[12px] text-trs-green underline underline-offset-[3px]">Policy page</Link>
                               </RegisterCell>
                               <RegisterCell primary={r.existing == null ? '—' : r.existing ? 'Yes' : 'No'} />
                               <RegisterCell primary={r.renewal_date ? fmtDate(r.renewal_date) : '—'} secondary={days != null ? <span className={days <= 21 ? 'text-trs-neg' : ''}>{days} days</span> : undefined} />
