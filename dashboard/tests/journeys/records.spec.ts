@@ -9,6 +9,13 @@ test('company page opens with breadcrumbs and its sections', async ({ page }) =>
   await expect(page.getByRole('radiogroup', { name: 'Company sections' })).toBeVisible()
 })
 
+test('policies in force are listed, not an empty register', async ({ page }) => {
+  // The list once read 0 while 350 were live: a second policies→companies link made the join ambiguous.
+  await openClean(page, '/policies')
+  await expect(page.getByText('No policies in this view')).toHaveCount(0)
+  expect(await page.locator('tbody tr').count()).toBeGreaterThan(10)
+})
+
 test('inbox opens a thread with the rail groups', async ({ page }) => {
   await openClean(page, '/engagement')
   const first = page.getByRole('list', { name: 'Conversations' }).getByRole('button').first()

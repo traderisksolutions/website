@@ -42,7 +42,7 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
   const matched = q ? await sbTry<{ id: string }[]>(`companies?company_name=ilike.${like}&select=id&limit=200`, []) : []
   const search = q ? `&or=(policy_number.ilike.${like},insurer.ilike.${like}${matched.length ? `,company_id.in.(${matched.map(c => c.id).join(',')})` : ''})` : ''
   const rows = await sbTry<Row[]>(
-    `policies?select=id,company_id,insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle,companies(company_name)&${filter[view]}${search}&order=end_date.asc.nullslast&limit=${LIMIT}`,
+    `policies?select=id,company_id,insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle,companies!policies_company_id_fkey(company_name)&${filter[view]}${search}&order=end_date.asc.nullslast&limit=${LIMIT}`,
     [],
   )
   const expired = rows.filter(r => (r.lifecycle === 'live' || r.lifecycle === 'bound') && r.end_date && r.end_date < today).length
