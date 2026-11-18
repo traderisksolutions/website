@@ -40,6 +40,7 @@ export const PLACES: Place[] = [
   ] },
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'Quotation', href: '/eb' },
+    { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
     { title: 'Inbox', href: '/engagement' },
