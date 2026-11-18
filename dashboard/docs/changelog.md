@@ -11,6 +11,8 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - **Thread rail Read**: drafting moved to `writeStepDraft` in `src/lib/chief/read.ts`, shared with Today. A reply now always keeps the thread's subject.
 - The earlier case list moved to `/today/queue`; its old links (`?view=`, `?bridge=`) are sent there.
 - Table `today_threads` (`20261119_today_threads.sql`, additive; applied 19 Nov): one row per person per thread, every add and remove kept for a later learning loop. Requests to insurers from a placement are not on Today yet.
+- **Read actions** (`linkPending`, `actOnStep`, `POST /api/today/desk {action:'step'}`): "Discard / Update the pending email to <name>" is tied to that unsent draft and done with one button: Discard (asks first), Update (rewrites the draft as the step says with `rewriteDraft`; the person checks it and sends), Skip. Insurer emails show **On the thread** or **From Insurers list** (`markSource`, by the domains of everyone on the row's threads).
+- **Learning loop** (`src/lib/today/learn.ts`, `learn-server.ts`, `GET /api/today/desk/suggest`): every add records the thread's signals (client on the list, client added before, sender client or insurer, category); dismissals and removes within 7 days count against them. A signal with 5+ cases and a 60% hit rate suggests threads of the last 3 days at the top of Add email threads, with the reason and hit rate; a client already on the list is suggested from day one. Code only, no model. Migration `20261119_today_learning.sql` (`today_threads.signals`, `today_dismissals`; additive; applied 19 Nov).
 
 ## 2026-11-16 — Renewal Season: wish list, comparison and client summary
 

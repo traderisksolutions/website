@@ -26,7 +26,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
 }) {
   const confirm = useConfirm()
   const [threadsOpen, setThreadsOpen] = useState(false)
-  const [busy, setBusy] = useState<'read' | 'draft' | 'remove' | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [read, setRead] = useState<ReadPlan | null>(row.read)
   const [ticked, setTicked] = useState<Set<string>>(new Set())
@@ -50,6 +50,17 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
     try {
       const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'draft', ...base, stepIds: [...ticked] } })
       setRead(r.read); setTicked(new Set()); onChange()
+    } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+  }
+  async function doStep(stepId: string, act: 'discard' | 'update' | 'done') {
+    const step = read?.steps.find(s => s.id === stepId)
+    const draft = row.drafts.find(d => d.id === step?.draftId)
+    if (act === 'discard' && !(await confirm({ title: `Discard the email to ${draft?.person ?? draft?.to ?? 'this person'}?`, body: 'It will not be sent. The thread stays on Today.', action: 'Discard', danger: true }))) return
+    setBusy(`step:${stepId}`); setError(null)
+    try {
+      const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'step', ...base, stepId, act } })
+      setRead(r.read)
+      if (act !== 'done') { onNotice(act === 'discard' ? 'Email discarded.' : `Email to ${draft?.person ?? draft?.to ?? 'the person'} updated. Check it below, then Send.`); onChange() }
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function remove() {
@@ -113,17 +124,27 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                   <ul className="m-0 p-0 list-none flex flex-col gap-1">
                     {read.steps.map(s => (
                       <li key={s.id} className="flex items-start gap-2 text-[13px]">
-                        {s.status === 'proposed'
-                          ? <input type="checkbox" aria-label={s.title} checked={ticked.has(s.id)} onChange={() => setTicked(t => { const n = new Set(t); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} className="mt-[3px]" />
-                          : <span className="mt-[2px] w-[13px] text-trs-pos" aria-hidden>✓</span>}
-                        <span className="min-w-0">
+                        {s.status !== 'proposed'
+                          ? <span className="mt-[2px] w-[13px] text-trs-pos" aria-hidden>✓</span>
+                          : s.op && s.draftId
+                            ? <span className="mt-[2px] w-[13px]" aria-hidden />
+                            : <input type="checkbox" aria-label={s.title} checked={ticked.has(s.id)} onChange={() => setTicked(t => { const n = new Set(t); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} className="mt-[3px]" />}
+                        <span className="min-w-0 flex-1">
                           <span className={`mr-1.5 rounded-full px-1.5 py-[1px] text-[11px] font-medium ${s.party === 'insurer' ? SIDE_TONE.insurer : s.party === 'client' ? SIDE_TONE.client : 'bg-trs-field text-trs-ink-2'}`}>{s.kind === 'action' ? 'Action' : s.party === 'insurer' ? (s.insurer ?? 'Insurer') : 'Client'}</span>
                           <span className="font-medium text-trs-ink">{s.title}</span>
                           {s.to && <span className="text-trs-muted"> · {s.to.name ?? s.to.email}</span>}
+                          {s.source && <span className={`ml-1.5 rounded-full px-1.5 py-[1px] text-[11px] font-medium ${s.source === 'thread' ? 'bg-trs-pos-bg text-trs-pos' : 'bg-trs-warn-bg text-trs-warn'}`} title={s.source === 'thread' ? 'This person is already on the client’s threads.' : 'Picked from the Insurers page: not yet on the client’s threads.'}>{s.source === 'thread' ? 'On the thread' : 'From Insurers list'}</span>}
                           {s.status === 'drafted' && <span className="text-trs-pos"> · drafted</span>}
                           {s.status === 'todo' && <span className="text-trs-muted"> · to do</span>}
+                          {s.status === 'done' && <span className="text-trs-pos"> · done</span>}
                           <span className="block text-[12.5px] text-trs-muted">{s.detail}</span>
                         </span>
+                        {s.status === 'proposed' && s.op && s.draftId && (
+                          <span className="flex flex-none gap-1.5">
+                            <Btn size="xs" level={s.op === 'discard' ? 'danger' : 'secondary'} onClick={() => doStep(s.id, s.op!)} loading={busy === `step:${s.id}`} disabled={!!busy}>{s.op === 'discard' ? 'Discard email' : 'Update email'}</Btn>
+                            <Btn size="xs" level="tertiary" onClick={() => doStep(s.id, 'done')} disabled={!!busy}>Skip</Btn>
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

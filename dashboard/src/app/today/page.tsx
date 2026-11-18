@@ -36,6 +36,7 @@ function TodayPage() {
   const [view, setView] = useState<View>('client')
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [adding, setAdding] = useState(false)
+  const [suggestCount, setSuggestCount] = useState<number | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,6 +51,8 @@ function TodayPage() {
     }).catch(e => setError(errText(e)))
   }, [who])
   useEffect(() => { if (!old) load() }, [load, old])
+  // Suggestions are code-scored (no model): safe to count on load.
+  useEffect(() => { if (!old && !adding) callApi<{ suggestions: unknown[] }>('/api/today/desk/suggest').then(r => setSuggestCount(r.suggestions.length)).catch(() => setSuggestCount(null)) }, [old, adding])
 
   const rows = useMemo(() => desk?.rows ?? [], [desk])
   const emails = useMemo(() => emailList(rows), [rows])
@@ -65,7 +68,7 @@ function TodayPage() {
     <div className="px-4 md:px-8 py-6 mx-auto w-full max-w-[1320px] min-w-0">
       <PageHeader className="mb-5" title="Today"
         meta={desk ? `${rows.length} client${rows.length === 1 ? '' : 's'} · ${toClient} to client · ${emails.length - toClient} to insurer` : undefined}
-        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads</Btn>}>
+        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads{suggestCount ? <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-trs-lime px-1.5 text-[11.5px] font-semibold text-trs-green" aria-label={`${suggestCount} suggested`}>{suggestCount}</span> : null}</Btn>}>
         <select aria-label="Whose Today" value={desk?.who ?? 'me'} onChange={e => setWho(e.target.value)} className="h-[30px] rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13px] font-medium text-trs-ink">
           {people.map(p => <option key={p} value={p}>{firstName(p)}{p === me ? ' (me)' : ''}</option>)}
           <option value="all">Everyone</option>

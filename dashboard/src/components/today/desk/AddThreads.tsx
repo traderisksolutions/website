@@ -13,6 +13,7 @@ import { CompanyField, type CompanyPick } from '@/components/group-benefits/Comp
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
 import type { DeskSide } from '@/lib/today/desk'
+import type { Suggestion } from '@/lib/today/learn-server'
 
 type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
 type Pick = { side: DeskSide; client: CompanyPick }
@@ -27,6 +28,22 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [picked, setPicked] = useState<Map<string, Pick>>(new Map())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suggested, setSuggested] = useState<Suggestion[] | null>(null)
+  const [acting, setActing] = useState<string | null>(null)
+
+  useEffect(() => {
+    callApi<{ suggestions: Suggestion[] }>('/api/today/desk/suggest').then(r => setSuggested(r.suggestions)).catch(() => setSuggested([]))
+  }, [])
+  async function takeSuggestion(g: Suggestion, act: 'add' | 'dismiss') {
+    setActing(`${act}:${g.threadId}`); setError(null)
+    try {
+      if (act === 'add') await callApi('/api/today/desk', { method: 'POST', body: { action: 'add', threads: [{ threadId: g.threadId, side: g.side, companyId: g.companyId }] } })
+      else await callApi('/api/today/desk', { method: 'POST', body: { action: 'dismiss', threadId: g.threadId } })
+      setSuggested(list => (list ?? []).filter(x => x.threadId !== g.threadId))
+      if (act === 'add') setAddedHere(n => n + 1)
+    } catch (e) { setError(errText(e)) } finally { setActing(null) }
+  }
+  const [addedHere, setAddedHere] = useState(0)
 
   useEffect(() => { void (async () => {
     const r = await fetch('/api/engagement/conversations', { cache: 'no-store' })
@@ -58,19 +75,45 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     try {
       const threads = [...picked].map(([threadId, p]) => ({ threadId, side: p.side, companyId: p.client.id }))
       const r = await callApi<{ added: number }>('/api/today/desk', { method: 'POST', body: { action: 'add', threads } })
-      onAdded(r.added)
+      onAdded(r.added + addedHere)
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }
 
   const clients = new Set([...picked.values()].map(p => p.client.id ?? p.client.name).filter(Boolean)).size
 
   return (
-    <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
+    <DialogPrimitive.Root open onOpenChange={o => { if (!o) { if (addedHere) onAdded(addedHere); else onClose() } }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
         <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(980px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-6 md:px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
           <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold tracking-[-0.02em] text-trs-ink">Add email threads</DialogPrimitive.Title>
+          {suggested && suggested.length > 0 && (
+            <section aria-label="Suggested" className="flex flex-col gap-1.5">
+              <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-[12px] font-semibold text-trs-green">Suggested · {suggested.length}</span>
+              <div className="max-h-[220px] overflow-auto rounded-[10px] border border-trs-line-2">
+                <table className="trs-table min-w-[760px]">
+                  <thead><tr><th>Thread</th><th className="w-[160px]">Client</th><th className="w-[90px]">Side</th><th className="w-[240px]">Reason</th><th className="w-[150px]">Action</th></tr></thead>
+                  <tbody>
+                    {suggested.map(g => (
+                      <tr key={g.threadId}>
+                        <td className="cell-left !text-left"><div className="font-medium text-trs-ink">{g.subject}</div><div className="text-[12px] text-trs-muted">{fmtDay(g.lastAt)}</div></td>
+                        <td>{g.companyName ?? '—'}</td>
+                        <td>{g.side === 'insurer' ? 'Insurer' : 'Client'}</td>
+                        <td className="!text-left text-[12.5px] text-trs-ink-2">{g.reason}</td>
+                        <td>
+                          <span className="inline-flex gap-1.5">
+                            <Btn size="xs" level="tertiary" onClick={() => takeSuggestion(g, 'dismiss')} loading={acting === `dismiss:${g.threadId}`} disabled={!!acting}>Dismiss</Btn>
+                            <Btn size="xs" onClick={() => takeSuggestion(g, 'add')} loading={acting === `add:${g.threadId}`} disabled={!!acting}>Add</Btn>
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
           <input type="search" aria-label="Search threads" placeholder="Search subject, sender or company" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
           <div className="min-h-0 flex-1 overflow-auto rounded-[10px] border border-trs-line-2">
             {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-[13.5px] text-trs-muted">No threads match.</p> : (
@@ -105,7 +148,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="text-[13px] text-trs-muted">{picked.size} thread{picked.size === 1 ? '' : 's'} · {clients} client{clients === 1 ? '' : 's'}</span>
             <div className="flex gap-2">
-              <Btn onClick={onClose} disabled={busy}>Cancel</Btn>
+              <Btn onClick={() => (addedHere ? onAdded(addedHere) : onClose())} disabled={busy}>{addedHere ? 'Done' : 'Cancel'}</Btn>
               <Btn level="primary" onClick={add} loading={busy} disabled={busy || picked.size === 0}>Add to Today</Btn>
             </div>
           </div>
