@@ -5,6 +5,8 @@
  *   POST /api/today/desk { action: 'remove', owner, threadIds } → takes them off
  *   POST /api/today/desk { action: 'read', owner, companyId, threadIds }            → one model read of the row
  *   POST /api/today/desk { action: 'draft', owner, companyId, threadIds, stepIds }  → drafts the ticked emails
+ *   POST /api/today/desk { action: 'step', owner, companyId, threadIds, stepId, act: 'discard'|'update'|'done' } → one Read action
+ *   POST /api/today/desk { action: 'dismiss', threadId }  → a suggestion the person does not want (learning loop)
  * Read and Draft run only from a person's button (src/lib/ai-gate.ts). Nothing sends here.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,7 +14,8 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { addItemsFrom } from '@/lib/today/desk'
 import { addThreads, loadDesk, removeThreads } from '@/lib/today/desk-server'
-import { draftRow, readRow } from '@/lib/today/desk-read'
+import { actOnStep, draftRow, readRow } from '@/lib/today/desk-read'
+import { dismissSuggestion } from '@/lib/today/learn-server'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -46,6 +49,12 @@ export async function POST(req: NextRequest) {
       if ('error' in parsed) return err(parsed.error)
       return NextResponse.json({ added: await addThreads(me, parsed.items) })
     }
+    if (b?.action === 'dismiss') {
+      const threadId = String(b.threadId ?? '')
+      if (!UUID.test(threadId)) return err('A thread id is not valid.')
+      await dismissSuggestion(me, threadId)
+      return NextResponse.json({ ok: true })
+    }
     const owner = String(b?.owner ?? me).toLowerCase()
     if (!STAFF.test(owner)) return err('Unknown owner.')
     const threadIds = Array.isArray(b?.threadIds) ? (b.threadIds as unknown[]).map(String).filter(id => UUID.test(id)) : []
@@ -62,6 +71,11 @@ export async function POST(req: NextRequest) {
       const stepIds = Array.isArray(b.stepIds) ? (b.stepIds as unknown[]).map(String) : []
       if (!stepIds.length) return err('Tick at least one step.')
       return NextResponse.json({ read: await draftRow(owner, companyId, threadIds, stepIds, me) })
+    }
+    if (b?.action === 'step') {
+      const act = b.act === 'discard' || b.act === 'update' || b.act === 'done' ? b.act : null
+      if (!act || !b.stepId) return err('Say which step and what to do.')
+      return NextResponse.json({ read: await actOnStep(owner, companyId, threadIds, String(b.stepId), act, me) })
     }
     return err('Unknown action.')
   } catch (e) { return err(e) }

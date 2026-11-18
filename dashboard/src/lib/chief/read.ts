@@ -24,6 +24,10 @@ export type ReadStep = {
   insurer: string | null; productLine: string | null; title: string; detail: string
   to: ReadTo | null
   status: 'proposed' | 'todo' | 'drafted' | 'done'; draftId: string | null
+  /** Today only: an action on an unsent draft (draftId), done with one button. */
+  op?: 'discard' | 'update'
+  /** Today only: an insurer email to someone already on the client's threads, or picked from the Insurers page. */
+  source?: 'thread' | 'file'
 }
 export type ReadPlan = { at: string; by: string; summary: string; situation: string; steps: ReadStep[]; model: string }
 

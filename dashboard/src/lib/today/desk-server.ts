@@ -6,6 +6,7 @@ import { sb, sbTry, enc } from '@/lib/crm/db'
 import { oneRecipient } from '@/lib/email/recipients'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import type { ReadPlan } from '@/lib/chief/read'
+import { signalsForAdd } from './learn-server'
 import { groupRows, readKey, sideOfAddress, type AddItem, type DeskDraft, type DeskRow, type DeskThread } from './desk'
 
 type Row = Record<string, any>
@@ -94,9 +95,11 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
 /** Puts threads on a person's Today. Adding a removed thread again brings it back. */
 export async function addThreads(owner: string, items: readonly AddItem[]): Promise<number> {
   const now = new Date().toISOString()
+  // What was true of each thread before it joined: the learning loop's positives (learn.ts).
+  const signals = await signalsForAdd(owner, items.map(i => i.threadId)).catch(() => new Map<string, string[]>())
   await sb('today_threads?on_conflict=owner_email,thread_id', {
     method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' },
-    body: JSON.stringify(items.map(i => ({ owner_email: owner, thread_id: i.threadId, company_id: i.companyId, side: i.side, added_at: now, removed_at: null }))),
+    body: JSON.stringify(items.map(i => ({ owner_email: owner, thread_id: i.threadId, company_id: i.companyId, side: i.side, added_at: now, removed_at: null, signals: signals.get(i.threadId) ?? [] }))),
   })
   return items.length
 }

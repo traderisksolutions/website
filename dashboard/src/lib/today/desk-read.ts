@@ -15,6 +15,7 @@ import { parseJsonLoose } from '@/lib/crm/ai'
 import { logError } from '@/lib/error-log'
 import { routesOnFile, shapePlan, writeStepDraft, type ReadPlan, type ReadStep, type ReadTo } from '@/lib/chief/read'
 import { readKey, rowKey } from './desk'
+import { rewriteDraft } from './ask'
 import { rowThreads } from './desk-server'
 
 type Row = Record<string, any>
@@ -52,7 +53,7 @@ Rules:
 - No step for a thank-you or an acknowledgement alone.
 - PENDING DRAFTS are emails written but not sent. Never propose a second email to a person who already has one: make it an "action" step "Update the pending email to <name>" that says what to add or change, or "Discard the pending email to <name>" when it is out of date.`
 
-type Ctx = { text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pendingTo: Set<string> }
+type Ctx = { text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pending: PendingDraft[]; threadDomains: Set<string> }
 
 async function context(owner: string, companyId: string | null, threadIds: readonly string[]): Promise<Ctx> {
   const listed = await rowThreads(owner, companyId, threadIds)
@@ -114,7 +115,13 @@ async function context(owner: string, companyId: string | null, threadIds: reado
     domains: new Set(msgs.filter(m => m.thread_id === r.thread_id && !isInternal(bare(m.from_address))).map(m => domainOf(bare(m.from_address))).filter(Boolean)),
   }))
 
-  const pending = await sbTry<Row[]>(`ai_drafts?or=(thread_id.in.${inList(ids)},context_used->>thread_id.in.${inList(ids)})&status=in.(pending,draft)&deleted_at=is.null&select=to_email,subject,body,created_at&order=created_at.asc&limit=20`, [])
+  const pending = await sbTry<Row[]>(`ai_drafts?or=(thread_id.in.${inList(ids)},context_used->>thread_id.in.${inList(ids)})&status=in.(pending,draft)&deleted_at=is.null&select=id,to_email,subject,body,created_at&order=created_at.asc&limit=20`, [])
+  const pendingEmails = Array.from(new Set(pending.map(p => bare(String(p.to_email ?? '').split(/[,;]\s*/)[0])).filter(Boolean)))
+  const people = pendingEmails.length ? await sbTry<Row[]>(`contacts?email=in.${inList(pendingEmails)}&select=email,first_name,last_name`, []) : []
+  const nameBy = new Map(people.map(c => [String(c.email).toLowerCase(), [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || null]))
+  // Everyone outside TRS on the row's threads: an insurer email to one of them is on the thread.
+  const parts = await sbTry<Row[]>(`email_participants?thread_id=in.${inList(ids)}&select=email&limit=2000`, [])
+  const threadDomains = new Set([...parts.map(p => bare(p.email)), ...msgs.map(m => bare(m.from_address))].filter(a => a && !isInternal(a)).map(domainOf).filter(Boolean))
 
   const routes = await routesOnFile()
   const insurersList = Array.from(new Set(routes.map(r => `${r.insurer} — ${r.productLine}`))).sort()
@@ -127,8 +134,8 @@ async function context(owner: string, companyId: string | null, threadIds: reado
     pending.length ? `PENDING DRAFTS (written, not sent):\n${pending.map(p => `- to ${p.to_email} · written ${String(p.created_at).slice(0, 10)} · ${p.subject ?? ''}\n${trim(p.body, 600)}`).join('\n')}` : 'PENDING DRAFTS: none',
     others.length ? `THE CLIENT'S OTHER RECENT THREADS (latest message only):\n${others.map(o => `- ${o.subject ?? ''} · ${String(o.last?.sent_at ?? o.last_message_at ?? '').slice(0, 10)} · ${o.last?.from_address ?? ''}: ${trim(ownWords(o.last?.body_text), 400)}`).join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
-  const pendingTo = new Set(pending.flatMap(p => String(p.to_email ?? '').split(/[,;]\s*/)).map(a => bare(a)).filter(Boolean))
-  return { text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pendingTo }
+  const pendingList: PendingDraft[] = pending.map(p => { const email = bare(String(p.to_email ?? '').split(/[,;]\s*/)[0]); return { id: p.id as string, email, name: nameBy.get(email) ?? null } }).filter(p => p.email)
+  return { text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pending: pendingList, threadDomains }
 }
 
 const keyOf = (owner: string, companyId: string | null, threadIds: readonly string[]) => readKey(rowKey(owner, companyId, threadIds[0] ?? ''))
@@ -152,12 +159,37 @@ export function normalisePoints(raw: unknown): string[] {
  * Pure. One person, one email: a suggested email to someone who already has an unsent draft becomes
  * an action to fold it into that draft, whatever the model proposed.
  */
-export function oneEmailPerPerson(steps: ReadStep[], pendingTo: ReadonlySet<string>): ReadStep[] {
+export function oneEmailPerPerson(steps: ReadStep[], pending: readonly PendingDraft[]): ReadStep[] {
   return steps.map(s => {
     const to = s.to?.email.toLowerCase()
-    if (s.kind !== 'email' || !to || !pendingTo.has(to)) return s
-    return { ...s, kind: 'action', title: `Add to the pending email to ${s.to?.name ?? to}`.slice(0, 140), detail: `${s.title}. ${s.detail}`.slice(0, 600), to: null }
+    const d = to ? pending.find(p => p.email === to) : undefined
+    if (s.kind !== 'email' || !d) return s
+    return { ...s, kind: 'action', title: `Add to the pending email to ${s.to?.name ?? to}`.slice(0, 140), detail: `${s.title}. ${s.detail}`.slice(0, 600), to: null, op: 'update', draftId: d.id }
   })
+}
+
+export type PendingDraft = { id: string; email: string; name: string | null }
+
+/**
+ * Pure. The model's own "Discard / Update the pending email to <name>" actions, tied to that draft
+ * when exactly one unsent draft matches the email address or the person's name.
+ */
+export function linkPending(steps: ReadStep[], pending: readonly PendingDraft[]): ReadStep[] {
+  return steps.map(s => {
+    if (s.kind !== 'action' || s.op) return s
+    const title = s.title.toLowerCase()
+    const op = /^(discard|delete|drop|cancel)\b/.test(title) ? 'discard' : /^(update|add to|amend|revise|edit)\b/.test(title) ? 'update' : null
+    if (!op || !/pending|draft|unsent/.test(title)) return s
+    const text = `${s.title} ${s.detail}`.toLowerCase()
+    const hits = pending.filter(p => text.includes(p.email) || (p.name && (text.includes(p.name.toLowerCase()) || text.includes(` ${p.name.toLowerCase().split(' ')[0]} `) || text.includes(` ${p.name.toLowerCase().split(' ')[0]}`))))
+    const ids = Array.from(new Set(hits.map(h => h.id)))
+    return ids.length === 1 ? { ...s, op, draftId: ids[0] } : s
+  })
+}
+
+/** Pure. An insurer email goes to someone already on the client's threads, or to a contact picked from the Insurers page. */
+export function markSource(steps: ReadStep[], threadDomains: ReadonlySet<string>): ReadStep[] {
+  return steps.map(s => s.kind === 'email' && s.party === 'insurer' && s.to ? { ...s, source: threadDomains.has(domainOf(s.to.email.toLowerCase())) ? 'thread' : 'file' } : s)
 }
 
 /** One model read of the row. The points ride in the plan's situation, one per line. */
@@ -171,7 +203,7 @@ export async function readRow(owner: string, companyId: string | null, threadIds
     throw new Error('The model’s answer was not readable. Press Read again.')
   }
   const plan = shapePlan({ summary: raw.summary, situation: normalisePoints(raw.points).join('\n'), steps: (raw.steps ?? []) as never }, await routesOnFile(), ctx.client, actor, GEMINI_DEEP)
-  plan.steps = oneEmailPerPerson(plan.steps, ctx.pendingTo).slice(0, 6)
+  plan.steps = markSource(linkPending(oneEmailPerPerson(plan.steps, ctx.pending), ctx.pending), ctx.threadDomains).slice(0, 6)
   await save(keyOf(owner, companyId, threadIds), plan)
   return plan
 }
@@ -195,6 +227,26 @@ export async function draftRow(owner: string, companyId: string | null, threadId
     })
     step.status = 'drafted'
   }
+  await save(key, plan)
+  return plan
+}
+
+/** One button on a Read action: discard the unsent draft, rewrite it as the step says, or mark the step done. */
+export async function actOnStep(owner: string, companyId: string | null, threadIds: readonly string[], stepId: string, act: 'discard' | 'update' | 'done', actor: string): Promise<ReadPlan> {
+  const key = keyOf(owner, companyId, threadIds)
+  const plan = await load(key)
+  if (!plan) throw new Error('Read this client first.')
+  const step = plan.steps.find(s => s.id === stepId)
+  if (!step) throw new Error('That step is no longer on the Read.')
+  if (act !== 'done') {
+    if (!step.draftId || step.op !== act) throw new Error('This step is not tied to an unsent email.')
+    if (act === 'discard') {
+      await sb(`ai_drafts?id=eq.${enc(step.draftId)}&status=in.(pending,draft)`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'rejected', rejection_note: `discarded from Today by ${actor}` }) })
+    } else {
+      await rewriteDraft(step.draftId, `${step.title}. ${step.detail}`, actor)
+    }
+  }
+  step.status = 'done'
   await save(key, plan)
   return plan
 }
