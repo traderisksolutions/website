@@ -121,7 +121,7 @@ function PricingMatrix() {
       {tab === 'tables' && (
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
-      {tab === 'eb' && <EbRegister newHref="/pricing-matrix/new" />}
+      {tab === 'eb' && <EbRegister newHref="/eb" />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan} onClose={() => setEmailInsurer(null)} />

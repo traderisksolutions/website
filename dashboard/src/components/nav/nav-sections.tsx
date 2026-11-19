@@ -30,14 +30,8 @@ export type Place = {
 export const PLACES: Place[] = [
   { label: 'Today', href: '/today', icon: ListChecks, tabs: [
     { title: 'Today', href: '/today' },
-    { title: 'Renewal Season', href: '/renewal-season' },
-    { title: 'Queue', href: '/work' },
-    { title: 'Follow-ups', href: '/followups' },
-    { title: 'AI approvals', href: '/work/ai' },
-    { title: 'Home', href: '/' },
-    { title: 'Board', href: '/board' },
+    // Jarod, 19 Nov 2026: Today and Calendar only. The other pages stay at their addresses.
     { title: 'Calendar', href: '/calendar' },
-    { title: 'Unfiled threads', href: '/companies/triage' },
   ] },
   { label: 'Clients', href: '/companies', icon: Building2, tabs: [
     { title: 'Companies', href: '/companies' },
@@ -46,19 +40,20 @@ export const PLACES: Place[] = [
     { title: 'Portfolio', href: '/companies/portfolio' },
     { title: 'Admin desk', href: '/companies/portfolio/desk' },
   ] },
+  // Jarod, 19 Nov 2026: one home for Employment Benefits. The register of quotations moved here
+  // from Quotes, which no longer carries it.
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'Quotation', href: '/eb' },
+    { title: 'Quotations', href: '/pricing-matrix' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
     { title: 'Inbox', href: '/engagement' },
     { title: 'Inbound', href: '/inbound' },
   ] },
-  { label: 'Quotes', href: '/pricing-matrix', icon: Table2, tabs: [
-    { title: 'Employment Benefits', href: '/pricing-matrix' },
-    { title: 'Requests for quotes', href: '/rfq' },
-    { title: 'Lines', href: '/lines' },
-    { title: 'Insurers', href: '/insurers' },
+  // Jarod, 19 Nov 2026: Quotes is off the bar. RoadPlus is its own place; Requests for quotes,
+  // Lines and Insurers left the bar and keep their addresses.
+  { label: 'RoadPlus', href: '/roadplus', icon: Table2, tabs: [
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
   // Others (19 Nov 2026): Claims, Policies, Finance and Documents in one place.

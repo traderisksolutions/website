@@ -37,10 +37,11 @@ test('thread rail › Employment Benefits opens the company Compare cover; Back 
   await expect(back(tab)).toHaveAttribute('href', new RegExp(`/engagement\\?lead=${t.id}`))
 })
 
-test('Quotes › Employment Benefits › a company returns to the list, not to a company visited before', async ({ page }) => {
+test('Employment Benefits › Quotations › a company returns to the list, not to a company visited before', async ({ page }) => {
   const id = await companyId(page, 'OUE')
   await openClean(page, `/companies/${id}`)
-  await page.locator('header').getByRole('link', { name: 'Quotes', exact: true }).first().click()
+  await page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true }).first().click()
+  await page.getByRole('navigation', { name: 'Employment Benefits' }).getByRole('link', { name: 'Quotations', exact: true }).click()
   await expect(page).toHaveURL(/\/pricing-matrix$/)
   const row = page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first()
   await expect(row).toBeVisible({ timeout: 30_000 })

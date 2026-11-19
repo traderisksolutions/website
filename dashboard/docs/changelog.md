@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Top bar: Today trimmed, Employment Benefits in one place
+
+- Today shows no count beside it, for every account (the `/api/today/count` read is gone from the top bar).
+- Today's tabs are Today and Calendar. Renewal Season, Queue, Follow-ups, AI approvals, Home, Board and Unfiled threads are off the bar; their pages stay at their addresses.
+- Employment Benefits holds Quotation (`/eb`), Quotations (the register, `/pricing-matrix`, with Employee lists, Insurers and Plan rules) and Brochures. + New quotation on the register opens `/eb`.
+- Quotes is off the bar. RoadPlus is its own place; Requests for quotes, Lines and Insurers left the bar and keep their addresses.
+
 ## 2026-11-19 — Others and Marketing in the top bar
 
 - Claims, Policies, Finance and Documents are one place, Others, with eight tabs: Claims, Second opinion, Policies, Member movements, Receipts, Debit notes, Earnings, Documents (Jarod, 19 Nov). Every page keeps its address.
