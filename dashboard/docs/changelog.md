@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Add email threads searches every email in a thread
+
+- A search asks the server, which answers only matching threads from all of them: every word, in any order, in the thread's subject, title, snippet or company, or in any email inside it (subject, sender) or the address of anyone on it. Each result shows the email that matched (`match`), so "Jiaqing" or "Chubb Deluge" finds the thread titled "Awfa — travel insurance quotation".
+
 ## 2026-11-19 — operations@: sent mail, every page, read-back
 
 - operations@ now reads its sent mail as well as its inbox, as the personal mailboxes do: the Gmail watch covers INBOX and SENT (from the next daily renewal), the history read keeps both and reads every page, and the fallback reads the last 3 days of both instead of the 25 newest inbox messages.

@@ -15,10 +15,12 @@ import { fmtDay } from '@/lib/format'
 import type { DeskSide } from '@/lib/today/desk'
 import type { Suggestion } from '@/lib/today/learn-server'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
 type Pick = { side: DeskSide; client: CompanyPick }
 
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
+/** Every word of the search, in any order. */
+const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
 const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13.5px] text-trs-ink'
 
@@ -50,7 +52,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
-  // Threads older than the newest 200 whose subject matches, fetched once typing pauses.
+  // The server's search of every thread and every email in it, fetched once typing pauses.
   const [found, setFound] = useState<Conv[]>([])
   useEffect(() => {
     const t = q.trim()
@@ -66,10 +68,12 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const nameOf = useMemo(() => new Map((convs ?? []).filter(c => c.companyId && c.companyName).map(c => [c.companyId!, c.companyName!])), [convs])
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    const seen = new Set((convs ?? []).map(c => c.thread_id))
-    const all = [...(convs ?? []), ...found.filter(c => !seen.has(c.thread_id))]
+    // The server's matches first (they carry the email that matched), then the newest threads.
+    const seen = new Set(found.map(c => c.thread_id))
+    const all = [...found, ...(convs ?? []).filter(c => !seen.has(c.thread_id))]
+      .sort((a, b) => String(b.last_message_at ?? b.created_at).localeCompare(String(a.last_message_at ?? a.created_at)))
     return all.filter(c => !taken.has(c.thread_id))
-      .filter(c => !t || [subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
+      .filter(c => !t || seen.has(c.thread_id) || hasWords([subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet], t)).slice(0, 80)
   }, [convs, found, q, taken])
 
   function toggle(c: Conv) {
@@ -142,6 +146,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
+                          {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
                         </td>
                         <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
                         <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>

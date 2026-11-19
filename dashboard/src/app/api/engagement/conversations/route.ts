@@ -93,18 +93,47 @@ export async function GET(req: NextRequest) {
       const rows: ThreadRow[] = one.ok ? await one.json() : []
       if (Array.isArray(rows) && rows[0]) threads.push(rows[0])
     }
-    // ?q=<words> adds threads past the newest 200 whose email subject, dashboard title or snippet
-    // contains them, so a search finds "Deluge" though the title reads "Awfa — travel insurance".
+    // ?q=<words> answers only the threads that match, from all of them, not the newest 200: every
+    // word in the thread's subject, title, snippet or company, or in an email inside it (subject,
+    // sender) or the address of anyone on it. Each carries `match`, the email that matched, so
+    // "Chubb" finds a thread titled "Awfa — travel insurance".
     const q = (req.nextUrl.searchParams.get('q') ?? '').replace(/[^\p{L}\p{N}\s&@.\-']/gu, ' ').trim().slice(0, 80)
-    if (q.length >= 2) {
-      const pat = encodeURIComponent(`*${q}*`)
-      const hit = await fetch(
-        `${SB_URL}/rest/v1/email_threads?or=(subject.ilike.${pat},display_subject.ilike.${pat},snippet.ilike.${pat})&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&order=last_message_at.desc&limit=100`,
-        { headers: sbHeaders(), cache: 'no-store' }
-      )
-      const rows: ThreadRow[] = hit.ok ? await hit.json() : []
-      const have = new Set(threads.map(t => t.id))
-      if (Array.isArray(rows)) for (const r of rows) if (!have.has(r.id)) threads.push(r)
+    const words = q.toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    const matchBy = new Map<string, string>()
+    if (words.length) {
+      const pat = encodeURIComponent(`*${[...words].sort((x, y) => y.length - x.length)[0]}*`)
+      const cols = 'id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)'
+      const get = async <T,>(path: string): Promise<T[]> => {
+        const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbHeaders(), cache: 'no-store' })
+        const j = r.ok ? await r.json() : []
+        return Array.isArray(j) ? j : []
+      }
+      const [byThread, byMessage, byPerson, byCompany] = await Promise.all([
+        get<ThreadRow>(`email_threads?or=(subject.ilike.${pat},display_subject.ilike.${pat},snippet.ilike.${pat})&select=${cols}&deleted_at=is.null&order=last_message_at.desc&limit=100`),
+        get<{ thread_id: string; subject: string | null; from_address: string | null }>(`email_messages?or=(subject.ilike.${pat},from_address.ilike.${pat})&deleted_at=is.null&select=thread_id,subject,from_address&order=sent_at.desc&limit=300`),
+        get<{ thread_id: string; email: string }>(`email_participants?email=ilike.${pat}&select=thread_id,email&limit=300`),
+        get<{ id: string }>(`companies?company_name=ilike.${pat}&select=id&limit=20`),
+      ])
+      // Every matching email's text per thread, to test the other words against.
+      const said = new Map<string, string[]>()
+      for (const m of byMessage) if (m.thread_id) said.set(m.thread_id, [...(said.get(m.thread_id) ?? []), [m.from_address, m.subject].filter(Boolean).join(' · ')])
+      for (const p of byPerson) if (p.thread_id) said.set(p.thread_id, [...(said.get(p.thread_id) ?? []), p.email])
+      const hits = new Map(byThread.map(r => [r.id, r]))
+      const have = new Map(threads.map(t => [t.id, t]))
+      const want = [...said.keys()].filter(id => !hits.has(id) && UUID.test(id))
+      for (const id of want) if (have.has(id)) hits.set(id, have.get(id)!)
+      const fetchIds = want.filter(id => !hits.has(id)).slice(0, 150)
+      for (let i = 0; i < fetchIds.length; i += 50) for (const r of await get<ThreadRow>(`email_threads?id=in.(${fetchIds.slice(i, i + 50).join(',')})&select=${cols}&deleted_at=is.null`)) hits.set(r.id, r)
+      if (byCompany.length) for (const r of await get<ThreadRow>(`email_threads?company_id=in.(${byCompany.map(c => c.id).join(',')})&select=${cols}&deleted_at=is.null&order=last_message_at.desc&limit=100`)) if (!hits.has(r.id)) hits.set(r.id, r)
+      threads = [...hits.values()].filter(t => {
+        const text = [t.subject, t.display_subject, t.snippet, t.companies?.name, ...(said.get(t.id) ?? [])].filter(Boolean).join(' ').toLowerCase()
+        return words.every(w => text.includes(w))
+      }).sort((x, y) => String(y.last_message_at).localeCompare(String(x.last_message_at)))
+      for (const t of threads) {
+        const lines = said.get(t.id) ?? []
+        const best = lines.find(l => words.every(w => l.toLowerCase().includes(w))) ?? lines[0]
+        if (best) matchBy.set(t.id, best)
+      }
     }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
@@ -212,6 +241,7 @@ export async function GET(req: NextRequest) {
         subject:          t.subject,
         display_subject:  t.display_subject ?? null,
         snippet:          t.snippet,
+        match:            matchBy.get(t.id) ?? null,
         first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
         last_name:        contact?.last_name  ?? null,
         email,

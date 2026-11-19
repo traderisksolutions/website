@@ -15,12 +15,14 @@ import { PRODUCT_LINES } from '@/lib/product-lines'
 import { REQUEST_TYPES, type RequestType } from '@/lib/placement/working'
 import { fmtDay } from '@/lib/format'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string }
 type Row = { product_line: string; request_type: RequestType | ''; existing: boolean; renewal_date: string; previous_premium: string; fromRegister: boolean }
 type Block = { thread: Conv; side: 'client' | 'insurer' | ''; client: CompanyPick; rows: Row[] }
 
 const emptyRow = (): Row => ({ product_line: '', request_type: '', existing: false, renewal_date: '', previous_premium: '', fromRegister: false })
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
+/** Every word of the search, in any order. */
+const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
 const selCls = 'h-9 w-full rounded-[8px] border border-trs-line-2 bg-white px-2.5 text-[13.5px] text-trs-ink'
 
@@ -41,7 +43,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
-  // Threads older than the newest 200 whose subject matches, fetched once typing pauses.
+  // The server's search of every thread and every email in it, fetched once typing pauses.
   const [found, setFound] = useState<Conv[]>([])
   useEffect(() => {
     const t = q.trim()
@@ -55,13 +57,15 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
   }, [q])
 
   const all = useMemo(() => {
-    const seen = new Set((convs ?? []).map(c => c.thread_id))
-    return [...(convs ?? []), ...found.filter(c => !seen.has(c.thread_id))]
+    // The server's matches first (they carry the email that matched), then the newest threads.
+    const seen = new Set(found.map(c => c.thread_id))
+    return [...found, ...(convs ?? []).filter(c => !seen.has(c.thread_id))]
   }, [convs, found])
+  const foundIds = useMemo(() => new Set(found.map(c => c.thread_id)), [found])
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return all.filter(c => !t || [subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
-  }, [all, q])
+    return all.filter(c => !t || foundIds.has(c.thread_id) || hasWords([subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet], t)).slice(0, 80)
+  }, [all, foundIds, q])
 
   function next() {
     const byId = new Map(all.map(c => [c.thread_id, c]))
@@ -125,7 +129,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
                 return (
                   <label key={c.thread_id} role="listitem" className={`grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-3 border-b border-trs-line px-1.5 py-2.5 ${on ? 'opacity-55' : 'cursor-pointer'}`}>
                     <input type="checkbox" disabled={on} checked={picked.includes(c.thread_id)} onChange={e => setPicked(p => e.target.checked ? [...p, c.thread_id] : p.filter(x => x !== c.thread_id))} className="h-4 w-4 accent-[var(--trs-green)]" />
-                    <span className="min-w-0"><span className="block text-[13.5px] font-medium text-trs-ink">{subjectOf(c)}</span><span className="block truncate text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</span></span>
+                    <span className="min-w-0"><span className="block text-[13.5px] font-medium text-trs-ink">{subjectOf(c)}</span><span className="block truncate text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</span>{c.match && q.trim() && <span className="block truncate text-[12px] text-trs-subtle">Matched: {c.match}</span>}</span>
                     <span className="whitespace-nowrap text-[12px] text-trs-muted">{on ? 'On list' : fmtDay(c.created_at)}</span>
                   </label>
                 )
