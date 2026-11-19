@@ -51,8 +51,8 @@ export const PLACES: Place[] = [
     { title: 'Inbox', href: '/engagement' },
     { title: 'Inbound', href: '/inbound' },
   ] },
-  // Jarod, 19 Nov 2026: Quotes is off the bar. RoadPlus is its own place; Requests for quotes,
-  // Lines and Insurers left the bar and keep their addresses.
+  // Jarod, 19 Nov 2026: Quotes is off the bar. RoadPlus is its own place; Lines is a tab under
+  // Others; Requests for quotes and Insurers left the bar and keep their addresses.
   { label: 'RoadPlus', href: '/roadplus', icon: Table2, tabs: [
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
@@ -66,6 +66,7 @@ export const PLACES: Place[] = [
     { title: 'Debit notes', href: '/debit-notes' },
     { title: 'Earnings', href: '/analytics/earnings' },
     { title: 'Documents', href: '/documents' },
+    { title: 'Lines', href: '/lines' },
   ] },
   // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its
   // articles, enquiries, newsletter and Search Console, which keep their ?site= pages.
