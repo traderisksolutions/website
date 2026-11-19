@@ -12,8 +12,8 @@ import "./globals.css";
 const news = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-news" });
 const tc = Noto_Serif_TC({ weight: "400", preload: false, variable: "--font-tc" });
 
-// GA4 loads only when NEXT_PUBLIC_GA_ID is set (G-XXXXXXXXXX). Nothing renders otherwise.
-const GA = process.env.NEXT_PUBLIC_GA_ID;
+// GA4: NEXT_PUBLIC_GA_ID overrides the site's own measurement id.
+const GA = process.env.NEXT_PUBLIC_GA_ID || "G-T59794Z21D";
 const real = (v: string) => !v.startsWith("[");
 
 // Entity record. Fields still bracketed in site.ts are left out until the client supplies them.
