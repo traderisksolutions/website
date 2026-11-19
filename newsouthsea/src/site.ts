@@ -13,4 +13,7 @@ export const site = {
   hours: "Monday to Friday, 9:00 to 18:00 HKT",
   licence: "[IA broker licence no.]",
   entity: "New South Sea (HK) Limited",
+  // Holding page (Jarod, 19 Nov 2026: details not final). true = every URL shows the holding page, robots blocked.
+  // Set to false to bring the full site back.
+  holding: true,
 };

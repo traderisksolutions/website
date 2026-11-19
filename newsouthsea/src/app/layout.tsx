@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Newsreader, Noto_Serif_TC } from "next/font/google";
 import Script from "next/script";
+import { Holding } from "@/components/holding";
 import { Reveal } from "@/components/reveal";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -44,6 +45,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "./" },
   openGraph: { siteName: site.name, url: "./", type: "website", images: [{ url: "/images/hero.jpg", width: 1600, height: 1000, alt: "Victoria Harbour skyline" }] },
   twitter: { card: "summary_large_image" },
+  ...(site.holding ? { title: site.name, robots: { index: false, follow: false } } : {}),
   verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
@@ -51,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${news.variable} ${tc.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
+        {site.holding ? <Holding /> : <>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }} />
         <SiteHeader />
         <script dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }} />
@@ -59,6 +62,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Reveal />
         </main>
         <SiteFooter />
+        </>}
         {GA && <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA}`} strategy="afterInteractive" />}
         {GA && <Script id="ga4" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA}');`}</Script>}
       </body>
