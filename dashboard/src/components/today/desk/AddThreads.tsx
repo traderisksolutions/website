@@ -50,13 +50,27 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
+  // Threads older than the newest 200 whose subject matches, fetched once typing pauses.
+  const [found, setFound] = useState<Conv[]>([])
+  useEffect(() => {
+    const t = q.trim()
+    if (t.length < 2) { setFound([]); return }
+    const ctl = new AbortController()
+    const timer = setTimeout(() => {
+      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}`, { cache: 'no-store', signal: ctl.signal })
+        .then(r => r.json()).then(j => setFound(Array.isArray(j) ? j : [])).catch(() => {})
+    }, 300)
+    return () => { clearTimeout(timer); ctl.abort() }
+  }, [q])
 
   const nameOf = useMemo(() => new Map((convs ?? []).filter(c => c.companyId && c.companyName).map(c => [c.companyId!, c.companyName!])), [convs])
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return (convs ?? []).filter(c => !taken.has(c.thread_id))
-      .filter(c => !t || [subjectOf(c), senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
-  }, [convs, q, taken])
+    const seen = new Set((convs ?? []).map(c => c.thread_id))
+    const all = [...(convs ?? []), ...found.filter(c => !seen.has(c.thread_id))]
+    return all.filter(c => !taken.has(c.thread_id))
+      .filter(c => !t || [subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
+  }, [convs, found, q, taken])
 
   function toggle(c: Conv) {
     setPicked(p => {

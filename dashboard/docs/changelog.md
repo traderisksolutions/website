@@ -4,6 +4,11 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Add email threads searches the email subject
+
+- Today › Add email threads and Policies › Add from emails match the email's own subject as well as the dashboard's title for it, so a word in the subject finds the thread when the title was rewritten.
+- A search of two or more characters also asks `/api/engagement/conversations?q=` for matching threads past the newest 200 (subject, title or snippet), so older threads come back too.
+
 ## 2026-11-19 — Top bar: Today trimmed, Employment Benefits in one place
 
 - Today shows no count beside it, for every account (the `/api/today/count` read is gone from the top bar).

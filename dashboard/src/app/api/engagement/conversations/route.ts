@@ -93,6 +93,19 @@ export async function GET(req: NextRequest) {
       const rows: ThreadRow[] = one.ok ? await one.json() : []
       if (Array.isArray(rows) && rows[0]) threads.push(rows[0])
     }
+    // ?q=<words> adds threads past the newest 200 whose email subject, dashboard title or snippet
+    // contains them, so a search finds "Deluge" though the title reads "Awfa — travel insurance".
+    const q = (req.nextUrl.searchParams.get('q') ?? '').replace(/[^\p{L}\p{N}\s&@.\-']/gu, ' ').trim().slice(0, 80)
+    if (q.length >= 2) {
+      const pat = encodeURIComponent(`*${q}*`)
+      const hit = await fetch(
+        `${SB_URL}/rest/v1/email_threads?or=(subject.ilike.${pat},display_subject.ilike.${pat},snippet.ilike.${pat})&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&order=last_message_at.desc&limit=100`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      const rows: ThreadRow[] = hit.ok ? await hit.json() : []
+      const have = new Set(threads.map(t => t.id))
+      if (Array.isArray(rows)) for (const r of rows) if (!have.has(r.id)) threads.push(r)
+    }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
     const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
