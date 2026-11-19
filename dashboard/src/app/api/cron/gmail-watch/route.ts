@@ -62,7 +62,7 @@ async function renewWatch(token: string): Promise<{ historyId: string; expiratio
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body:    JSON.stringify({
       topicName:           process.env.GMAIL_PUBSUB_TOPIC!,
-      labelIds:            ['INBOX'],
+      labelIds:            ['INBOX', 'SENT'],
       labelFilterBehavior: 'INCLUDE',
     }),
   })

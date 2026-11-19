@@ -4,6 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — operations@: sent mail, every page, read-back
+
+- operations@ now reads its sent mail as well as its inbox, as the personal mailboxes do: the Gmail watch covers INBOX and SENT (from the next daily renewal), the history read keeps both and reads every page, and the fallback reads the last 3 days of both instead of the 25 newest inbox messages.
+- The daily catch-up (`/api/email/ingest?window=1440`) reads every inbox and sent message of the day, not the first 50, ten at a time.
+- `/api/email/ingest?mailbox=operations@trade-risksol.com&days=365` reads operations@ back page by page; `scripts/mailbox-readback.sh` loops it (run by Jarod with his own CRON_SECRET).
+
 ## 2026-11-19 — Add email threads searches the email subject
 
 - Today › Add email threads and Policies › Add from emails match the email's own subject as well as the dashboard's title for it, so a word in the subject finds the thread when the title was rewritten.
