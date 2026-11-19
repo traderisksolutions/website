@@ -36,7 +36,7 @@ export function Register({ children, label, minWidth = 720, maxHeight, className
 }) {
   return (
     <DenseContext.Provider value={dense}>
-      <div className={cn('rounded-[10px] overflow-hidden bg-white', className)} style={{ border: `1px solid ${RULE}` }}>
+      <div className={cn('overflow-hidden bg-white', className)}>
         <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
           <table className={cn('w-full border-collapse trs-table', dense && 'register')} style={{ minWidth }} aria-label={label}>{children}</table>
         </div>
@@ -47,16 +47,16 @@ export function Register({ children, label, minWidth = 720, maxHeight, className
 
 export function RegisterHead({ children }: { children: React.ReactNode }) {
   return (
-    <thead className="sticky top-0 z-20 bg-[var(--trs-tint)]">
-      <tr style={{ borderBottom: `1px solid ${RULE}` }}>{children}</tr>
+    <thead className="sticky top-0 z-20 bg-white">
+      <tr>{children}</tr>
     </thead>
   )
 }
 
 /** Horizontal padding of a cell: 10px in a dense register, the card inset otherwise. */
 function cellPad(dense: boolean, first: boolean | undefined, last: boolean | undefined) {
-  if (dense) return cn(first ? 'sticky left-0 pl-4 pr-[10px] shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-[10px]', last && 'pr-4')
-  return cn(first ? 'sticky left-0 pl-6 pr-3 shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-3', last && 'pr-5')
+  if (dense) return cn(first ? 'sticky left-0 pl-0 pr-[10px] shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-[10px]', last && 'pr-2')
+  return cn(first ? 'sticky left-0 pl-0 pr-3 shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-3', last && 'pr-3')
 }
 
 export function RegisterTh({ children, first, last, active, dir, onSort, hint, className, width }: {
@@ -88,7 +88,7 @@ export function RegisterRow({ children, selected, onClick, className, style }: {
   return (
     <tr tabIndex={onClick ? 0 : undefined} aria-selected={onClick ? !!selected : undefined} onClick={onClick}
       onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={cn('group transition-colors', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--trs-ink)]', selected ? 'bg-[var(--trs-soft)]' : onClick && 'hover:bg-[var(--trs-tint)]', className)}
+      className={cn('group transition-colors', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--trs-ink)]', selected ? 'bg-[var(--trs-mint)]' : onClick && 'hover:bg-[var(--trs-tint)]', className)}
       style={{ borderBottom: `1px solid ${RULE}`, ...style }}>
       {children}
     </tr>
@@ -109,8 +109,8 @@ export function RegisterCell({ primary, secondary, children, align = 'center', f
   return (
     <td colSpan={colSpan} title={title}
       className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', (first || align === 'left') && 'cell-left', nowrap && 'whitespace-nowrap',
-        first && cn('relative z-10', selected ? 'bg-[var(--trs-soft)]' : 'bg-white'), cellPad(dense, first, last), className)}>
-      {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />}
+        first && cn('relative z-10', selected ? 'bg-[var(--trs-mint)]' : 'bg-white'), cellPad(dense, first, last), className)}>
+      {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: 'var(--trs-green)' }} aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
       <div className={cn('min-w-0 max-w-full', !first && align !== 'left' && 'mx-auto')} style={first ? { width } : undefined}>
         {primary !== undefined && (

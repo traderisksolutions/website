@@ -73,7 +73,7 @@ function TodayPage() {
           {people.map(p => <option key={p} value={p}>{firstName(p)}{p === me ? ' (me)' : ''}</option>)}
           <option value="all">Everyone</option>
         </select>
-        <Segmented<View> value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }]} />
+        <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }]} />
         {view === 'client' && rows.length > 0 && <Btn size="xs" level="tertiary" onClick={() => setOpen(allOpen ? new Set() : new Set(rows.map(r => r.key)))}>{allOpen ? 'Fold all' : 'Unfurl all'}</Btn>}
       </PageHeader>
 

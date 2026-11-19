@@ -92,7 +92,7 @@ function TodayPage() {
       <PageHeader className="mb-5" title="To do"
         meta={view === 'mail' ? (mailCount == null ? undefined : `${mailCount.toLocaleString('en-SG')} thread${mailCount === 1 ? '' : 's'}`) : items ? `${active} to go through · ${count('send')} ready to send · ${count('decide')} decisions · ${count('act')} to act · ${count('read')} to read` : undefined}
         actions={view === 'list' && flat[0] && <LinkBtn level="primary" href={`/today/${flat[0].id}`}>Start</LinkBtn>}>
-        <Segmented<View> value={view} onChange={setView} label="View" options={[
+        <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[
           { value: 'list', label: 'To do', count: items ? active : undefined },
           { value: 'coming', label: 'Coming up' },
           { value: 'mail', label: 'Mail' },

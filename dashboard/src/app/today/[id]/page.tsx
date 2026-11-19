@@ -193,7 +193,7 @@ function Review() {
       </header>
       {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
       {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      <div><Segmented<CaseSection> value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.filter(s => s.value !== 'comparison' || item.case_type === 'renewal').map(s => ({ ...s }))} /></div>
+      <div><Segmented<CaseSection> variant="tabs" value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.filter(s => s.value !== 'comparison' || item.case_type === 'renewal').map(s => ({ ...s }))} /></div>
 
       {section === 'sources' && <CaseSourcesPanel id={item.id} staff={staff} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
       {section === 'conversation' && <CaseConversation id={item.id} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}

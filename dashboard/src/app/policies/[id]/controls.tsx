@@ -12,7 +12,7 @@ type Tab = 'ledger' | 'renewal'
 export function PolicyTabs({ value }: { value: Tab }) {
   const router = useRouter()
   const pathname = usePathname()
-  return <Segmented<Tab> value={value} onChange={v => router.push(`${pathname}?tab=${v}`)} options={[{ value: 'ledger', label: 'Ledger' }, { value: 'renewal', label: 'Renewal' }]} label="View" />
+  return <Segmented<Tab> variant="tabs" value={value} onChange={v => router.push(`${pathname}?tab=${v}`)} options={[{ value: 'ledger', label: 'Ledger' }, { value: 'renewal', label: 'Renewal' }]} label="View" />
 }
 
 /** The report as it would go to the client, opened in a new tab. Secondary, beside the one primary. */

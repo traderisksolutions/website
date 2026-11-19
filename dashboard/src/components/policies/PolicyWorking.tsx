@@ -85,7 +85,7 @@ export function PolicyWorking({ lineId }: { lineId: string }) {
           {ctx.thread && <Link href={`/engagement?lead=${ctx.thread.id}`} className="inline-flex h-9 items-center rounded-[8px] border border-trs-line-2 bg-white px-3.5 text-[14px] font-medium text-trs-ink no-underline">Open thread ↗</Link>}
           {current.length > 0 ? <ClientDraftButton placementId={ctx.placement.id} onDrafted={id => setDrawer(id)} /> : <Btn level="primary" onClick={() => setTab('request')}>Request to insurers</Btn>}
         </>}>
-        <Segmented<Tab> value={tab} onChange={setTab} label="Policy sections" options={[
+        <Segmented<Tab> variant="tabs" value={tab} onChange={setTab} label="Policy sections" options={[
           { value: 'overview', label: 'Overview' }, { value: 'request', label: 'Request' },
           { value: 'quotes', label: 'Quotes', count: current.length }, { value: 'letter', label: 'Letter' }, { value: 'activity', label: 'Activity', count: ctx.log.length }]} />
       </PageHeader>

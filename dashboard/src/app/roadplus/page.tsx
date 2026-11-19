@@ -388,7 +388,7 @@ export default function RoadplusReconPage() {
 
         {/* Tabs: the house segmented control. */}
         <div className="mt-6">
-          <Segmented size="sm" label="RoadPlus views" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t.key, label: t.label }))} />
+          <Segmented variant="tabs" size="sm" label="RoadPlus views" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t.key, label: t.label }))} />
         </div>
 
         {/* ── PAYMENTS ── */}

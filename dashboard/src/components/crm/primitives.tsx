@@ -5,8 +5,9 @@ import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { STAGE_LABEL, STAGE_TONE, type Stage, type StageTone } from '@/lib/crm/types'
 
-/** Small building blocks shared by every screen. Colours come from the --trs-* tokens in
- *  globals.css; controls are 36 or 30 high; one green primary per view. */
+/** Small building blocks shared by every screen, in the website's design (Jarod, 19 Nov 2026).
+ *  Colours come from the --trs-* tokens in globals.css; controls are 40 or 32 high; one green
+ *  primary per view. */
 
 const INK = 'var(--trs-ink)'
 const MUTED = 'var(--trs-muted)'
@@ -53,26 +54,49 @@ export function SectionCard({ title, actions, children, className, padded = true
   )
 }
 
-export function Empty({ children, compact }: { children: React.ReactNode; compact?: boolean }) {
-  return <p className={cn('text-[14px] text-center m-0', compact ? 'py-5' : 'py-10')} style={{ color: MUTED }}>{children}</p>
-}
-
-export function Spinner({ label }: { label?: string }) {
+/** Nothing to show: the plain fact, and the action that fills it when there is one. */
+export function Empty({ children, compact, action }: { children: React.ReactNode; compact?: boolean; action?: React.ReactNode }) {
+  if (!action) return <p className={cn('text-[14px] text-center m-0', compact ? 'py-5' : 'py-10')} style={{ color: MUTED }}>{children}</p>
   return (
-    <div className="flex items-center justify-center gap-2 py-10 text-[13px]" style={{ color: MUTED }}>
-      <Loader2 size={14} className="animate-spin" /> {label ?? 'Loading…'}
+    <div className={cn('flex flex-col items-center gap-3 text-center', compact ? 'py-5' : 'py-10')}>
+      <p className="m-0 text-[14px]" style={{ color: MUTED }}>{children}</p>
+      {action}
     </div>
   )
 }
 
+/** Loading: placeholder rows in a table's shape, the label read out to screen readers and shown small. */
+export function Spinner({ label, rows = 5 }: { label?: string; rows?: number }) {
+  const widths = ['34%', '18%', '14%', '20%']
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col py-3 min-w-0">
+      <span className="text-[12.5px] mb-2" style={{ color: MUTED }}>{label ?? 'Loading…'}</span>
+      <div className="flex items-center gap-4 h-10 border-b" style={{ borderColor: 'var(--trs-ink)' }}>
+        {widths.map((w, i) => <span key={i} className="trs-sk" style={{ width: `calc(${w} * .55)`, height: 9 }} />)}
+      </div>
+      {Array.from({ length: rows }, (_, r) => (
+        <div key={r} className="flex items-center gap-4 h-[46px] border-b" style={{ borderColor: 'var(--trs-line)' }}>
+          {widths.map((w, i) => <span key={i} className="trs-sk" style={{ width: w, opacity: 1 - r * 0.12 }} />)}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** A small inline wait, for a button or a line of text. */
+export function InlineSpinner({ label }: { label?: string }) {
+  return <span className="inline-flex items-center gap-2 text-[13px]" style={{ color: MUTED }}><Loader2 size={14} className="animate-spin" />{label}</span>
+}
+
 const BTN_BASE = 'inline-flex items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color,opacity] disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trs-green'
-// Two heights only: sm = 36 (the default control), xs = 30 (in rows and toolbars).
-const BTN_SIZE = { sm: 'h-9 px-3.5 text-[14px] rounded-[8px]', xs: 'h-[30px] px-2.5 text-[13px] rounded-[7px]' } as const
+// The website's buttons (.s-btn): radius 7, a 1.5px edge. Two heights: sm = 40 (the default
+// control), xs = 32 (in rows and toolbars). Secondary is the green outline; one primary per view.
+const BTN_SIZE = { sm: 'h-10 px-4 text-[14px] rounded-[7px]', xs: 'h-8 px-3 text-[13px] rounded-[7px]' } as const
 const BTN_LEVEL = {
-  primary:   'border-transparent bg-trs-green text-white hover:bg-trs-green-2',
-  secondary: 'border-trs-line-2 bg-white text-trs-ink hover:border-trs-ink-2',
-  tertiary:  'border-transparent bg-transparent text-trs-muted hover:bg-trs-canvas hover:text-trs-ink',
-  danger:    'border-trs-line-2 bg-white text-trs-neg hover:border-trs-neg',
+  primary:   'border-[1.5px] border-trs-green bg-trs-green text-white hover:bg-trs-green-2 hover:border-trs-green-2',
+  secondary: 'border-[1.5px] border-trs-green bg-white text-trs-green hover:bg-trs-mint',
+  tertiary:  'border-[1.5px] border-transparent bg-transparent text-trs-muted hover:bg-trs-tint hover:text-trs-ink',
+  danger:    'border-[1.5px] border-[rgba(161,36,47,0.4)] bg-white text-trs-neg hover:border-trs-neg',
 } as const
 export type BtnLevel = keyof typeof BTN_LEVEL
 /** The same ladder as a class string, for a plain <button> or <Link> that cannot be a Btn. */
@@ -96,12 +120,14 @@ export function LinkBtn({ href, level = 'secondary', size = 'sm', className, chi
   )
 }
 
-/** Segmented control for tabs and filters: hairline track, the selected option on soft green.
- *  Single-select (role radio), never clears. Two heights: sm 36, xs 30 (default). */
-export function Segmented<T extends string>({ value, onChange, options, className, size = 'xs', label }: { value: T; onChange: (v: T) => void; options: { value: T; label: string; count?: number }[]; className?: string; size?: 'sm' | 'xs'; label?: string }) {
+/** One choice from a few, two looks (Jarod, 19 Nov 2026). `pills` (default) for filters and
+ *  options: rounded, the chosen one solid green. `tabs` for a page's or a record's sections:
+ *  underlined, the current one in green. Single-select (role radio), never clears. */
+export function Segmented<T extends string>({ value, onChange, options, className, size = 'xs', label, variant = 'pills' }: { value: T; onChange: (v: T) => void; options: { value: T; label: string; count?: number }[]; className?: string; size?: 'sm' | 'xs'; label?: string; variant?: 'pills' | 'tabs' }) {
+  const tabs = variant === 'tabs'
   return (
-    <div role="radiogroup" aria-label={label} className={cn('inline-flex max-w-full flex-wrap overflow-hidden rounded-[8px] border border-trs-line-2 bg-white', size === 'sm' ? '[&>button]:h-[34px]' : '[&>button]:h-[28px]', className)}>
-      {options.map((o, i) => {
+    <div role="radiogroup" aria-label={label} className={cn(tabs ? 'flex max-w-full gap-0.5 overflow-x-auto border-b border-trs-line [scrollbar-width:none]' : 'inline-flex max-w-full flex-wrap gap-1.5', className)}>
+      {options.map(o => {
         const on = o.value === value
         return (
           <button
@@ -110,12 +136,13 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             role="radio"
             aria-checked={on}
             onClick={() => onChange(o.value)}
-            className={cn('inline-flex items-center gap-1.5 px-3 text-[13px] font-medium border-0 cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-trs-green',
-              i > 0 && 'border-l border-solid border-trs-line-2',
-              on ? 'bg-trs-select-bg text-trs-select-fg' : 'bg-transparent text-trs-ink-2 hover:bg-trs-canvas')}
+            className={cn('inline-flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-trs-green',
+              tabs
+                ? cn('h-10 px-3 -mb-px text-[14px] border-0 border-b-2 border-solid bg-transparent', on ? 'border-trs-green text-trs-green font-medium' : 'border-transparent text-trs-muted hover:text-trs-ink')
+                : cn(size === 'sm' ? 'h-[34px]' : 'h-[30px]', 'px-3 rounded-full border border-solid text-[13px]', on ? 'border-trs-green bg-trs-green text-white' : 'border-trs-line-2 bg-white text-trs-ink-2 hover:border-trs-ink-2'))}
           >
             {o.label}
-            {o.count !== undefined && <span className={cn('font-mono text-[11px] tabular-nums', on ? 'text-trs-select-fg' : 'text-trs-muted')}>{o.count}</span>}
+            {o.count !== undefined && <span className={cn('font-mono text-[11px] tabular-nums', tabs ? 'text-trs-subtle' : on ? 'text-white/80' : 'text-trs-muted')}>{o.count}</span>}
           </button>
         )
       })}
@@ -126,15 +153,16 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>{label}</span>
+      <span className="block text-[13px] font-medium mb-1.5" style={{ color: INK }}>{label}</span>
       {children}
       {hint && <span className="block text-[12px] mt-1" style={{ color: MUTED }}>{hint}</span>}
     </label>
   )
 }
 
-export const inputCls = 'w-full h-9 rounded-[8px] border border-trs-line-2 bg-white px-3.5 text-[14px] text-trs-ink outline-none transition-colors focus:border-trs-ink placeholder:text-trs-subtle'
-export const textareaCls = 'w-full rounded-[8px] border border-trs-line-2 bg-white px-3.5 py-2.5 text-[14px] text-trs-ink outline-none transition-colors focus:border-trs-ink resize-y placeholder:text-trs-subtle'
+// Boxed white fields with a green focus ring (the website's form).
+export const inputCls = 'w-full h-10 rounded-[7px] border border-trs-line-2 bg-white px-3 text-[14.5px] text-trs-ink outline-none transition-colors focus:border-trs-green-2 focus-visible:ring-2 focus-visible:ring-[rgba(31,78,58,0.25)] placeholder:text-trs-subtle'
+export const textareaCls = 'w-full rounded-[7px] border border-trs-line-2 bg-white px-3 py-2.5 text-[14.5px] text-trs-ink outline-none transition-colors focus:border-trs-green-2 focus-visible:ring-2 focus-visible:ring-[rgba(31,78,58,0.25)] resize-y placeholder:text-trs-subtle'
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
   const parts = name.replace(/[^a-zA-Z ]/g, '').trim().split(/\s+/).filter(Boolean)

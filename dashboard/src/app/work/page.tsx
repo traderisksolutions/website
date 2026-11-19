@@ -60,7 +60,7 @@ export default function WorkPage() {
   return (
     <div className="px-4 md:px-8 py-6 max-w-[920px] mx-auto w-full min-w-0">
       <PageHeader className="mb-5" title="Work" meta={items ? `${items.length} open` : undefined}>
-        <Segmented<View> value={view} onChange={setView} label="View" options={[
+        <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[
           { value: 'queue', label: 'Queue', count: items?.length ?? 0 },
           { value: 'review', label: 'Review', count: review.missing ? undefined : review.tasks?.length ?? 0 },
         ]} />

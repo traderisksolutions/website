@@ -44,7 +44,7 @@ export function TopNavbar() {
   async function signOut() { await createClient().auth.signOut(); router.push('/login') }
 
   return (
-    <header className="w-full h-[52px] flex-shrink-0 bg-white">
+    <header className="w-full h-[54px] flex-shrink-0 bg-white">
       <div className="flex h-full items-center gap-1 px-4 md:px-6 min-w-0">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>

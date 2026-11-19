@@ -105,7 +105,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   return (
     <section aria-label="Brief" className="flex flex-col gap-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <Segmented<Tab> value={tab} onChange={setTab} label="Brief" options={[{ value: 'brief', label: 'Brief' }, { value: 'current', label: 'Notes', count: current.length }, { value: 'aside', label: 'Set aside', count: memory.set_aside.length }]} />
+        <Segmented<Tab> variant="tabs" value={tab} onChange={setTab} label="Brief" options={[{ value: 'brief', label: 'Brief' }, { value: 'current', label: 'Notes', count: current.length }, { value: 'aside', label: 'Set aside', count: memory.set_aside.length }]} />
         <Btn level="primary" disabled={busy !== null} onClick={() => { setAddError(null); setAdding(true) }}>Add note</Btn>
       </div>
 

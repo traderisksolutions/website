@@ -114,7 +114,7 @@ function PricingMatrix() {
       </div>
 
       <div className="mt-8 mb-6">
-        <Segmented size="sm" label="Section" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
+        <Segmented variant="tabs" size="sm" label="Section" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
       </div>
 
       {tab === 'rules' && <PlanRules />}

@@ -124,7 +124,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
   return (
     <section aria-label="Sources" className="flex flex-col gap-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <Segmented<Tab> value={tab} onChange={setTab} label="Sources" options={tabs} />
+        <Segmented<Tab> variant="tabs" value={tab} onChange={setTab} label="Sources" options={tabs} />
         <Btn level="primary" disabled={busy !== null || chosen.length === 0} loading={busy === 'add'}
           onClick={() => void add(chosen.map(t => ({ id: t.id, subject: t.subject, ...sideOf(t) })), false)}>
           {chosen.length ? `Add ${chosen.length} to case` : 'Add to case'}

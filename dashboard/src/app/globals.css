@@ -678,38 +678,52 @@ select:focus-visible {
    caller's inline span asks for. One line per 48px row, a faint rule between columns so a wide
    grid reads across like a spreadsheet. */
 table.register td :is(.text-\[13px\], .text-\[14px\], .text-\[15px\]) { font-size: 13.5px; }
-table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #e3e6e0; }
+table.register td + td, table.register th + th { box-shadow: inset 1px 0 0 #e6e8e4; }
 table.register td :is(.text-\[12\.5px\]) { font-size: 12px; }
 table.register td .mt-0\.5 { margin-top: 0; }
 
 /* ── Top bar (traderisksolutions.com.sg navbar) ── */
 .trs-mark-t { font-family: var(--font-archivo, "Archivo"), "Archivo", system-ui, sans-serif; font-weight: 500; font-stretch: 125%; letter-spacing: .2em; padding-left: .2em; font-size: 18px; line-height: 1; color: #132c1c; }
 .trs-mark-c { font-family: "Zhi Mang Xing", "Kaiti SC", "STKaiti", serif; font-size: 15px; letter-spacing: .12em; line-height: 1; color: #132c1c; }
-.trs-place { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border-radius: 7px; font-size: 13.5px; font-weight: 500; color: var(--trs-ink-2); white-space: nowrap; text-decoration: none; transition: background-color .15s, color .15s; }
-.trs-place:hover { background: var(--trs-canvas); color: var(--trs-ink); }
-.trs-place[aria-current="page"] { background: var(--trs-select-bg); color: var(--trs-select-fg); }
-.trs-place:focus-visible, .trs-subtab:focus-visible { outline: 2px solid var(--trs-green); outline-offset: 2px; }
+.trs-place { display: inline-flex; align-items: center; gap: 6px; height: 54px; padding: 0 10px; border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 13.5px; font-weight: 500; color: var(--trs-muted); white-space: nowrap; text-decoration: none; transition: color .15s, border-color .15s; }
+.trs-place:hover { color: var(--trs-ink); }
+.trs-place[aria-current="page"] { color: var(--trs-green); border-bottom-color: var(--trs-green); }
+.trs-place:focus-visible, .trs-subtab:focus-visible { outline: 2px solid var(--trs-green); outline-offset: -2px; }
 .trs-place .cnt { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; color: var(--trs-muted); }
-.trs-place[aria-current="page"] .cnt { color: var(--trs-select-fg); }
-.trs-subtab { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 6px; font-size: 13px; color: var(--trs-muted); white-space: nowrap; text-decoration: none; }
-.trs-subtab:hover { color: var(--trs-ink); background: var(--trs-canvas); }
-.trs-subtab[aria-current="page"] { color: var(--trs-ink); font-weight: 500; background: var(--trs-field); }
+.trs-place[aria-current="page"] .cnt { color: var(--trs-green); }
+.trs-place-tabs { gap: 18px !important; height: 38px !important; background: var(--trs-tint) !important; border-top: 1px solid var(--trs-line); }
+.trs-subtab { display: inline-flex; align-items: center; height: 38px; padding: 0; font-size: 13px; color: var(--trs-muted); white-space: nowrap; text-decoration: none; }
+.trs-subtab:hover { color: var(--trs-ink); }
+.trs-subtab[aria-current="page"] { color: var(--trs-ink); font-weight: 500; }
 
-/* ── One table look for the whole app (14 Nov 2026, Jarod's option D + column lines). Grey header
-   band, every header centred; 48px rows, every second row tinted, a line under each row and between
-   columns; hover green. Body cells are centred (numbers, badges, dates, short words); the first column
-   and any cell marked .cell-left (names, subjects, descriptions, notes) read left. Applied by Register
-   and every hand-built table through .trs-table; email bodies and client-facing pages keep their own. ── */
-table.trs-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-table.trs-table thead th { background: #f0f2ee; color: #4a5550; font-weight: 500; font-size: 12.5px; height: 36px; padding-top: 0; padding-bottom: 0; border-bottom: 1px solid #dcdfd9; white-space: nowrap; text-align: center; }
-table.trs-table th + th, table.trs-table td + td { box-shadow: inset 1px 0 0 #e3e6e0; }
-table.trs-table tbody td { height: 48px; padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #e3e6e0; text-align: center; }
+/* ── One table look for the whole app (Jarod, 19 Nov 2026: the website ledger, comfortable).
+   No header band and no zebra: a dark rule under the head, a hairline under every row and between
+   columns, 46px rows, every header and body cell centred; the first column and any cell marked
+   .cell-left (names, subjects, descriptions, notes) read left. Hover is the site's tint; a selected
+   row is mint with a green edge; a total row (.row-total) is ruled above and below. Applied by
+   Register and every hand-built table through .trs-table; email bodies and client pages keep their own. ── */
+table.trs-table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+table.trs-table thead th { background: #ffffff; color: #4a5550; font-weight: 600; font-size: 12px; height: 40px; padding-top: 0; padding-bottom: 0; border-bottom: 1px solid #0f1412; white-space: nowrap; text-align: center; vertical-align: middle; }
+table.trs-table th + th, table.trs-table td + td { box-shadow: inset 1px 0 0 #e6e8e4; }
+table.trs-table tbody td { height: 46px; padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #e6e8e4; text-align: center; }
 table.trs-table tbody td:first-child, table.trs-table tbody td.cell-left { text-align: left; }
 table.trs-table tbody td:first-child:has(> input[type="checkbox"]), table.trs-table tbody td.cell-empty { text-align: center; }
-table.trs-table tbody tr:last-child td { border-bottom: 0; }
-table.trs-table tbody tr:nth-child(even):not(.reg-group) > td { background-color: #f9faf8; }
-table.trs-table tbody tr:hover > td { background-color: #e9f2ec; }
-table.trs-table tbody tr[aria-selected="true"] > td, table.trs-table tbody tr.row-selected > td { background-color: var(--trs-soft); }
+table.trs-table tbody tr:hover > td { background-color: #faf9f6; }
+table.trs-table tbody tr[aria-selected="true"] > td, table.trs-table tbody tr.row-selected > td { background-color: var(--trs-mint); }
+table.trs-table tbody tr[aria-selected="true"] > td:first-child, table.trs-table tbody tr.row-selected > td:first-child { box-shadow: inset 3px 0 0 var(--trs-green); }
+table.trs-table tbody tr.row-total > td { font-weight: 600; border-top: 1px solid #0f1412; border-bottom: 1px solid #0f1412; }
+table.trs-table td.cell-best { background-color: var(--trs-mint); }
+
+/* A cell's own padding class wins; a hand-built table without one gets 12px each side, so a
+   header always lines up with its column. In the base layer, under Tailwind's utilities. */
+@layer base {
+  table.trs-table th, table.trs-table td { padding-left: 12px; padding-right: 12px; }
+}
+
+/* ── Loading: table-shaped placeholder rows (Spinner in primitives.tsx). ── */
+.trs-sk { display: block; height: 11px; border-radius: 3px; background: linear-gradient(90deg, #eef0ec 0, #f7f8f5 50%, #eef0ec 100%); background-size: 200% 100%; animation: trs-sk 1.4s ease-in-out infinite; }
+@keyframes trs-sk { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .trs-sk { animation: none; } }
 
 /* ── Modal motion (Jarod, 14 Oct and 19 Nov 2026): the page behind fades to a grey blur, the panel
    rises 28px and fades in; closing runs the same in reverse. Used by the confirm box. ── */

@@ -18,7 +18,7 @@ export function PageHeader({ title, meta, actions, children, className }: PageHe
     <header className={cn('flex flex-col gap-3 min-w-0', className)}>
       <div className="flex flex-wrap items-end justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
+          <h1 className="m-0 text-[32px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
           {meta && <div className="mt-1 text-[13.5px] tabular-nums text-trs-muted">{meta}</div>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">{actions}</div>}

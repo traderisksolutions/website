@@ -324,7 +324,7 @@ function CompanyWorkspace() {
 
         {/* The eight working tabs in one segmented row, the rest under More. */}
         <div className="mb-6 flex flex-wrap items-center gap-2 min-w-0">
-          <Segmented<Tab> value={tab} onChange={setTab} label="Company sections" options={[...MAIN_TABS, ...MORE_TABS.filter(t => t.key === tab)].map(t => {
+          <Segmented<Tab> variant="tabs" value={tab} onChange={setTab} label="Company sections" options={[...MAIN_TABS, ...MORE_TABS.filter(t => t.key === tab)].map(t => {
             const n = countFor(t.key)
             return { value: t.key, label: t.label, count: n !== null && n > 0 ? n : undefined }
           })} />

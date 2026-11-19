@@ -9,6 +9,24 @@ decorative. This mirrors the Keluarga Timur demo's "no boxes, no tinted
 panels" rule, adapted to this app's own navy/enterprise identity rather than
 importing Keluarga's literal palette.
 
+
+## The website system everywhere (Jarod, 19 Nov 2026)
+
+Chosen from the revamp choice sheet; it wins over anything older below. Built once in the shared
+pieces (`globals.css`, `primitives.tsx`, `page-header.tsx`, `ui/register.tsx`, `top-navbar.tsx`), so
+every page follows.
+
+| Area | Rule | Where |
+| --- | --- | --- |
+| Tables | The website ledger, comfortable. No header band, no zebra, no outer box. A dark rule under the head, a hairline under every row and between columns, 46px rows. Headers and body cells centred; the first column and `.cell-left` read left. Hover in tint; a selected row mint with a green edge; `tr.row-total` ruled above and below; `td.cell-best` mint for the lowest figure. | `table.trs-table`, `Register`, `tableFrame` |
+| Page header | Serif title (EB Garamond, 32px), one facts line, the page's actions on the right, the primary last. | `PageHeader` |
+| Navigation | The website's top bar: 54px, the current place underlined in green; the place's pages on a tint band below. | `.trs-place`, `.trs-subtab`, `TopBar` |
+| Tabs and filters | A page's or a record's sections are underlined tabs (`Segmented variant="tabs"`); filters and options are pills, the chosen one solid green (`Segmented`, the default). | `Segmented` |
+| Buttons and status | The website's buttons: radius 7, a 1.5px edge, 40px (`sm`) or 32px (`xs`). Primary solid green; secondary the green outline; tertiary text. Status keeps the chips (`Chip`). | `Btn`, `LinkBtn`, `btnClass` |
+| Forms | Boxed white fields, 40px, radius 7, a green focus ring; the label above in 13px medium ink. Many rows of the same shape are a grid (`xl-grid`). | `inputCls`, `textareaCls`, `Field` |
+| Modals and pages | Real work is a full page; a modal only to confirm or for a short pick. Removals go through `useConfirm`. | `ui/confirm.tsx` |
+| Empty, loading, error | Loading shows placeholder rows in a table's shape with the wait named small above; an empty list names what is missing and offers the action that fills it (`Empty action=`); an error says what failed in red. | `Spinner`, `Empty` |
+
 ## Surface tokens
 
 | Token | Value | Used for |
