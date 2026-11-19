@@ -4,6 +4,11 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Today: daily To do digest emails stopped
+
+- The morning (08:30 SGT) and afternoon (14:00 SGT) To do digest emails no longer send: both `/api/cron/todo-digest` entries are out of `vercel.json` (Jarod, 19 Nov). TOD-013 and TOD-014 in `docs/behaviours.md` are marked removed.
+- The route and `src/lib/today/digest.ts` stay in place; putting the two cron entries back switches the emails on again.
+
 ## 2026-11-19 — Today: clients added by hand, To client and To insurer, Read
 
 - **Today** (`src/app/today/page.tsx`, `src/components/today/desk/`): a person adds email threads by hand (Add email threads: tick threads, Client or Insurer, the client). One row per client, folded by default; open, it shows To client and To insurer with every unsent email on the row's threads, each with Edit and Send. Send runs the thread rail's path (`/api/drafts/:id`, then `/api/email/send`, unchanged). By client sorts the most emails to send first; By email lists every unsent email oldest first. An employee picker shows anyone's list or Everyone. Remove asks first and keeps the threads and drafts.
