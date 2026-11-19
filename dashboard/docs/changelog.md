@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Employment Benefits: proposal by email
+
+- **Proposal** under Total on `/eb` (`src/components/eb/ProposalSection.tsx`): tick the insurers, Save quotation or Prepare proposal. A quotation is kept as it stood in `eb_quotations` (migration `20261119_eb_quotations.sql`), with the benefit rows of its plans from the house workbook.
+- **Proposal PDF** (`/eb/proposal/[id]`, `src/lib/gb/eb-proposal-pdf.tsx`): the website's design (green band, TRS mark, EB Garamond titles, hairline tables with column lines, figures centred, lowest total in mint), in Nathan's order: premium by cover, each category's plans and benefits, the census. Checks above it: covers chosen but priced at S$0 or not priced, lives without an age.
+- **Email to client** (`/eb/proposal/[id]/email`): a full page. The Inbox editor with tables, the PDF beside it, the message written by code from the quotation with the premium table. The draft sits on the client thread with the PDF kept in Drive (`group-benefits/proposals`); Send goes through `/api/email/send` unchanged.
+- **After Send**: the company opens on Working on with the proposal's status (request in, quotation saved, proposal sent, client decides, bound) and every version kept (`src/components/eb/ProposalTrack.tsx`); the Employment Benefits line moves to Quote sent and the company log records it. No model is called anywhere in the flow.
+
 ## 2026-11-19 — Today: daily To do digest emails stopped
 
 - The morning (08:30 SGT) and afternoon (14:00 SGT) To do digest emails no longer send: both `/api/cron/todo-digest` entries are out of `vercel.json` (Jarod, 19 Nov). TOD-013 and TOD-014 in `docs/behaviours.md` are marked removed.

@@ -48,6 +48,14 @@ test('a census in categories, one tier lower first, then premiums per category w
   await expect(directors.getByRole('cell', { name: 'Hospital & Surgical' })).toBeVisible()
   await expect(directors.getByRole('cell', { name: 'Directors · premium a year' })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Total premium' }).getByRole('cell', { name: 'Premium a year' })).toBeVisible()
+
+  // Proposal under Total (EB-051): every insurer ticked, one taken out, nothing saved here.
+  const proposal = page.getByRole('table', { name: 'Insurers in the proposal' })
+  await expect(proposal).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Prepare proposal · 5 insurers' })).toBeVisible()
+  await proposal.getByRole('checkbox', { name: 'Include Income FlexCare' }).uncheck()
+  await expect(page.getByRole('button', { name: 'Prepare proposal · 4 insurers' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Save quotation' })).toBeEnabled()
 })
 
 test('a census read can be removed, and nothing from it stays', async ({ page }) => {

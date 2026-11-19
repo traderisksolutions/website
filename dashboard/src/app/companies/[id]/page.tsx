@@ -25,6 +25,7 @@ import { DataRoom } from '@/components/documents/DataRoom'
 import { companyFacts } from '@/lib/companies/facts'
 import { CompanyRail } from '@/components/companies/CompanyRail'
 import { WorkingOn } from '@/components/policies/WorkingOn'
+import { ProposalTrack } from '@/components/eb/ProposalTrack'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import type { LetterStatus } from '@/lib/letters/appointment'
 import type { DataRoomStatus } from '@/lib/documents/taxonomy'
@@ -338,7 +339,7 @@ function CompanyWorkspace() {
           </DropdownMenu>
         </div>
 
-        {tab === 'working' && <WorkingOn company={{ id, name: company.name }} />}
+        {tab === 'working' && <><ProposalTrack companyId={id} justSent={search.get('sent') === 'proposal'} /><WorkingOn company={{ id, name: company.name }} /></>}
 
         {tab === 'contacts' && (
           <>

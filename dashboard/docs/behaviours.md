@@ -180,6 +180,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | EB-048 | [Standing] Every company with a benefits quote or HR link gets "<company>/Employment Benefits" in the debit-note Drive root, created automatically. | project_trs_group_benefits_v2 (23 Oct) | Drive helpers | Folder exists after quote. |
 | EB-049 | Must not: packages (Essential, Standard, Enhanced, Executive, Premier) in the flow. | f4b1bb14 (Ernest: "packages mean nothing to a client") | analysis, NewEb | rule |
 | EB-050 | Must not: the retired A/B/C estimate section, the Policies, Coverage and Activity tabs under Employment Benefits, the dead "+ Quotes" button or the Drive button. | CL 12 Nov; 273f8c0e | /pricing-matrix | rule |
+| EB-051 | Proposal by email (Jarod, 19 Nov 2026): under Total on /eb, tick the insurers, Save quotation or Prepare proposal (kept in eb_quotations). The proposal is a PDF in the website's design, Nathan's order (premium by cover, plans and benefits per category, census), with checks for covers chosen but priced at S$0 or not priced. Email to client is a full page: the Inbox editor with tables, the PDF beside it, sent through /api/email/send; after Send the company opens on Working on with the proposal's status. No model is called. | Jarod 19 Nov; mock-up PFhexTJV5SCdwdhJtEtXAq | src/lib/gb/eb-proposal.ts, /eb/proposal/[id], /eb/proposal/[id]/email | eb-quotation.spec.ts; gb-eb-proposal.test.ts |
 
 ## Requests for quotes and Placement
 

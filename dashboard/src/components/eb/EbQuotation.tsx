@@ -24,6 +24,7 @@ import type { Member } from '@/lib/gb-quote'
 import type { SheetRead } from '@/lib/gb/census-parse'
 import type { LastYear } from '@/lib/gb/last-year'
 import { applyRules } from '@/lib/gb/plan-pairs'
+import { ProposalSection } from './ProposalSection'
 import { categoryTotal, censusCategories, lastYearNet, lowerTier, MAX_CATEGORIES, startDesign, TIERS, todayFromLastYear, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
 
 type Source = { attachment_id: string; filename: string; at: string; subject: string | null }
@@ -339,6 +340,7 @@ export function EbQuotation({ threadId }: { threadId: string | null }) {
 
       {busy && !priced && <Spinner label="Pricing every product…" />}
       {priced && <Premiums priced={priced} picks={picks} onChoose={choose} lastYearTotal={chosen.length === cats.length ? lyNet : null} />}
+      {priced && members && <ProposalSection priced={priced} picks={picks} members={members} company={pick.name} companyId={pick.id} threadId={threadId} effectiveDate={effDate} basis={basis} />}
     </div>
   )
 }
