@@ -69,7 +69,7 @@ export function BrochureLibrary() {
       {data && (
         <section className="min-w-0">
           <div className="overflow-x-auto">
-            <table className="trs-table w-full min-w-[920px] border-collapse text-[13px]" aria-label="Brochure versions">
+            <table className="trs-table w-full min-w-[960px] border-collapse text-[13px]" aria-label="Brochure versions">
               <thead><tr className="border-b border-trs-line text-[12px] text-trs-muted">
                 <th className="sticky left-0 z-[1] bg-white px-4 py-2.5 text-left font-medium">Product</th>
                 <th className="px-3 py-2.5 text-left font-medium">Line</th>
@@ -77,7 +77,7 @@ export function BrochureLibrary() {
                 <th className="w-[130px] px-3 py-2.5 text-center font-medium">In force from</th>
                 <th className="px-3 py-2.5 text-left font-medium">Files</th>
                 <th className="w-[110px] px-3 py-2.5 text-center font-medium">Status</th>
-                <th className="w-[150px] px-3 py-2.5 text-center font-medium">Actions</th>
+                <th className="w-[180px] px-3 py-2.5 text-center font-medium">Actions</th>
               </tr></thead>
               <tbody>
                 {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-trs-muted">No brochures yet.</td></tr>}
@@ -92,12 +92,12 @@ export function BrochureLibrary() {
                       <td className="cell-left px-3 py-2.5">
                         {r.files.length === 0 ? <span className="text-trs-muted">No files</span> : (
                           <span className="flex flex-col gap-0.5">{r.files.map(f => (
-                            <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" className={`truncate no-underline hover:underline ${muted ? 'text-trs-subtle' : 'text-trs-ink'}`}>
+                            <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" className={`block break-words no-underline hover:underline ${muted ? 'text-trs-subtle' : 'text-trs-ink'}`}>
                               <span className="mr-1.5 text-[11px] text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
                         {r.note && <span className="mt-1 block text-[12px] text-trs-muted">{r.note}</span>}
                       </td>
                       <td className={`whitespace-nowrap px-3 py-2.5 text-center ${STATUS_CLS[r.status]}`}>{STATUS_WORD[r.status]}</td>
-                      <td className="px-3 py-2 text-center whitespace-nowrap">
+                      <td className="min-w-[180px] px-3 py-2 text-center whitespace-nowrap">
                         <span className="inline-flex gap-1.5">
                           <Btn size="xs" disabled={!data.saving || r.status === 'to_confirm'} title={!data.saving ? NO_TABLE : r.status === 'to_confirm' ? 'Move the file into a version folder in Drive' : undefined}
                             onClick={() => { setNote(null); setEditing({ mode: 'edit', row: r }) }}>Edit</Btn>
