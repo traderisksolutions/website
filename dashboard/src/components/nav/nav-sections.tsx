@@ -1,9 +1,17 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  ListChecks, Building2, Inbox, Table2, ShieldCheck, FileText, Landmark, FolderOpen, Megaphone,
+  ListChecks, Building2, Inbox, Table2, LayoutGrid, Megaphone,
   Settings, History, AlertTriangle, Cpu, TrendingUp, Users, Gauge, HeartPulse } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
+
+/** The four websites, keyed as in marketing_sites. Their page is /websites/<key>. */
+export const WEBSITES: PlaceTab[] = [
+  { title: 'Trade Risk Solutions', href: '/websites/traderisksolutions' },
+  { title: 'Corp Cover', href: '/websites/corpcover' },
+  { title: 'Benefixe', href: '/websites/benefixe' },
+  { title: 'New South Sea', href: '/websites/newsouthsea' },
+]
 
 export type Place = {
   label: string
@@ -53,36 +61,20 @@ export const PLACES: Place[] = [
     { title: 'Insurers', href: '/insurers' },
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
-  { label: 'Claims', href: '/claims', icon: ShieldCheck, tabs: [
+  // Others (19 Nov 2026): Claims, Policies, Finance and Documents in one place.
+  { label: 'Others', href: '/claims', icon: LayoutGrid, tabs: [
     { title: 'Claims', href: '/claims' },
     { title: 'Second opinion', href: '/claims/second-opinion' },
-  ] },
-  { label: 'Policies', href: '/policies', icon: FileText, tabs: [
     { title: 'Policies', href: '/policies' },
     { title: 'Member movements', href: '/movements' },
-  ] },
-  { label: 'Finance', href: '/finance', icon: Landmark, tabs: [
     { title: 'Receipts', href: '/finance' },
     { title: 'Debit notes', href: '/debit-notes' },
     { title: 'Earnings', href: '/analytics/earnings' },
-  ] },
-  { label: 'Documents', href: '/documents', icon: FolderOpen, tabs: [
     { title: 'Documents', href: '/documents' },
   ] },
-  { label: 'Growth', href: '/sales/enquiries', icon: Megaphone, tabs: [
-    { title: 'Enquiries', href: '/sales/enquiries' },
-    { title: 'Leads', href: '/sales/leads' },
-    { title: 'Campaigns', href: '/sales/campaigns' },
-    { title: 'Mailing list', href: '/sales/contacts' },
-    { title: 'Articles', href: '/marketing/articles' },
-    { title: 'Generate', href: '/marketing/generate' },
-    { title: 'Schedule', href: '/marketing/schedule' },
-    { title: 'Newsletter', href: '/marketing/newsletter' },
-    { title: 'Knowledge', href: '/marketing/knowledge' },
-    { title: 'Competitors', href: '/marketing/competitors' },
-    { title: 'Search Console', href: '/marketing/search-console' },
-    { title: 'Sites', href: '/marketing/sites' },
-  ] },
+  // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its
+  // articles, enquiries, newsletter and Search Console, which keep their ?site= pages.
+  { label: 'Marketing', href: WEBSITES[0].href, icon: Megaphone, tabs: WEBSITES },
 ]
 
 /** Under the avatar: settings and the admin views checked rarely. */
@@ -107,10 +99,10 @@ export function locate(pathname: string): { place: Place | null; tab: PlaceTab |
   for (const place of PLACES) for (const tab of place.tabs) {
     if (pathMatches(pathname, tab.href) && (!best || tab.href.length > best.tab.href.length)) best = { place, tab }
   }
-  // /sales and /marketing landing pages belong to Growth.
+  // A website's tools (/marketing/…?site=) and the sales pages belong to Marketing.
   if (!best && (pathMatches(pathname, '/sales') || pathMatches(pathname, '/marketing'))) {
-    const growth = PLACES.find(p => p.label === 'Growth')!
-    return { place: growth, tab: null }
+    const marketing = PLACES.find(p => p.label === 'Marketing')!
+    return { place: marketing, tab: null }
   }
   return best ?? { place: null, tab: null }
 }
