@@ -6,7 +6,7 @@
  * printed letter, PDF and Word filed in Drive, draft to the client), upload the signed copy, open it.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { Btn, Spinner } from '@/components/crm/primitives'
+import { Btn, Spinner, btnClass } from '@/components/crm/primitives'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import type { LetterStatus } from '@/lib/letters/appointment'
@@ -50,11 +50,11 @@ export function AppointmentLetterPanel({ companyId, companyName, placementId }: 
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5">
         <h3 className="m-0 text-[14px] font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
         <span className="flex flex-wrap items-center gap-2">
-          {status?.url && <a href={status.url} target="_blank" rel="noreferrer" className="inline-flex h-[30px] items-center rounded-[6px] border border-trs-line-2 bg-white px-3 text-[13px] font-medium text-trs-ink no-underline">Open letter ↗</a>}
+          {status?.url && <a href={status.url} target="_blank" rel="noreferrer" className={`${btnClass('secondary', 'xs')} no-underline`}>Open letter ↗</a>}
           {status?.state === 'sent' && (
             <label className="inline-flex cursor-pointer">
               <input type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" className="hidden" aria-label="Upload signed letter" onChange={e => void upload(e.target.files)} />
-              <span className="inline-flex h-[30px] items-center rounded-[6px] border border-trs-line-2 bg-white px-3 text-[13px] font-medium text-trs-ink">{uploading ? 'Uploading…' : 'Upload signed letter'}</span>
+              <span className={btnClass('secondary', 'xs')}>{uploading ? 'Uploading…' : 'Upload signed letter'}</span>
             </label>
           )}
           <Btn size="xs" level={status?.state === 'signed' ? 'secondary' : 'primary'} onClick={() => setOpen(true)}>{status?.state === 'signed' ? 'New letter' : 'Create letter'}</Btn>

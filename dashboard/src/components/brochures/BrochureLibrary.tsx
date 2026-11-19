@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { PageHeader } from '@/components/page-header'
-import { Btn, Field, Segmented, Spinner, inputCls } from '@/components/crm/primitives'
+import { Btn, Field, Segmented, Spinner, btnClass, inputCls } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
 import { fmtDate } from '@/lib/format'
 import { BROCHURE_LINES, STATUS_WORD, nextVersion, type LibraryRow, type Status } from '@/lib/brochures/library'
@@ -55,7 +55,7 @@ export function BrochureLibrary() {
       <PageHeader title="Brochures"
         meta={<span className="text-[13px] text-trs-muted">{data ? `${new Set(data.rows.map(r => r.product.toLowerCase())).size} products · ${data.rows.length} versions` : ' '}</span>}
         actions={<>
-          {data?.drive_url && <a href={data.drive_url} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center rounded-[8px] border border-trs-line-2 bg-white px-3.5 text-[14px] font-medium text-trs-ink no-underline">Open Google Drive ↗</a>}
+          {data?.drive_url && <a href={data.drive_url} target="_blank" rel="noreferrer" className={`${btnClass()} no-underline`}>Open Google Drive ↗</a>}
           <Btn level="primary" disabled={!data?.saving || !data.drive} title={!data?.saving ? NO_TABLE : !data.drive ? 'Google Drive is not configured' : undefined} onClick={() => { setNote(null); setEditing({ mode: 'add' }) }}>Add version</Btn>
         </>}>
         {lines.length > 1 && <Segmented<string> value={line} onChange={setLine} label="Line" options={[{ value: 'all', label: 'All', count: data?.rows.length }, ...lines.map(l => ({ value: l, label: l, count: data?.rows.filter(r => r.line === l).length }))]} />}
@@ -67,7 +67,7 @@ export function BrochureLibrary() {
       {!data && !error && <Spinner label="Loading brochures" />}
 
       {data && (
-        <section className="min-w-0 overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
+        <section className="min-w-0">
           <div className="overflow-x-auto">
             <table className="trs-table w-full min-w-[920px] border-collapse text-[13px]" aria-label="Brochure versions">
               <thead><tr className="border-b border-trs-line text-[12px] text-trs-muted">
@@ -96,7 +96,7 @@ export function BrochureLibrary() {
                               <span className="mr-1.5 text-[11px] text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
                         {r.note && <span className="mt-1 block text-[12px] text-trs-muted">{r.note}</span>}
                       </td>
-                      <td className={`px-3 py-2.5 text-center ${STATUS_CLS[r.status]}`}>{STATUS_WORD[r.status]}</td>
+                      <td className={`whitespace-nowrap px-3 py-2.5 text-center ${STATUS_CLS[r.status]}`}>{STATUS_WORD[r.status]}</td>
                       <td className="px-3 py-2 text-center whitespace-nowrap">
                         <span className="inline-flex gap-1.5">
                           <Btn size="xs" disabled={!data.saving || r.status === 'to_confirm'} title={!data.saving ? NO_TABLE : r.status === 'to_confirm' ? 'Move the file into a version folder in Drive' : undefined}
