@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function MarketingIndex() {
-  redirect('/marketing/articles')
+  redirect('/websites/traderisksolutions')
 }

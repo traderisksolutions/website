@@ -4,6 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-19 — Others and Marketing in the top bar
+
+- Claims, Policies, Finance and Documents are one place, Others, with eight tabs: Claims, Second opinion, Policies, Member movements, Receipts, Debit notes, Earnings, Documents (Jarod, 19 Nov). Every page keeps its address.
+- Growth is now Marketing, one tab per website: Trade Risk Solutions, Corp Cover, Benefixe, New South Sea (`WEBSITES` in `nav-sections.tsx`). Each opens `/websites/<key>` (`src/lib/marketing/website.ts`, `GET /api/marketing/websites/:key`): one table of Google Analytics, Search Console, Articles, Enquiries, Newsletter and Settings, with the state, the counts and links to the existing `?site=` pages. Enquiries are `site_intakes` for the client sites and `inbound_leads` for TRS. Google Analytics reads Not connected until it is wired.
+- Leads, Campaigns and Mailing list are off the top bar; their pages and data are untouched. `/marketing` opens the TRS website page.
+- The public blog feed, intake and newsletter endpoints the websites call are unchanged.
 ## 2026-11-19 — Employment Benefits: proposal by email
 
 - **Proposal** under Total on `/eb` (`src/components/eb/ProposalSection.tsx`): tick the insurers, Save quotation or Prepare proposal. A quotation is kept as it stood in `eb_quotations` (migration `20261119_eb_quotations.sql`), with the benefit rows of its plans from the house workbook.
