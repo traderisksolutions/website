@@ -16,8 +16,8 @@ export const metadata: Metadata = {
   verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
 };
 
-// GA4 loads only when NEXT_PUBLIC_GA_ID is set (G-XXXXXXXXXX). Nothing renders otherwise.
-const GA = process.env.NEXT_PUBLIC_GA_ID;
+// GA4: NEXT_PUBLIC_GA_ID overrides the site's own measurement id.
+const GA = process.env.NEXT_PUBLIC_GA_ID || "G-9WZLS1MQ58";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

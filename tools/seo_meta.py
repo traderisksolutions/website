@@ -6,7 +6,7 @@ Titles stay under 60 characters and descriptions under 155, so Google shows them
 No prices, no promised outcomes.
 """
 
-GA4_ID = ''
+GA4_ID = 'G-S10RY634MR'
 
 PRODUCT_META = {
     'commercial/property': ('Commercial Property Insurance Singapore | TRS',
