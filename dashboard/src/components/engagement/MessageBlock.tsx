@@ -221,12 +221,12 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
         <header className="flex items-center gap-3 pt-5 pb-3.5">
           <Avatar name={name} />
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{name}</p>
+            <p className="m-0 text-body font-medium truncate text-trs-ink" >{name}</p>
             <Recipients msg={msg} toNames={toNames} isOut={isOut} email={email} />
           </div>
-          <time className="ml-auto flex-shrink-0 text-[12.5px] whitespace-nowrap" style={{ color: FAINT }} title={msg.sent_at ? new Date(msg.sent_at).toLocaleString('en-SG', { dateStyle: 'full', timeStyle: 'short' }) : undefined}>{fmtWhen(msg.sent_at)}</time>
+          <time className="ml-auto flex-shrink-0 text-small whitespace-nowrap text-trs-subtle" title={msg.sent_at ? new Date(msg.sent_at).toLocaleString('en-SG', { dateStyle: 'full', timeStyle: 'short' }) : undefined}>{fmtWhen(msg.sent_at)}</time>
         </header>
-        {newSender && <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>New sender in this thread. This address has not written here before.</p>}
+        {newSender && <p className="m-0 mb-3 text-body text-trs-muted" >New sender in this thread. This address has not written here before.</p>}
         <MessageBody msg={msg} name={name} textBody={textBody} />
       </article>
     )
@@ -235,20 +235,20 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
   return (
     <div style={{ borderBottom: `1px solid ${HAIR}` }}>
       <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} message from ${name}`}
-        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412] text-[13.5px]"
-        style={{ color: MUTED }}>
+        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412] text-body text-trs-muted"
+        >
         <ChevronRight size={14} className={cn('flex-shrink-0 transition-transform', open && 'rotate-90')} style={{ color: DOT }} aria-hidden />
-        <span className="font-medium flex-shrink-0 w-[120px] sm:w-[160px] truncate" style={{ color: INK }}>{name}</span>
+        <span className="font-medium flex-shrink-0 w-[120px] sm:w-[160px] truncate text-trs-ink" >{name}</span>
         <span className={cn('min-w-0 flex-1', open ? 'whitespace-normal' : 'truncate')}>{preview}</span>
-        {attCount > 0 && <Paperclip size={12} className="flex-shrink-0" style={{ color: DOT }} aria-label={`${attCount} attachments`} />}
-        <span className="flex-shrink-0 text-[12.5px] whitespace-nowrap" style={{ color: FAINT }} title={fmtWhen(msg.sent_at)}>{fmtWhen(msg.sent_at, false)}</span>
+        {attCount > 0 && <Paperclip size={12} className="flex-shrink-0 text-trs-subtle" aria-label={`${attCount} attachments`} />}
+        <span className="flex-shrink-0 text-small whitespace-nowrap text-trs-subtle" title={fmtWhen(msg.sent_at)}>{fmtWhen(msg.sent_at, false)}</span>
       </button>
       {open && (
         <div className="pb-5 sm:pl-[172px]">
-          <p className="m-0 mb-2.5 text-[12.5px]" style={{ color: FAINT }}>
+          <p className="m-0 mb-2.5 text-small text-trs-subtle" >
             {[msg.to.length ? `to ${msg.to.map(a => parseAddress(a).email || a).join(', ')}` : null, msg.cc.length ? `cc ${msg.cc.map(a => parseAddress(a).email || a).join(', ')}` : null, attCount ? `${attCount} attachment${attCount === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')}
           </p>
-          {newSender && <p className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>New sender in this thread. This address has not written here before.</p>}
+          {newSender && <p className="m-0 mb-3 text-body text-trs-muted" >New sender in this thread. This address has not written here before.</p>}
           <MessageBody msg={msg} name={name} textBody={textBody} earlier />
         </div>
       )}
@@ -257,7 +257,7 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
 }
 
 function Avatar({ name }: { name: string }) {
-  return <span className="w-9 h-9 rounded-full flex-shrink-0 inline-flex items-center justify-center text-[13px] font-medium select-none" style={{ background: FIELD, color: INK }} aria-hidden>{initialOf(name)}</span>
+  return <span className="w-9 h-9 rounded-full flex-shrink-0 inline-flex items-center justify-center text-body font-medium select-none bg-trs-field text-trs-ink" aria-hidden>{initialOf(name)}</span>
 }
 
 function Recipients({ msg, toNames, isOut, email }: { msg: RealMsg; toNames: string[]; isOut: boolean; email: string }) {
@@ -265,15 +265,15 @@ function Recipients({ msg, toNames, isOut, email }: { msg: RealMsg; toNames: str
   const any = msg.to.length > 0 || msg.cc.length > 0
   return (
     <>
-      <p className="m-0 mt-px text-[12.5px] flex items-center gap-1 min-w-0" style={{ color: MUTED }}>
+      <p className="m-0 mt-px text-small flex items-center gap-1 min-w-0 text-trs-muted" >
         <span className="truncate">{toNames.length ? `to ${toNames.join(', ')}` : isOut ? 'sent' : 'received'}</span>
-        {any && <><span aria-hidden>·</span><button type="button" onClick={() => setDetails(v => !v)} aria-expanded={details} className={cn(LINK, 'flex-shrink-0 text-[12.5px]')} style={{ color: MUTED }}>{details ? 'Hide details' : 'Details'}</button></>}
+        {any && <><span aria-hidden>·</span><button type="button" onClick={() => setDetails(v => !v)} aria-expanded={details} className={cn(LINK, 'flex-shrink-0 text-small')} style={{ color: MUTED }}>{details ? 'Hide details' : 'Details'}</button></>}
       </p>
       {details && (
-        <dl className="m-0 mt-2 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-[12.5px]">
-          <dt style={{ color: DOT }}>From</dt><dd className="m-0 break-all" style={{ color: BODY }}>{email || '—'}</dd>
-          {msg.to.length > 0 && <><dt style={{ color: DOT }}>To</dt><dd className="m-0 break-all" style={{ color: BODY }}>{msg.to.join(', ')}</dd></>}
-          {msg.cc.length > 0 && <><dt style={{ color: DOT }}>Cc</dt><dd className="m-0 break-all" style={{ color: BODY }}>{msg.cc.join(', ')}</dd></>}
+        <dl className="m-0 mt-2 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-small">
+          <dt className="text-trs-subtle">From</dt><dd className="m-0 break-all text-trs-ink-2" >{email || '—'}</dd>
+          {msg.to.length > 0 && <><dt className="text-trs-subtle">To</dt><dd className="m-0 break-all text-trs-ink-2" >{msg.to.join(', ')}</dd></>}
+          {msg.cc.length > 0 && <><dt className="text-trs-subtle">Cc</dt><dd className="m-0 break-all text-trs-ink-2" >{msg.cc.join(', ')}</dd></>}
         </dl>
       )}
     </>
@@ -314,10 +314,10 @@ function MessageBody({ msg, name, textBody, earlier }: { msg: RealMsg; name: str
     <>
       {html
         ? <div className={cn('email-html-body', sizeCls)} onClick={onBodyClick} dangerouslySetInnerHTML={{ __html: html.body }} />
-        : <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', earlier ? 'text-[14px]' : 'text-[14.5px]')} style={{ color: INK }}>{text?.body}</div>}
+        : <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', earlier ? 'text-body' : 'text-body')} style={{ color: INK }}>{text?.body}</div>}
 
       {(html?.signature || text?.signature) && (
-        <div className="mt-2.5 pt-2.5 text-[13px] leading-[1.5]" style={{ borderTop: `1px solid ${HAIR}`, color: MUTED }}>
+        <div className="mt-2.5 pt-2.5 text-body leading-[1.5]" style={{ borderTop: `1px solid ${HAIR}`, color: MUTED }}>
           {html?.signature ? <div className="email-html-body email-sig" dangerouslySetInnerHTML={{ __html: html.signature }} /> : <div className="whitespace-pre-wrap">{text?.signature}</div>}
         </div>
       )}
@@ -325,14 +325,14 @@ function MessageBody({ msg, name, textBody, earlier }: { msg: RealMsg; name: str
       {!!msg.attachments?.length && <Attachments list={msg.attachments} />}
 
       {hasQuoted ? (
-        <div className="mt-4 flex items-center gap-2.5 flex-wrap rounded-[10px] px-3 py-2.5 text-[13px]" style={{ background: FIELD, color: MUTED }}>
+        <div className="mt-4 flex items-center gap-2.5 flex-wrap rounded px-3 py-2.5 text-body bg-trs-field text-trs-muted">
           <span>Some repeated formatting and the quoted history are collapsed.</span>
           <span className="flex-1" />
-          <button type="button" onClick={() => setQuotedOpen(v => !v)} aria-expanded={quotedOpen} className={cn(LINK, 'text-[13px]')} style={{ color: INK }}>{quotedOpen ? 'Hide quoted history' : `Show quoted history (${chain.length || 1})`}</button>
-          <button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-[13px]')} style={{ color: INK }}>View original</button>
+          <button type="button" onClick={() => setQuotedOpen(v => !v)} aria-expanded={quotedOpen} className={cn(LINK, 'text-body')} style={{ color: INK }}>{quotedOpen ? 'Hide quoted history' : `Show quoted history (${chain.length || 1})`}</button>
+          <button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-body')} style={{ color: INK }}>View original</button>
         </div>
       ) : (
-        <p className="m-0 mt-3 text-right text-[12.5px]"><button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-[12.5px]')} style={{ color: FAINT }}>View original</button></p>
+        <p className="m-0 mt-3 text-right text-small"><button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-small')} style={{ color: FAINT }}>View original</button></p>
       )}
 
       {quotedOpen && hasQuoted && (
@@ -352,8 +352,8 @@ function QuotedChain({ parts, depth = 0 }: { parts: QuotedPart[]; depth?: number
   if (!head) return null
   return (
     <div className={cn('pl-4', depth > 0 && 'mt-2.5')} style={{ borderLeft: `2px solid ${HAIR}` }} aria-label={depth === 0 ? 'Quoted history' : undefined}>
-      <div className="mb-1.5 flex items-baseline gap-2.5 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
-        {head.name ? <><b className="font-medium" style={{ color: BODY }}>{head.name}</b>{head.date && <span>{head.date}</span>}</> : <span>{head.header ?? 'Quoted message'}</span>}
+      <div className="mb-1.5 flex items-baseline gap-2.5 flex-wrap text-small text-trs-muted" >
+        {head.name ? <><b className="font-medium text-trs-ink-2" >{head.name}</b>{head.date && <span>{head.date}</span>}</> : <span>{head.header ?? 'Quoted message'}</span>}
       </div>
       {head.html && <div className="email-html-body email-quoted" dangerouslySetInnerHTML={{ __html: head.html }} />}
       {rest.length > 0 && <QuotedChain parts={rest} depth={depth + 1} />}
@@ -364,16 +364,16 @@ function QuotedChain({ parts, depth = 0 }: { parts: QuotedPart[]; depth?: number
 function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
   return (
     <section className="mt-5" aria-label="Attachments">
-      <p className="m-0 mb-2.5 text-[13.5px]" style={{ color: MUTED }}><b className="font-medium" style={{ color: INK }}>Attachments</b> · {list.length}</p>
+      <p className="m-0 mb-2.5 text-body text-trs-muted" ><b className="font-medium text-trs-ink" >Attachments</b> · {list.length}</p>
       <ul className="m-0 p-0 list-none grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
         {list.map(a => {
           const href = `/api/engagement/attachments/${a.id}/download`
           return (
-            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded-[12px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
-              <span className="w-10 h-11 rounded-[8px] flex-shrink-0 inline-flex items-center justify-center text-[11px] font-semibold tracking-[0.02em]" style={{ background: FIELD, color: BODY }} aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
+            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white" style={{ border: `1px solid ${HAIR}` }}>
+              <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small font-semibold bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
               <span className="min-w-0">
-                <a href={href} target="_blank" rel="noreferrer" className="block text-[14px] font-medium truncate no-underline hover:underline" style={{ color: INK }}>{a.filename}</a>
-                <span className="block mt-0.5 text-[12.5px]" style={{ color: FAINT }}>
+                <a href={href} target="_blank" rel="noreferrer" className="block text-body font-medium truncate no-underline hover:underline text-trs-ink" >{a.filename}</a>
+                <span className="block mt-0.5 text-small text-trs-subtle" >
                   {formatBytes(a.size_bytes) && <span className="mr-1.5">{formatBytes(a.size_bytes)}</span>}
                   <a href={href} target="_blank" rel="noreferrer" className={cn(LINK, 'mr-1.5')} style={{ color: INK }}>Preview</a>
                   <a href={href} download={a.filename} className={LINK} style={{ color: INK }}>Download</a>
@@ -395,19 +395,19 @@ function OriginalDialog({ open, onClose, msg, name }: { open: boolean; onClose: 
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-[min(960px,calc(100vw-32px))] max-h-[85vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-6 pt-5 pb-3 pr-14" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <DialogTitle className="text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Original message</DialogTitle>
-          <p className="m-0 text-[13px]" style={{ color: MUTED }}>{name} · {fmtWhen(msg.sent_at)}</p>
+          <DialogTitle className="text-heading font-medium text-trs-ink" >Original message</DialogTitle>
+          <p className="m-0 text-body text-trs-muted" >{name} · {fmtWhen(msg.sent_at)}</p>
           {msg.body_html && msg.body_text && (
-            <div className="mt-2 flex items-center gap-3 text-[13px]">
+            <div className="mt-2 flex items-center gap-3 text-body">
               <button type="button" onClick={() => setMode('html')} aria-pressed={mode === 'html'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'html' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'html' ? INK : MUTED }}>As sent</button>
               <button type="button" onClick={() => setMode('text')} aria-pressed={mode === 'text'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'text' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'text' ? INK : MUTED }}>Plain text</button>
             </div>
           )}
         </DialogHeader>
-        <div className="px-6 py-5 text-[14px] leading-[1.5] break-words" style={{ color: INK }}>
+        <div className="px-6 py-5 text-body leading-[1.5] break-words text-trs-ink" >
           {mode === 'html' && raw
             ? <div className="email-original" dangerouslySetInnerHTML={{ __html: raw }} />
-            : <pre className="m-0 whitespace-pre-wrap font-[inherit] text-[14px]">{msg.body_text ?? ''}</pre>}
+            : <pre className="m-0 whitespace-pre-wrap font-[inherit] text-body">{msg.body_text ?? ''}</pre>}
         </div>
       </DialogContent>
     </Dialog>

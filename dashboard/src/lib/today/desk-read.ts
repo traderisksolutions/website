@@ -16,7 +16,10 @@ import { logError } from '@/lib/error-log'
 import { routesOnFile, shapePlan, writeStepDraft, type ReadPlan, type ReadStep, type ReadTo } from '@/lib/chief/read'
 import { readKey, rowKey } from './desk'
 import { rewriteDraft } from './ask'
+import { personName, plain, pointLine, stepTitle, type PointParts } from './read-words'
 import { rowThreads } from './desk-server'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { checkFacts, condenseKey, threadState, type Condensed } from './condense'
 
 type Row = Record<string, any>
 
@@ -26,38 +29,68 @@ const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)
 const bareName = (a: string | null | undefined) => (String(a ?? '').includes('<') ? String(a).split('<')[0].replace(/"/g, '').trim() : '') || null
 const domainOf = (a: string) => a.split('@')[1] ?? ''
 
-const SYSTEM = `You are the chief of staff of a Singapore insurance broker (Trade Risk Solutions, "TRS"). A broker put this client on their list for today. You read every email thread on the list for this client, with the client and with insurers, and the client's other recent threads, policies and open placements. Then you summarise where things stand, the way a good assistant would before the broker replies, and set out the next emails.
+/** The labelled facts both the Read and Condense return (condense.ts checks every date and figure). */
+const FACTS_SPEC = `{
+    "client_asked": [{ "date": "YYYY-MM-DD the client asked", "what": "what they asked for, under 15 words" }],
+    "trs_promised": [{ "date": "YYYY-MM-DD TRS promised it, or null", "what": "what TRS said it would do, under 15 words" }],
+    "owed": [{ "party": "client, or the insurer by name, or TRS", "what": "what that party still owes, under 15 words", "since": "YYYY-MM-DD it was asked for, or null" }],
+    "next": [{ "what": "the next step, under 12 words", "by": "YYYY-MM-DD it is due, or null" }]
+  }`
+const FACTS_RULES = `Facts: no sentences of explanation, only the short phrase. Every date as YYYY-MM-DD and only a date written in the threads or records; every figure exactly as written there. Nothing guessed: leave a list empty rather than guess. At most four per list, newest first.`
+
+const SYSTEM = `You are the assistant of a Singapore insurance broker (Trade Risk Solutions, "TRS"). A broker put this client on Today. Read every thread on the list (with the client and with insurers), the client's other recent threads, policies and open placements. Say where things stand and what TRS does next.
 
 Return ONLY JSON:
 {
-  "summary": "one sentence under 20 words: where this client stands today",
-  "points": ["three to five short points, each under 20 words: what each side asked or sent, what is outstanding, any date or deadline. Name the party (client, or the insurer by name)."],
+  "summary": "where this stands, under 15 words, a plain sentence",
+  "points": [{ "side": "client" | "insurer", "who": "the person, or the insurer by name", "text": "what they asked, sent or decided, under 12 words", "date": "19 Nov" | null }],
   "steps": [{
     "kind": "email" | "action",
     "party": "client" | "insurer" | "internal",
     "insurer": string | null,
     "product_line": string | null,
-    "title": "imperative, under 12 words",
-    "detail": "what the email must achieve or what the action is, one or two sentences, with the facts from the threads it must carry"
-  }]
+    "verb": "send" | "quote" | "chase" | "ask" | "confirm" | "update" | "discard" | "task",
+    "who": "the person's name (never an email address)" | null,
+    "what": "the document or thing, e.g. the revised ECICS cover note" | null,
+    "ask": "what to ask for in the same email" | null,
+    "project": "the project or cover, e.g. Dover Drive show flat" | null,
+    "line": "the line of cover, e.g. CAR" | null,
+    "why": "the reason, under 12 words, only if not obvious" | null
+  }],
+  "facts": ${FACTS_SPEC}
 }
+
+How the steps read (code writes the sentence from your parts, so fill the parts exactly):
+- send: "Send <who> <what> and ask for <ask>". Put the files to attach in "what".
+- quote: "Request a quotation from <insurer> for <project> (<line>)".
+- chase: "Chase <who> for <what>", when TRS asked and has had no answer.
+- ask: "Ask <who> for <what>".
+- confirm: "Confirm cover with <insurer> for <project>".
+- update / discard: "Update the draft to <who>: <what>" or "Discard the draft to <who>". DRAFTS NOT SENT lists the drafts; never propose a second email to a person who has one, update or discard it.
+- task: work for TRS that is not an email; "what" is the whole instruction, starting with a verb.
 
 Rules:
 - Facts only from the threads, files and records given. Never invent a premium, date, name or count. If a figure matters and is not given, the step asks for it.
+- The summary is not repeated in the points. Points: the client first, then each insurer; at most three per side; no point repeats another.
+- Plain words. Never write: pending, outstanding, ensure, facilitate, regarding, kindly, please be advised, in order to, leverage. Dates as "19 Nov", money as "S$1,868.75", people by name.
 - Bring the parties together: when an insurer needs something only the client has, the client step asks for it; when the client asked something only an insurer can answer, the insurer step asks it.
-- One email per recipient: four insurers is four steps.
-- party "insurer" steps name the insurer exactly as in the INSURERS ON FILE list and copy its product_line. Prefer insurers already on the threads.
-- party "client" steps go to the client's contact on the threads.
-- "action" is work for TRS that is not an email.
-- Nothing already done. Nothing the other side still owes before TRS can move: say so in the points instead. At most six steps, most pressing first.
-- No step for a thank-you or an acknowledgement alone.
-- PENDING DRAFTS are emails written but not sent. Never propose a second email to a person who already has one: make it an "action" step "Update the pending email to <name>" that says what to add or change, or "Discard the pending email to <name>" when it is out of date.`
+- One email per recipient: four insurers is four steps. Insurer steps name the insurer exactly as in INSURERS ON FILE and copy its product_line. Prefer insurers already on the threads.
+- Nothing already done. Nothing the other side still owes before TRS can move: say so in the points instead. At most six steps, most pressing first. No step for a thank-you alone.
+- ${FACTS_RULES}`
 
-type Ctx = { text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pending: PendingDraft[]; threadDomains: Set<string> }
+type Ctx = { state: string; text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pending: PendingDraft[]; threadDomains: Set<string> }
 
-async function context(owner: string, companyId: string | null, threadIds: readonly string[]): Promise<Ctx> {
-  const listed = await rowThreads(owner, companyId, threadIds)
-  if (!listed.length) throw new Error('This client has no threads on your list.')
+/**
+ * Everything the model reads for a row: only threads the actor may open (the ring-fence: the
+ * server never hands a colleague's private mail to a model for someone else). `only` narrows the
+ * row to some threads (one project).
+ */
+async function context(owner: string, companyId: string | null, threadIds: readonly string[], actor: string | null, only?: ReadonlySet<string>): Promise<Ctx> {
+  const onList = (await rowThreads(owner, companyId, threadIds)).filter(r => !only || only.has(r.thread_id))
+  if (!onList.length) throw new Error('This client has no threads on your list.')
+  const open = await visibleThreadIds(onList.map(r => r.thread_id as string), actor)
+  const listed = onList.filter(r => open.has(r.thread_id))
+  if (!listed.length) throw new Error('These threads live in a colleague’s inbox. Ask them to read it.')
   const ids = listed.map(r => r.thread_id as string)
   const sideOf = new Map(listed.map(r => [r.thread_id as string, r.side as string]))
   const [threads, msgs, atts] = await Promise.all([
@@ -131,11 +164,12 @@ async function context(owner: string, companyId: string | null, threadIds: reado
     placements.length ? `OPEN PLACEMENTS:\n${placements.flatMap(p => (p.placement_lines ?? []).map((l: Row) => `- ${l.label ?? l.product_line} · client side ${l.client_stage ?? 'not set'} · insurer side ${l.insurer_stage ?? 'not set'}${l.renewal_date ? ` · renews ${l.renewal_date}` : ''}`)).join('\n')}` : 'OPEN PLACEMENTS: none',
     `INSURERS ON FILE (name — product_line):\n${insurersList.join('\n')}`,
     blocks.join('\n\n'),
-    pending.length ? `PENDING DRAFTS (written, not sent):\n${pending.map(p => `- to ${p.to_email} · written ${String(p.created_at).slice(0, 10)} · ${p.subject ?? ''}\n${trim(p.body, 600)}`).join('\n')}` : 'PENDING DRAFTS: none',
+    pending.length ? `DRAFTS NOT SENT:\n${pending.map(p => `- to ${p.to_email} · written ${String(p.created_at).slice(0, 10)} · ${p.subject ?? ''}\n${trim(p.body, 600)}`).join('\n')}` : 'DRAFTS NOT SENT: none',
     others.length ? `THE CLIENT'S OTHER RECENT THREADS (latest message only):\n${others.map(o => `- ${o.subject ?? ''} · ${String(o.last?.sent_at ?? o.last_message_at ?? '').slice(0, 10)} · ${o.last?.from_address ?? ''}: ${trim(ownWords(o.last?.body_text), 400)}`).join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
   const pendingList: PendingDraft[] = pending.map(p => { const email = bare(String(p.to_email ?? '').split(/[,;]\s*/)[0]); return { id: p.id as string, email, name: nameBy.get(email) ?? null } }).filter(p => p.email)
-  return { text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pending: pendingList, threadDomains }
+  const state = threadState(threads.map(t => ({ threadId: t.id as string, lastAt: (t.last_message_at as string | null) ?? null })))
+  return { state, text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pending: pendingList, threadDomains }
 }
 
 const keyOf = (owner: string, companyId: string | null, threadIds: readonly string[]) => readKey(rowKey(owner, companyId, threadIds[0] ?? ''))
@@ -152,7 +186,22 @@ async function save(key: string, plan: ReadPlan): Promise<void> {
 /** Pure. The model's points made safe: strings only, at most five, each one line. */
 export function normalisePoints(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []
-  return raw.map(p => String(p ?? '').replace(/\s+/g, ' ').trim()).filter(Boolean).slice(0, 5).map(p => p.slice(0, 220))
+  // Points come as parts ({ side, who, text, date }), written by pointLine; an older read sent strings.
+  const lines = raw.map(p => (p && typeof p === 'object' ? pointLine(p as PointParts) : plain(String(p ?? '')))).filter(Boolean)
+  // The client first, then the insurers, as the model was asked; at most six.
+  return [...lines.filter(l => l.startsWith('Client')), ...lines.filter(l => !l.startsWith('Client'))].slice(0, 6).map(p => p.slice(0, 220))
+}
+
+/** Pure. Each step's sentence from its parts (read-words.ts), and its detail the reason in plain words. */
+export function wordSteps(raw: unknown[]): { kind?: string; party?: string; insurer?: string | null; product_line?: string | null; title: string; detail: string }[] {
+  return raw.filter((s): s is Record<string, unknown> => !!s && typeof s === 'object').map(s => {
+    const str = (k: string) => (typeof s[k] === 'string' ? (s[k] as string) : null)
+    return {
+      kind: str('kind') ?? undefined, party: str('party') ?? undefined, insurer: str('insurer'), product_line: str('product_line'),
+      title: stepTitle({ verb: str('verb'), who: str('who'), what: str('what'), ask: str('ask'), insurer: str('insurer'), project: str('project'), line: str('line'), title: str('title') }),
+      detail: plain(str('why') ?? str('detail')),
+    }
+  }).filter(s => s.title)
 }
 
 /**
@@ -164,7 +213,8 @@ export function oneEmailPerPerson(steps: ReadStep[], pending: readonly PendingDr
     const to = s.to?.email.toLowerCase()
     const d = to ? pending.find(p => p.email === to) : undefined
     if (s.kind !== 'email' || !d) return s
-    return { ...s, kind: 'action', title: `Add to the pending email to ${s.to?.name ?? to}`.slice(0, 140), detail: `${s.title}. ${s.detail}`.slice(0, 600), to: null, op: 'update', draftId: d.id }
+    const who = d.name ?? s.to?.name ?? personName(to)
+    return { ...s, kind: 'action', title: `Update the draft to ${who}: ${s.title.charAt(0).toLowerCase()}${s.title.slice(1)}`.slice(0, 140), detail: s.detail, to: null, op: 'update', draftId: d.id }
   })
 }
 
@@ -194,18 +244,61 @@ export function markSource(steps: ReadStep[], threadDomains: ReadonlySet<string>
 
 /** One model read of the row. The points ride in the plan's situation, one per line. */
 export async function readRow(owner: string, companyId: string | null, threadIds: readonly string[], actor: string): Promise<ReadPlan> {
-  const ctx = await context(owner, companyId, threadIds)
+  const ctx = await context(owner, companyId, threadIds, actor)
   const r = await callGemini({ agent: 'crm', feature: 'today_read', model: GEMINI_DEEP, system: SYSTEM, parts: [{ text: ctx.text }], json: true, maxOutputTokens: 6_000, thinkingShare: 0.3, temperature: 0.2, metadata: { company_id: companyId, by: actor, threads: threadIds.length } })
   if (!r.text) throw new Error(r.error ?? 'The model returned nothing.')
-  const raw = parseJsonLoose<{ summary?: string; points?: unknown; steps?: unknown[] }>(r.text)
+  const raw = parseJsonLoose<{ summary?: string; points?: unknown; steps?: unknown[]; facts?: unknown }>(r.text)
   if (!raw) {
     void logError({ source: 'gemini', feature: 'today_read', message: `Unreadable output (${r.text.length} chars): ${r.text.slice(0, 400)} … ${r.text.slice(-300)}` })
     throw new Error('The model’s answer was not readable. Press Read again.')
   }
-  const plan = shapePlan({ summary: raw.summary, situation: normalisePoints(raw.points).join('\n'), steps: (raw.steps ?? []) as never }, await routesOnFile(), ctx.client, actor, GEMINI_DEEP)
+  const plan = shapePlan({ summary: plain(raw.summary), situation: normalisePoints(raw.points).join('\n'), steps: wordSteps(raw.steps ?? []) }, await routesOnFile(), ctx.client, actor, GEMINI_DEEP)
   plan.steps = markSource(linkPending(oneEmailPerPerson(plan.steps, ctx.pending), ctx.pending), ctx.threadDomains).slice(0, 6)
   await save(keyOf(owner, companyId, threadIds), plan)
+  // The Read's facts are the client's condensed state too (checked like Condense's).
+  if (raw.facts) await saveCondensed(rowKey(owner, companyId, threadIds[0] ?? ''), null, { at: plan.at, by: actor, state: ctx.state, project: null, facts: checkFacts(raw.facts, ctx.text) }).catch(() => {})
   return plan
+}
+
+// ── Condense (20 Nov 2026) ───────────────────────────────────────────────────────────────────────
+
+const CONDENSE_SYSTEM = `You are the chief of staff of a Singapore insurance broker (Trade Risk Solutions, "TRS"). Read every email thread given for this client and set out where things stand as facts, never prose.
+
+Return ONLY JSON:
+${FACTS_SPEC}
+
+Rules:
+- ${FACTS_RULES}
+- Facts only from the threads, files and records given. Never invent a premium, date, name or count.`
+
+async function saveCondensed(rowK: string, project: string | null, c: Condensed): Promise<void> {
+  await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify({ key: condenseKey(rowK, project), value: JSON.stringify(c), updated_at: new Date().toISOString() }) })
+}
+
+/** A condensed result kept for a row (and project), or null. */
+export async function loadCondensed(rowK: string, project: string | null): Promise<Condensed | null> {
+  const [r] = await sbTry<Row[]>(`app_settings?key=eq.${enc(condenseKey(rowK, project))}&select=value&limit=1`, [])
+  if (!r?.value) return null
+  try { return JSON.parse(r.value) as Condensed } catch { return null }
+}
+
+/**
+ * Condense a client, or one project of it (`threadIds` = the project's threads), into labelled
+ * facts. One model call on a person's button; when the threads have not changed since the last
+ * one, the kept result comes back and no model is called.
+ */
+export async function condenseRow(owner: string, companyId: string | null, rowThreadIds: readonly string[], project: string | null, threadIds: readonly string[], actor: string): Promise<Condensed> {
+  const rowK = rowKey(owner, companyId, rowThreadIds[0] ?? '')
+  const ctx = await context(owner, companyId, rowThreadIds, actor, project ? new Set(threadIds) : undefined)
+  const kept = await loadCondensed(rowK, project)
+  if (kept && kept.state === ctx.state) return kept
+  const r = await callGemini({ agent: 'crm', feature: 'today_condense', model: GEMINI_DEEP, system: CONDENSE_SYSTEM, parts: [{ text: ctx.text }], json: true, maxOutputTokens: 3_000, thinkingShare: 0.3, temperature: 0.1, metadata: { company_id: companyId, by: actor, project, threads: threadIds.length } })
+  if (!r.text) throw new Error(r.error ?? 'The model returned nothing.')
+  const raw = parseJsonLoose<unknown>(r.text)
+  if (!raw) throw new Error('The model’s answer was not readable. Press Condense again.')
+  const out: Condensed = { at: new Date().toISOString(), by: actor, state: ctx.state, project, facts: checkFacts(raw, ctx.text) }
+  await saveCondensed(rowK, project, out)
+  return out
 }
 
 /** Writes each ticked email as a pending draft on the row: client replies on the client thread, insurer emails on that insurer's thread when there is one. */
@@ -213,7 +306,7 @@ export async function draftRow(owner: string, companyId: string | null, threadId
   const key = keyOf(owner, companyId, threadIds)
   const plan = await load(key)
   if (!plan) throw new Error('Read this client first.')
-  const ctx = await context(owner, companyId, threadIds)
+  const ctx = await context(owner, companyId, threadIds, actor)
   const picked = new Set(stepIds)
   for (const step of plan.steps) {
     if (!picked.has(step.id) || step.status !== 'proposed') continue

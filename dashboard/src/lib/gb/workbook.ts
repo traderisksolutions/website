@@ -17,7 +17,7 @@ import * as XLSX from 'xlsx'
 
 export const PRODUCTS = ['Steadfast MCare+', 'RCC Enhanced III', 'Income FlexCare', 'Singlife MyBenefits Plus', 'AIA Flexi Vital Care Plus'] as const
 export type Product = typeof PRODUCTS[number]
-export const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Personal Accident'] as const
+export const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Term Life', 'Critical Illness', 'Personal Accident', 'EAP (add-on)'] as const
 export type Cover = typeof COVERS[number]
 export const MEDICAL: readonly string[] = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental']
 
@@ -60,6 +60,30 @@ export function parseWorkbook(buf: Buffer, file: Omit<Workbook['file'], 'readAt'
   return { file: { ...file, readAt: new Date().toISOString() }, rates, lists, benefits }
 }
 
+/**
+ * The calculator's version from its file name: "TRS EB Package Calculator V1.5.xlsx" → [1, 5];
+ * "V1.4.2" → [1, 4, 2]. Null when the name carries none. Pure.
+ */
+export function workbookVersion(name: string): number[] | null {
+  const m = String(name ?? '').match(/\bV(\d+(?:\.\d+)*)/i)
+  return m ? m[1].split('.').map(Number) : null
+}
+const cmpVersion = (a: number[] | null, b: number[] | null) => {
+  if (!a || !b) return a ? 1 : b ? -1 : 0
+  for (let i = 0; i < Math.max(a.length, b.length); i++) { const d = (a[i] ?? 0) - (b[i] ?? 0); if (d) return d }
+  return 0
+}
+/** The house calculator files: "TRS EB Calculator" or "TRS EB Package Calculator", .xlsx. */
+export const isCalculatorFile = (name: string) => /TRS EB (Package )?Calculator/i.test(name) && /\.xlsx$/i.test(name)
+/**
+ * The calculator to price from: the highest version, compared number by number (V1.10 > V1.5 >
+ * V1.4.2), then the newest plan-year folder, then the name. Pure.
+ */
+export function pickWorkbookFile<T extends { filename: string; planYear?: string | null }>(files: T[]): T | null {
+  return files.filter(f => isCalculatorFile(f.filename))
+    .sort((a, b) => cmpVersion(workbookVersion(b.filename), workbookVersion(a.filename)) || (b.planYear ?? '').localeCompare(a.planYear ?? '') || b.filename.localeCompare(a.filename))[0] ?? null
+}
+
 const KEY = 'gb_workbook'
 let cache: { at: number; wb: Workbook } | null = null
 let checked = 0
@@ -99,9 +123,7 @@ export async function loadWorkbook(): Promise<Workbook | null> {
 export async function importWorkbook(): Promise<Workbook> {
   const { listSourceFiles, downloadSourceFile } = await import('./drive')
   const { sb } = await import('@/lib/crm/db')
-  const files = (await listSourceFiles()).filter(f => /TRS EB Calculator/i.test(f.filename) && /xlsx$/i.test(f.filename))
-    .sort((a, b) => (b.planYear ?? '').localeCompare(a.planYear ?? '') || b.filename.localeCompare(a.filename))
-  const f = files[0]
+  const f = pickWorkbookFile(await listSourceFiles())
   if (!f) throw new Error('No TRS EB Calculator workbook in the Drive folder')
   const wb = parseWorkbook(await downloadSourceFile(f.driveFileId), { name: f.filename, driveFileId: f.driveFileId, modifiedAt: f.modifiedAt })
   await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify([{ key: KEY, value: JSON.stringify(wb), updated_at: new Date().toISOString() }]) })

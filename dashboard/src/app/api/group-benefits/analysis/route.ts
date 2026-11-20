@@ -57,7 +57,7 @@ export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
       notesHead: ['Employment benefits analysis: the current cover as scheduled, then one change at a time, at every insurer.'],
     })
     await sb(`gb_quotations?id=eq.${enc(d.quotationId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ requirement: { current_schedule: schedule, current_insurer: currentInsurer, last_year: lastYear, categories: [], employee_categories: {}, budget: null, tier_b: false } }) })
-    const source = body?.source ?? (body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=eb` } : { label: 'Employment Benefits', href: '/pricing-matrix' })
+    const source = body?.source ?? (body?.company_id ? { label: companyName, href: `/companies/${body.company_id}?tab=eb` } : { label: 'Employment Benefits', href: '/eb/quotations' })
     const pack = await runCurrent({ quotationId: d.quotationId, members: census, schedule, effectiveDate, basis, currentInsurer, excluded, source, by: user.email ?? null, lastYear })
     void logActivity({ action: replaceId ? 'gb.quote_repriced' : 'gb.quote_generated', resource_type: 'gb_quotation', resource_id: d.quotationId, new_value: { company: companyName, members: census.length, via: 'analysis', changes: pack.rungs.length - 1 } })
     fileEbCompanyFolder(companyName)

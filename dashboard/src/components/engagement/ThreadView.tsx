@@ -328,23 +328,23 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   const earlier = messages.slice(0, -1).reverse()
 
   return (
-    <div className="flex-1 flex min-w-0 overflow-hidden bg-white" style={{ color: INK }}>
+    <div className="flex-1 flex min-w-0 overflow-hidden bg-white text-trs-ink" >
       <EaWorkspaceColumn className="relative">
         <ThreadHeader subject={thread?.subject ?? lead.subject ?? lead.topic ?? null} displaySubject={thread?.display_subject ?? lead.display_subject ?? null} lead={lead} needsReply={needsReply} lastDirection={lastDirection} ownerName={ownerName}
           elevated={headerElevated} onBack={onBack} onReply={() => openComposer(false)} onReplyAll={() => openComposer(true)} onAddTask={() => setTaskOpen(true)}
           onDelete={handleDelete} deleting={deleting} contextOpen={contextOpen} onToggleContext={toggleContext} />
 
         {taskDone && (
-          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-[13px]" style={{ background: '#f1f2ee', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
+          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-body" style={{ background: '#f1f2ee', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
             <div className={cn(measure, 'flex items-center justify-between gap-3')}>
               <span>{taskDone.text}</span>
-              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-white" style={{ color: MUTED }}><X size={13} /></button></span>
+              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer text-trs-ink" >Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-white text-trs-muted" ><X size={13} /></button></span>
             </div>
           </div>
         )}
 
         {lead.campaign_context && (
-          <div className="flex-shrink-0 px-5 sm:px-10 py-2 text-[12.5px]" style={{ borderBottom: `1px solid ${HAIR}`, color: MUTED }}>
+          <div className="flex-shrink-0 px-5 sm:px-10 py-2 text-small" style={{ borderBottom: `1px solid ${HAIR}`, color: MUTED }}>
             <div className={cn(measure, 'flex flex-col gap-1')}>
               <p className="m-0">Outreach campaign · {lead.campaign_context.campaign_name} · {lead.campaign_context.product_type}{lead.campaign_context.step_replied_to ? ` · replied at step ${lead.campaign_context.step_replied_to}` : ''}</p>
             </div>
@@ -359,15 +359,15 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
               {/* flex-1 pushes the composer to the foot of the pane on short threads */}
               <div className="flex-1 px-5 sm:px-10 pt-2 pb-8">
                 <div className={measure}>
-                  {loading && <p className="py-16 text-center text-[15px] m-0" style={{ color: MUTED }}>Loading the thread…</p>}
-                  {!loading && error && <p className="py-16 text-center text-[15px] m-0" style={{ color: BODY }}>{error}</p>}
+                  {loading && <p className="py-16 text-center text-body m-0 text-trs-muted" >Loading the thread…</p>}
+                  {!loading && error && <p className="py-16 text-center text-body m-0 text-trs-ink-2" >{error}</p>}
                   {!loading && !error && messages.length === 0 && (
                     <div className="py-10">
-                      <p className="m-0 text-center text-[15px]" style={{ color: MUTED }}>No email thread on file for {lead.email ?? 'this contact'}.</p>
+                      <p className="m-0 text-center text-body text-trs-muted" >No email thread on file for {lead.email ?? 'this contact'}.</p>
                       {initialMsg && (
-                        <div className="mt-6 rounded-[14px] px-5 py-4" style={{ background: '#f1f2ee' }}>
-                          <p className="m-0 mb-1.5 text-[12px]" style={{ color: MUTED }}>Enquiry form message</p>
-                          <p className="m-0 text-[14.5px] whitespace-pre-wrap leading-[1.6]" style={{ color: INK }}>{cleanEmailBody(initialMsg)}</p>
+                        <div className="mt-6 rounded px-5 py-4 bg-trs-field" >
+                          <p className="m-0 mb-1.5 text-small text-trs-muted" >Enquiry form message</p>
+                          <p className="m-0 text-body whitespace-pre-wrap leading-[1.6] text-trs-ink" >{cleanEmailBody(initialMsg)}</p>
                         </div>
                       )}
                     </div>
@@ -410,9 +410,9 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       onHeightChange={syncScrollAffordances} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
-                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded-[7px] flex items-center text-left text-[14px] bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded flex items-center text-left text-body bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
                         <span className="truncate">{replyLabel}</span>
-                        <kbd className="ml-auto flex-shrink-0 text-[11px] font-[inherit] rounded-[6px] px-1.5 py-px" style={{ border: '1px solid #d5d9d4', color: '#8c958f' }} aria-hidden>r</kbd>
+                        <kbd className="ml-auto flex-shrink-0 text-small font-[inherit] rounded px-1.5 py-px" style={{ border: '1px solid #d5d9d4', color: '#8c958f' }} aria-hidden>r</kbd>
                       </button>
                     </div>
                   )}
@@ -423,11 +423,11 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
           {/* One affordance back down: the draft while it is open, the newest message otherwise. */}
           {!loading && composerOpen && composerOffscreen ? (
-            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
+            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
               <ArrowDown size={13} /> Draft
             </button>
           ) : !composerOpen && showScrollToLatest ? (
-            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-[12.5px] font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
+            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
               <ArrowDown size={13} /> Latest message
             </button>
           ) : null}
@@ -463,8 +463,8 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
   const threadId = lead.thread_id ?? (lead.source === 'thread' ? lead.id : null)
-  const inp = 'h-9 w-full rounded-[7px] bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]'
-  const lbl = 'flex flex-col gap-1 text-[12.5px]'
+  const inp = 'h-9 w-full rounded bg-white px-3.5 text-body outline-none focus:border-[#0f1412]'
+  const lbl = 'flex flex-col gap-1 text-small'
   async function go() {
     if (!lead.companyId) return
     if (!title.trim()) { setErr('Give the to-do a title.'); return }
@@ -479,10 +479,10 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
   }
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(15,20,18,0.4)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
         <div className="flex items-start justify-between gap-3 mb-4">
-          <div><h2 id="task-from-email" className="m-0 text-[18px] font-medium tracking-[-0.01em]">New to-do</h2><p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
-          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={16} /></button>
+          <div><h2 id="task-from-email" className="m-0 text-heading font-medium">New to-do</h2><p className="m-0 mt-0.5 text-body text-trs-muted" >{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
+          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted" ><X size={16} /></button>
         </div>
         <div className="flex flex-col gap-3">
           <label className={lbl} style={{ color: MUTED }}>Title<input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></label>
@@ -490,12 +490,12 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
             <label className={lbl} style={{ color: MUTED }}>Owner<select value={who} onChange={e => setWho(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }}><option value="">No one yet</option>{(board?.staff ?? []).map(s => <option key={s.email} value={s.email}>{s.name}</option>)}</select></label>
             <label className={lbl} style={{ color: MUTED }}>Due date<input type="date" value={due} onChange={e => setDue(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
           </div>
-          <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded-[10px] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[#0f1412] resize-y" style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
+          <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded bg-white px-3.5 py-2 text-body outline-none focus:border-[#0f1412] resize-y" style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
         </div>
-        {err && <p className="m-0 mt-3 text-[13px] text-trs-neg" role="alert">{err}</p>}
+        {err && <p className="m-0 mt-3 text-body text-trs-neg" role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
-          <button type="button" onClick={() => void go()} disabled={busy || !lead.companyId} title={lead.companyId ? undefined : 'Link a company to save the to-do'} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
+          <button type="button" onClick={onClose} className="h-9 px-4 rounded text-body bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink" >Cancel</button>
+          <button type="button" onClick={() => void go()} disabled={busy || !lead.companyId} title={lead.companyId ? undefined : 'Link a company to save the to-do'} className="h-9 px-4 rounded text-white text-body font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50 bg-trs-green" >{busy ? 'Saving…' : 'Create to-do'}</button>
         </div>
       </div>
     </div>

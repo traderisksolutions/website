@@ -13,10 +13,11 @@
 import type { Member } from '@/lib/gb-quote'
 import type { CategoryFacts, LastYear, LastYearCategory } from './last-year'
 import type { PlanRule } from './plan-pairs'
+import type { CoverTarget, TierPick } from './compare-cover'
 import type { COVERS, Workbook } from './workbook'
 
 export const MAX_CATEGORIES = 4
-export type CoverKey = 'hs' | 'mm' | 'gp' | 'sp' | 'gd' | 'pa'
+export type CoverKey = 'hs' | 'mm' | 'gp' | 'sp' | 'gd' | 'tl' | 'ci' | 'pa' | 'eap'
 type HospTier = { hospital: 'private' | 'government'; beds: number; limit: number; basis: 'per_disability' | 'annual' }
 
 /** The tiers a broker chooses from, lowest first. `amount` null means not covered. */
@@ -33,13 +34,16 @@ export const TIERS: { key: CoverKey; cover: (typeof COVERS)[number]; label: stri
   { key: 'gp', cover: 'Outpatient GP', label: 'Outpatient GP', tiers: [{ words: 'S$15 co-pay a visit', amount: 15 }, { words: 'S$10 co-pay a visit', amount: 10 }, { words: 'No co-pay', amount: 0 }] },
   { key: 'sp', cover: 'Outpatient Specialist', label: 'Outpatient specialist', tiers: [{ words: 'None', amount: null }, { words: 'S$800 a year', amount: 800 }, { words: 'S$1,000 a year', amount: 1_000 }, { words: 'S$1,500 a year', amount: 1_500 }] },
   { key: 'gd', cover: 'Dental', label: 'Dental', tiers: [{ words: 'None', amount: null }, { words: 'S$300 a year', amount: 300 }, { words: 'S$500 a year', amount: 500 }, { words: 'S$750 a year', amount: 750 }] },
+  { key: 'tl', cover: 'Term Life', label: 'Term life', tiers: [{ words: 'None', amount: null }, { words: 'S$50,000', amount: 50_000 }, { words: 'S$100,000', amount: 100_000 }, { words: 'S$200,000', amount: 200_000 }, { words: 'S$500,000', amount: 500_000 }] },
+  { key: 'ci', cover: 'Critical Illness', label: 'Critical illness', tiers: [{ words: 'None', amount: null }, { words: 'S$25,000', amount: 25_000 }, { words: 'S$50,000', amount: 50_000 }, { words: 'S$100,000', amount: 100_000 }, { words: 'S$250,000', amount: 250_000 }] },
   { key: 'pa', cover: 'Personal Accident', label: 'Personal accident', tiers: [{ words: 'None', amount: null }, { words: 'S$50,000', amount: 50_000 }, { words: 'S$100,000', amount: 100_000 }, { words: 'S$200,000', amount: 200_000 }] },
+  { key: 'eap', cover: 'EAP (add-on)', label: 'Employee assistance', tiers: [{ words: 'None', amount: null }, { words: 'Included', amount: 1 }] },
 ]
 export const TIER_OF: Record<CoverKey, (typeof TIERS)[number]> = Object.fromEntries(TIERS.map(t => [t.key, t])) as Record<CoverKey, (typeof TIERS)[number]>
 /** A design: the tier index per cover. */
 export type Design = Record<CoverKey, number>
 /** Where nothing on the census says what a category holds: a plain private 4-bed programme. */
-export const DEFAULT_DESIGN: Design = { hs: 2, mm: 0, gp: 1, sp: 2, gd: 2, pa: 0 }
+export const DEFAULT_DESIGN: Design = { hs: 2, mm: 0, gp: 1, sp: 2, gd: 2, tl: 0, ci: 0, pa: 0, eap: 0 }
 
 /** One tier below today; never down to None for a cover held today; today itself at the floor. */
 export function lowerTier(key: CoverKey, today: number): number {
@@ -138,10 +142,13 @@ export const lastYearNet = (ly: LastYear | null): number | null => {
   return t == null ? null : Math.round((ly.gst === 'included' ? t / 1.09 : t) * 100) / 100
 }
 
-export type PlanOption = { plan: string; words: string; premium: number | null }
-export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean }
+/** `unpriced`: lives this plan has no rate for (an age outside every band); `noClass`: lives priced 0 for accident because the census gives no occupation class. */
+export type PlanOption = { plan: string; words: string; premium: number | null; unpriced?: number; noClass?: number }
+/** One cover at one product for one category: every plan priced, the Same and Lower tier picks with their reasons. `pick` is the Same pick. */
+export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean; same: TierPick; lower: TierPick }
 export type PricedCategory = { name: string; employees: number; lives: number; today: { words: Record<CoverKey, string>; premium: Record<CoverKey, number | null>; product: string | null }; products: Record<string, Record<CoverKey, PricedCover>> }
-export type Priced = { products: string[]; categories: PricedCategory[]; notes: string[]; workbook: Workbook['file']; rules: PlanRule[] }
+/** `warnings`: per product, what the rate card says about this quotation (a rate version that does not apply on the start date). */
+export type Priced = { products: string[]; categories: PricedCategory[]; notes: string[]; workbook: Workbook['file']; rules: PlanRule[]; warnings?: Record<string, string[]> }
 
 /** A product's premium for one category, from the plans picked per cover. */
 export function categoryTotal(c: PricedCategory, product: string, picks: Record<CoverKey, string>): number {
@@ -161,4 +168,44 @@ export function insurerOf(read: string | null | undefined): string {
   const s = String(read ?? '').replace(/\s+/g, ' ').trim()
   if (!s) return ''
   return HOUSE_MATCH.find(([re]) => re.test(s))?.[1] ?? `${UNKNOWN_INSURER}${s.slice(0, 80)}`
+}
+
+
+/**
+ * What the tiers are matched to for one category: last year's policy as read (ward, beds, limit
+ * and its basis, co-insurance, each cover's amount) where it was read; else the census plan's ward,
+ * with the limit not on file; covers neither states take the plain programme (DEFAULT_DESIGN). Pure.
+ */
+export function targetOf(today: Partial<Design>, facts?: CategoryFacts | null): CoverTarget {
+  const d = { ...DEFAULT_DESIGN, ...today }
+  const tier = TIER_OF.hs.tiers[d.hs]?.hosp ?? TIER_OF.hs.tiers[DEFAULT_DESIGN.hs].hosp!
+  const amt = (k: CoverKey) => TIER_OF[k].tiers[d[k]]?.amount ?? null
+  const hosp = facts?.hospital && facts.beds
+    ? { hospital: facts.hospital, beds: facts.beds, limit: facts.limit, basis: facts.limit != null ? facts.limitKind : null, coins: facts.coins ?? 0 }
+    : { hospital: tier.hospital, beds: tier.beds, limit: null, basis: null, coins: 0 }
+  if (!facts) return { hosp, gmm: amt('mm'), gpCopay: amt('gp'), spLimit: amt('sp'), dental: amt('gd'), tl: amt('tl'), ci: amt('ci'), pa: amt('pa'), eap: amt('eap') }
+  // Term life as a fixed sum is matched; a multiple of salary is not a sum (no salary basis on a plan), so none is chosen.
+  return { hosp, gmm: facts.gmm, gpCopay: facts.gpCopay ?? amt('gp'), spLimit: facts.spLimit, dental: facts.dentalLimit, tl: facts.life?.kind === 'sum' ? facts.life.n : null, ci: null, pa: facts.pa, eap: null }
+}
+
+/** Last year's category for a census category: the same name, or the only one. Pure. */
+export function factsFor(ly: LastYear | null, name: string): CategoryFacts | null {
+  if (!ly?.categories.length) return null
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5)
+  const c = ly.categories.length === 1 ? ly.categories[0] : ly.categories.find(x => key(x.name) && key(x.name) === key(name))
+  return c?.facts ?? null
+}
+
+const LY_KEY: Partial<Record<string, CoverKey>> = { GHS: 'hs', EMM: 'mm', GOPC: 'gp', GOSC: 'sp', GD: 'gd', GTL: 'tl', GCI: 'ci', GPA: 'pa' }
+export type CurrentPremium = { byCover: Record<CoverKey, number | null>; total: number | null }
+/**
+ * The Current column (call note 23): only what a premium or debit note states, as read, net of GST.
+ * Never estimated from renewal rates; blank when nothing was read. Pure.
+ */
+export function currentFromLastYear(ly: LastYear | null): CurrentPremium {
+  const byCover = Object.fromEntries(TIERS.map(t => [t.key, null])) as Record<CoverKey, number | null>
+  if (!ly) return { byCover, total: null }
+  const k = ly.gst === 'included' ? 1 / 1.09 : 1
+  for (const [c, v] of Object.entries(ly.premiumByCover)) { const key = LY_KEY[c]; if (key && v != null) byCover[key] = Math.round(((byCover[key] ?? 0) + v * k) * 100) / 100 }
+  return { byCover, total: lastYearNet(ly) }
 }

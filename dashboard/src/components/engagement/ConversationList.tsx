@@ -65,10 +65,10 @@ function SkeletonRows({ n = 6 }: { n?: number }) {
       {Array.from({ length: n }).map((_, i) => (
         <div key={i} className="grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-5 py-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
           <span />
-          <span className="h-[14px] w-[45%] rounded-[4px]" style={{ background: FIELD }} />
-          <span className="h-[12px] w-[38px] rounded-[4px]" style={{ background: FIELD }} />
-          <span className="col-start-2 col-end-4 mt-1.5 h-[13px] w-[80%] rounded-[4px]" style={{ background: FIELD }} />
-          <span className="col-start-2 col-end-4 mt-1.5 h-[12px] w-[30%] rounded-[4px]" style={{ background: FIELD }} />
+          <span className="h-[14px] w-[45%] rounded bg-trs-field" />
+          <span className="h-[12px] w-[38px] rounded bg-trs-field" />
+          <span className="col-start-2 col-end-4 mt-1.5 h-[13px] w-[80%] rounded bg-trs-field" />
+          <span className="col-start-2 col-end-4 mt-1.5 h-[12px] w-[30%] rounded bg-trs-field" />
         </div>
       ))}
     </div>
@@ -124,10 +124,10 @@ export function ConversationList({
 
   const empty = (text: string, action?: { label: string; onClick: () => void }) => (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <p className="m-0 text-[14px]" style={{ color: MUTED }}>{text}</p>
+      <p className="m-0 text-body text-trs-muted" >{text}</p>
       {action && (
         <button type="button" onClick={action.onClick}
-          className="h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: INK }}>
+          className="h-9 px-3 rounded text-body font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412] text-trs-ink" >
           {action.label}
         </button>
       )}
@@ -139,15 +139,15 @@ export function ConversationList({
       {!hideHeader && !iconOnly && (
         <div className="flex-shrink-0 flex items-center justify-between px-4 h-11" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-[14px] font-medium truncate" style={{ color: INK }}>
+            <span className="text-body font-medium truncate text-trs-ink" >
               {activeTab === 'drafts' ? 'Drafts' : 'Inbox'}
             </span>
             {!loading && needsReplyCount > 0 && (
-              <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{needsReplyCount} need a reply</span>
+              <span className="text-small tabular-nums flex-shrink-0 text-trs-subtle" >{needsReplyCount} need a reply</span>
             )}
           </div>
           <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Sync mail" title={refreshing ? 'Syncing…' : 'Sync mail'}
-            className="w-9 h-9 inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 flex-shrink-0" style={{ color: MUTED }}>
+            className="w-9 h-9 inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 flex-shrink-0 text-trs-muted" >
             <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
           </button>
         </div>
@@ -162,7 +162,7 @@ export function ConversationList({
               <div key={d.id} role="listitem">
                 <button type="button" title={d.subject || d.to_email || '(no subject)'} aria-label={`Draft, ${d.subject || d.to_email || 'no subject'}`} onClick={() => onOpenDraft(draftOf(d))}
                   className="w-full flex items-center justify-center py-1.5 bg-transparent border-0 cursor-pointer">
-                  <span className="w-8 h-8 rounded-full flex items-center justify-center" style={{ background: FIELD, color: MUTED }}><FileEdit size={13} /></span>
+                  <span className="w-8 h-8 rounded-full flex items-center justify-center bg-trs-field text-trs-muted"><FileEdit size={13} /></span>
                 </button>
               </div>
             ) : (
@@ -172,17 +172,17 @@ export function ConversationList({
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', PAD[density])}
                   style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
                   <span className="mt-[7px] w-2 h-2 rounded-full" aria-hidden />
-                  <span className="min-w-0 text-[14px] font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
-                  <span className="text-[12px] tabular-nums pt-0.5 whitespace-nowrap" style={{ color: FAINT }}>{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                  <span className="col-start-2 col-end-4 min-w-0 block text-[13.5px] leading-snug truncate mt-0.5" style={{ color: '#2a332f' }}>
-                    <b className="font-medium" style={{ color: INK }}>Draft</b> · to {d.to_email || '—'}
+                  <span className="min-w-0 text-body font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
+                  <span className="text-small tabular-nums pt-0.5 whitespace-nowrap text-trs-subtle" >{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-0.5 text-trs-ink-2" >
+                    <b className="font-medium text-trs-ink" >Draft</b> · to {d.to_email || '—'}
                   </span>
                   {density !== 'compact' && (
-                    <span className="col-start-2 col-end-4 min-w-0 block text-[12.5px] leading-snug truncate mt-[3px]" style={{ color: MUTED }}>{(d.body ?? '').slice(0, 80) || 'No message yet'}</span>
+                    <span className="col-start-2 col-end-4 min-w-0 block text-small leading-snug truncate mt-[3px] text-trs-muted" >{(d.body ?? '').slice(0, 80) || 'No message yet'}</span>
                   )}
                 </button>
                 <button type="button" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
-                  className="absolute right-2 top-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]" style={{ color: FAINT }}>
+                  className="absolute right-2 top-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412] text-trs-subtle" >
                   <X size={13} />
                 </button>
               </div>
@@ -191,12 +191,12 @@ export function ConversationList({
         ) : (
           <>
             {loading && !loadError && (iconOnly
-              ? <div className="flex items-center justify-center py-12"><Loader2 size={14} className="animate-spin" style={{ color: MUTED }} /></div>
+              ? <div className="flex items-center justify-center py-12"><Loader2 size={14} className="animate-spin text-trs-muted" /></div>
               : <SkeletonRows />)}
 
             {loadError && !iconOnly && (
               <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center" role="alert">
-                <p className="m-0 text-sm text-trs-neg">{loadError}</p>
+                <p className="m-0 text-body text-trs-neg">{loadError}</p>
                 <Btn size="xs" onClick={onRefresh} disabled={refreshing}>{refreshing ? 'Retrying…' : 'Retry'}</Btn>
               </div>
             )}

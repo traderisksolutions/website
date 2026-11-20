@@ -105,7 +105,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
       {notice && (
         <p className="m-0 text-body text-trs-ink-2" >
           {notice.text}{' '}
-          <button onClick={() => router.push(`/pricing-matrix/hr-links/${notice.linkId}`)} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Open</button>
+          <button onClick={() => router.push(`/eb/hr-links/${notice.linkId}`)} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Open</button>
           {notice.url && <>{' · '}<button onClick={() => { void navigator.clipboard?.writeText(notice.url!).catch(() => {}) }} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Copy link</button></>}
         </p>
       )}
@@ -130,7 +130,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
               const policy = r.policy_id ? policies.get(r.policy_id) ?? null : null
               const policyHref = r.policy_id && r.company_id ? `/companies/${r.company_id}?tab=members` : null
               return (
-                <RegisterRow key={r.id} onClick={() => router.push(`/pricing-matrix/hr-links/${r.id}`)}>
+                <RegisterRow key={r.id} onClick={() => router.push(`/eb/hr-links/${r.id}`)}>
                   <RegisterCell first identityWidth={180} primary={r.reference} secondary={r.effective_date ? `effective ${fmtDate(r.effective_date)}` : 'no policy start'} />
                   <RegisterCell align="left" className="max-w-[260px]">
                     <span className="block text-body truncate text-trs-ink" title={r.company_name}>{r.company_name}</span>

@@ -118,7 +118,7 @@ export function senderNoticeEmail(link: HrLink, submission: HrSubmission): HrEma
   const issues = submission.employees.reduce((n, e) => n + e.issues.length, 0) + submission.dependants.reduce((n, d) => n + d.issues.length, 0)
   const body = `<p>${esc(submission.submitted_by_name || link.recipient_name)} (${esc(submission.submitted_by_email || link.recipient_email)}) submitted the employee list for ${esc(link.company_name)}, reference ${esc(link.reference)}, at ${esc(sgtStamp(submission.consent_at ?? submission.updated_at))}.</p>
 <p>${submission.employee_count} employees · ${submission.dependant_count} dependants · source ${esc(submission.source)} · ${issues} open ${issues === 1 ? 'issue' : 'issues'}.</p>
-<p><a href="${esc(`${baseUrl()}/pricing-matrix/hr-links/${link.id}`)}" style="color:${NAVY}">Open the link in the dashboard</a></p>`
+<p><a href="${esc(`${baseUrl()}/eb/hr-links/${link.id}`)}" style="color:${NAVY}">Open the link in the dashboard</a></p>`
   const html = shell(link.reference, body, '', `Internal notice from HR Connect. Sent to ${esc(link.sent_by ?? DEFAULT_FROM)}.`)
   return { subject, html, text: htmlToText(html) }
 }

@@ -105,3 +105,24 @@ After the pricing options are read, "Draft to client" on the quotation page (`sr
 Suggestion rules (`suggestionLines`): within a stated budget, the insurers under it; a complete alternative at least 10% below the current insurer → recommend firm terms from it; the current insurer alone complete → renew there (with the increase on the expiring card), name the cheapest alternative with the members it does not take and propose asking it to confirm terms; the enhanced and lower-cost deltas at the same insurer.
 
 Verified on Empyrion (28 employees, 11 Nov 2026): draft in 25 s, To Janice, Cc Pearlin, figures as priced, Michael Tang named as the member Singlife's new-business rates do not take.
+
+## 20 Nov 2026 — /eb priced by TRS EB Package Calculator V1.5
+
+The house workbook is Nathan's TRS EB Package Calculator V1.5 (17 Nov 2026). `/eb` prices every plan of every cover from its Rates sheet by the Calc sheet's own rules (`compare-cover.ts` `priceCover`), with the brochure rules the workbook leaves to the broker coded as plan rules (`plan-pairs.ts`).
+
+| Rule | Where it is in the workbook | Code |
+| --- | --- | --- |
+| One rate per life, summed; RCC on age next birthday, the rest last birthday | Calc!F2 ($D2 vs $C2) | `priceCover` |
+| RCC group factor on medical lines: ×1.5 for one employee, ×0.95 for 5–9, ×0.9 for 10+ | Calc!AH2 | `priceCover` |
+| AIA employee and dependant rates by Rates!K (EE, Dep) | Calc!AR2:AY2 | `priceCover` |
+| Dependants: RCC and Steadfast medical only; Income and Singlife every cover at the employee rate | Summary!B32; RCC p.18; Calc!AE2, AF2 | `dependantsCovered` |
+| Accident by occupation class; a blank class prices 0, as the workbook does, and `/eb` flags "Occupation class missing for N lives" | Calc!M2 ("Class "&Occ) | `classOf`, `priceCover` |
+| Singlife and AIA specialist includes GP: the Same and Lower tiers never take both; a person may pick both, priced as the workbook prices them, with the note "Specialist already includes GP" | Summary!B33, B35 | rules `singlife-gp`, `aia-gp` |
+| A renewal opens the renewal-only age bands at all five insurers | Census!D5; Calc!F2 | `eb-price.ts` |
+| No same or lower hospital plan: the nearest higher, priced, flagged "higher · no same or lower plan" | (the workbook always prices the plan chosen) | `sameHospital` |
+| Major medical: RCC and Singlife same plan number, Income Plans 2–5, AIA and Steadfast in the hospital premium | Summary!B28, B33; Lists!R, AI | rules `*-mm` |
+| Critical illness with term life (same plan, capped, or not above) | brochures | rules `*-ci` |
+| Limit basis: top private 1-bed annual, lower plans per disability | BenefitData; eb-rules section 2 | `limitBasisOf` |
+| Singlife V1.5 rates from 1 Dec 2026 | Summary!B35 | `rateWarnings` |
+
+**Proof** (`src/__tests__/gb-eb-v15.test.ts`): the workbook's worked example (10 lives, 14 Feb 2027, new business; anonymised) is reproduced to the cent on every cover and on the totals at all five products (RCC S$18,086.20, Income S$12,982.80, Steadfast S$20,086.00, Singlife S$16,426.00, AIA S$21,092.69). Jarod's ruling (20 Nov 2026): follow what V1.5 does; where the workbook's figure needs a broker's eye (a blank occupation class, GP beside a rider that includes it) the page flags it and does not change it.

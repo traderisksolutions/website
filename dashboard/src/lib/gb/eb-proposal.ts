@@ -16,6 +16,8 @@ import { longDate, sgd } from './report-model'
 import { categoryName, MAX_CATEGORIES, TIERS, type CoverKey, type Design, type Priced } from './eb-quote'
 import type { Member } from '@/lib/gb-quote'
 import { normaliseLastYear, type LastYear } from './last-year'
+import type { CompareModel, EbColumn, Tier } from './eb-compare'
+import type { InsurerSchedule, ScheduleFigure } from './insurer-schedule'
 
 export type CoverCell = { plan: string; words: string; premium: number | null; locked: boolean }
 export type SnapshotCategory = { name: string; employees: number; lives: number; covers: Record<CoverKey, Record<string, CoverCell>> }
@@ -31,11 +33,14 @@ export type Snapshot = {
   /** Benefit rows of the chosen plans, per category, filled on the server from the house workbook. */
   benefits?: Record<string, BenefitRow[]>
   workbook: string | null
+  /** The house product behind each column label, where it is not the label itself: a copy ("Income FlexCare · copy"); an insurer schedule has none. */
+  columnProducts?: Record<string, string>
   /** What /eb needs to reopen the quotation (/eb?quotation=<id>): the census, the categories priced, the design, the current insurer, last year's policy. */
   edit?: EditState
 }
 
-export type EditState = { members: Member[]; included: string[]; designs: Record<string, Partial<Design>>; current: string; lastYear: LastYear | null }
+/** `mode`, `tier` and `columns` (copies and insurer schedules with them) since 20 Nov 2026; older quotations reopen without them. */
+export type EditState = { members: Member[]; included: string[]; designs: Record<string, Partial<Design>>; current: string; lastYear: LastYear | null; mode?: 'brochure' | 'insurer'; tier?: Tier; columns?: EbColumn[] }
 
 export const COVER_KEYS: CoverKey[] = TIERS.map(t => t.key)
 export const COVER_NAME: Record<CoverKey, string> = Object.fromEntries(TIERS.map(t => [t.key, t.cover])) as Record<CoverKey, string>
@@ -87,7 +92,88 @@ export function readEdit(raw: unknown): EditState | null {
     for (const t of TIERS) { const v = (d as Record<string, unknown> | null)?.[t.key]; if (Number.isInteger(v) && (v as number) >= 0 && (v as number) < t.tiers.length) out[t.key] = v as number }
     designs[str(name, 80)] = out
   }
-  return { members, included, designs, current: str(r.current, 80), lastYear: r.lastYear && typeof r.lastYear === 'object' ? normaliseLastYear(r.lastYear) : null }
+  const columns = readColumns(r.columns)
+  return {
+    members, included, designs, current: str(r.current, 80), lastYear: r.lastYear && typeof r.lastYear === 'object' ? normaliseLastYear(r.lastYear) : null,
+    ...(r.mode === 'insurer' || r.mode === 'brochure' ? { mode: r.mode } : {}), ...(r.tier === 'lower' || r.tier === 'same' ? { tier: r.tier } : {}), ...(columns.length ? { columns } : {}),
+  }
+}
+
+const STATUSES = ['read', 'check', 'missing'] as const
+/** An insurer schedule from a request or a kept snapshot, bounded. Null when it is not one. */
+export function readSchedule(raw: unknown): InsurerSchedule | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const file = str(r.file, 160)
+  if (!file) return null
+  const figures: ScheduleFigure[] = (Array.isArray(r.figures) ? r.figures.slice(0, 80) : []).flatMap(f => {
+    const o = (f ?? {}) as Record<string, unknown>
+    const cover = COVER_KEYS.find(k => k === o.cover)
+    if (!cover) return []
+    const p = num(o.premium)
+    return [{ cover, category: str(o.category, 80) || null, premium: p != null && p > 0 && p <= 5_000_000 ? p : null, source: str(o.source, 240), status: STATUSES.find(x => x === o.status) ?? 'check' }]
+  })
+  const t = (r.total ?? null) as Record<string, unknown> | null
+  const tp = num(t?.premium)
+  return { file, insurer: str(r.insurer, 80) || null, figures, total: tp != null && tp > 0 && tp <= 5_000_000 ? { premium: tp, source: str(t?.source, 240) } : null, readBy: r.readBy === 'model' ? 'model' : 'code', notes: (Array.isArray(r.notes) ? r.notes : []).map(n => str(n, 240)).filter(Boolean).slice(0, 10) }
+}
+
+/** Compare columns from a request or a kept snapshot, bounded: at most 24, picks as short strings. */
+export function readColumns(raw: unknown): EbColumn[] {
+  const out: EbColumn[] = []
+  for (const c of (Array.isArray(raw) ? raw.slice(0, 24) : []) as Record<string, unknown>[]) {
+    const id = str(c?.id, 40)
+    if (!id) continue
+    if (c.kind === 'schedule') { const sch = readSchedule(c.schedule); if (sch) out.push({ id, kind: 'schedule', schedule: sch }); continue }
+    if (c.kind !== 'brochure' && c.kind !== 'copy') continue
+    const product = str(c.product, 80)
+    if (!product) continue
+    const picks: Record<string, Record<CoverKey, string>> = {}
+    if (c.picks && typeof c.picks === 'object') for (const [cat, byCover] of Object.entries(c.picks as Record<string, unknown>).slice(0, 40)) {
+      picks[str(cat, 80)] = Object.fromEntries(COVER_KEYS.map(k => [k, str((byCover as Record<string, unknown> | null)?.[k], 80)])) as Record<CoverKey, string>
+    }
+    out.push({ id, kind: c.kind, product, copyOf: c.kind === 'copy' ? str(c.copyOf, 40) || null : null, picks })
+  }
+  return out
+}
+
+/**
+ * The quotation as Compare shows it, for the columns ticked (copies and insurer schedules
+ * included): each column's plan, words and premium per category and cover. An insurer schedule's
+ * figure sits under the census category it names, else under the first category. Pure.
+ */
+export function snapshotFromCompare(input: {
+  model: CompareModel; cols: EbColumn[]; include: string[]; company: string; effectiveDate: string; basis: 'renewal' | 'new_business'
+  members: Member[]; workbook: string | null; edit?: EditState
+}): Snapshot {
+  const { model } = input
+  const at = model.columns.map((c, i) => ({ c, i })).filter(x => input.include.includes(x.c.label))
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const categories: SnapshotCategory[] = model.categories.map((name, ci) => {
+    const covers = Object.fromEntries(COVER_KEYS.map(k => {
+      const row = model.rows.find(r => r.key === k)!
+      return [k, Object.fromEntries(at.map(({ c, i }) => {
+        const cell = row.cells[i]
+        if (cell.kind === 'plans') { const x = cell.perCategory[ci]; return [c.label, { plan: x.plan, words: x.plan ? x.words : '', premium: x.plan ? x.premium : null, locked: x.locked && x.premium === 0 }] }
+        const col = input.cols[i] as Extract<EbColumn, { kind: 'schedule' }>
+        const fs = col.schedule.figures.filter(f => f.cover === k && f.premium != null)
+        const mine = fs.filter(f => f.category && key(f.category) === key(name))
+        const unnamed = ci === 0 ? fs.filter(f => !f.category || !model.categories.some(n => key(n) === key(f.category!))) : []
+        const p = [...mine, ...unnamed].reduce<number | null>((a, f) => (a ?? 0) + f.premium!, null)
+        return [c.label, { plan: p != null ? 'Insurer schedule' : '', words: p != null ? 'Insurer schedule' : '', premium: p != null ? Math.round(p * 100) / 100 : null, locked: false }]
+      }))]
+    })) as Record<CoverKey, Record<string, CoverCell>>
+    const cat = input.members.filter(m => categoryName(m) === name)
+    return { name, employees: cat.filter(m => m.relationship === 'self').length, lives: cat.length, covers }
+  })
+  const members = input.members.filter(m => model.categories.includes(categoryName(m))).map(m => ({
+    name: m.name, category: categoryName(m), relationship: m.relationship, dob: m.dob ?? null, occupation: m.occupation_class ?? null, age: m.age ?? null,
+  }))
+  const columnProducts = Object.fromEntries(at.filter(({ c }) => c.product && c.product !== c.label).map(({ c }) => [c.label, c.product!]))
+  return {
+    company: input.company, effectiveDate: input.effectiveDate, basis: input.basis, products: at.map(x => x.c.label), categories, members, workbook: input.workbook,
+    ...(Object.keys(columnProducts).length ? { columnProducts } : {}), ...(input.edit ? { edit: input.edit } : {}),
+  }
 }
 
 const str = (v: unknown, n = 200) => (typeof v === 'string' ? v.slice(0, n) : '')
@@ -97,7 +183,7 @@ const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : n
 export function readSnapshot(raw: unknown): Snapshot | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
-  const products = Array.isArray(r.products) ? r.products.map(p => str(p, 80)).filter(Boolean).slice(0, 8) : []
+  const products = Array.isArray(r.products) ? r.products.map(p => str(p, 120)).filter(Boolean).slice(0, 24) : []
   const cats = Array.isArray(r.categories) ? r.categories.slice(0, 8) : []
   if (!str(r.company) || !/^\d{4}-\d{2}-\d{2}$/.test(str(r.effectiveDate, 10)) || !products.length || !cats.length) return null
   const categories: SnapshotCategory[] = cats.map(c => {
@@ -116,7 +202,9 @@ export function readSnapshot(raw: unknown): Snapshot | null {
     return { name: str(o.name, 120), category: str(o.category, 80), relationship: str(o.relationship, 40), dob: str(o.dob, 20) || null, occupation: str(o.occupation, 20) || null, age: num(o.age) }
   })
   const edit = readEdit(r.edit)
-  return { company: str(r.company), effectiveDate: str(r.effectiveDate, 10), basis: r.basis === 'new_business' ? 'new_business' : 'renewal', products, categories, members, workbook: str(r.workbook, 160) || null, ...(edit ? { edit } : {}) }
+  const columnProducts: Record<string, string> = {}
+  if (r.columnProducts && typeof r.columnProducts === 'object') for (const [k, v] of Object.entries(r.columnProducts as Record<string, unknown>)) { const label = str(k, 120); if (products.includes(label) && str(v, 80)) columnProducts[label] = str(v, 80) }
+  return { company: str(r.company), effectiveDate: str(r.effectiveDate, 10), basis: r.basis === 'new_business' ? 'new_business' : 'renewal', products, categories, members, workbook: str(r.workbook, 160) || null, ...(Object.keys(columnProducts).length ? { columnProducts } : {}), ...(edit ? { edit } : {}) }
 }
 
 export type ProposalModel = {

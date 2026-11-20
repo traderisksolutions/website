@@ -39,6 +39,7 @@ Every model call goes through `callGemini` (`src/lib/ai-call.ts`) with an `agent
 
 - Never handle or ask for `CRON_SECRET`; Jarod runs the scheduler scripts himself.
 - Never commit the uncommitted change to `src/lib/ai-call.ts` (the local AI bridge). Never `git reset --hard` in this worktree; move HEAD with `git checkout -B build/integrate <sha>` or a merge.
+- Never run `git worktree prune`, and never remove a worktree you did not make. The repo's `.git` is shared by the Mac and the Linux machine (`/workspace`), and prune deletes every worktree whose folder is on the other machine (it removed the Linux sessions' worktrees twice on 20 Nov 2026). Remove only your own, by path: `git worktree remove <your path>`.
 - Never modify `/api/email/send`; fix sends in the preparing step or the caller.
 - No client names in the public repo's commits or docs beyond what the code already carries.
 - Approval and sending happen only in the dashboard; no test send without Jarod's go.

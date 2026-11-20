@@ -1,6 +1,6 @@
 /**
  * GET /api/cron/admin-sweep — daily (vercel.json "10 1 * * *", 09:10 SGT). Queues the day's
- * renewals, chases and claims sync, then drains the Phase B agents for up to 4 minutes. Every
+ * renewals, chases and claims sync, trims old agent_tasks and error_logs, then drains the Phase B agents for up to 4 minutes. Every
  * draft waits on /work for a person. ?today=YYYY-MM-DD replays a day.
  * Bearer CRON_SECRET, like the other crons.
  */
@@ -13,30 +13,36 @@ import { checkMailboxes } from '@/lib/gmail/health'
 import { todaySGT } from '@/lib/sgt-time'
 import { expirePolicies } from '@/lib/policies/expire'
 import { sweepClientLinks } from '@/lib/crm/client-link'
-import { housekeepingOn } from '@/lib/housekeeping-switch'
+import { clientLinkRulesOn, housekeepingOn } from '@/lib/housekeeping-switch'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
 import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
-import { withCron } from '@/lib/auth/guard'
+import { trimLogs } from '@/lib/maintenance/log-trim'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-export const GET = withCron(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
+  const secret = process.env.CRON_SECRET ?? ''
+  if (!(secret !== '' && req.headers.get('authorization') === `Bearer ${secret}`)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const q = new URL(req.url).searchParams.get('today')
     const today = q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : todaySGT()
     const mail = await checkMailboxes().catch(() => [] as string[])
     const expired = await expirePolicies(today).catch(() => ({ expired: -1 }))
-    const clients = !housekeepingOn() ? null : await sweepClientLinks({ since: new Date(Date.now() - 3 * 86_400_000).toISOString(), agentLimit: 40 }).catch(() => null)
+    // The client of an insurer thread, by the subject rules (client-link.ts): code only, so it runs
+    // with mail filing off (Jarod, 20 Nov 2026). The model read of the rest waits for HOUSEKEEPING=on.
+    const clients = clientLinkRulesOn() ? await sweepClientLinks({ since: new Date(Date.now() - 3 * 86_400_000).toISOString(), agentLimit: housekeepingOn() ? 40 : 0 }).catch(() => null) : null
     // TPA claim notices move claims on the register by rule (src/lib/claims/tpa-notices.ts).
     const notices = await applyTpaNotices(new Date(Date.now() - 3 * 86_400_000).toISOString()).catch(() => null)
     // Enrolment cycles: chases and reminders prepared as drafts by rule (src/lib/clients/enrolment-cycle.ts).
     const enrolment = await runEnrolmentCycles({ today }).then(r => ({ chases: r.chases, reminders: r.reminders })).catch(() => null)
+    // Log trim, code only: old finished agent_tasks and error_logs (src/lib/maintenance/log-trim.ts).
+    const logs = await trimLogs().catch(() => null)
     await enqueue(dailySweepTasks(today))
     const r = await drain({ agents: [...PHASE_B_AGENTS], budgetMs: 240_000 })
     console.log('[admin-sweep]', today, JSON.stringify(r))
-    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, ...r })
+    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, logs, ...r })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}, { error: 'Unauthorized' })
+}

@@ -41,7 +41,7 @@ export function loadBoard(): Promise<BoardPayload> {
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
 const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Referral', other: 'Company' }
-const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] hover:underline'
+const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-body hover:underline'
 
 export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask, onDraftOpen }: {
   lead: Lead
@@ -127,7 +127,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           {tasks.slice(0, 5).map(t => <WorkRow key={t.id} t={t} today={today} nameOf={nameOf} />)}
         </ul>
       )}
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]" style={{ color: MUTED }}>
+      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body" style={{ color: MUTED }}>
         {onAddTask && <button type="button" onClick={onAddTask} className={QUIET_LINK} style={{ color: INK }}>Add to-do</button>}
         {onAddTask && threadId && <span aria-hidden>·</span>}
         {threadId && <span className="inline-flex"><AddToCaseControl threadId={threadId} /></span>}
@@ -139,7 +139,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     <>
       <AiRow title="Summary" detail={summary ? `Last read ${summaries[0]?.created_at ? timeAgo(summaries[0].created_at) : 'earlier'}` : 'The thread in a few lines, with a drafted reply'} action={summariesLoading ? 'Summarising…' : summary ? (analysisOpen ? 'Hide' : 'Show') : 'Summarise'}
         onClick={() => { if (!summary) onRefreshSummaries(); else setAnalysisOpen(v => !v) }} disabled={!threadId || summariesLoading}>
-        {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-[13px] leading-[1.5] line-clamp-3" style={{ color: BODY }}>{summary}</p>}
+        {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-body leading-[1.5] line-clamp-3" style={{ color: BODY }}>{summary}</p>}
         {analysisOpen && (
           <div className="mt-2 pl-[19px]">
             <AiAnalysisPanel summaries={summaries} loading={summariesLoading} threadId={threadId} latestMessageId={latestMessageId} ragSources={ragSources} onRefresh={onRefreshSummaries} />
@@ -152,9 +152,9 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
 
   return (
     <aside className="h-full flex flex-col min-h-0 bg-white" aria-label="Context" style={{ borderLeft: onClose ? `1px solid ${HAIR}` : undefined }}>
-      <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-3 text-[13px]" style={{ color: MUTED }}>
+      <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-3 text-body" style={{ color: MUTED }}>
         <span>Context</span>
-        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-[30px] w-[30px] rounded-[10px] bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
+        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-[30px] w-[30px] rounded bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-6">
@@ -228,8 +228,8 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
                     <li key={t.id}>
                       <button type="button" onClick={() => onSelectThread(t.id)} aria-current={on ? 'true' : undefined}
                         className={cn('w-full text-left bg-transparent border-0 border-l-2 border-solid p-0 pl-2 cursor-pointer', on ? 'font-medium border-trs-green' : 'border-transparent')}>
-                        <span className="block text-[13.5px] truncate" style={{ color: INK }}>{t.subject ?? '(no subject)'}</span>
-                        <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
+                        <span className="block text-body truncate" style={{ color: INK }}>{t.subject ?? '(no subject)'}</span>
+                        <span className="block text-small truncate" style={{ color: MUTED }}>{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
                       </button>
                     </li>
                   )
@@ -240,7 +240,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
 
           {/* Status, notes, conversations and draft history: the existing panel, folded. */}
           <details className="mt-3">
-            <summary className="cursor-pointer text-[13.5px] list-none [&::-webkit-details-marker]:hidden" style={{ color: INK }}><span className="inline-block w-4" style={{ color: '#8c958f' }}>›</span>Status and notes</summary>
+            <summary className="cursor-pointer text-body list-none [&::-webkit-details-marker]:hidden" style={{ color: INK }}><span className="inline-block w-4 text-trs-subtle" >›</span>Status and notes</summary>
             <section className="mt-2" aria-label="Contact and status">
               <div style={{ '--ea-context-w': '100%' } as React.CSSProperties}>
                 <EngagementContextPanel lead={lead} messages={messages} threadId={threadId} conversationThreadId={conversationThreadId} activeThreadId={activeThreadId}
@@ -266,7 +266,7 @@ function WorkRow({ t, today, nameOf }: { t: BoardTask; today: string; nameOf: (e
   const due = d === null ? null : d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : d > 1 && d < 7 ? new Date(t.due_on!).toLocaleDateString('en-SG', { weekday: 'short' }) : d >= 7 ? fmtDate(t.due_on!) : `${-d} day${d === -1 ? '' : 's'} late`
   const who = nameOf(t.primary_assignee)?.split(' ')[0] ?? null
   return (
-    <li className="flex items-start justify-between gap-2 py-1 text-[13px]">
+    <li className="flex items-start justify-between gap-2 py-1 text-body">
       <span className="min-w-0 leading-[1.4]" style={{ color: INK }}>{t.title}</span>
       <span className="flex-shrink-0 whitespace-nowrap" style={{ color: MUTED }}>{[who, due].filter(Boolean).join(' · ')}</span>
     </li>

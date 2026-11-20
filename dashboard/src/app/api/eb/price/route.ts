@@ -1,15 +1,18 @@
 /**
  * POST /api/eb/price
- *   { effective_date, basis, current_insurer, categories: [{ name, members, design, today }] }
- *   → every product priced for every category from the house workbook (src/lib/gb/eb-quote.ts).
+ *   { effective_date, basis, current_insurer, last_year?, categories: [{ name, members, today }] }
+ *   → every product priced for every category from the house workbook (src/lib/gb/eb-price.ts),
+ *     every plan of every cover priced, with the Same tier and Lower tier picks and their reasons.
+ *     Last year's policy, when read, sets what the tiers match (factsFor); else the census plan.
  *
  * Code prices; no model is called. Nothing is saved.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { Member } from '@/lib/gb-quote'
-import { MAX_CATEGORIES, TIERS, type Design } from '@/lib/gb/eb-quote'
+import { factsFor, MAX_CATEGORIES, TIERS, type Design } from '@/lib/gb/eb-quote'
+import { normaliseLastYear } from '@/lib/gb/last-year'
 import { priceDesign } from '@/lib/gb/eb-price'
-import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
@@ -21,8 +24,12 @@ const designOf = (raw: unknown): Partial<Design> => {
   return out
 }
 
-export const POST = withStaff(async (req: NextRequest) => {
-  const body = await req.json().catch(() => ({})) as { effective_date?: string; basis?: string; current_insurer?: string | null; categories?: { name?: string; members?: Member[]; design?: unknown; today?: unknown }[] }
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+
+  const body = await req.json().catch(() => ({})) as { effective_date?: string; basis?: string; current_insurer?: string | null; last_year?: unknown; categories?: { name?: string; members?: Member[]; design?: unknown; today?: unknown }[] }
   const cats = Array.isArray(body.categories) ? body.categories : []
   if (!cats.length) return NextResponse.json({ error: 'Choose at least one category.' }, { status: 400 })
   if (cats.length > MAX_CATEGORIES) return NextResponse.json({ error: `Up to ${MAX_CATEGORIES} categories.` }, { status: 400 })
@@ -35,10 +42,11 @@ export const POST = withStaff(async (req: NextRequest) => {
   const wb = await freshWorkbook()
   if (!wb) return NextResponse.json({ error: 'The house workbook is not loaded. Reload it on Quotation register › Insurers.' }, { status: 503 })
   const { rules } = await loadRules()
+  const ly = body.last_year && typeof body.last_year === 'object' ? normaliseLastYear(body.last_year) : null
 
   const priced = priceDesign({
     wb, rules, effectiveDate, basis: body.basis === 'new_business' ? 'new_business' : 'renewal', currentInsurer: body.current_insurer?.trim() || null,
-    categories: cats.map(c => ({ name: String(c.name ?? 'Category').slice(0, 80), members: c.members!, design: designOf(c.design), today: designOf(c.today) })),
+    categories: cats.map(c => { const name = String(c.name ?? 'Category').slice(0, 80); return { name, members: c.members!, today: designOf(c.today), facts: factsFor(ly, name) } }),
   })
   return NextResponse.json(priced)
-}, { error: 'Not authenticated' })
+}

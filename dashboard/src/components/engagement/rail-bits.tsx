@@ -21,7 +21,7 @@ export const MAIN = btnClass('primary', 'xs')
 
 function GroupPill({ children }: { children: React.ReactNode }) {
   return (
-    <p className="m-0 mb-3 inline-block rounded-full px-3 py-1 text-[13.5px] font-medium" style={{ color: 'var(--trs-green, #1f6b3e)', background: 'var(--trs-soft, #eaf6ec)', border: '1px solid rgba(31,107,62,0.28)' }}>{children}</p>
+    <p className="m-0 mb-3 inline-block rounded-full px-3 py-1 text-body font-medium" style={{ color: 'var(--trs-green, #1f6b3e)', background: 'var(--trs-soft, #eaf6ec)', border: '1px solid rgba(31,107,62,0.28)' }}>{children}</p>
   )
 }
 
@@ -38,9 +38,9 @@ export function Group({ label, children, ariaLabel }: { label: string; children:
 export function ActionItem({ eyebrow, title, meta, alert, children }: { eyebrow: string; title: string; meta?: string | null; alert?: boolean; children?: React.ReactNode }) {
   return (
     <div className="mb-6 last:mb-0">
-      <p className="m-0 mb-1 text-[11.5px] uppercase" style={{ color: SUBTLE, letterSpacing: '0.06em' }}>{eyebrow}</p>
-      <p className="m-0 text-[15px] font-medium leading-[1.3] break-words" style={{ color: INK }}>{title}</p>
-      {meta && <p className="m-0 mt-0.5 text-[13px] tabular-nums" style={{ color: alert ? ERROR : MUTED, fontWeight: alert ? 500 : 400 }}>{meta}</p>}
+      <p className="m-0 mb-1 text-small" style={{ color: SUBTLE, letterSpacing: '0.06em' }}>{eyebrow}</p>
+      <p className="m-0 text-body font-medium leading-[1.3] break-words text-trs-ink" >{title}</p>
+      {meta && <p className="m-0 mt-0.5 text-body tabular-nums" style={{ color: alert ? ERROR : MUTED, fontWeight: alert ? 500 : 400 }}>{meta}</p>}
       {children}
     </div>
   )
@@ -54,8 +54,8 @@ export function AiRow({ title, detail, action, onClick, href, disabled, busy, ch
     <div className="mb-3.5 last:mb-0">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 text-[13.5px] font-medium inline-flex items-center gap-1.5" style={{ color: INK }}><Sparkles size={13} style={{ color: SUBTLE }} />{title}</p>
-          <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{detail}</p>
+          <p className="m-0 text-body font-medium inline-flex items-center gap-1.5 text-trs-ink" ><Sparkles size={13} className="text-trs-subtle" />{title}</p>
+          <p className="m-0 text-small text-trs-muted" >{detail}</p>
         </div>
         {href
           ? <Link href={href} className={`${SECOND} no-underline flex-shrink-0`}>{action}</Link>
@@ -69,14 +69,14 @@ export function AiRow({ title, detail, action, onClick, href, disabled, busy, ch
 /** Label left, value right. The value may carry a second muted line and inline arrow links. */
 export function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-x-3 py-[5px] text-[13.5px] items-start" style={{ gridTemplateColumns: '92px minmax(0,1fr)' }}>
-      <span style={{ color: MUTED }}>{label}</span>
-      <span className="min-w-0 break-words" style={{ color: INK }}>{children}</span>
+    <div className="grid gap-x-3 py-[5px] text-body items-start" style={{ gridTemplateColumns: '92px minmax(0,1fr)' }}>
+      <span className="text-trs-muted">{label}</span>
+      <span className="min-w-0 break-words text-trs-ink" >{children}</span>
     </div>
   )
 }
 
-export const Small = ({ children }: { children: React.ReactNode }) => <span className="text-[13px]" style={{ color: MUTED }}>{children}</span>
+export const Small = ({ children }: { children: React.ReactNode }) => <span className="text-body text-trs-muted" >{children}</span>
 export const Arrow = ({ href, onClick, children }: { href?: string; onClick?: () => void; children: React.ReactNode }) =>
-  href ? <Link href={href} className="no-underline hover:underline" style={{ color: INK }}>{children} <span style={{ color: SUBTLE }}>→</span></Link>
-       : <button type="button" onClick={onClick} className="bg-transparent border-0 p-0 cursor-pointer text-[13.5px] hover:underline" style={{ color: INK }}>{children} <span style={{ color: SUBTLE }}>→</span></button>
+  href ? <Link href={href} className="no-underline hover:underline text-trs-ink" >{children} <span className="text-trs-subtle">→</span></Link>
+       : <button type="button" onClick={onClick} className="bg-transparent border-0 p-0 cursor-pointer text-body hover:underline text-trs-ink" >{children} <span className="text-trs-subtle">→</span></button>

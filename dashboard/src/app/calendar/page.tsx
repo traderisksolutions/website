@@ -21,6 +21,7 @@ import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
 import type { CalendarEvent } from '@/app/api/calendar/events/route'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
+import { useCalendarEmbedded } from '@/components/calendar/embed'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -68,6 +69,7 @@ const LEGEND: { dot: string; label: string }[] = [
 type View = 'month' | 'eb'
 
 export default function CalendarPage() {
+  const embedded = useCalendarEmbedded()
   const [view, setView] = useState<View>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'eb' ? 'eb' : 'month'))
   const [eb, setEb] = useState<EbRenewalRow[] | null>(null)
   const [ebError, setEbError] = useState<string | null>(null)
@@ -129,6 +131,7 @@ export default function CalendarPage() {
 
   function pickView(v: View) {
     setView(v)
+    if (embedded) return
     const u = new URL(window.location.href)
     if (v === 'eb') u.searchParams.set('view', 'eb'); else u.searchParams.delete('view')
     window.history.replaceState(null, '', u.toString())
@@ -162,10 +165,11 @@ export default function CalendarPage() {
 
 
   return (
-    <div className="bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+    <div className="bg-white text-trs-ink" >
+      <div className={embedded ? 'min-w-0 pb-10' : 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0'}>
         <PageHeader
-          title={view === 'eb' ? 'Calendar' : <>{MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span></>}
+          embedded={embedded}
+          title={view === 'eb' ? 'Calendar' : <>{MONTHS[viewDate.getMonth()]} <span className="font-normal text-trs-muted" >{viewDate.getFullYear()}</span></>}
           meta={view === 'eb'
             ? (eb ? `${eb.length} Employment Benefits renewal${eb.length === 1 ? '' : 's'} · 30 days ago to 120 days out` : 'Loading…')
             : loading ? 'Loading…' : error ? undefined : `${events.length} item${events.length === 1 ? '' : 's'} this month`}
@@ -187,14 +191,14 @@ export default function CalendarPage() {
             onChange={setRenewalWin}
             options={RENEWAL_WINDOWS.filter(w => w.key !== 'none').map(w => ({ value: w.key, label: w.key === 'all' ? 'All renewals' : w.label }))}
           />
-          <Link href="/companies" className="ml-auto text-[14px] no-underline hover:underline" style={{ color: MUTED }}>Companies by renewal →</Link>
+          <Link href="/companies" className="ml-auto text-body no-underline hover:underline text-trs-muted" >Companies by renewal →</Link>
         </div>
 
         {loading && <Spinner />}
 
         {!loading && error && (
           <div role="alert" className="mt-8 flex flex-col items-start gap-3">
-            <p className="m-0 text-[13.5px] text-trs-neg">The calendar did not load. {error}</p>
+            <p className="m-0 text-body text-trs-neg">The calendar did not load. {error}</p>
             <Btn onClick={() => setAttempt(n => n + 1)}>Retry</Btn>
           </div>
         )}
@@ -204,7 +208,7 @@ export default function CalendarPage() {
             {/* Desktop / tablet month grid */}
             <div className="hidden sm:block">
               <div className="grid grid-cols-7 border-b border-[#e6e8e4]">
-                {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-[12px] font-medium" style={{ color: MUTED }}>{w}</div>)}
+                {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-small font-medium text-trs-muted" >{w}</div>)}
               </div>
               <div className="grid grid-cols-7">
                 {cells.map((d, i) => {
@@ -222,18 +226,18 @@ export default function CalendarPage() {
                     >
                       {d && (
                         <>
-                          <span className={cn('w-7 h-7 flex items-center justify-center rounded-full text-[13px] self-end tabular-nums', isToday ? 'font-medium text-white' : '')} style={{ background: isToday ? INK : 'transparent', color: isToday ? '#fff' : INK }}>
+                          <span className={cn('w-7 h-7 flex items-center justify-center rounded-full text-body self-end tabular-nums', isToday ? 'font-medium text-white' : '')} style={{ background: isToday ? INK : 'transparent', color: isToday ? '#fff' : INK }}>
                             {d.getDate()}
                           </span>
                           <div className="flex flex-col gap-0.5">
                             {visible.map(e => (
-                              <span key={e.id} className="flex items-center gap-1.5 rounded-[6px] px-1.5 py-[3px] text-[11.5px] font-medium leading-none" style={{ background: '#f1f2ee', color: '#2a332f' }} title={eventKind(e)}>
+                              <span key={e.id} className="flex items-center gap-1.5 rounded px-1.5 py-[3px] text-small font-medium leading-none bg-trs-field text-trs-ink-2" title={eventKind(e)}>
                                 <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: eventDot(e) }} aria-hidden />
                                 <span className="truncate">{e.companyName ?? eventKind(e)}</span>
                               </span>
                             ))}
                             {overflow > 0 && (
-                              <span className="text-[11.5px] px-1.5" style={{ color: MUTED }}>+{overflow} more</span>
+                              <span className="text-small px-1.5 text-trs-muted" >+{overflow} more</span>
                             )}
                           </div>
                         </>
@@ -246,16 +250,16 @@ export default function CalendarPage() {
 
             {/* Mobile agenda list */}
             <div className="sm:hidden flex flex-col">
-              {daysWithEvents.length === 0 && <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>Nothing due this month.</p>}
+              {daysWithEvents.length === 0 && <p className="py-16 text-center text-heading m-0 text-trs-muted" >Nothing due this month.</p>}
               {daysWithEvents.map(key => {
                 const d = fromISODate(key)
                 const dayEvents = byDay.get(key)!
                 return (
                   <button key={key} type="button" onClick={() => setSelectedDate(d)} className="flex items-center justify-between py-3 text-left bg-transparent border-0 border-b border-[#e6e8e4] cursor-pointer hover:bg-[#faf9f6]">
-                    <span className="text-[14px]" style={{ color: INK }}>{d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                    <span className="text-body text-trs-ink" >{d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                     <span className="flex items-center gap-1.5">
                       {dayEvents.slice(0, 3).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full" style={{ background: eventDot(e) }} aria-hidden />)}
-                      <span className="text-[13px] ml-1 tabular-nums" style={{ color: MUTED }}>{dayEvents.length}</span>
+                      <span className="text-body ml-1 tabular-nums text-trs-muted" >{dayEvents.length}</span>
                     </span>
                   </button>
                 )
@@ -263,13 +267,13 @@ export default function CalendarPage() {
             </div>
 
             {events.length === 0 && (
-              <p className="hidden sm:block py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>Nothing due this month.</p>
+              <p className="hidden sm:block py-16 text-center text-heading m-0 text-trs-muted" >Nothing due this month.</p>
             )}
 
             {/* Legend: two dots, kinds in words. */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-8">
               {LEGEND.map(l => (
-                <div key={l.label} className="flex items-center gap-2 text-[12.5px]" style={{ color: MUTED }}>
+                <div key={l.label} className="flex items-center gap-2 text-small text-trs-muted" >
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.dot }} aria-hidden /> {l.label}
                 </div>
               ))}
@@ -299,7 +303,7 @@ function EbRenewals({ rows, error, onRetry }: { rows: EbRenewalRow[] | null; err
   if (!rows) return <div className="mt-6"><Spinner label="Loading Employment Benefits renewals…" /></div>
   if (error) return (
     <div role="alert" className="mt-8 flex flex-col items-start gap-3">
-      <p className="m-0 text-[13.5px] text-trs-neg">Employment Benefits renewals did not load. {error}</p>
+      <p className="m-0 text-body text-trs-neg">Employment Benefits renewals did not load. {error}</p>
       <Btn onClick={onRetry}>Retry</Btn>
     </div>
   )
@@ -318,8 +322,8 @@ function EbRenewals({ rows, error, onRetry }: { rows: EbRenewalRow[] | null; err
         {rows.length === 0 && <RegisterEmpty colSpan={7}>No Employment Benefits policy ends in the next 120 days.</RegisterEmpty>}
         {rows.map(r => (
           <RegisterRow key={r.policy_id}>
-            <RegisterCell first align="left" title={r.company}>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline" style={{ color: INK }}>{r.company}</Link> : r.company}</RegisterCell>
-            <RegisterCell align="left" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}><Link href={`/policies/${r.policy_id}`} className="no-underline hover:underline" style={{ color: INK }}>{r.policy}</Link></RegisterCell>
+            <RegisterCell first align="left" title={r.company}>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline text-trs-ink" >{r.company}</Link> : r.company}</RegisterCell>
+            <RegisterCell align="left" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}><Link href={`/policies/${r.policy_id}`} className="no-underline hover:underline text-trs-ink" >{r.policy}</Link></RegisterCell>
             <RegisterCell align="left">{r.insurer ? insurerWord(r.insurer) : '—'}</RegisterCell>
             <RegisterCell>{fmtDate(r.end_date)}</RegisterCell>
             <RegisterCell className="tabular-nums"><span className={r.days < 0 ? 'text-trs-neg' : undefined}>{r.days < 0 ? `${-r.days} ago` : r.days}</span></RegisterCell>
@@ -338,7 +342,7 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
       <DialogContent className="sm:max-w-[560px] max-h-[80vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{date.toLocaleDateString('en-SG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</DialogTitle></DialogHeader>
         {events.length === 0 ? (
-          <p className="text-[14px] py-6 text-center m-0" style={{ color: MUTED }}>Nothing due this day.</p>
+          <p className="text-body py-6 text-center m-0 text-trs-muted" >Nothing due this day.</p>
         ) : (
           <div className="flex flex-col gap-3">
             {events.map(e =>
@@ -357,13 +361,13 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
 /** One event in the day panel: a title row with the kind as a neutral chip, facts, then actions. */
 function EventCard({ dot, title, kind, facts, children }: { dot: string; title: string; kind: string; facts: string[]; children?: React.ReactNode }) {
   return (
-    <div className="rounded-[12px] border border-[#e6e8e4] bg-white p-4 flex flex-col gap-2">
-      <div className="flex items-center gap-2 flex-wrap text-[14px] font-medium" style={{ color: INK }}>
+    <div className="rounded border border-[#e6e8e4] bg-white p-4 flex flex-col gap-2">
+      <div className="flex items-center gap-2 flex-wrap text-body font-medium text-trs-ink" >
         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} aria-hidden />
         <span className="truncate">{title}</span>
         <Chip className="ml-auto">{kind}</Chip>
       </div>
-      <div className="text-[13px] grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5" style={{ color: MUTED }}>
+      <div className="text-body grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-trs-muted" >
         {facts.map((f, i) => <span key={i}>{f}</span>)}
       </div>
       {children}
@@ -396,7 +400,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
         <Btn size="xs" level="secondary" onClick={generateRenewalEmail} disabled={sending}>Draft renewal email</Btn>
         <LinkBtn size="xs" level="secondary" href={e.companyId ? `/debit-notes/new?company_id=${e.companyId}` : '/debit-notes/new'}>New debit note</LinkBtn>
         {e.companyId && (
-          <Link href={`/companies/${e.companyId}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Open company →</Link>
+          <Link href={`/companies/${e.companyId}`} className="text-body no-underline hover:underline ml-auto text-trs-muted" >Open company →</Link>
         )}
       </div>
     </EventCard>
@@ -413,7 +417,7 @@ function RenewalOverdueCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal_
     ]}>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <LinkBtn size="xs" level="secondary" href={e.companyId ? `/companies/${e.companyId}` : '/companies'}>Open company</LinkBtn>
-        <Link href={`/debit-notes?company_id=${e.companyId ?? ''}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Debit notes →</Link>
+        <Link href={`/debit-notes?company_id=${e.companyId ?? ''}`} className="text-body no-underline hover:underline ml-auto text-trs-muted" >Debit notes →</Link>
       </div>
     </EventCard>
   )
@@ -459,7 +463,7 @@ function CaseStepCard({ e }: { e: Extract<CalendarEvent, { type: 'case_step' }> 
       `Case: ${e.caseName || '—'}`,
       `Owner: ${e.owner || 'unassigned'}`,
     ]}>
-      <p className="text-[14px] m-0" style={{ color: INK }}>{e.action}</p>
+      <p className="text-body m-0 text-trs-ink" >{e.action}</p>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <LinkBtn size="xs" level="secondary" href={`/nexus/cases?case=${e.caseId}`}>Open the case</LinkBtn>
       </div>

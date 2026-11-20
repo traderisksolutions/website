@@ -43,17 +43,19 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
   const rowCls = cn('relative w-full text-left border-0 cursor-pointer transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
     PAD[density], isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]')
-  const label = `${name}, ${subject}${needs ? ', needs your reply' : ''}`
-  const bar = isActive && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />
+  const holder = lead.private ? `In ${(lead.private.owner ?? 'a colleague').split(/[\s,]+/)[0]}’s inbox` : null
+  const label = `${name}, ${subject}${needs ? ', needs your reply' : ''}${holder ? `, ${holder}` : ''}`
+  const bar = isActive && <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-trs-ink" aria-hidden />
   const dot = <span data-dot className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: needs ? INK : 'transparent' }} aria-hidden />
 
   if (density === 'compact') return (
     <button type="button" onClick={onClick} aria-pressed={isActive} aria-label={label} title={lead.subject ?? undefined}
       className={cn(rowCls, 'flex items-center gap-2 pl-3 pr-4')} style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
       {bar}{dot}
-      <span className="w-[112px] flex-shrink-0 text-[13px] font-medium truncate">{name}</span>
-      <span className="flex-1 min-w-0 text-[13px] truncate" style={{ color: BODY }}>{subject}</span>
-      <span className="text-[11.5px] tabular-nums whitespace-nowrap flex-shrink-0" style={{ color: FAINT }}>{timeAgo(timestamp)}</span>
+      <span className="w-[112px] flex-shrink-0 text-body font-medium truncate">{name}</span>
+      <span className="flex-1 min-w-0 text-body truncate text-trs-ink-2" >{subject}</span>
+      {holder && <span className="flex-shrink-0 text-small text-trs-warn">{holder}</span>}
+      <span className="text-small tabular-nums whitespace-nowrap flex-shrink-0 text-trs-subtle" >{timeAgo(timestamp)}</span>
     </button>
   )
 
@@ -63,15 +65,16 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
       style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
       {bar}{dot}
       <span className="min-w-0 flex items-baseline gap-1.5 leading-snug">
-        <span className="min-w-0 text-[13.5px] font-medium truncate">{name}</span>
-        {density === 'standard' && type && <span className="flex-shrink-0 text-[11.5px]" style={{ color: MUTED }}>{type}</span>}
+        <span className="min-w-0 text-body font-medium truncate">{name}</span>
+        {density === 'standard' && type && <span className="flex-shrink-0 text-small text-trs-muted" >{type}</span>}
+        {holder && <span className="flex-shrink-0 text-small text-trs-warn">{holder}</span>}
       </span>
-      <span className="text-[11.5px] tabular-nums whitespace-nowrap" style={{ color: FAINT }}>{timeAgo(timestamp)}</span>
-      <span className="col-start-2 col-end-4 min-w-0 block text-[13px] leading-snug truncate mt-px" style={{ color: BODY }} title={lead.subject ?? undefined}>
-        {company ? <><b className="font-medium" style={{ color: INK }}>{company}</b> · </> : null}{subject}
+      <span className="text-small tabular-nums whitespace-nowrap text-trs-subtle" >{timeAgo(timestamp)}</span>
+      <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-px text-trs-ink-2" title={lead.subject ?? undefined}>
+        {company ? <><b className="font-medium text-trs-ink" >{company}</b> · </> : null}{subject}
       </span>
       {density === 'comfortable' && stateLine && (
-        <span className="col-start-2 col-end-4 min-w-0 block text-[12px] leading-snug truncate mt-0.5" style={{ color: MUTED }}>{stateLine}</span>
+        <span className="col-start-2 col-end-4 min-w-0 block text-small leading-snug truncate mt-0.5 text-trs-muted" >{stateLine}</span>
       )}
     </button>
   )

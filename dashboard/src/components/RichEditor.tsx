@@ -164,6 +164,21 @@ export function RichEditor({
           if (url?.trim()) q.format('link', url.trim(), 'user')
         }
 
+        const uploadPasted = async (index: number, files: File[]) => {
+          setImgUploading(true)
+          try {
+            for (const file of files) {
+              const form = new FormData()
+              form.append('file', file)
+              const data = await fetch('/api/upload/image', { method: 'POST', body: form }).then(r => r.json()).catch(() => ({})) as { url?: string; error?: string }
+              if (!data.url) { alert(data.error ?? 'Image upload failed'); continue }
+              q?.insertEmbed(index, 'image', data.url, 'user')
+              index += 1
+            }
+            q?.setSelection(index, 0, 'user')
+          } finally { setImgUploading(false) }
+        }
+
         q = new Quill(mountRef.current, {
           theme: 'snow',
           modules: {
@@ -177,6 +192,10 @@ export function RichEditor({
             history: { delay: 1000, maxStack: 100, userOnly: true },
             keyboard: { bindings: { link: { key: 'k', shortKey: true, handler: () => { promptLink() } } } },
             table: false,
+            // A pasted or dropped image goes to Drive through /api/upload/image and is inserted as
+            // its link. Quill's own handler inserts a data: URI, which kept the bytes in
+            // email_messages.body_html once sent (20 Nov 2026).
+            uploader: { mimetypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], handler: (range: { index: number }, files: File[]) => { void uploadPasted(range.index, files) } },
             'table-better': { menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'] },
           },
           placeholder,
@@ -203,7 +222,11 @@ export function RichEditor({
         if (initialHtml?.trim()) {
           q.clipboard.dangerouslyPasteHTML(0, initialHtml)
         }
-        q.setSelection(q.getLength(), 0)
+        // Place the cursor at the end only if nothing else has focus: the editor loads a moment
+        // after the page, and taking focus then pulled the cursor out of a field being typed in
+        // (the To address became a chip half-way and the rest landed in the body).
+        const active = typeof document !== 'undefined' ? document.activeElement : null
+        if (!active || active === document.body || mountRef.current?.contains(active)) q.setSelection(q.getLength(), 0)
 
         const syncFmt = () => {
           if (!q) return
@@ -327,7 +350,7 @@ export function RichEditor({
       data-borderless={borderless ? 'true' : 'false'}
       className={cn(
         'trs-re flex flex-col min-w-0',
-        borderless ? '' : 'border border-[#dadce0] rounded-[10px] bg-white overflow-hidden',
+        borderless ? '' : 'border border-[#dadce0] rounded bg-white overflow-hidden',
         className,
       )}
     >
@@ -448,7 +471,7 @@ export function RichEditor({
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={handleImageUpload}
           aria-hidden
           tabIndex={-1}

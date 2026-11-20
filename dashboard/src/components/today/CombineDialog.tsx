@@ -98,7 +98,7 @@ export function CombineDialog({ threadIds, onClose, presetCompany = null, preset
           <DialogTitle>Case from {count(threadIds?.length ?? 0, 'thread')}</DialogTitle>
           <DialogDescription className="sr-only">The ticked threads become one case. Each thread is marked as the client’s or as an insurer’s.</DialogDescription>
         </DialogHeader>
-        {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
         {!view ? (error ? null : <Spinner label="Reading the threads…" />) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">

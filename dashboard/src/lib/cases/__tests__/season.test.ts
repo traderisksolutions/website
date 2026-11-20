@@ -113,7 +113,7 @@ describe('the rows', () => {
       cases: [kase({ id: 'k1', policy_id: 'p1', stage: 'terms_received' }), kase({ id: 'k2', company_id: 'c2', title: 'Cyber renewal' }), kase({ id: 'k3', company_id: 'c3', deadline: '2026-08-01' })],
       names: new Map([['c1', 'Example Logistics'], ['c2', 'Demo Foods']]),
       states: new Map([['k1', { threads: 3, wishes: 1, documents: { ticked: 2, required: 5 }, options: 2 }]]),
-      compare: r => (r.group === 'employment_benefits' ? { kind: 'new_quotation', href: '/pricing-matrix/new' } : r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null),
+      compare: r => (r.group === 'employment_benefits' ? { kind: 'new_quotation', href: '/eb' } : r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null),
     }, TODAY)
     expect(rows.map(r => r.key)).toEqual(['p2', 'p1', 'case:k2'])
     expect(rows[0]).toMatchObject({ company: 'Example Logistics', policy: { name: 'Workers cover' }, days: -15, bucket: OVERDUE, line: 'wica', group: 'general', case: null, compare: null })

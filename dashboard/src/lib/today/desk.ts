@@ -12,7 +12,11 @@ export type DeskThread = {
   lastAt: string | null; lastFrom: string | null; lastInbound: boolean; messages: number; addedAt: string
   /** The project under the client this thread belongs to (today_threads.project), and its short description. */
   project?: string | null; projectNote?: string | null
+  /** Set when the viewer may not open this thread's mail (ring-fence): whose inbox holds it. */
+  private?: PrivateInbox | null
 }
+/** Whose private inbox holds a thread: the address and the first name. */
+export type PrivateInbox = { inbox: string; name: string }
 export type DeskAttachment = { filename: string; mime_type?: string | null; storage_url: string }
 export type DeskDraft = {
   id: string; side: DeskSide; threadId: string | null; anchorThreadId: string | null
@@ -22,6 +26,8 @@ export type DeskDraft = {
   updatedAt?: string | null
   /** The insurer by name, for an email to an insurer. */
   insurer?: string | null
+  /** Set when the draft's thread lives in a colleague's private inbox: the text is not sent to this viewer. */
+  private?: PrivateInbox | null
 }
 export type DeskPremium = { currency: string; amount: number }
 export type DeskRow = {

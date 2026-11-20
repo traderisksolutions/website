@@ -16,10 +16,10 @@
   "control": 2
  },
  "src/app/calendar/page.tsx": {
-  "style": 24,
-  "hex": 6,
-  "font": 18,
-  "radius": 2,
+  "style": 5,
+  "hex": 4,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 2
  },
@@ -151,6 +151,14 @@
   "height": 2,
   "control": 35
  },
+ "src/app/eb/hr-links/[id]/page.tsx": {
+  "style": 3,
+  "hex": 6,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 0
+ },
  "src/app/eb/proposal/[id]/email/page.tsx": {
   "style": 0,
   "hex": 0,
@@ -158,6 +166,30 @@
   "radius": 0,
   "height": 0,
   "control": 5
+ },
+ "src/app/eb/quotations/page.tsx": {
+  "style": 1,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
+  "height": 1,
+  "control": 1
+ },
+ "src/app/eb/rates/[id]/page.tsx": {
+  "style": 2,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
+  "height": 4,
+  "control": 35
+ },
+ "src/app/eb/rates/[id]/schedule/page.tsx": {
+  "style": 6,
+  "hex": 6,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 4
  },
  "src/app/finance/page.tsx": {
   "style": 0,
@@ -287,38 +319,6 @@
   "height": 16,
   "control": 59
  },
- "src/app/pricing-matrix/[id]/page.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 4,
-  "control": 35
- },
- "src/app/pricing-matrix/[id]/schedule/page.tsx": {
-  "style": 6,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/app/pricing-matrix/hr-links/[id]/page.tsx": {
-  "style": 3,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/app/pricing-matrix/page.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 1
- },
  "src/app/roadplus/page.tsx": {
   "style": 13,
   "hex": 10,
@@ -346,16 +346,16 @@
  "src/app/today/[id]/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 27,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 10
  },
  "src/app/today/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 6,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
  },
@@ -416,10 +416,10 @@
   "control": 2
  },
  "src/components/RichEditor.tsx": {
-  "style": 3,
+  "style": 2,
   "hex": 20,
   "font": 0,
-  "radius": 1,
+  "radius": 0,
   "height": 0,
   "control": 2
  },
@@ -839,14 +839,6 @@
   "height": 1,
   "control": 4
  },
- "src/components/eb/EbQuotation.tsx": {
-  "style": 34,
-  "hex": 11,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 12
- },
  "src/components/eb/EbQuotationRegister.tsx": {
   "style": 0,
   "hex": 0,
@@ -854,14 +846,6 @@
   "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/components/eb/ProposalSection.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
  },
  "src/components/eb/ProposalTrack.tsx": {
   "style": 1,
@@ -968,49 +952,49 @@
   "control": 1
  },
  "src/components/engagement/AddToCaseControl.tsx": {
-  "style": 7,
+  "style": 2,
   "hex": 3,
-  "font": 5,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ChiefBar.tsx": {
   "style": 41,
   "hex": 1,
-  "font": 32,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 27
  },
  "src/components/engagement/ContextRail.tsx": {
-  "style": 14,
-  "hex": 1,
-  "font": 8,
-  "radius": 1,
+  "style": 13,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 4
  },
  "src/components/engagement/ConversationList.tsx": {
-  "style": 19,
-  "hex": 6,
-  "font": 8,
-  "radius": 7,
+  "style": 3,
+  "hex": 5,
+  "font": 0,
+  "radius": 0,
   "height": 5,
   "control": 5
  },
  "src/components/engagement/EaLayout.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 1,
+  "style": 1,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/engagement/InlineProgress.tsx": {
-  "style": 5,
-  "hex": 6,
-  "font": 1,
+  "style": 2,
+  "hex": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1024,65 +1008,57 @@
   "control": 4
  },
  "src/components/engagement/MessageBlock.tsx": {
-  "style": 45,
+  "style": 17,
   "hex": 8,
-  "font": 29,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 9
  },
  "src/components/engagement/NewEmailCompose.tsx": {
-  "style": 9,
-  "hex": 1,
-  "font": 9,
-  "radius": 1,
+  "style": 8,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 7
  },
  "src/components/engagement/RecipientAutocomplete.tsx": {
-  "style": 4,
-  "hex": 6,
-  "font": 4,
-  "radius": 3,
+  "style": 0,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/engagement/ThreadAgentBar.tsx": {
-  "style": 22,
-  "hex": 8,
-  "font": 14,
-  "radius": 4,
+  "style": 6,
+  "hex": 7,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 5
  },
  "src/components/engagement/ThreadHeader.tsx": {
-  "style": 16,
-  "hex": 7,
-  "font": 6,
-  "radius": 4,
+  "style": 9,
+  "hex": 6,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 7
  },
  "src/components/engagement/ThreadListPane.tsx": {
-  "style": 25,
-  "hex": 9,
-  "font": 9,
-  "radius": 8,
+  "style": 13,
+  "hex": 7,
+  "font": 0,
+  "radius": 0,
   "height": 3,
   "control": 12
- },
- "src/components/engagement/ThreadModal.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/engagement/ThreadParty.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1090,31 +1066,31 @@
  "src/components/engagement/ThreadReferral.tsx": {
   "style": 2,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
  },
  "src/components/engagement/ThreadRow.tsx": {
-  "style": 11,
+  "style": 3,
   "hex": 6,
-  "font": 8,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ThreadView.tsx": {
-  "style": 32,
-  "hex": 17,
-  "font": 19,
-  "radius": 10,
+  "style": 19,
+  "hex": 15,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 12
  },
  "src/components/engagement/rail-bits.tsx": {
-  "style": 15,
+  "style": 4,
   "hex": 8,
-  "font": 9,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -1304,9 +1280,9 @@
   "control": 1
  },
  "src/components/nav/Breadcrumbs.tsx": {
-  "style": 8,
+  "style": 6,
   "hex": 3,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1322,10 +1298,10 @@
  "src/components/nav/top-navbar.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 15,
-  "radius": 10,
-  "height": 6,
-  "control": 6
+  "font": 0,
+  "radius": 0,
+  "height": 5,
+  "control": 5
  },
  "src/components/nexus/FollowUpsLedger.tsx": {
   "style": 1,
@@ -1471,6 +1447,22 @@
   "height": 2,
   "control": 3
  },
+ "src/components/renewals/RenewalsFix.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
+ },
+ "src/components/renewals/RenewalsList.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
+ },
  "src/components/sales/EnquiryDrawer.tsx": {
   "style": 6,
   "hex": 3,
@@ -1546,7 +1538,7 @@
  "src/components/today/CombineDialog.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -1554,42 +1546,26 @@
  "src/components/today/desk/AddThreads.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 13,
-  "radius": 4,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 5
- },
- "src/components/today/desk/AttachmentRow.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/today/desk/ClientRow.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 24,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 5
  },
  "src/components/today/desk/DraftCard.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 21,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 7
- },
- "src/components/today/desk/InlineConfirm.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/ui/Alert.tsx": {
   "style": 4,

@@ -18,7 +18,7 @@ import { memberAge, type Member } from '../gb-quote'
 import { ALL, planValue, type Schedule } from './current'
 import { COVERS, MEDICAL, PRODUCTS, type Product, type Workbook, type WbRate } from './workbook'
 import { amountOf, documentHref } from './compare-words'
-import { applyRules, type PlanRule } from './plan-pairs'
+import { allowedPlans, applyRules, type PlanRule } from './plan-pairs'
 import type { LastYear, LastYearCover } from './last-year'
 export { amountOf }
 
@@ -91,12 +91,31 @@ export const productOf = (insurer: string | null | undefined): Product | null =>
 }
 
 type HospFacts = { hospital: 'private' | 'government'; beds: number | null; limit: number | null; basis: 'annual' | 'per_disability'; coins: number }
-export function hospitalFacts(b: Record<string, string>): HospFacts {
+/**
+ * The limit basis of a house plan (eb-rules.md section 2, TRS EB Package Calculator V1.5): each
+ * insurer's top private 1-bed plan is an annual policy limit (RCC Plan 1 $200k, Income Plan 1 $200k,
+ * Singlife Plan 6 and 6A $250k, AIA Plan 4 $250k); every lower plan is per disability; the
+ * foreign-worker plans are $60k a year; QBE Steadfast MCare+ is annual on every plan (call note 22).
+ * Null for a product the rule does not name (the benefit rows decide). Pure.
+ */
+export function limitBasisOf(product: string | null | undefined, plan: string): 'annual' | 'per_disability' | null {
+  if (product === 'Steadfast MCare+') return 'annual'
+  if (!product || !PRODUCTS.includes(product as Product)) return null
+  if (/FW|WP\/S|WP\/SP/i.test(plan)) return 'annual'
+  const top: Record<string, RegExp> = { 'RCC Enhanced III': /^Plan 1\b/i, 'Income FlexCare': /^Plan 1\b/i, 'Singlife MyBenefits Plus': /^Plan 6A?\b/i, 'AIA Flexi Vital Care Plus': /^Plan 4\b/i }
+  return top[product]?.test(plan.trim()) ? 'annual' : 'per_disability'
+}
+
+/** A hospital plan as numbers. The basis follows limitBasisOf for the house products, whatever a row says. */
+export function hospitalFacts(b: Record<string, string>, product?: string | null, plan?: string): HospFacts {
   const type = (b['ghs.hospital_type'] ?? '').toLowerCase()
   const beds = Number((b['ghs.room_board'] ?? '').match(/(\d)\s*-?\s*bed/i)?.[1] ?? NaN)
   const lim = b['ghs.annual_limit'] ?? ''
-  const basis = /disab/i.test(b['ghs.limit_basis'] ?? '') || /as charged/i.test(lim) ? 'per_disability' : 'annual'
-  const coins = Number((b['ghs.copay'] ?? '').match(/(\d+)\s*%/)?.[1] ?? 0)
+  const basis = (plan != null ? limitBasisOf(product, plan) : product === 'Steadfast MCare+' ? 'annual' : null)
+    ?? (/disab/i.test(b['ghs.limit_basis'] ?? '') || /as charged/i.test(lim) ? 'per_disability' : 'annual')
+  // "Nil (Major Medical add-on 20%)" is no co-insurance on the hospital plan (Singlife); the 20% belongs to the rider.
+  const copay = b['ghs.copay'] ?? ''
+  const coins = /^\s*nil\b/i.test(copay) ? 0 : Number(copay.match(/(\d+)\s*%/)?.[1] ?? 0)
   return { hospital: /priv|pte/.test(type) ? 'private' : 'government', beds: Number.isFinite(beds) ? beds : null, limit: amountOf(lim), basis, coins }
 }
 
@@ -144,29 +163,53 @@ export const indexRates = (wb: Workbook): RateIndex => {
   return m
 }
 
-/** One cover of one plan for a group of members. Null when the product has no rate for anyone in it. */
-export function priceCover(idx: RateIndex, product: string, cover: string, plan: string, members: Member[], o: { effectiveDate: string; renewal: boolean; employeesInCompany: number }): { premium: number | null; missing: number } {
+/**
+ * Who a cover prices at a product (TRS EB Package Calculator V1.5, eb-rules.md section 5): RCC and
+ * Steadfast insure dependants on medical covers only (RCC brochure p.18; Calc!AE2, AF2: Steadfast
+ * accident and EAP employees only); Income and Singlife insure dependants on every cover at the
+ * employee rate (Summary!B32); AIA on every cover from its dependant tables (Rates!K = "Dep",
+ * Calc!AR2:AY2). No family tiers anywhere: one premium per life.
+ */
+export function dependantsCovered(product: string, cover: string): boolean {
+  if (cover === 'EAP (add-on)') return false
+  if (product === 'RCC Enhanced III' || product === 'Steadfast MCare+') return MEDICAL.includes(cover)
+  return true
+}
+
+/** The occupation class a life prices personal accident on: "Class 1" to "Class 3", or null when the census does not give one (never assumed). */
+export const classOf = (m: Member): string | null => { const d = String(m.occupation_class ?? '').match(/[1-4]/)?.[0]; return d ? `Class ${d}` : null }
+
+/**
+ * One cover of one plan for a group of members, as the workbook's Calc sheet prices it: one rate
+ * per life from Rates (insurer, cover, plan, age band, class for accident, life for AIA), RCC on age
+ * next birthday and the rest on age last birthday, RCC's group factor on its medical lines.
+ * `missing` lives have no rate (no age, an age outside every band); `noClass` lives have no
+ * occupation class and price 0 for personal accident, as the workbook does (Calc!M2, Jarod 20 Nov
+ * 2026), never assumed Class 1; they are counted for the flag. Null premium when no one is priced.
+ */
+export function priceCover(idx: RateIndex, product: string, cover: string, plan: string, members: Member[], o: { effectiveDate: string; renewal: boolean; employeesInCompany: number }): { premium: number | null; missing: number; noClass: number } {
   const rows = idx.get(`${product}|${cover}|${plan}`)
-  if (!rows?.length) return { premium: null, missing: members.length }
-  if (product === 'AIA Flexi Vital Care Plus' && cover === 'Outpatient GP') return { premium: 0, missing: 0 } // in AIA's GP and specialist rider
-  // AIA's accident rows carry two rates per class and the workbook's rule for them is not on file: not priced rather than guessed.
-  if (product === 'AIA Flexi Vital Care Plus' && cover === 'Personal Accident') return { premium: null, missing: 0 }
-  let t = 0, missing = 0, priced = 0
+  if (!rows?.length) return { premium: null, missing: members.length, noClass: 0 }
+  let t = 0, missing = 0, priced = 0, noClass = 0
   const anb = product === 'RCC Enhanced III'
+  const pa = cover === 'Personal Accident'
   for (const m of members) {
     const ee = m.relationship === 'self'
-    if (!ee && !MEDICAL.includes(cover)) continue
+    if (!ee && !dependantsCovered(product, cover)) continue
+    const cls = pa ? classOf(m) : null
+    // Calc!M2 looks up "Class " for a blank class and prices 0: so do we, and the life is counted for the flag.
+    if (pa && !cls) { noClass++; continue }
     const age = memberAge(m, o.effectiveDate, anb ? 'next_birthday' : 'last_birthday')
-    const cls = `Class ${String(m.occupation_class ?? '1').match(/\d/)?.[0] ?? '1'}`
     const hit = age == null ? undefined : rows.find(r => age >= r.from && age <= r.to && (!r.renewalOnly || o.renewal) && (r.cls == null || r.cls === cls) && (r.life == null || r.life === (ee ? 'EE' : 'Dep')))
     if (!hit) { missing++; continue }
     t += hit.net; priced++
   }
   if (product === 'RCC Enhanced III' && MEDICAL.includes(cover)) {
+    // Calc!AH2: +50% for one employee (or none), 5% off for 5–9, 10% off for 10 or more.
     const n = o.employeesInCompany
-    t *= n === 1 ? 1.5 : n >= 10 ? 0.9 : n >= 5 ? 0.95 : 1
+    t *= n <= 1 ? 1.5 : n >= 10 ? 0.9 : n >= 5 ? 0.95 : 1
   }
-  return { premium: priced ? Math.round(t * 100) / 100 : null, missing }
+  return { premium: priced || noClass ? Math.round(t * 100) / 100 : null, missing, noClass }
 }
 
 /** The census in categories: one per hospital plan on the census (else the census category). */
@@ -297,4 +340,180 @@ export function buildCompare(input: {
     today: { product: current, label: ly?.product ?? ly?.insurer ?? current ?? input.currentInsurer ?? 'Today', picks: todayPicks, lastYearTotal: lyTotal, total: todayTotal, source, premiums: todayPremiums, benefits: todayBenefits, policy },
     products: PRODUCTS, picks, options, prices, benefits, labels, why, notes, workbook: wb.file, rules,
   }
+}
+
+// ── Same tier and Lower tier (Jarod's call, 19 Nov 2026: notes 3, 21, 22, 24) ───────────────────
+//
+// Same tier: the hospital plan with the same ward and beds first; then the same limit amount AND
+// the same limit basis (a year or per disability is a hard tier, never a small score). With no
+// same plan, the next lower one; never a higher one. Every other cover: the same amount (the same
+// co-pay for GP); else the next lower. Lower tier: one plan lower per cover from the Same pick,
+// where one exists. Each pick carries its reason, shown in the cell.
+
+export type MatchReason = 'same' | 'no same plan' | 'higher' | 'lower' | 'with hospital' | 'in specialist' | 'none'
+export type TierPick = { plan: string; reason: MatchReason }
+/** Today's hospital cover as numbers. `limit` and `basis` null when not on file (a census plan name gives the ward only). */
+export type HospTarget = { hospital: 'private' | 'government'; beds: number | null; limit: number | null; basis: 'annual' | 'per_disability' | null; coins: number }
+export type CoverTarget = { hosp: HospTarget | null; gmm: number | null; gpCopay: number | null; spLimit: number | null; dental: number | null; pa: number | null; tl?: number | null; ci?: number | null; eap?: number | null }
+
+const FW = /FW|WP\/S Pass|WP\/SP/i
+/** Ward order, highest first: private 1-bed 6, 2-bed 5, 4-bed 4; government 1-bed 3, 2-bed 2, 4-bed 1. */
+export const wardRank = (f: { hospital: 'private' | 'government'; beds: number | null }) => (f.hospital === 'private' ? 3 : 0) + (f.beds === 1 ? 3 : f.beds === 2 ? 2 : 1)
+const lim = (n: number | null) => n ?? -1
+
+type HospOpt = { p: string; f: HospFacts; i: number }
+/** Highest first: ward, then limit, then the lower co-insurance, then list order. */
+const byHigh = (a: HospOpt, b: HospOpt) => wardRank(b.f) - wardRank(a.f) || lim(b.f.limit) - lim(a.f.limit) || a.f.coins - b.f.coins || a.i - b.i
+/** Strictly below `x` in the same ward: a lower limit, or the same limit with more co-insurance. */
+const belowInWard = (o: HospFacts, x: { limit: number | null; coins: number }) => x.limit != null && o.limit != null && (o.limit < x.limit || (o.limit === x.limit && o.coins > x.coins))
+
+/** The best plan in the highest ward below `rank`: the same basis and a limit no higher than `limit` first. */
+function nextWardDown(opts: HospOpt[], rank: number, basis: HospTarget['basis'], limit: number | null): HospOpt | null {
+  const lower = opts.filter(o => wardRank(o.f) < rank)
+  if (!lower.length) return null
+  const top = Math.max(...lower.map(o => wardRank(o.f)))
+  const ward = lower.filter(o => wardRank(o.f) === top)
+  const fits = (o: HospOpt) => limit == null || (o.f.limit != null && o.f.limit <= limit)
+  const pool = [ward.filter(o => fits(o) && (!basis || o.f.basis === basis)), ward.filter(fits), ward]
+  const hit = pool.find(l => l.length)!
+  return hit === ward && !ward.some(fits) ? [...ward].sort((a, b) => lim(a.f.limit) - lim(b.f.limit) || a.i - b.i)[0] : [...hit].sort(byHigh)[0]
+}
+
+/** The Same tier hospital plan at one product. Pure. */
+export function sameHospital(benefitsOf: (cover: string, plan: string) => Record<string, string>, plans: string[], t: HospTarget | null, product?: string | null): TierPick {
+  const opts: HospOpt[] = plans.filter(p => !FW.test(p)).map((p, i) => ({ p, f: hospitalFacts(benefitsOf(HOSP, p), product, p), i }))
+  if (!t || !opts.length) return { plan: '', reason: 'none' }
+  const rank = wardRank(t)
+  const ward = opts.filter(o => wardRank(o.f) === rank)
+  const coinsGap = (o: HospOpt) => Math.abs(o.f.coins - t.coins) * 1000 + o.f.coins
+  if (t.limit == null) {
+    // The ward only is on file: the lowest limit in that ward is the same tier, never a higher one.
+    if (ward.length) return { plan: [...ward].sort((a, b) => lim(a.f.limit) - lim(b.f.limit) || coinsGap(a) - coinsGap(b) || a.i - b.i)[0].p, reason: 'same' }
+    const down = nextWardDown(opts, rank, t.basis, null)
+    if (down) return { plan: down.p, reason: 'no same plan' }
+    const up = nearestHigher(opts, rank, t.basis, null)
+    return up ? { plan: up.p, reason: 'higher' } : { plan: '', reason: 'no same plan' }
+  }
+  const same = ward.filter(o => o.f.limit === t.limit && (!t.basis || o.f.basis === t.basis))
+  if (same.length) return { plan: [...same].sort((a, b) => coinsGap(a) - coinsGap(b) || a.i - b.i)[0].p, reason: 'same' }
+  // No same plan: the next lower in the same ward (same basis first), else the next ward down.
+  const inWard = ward.filter(o => o.f.limit != null && o.f.limit <= t.limit! && !(o.f.limit === t.limit && o.f.basis === t.basis))
+  const sameBasis = inWard.filter(o => !t.basis || o.f.basis === t.basis)
+  const pick = [...(sameBasis.length ? sameBasis : inWard)].sort(byHigh)[0] ?? nextWardDown(opts, rank, t.basis, t.limit)
+  if (pick) return { plan: pick.p, reason: 'no same plan' }
+  // Nothing the same or lower (Jarod, 20 Nov 2026: follow the workbook, which always prices a plan):
+  // the nearest higher plan, priced and flagged "higher".
+  const up = nearestHigher(opts, rank, t.basis, t.limit)
+  return up ? { plan: up.p, reason: 'higher' } : { plan: '', reason: 'no same plan' }
+}
+
+/** The nearest plan above a target: a higher limit in the same ward (same basis first), else the lowest ward above it. */
+function nearestHigher(opts: HospOpt[], rank: number, basis: HospTarget['basis'], limit: number | null): HospOpt | null {
+  const asc = (l: HospOpt[]) => [...l].sort((a, b) => (basis && a.f.basis !== basis ? 1 : 0) - (basis && b.f.basis !== basis ? 1 : 0) || lim(a.f.limit) - lim(b.f.limit) || a.f.coins - b.f.coins || a.i - b.i)
+  const ward = opts.filter(o => wardRank(o.f) === rank && (limit == null || o.f.limit == null || o.f.limit > limit || (o.f.limit === limit && basis != null && o.f.basis !== basis)))
+  if (ward.length) return asc(ward)[0]
+  const above = opts.filter(o => wardRank(o.f) > rank)
+  if (!above.length) return null
+  const low = Math.min(...above.map(o => wardRank(o.f)))
+  return asc(above.filter(o => wardRank(o.f) === low))[0]
+}
+
+/** One hospital plan lower than `from` at the same product: lower limit in the same ward (basis kept first), else the next ward down. Null when none. Pure. */
+export function lowerHospital(benefitsOf: (cover: string, plan: string) => Record<string, string>, plans: string[], from: string, product?: string | null): string | null {
+  const opts: HospOpt[] = plans.filter(p => !FW.test(p)).map((p, i) => ({ p, f: hospitalFacts(benefitsOf(HOSP, p), product, p), i }))
+  const me = opts.find(o => o.p === from)
+  if (!me) return null
+  const ward = opts.filter(o => o.p !== from && wardRank(o.f) === wardRank(me.f) && belowInWard(o.f, me.f))
+  const kept = ward.filter(o => o.f.basis === me.f.basis)
+  return ([...(kept.length ? kept : ward)].sort(byHigh)[0] ?? nextWardDown(opts, wardRank(me.f), me.f.basis, me.f.limit))?.p ?? null
+}
+
+const AMOUNT_KEY: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Term Life': 'gtl.sum_assured', 'Critical Illness': 'ci.sum_assured', 'Personal Accident': 'pa.death' }
+/** What a plan of a non-hospital cover gives, as one number where more is better (GP: minus the co-pay). Null when it cannot be read. */
+export function coverValue(cover: string, plan: string, b: Record<string, string>): number | null {
+  if (cover === 'Outpatient GP') {
+    const v = b['gp.copay'] ?? ''
+    if (/nil|no co-pay/i.test(`${v} ${plan}`) || /^\s*\$?0\b/.test(v)) return 0
+    const n = amountOf(v) ?? amountOf(plan.match(/\$\s?\d+/)?.[0] ?? '')
+    return n == null ? null : -n
+  }
+  if (cover === 'EAP (add-on)') return 1
+  // A sum assured the benefit rows do not state is read from the plan name: "Plan 1 ($500k)".
+  const n = amountOf(b[AMOUNT_KEY[cover]] ?? '') ?? (cover === 'Term Life' || cover === 'Critical Illness' || cover === 'Personal Accident' ? amountOf(plan.match(/\$\s?[\d,.]+k?/i)?.[0] ?? '') : null)
+  return n == null ? null : n
+}
+
+/** The Same tier plan of a non-hospital cover: the same amount, else the next lower, else the nearest higher (flagged); '' when the cover is not held today. Pure. */
+export function sameAmount(benefitsOf: (cover: string, plan: string) => Record<string, string>, plans: string[], cover: string, want: number | null): TierPick {
+  const usable = plans.filter(p => !FW.test(p))
+  if (want == null) return { plan: '', reason: 'none' }
+  if (!usable.length) return { plan: '', reason: 'no same plan' }
+  const target = cover === 'Outpatient GP' ? -want : want
+  const vals = usable.map((p, i) => ({ p, i, v: coverValue(cover, p, benefitsOf(cover, p)) }))
+  const same = vals.find(x => x.v != null && x.v === target)
+  if (same) return { plan: same.p, reason: 'same' }
+  const lower = vals.filter(x => x.v != null && x.v < target).sort((a, b) => b.v! - a.v! || a.i - b.i)[0]
+  if (lower) return { plan: lower.p, reason: 'no same plan' }
+  // Nothing lower: the nearest higher, flagged, so the column is not cheaper for a cover it leaves out.
+  // (Hospital never goes higher: notes 3, 22, 24 are about the hospital plan.)
+  const higher = vals.filter(x => x.v != null && x.v > target).sort((a, b) => a.v! - b.v! || a.i - b.i)[0]
+  if (higher) return { plan: higher.p, reason: 'higher' }
+  // Nothing comparable (a dental "schedule of allowances"): the first plan, flagged.
+  const unread = vals.find(x => x.v == null)
+  return { plan: unread?.p ?? '', reason: 'no same plan' }
+}
+
+/** One plan lower than `from` for a non-hospital cover: the next lower amount (GP: the next higher co-pay). Null when none. Pure. */
+export function lowerAmount(benefitsOf: (cover: string, plan: string) => Record<string, string>, plans: string[], cover: string, from: string): string | null {
+  const v0 = coverValue(cover, from, benefitsOf(cover, from))
+  if (v0 == null) return null
+  const vals = plans.filter(p => !FW.test(p) && p !== from).map((p, i) => ({ p, i, v: coverValue(cover, p, benefitsOf(cover, p)) }))
+  return vals.filter(x => x.v != null && x.v < v0).sort((a, b) => b.v! - a.v! || a.i - b.i)[0]?.p ?? null
+}
+
+/** Same tier at one product for one category, every cover, before plan rules. Pure. */
+export function sameTier(benefitsOf: (cover: string, plan: string) => Record<string, string>, options: Record<string, string[]>, t: CoverTarget, product?: string | null): Record<string, TierPick> {
+  const want: Record<string, number | null> = { 'Major Medical': t.gmm, 'Outpatient GP': t.gpCopay, 'Outpatient Specialist': t.spLimit, Dental: t.dental, 'Term Life': t.tl ?? null, 'Critical Illness': t.ci ?? null, 'Personal Accident': t.pa, 'EAP (add-on)': t.eap ?? null }
+  const out: Record<string, TierPick> = {}
+  for (const c of COVERS) out[c] = c === HOSP ? sameHospital(benefitsOf, options[c] ?? [], t.hosp, product) : sameAmount(benefitsOf, options[c] ?? [], c, want[c] ?? null)
+  return out
+}
+
+/** Lower tier from a Same tier: one plan lower per cover where one exists, else the same plan. Pure. */
+export function lowerTierOf(benefitsOf: (cover: string, plan: string) => Record<string, string>, options: Record<string, string[]>, same: Record<string, TierPick>, product?: string | null): Record<string, TierPick> {
+  const out: Record<string, TierPick> = {}
+  for (const c of COVERS) {
+    const s = same[c] ?? { plan: '', reason: 'none' as const }
+    if (!s.plan) { out[c] = s; continue }
+    const down = c === HOSP ? lowerHospital(benefitsOf, options[c] ?? [], s.plan, product) : lowerAmount(benefitsOf, options[c] ?? [], c, s.plan)
+    out[c] = down ? { plan: down, reason: 'lower' } : s
+  }
+  return out
+}
+
+/**
+ * A rider the insurer ties to its hospital plan (plan-pairs: RCC and Singlife major medical) is in
+ * both tiers with that hospital plan, whether or not today's cover has it (Jarod, 20 Nov 2026), so
+ * the tier is priced with it. Pure.
+ */
+export function withTiedRiders(rules: PlanRule[], product: string, tier: Record<string, TierPick>, options: Record<string, string[]>): Record<string, TierPick> {
+  const out = { ...tier }
+  for (const r of rules) {
+    if (r.product !== product || r.tiedTo !== HOSP || r.match !== 'same_plan' || out[r.cover]?.plan) continue
+    const allowed = allowedPlans(r, out[HOSP]?.plan ?? '', options[r.cover] ?? [])
+    if (allowed.length) out[r.cover] = { plan: allowed[0], reason: 'with hospital' }
+  }
+  return out
+}
+
+/** A tier's picks with the plan rules applied: a cover the rules set takes the reason "with hospital". Pure. */
+export function ruledTier(rules: PlanRule[], product: string, tier: Record<string, TierPick>, options: Record<string, string[]>): Record<string, TierPick> {
+  const ruled = applyRules(rules, product, Object.fromEntries(Object.entries(tier).map(([c, t]) => [c, t.plan])), options)
+  return Object.fromEntries(Object.entries(tier).map(([c, t]) => {
+    const r = rules.find(x => x.product === product && x.cover === c)
+    const plan = ruled[c] ?? ''
+    if (r?.match === 'exclusive') return [c, plan ? { plan, reason: t.reason } : { plan: '', reason: t.plan ? 'in specialist' : 'none' }]
+    if (r && (r.premium === 'included' || plan !== t.plan)) return [c, { plan, reason: plan ? 'with hospital' : 'none' }]
+    return [c, { plan, reason: t.reason }]
+  })) as Record<string, TierPick>
 }

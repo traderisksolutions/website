@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { threadVisibleTo, privateThread } from '@/lib/mail/visibility-server'
 import { SB_URL } from '@/lib/sb'
 import { withStaffOrCron } from '@/lib/auth/guard'
 
@@ -106,7 +106,7 @@ export const GET = withStaffOrCron(async (req: NextRequest) => {
     }
 
     if (!thread) return NextResponse.json({ thread: null, messages: [] })
-    if (!(await threadVisibleTo(thread.id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
+    if (!(await threadVisibleTo(thread.id, await currentUserEmail()))) return NextResponse.json(await privateThread(thread.id), { status: 403 })
 
     // 3. Fetch all messages for this thread
     const msgRes = await fetch(

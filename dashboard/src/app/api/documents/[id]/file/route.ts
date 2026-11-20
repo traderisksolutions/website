@@ -8,6 +8,9 @@ import type { NextRequest } from 'next/server'
 import { fail, gate, isUuid } from '@/lib/placement/api'
 import * as store from '@/lib/documents/store'
 import { attachmentBytes } from '@/lib/documents/drive'
+import { threadOfFile } from '@/lib/documents/file-thread'
+import { currentUserEmail } from '@/lib/crm/auth'
+import { privateThread, threadVisibleTo } from '@/lib/mail/visibility-server'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -19,6 +22,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!isUuid(id)) return fail('Document id is not valid')
   try {
     const doc = (await store.documentById(id)) ?? (await store.documentForAttachment(id))
+    // A file on a colleague's private thread opens only for those who may open the thread (Jarod, 20 Nov 2026).
+    const thread = await threadOfFile(id, doc)
+    if (thread && !(await threadVisibleTo(thread, await currentUserEmail()))) return NextResponse.json(await privateThread(thread), { status: 403 })
     if (doc?.drive_url) return NextResponse.redirect(doc.drive_url)
     const att = doc?.email_attachment_id ? await store.attachment(doc.email_attachment_id) : await store.attachment(id)
     if (!att) return fail('Document not found', 404)

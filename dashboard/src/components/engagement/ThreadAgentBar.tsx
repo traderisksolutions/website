@@ -35,7 +35,7 @@ type Answer = {
   queries: string[]; grounded: boolean; warning: string | null; error?: string
 }
 
-const btn = 'inline-flex items-center gap-1.5 rounded-[9px] border px-2.5 py-1.5 text-[13px] transition-colors hover:border-[#0f1412] disabled:opacity-50'
+const btn = 'inline-flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-body transition-colors hover:border-[#0f1412] disabled:opacity-50'
 
 export function ThreadAgentBar({
   threadId, onDraft,
@@ -101,14 +101,14 @@ export function ThreadAgentBar({
         </button>
 
         {reply && (
-          <span className="text-[12px] tabular-nums" style={{ color: FAINT }}>
+          <span className="text-small tabular-nums text-trs-subtle" >
             read {reply.read.threads} thread{reply.read.threads === 1 ? '' : 's'}
             {reply.read.archivePassages > 0 && ` · ${reply.read.archivePassages} passages from ${reply.read.archiveThreads} other`}
             {reply.draft && ' · written into the reply'}
           </span>
         )}
         {answer && (
-          <span className="text-[12px]" style={{ color: FAINT }}>
+          <span className="text-small text-trs-subtle" >
             this thread only{answer.grounded ? ` · ${answer.sources.length} web sources` : ' · not web-checked'}
           </span>
         )}
@@ -120,48 +120,47 @@ export function ThreadAgentBar({
             id="thread-ask" value={question} onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void ask() } }}
             placeholder="Ask about this thread or its attachments…"
-            className="h-9 flex-1 min-w-0 rounded-[9px] border px-3 text-[13px]"
-            style={{ borderColor: '#d5d9d4', color: INK }}
+            className="h-9 flex-1 min-w-0 rounded border px-3 text-body border-trs-line-2 text-trs-ink"
           />
           <button type="button" onClick={ask} disabled={!!busy || !question.trim()} className={btn}
             style={{ borderColor: '#d5d9d4', color: INK }}>
             {busy === 'ask' ? 'Reading…' : 'Ask'}
           </button>
           <button type="button" onClick={() => { setAsking(false); setAnswer(null); setQuestion('') }}
-            className="p-1.5" style={{ color: FAINT }} aria-label="Close">
+            className="p-1.5 text-trs-subtle"  aria-label="Close">
             <X size={14} />
           </button>
         </div>
       )}
 
-      {err && <p className="mt-2 text-[13px]" style={{ color: INK }}>{err}</p>}
+      {err && <p className="mt-2 text-body text-trs-ink" >{err}</p>}
 
       {reply && (
         <div className="mt-3 space-y-2.5 pb-1">
-          {reply.situation && <p className="text-[13px] leading-[1.6]" style={{ color: MUTED }}>{reply.situation}</p>}
+          {reply.situation && <p className="text-body leading-[1.6] text-trs-muted" >{reply.situation}</p>}
           {reply.nextAction && (
-            <div className="rounded-[10px] px-3 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
-              <div className="text-[11px] uppercase tracking-[0.04em]" style={{ color: FAINT }}>Next</div>
-              <p className="mt-1 text-[13px] leading-[1.6]" style={{ color: INK }}>{reply.nextAction}</p>
+            <div className="rounded px-3 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
+              <div className="text-small text-trs-subtle" >Next</div>
+              <p className="mt-1 text-body leading-[1.6] text-trs-ink" >{reply.nextAction}</p>
             </div>
           )}
           {reply.openItems.length > 0 && (
             <ul className="space-y-1 pl-4">
               {reply.openItems.map((x, i) => (
-                <li key={i} className="list-disc text-[13px] leading-[1.6]" style={{ color: MUTED }}>{x}</li>
+                <li key={i} className="list-disc text-body leading-[1.6] text-trs-muted" >{x}</li>
               ))}
             </ul>
           )}
           {reply.proposedAttachments.length > 0 && (
-            <div className="text-[12px]" style={{ color: MUTED }}>
-              <span style={{ color: FAINT }}>Attach: </span>
+            <div className="text-small text-trs-muted" >
+              <span className="text-trs-subtle">Attach: </span>
               {reply.proposedAttachments.map((a, i) => (
                 <span key={i} className="inline-flex items-center gap-1 mr-2.5"><Paperclip size={11} />{a.fileName}</span>
               ))}
             </div>
           )}
           {reply.citations.length > 0 && (
-            <p className="text-[12px] leading-[1.6] whitespace-pre-wrap" style={{ color: FAINT }}>{reply.provenance}</p>
+            <p className="text-small leading-[1.6] whitespace-pre-wrap text-trs-subtle" >{reply.provenance}</p>
           )}
         </div>
       )}
@@ -169,20 +168,20 @@ export function ThreadAgentBar({
       {answer && (
         <div className="mt-3 space-y-2.5 pb-1">
           {answer.warning && (
-            <p className="rounded-[10px] px-3 py-2 text-[12px] leading-[1.6]" style={{ border: `1px solid ${INK}`, color: INK }}>
+            <p className="rounded px-3 py-2 text-small leading-[1.6]" style={{ border: `1px solid ${INK}`, color: INK }}>
               {answer.warning}
             </p>
           )}
-          <p className="text-[13px] leading-[1.65] whitespace-pre-wrap" style={{ color: MUTED }}>{answer.answer}</p>
+          <p className="text-body leading-[1.65] whitespace-pre-wrap text-trs-muted" >{answer.answer}</p>
           {answer.sources.length > 0 && (
             <ol className="space-y-1">
               {answer.sources.map(s => (
-                <li key={s.n} className="flex gap-2 text-[12px]">
-                  <span className="tabular-nums shrink-0" style={{ color: FAINT }}>[{s.n}]</span>
+                <li key={s.n} className="flex gap-2 text-small">
+                  <span className="tabular-nums shrink-0 text-trs-subtle" >[{s.n}]</span>
                   <a href={s.uri} target="_blank" rel="noreferrer"
-                     className="inline-flex items-center gap-1 underline decoration-[#d5d9d4] hover:decoration-[#0f1412]"
-                     style={{ color: INK }}>
-                    {s.title || s.uri}<ExternalLink size={11} style={{ color: FAINT }} />
+                     className="inline-flex items-center gap-1 underline decoration-[#d5d9d4] hover:decoration-[#0f1412] text-trs-ink"
+                     >
+                    {s.title || s.uri}<ExternalLink size={11} className="text-trs-subtle" />
                   </a>
                 </li>
               ))}

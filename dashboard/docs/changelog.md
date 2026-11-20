@@ -4,6 +4,51 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Employment Benefits 2.0: pricing, tiers, compare
+
+Built from Jarod's approved design on /eb (New quotation). No model prices anything; a model reads documents only on a person's button.
+
+- Step 1 Pricing: Brochure pricing or Insurer pricing; company centred; columns Census, Last year's policy and premium and Insurer pricing schedules, each with Add box, Added and From <company>'s email (only threads the person may see). Census PDFs read by code, Read with AI as the fallback (gb_census_read). Insurer schedules (xlsx, xls, csv, PDF) read by code into premium per cover with source and status; Read with AI fallback (gb_schedule_read) checked against the file's text (EB-063 to EB-065).
+- Step 2 Same tier and Lower tier by rule: ward and beds, then the same limit and basis, else the next lower, never higher; one plan lower per cover; reason per cell (EB-066).
+- Step 3 Compare: Current only from a premium or debit note read; plan lists per column priced by code; copies at the right with their difference; census against brochure flags; Total a year, Per employee; Excel (EB-067). The proposal carries copies and insurer schedules (EB-068).
+- Pricing by TRS EB Package Calculator V1.5: term life, critical illness and EAP; AIA accident and term life employee and dependant rates; a blank occupation class prices 0 and is flagged; GP inside specialist at Singlife and AIA (both priced when a person picks both, with a note); renewal-only bands at all five on a renewal; no same or lower hospital plan takes the nearest higher, flagged; major medical ties; dependants per insurer; limit basis per plan; headcount and rate-date warnings; the workbook's worked example to the cent on every cover and total (EB-069). Jarod's ruling: follow what V1.5 does. Plan rules gain code defaults at read time (EB-070).
+- New shared parts in src/components/ui: choice-card, add-box, select-box, icon-button (IconBtn, Checkbox), compare-table.
+
+## 2026-11-20 — Today 2.0: one search, ring-fence, Calendar on Today, client substance
+
+- **Top bar:** the TRS logo opens Today; Today is no longer a place. Calendar is a view on Today (By client · By email · Calendar, `/today?calendar=1`); `/calendar` keeps working (TOD-049, TOD-050).
+- **Search:** ⌘K finds email by name, address, subject, file name or any word, grouped Threads · People · Companies · Files, each conversation of a joined thread under it; Add email threads uses the same search. Index `thread_search` (migration written, **not applied**), refreshed from ingest, backfilled by hand (`docs/search.md`; INB-050, INB-051).
+- **Ring-fence (Jarod):** everyone sees every Today row and thread (subject, status, counts); a colleague's private thread opens "This email lives in <First name>'s inbox." with Close and Ask <Name> (copies a link). The server refuses its mail and never hands it to a model for someone else. Everyone's Today: others' drafts are read-only (INB-052, TOD-051).
+- **Client rows:** load first; facts after (Renews, Current insurer and premium, Stage, Waiting on); an open row reads Documents, Insurers, Timeline and links on open (TOD-052, TOD-053).
+- **Projects and parties:** suggested projects from repeated names in a client's subjects, confirmed by the owner; parties per project (TOD-054).
+- **Condense:** per client or project, labelled facts (Client asked, TRS promised, Owed by, Next step), each date and figure checked against the text read; kept with the threads' state. The Read returns the same facts in place of summary sentences (TOD-055; feature `today_condense`).
+- **Inbox:** the paged list includes colleagues' private threads, marked with the owner, counted, opening the modal; a file link on such a thread answers 403 (INB-053, INB-054).
+- **Old drafts:** older drafts repeating the same ask to the same person on the same thread are greyed with Discard only (TOD-056).
+
+## 2026-11-20 — Every thread listed for everyone; client links by rule; no joined threads; Read in plain steps
+
+- **Visibility (Jarod):** every thread is listed for everyone at TRS (Inbox, Add email threads). A thread read only from a colleague's own mailbox shows "Access blocked · Owner: <name>" and opens only for those it was visible to before; its snippet and email text are withheld from the others (`ownersOf`, `privateThread` in `lib/mail/visibility-server.ts`).
+- **Client links by rule run again** with mail filing off: their own switch (`clientLinkRulesOn`, `CLIENT_LINK_RULES`, on unless "off"); the model read of the rest still waits for `HOUSEKEEPING=on`. The acronym rule also reads a name's leading words up to "Company" or "Corporation" (CCCC, CHEC), which is why no CCCC insurer thread was ever linked.
+- **Joined threads stop at ingest:** a reply follows its headers into a thread only when it is the same conversation (same subject without RE:/FW:, or someone outside TRS on it is already on that thread); a new subject to new people starts its own thread (`sameConversation`).
+- **Read on Today in plain steps:** the model returns the parts of each step and point; code writes the sentence ("Send <who> <what> and ask for <ask>", "Request a quotation from <insurer> for <project> (<line>)", "Chase…", "Ask…", "Confirm cover with…", "Update / Discard the draft to <name>") and drops padding words (`lib/today/read-words.ts`). Points by side, the client first, people by name.
+- `CLAUDE.md`: never run `git worktree prune` (the Mac and the Linux machine share `.git`).
+
+## 2026-11-20 — Add email threads: each conversation in a thread, with its side
+
+- A thread that holds more than one conversation (a broker forwards the client's email and then writes to the insurer, and the new email is filed under the old thread) lists each one under it: subject, who wrote, the insurer, how many emails, the last date, and Client or Insurer by who wrote it. Picking one adds the thread with that side and client set. `src/lib/mail/conversations.ts`; `?conversations=1` on `/api/engagement/conversations`.
+- Out-of-office replies join the conversation they answer.
+
+## 2026-11-20 — Database: inline images out of email_messages
+
+email_messages was 2,538 MB of a 2,895 MB database, almost all body_html; a 50-row sample put 79% of it in data:image URIs. Nothing is applied to production yet; the run order is in `docs/database.md`.
+
+- Ingest stores inline images (cid: parts and data: URIs) in Drive, `email-images/stored/<YYYY-MM>/`, and writes a signed link (`/api/public/email-image/<id>?s=`); the route serves a stored image only with its signature. The editor uploads pasted and dropped images instead of inserting data: URIs.
+- `scripts/move-inline-images.ts`: dry run by default, 25 rows a batch by id, 2 s apart; `--apply` logs each image and keeps an undo file. Then `20261120_reclaim_email_space.sql` (VACUUM FULL, off-hours). Estimated 1.7–2.0 GB freed.
+- Admin sweep trims logs daily: finished agent_tasks over 30 days, error_logs over 90 days; `scripts/trim-logs.ts` for counts. Nothing qualifies today.
+- `20261120_statement_timeout.sql`: 30 s for `authenticator`, applied last.
+- company_chunks_embedding_idx is not dropped: `match_company_chunks` is still called by drafts, Ask AI and the CRM agent.
+- Behaviours DAT-020 to DAT-024.
+
 ## 2026-11-20 — Old quotations deleted
 
 Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.
@@ -55,6 +100,12 @@ Jarod: "After migrating the quotations > delete the old quotations and pages." 1
 - Filing by hand: Change company; Link company with search, + Add as a new company, File all from the domain (count first, then confirm, `POST /api/companies/domains`). `GET /api/engagement/thread/[id]/company` names the thread's outside domain and the unfiled threads on it. Unfiled threads offer Link company in From and New to-do.
 - Fix: drafts to a new address failed (contacts has no unique key on email; `on_conflict=email` returned 42P10). `/api/engagement/draft` (Reply, Compare cover's Send by email, the quotation drafts), `/api/engagement/drafts` (Save draft) and `/api/nexus/draft-create` (New email) look the contact up and insert only when none (`src/lib/crm/contact-for-email.ts`).
 - Behaviours INB-038 to INB-049.
+
+## 2026-11-20 — Renewals, release 1: records and data fixes
+
+- Renewals become their own record (`renewals`, `renewal_tasks`), opened from the policy 120 days before expiry, 180 for Employment Benefits, with tasks at 90, 60, 30 and 15 days. Migration `20261120_renewals.sql` (also `policy_lines`, `policy_line_aliases`, `policies.line_code`) is written, **not applied**; every route answers `{ tables: false }` until it is.
+- `/renewals`: the open records as one table, Open renewals due (`POST /api/renewals/open`, idempotent, person-triggered; not in the admin sweep), the stage moves in the row. `/renewals/fix` (To fix): policies without an end date with a suggested date, lines to map with a suggested line, policies with no placing debit note. Nothing is written without a person's Confirm.
+- Pure rules in `src/lib/renewals/` (lines, opening, tasks, expiring premium net of reversals, stage checks), tested against the real class-of-insurance spellings (person names removed). Pipeline and Forecast are release 2. The calendar keeps dates only; unchanged. Not in the top bar yet. REN-001 to REN-010. Docs: `docs/renewals.md`.
 
 ## 2026-11-20 — "Since you were away" removed
 

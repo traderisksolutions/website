@@ -44,7 +44,8 @@ export async function benefitRows(s: Snapshot): Promise<Record<string, BenefitRo
       const cover = COVER_NAME[k]
       for (const [cv, id, label] of labels) {
         if (cv !== cover) continue
-        const vals = s.products.map(p => { const plan = c.covers[k]?.[p]?.plan; return plan ? values[`${p}|${cover}|${plan}`]?.[id] ?? '—' : '—' })
+        // A copy's benefits are its product's; an insurer schedule's are not in the workbook ('—').
+        const vals = s.products.map(p => { const plan = c.covers[k]?.[p]?.plan; return plan ? values[`${s.columnProducts?.[p] ?? p}|${cover}|${plan}`]?.[id] ?? '—' : '—' })
         if (vals.some(v => v && v !== '—')) rows.push({ cover, label, values: vals.map(v => v || '—') })
       }
     }

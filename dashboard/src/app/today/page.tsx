@@ -6,6 +6,8 @@
  * edit, send. By client groups the emails per client; By email lists them oldest first.
  * ?client=<company id> opens that client (the case page's Done returns here with it). Links from the
  * retired case list (?view=, ?bridge=, ?level=, ?side=) land on Today itself.
+ * Calendar is the third view (?calendar=1): the /calendar page drawn here. Each client's facts
+ * (renewal, insurer, premium, stage) load after the rows; an open client's detail loads on open.
  */
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -19,8 +21,11 @@ import { ClientRow } from '@/components/today/desk/ClientRow'
 import { DraftCard, sendDraft } from '@/components/today/desk/DraftCard'
 import { timeAgo } from '@/lib/format'
 import { emailList, type DeskRow } from '@/lib/today/desk'
+import type { RowFacts } from '@/lib/today/substance'
+import { CalendarEmbedded } from '@/components/calendar/embed'
+import CalendarPage from '@/app/calendar/page'
 
-type View = 'client' | 'email'
+type View = 'client' | 'email' | 'calendar'
 type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string; projects?: boolean }
 const OLD_PARAMS = ['view', 'bridge', 'level', 'side']
 const firstName = (email: string) => { const f = email.split('@')[0].split(/[._]/)[0]; return f.charAt(0).toUpperCase() + f.slice(1) }
@@ -36,7 +41,14 @@ function TodayPage() {
   const client = params.get('client')
   const [desk, setDesk] = useState<Desk | null>(null)
   const [who, setWho] = useState<string | null>(null)
-  const [view, setView] = useState<View>('client')
+  const [view, setViewState] = useState<View>(() => (params.get('calendar') === '1' ? 'calendar' : 'client'))
+  const setView = (v: View) => {
+    setViewState(v)
+    const u = new URL(window.location.href)
+    if (v === 'calendar') u.searchParams.set('calendar', '1'); else u.searchParams.delete('calendar')
+    window.history.replaceState(null, '', u.toString())
+  }
+  const [facts, setFacts] = useState<Record<string, RowFacts>>({})
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [adding, setAdding] = useState(false)
   const [suggestCount, setSuggestCount] = useState<number | null>(null)
@@ -61,6 +73,12 @@ function TodayPage() {
   useEffect(() => { if (!old && !adding) callApi<{ suggestions: unknown[] }>('/api/today/desk/suggest').then(r => setSuggestCount(r.suggestions.length)).catch(() => setSuggestCount(null)) }, [old, adding])
 
   const rows = useMemo(() => desk?.rows ?? [], [desk])
+  // Facts after the rows: one read for every client on the page; the page never waits for it.
+  const companyKey = useMemo(() => Array.from(new Set(rows.map(r => r.companyId).filter(Boolean))).sort().join(','), [rows])
+  useEffect(() => {
+    if (!companyKey) return
+    callApi<{ facts: Record<string, RowFacts> }>(`/api/today/desk/facts?ids=${companyKey}`).then(r => setFacts(r.facts)).catch(() => setFacts({}))
+  }, [companyKey])
   const emails = useMemo(() => emailList(rows), [rows])
   const toClient = emails.filter(d => d.side === 'client').length
   const me = desk?.me ?? ''
@@ -80,17 +98,18 @@ function TodayPage() {
     <div className="px-4 md:px-8 py-6 mx-auto w-full max-w-[1320px] min-w-0">
       <PageHeader className="mb-5" title="Today"
         meta={desk ? `${rows.length} client${rows.length === 1 ? '' : 's'} · ${toClient} to client · ${emails.length - toClient} to insurer` : undefined}
-        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads{suggestCount ? <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-trs-lime px-1.5 text-[11.5px] font-semibold text-trs-green" aria-label={`${suggestCount} suggested`}>{suggestCount}</span> : null}</Btn>}>
+        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads{suggestCount ? <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-trs-lime px-1.5 text-small font-semibold text-trs-green" aria-label={`${suggestCount} suggested`}>{suggestCount}</span> : null}</Btn>}>
         <WhoMenu people={people} me={me} value={desk?.who ?? me} onChange={setWho} />
-        <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }]} />
+        <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }, { value: 'calendar', label: 'Calendar' }]} />
         {view === 'client' && rows.length > 0 && <Btn size="xs" level="secondary" onClick={() => setOpen(allOpen ? new Set() : new Set(rows.map(r => r.key)))}>{allOpen ? 'Fold all' : 'Unfurl all'}</Btn>}
       </PageHeader>
 
-      {error && desk && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
+      {error && desk && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
+      {notice && <p className="m-0 mb-3 text-body text-trs-ink" role="status">{notice}</p>}
 
-      {!desk ? (error
-        ? <div role="alert" className="flex flex-col items-start gap-3 py-6"><p className="m-0 text-[13.5px] text-trs-neg">Today did not load. {error}</p><Btn onClick={retry}>Retry</Btn></div>
+      {view === 'calendar' ? <div className="mt-2"><CalendarEmbedded.Provider value><CalendarPage /></CalendarEmbedded.Provider></div>
+        : !desk ? (error
+        ? <div role="alert" className="flex flex-col items-start gap-3 py-6"><p className="m-0 text-body text-trs-neg">Today did not load. {error}</p><Btn onClick={retry}>Retry</Btn></div>
         : <Spinner label="Loading Today…" />)
         : rows.length === 0 ? <Empty>No clients on this list. Add email threads to start.</Empty>
           : view === 'client' ? (
@@ -98,7 +117,7 @@ function TodayPage() {
               {rows.map(r => (
                 <ClientRow key={r.key} row={r} me={me} showOwner={desk.who === 'all'} open={open.has(r.key)}
                   onToggle={() => setOpen(o => { const n = new Set(o); if (n.has(r.key)) n.delete(r.key); else n.add(r.key); return n })}
-                  onChange={load} onNotice={setNotice} projectsOn={!!desk.projects} />
+                  onChange={load} onNotice={setNotice} projectsOn={!!desk.projects} facts={r.companyId ? facts[r.companyId] ?? null : null} />
               ))}
             </div>
           ) : <ByEmail emails={emails} onDone={done} />}
@@ -119,8 +138,8 @@ function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onD
   }
   return (
     <>
-      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      <div className="overflow-x-auto rounded-[10px] border border-trs-line-2 bg-white">
+      {error && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
+      <div className="overflow-x-auto rounded border border-trs-line-2 bg-white">
         <table className="trs-table min-w-[980px]">
           <thead><tr><th className="sticky left-0 z-[1] bg-[#f0f2ee]">Client</th><th className="w-[110px]">Side</th><th className="w-[200px]">To</th><th>Subject</th><th className="w-[96px]">Drafted</th><th className="w-[150px]">Action</th></tr></thead>
           <tbody>
@@ -132,7 +151,7 @@ function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onD
                     <td><Chip>{d.side === 'insurer' ? 'To insurer' : 'To client'}</Chip></td>
                     <td className="!text-left truncate max-w-[200px]" title={d.to}>{d.person ?? d.to}</td>
                     <td className="!text-left truncate max-w-[420px]" title={d.subject}>{d.subject}</td>
-                    <td className="font-mono text-[12px] text-trs-muted">{timeAgo(d.createdAt)}</td>
+                    <td className="font-mono text-small text-trs-muted">{timeAgo(d.createdAt)}</td>
                     <td>
                       <span className="inline-flex gap-1.5">
                         <Btn size="xs" onClick={() => setEditing(e => (e === d.id ? null : d.id))} disabled={!!busy}>{editing === d.id ? 'Close' : 'Edit'}</Btn>

@@ -30,7 +30,7 @@ export function VersionWatch() {
   }, [])
   if (!stale) return null
   return (
-    <div role="status" className="flex items-center justify-center gap-3 border-b border-trs-line bg-trs-tint px-4 py-2 text-sm text-trs-ink">
+    <div role="status" className="flex items-center justify-center gap-3 border-b border-trs-line bg-trs-tint px-4 py-2 text-body text-trs-ink">
       A new version is live.
       <Btn size="xs" level="primary" onClick={() => window.location.reload()}>Reload</Btn>
     </div>

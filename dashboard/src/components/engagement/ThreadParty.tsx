@@ -84,18 +84,18 @@ export function ThreadParty({ threadId, companyName, kind, clientCompanyId, clie
       {(party === 'client' || party === 'insurer') && (
         <div className="flex items-center gap-2 flex-wrap">
           <button type="button" className={SECOND} onClick={() => void readThread()} disabled={busy !== null}>{busy === 'read' ? 'Reading…' : 'Read thread'}</button>
-          {read && <span className="text-[13px]" style={{ color: MUTED }}>{read}</span>}
+          {read && <span className="text-body" style={{ color: MUTED }}>{read}</span>}
         </div>
       )}
 
       {party === 'referral' && (
-        <div className="text-[13.5px]">
+        <div className="text-body">
           <CompanyField value={client.id || client.name ? client : clientCompanyId ? { id: clientCompanyId, name: clientName ?? '' } : { id: null, name: clientNamed ?? '' }} onChange={v => void pickClient(v)} allowCreate label="Company" listId={`referral-client-${threadId}`} />
-          {busy === 'client' && <span className="text-[13px]" style={{ color: MUTED }}>Saving…</span>}
+          {busy === 'client' && <span className="text-body" style={{ color: MUTED }}>Saving…</span>}
         </div>
       )}
 
-      {error && <span className="text-[13px]" role="alert" style={{ color: ERROR }}>{error}</span>}
+      {error && <span className="text-body" role="alert" style={{ color: ERROR }}>{error}</span>}
     </div>
   )
 }

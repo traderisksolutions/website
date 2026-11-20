@@ -111,7 +111,7 @@ export function SourceFilesTab() {
                 <RegisterCell><span className={CHIP} style={{ color: STATUS[f.status].color }}>{STATUS[f.status].label}</span></RegisterCell>
                 <RegisterCell align="left">
                   {f.rateTables.length
-                    ? f.rateTables.map(t => <a key={t.id} href={`/pricing-matrix/${t.id}`} className="block text-body no-underline hover:underline text-trs-ink" >{t.insurerName ?? 'Rate table'}</a>)
+                    ? f.rateTables.map(t => <a key={t.id} href={`/eb/rates/${t.id}`} className="block text-body no-underline hover:underline text-trs-ink" >{t.insurerName ?? 'Rate table'}</a>)
                     : <span className="text-trs-subtle">—</span>}
                 </RegisterCell>
                 <RegisterCell last align="right"><span className="text-body tabular-nums text-trs-muted" >{day(f.modifiedAt)}</span></RegisterCell>

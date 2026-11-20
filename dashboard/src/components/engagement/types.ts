@@ -9,6 +9,8 @@ export type Lead = {
   /** Housekeeping agent's short title (email_threads.display_subject); show via threadTitle(). */
   display_subject?: string | null
   snippet?: string | null
+  /** A colleague's private thread (Jarod, 20 Nov 2026): listed with its owner; its mail opens only for those who hold it. */
+  private?: { owner: string | null }
   /** Direction of the newest message, from the conversations API — "inbound" means the client
    *  wrote last and nobody has answered. */
   lastDirection?: 'inbound' | 'outbound' | null
