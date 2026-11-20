@@ -183,9 +183,9 @@ export const classOf = (m: Member): string | null => { const d = String(m.occupa
  * One cover of one plan for a group of members, as the workbook's Calc sheet prices it: one rate
  * per life from Rates (insurer, cover, plan, age band, class for accident, life for AIA), RCC on age
  * next birthday and the rest on age last birthday, RCC's group factor on its medical lines.
- * `missing` lives have no rate (no age, an age outside every band); `noClass` lives are left
- * unpriced for personal accident because the census gives no occupation class (not assumed Class 1,
- * Jarod 20 Nov 2026). Null premium when no one in the group is priced.
+ * `missing` lives have no rate (no age, an age outside every band); `noClass` lives have no
+ * occupation class and price 0 for personal accident, as the workbook does (Calc!M2, Jarod 20 Nov
+ * 2026), never assumed Class 1; they are counted for the flag. Null premium when no one is priced.
  */
 export function priceCover(idx: RateIndex, product: string, cover: string, plan: string, members: Member[], o: { effectiveDate: string; renewal: boolean; employeesInCompany: number }): { premium: number | null; missing: number; noClass: number } {
   const rows = idx.get(`${product}|${cover}|${plan}`)
@@ -197,6 +197,7 @@ export function priceCover(idx: RateIndex, product: string, cover: string, plan:
     const ee = m.relationship === 'self'
     if (!ee && !dependantsCovered(product, cover)) continue
     const cls = pa ? classOf(m) : null
+    // Calc!M2 looks up "Class " for a blank class and prices 0: so do we, and the life is counted for the flag.
     if (pa && !cls) { noClass++; continue }
     const age = memberAge(m, o.effectiveDate, anb ? 'next_birthday' : 'last_birthday')
     const hit = age == null ? undefined : rows.find(r => age >= r.from && age <= r.to && (!r.renewalOnly || o.renewal) && (r.cls == null || r.cls === cls) && (r.life == null || r.life === (ee ? 'EE' : 'Dep')))
@@ -208,7 +209,7 @@ export function priceCover(idx: RateIndex, product: string, cover: string, plan:
     const n = o.employeesInCompany
     t *= n <= 1 ? 1.5 : n >= 10 ? 0.9 : n >= 5 ? 0.95 : 1
   }
-  return { premium: priced ? Math.round(t * 100) / 100 : null, missing, noClass }
+  return { premium: priced || noClass ? Math.round(t * 100) / 100 : null, missing, noClass }
 }
 
 /** The census in categories: one per hospital plan on the census (else the census category). */
@@ -349,7 +350,7 @@ export function buildCompare(input: {
 // co-pay for GP); else the next lower. Lower tier: one plan lower per cover from the Same pick,
 // where one exists. Each pick carries its reason, shown in the cell.
 
-export type MatchReason = 'same' | 'no same plan' | 'lower' | 'with hospital' | 'in specialist' | 'none'
+export type MatchReason = 'same' | 'no same plan' | 'higher' | 'lower' | 'with hospital' | 'in specialist' | 'none'
 export type TierPick = { plan: string; reason: MatchReason }
 /** Today's hospital cover as numbers. `limit` and `basis` null when not on file (a census plan name gives the ward only). */
 export type HospTarget = { hospital: 'private' | 'government'; beds: number | null; limit: number | null; basis: 'annual' | 'per_disability' | null; coins: number }
@@ -389,7 +390,9 @@ export function sameHospital(benefitsOf: (cover: string, plan: string) => Record
     // The ward only is on file: the lowest limit in that ward is the same tier, never a higher one.
     if (ward.length) return { plan: [...ward].sort((a, b) => lim(a.f.limit) - lim(b.f.limit) || coinsGap(a) - coinsGap(b) || a.i - b.i)[0].p, reason: 'same' }
     const down = nextWardDown(opts, rank, t.basis, null)
-    return down ? { plan: down.p, reason: 'no same plan' } : { plan: '', reason: 'no same plan' }
+    if (down) return { plan: down.p, reason: 'no same plan' }
+    const up = nearestHigher(opts, rank, t.basis, null)
+    return up ? { plan: up.p, reason: 'higher' } : { plan: '', reason: 'no same plan' }
   }
   const same = ward.filter(o => o.f.limit === t.limit && (!t.basis || o.f.basis === t.basis))
   if (same.length) return { plan: [...same].sort((a, b) => coinsGap(a) - coinsGap(b) || a.i - b.i)[0].p, reason: 'same' }
@@ -397,7 +400,22 @@ export function sameHospital(benefitsOf: (cover: string, plan: string) => Record
   const inWard = ward.filter(o => o.f.limit != null && o.f.limit <= t.limit! && !(o.f.limit === t.limit && o.f.basis === t.basis))
   const sameBasis = inWard.filter(o => !t.basis || o.f.basis === t.basis)
   const pick = [...(sameBasis.length ? sameBasis : inWard)].sort(byHigh)[0] ?? nextWardDown(opts, rank, t.basis, t.limit)
-  return { plan: pick?.p ?? '', reason: 'no same plan' }
+  if (pick) return { plan: pick.p, reason: 'no same plan' }
+  // Nothing the same or lower (Jarod, 20 Nov 2026: follow the workbook, which always prices a plan):
+  // the nearest higher plan, priced and flagged "higher".
+  const up = nearestHigher(opts, rank, t.basis, t.limit)
+  return up ? { plan: up.p, reason: 'higher' } : { plan: '', reason: 'no same plan' }
+}
+
+/** The nearest plan above a target: a higher limit in the same ward (same basis first), else the lowest ward above it. */
+function nearestHigher(opts: HospOpt[], rank: number, basis: HospTarget['basis'], limit: number | null): HospOpt | null {
+  const asc = (l: HospOpt[]) => [...l].sort((a, b) => (basis && a.f.basis !== basis ? 1 : 0) - (basis && b.f.basis !== basis ? 1 : 0) || lim(a.f.limit) - lim(b.f.limit) || a.f.coins - b.f.coins || a.i - b.i)
+  const ward = opts.filter(o => wardRank(o.f) === rank && (limit == null || o.f.limit == null || o.f.limit > limit || (o.f.limit === limit && basis != null && o.f.basis !== basis)))
+  if (ward.length) return asc(ward)[0]
+  const above = opts.filter(o => wardRank(o.f) > rank)
+  if (!above.length) return null
+  const low = Math.min(...above.map(o => wardRank(o.f)))
+  return asc(above.filter(o => wardRank(o.f) === low))[0]
 }
 
 /** One hospital plan lower than `from` at the same product: lower limit in the same ward (basis kept first), else the next ward down. Null when none. Pure. */
@@ -439,7 +457,7 @@ export function sameAmount(benefitsOf: (cover: string, plan: string) => Record<s
   // Nothing lower: the nearest higher, flagged, so the column is not cheaper for a cover it leaves out.
   // (Hospital never goes higher: notes 3, 22, 24 are about the hospital plan.)
   const higher = vals.filter(x => x.v != null && x.v > target).sort((a, b) => a.v! - b.v! || a.i - b.i)[0]
-  if (higher) return { plan: higher.p, reason: 'no same plan' }
+  if (higher) return { plan: higher.p, reason: 'higher' }
   // Nothing comparable (a dental "schedule of allowances"): the first plan, flagged.
   const unread = vals.find(x => x.v == null)
   return { plan: unread?.p ?? '', reason: 'no same plan' }

@@ -142,8 +142,8 @@ export const lastYearNet = (ly: LastYear | null): number | null => {
   return t == null ? null : Math.round((ly.gst === 'included' ? t / 1.09 : t) * 100) / 100
 }
 
-/** `unpriced`: lives in the category this plan does not price (no occupation class for accident, an age outside every band). */
-export type PlanOption = { plan: string; words: string; premium: number | null; unpriced?: number }
+/** `unpriced`: lives this plan has no rate for (an age outside every band); `noClass`: lives priced 0 for accident because the census gives no occupation class. */
+export type PlanOption = { plan: string; words: string; premium: number | null; unpriced?: number; noClass?: number }
 /** One cover at one product for one category: every plan priced, the Same and Lower tier picks with their reasons. `pick` is the Same pick. */
 export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean; same: TierPick; lower: TierPick }
 export type PricedCategory = { name: string; employees: number; lives: number; today: { words: Record<CoverKey, string>; premium: Record<CoverKey, number | null>; product: string | null }; products: Record<string, Record<CoverKey, PricedCover>> }

@@ -71,10 +71,10 @@ describe('Same tier: ward and beds, then the same limit and basis, else the next
     expect(sameHospital(benefitsOf(QBE), lists[QBE][H], pte4(60_000, 'annual'), QBE)).toEqual({ plan: 'Plan 4 · Private 4-bed · 0%', reason: 'same' })
     expect(sameHospital(benefitsOf(QBE), lists[QBE][H], pte4(80_000, 'annual'), QBE)).toEqual({ plan: 'Plan 3 · Private 4-bed · 0%', reason: 'same' })
   })
-  it('never goes higher: no same limit takes the next lower in the ward', () => {
+  it('no same limit takes the next lower in the ward; with nothing the same or lower, the nearest higher, flagged (workbook ruling)', () => {
     expect(sameHospital(benefitsOf(QBE), lists[QBE][H], pte4(100_000, 'annual'), QBE)).toEqual({ plan: 'Plan 3 · Private 4-bed · 0%', reason: 'no same plan' })
-    // AIA's only private 4-bed plan is S$250,000 a year: higher, so the next ward down, and there is none.
-    expect(sameHospital(benefitsOf(AIA), lists[AIA][H], pte4(60_000, 'annual'), AIA)).toEqual({ plan: '', reason: 'no same plan' })
+    // AIA (this fixture) has only a private 4-bed plan above S$60,000 a year and no lower ward: the nearest higher, flagged.
+    expect(sameHospital(benefitsOf(AIA), lists[AIA][H], pte4(60_000, 'annual'), AIA)).toEqual({ plan: 'Plan 1 (Pte 4-bed)', reason: 'higher' })
   })
   it('a year and per disability are a hard tier, not a score', () => {
     // RCC private 4-bed is S$15,000 per disability: not the same as S$60,000 a year; it is lower, so taken as "no same plan".
@@ -99,7 +99,7 @@ describe('Same tier: ward and beds, then the same limit and basis, else the next
     expect(sameAmount(benefitsOf(QBE), lists[QBE][D], D, 800)).toEqual({ plan: 'Plan 2 · Non-Panel', reason: 'no same plan' })
     expect(sameAmount(benefitsOf(QBE), lists[QBE][GP], GP, 10)).toEqual({ plan: 'Plan 2 ($10 co-pay)', reason: 'same' })
     // AIA's co-pays are all lower than S$10: nothing lower in cover, so the nearest (S$5), flagged, never left unpriced.
-    expect(sameAmount(benefitsOf(AIA), lists[AIA][GP], GP, 10)).toEqual({ plan: 'Plan 2 ($5 co-pay)', reason: 'no same plan' })
+    expect(sameAmount(benefitsOf(AIA), lists[AIA][GP], GP, 10)).toEqual({ plan: 'Plan 2 ($5 co-pay)', reason: 'higher' })
     expect(sameAmount(benefitsOf(AIA), lists[AIA][D], D, 500)).toEqual({ plan: 'Plan 1', reason: 'no same plan' })
     expect(sameAmount(benefitsOf(QBE), lists[QBE][D], D, null)).toEqual({ plan: '', reason: 'none' })
   })

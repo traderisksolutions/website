@@ -20,7 +20,8 @@ export type EbColumn =
   | { id: string; kind: 'brochure' | 'copy'; product: string; copyOf: string | null; picks: ColumnPicks }
   | { id: string; kind: 'schedule'; schedule: InsurerSchedule }
 
-export type CategoryCell = { category: string; plan: string; words: string; premium: number | null; unpriced: number; options: PlanOption[]; locked: boolean; reason: MatchReason | 'changed' | null }
+/** `noClass`: lives priced 0 for accident with no occupation class; `note`: a choice the insurer's rules do not expect (GP beside a specialist rider that includes it). */
+export type CategoryCell = { category: string; plan: string; words: string; premium: number | null; unpriced: number; noClass: number; note: string | null; options: PlanOption[]; locked: boolean; reason: MatchReason | 'changed' | null }
 export type PlanCell = { kind: 'plans'; perCategory: CategoryCell[]; premium: number | null; flag: boolean }
 export type ScheduleCell = { kind: 'schedule'; premium: number | null; status: ScheduleStatus | null; sources: string[] }
 export type Cell = PlanCell | ScheduleCell
@@ -70,14 +71,16 @@ export function compareModel(priced: Priced, cols: EbColumn[], current: CurrentP
         const opt = pc?.options.find(o => o.plan === plan)
         const tierPick = pc?.[tier]
         return {
-          category: c.name, plan, words: plan ? opt?.words ?? plan : 'None', premium: plan ? opt?.premium ?? null : 0, unpriced: plan ? opt?.unpriced ?? 0 : 0, options: pc?.options ?? [], locked: !!pc?.locked,
+          category: c.name, plan, words: plan ? opt?.words ?? plan : 'None', premium: plan ? opt?.premium ?? null : 0, unpriced: plan ? opt?.unpriced ?? 0 : 0, noClass: plan ? opt?.noClass ?? 0 : 0,
+          note: plan && priced.rules.some(r => r.product === col.product && r.cover === t.cover && r.match === 'exclusive' && col.picks[c.name]?.[TIERS.find(x => x.cover === r.tiedTo)!.key]) ? 'Specialist already includes GP' : null,
+          options: pc?.options ?? [], locked: !!pc?.locked,
           reason: !tierPick ? null : plan === tierPick.plan ? tierPick.reason : 'changed',
         } satisfies CategoryCell
       })
       const chosen = perCategory.filter(x => x.plan)
       const premium = chosen.length ? (chosen.some(x => x.premium != null) ? round2(chosen.reduce((a, x) => a + (x.premium ?? 0), 0)) : null) : null
       // Census against brochure (call note 1): no same plan for this census category, or a plan with no rate for these ages.
-      const flag = perCategory.some(x => x.reason === 'no same plan' || (x.plan && x.premium == null))
+      const flag = perCategory.some(x => x.reason === 'no same plan' || x.reason === 'higher' || (x.plan && x.premium == null))
       return { kind: 'plans', perCategory, premium, flag }
     }),
   }))

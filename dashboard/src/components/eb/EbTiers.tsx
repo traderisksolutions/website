@@ -23,7 +23,7 @@ export function EbTiers({ priced, tier, onTier, lastYearRead }: { priced: Priced
     same: [
       ['Starting point', lastYearRead ? 'Current cover from last year’s policy, as read' : 'Current cover from the census until last year’s policy is read'],
       ['Hospital', `${ward} · same ward at every insurer`],
-      ['Limit', 'Same amount and basis; if none, the next lower'],
+      ['Limit', 'Same amount and basis; if none, the next lower; else the nearest higher, flagged'],
       ['GP', `${gp ? `${gp}, as today` : 'As today'}; inside specialist at Singlife and AIA`],
       ['Specialist · Dental', 'Same limit where offered; else the next lower'],
       ['Major Medical', 'RCC and Singlife on the same plan as hospital; Income, Steadfast and AIA inside the hospital premium'],

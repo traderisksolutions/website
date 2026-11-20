@@ -52,8 +52,11 @@ export function EbCompare({ model, onChoose, onCopy, onRemove }: {
               onChange={v => onChoose(colId, x.category, key, v)} className="max-w-48"
               options={[...(x.locked && x.plan ? [] : [{ value: '', label: 'None' }]), ...x.options.map(o => ({ value: o.plan, label: o.plan }))]} />
             {x.plan && x.premium == null && <Chip tone="red" title="No rate in the house workbook for this plan and these lives">Not priced</Chip>}
-            {x.plan && x.premium != null && x.unpriced > 0 && <Chip tone="amber" title="Occupation class missing, or an age outside every rate band">{`${x.unpriced} not priced`}</Chip>}
-            {x.reason && x.reason !== 'changed' && x.reason !== 'none' && <Chip tone={x.reason === 'no same plan' ? 'red' : 'neutral'}>{x.reason}</Chip>}
+            {x.plan && x.premium != null && x.unpriced > 0 && <Chip tone="amber" title="An age outside every rate band">{`${x.unpriced} not priced`}</Chip>}
+            {x.noClass > 0 && <Chip tone="amber" className="whitespace-normal">{`Occupation class missing for ${x.noClass} ${x.noClass === 1 ? 'life' : 'lives'}`}</Chip>}
+            {x.note && <Chip tone="amber" className="whitespace-normal">{x.note}</Chip>}
+            {x.reason === 'higher' ? <Chip tone="amber" className="whitespace-normal">higher · no same or lower plan</Chip>
+              : x.reason && x.reason !== 'changed' && x.reason !== 'none' && <Chip tone={x.reason === 'no same plan' ? 'red' : 'neutral'}>{x.reason}</Chip>}
           </div>
         ))}
         <span className="text-xs text-trs-ink-2">{price}</span>

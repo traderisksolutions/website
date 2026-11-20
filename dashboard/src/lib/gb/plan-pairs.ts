@@ -83,15 +83,17 @@ export function allowedPlans(rule: PlanRule, partner: string, options: string[])
 }
 
 /**
- * One product's picks with its rules applied. Pure. `changed` is the cover a person just set: with
- * two exclusive covers both chosen, that one stays and its partner is cleared; otherwise the
- * exclusive cover gives way to the partner that includes it.
+ * One product's picks with its rules applied. Pure. `changed` is the cover a person just set: then
+ * an exclusive pair is left as the person chose (both priced, noted on the page); without it (the
+ * Same and Lower tier picks) the exclusive cover gives way to the partner that includes it.
  */
 export function applyRules(rules: PlanRule[], product: string, picks: Record<string, string>, options: Record<string, string[]>, changed?: string): Record<string, string> {
   const out = { ...picks }
   for (const r of rules) {
     if (r.product !== product) continue
-    if (r.match === 'exclusive' && out[r.cover] && out[r.tiedTo] && changed === r.cover) { out[r.tiedTo] = ''; continue }
+    // A person may take both, as the workbook allows and prices (Jarod, 20 Nov 2026); the page notes it.
+    // Only the tiers' own picks (no `changed`) give way to the partner that includes the cover.
+    if (r.match === 'exclusive' && changed) continue
     const allowed = allowedPlans(r, out[r.tiedTo] ?? '', options[r.cover] ?? [])
     const now = out[r.cover] ?? ''
     if (!allowed.length) out[r.cover] = ''

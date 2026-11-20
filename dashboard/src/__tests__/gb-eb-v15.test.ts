@@ -3,9 +3,9 @@
  * TRS EB Package Calculator V1.5 (Nathan, 17 Nov 2026) as the pricing reference: the file is
  * picked and parsed, every rule of eb-rules.md the app prices by is applied, and the workbook's
  * own worked example (10 lives, 14 Feb 2027, new business; census anonymised here) is reproduced
- * to the cent on the five medical covers. Where the filled workbook is wrong (blank occupation
- * class prices 0 without a word; AIA GP priced beside the combined GP and specialist rider) the
- * corrected behaviour is asserted and the difference written down.
+ * to the cent on every cover and total. Jarod's ruling (20 Nov 2026): follow what V1.5 does. A
+ * blank occupation class prices 0 (flagged on the page); GP beside a specialist rider that includes
+ * it is priced when a person picks both (noted on the page; the tiers never pick both).
  *
  * The fixture is the V1.5 file itself: its Census sheet is empty (no client data).
  */
@@ -76,9 +76,9 @@ describe('3 · AIA personal accident: employee and dependant rates (Rates!K), cl
     expect(priceCover(idx, AIA, PA, 'Plan 4 ($180k)', [ee], o).premium).toBe(91.67)
     expect(priceCover(idx, AIA, PA, 'Plan 4 ($180k)', [ee, sp], o).premium).toBe(144.45)
   })
-  it('a life with no occupation class is left unpriced and counted, never priced as Class 1', () => {
+  it('a life with no occupation class prices 0 as the workbook does (Calc!M2), never as Class 1, and is counted for the flag', () => {
     const r = priceCover(idx, AIA, PA, 'Plan 4 ($180k)', [{ name: 'E', category: 'S', relationship: 'self', dob: '1980-01-01' }], o)
-    expect(r).toEqual({ premium: null, missing: 0, noClass: 1 })
+    expect(r).toEqual({ premium: 0, missing: 0, noClass: 1 })
     expect(classOf({ name: 'x', category: '', relationship: 'self', occupation_class: 'Class 2' })).toBe('Class 2')
     const p = priceDesign({ wb, rules: DEFAULT_RULES, effectiveDate: '2027-02-14', basis: 'new_business', currentInsurer: null, categories: [{ name: 'S', members: [{ name: 'E', category: 'S', relationship: 'self', dob: '1980-01-01' }], today: {} }] })
     expect(p.notes).toContain('Occupation class missing for 1 life')
@@ -86,11 +86,12 @@ describe('3 · AIA personal accident: employee and dependant rates (Rates!K), cl
 })
 
 describe('4 · GP and specialist', () => {
-  it('Singlife and AIA: specialist includes GP, one or the other, never both; the one just chosen stays', () => {
+  it('Singlife and AIA: specialist includes GP; the tiers never take both, a person may (both priced, as the workbook does)', () => {
     for (const p of [SL, AIA]) {
       const both = { [GP]: wb.lists[p][GP][0], [SP]: wb.lists[p][SP][0] }
       expect(applyRules(DEFAULT_RULES, p, both, wb.lists[p])[GP]).toBe('')
-      expect(applyRules(DEFAULT_RULES, p, both, wb.lists[p], GP)).toMatchObject({ [GP]: wb.lists[p][GP][0], [SP]: '' })
+      expect(applyRules(DEFAULT_RULES, p, both, wb.lists[p], GP)).toMatchObject(both)
+      expect(applyRules(DEFAULT_RULES, p, both, wb.lists[p], SP)).toMatchObject(both)
       expect(applyRules(DEFAULT_RULES, p, { [GP]: wb.lists[p][GP][0], [SP]: '' }, wb.lists[p])[GP]).toBe(wb.lists[p][GP][0])
     }
   })
@@ -167,6 +168,16 @@ describe('7 and 9 · dependants, age basis, group factor, headcount', () => {
   })
 })
 
+describe('renewal-only age bands', () => {
+  it('a renewal opens them at all five insurers, as Census!D5 "Renewal" does; new business does not', () => {
+    const old: Member[] = [{ name: 'O', category: 'S', relationship: 'self', dob: '1954-06-01' }, { name: 'Y', category: 'S', relationship: 'self', dob: '1990-06-01' }]
+    const at = (basis: 'renewal' | 'new_business') => priceDesign({ wb, rules: DEFAULT_RULES, effectiveDate: '2027-02-14', basis, currentInsurer: 'RCC', categories: [{ name: 'S', members: [old[0]], today: {} }] })
+    const sl = (b: 'renewal' | 'new_business') => at(b).categories[0].products[SL].hs.options.find(o => o.plan === 'Plan 3 (Pte 4-bed)')!.premium
+    expect(sl('new_business')).toBeNull()                    // 72: Singlife's 71-80 band is renewal-only
+    expect(sl('renewal')).toBeGreaterThan(0)                 // priced although Singlife is not the current insurer
+  })
+})
+
 describe('10 · rate version by start date (Summary!B35)', () => {
   it('V1.5 Singlife rates apply from 1 Dec 2026; an earlier start date is warned', () => {
     expect(rateWarnings(FILE, '2026-11-01')).toEqual({ [SL]: ['Rates from 1 Dec 2026; this start date needs calculator V1.4.2'] })
@@ -204,17 +215,19 @@ describe('the V1.5 worked example, to the cent', () => {
   it('hospital, major medical, GP, specialist and dental match the workbook to the cent at all five', () => {
     for (const [p, want] of Object.entries(WORKBOOK)) expect([H, MM, GP, SP, D].map(c => cover(p, c).premium), p).toEqual(want)
   })
-  it('AIA: the workbook adds GP beside the combined specialist rider (S$2,448.16, Summary!B33 says not to); the rules take it out', () => {
-    const ruled = applyRules(DEFAULT_RULES, AIA, Object.fromEntries(Object.entries(plans[AIA]).map(([c, [, b]]) => [c, b])), wb.lists[AIA])
-    expect(ruled[GP]).toBe('')
-    const total = [H, MM, SP, D].reduce((a, c) => a + cover(AIA, c).premium, 0)
-    expect(Math.round(total * 100) / 100).toBe(18461.19)                    // 21,092.69 in the workbook less GP 2,448.16 and its PA 183.34
+  it('a person who picks AIA GP beside the specialist rider is priced as the workbook prices it; the page notes it', () => {
+    const picked = Object.fromEntries(Object.entries(plans[AIA]).map(([c, [, b]]) => [c, b]))
+    expect(applyRules(DEFAULT_RULES, AIA, picked, wb.lists[AIA], GP)[GP]).toBe('Plan 1 (no co-pay)')
   })
-  it('personal accident: the workbook prices 0 for the 4 employees with no class without a word; we leave them unpriced and count them', () => {
-    expect(cover(RCC, PA)).toEqual({ premium: 111.12, noClass: 4 })            // children: RCC insures no dependant for PA
-    expect(cover(INC, PA)).toEqual({ premium: 84, noClass: 8 })                // children are insured at Income, and have no class either
-    expect(cover(QBE, PA)).toEqual({ premium: 46, noClass: 4 })
-    expect(cover(SL, PA)).toEqual({ premium: 135, noClass: 8 })
-    expect(cover(AIA, PA)).toEqual({ premium: 183.34, noClass: 8 })            // 2 x 91.67, Rates row 1638
+  // Summary!C17 and C19:G19 of the filled V1.5: personal accident and the totals.
+  const PA_WB: Record<string, number> = { [RCC]: 111.12, [INC]: 84, [QBE]: 46, [SL]: 135, [AIA]: 183.34 }
+  const TOTAL_WB: Record<string, number> = { [RCC]: 18086.20, [INC]: 12982.80, [QBE]: 20086.00, [SL]: 16426.00, [AIA]: 21092.69 }
+  it('personal accident and every total match the workbook to the cent; lives with no class price 0 and are counted', () => {
+    const noClass: Record<string, number> = { [RCC]: 4, [INC]: 8, [QBE]: 4, [SL]: 8, [AIA]: 8 }   // RCC and Steadfast insure no child for accident
+    for (const p of Object.keys(PA_WB)) {
+      expect(cover(p, PA), p).toEqual({ premium: PA_WB[p], noClass: noClass[p] })
+      const total = [H, MM, GP, SP, D, PA].reduce((a, c) => a + cover(p, c).premium, 0)
+      expect(Math.round(total * 100) / 100, p).toBe(TOTAL_WB[p])
+    }
   })
 })

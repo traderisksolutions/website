@@ -15,7 +15,7 @@
 import type { Member } from '@/lib/gb-quote'
 import { memberAge } from '@/lib/gb-quote'
 import { coverWords } from './compare-words'
-import { classOf, indexRates, lowerTierOf, priceCover, productOf, ruledTier, sameTier, withTiedRiders } from './compare-cover'
+import { classOf, indexRates, lowerTierOf, priceCover, ruledTier, sameTier, withTiedRiders } from './compare-cover'
 import { IN_HOSPITAL, type PlanRule } from './plan-pairs'
 import { COVERS, PRODUCTS, workbookVersion, type Workbook } from './workbook'
 import type { CategoryFacts } from './last-year'
@@ -37,12 +37,11 @@ export function priceDesign(input: {
     const own = (wb.lists[p]?.[cover] ?? []).filter(x => !/FW|WP\/S Pass|WP\/SP/i.test(x))
     return !own.length && ruleOf(p, cover)?.premium === 'included' ? [IN_HOSPITAL] : own
   }
-  // Renewal-only age bands apply to the current insurer on a renewal (the workbook's rule); this prices, it never fills Current.
-  const current = productOf(input.currentInsurer)
-  const premium = (p: string, cover: string, plan: string, ms: Member[]): { premium: number | null; unpriced: number } => {
-    if (!plan || ruleOf(p, cover)?.premium === 'included') return { premium: 0, unpriced: 0 }
-    const r = priceCover(idx, p, cover, plan, ms, { effectiveDate: input.effectiveDate, renewal: input.basis === 'renewal' && p === current, employeesInCompany })
-    return { premium: r.premium, unpriced: r.noClass + (r.premium == null ? 0 : r.missing) }
+  // A renewal opens the renewal-only age bands at all five insurers, as the workbook's Census!D5 does (Jarod, 20 Nov 2026).
+  const premium = (p: string, cover: string, plan: string, ms: Member[]): { premium: number | null; unpriced: number; noClass: number } => {
+    if (!plan || ruleOf(p, cover)?.premium === 'included') return { premium: 0, unpriced: 0, noClass: 0 }
+    const r = priceCover(idx, p, cover, plan, ms, { effectiveDate: input.effectiveDate, renewal: input.basis === 'renewal', employeesInCompany })
+    return { premium: r.premium, unpriced: r.premium == null ? 0 : r.missing, noClass: r.noClass }
   }
   const wordsOf = (p: string, cover: string, plan: string) => {
     if (plan !== IN_HOSPITAL) return coverWords(cover, plan, benefitsOf(p)(cover, plan))
@@ -57,7 +56,7 @@ export function priceDesign(input: {
       const same = ruledTier(rules, p, withTiedRiders(rules, p, sameTier(benefitsOf(p), opts, target, p), opts), opts)
       const lower = ruledTier(rules, p, withTiedRiders(rules, p, lowerTierOf(benefitsOf(p), opts, same, p), opts), opts)
       products[p] = Object.fromEntries(TIERS.map(t => [t.key, {
-        options: opts[t.cover].map(plan => { const x = premium(p, t.cover, plan, cat.members); return { plan, words: wordsOf(p, t.cover, plan), premium: x.premium, ...(x.unpriced ? { unpriced: x.unpriced } : {}) } }),
+        options: opts[t.cover].map(plan => { const x = premium(p, t.cover, plan, cat.members); return { plan, words: wordsOf(p, t.cover, plan), premium: x.premium, ...(x.unpriced ? { unpriced: x.unpriced } : {}), ...(x.noClass ? { noClass: x.noClass } : {}) } }),
         pick: same[t.cover]?.plan ?? '',
         locked: rules.some(r => r.product === p && r.cover === t.cover && r.required && (r.match === 'same_plan' || r.premium === 'included')),
         same: same[t.cover] ?? { plan: '', reason: 'none' },
