@@ -30,8 +30,8 @@ const sha = s => createHash('sha256').update(s).digest('hex')
 async function applied() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_KEY
   if (!url || !key) return null
-  const res = await fetch(`${url}/rest/v1/schema_migrations?select=name`, { headers: { apikey: key, Authorization: `Bearer ${key}` } })
-  if (!res.ok) return null
+  const res = await fetch(`${url}/rest/v1/schema_migrations?select=name`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }).catch(() => null)
+  if (!res?.ok) return null
   return new Set((await res.json()).map(r => r.name))
 }
 
