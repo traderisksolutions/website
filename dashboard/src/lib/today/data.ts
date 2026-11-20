@@ -1,5 +1,5 @@
 /**
- * Reads for the assistant screens: the Today list, one item for review, a thread, the home map
+ * Reads for the assistant screens: the Today list, one item for review, a thread
  * and a company's knowledge log. Server only (service key). Groups come from rules.ts.
  *
  * Writes that belong to the case builder (later, seen) are done here as plain row updates plus a
@@ -11,8 +11,8 @@ import { fillVoice } from '@/lib/admin/b/voice'
 import { contactIdFor } from '@/lib/admin/b/contact-id'
 import { listRegister, type RegisterRow } from '@/lib/admin/b/documents/store'
 import { sb, sbTry, enc, isInternal } from '@/lib/crm/db'
-import { groupOf, bridgeOf, laterFor, type TodayGroup, type LaterChoice, type Bridge } from './rules'
-import { pendingOf, sideOf, homeBridgeOf, cardOrder, LEVEL_RANK, type Pending, type PendingLevel, type Side, type HomeBridge, type PolicyLite } from './pending'
+import { groupOf, laterFor, type TodayGroup, type LaterChoice } from './rules'
+import { pendingOf, sideOf, homeBridgeOf, LEVEL_RANK, type Pending, type PendingLevel, type Side, type HomeBridge, type PolicyLite } from './pending'
 
 type Row = Record<string, any>
 
@@ -21,7 +21,7 @@ export type TodayDraft = {
   attachments: { filename: string; storage_url?: string | null; mime_type?: string | null }[]
   thread_id: string | null; party: string | null; pair_id: string | null; kind: string | null
 }
-export type PendingView = Pending & { override: { level: PendingLevel; reason: string | null; by: string | null } | null }
+type PendingView = Pending & { override: { level: PendingLevel; reason: string | null; by: string | null } | null }
 export type TodayItem = {
   id: string; group: TodayGroup; company_id: string | null; client: string; case_type: string; title: string
   status: string; summary: string | null; next_action: string | null; needs_human: string | null
@@ -191,55 +191,6 @@ export async function loadThread(id: string): Promise<ThreadView | null> {
   return { id: t.id, subject: t.subject, messages: all }
 }
 
-export type HomeData = {
-  bridges: Record<Exclude<Bridge, 'other'>, { open: number; trs: number; waiting_client: number; waiting_insurer: number; drafts: number }>
-  today: number; drafts: number; decisions: number
-  clients: { id: string | null; name: string; open: number; trs: number; titles: string[] }[]
-  insurers: { name: string; open: number; waiting: number; drafts: number }[]
-}
-
-/** The home map: open work per bridge and per side, and who it is for. */
-export async function loadHome(now = new Date()): Promise<HomeData> {
-  const rows = await openItems()
-  const { primary } = await draftsFor(rows)
-  const today = await loadToday(now)
-  const empty = () => ({ open: 0, trs: 0, waiting_client: 0, waiting_insurer: 0, drafts: 0 })
-  const bridges = { rfq: empty(), claims: empty(), endorsements: empty() }
-  const clients = new Map<string, HomeData['clients'][number]>()
-  const insurers = new Map<string, HomeData['insurers'][number]>()
-  for (const r of rows) {
-    const b = bridgeOf(r.case_type)
-    const hasDraft = !!(r.draft_id && primary.has(r.draft_id))
-    const trs = r.status === 'trs_to_act' || r.status === 'stalled'
-    if (b !== 'other') {
-      const x = bridges[b]
-      x.open++; if (trs) x.trs++; if (hasDraft) x.drafts++
-      if (r.status === 'waiting_client') x.waiting_client++
-      if (r.status === 'waiting_insurer') x.waiting_insurer++
-    }
-    const kind = r.companies?.kind
-    if (!kind || kind === 'client') {
-      const key = r.company_id ?? `name:${r.client_name ?? 'Unfiled'}`
-      const c: HomeData['clients'][number] = clients.get(key) ?? { id: r.company_id ?? null, name: r.companies?.company_name ?? r.client_name ?? 'Unfiled', open: 0, trs: 0, titles: [] }
-      c.open++; if (trs) c.trs++; if (c.titles.length < 3) c.titles.push(r.title)
-      clients.set(key, c)
-    }
-    if (r.insurer_name) {
-      const k = String(r.insurer_name).trim()
-      const i = insurers.get(k) ?? { name: k, open: 0, waiting: 0, drafts: 0 }
-      i.open++; if (r.status === 'waiting_insurer') i.waiting++; if (hasDraft) i.drafts++
-      insurers.set(k, i)
-    }
-  }
-  return {
-    bridges, today: today.filter(i => i.group !== 'later').length,
-    drafts: today.filter(i => i.group === 'send').length,
-    decisions: today.filter(i => i.group === 'decide').length,
-    clients: Array.from(clients.values()).sort((a, b) => b.trs - a.trs || b.open - a.open),
-    insurers: Array.from(insurers.values()).sort((a, b) => b.open - a.open),
-  }
-}
-
 /** A company's knowledge log, newest first, paged by occurred_at. */
 export type NextStep = { id: string; title: string; case_type: string; status: string; next_action: string | null; owner_email: string | null; deadline: string | null; needs_human: string | null; has_draft: boolean; waiting_since: string | null }
 
@@ -328,76 +279,6 @@ async function storePending(rows: Row[], items: TodayItem[], now: Date): Promise
     }
   }
   return n
-}
-
-/** Recomputes every open item's pending level and stores it. For crons. */
-export async function recomputePending(now = new Date()): Promise<{ items: number; updated: number; red: number; amber: number }> {
-  const rows = await openItems()
-  const { primary } = await draftsFor(rows)
-  const pols = await policiesByCompany(rows)
-  const items = rows.map(r => { const d = r.draft_id ? primary.get(r.draft_id) : undefined; return shape(r, 'none', d, [], pols.get(r.company_id) ?? [], now) })
-  const updated = await storePending(rows, items, now)
-  return { items: items.length, updated, red: items.filter(i => i.pending.level === 'red').length, amber: items.filter(i => i.pending.level === 'amber').length }
-}
-
-export type HomeCard = {
-  id: string; level: PendingLevel; name: string; line: string; days: number; due: string | null
-  action: 'send' | 'forward' | 'decide' | 'read' | 'open'; company_id: string | null; thread_id: string | null; owner_email: string | null
-}
-export type HomeBridgeData = {
-  key: HomeBridge; open: number; trs: number; drafts: number; red: number; waiting_client: number; waiting_insurer: number
-  client: HomeCard[]; insurer: HomeCard[]; centre: HomeCard[]
-  more_client: number; more_insurer: number; more_centre: number
-}
-export type HomeCanvas = { bridges: HomeBridgeData[]; open: number; drafts: number; decisions: number; red: number; clients: number; insurers: number }
-
-const SIDE_CARDS = 3
-
-/** The home canvas: per bridge, the cards on each side (most urgent first) and the counts. */
-export async function loadHomeCanvas(now = new Date()): Promise<HomeCanvas> {
-  const items = (await loadToday(now)).filter(i => i.group !== 'later')
-  // Today keeps only items that need a person; the canvas shows every open item that waits on a side.
-  const rows = await openItems()
-  const { primary } = await draftsFor(rows)
-  const pols = await policiesByCompany(rows)
-  const seenIds = new Set(items.map(i => i.id))
-  const all: TodayItem[] = [...items, ...rows.filter(r => !seenIds.has(r.id) && !r.later_until).map(r => { const d = r.draft_id ? primary.get(r.draft_id) : undefined; return shape(r, 'none', d, [], pols.get(r.company_id) ?? [], now) })]
-  const threadOf = new Map<string, string>()
-  for (const r of rows) { const t = (r.work_item_threads ?? [])[0]?.thread_id; if (t) threadOf.set(r.id, t) }
-  const dayCount = (i: TodayItem) => i.pending.since ? Math.max(0, Math.floor((now.getTime() - Date.parse(i.pending.since)) / 86_400_000)) : 0
-  const card = (i: TodayItem): HomeCard => ({
-    id: i.id, level: i.pending.level, days: dayCount(i), due: i.pending.due, company_id: i.company_id, thread_id: threadOf.get(i.id) ?? null, owner_email: i.owner_email,
-    name: i.side === 'insurer' && i.insurer_name ? `${i.insurer_name} · ${i.client}` : i.client,
-    line: i.pending.level === 'red' || i.pending.level === 'amber' ? `${i.title} · ${i.pending.reason.toLowerCase()}` : i.title,
-    action: i.group === 'decide' ? 'decide' : i.draft?.kind === 'forward_to_insurer' ? 'forward' : i.draft ? 'send' : i.group === 'read' ? 'read' : 'open',
-  })
-  // Two reads of the same mail can open twin items; the canvas shows one card per client and title, the most urgent.
-  const twins = new Map<string, TodayItem>()
-  for (const i of all.sort((a, b) => LEVEL_RANK[a.pending.level] - LEVEL_RANK[b.pending.level])) {
-    const k = `${i.company_id ?? i.client}|${i.title.trim().toLowerCase()}`
-    if (!twins.has(k)) twins.set(k, i)
-  }
-  const shown = Array.from(twins.values())
-  const bridges: HomeBridgeData[] = (['rfq', 'claims', 'endorsements'] as HomeBridge[]).map(key => {
-    const mine = shown.filter(i => i.bridge === key)
-    const side = (s: Side) => mine.filter(i => i.side === s).map(card).sort(cardOrder)
-    const client = side('client'), insurer = side('insurer')
-    // The centre carries what TRS itself owes: a draft or forward ready, or a red or amber case TRS must act on.
-    const centre = mine.filter(i => i.side === 'trs' && (i.draft || i.pending.level === 'red' || i.pending.level === 'amber')).map(card).sort(cardOrder)
-    return {
-      key, open: mine.length, trs: mine.filter(i => i.side === 'trs').length, drafts: mine.filter(i => !!i.draft && !i.needs_human).length,
-      red: mine.filter(i => i.pending.level === 'red').length,
-      waiting_client: client.length, waiting_insurer: insurer.length,
-      client: client.slice(0, SIDE_CARDS), insurer: insurer.slice(0, SIDE_CARDS), centre: centre.slice(0, SIDE_CARDS),
-      more_client: Math.max(0, client.length - SIDE_CARDS), more_insurer: Math.max(0, insurer.length - SIDE_CARDS), more_centre: Math.max(0, centre.length - SIDE_CARDS),
-    }
-  })
-  return {
-    bridges, open: all.length, drafts: items.filter(i => i.group === 'send').length, decisions: items.filter(i => i.group === 'decide').length,
-    red: shown.filter(i => i.pending.level === 'red').length,
-    clients: new Set(all.filter(i => i.company_id).map(i => i.company_id)).size,
-    insurers: new Set(all.map(i => i.insurer_name?.trim()).filter(Boolean)).size,
-  }
 }
 
 export const CASE_TYPES = ['claim', 'renewal', 'new_quote', 'endorsement', 'member_movement', 'premium_billing', 'documents', 'enquiry', 'other'] as const

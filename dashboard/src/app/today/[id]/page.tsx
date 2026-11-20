@@ -5,7 +5,7 @@
  * client update beside an insurer chase, or "tell the client it was lodged" beside a forward),
  * and on the right the case, its timeline, the threads and data-room files it rests on, and the
  * client's contacts on file. Send sends every ticked draft through /api/email/send, records the
- * send on the case, and moves to the next item on Today.
+ * send on the case, and returns to Today with the case's client open.
  *
  * Sections (?section=): Overview is the draft with the resume point under it; Sources, Conversation,
  * Rounds and Brief are the case's threads, what was said on them, who is owed what next and what the
@@ -29,7 +29,7 @@ import { classify, defaultSchedule, expectsReply } from '@/lib/followups/rules'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import { FLOW_LABEL, type RenewalFlow } from '@/lib/cases/renewal'
 import { CaseEditor, AttachmentPicker } from '@/components/assistant/CaseEditor'
-import type { ItemDetail, TodayDraft, TodayItem } from '@/lib/today/data'
+import type { ItemDetail, TodayDraft } from '@/lib/today/data'
 import { actorName } from '@/lib/cases/names'
 import { CASE_SECTIONS, asCaseSection, type CaseSection } from '@/components/cases/shared'
 import { CaseSourcesPanel } from '@/components/cases/CaseSourcesPanel'
@@ -125,10 +125,9 @@ function Review() {
     ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 14)
   }, [item])
 
+  /** Back to Today with this case's client open. */
   async function next() {
-    const d = await callApi<{ items: TodayItem[] }>('/api/today').catch(() => ({ items: [] as TodayItem[] }))
-    const n = d.items.find(i => i.id !== id && i.group !== 'later')
-    router.push(n ? `/today/${n.id}` : '/today')
+    router.push(item?.company_id ? `/today?client=${encodeURIComponent(item.company_id)}` : '/today')
   }
 
   async function run(label: string, fn: () => Promise<string>) {

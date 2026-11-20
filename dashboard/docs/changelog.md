@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Today and Calendar review
+
+- Removed: the case list `/today/queue` with Coming up, Mail and the Employment Benefits renewals panel on it. Old `/today?view=`, `?bridge=`, `?level=`, `?side=` links land on `/today`. `/api/today/count`, `/api/today/recompute` and `recomputePending` (no caller in the repo, `vercel.json` or the scheduler scripts), `loadHome`, `loadHomeCanvas`, the Home types and `cardOrder` are deleted. `src/lib/today/todo.ts` stays: the digest reads it.
+- Today: client rows lose their box, tinted header and rules; spacing separates. To client and To insurer are neutral chips. Whose Today is a menu button; Fold all and Unfurl all a secondary button. A load failure shows Retry. `?client=<company id>` opens that client.
+- Case page: Done, Mark done and Come back later return to Today with the case's client open, not to the next case.
+- Calendar: an Employment Benefits renewals tab (`?view=eb`, from `/api/today/eb-renewals`), each row with Open census (`/eb?company=<id>`). A failed load shows Retry, not "Nothing due this month". New debit note from a renewal passes `?company_id=`.
+- Design system: the 14 Nov table rule (header band, zebra, outer box) is replaced by the 19 Nov ledger.
+- Behaviours TOD-042 to TOD-048; TOD-001 to TOD-004, TOD-009 to TOD-012, TOD-024 and TOD-025 marked removed or moved.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

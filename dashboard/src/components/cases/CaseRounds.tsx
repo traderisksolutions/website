@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Btn, Chip, Empty, Segmented, Spinner } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
-import { selectCls } from '@/components/today/MailView'
+import { selectCls } from '@/components/cases/shared'
 import { DASH, fmtDay, fmtDayTime } from '@/lib/format'
 import type { StageTone } from '@/lib/crm/types'
 import type { ChainState, RoundMove, Step, Writer } from '@/lib/cases/rounds'

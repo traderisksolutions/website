@@ -1,7 +1,7 @@
 /**
  * GET /api/today/eb-renewals → every employee-benefits policy ending between 30 days ago and 120
  * days out, one row each, with the client's latest quotation that carries a census (the analysis
- * runs on it) and whether an analysis already exists. The renewals queue on Today.
+ * runs on it) and whether an analysis already exists. Read by Calendar › Employment Benefits renewals.
  */
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'

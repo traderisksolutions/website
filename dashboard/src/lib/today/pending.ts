@@ -18,7 +18,6 @@ export const LEVEL_RANK: Record<PendingLevel, number> = { red: 0, amber: 1, gree
 export const LEVEL_LABEL: Record<PendingLevel, string> = {
   red: 'Cover lapsed or uninsured', amber: 'Money owed or deadline inside 14 days', green: 'Ready to send', grey: 'Waiting, in time',
 }
-export const BRIDGE_LABEL: Record<HomeBridge, string> = { rfq: 'RFQ and renewals', claims: 'Claims', endorsements: 'Endorsements and billing' }
 
 export type PolicyLite = { class: string | null; end_date: string | null; lifecycle: string | null }
 
@@ -45,7 +44,7 @@ const DEADLINE_DAYS = 14
 const DAY = 86_400_000
 
 /** The phrases the case worker writes when cover is gone. Matched on title, summary, next action and the decision. */
-export const LAPSED_PHRASES: RegExp[] = [
+const LAPSED_PHRASES: RegExp[] = [
   /\buninsured\b/i,
   // "lapsed" alone also describes a quote or an offer; it is cover only beside cover, policy or insurance.
   /\b(?:cover(?:age)?|polic(?:y|ies)|insurance)\b[^.\n]{0,40}\blapsed\b/i,
@@ -59,12 +58,12 @@ export const LAPSED_PHRASES: RegExp[] = [
   /\bno renewal (?:instruction|evidence|confirmation)/i,
 ]
 /** Money that is owed: refunds, credit notes, unpaid premium. */
-export const MONEY_PHRASES: RegExp[] = [/\brefund/i, /\bcredit note/i, /\bdebit note/i, /\bpremium\b.*\b(?:outstanding|unpaid|overdue)/i, /\b(?:outstanding|unpaid|overdue)\b.*\bpremium/i, /\bowed\b/i]
+const MONEY_PHRASES: RegExp[] = [/\brefund/i, /\bcredit note/i, /\bdebit note/i, /\bpremium\b.*\b(?:outstanding|unpaid|overdue)/i, /\b(?:outstanding|unpaid|overdue)\b.*\bpremium/i, /\bowed\b/i]
 
 const RENEWABLE = new Set(['renewal', 'endorsement', 'new_quote'])
 const MONEY_TYPES = new Set(['premium_billing'])
 
-export const dayOf = (iso: string | null | undefined): string | null => (iso ? String(iso).slice(0, 10) : null)
+const dayOf = (iso: string | null | undefined): string | null => (iso ? String(iso).slice(0, 10) : null)
 const daysBetween = (fromIso: string, now: Date) => Math.floor((now.getTime() - Date.parse(fromIso)) / DAY)
 
 /** True when the client has an expired policy of a class with no live successor. */
@@ -119,9 +118,4 @@ export function homeBridgeOf(caseType: string): HomeBridge {
   if (caseType === 'claim') return 'claims'
   if (caseType === 'endorsement' || caseType === 'member_movement' || caseType === 'premium_billing') return 'endorsements'
   return 'rfq'
-}
-
-/** Sort key for cards: most urgent first, then the longest wait. */
-export function cardOrder(a: { level: PendingLevel; days: number }, b: { level: PendingLevel; days: number }): number {
-  return LEVEL_RANK[a.level] - LEVEL_RANK[b.level] || b.days - a.days
 }

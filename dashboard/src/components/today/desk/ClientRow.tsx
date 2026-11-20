@@ -20,7 +20,6 @@ import { DraftCard } from './DraftCard'
 import { InlineConfirm } from './InlineConfirm'
 
 const SIDE_LABEL: Record<DeskSide, string> = { client: 'To client', insurer: 'To insurer' }
-const SIDE_TONE: Record<DeskSide, string> = { client: 'bg-trs-info-bg text-trs-info', insurer: 'bg-trs-select-bg text-trs-select-fg' }
 const first = (s: string) => s.split(/[\s@]/)[0]
 
 export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNotice, projectsOn = false }: {
@@ -106,17 +105,15 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
     </ul>
   )
   const sideGrid = (g: ProjectGroup, emptyBoxes: boolean) => (
-    <div className="grid grid-cols-1 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-x-8 md:grid-cols-2">
       {(['client', 'insurer'] as const).map(s => {
         const ds = g.drafts.filter(d => d.side === s)
         return (
-          <div key={s} className={`flex min-w-0 flex-col gap-3 p-4 ${s === 'client' ? 'md:border-r md:border-trs-line' : ''}`}>
-            <div className={`flex h-8 items-center justify-center gap-2 rounded-[8px] text-[13px] font-semibold ${SIDE_TONE[s]}`}>
-              {SIDE_LABEL[s]} <span className="font-mono text-[12px] font-medium">{ds.length}</span>
-            </div>
+          <div key={s} className="flex min-w-0 flex-col gap-3 py-3">
+            <span className="self-start"><Chip>{SIDE_LABEL[s]} <span className="font-mono">{ds.length}</span></Chip></span>
             {ds.map(draftCard)}
             {ds.length === 0 && emptyBoxes && (
-              <div className="flex min-h-[56px] items-center justify-center rounded-[10px] border border-dashed border-trs-line-2 px-3 text-center text-[13px] text-trs-muted">
+              <div className="text-[13px] text-trs-muted">
                 {read ? 'No draft. Tick a suggestion above to draft one.' : 'No draft. Read to get suggestions.'}
               </div>
             )}
@@ -131,8 +128,8 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   const left = row.drafts.length
 
   return (
-    <section className="rounded-[12px] border border-trs-line-2 bg-white overflow-hidden">
-      <header className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5 pl-2 pr-3 bg-trs-tint ${open ? 'border-b border-trs-line' : ''}`}>
+    <section className="bg-white scroll-mt-20" data-company={row.companyId ?? undefined}>
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5">
         <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Open'} ${row.companyName}`} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-[7px] border-0 bg-transparent text-trs-ink cursor-pointer hover:bg-trs-field">
           <ChevronRight size={16} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
         </button>
@@ -149,13 +146,13 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
         {mine && <Btn size="xs" level="tertiary" onClick={remove} disabled={!!busy}>Remove</Btn>}
       </header>
 
-      {error && <p className="m-0 px-4 pt-2.5 text-[13px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 md:pl-[42px] pt-1.5 text-[13px] text-trs-neg" role="alert">{error}</p>}
 
       {!open && (
-        <button type="button" onClick={onToggle} className="grid w-full grid-cols-1 md:grid-cols-2 border-0 bg-white p-0 text-left cursor-pointer">
+        <button type="button" onClick={onToggle} className="grid w-full grid-cols-1 gap-x-8 md:grid-cols-2 border-0 bg-white p-0 text-left cursor-pointer">
           {(['client', 'insurer'] as const).map(s => (
-            <span key={s} className={`flex min-w-0 flex-col gap-1 py-2.5 pl-[50px] pr-4 ${s === 'client' ? 'md:border-r md:border-trs-line' : ''}`}>
-              <span className={`self-start rounded-full px-2 py-[1px] text-[11.5px] font-medium ${SIDE_TONE[s]}`}>{SIDE_LABEL[s]}</span>
+            <span key={s} className="flex min-w-0 flex-col gap-1 py-1.5 md:pl-[42px] pr-4">
+              <span className="self-start"><Chip>{SIDE_LABEL[s]}</Chip></span>
               {foldSummary({ ...row, read }, s).map((l, i) => <Line key={i} l={l} />)}
             </span>
           ))}
@@ -165,7 +162,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
       {open && (
         <>
           {read && (
-            <div className="px-4 py-3 border-b border-trs-line flex flex-col gap-2">
+            <div className="md:pl-[42px] py-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-trs-green"><Sparkles size={13} /> Summary</span>
                 <span className="text-[12px] text-trs-muted">Read {timeAgo(read.at)} by {first(read.by)}</span>
@@ -184,7 +181,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                             ? <span className="mt-[2px] w-[13px]" aria-hidden />
                             : <input type="checkbox" aria-label={s.title} checked={ticked.has(s.id)} onChange={() => setTicked(t => { const n = new Set(t); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} className="mt-[3px]" />}
                         <span className="min-w-0 flex-1">
-                          <span className={`mr-1.5 rounded-full px-1.5 py-[1px] text-[11px] font-medium ${s.party === 'insurer' ? SIDE_TONE.insurer : s.party === 'client' ? SIDE_TONE.client : 'bg-trs-field text-trs-ink-2'}`}>{s.kind === 'action' ? 'Action' : s.party === 'insurer' ? (s.insurer ?? 'Insurer') : 'Client'}</span>
+                          <Chip className="mr-1.5">{s.kind === 'action' ? 'Action' : s.party === 'insurer' ? (s.insurer ?? 'Insurer') : 'Client'}</Chip>
                           <span className="font-medium text-trs-ink">{s.title}</span>
                           {s.to && <span className="text-trs-muted"> · {s.to.name ?? s.to.email}</span>}
                           {s.source && <span className={`ml-1.5 rounded-full px-1.5 py-[1px] text-[11px] font-medium ${s.source === 'thread' ? 'bg-trs-pos-bg text-trs-pos' : 'bg-trs-warn-bg text-trs-warn'}`} title={s.source === 'thread' ? 'This person is already on the client’s threads.' : 'Picked from the Insurers page: not yet on the client’s threads.'}>{s.source === 'thread' ? 'On the thread' : 'From Insurers list'}</span>}
@@ -217,19 +214,19 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
 
           {!hasProjects ? (
             <>
-              {threadsOpen && <div className="px-4 py-2.5 border-b border-trs-line">{threadList(row.threads)}</div>}
-              {sideGrid(groups[0] ?? { project: null, note: null, threads: [], drafts: [] }, true)}
+              {threadsOpen && <div className="md:pl-[42px] py-2.5">{threadList(row.threads)}</div>}
+              <div className="md:pl-[42px]">{sideGrid(groups[0] ?? { project: null, note: null, threads: [], drafts: [] }, true)}</div>
             </>
           ) : groups.map(g => (
-            <section key={g.project ?? '(client)'} aria-label={g.project ?? row.companyName} className="border-b border-trs-line last:border-b-0">
+            <section key={g.project ?? '(client)'} aria-label={g.project ?? row.companyName} className="md:pl-[42px] pt-4">
               {g.project && (
-                <header className="flex flex-wrap items-baseline gap-x-2 px-4 pt-3">
+                <header className="flex flex-wrap items-baseline gap-x-2">
                   <span className="text-[14px] font-semibold text-trs-ink">{g.project}</span>
                   {g.note && <span className="text-[12.5px] text-trs-muted">{g.note}</span>}
                   <span className="text-[12px] text-trs-subtle">{g.threads.length} thread{g.threads.length === 1 ? '' : 's'}</span>
                 </header>
               )}
-              {g.threads.length > 0 && <div className="px-4 pt-2.5">{threadList(g.threads)}</div>}
+              {g.threads.length > 0 && <div className="pt-2.5">{threadList(g.threads)}</div>}
               {g.drafts.length > 0 && sideGrid(g, false)}
               {g.drafts.length === 0 && <div className="h-3" />}
             </section>
@@ -264,7 +261,7 @@ function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject }
   return (
     <li className="flex flex-col gap-1.5 text-[13px]">
       <span className="flex flex-wrap items-center gap-2">
-        <span className={`rounded-full px-2 py-[1px] text-[11.5px] font-medium ${SIDE_TONE[t.side]}`}>{t.side === 'client' ? 'Client' : 'Insurer'}</span>
+        <Chip>{t.side === 'client' ? 'Client' : 'Insurer'}</Chip>
         <Link href={threadHref(t.threadId)} className="font-medium text-trs-ink">{t.subject}</Link>
         <span className="text-trs-muted">{t.messages} email{t.messages === 1 ? '' : 's'}{t.lastAt ? ` · ${fmtDay(t.lastAt)}` : ''}{t.lastInbound ? ' · waiting on TRS' : ''}</span>
         {mine && (

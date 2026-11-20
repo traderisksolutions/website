@@ -1,6 +1,6 @@
 # TRS Dashboard — Design System
 
-The page is white. Fills are for badges, tinted table headers, and hover
+The page is white. Fills are for badges and hover
 states only — never a full section. Separation between surfaces reads as a
 hairline border (or a border expressed as a `box-shadow` ring — see below),
 not a drop shadow or a distinct background color. One navy accent
@@ -75,7 +75,7 @@ now resolve to flat white + hairline border, with `--shadow-panel` /
 
 ### Never add a border for:
 - Cards floating on the page background (shadow carries the weight)
-- Table header rows (tinted background separates from body)
+- Table header rows (one dark rule under the head separates it from the body)
 - Chips, tags, badges, filter pills (bg tint is the signal)
 - Hover state on cards or links (use shadow intensify or bg tint)
 - Nested sections inside a card (spacing separates)
@@ -127,14 +127,14 @@ now resolve to flat white + hairline border, with `--shadow-panel` /
 
 ## Table rules
 
-One look for every table in the staff app (Jarod, 14 Nov 2026): `.trs-table` in `globals.css`, applied by `Register` and every hand-built table. Email bodies, PDFs and client-facing pages keep their own.
+One look for every table in the staff app: the 19 Nov 2026 ledger (see the table at the top). `.trs-table` in `globals.css`, applied by `Register` and every hand-built table. Email bodies, PDFs and client-facing pages keep their own. The 14 Nov header band and zebra rows are retired.
 
 | Part | Rule |
 | --- | --- |
-| Frame | 1px `#dcdfd9` outer border, 10px radius (the `Register` card) |
-| Header | `#f0f2ee` band, 12.5px muted, 36px, sticky; **every header centred** |
-| Rows | 48px; every second row `#f9faf8`; hover `#e9f2ec`; selected `--trs-soft` |
-| Lines | 1px `#e3e6e0` under every row and between columns; none after the last |
+| Frame | No outer box |
+| Header | White, 12px muted semibold, 40px, one dark rule (`#0f1412`) under it; **every header centred** |
+| Rows | 46px; no zebra; hover `#faf9f6`; selected `--trs-mint` with a green left edge |
+| Lines | 1px `#e6e8e4` under every row and between columns |
 
 **Cell alignment, decided per column:**
 - **Centred:** numbers, amounts, counts, dates, badges and status chips, short words (owner first name, line, stage, Yes/No).

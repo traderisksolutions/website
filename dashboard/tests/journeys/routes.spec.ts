@@ -68,8 +68,22 @@ test('policy page links to its claims, debit notes and the company', async ({ pa
   await expect(page.locator(`a[href="/debit-notes?company_id=${p.company_id}"]`).first()).toHaveText('Debit notes')
 })
 
-test('Today › Coming up: a renewal names its policy as a link', async ({ page }) => {
-  await openClean(page, '/today/queue')
-  await page.getByRole('radio', { name: /^Coming up/ }).click()
-  await expect(page.locator('a[href^="/policies/"]').first()).toBeVisible({ timeout: 30_000 })
+test('TOD-047 Calendar › Employment Benefits renewals: each renewal names its policy and opens its census', async ({ page }) => {
+  await openClean(page, '/calendar')
+  await page.getByRole('radiogroup', { name: 'Calendar view' }).getByRole('radio', { name: /^Employment Benefits renewals/ }).click()
+  await expect(page).toHaveURL(/view=eb/)
+  const table = page.getByRole('table', { name: 'Employment Benefits renewals' })
+  await expect(table).toBeVisible({ timeout: 30_000 })
+  const census = table.getByRole('link', { name: 'Open census' }).first()
+  test.skip(!(await census.count()), 'No Employment Benefits policy ends in the next 120 days.')
+  await expect(table.locator('a[href^="/policies/"]').first()).toBeVisible()
+  await expect(census).toHaveAttribute('href', /^\/eb(\?company=[0-9a-f-]{36})?$/)
+})
+
+test('TOD-048 a calendar that fails to load says so and offers Retry, not an empty month', async ({ page }) => {
+  await page.route('**/api/calendar/events?*', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
+  await openClean(page, '/calendar')
+  await expect(page.getByRole('alert').getByText(/The calendar did not load/)).toBeVisible()
+  await expect(page.getByText('Nothing due this month.')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
 })
