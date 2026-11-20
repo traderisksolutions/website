@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — "Since you were away" removed
+
+- The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.
+
 ## 2026-11-20 — Today is the home page; Employment Benefits Quotation register
 
 - Home is retired (Jarod, 20 Nov 2026). `/` redirects to `/today`; the logo, sign-in and the login page's default all land on Today. The Home map, its To do list, mail list and canvas (`src/components/home/` except `Board.tsx`) and `/api/today/home` are deleted. `/today/queue` and `/board` stay.
