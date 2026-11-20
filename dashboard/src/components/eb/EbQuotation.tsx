@@ -39,6 +39,7 @@ import { DocColumn, FileRow, type FoundFile } from './EbDocs'
 import { EbTiers } from './EbTiers'
 import { EbCompare } from './EbCompare'
 import { ProposalSection } from './ProposalSection'
+import { EbCensusReview, EbOptionalFiles } from './EbCensusReview'
 import { fmtMoney0 } from './eb-format'
 
 type Mode = 'brochure' | 'insurer'
@@ -47,6 +48,13 @@ type SchedFile = Src & { id: string; busy: boolean; error?: string; schedule?: I
 type BrochureCol = Extract<EbColumn, { kind: 'brochure' | 'copy' }>
 type Reopened = { quotation?: { id: string; company_id: string | null; company_name: string; version: number }; edit: EditState | null; census?: CensusLife[]; products: string[]; effectiveDate: string; basis: 'renewal' | 'new_business'; picks: Record<string, Record<string, Record<CoverKey, string>>> }
 type Keep = { columns?: BrochureCol[]; legacy?: Reopened['picks'] }
+type SchemeRead = { at: string | null; by: string | null }
+type SchemeView = { plan_year: string; census: SchemeRead | null; last_year: SchemeRead | null }
+type SchemeAnswer = {
+  tables?: boolean; plan_year?: string | null; previous?: { plan_year: string; members: Member[] } | null
+  scheme?: { plan_year: string; effective_date: string | null; basis: 'renewal' | 'new_business' | null; insurer: string | null; census: { file: string; members: Member[] } | null; census_read_at: string | null; census_read_by: string | null; last_year: LastYear | null; last_year_read_at: string | null; last_year_read_by: string | null } | null
+}
+const readBy = (r: SchemeRead | null | undefined) => r?.at ? `read ${fmtDate(r.at)}${r.by ? ` by ${r.by.split('@')[0]}` : ''}` : null
 
 const nextMonthFirst = () => { const t = new Date(Date.now() + 8 * 3600_000); const y = t.getUTCMonth() === 11 ? t.getUTCFullYear() + 1 : t.getUTCFullYear(); return `${y}-${String((t.getUTCMonth() + 1) % 12 + 1).padStart(2, '0')}-01` }
 const newId = (p: string) => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -68,6 +76,11 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   const [sources, setSources] = useState<FoundFile[]>([])
   const [docs, setDocs] = useState<FoundFile[]>([])
   const [schedSources, setSchedSources] = useState<FoundFile[]>([])
+  const [optional, setOptional] = useState<(FoundFile & { kind: string })[]>([])
+  // The scheme file (docs/eb-v2.md P2): what was read for this client and plan year, and the year before.
+  const [scheme, setScheme] = useState<SchemeView | null>(null)
+  const [previous, setPrevious] = useState<{ plan_year: string; members: Member[] } | null>(null)
+  const fromScheme = useRef<{ census: boolean; lastYear: boolean }>({ census: false, lastYear: false })
   const [threads, setThreads] = useState<number | null>(null)
   const [current, setCurrent] = useState('')
   // Census
@@ -101,9 +114,9 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     if (!threadId && !pick.id) return
     const q = new URLSearchParams(); if (threadId) q.set('thread', threadId); if (pick.id) q.set('company', pick.id)
     let cancelled = false
-    fetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: FoundFile[]; documents?: FoundFile[]; schedules?: FoundFile[]; threads?: number; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
+    fetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: FoundFile[]; documents?: FoundFile[]; schedules?: FoundFile[]; optional?: (FoundFile & { kind: string })[]; threads?: number; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
       if (cancelled) return
-      setSources(d.sources ?? []); setDocs(d.documents ?? []); setSchedSources(d.schedules ?? []); setThreads(d.threads ?? null)
+      setSources(d.sources ?? []); setDocs(d.documents ?? []); setSchedSources(d.schedules ?? []); setOptional(d.optional ?? []); setThreads(d.threads ?? null)
       if (d.companyName) setPick(p => p.name ? p : { id: d.companyId ?? null, name: d.companyName! })
       if (d.currentInsurer) setCurrent(c => c || insurerOf(d.currentInsurer))
     }).catch(() => {})
@@ -119,9 +132,65 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   const lastCompany = useRef<string | null>(null)
   useEffect(() => {
     const key = pick.id ?? (pick.name.trim().toLowerCase() || null)
-    if (lastCompany.current && key !== lastCompany.current) { clearCensus(); clearPolicy(); setSchedules([]); setSources([]); setDocs([]); setSchedSources([]); setThreads(null); setCurrent(''); setError(null) }
+    if (lastCompany.current && key !== lastCompany.current) { clearCensus(); clearPolicy(); setSchedules([]); setSources([]); setDocs([]); setSchedSources([]); setOptional([]); setThreads(null); setCurrent(''); setError(null); setScheme(null); setPrevious(null) }
     lastCompany.current = key
   }, [pick.id, pick.name])
+
+  // The client's scheme file: the newest plan year opens as it was read, unless a quotation, an
+  // HR link or a read in this session already filled the page.
+  useEffect(() => {
+    if (!pick.id || quotationId || hrLinkId) return
+    let cancelled = false
+    fetch(`/api/eb/scheme?company=${pick.id}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
+      if (cancelled || !d.tables || !d.scheme) return
+      const sc = d.scheme
+      setScheme({ plan_year: sc.plan_year, census: sc.census ? { at: sc.census_read_at, by: sc.census_read_by } : null, last_year: sc.last_year ? { at: sc.last_year_read_at, by: sc.last_year_read_by } : null })
+      setPrevious(d.previous ?? null)
+      setMembers(m => {
+        if (m || !sc.census?.members?.length) return m
+        fromScheme.current.census = true
+        setFile({ name: sc.census.file })
+        setIncluded(censusCategories(sc.census.members).slice(0, MAX_CATEGORIES).map(c => c.name))
+        if (sc.effective_date) setEffDate(sc.effective_date)
+        if (sc.basis) setBasis(sc.basis)
+        return sc.census.members
+      })
+      setLastYear(ly => {
+        if (ly || !sc.last_year) return ly
+        fromScheme.current.lastYear = true
+        if (sc.insurer) setCurrent(c => c || sc.insurer!)
+        return sc.last_year
+      })
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [pick.id, quotationId, hrLinkId])
+
+  // The previous plan year follows the start date.
+  useEffect(() => {
+    if (!pick.id || !/^\d{4}-\d{2}-\d{2}$/.test(effDate)) return
+    let cancelled = false
+    fetch(`/api/eb/scheme?company=${pick.id}&effective=${effDate}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
+      if (!cancelled && d.tables) setPrevious(d.previous ?? null)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [pick.id, effDate])
+
+  /** Keeps what was read in this session in the scheme file for the plan year being priced. */
+  function keepInScheme() {
+    if (!pick.id || !members) return
+    const body: Record<string, unknown> = { company_id: pick.id, effective_date: effDate, basis, insurer: current || null }
+    if (!fromScheme.current.census) body.census = { file: file?.name ?? 'Census', members }
+    if (lastYear && !fromScheme.current.lastYear) {
+      body.last_year = lastYear
+      body.last_year_files = [...uploads.map(f => ({ name: f.name })), ...docIds.map(id => ({ name: docs.find(x => x.attachment_id === id)?.filename ?? 'Document', attachment_id: id }))]
+    }
+    void fetch('/api/eb/scheme', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json()).then((d: { scheme?: SchemeAnswer['scheme'] }) => {
+      const sc = d.scheme
+      if (!sc) return
+      fromScheme.current = { census: !!sc.census, lastYear: !!sc.last_year }
+      setScheme({ plan_year: sc.plan_year, census: sc.census ? { at: sc.census_read_at, by: sc.census_read_by } : null, last_year: sc.last_year ? { at: sc.last_year_read_at, by: sc.last_year_read_by } : null })
+    }).catch(() => {})
+  }
 
   /** A census read in full (an HR link's list, a reopened quotation): every category, the first four ticked. */
   function takeCensus(name: string, ms: Member[]) {
@@ -203,6 +272,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
         setError('No people were read from this file. Check it is the census.'); return
       }
       setCensusAi(false)
+      fromScheme.current.census = false
       setMembers(ms)
       setIncluded(censusCategories(ms).slice(0, MAX_CATEGORIES).map(c => c.name))
     } catch (e) { setError(e instanceof Error ? e.message : 'The census could not be read.') }
@@ -228,6 +298,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       const d = await res.json().catch(() => ({})) as { read?: LastYear; error?: string }
       if (!res.ok || !d.read) { setError(d.error ?? `Last year's policy could not be read (${res.status}).`); return }
       const ly = d.read
+      fromScheme.current.lastYear = false
       setLastYear(ly); setPriced(null)
       if (ly.periodTo) { const n = new Date(`${ly.periodTo}T00:00:00Z`); n.setUTCDate(n.getUTCDate() + 1); setEffDate(n.toISOString().slice(0, 10)) }
       setBasis('renewal')
@@ -282,6 +353,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       const d = await res.json().catch(() => ({})) as Priced & { error?: string }
       if (!res.ok || !d.categories) { setError(d.error ?? `The premiums were not worked out (${res.status}).`); return }
       setPriced(d)
+      if (!keep) keepInScheme()
       const legacy = keep?.legacy
       const reopened = keep?.columns
       const brochures: BrochureCol[] = d.products.map(p => {
@@ -330,7 +402,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   const unaged = priced?.notes.map(n => n.match(/^(\d+) (?:life has|lives have) no date of birth/)?.[1]).find(Boolean)
 
   const censusAdded = file ? [
-    <FileRow key="census" name={file.name} meta={members ? `${members.length} lives · ${cats.length} ${cats.length === 1 ? 'category' : 'categories'} · read` : reading ? 'Reading every tab…' : censusAi ? 'No rows read by code' : needsPassword ? 'Password-protected' : undefined}>
+    <FileRow key="census" name={file.name} meta={members ? [`${members.length} lives · ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}`, fromScheme.current.census && scheme ? `Scheme file ${scheme.plan_year} · ${readBy(scheme.census) ?? 'read'}` : 'read'].join(' · ') : reading ? 'Reading every tab…' : censusAi ? 'No rows read by code' : needsPassword ? 'Password-protected' : undefined}>
       {censusAi && !members && <Btn size="xs" loading={reading} disabled={reading} onClick={() => void readCensus(file, undefined, true)}>Read with AI</Btn>}
       {(members || censusAi || needsPassword) && <Btn size="xs" level="tertiary" onClick={() => void removeCensus()}>Remove</Btn>}
     </FileRow>,
@@ -381,6 +453,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
           )}
         </div>
 
+        <EbOptionalFiles files={optional} />
+
         {needsPassword && file && (
           <div className="flex flex-wrap items-end gap-2">
             <Field label={needsPassword.wrong ? 'That password does not open the file' : 'This file is password-protected'}>
@@ -395,7 +469,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
         {lastYear && (
           <div className="flex flex-col gap-1 text-body">
             <div className="flex flex-wrap items-center gap-3"><span className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</span><Btn size="xs" level="tertiary" onClick={() => void removePolicy()}>Remove policy read</Btn></div>
-            <div className="text-trs-muted">{[lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null ? `${fmtMoney0(lyNet)} a year, net of GST` : 'No premium read'].filter(Boolean).join(' · ')}</div>
+            <div className="text-trs-muted">{[fromScheme.current.lastYear && scheme ? `Scheme file ${scheme.plan_year} · ${readBy(scheme.last_year) ?? 'read'}` : null, lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null ? `${fmtMoney0(lyNet)} a year, net of GST` : 'No premium read'].filter(Boolean).join(' · ')}</div>
             {lastYear.conflicts.map(c => <div key={c} className="text-trs-warn">{c}</div>)}
           </div>
         )}
@@ -430,6 +504,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
               </tbody>
             </Register>
             <p className="m-0 text-small text-trs-muted">{chosen.reduce((a, c) => a + c.employees, 0)} employees in this quotation · spouses and children not counted as headcount</p>
+            <EbCensusReview members={members} effectiveDate={effDate} previous={previous} />
             <div className="flex flex-wrap items-end gap-4">
               <Field label="Policy start date"><Input id="eb-start" type="date" value={effDate} onChange={e => { setEffDate(e.target.value); setPriced(null) }} /></Field>
               <Field label="Basis"><Segmented size="sm" label="Basis" value={basis} onChange={v => { setBasis(v); setPriced(null) }} options={[{ value: 'renewal', label: 'Renewal' }, { value: 'new_business', label: 'New business' }]} /></Field>
