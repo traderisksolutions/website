@@ -171,7 +171,7 @@ export function ConversationList({
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-trs-ink', PAD[density])}>
                   <span className="mt-[7px] w-2 h-2 rounded-full" aria-hidden />
                   <span className="min-w-0 text-body font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
-                  <span className="text-small tabular-nums pt-0.5 whitespace-nowrap text-trs-subtle">{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  <span className="text-small tabular-nums pt-0.5 whitespace-nowrap text-trs-subtle">{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', timeZone: 'Asia/Singapore' })}</span>
                   <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-0.5 text-trs-ink-2">
                     <b className="font-medium text-trs-ink">Draft</b> · to {d.to_email || '—'}
                   </span>

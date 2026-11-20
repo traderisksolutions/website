@@ -49,7 +49,7 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
       <span className="w-[112px] flex-shrink-0 text-body font-medium truncate">{name}</span>
       <span className="flex-1 min-w-0 text-body truncate text-trs-ink-2">{subject}</span>
       {holder && <span className="flex-shrink-0 text-small text-trs-warn">{holder}</span>}
-      <span className="text-small tabular-nums whitespace-nowrap flex-shrink-0 text-trs-subtle">{timeAgo(timestamp)}</span>
+      <span suppressHydrationWarning className="text-small tabular-nums whitespace-nowrap flex-shrink-0 text-trs-subtle">{timeAgo(timestamp)}</span>
     </button>
   )
 
@@ -62,7 +62,7 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
         {density === 'standard' && type && <span className="flex-shrink-0 text-small text-trs-muted">{type}</span>}
         {holder && <span className="flex-shrink-0 text-small text-trs-warn">{holder}</span>}
       </span>
-      <span className="text-small tabular-nums whitespace-nowrap text-trs-subtle">{timeAgo(timestamp)}</span>
+      <span suppressHydrationWarning className="text-small tabular-nums whitespace-nowrap text-trs-subtle">{timeAgo(timestamp)}</span>
       <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-px text-trs-ink-2" title={lead.subject ?? undefined}>
         {company ? <><b className="font-medium text-trs-ink">{company}</b> · </> : null}{subject}
       </span>

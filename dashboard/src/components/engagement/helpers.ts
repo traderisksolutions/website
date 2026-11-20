@@ -98,12 +98,14 @@ export function fileBadge(filename: string | null | undefined, mime?: string | n
 }
 
 /** "Mon, 28 Sept · 06:33" for the message header; "Thu, 25 Sept" for the one-line rows. */
+const SG = 'Asia/Singapore'
 export function fmtWhen(iso: string | null, withTime = true): string {
   if (!iso) return '—'
   const d = new Date(iso)
-  const date = d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })
+  // Singapore time on the server too: the Inbox renders on a UTC server and must match the browser.
+  const date = d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short', timeZone: SG })
   if (!withTime) return date
-  return `${date} · ${d.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false })}`
+  return `${date} · ${d.toLocaleTimeString('en-SG', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: SG })}`
 }
 
 /** The trailing signature, when a known marker makes it certain: our own outbound signature

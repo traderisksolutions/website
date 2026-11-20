@@ -113,7 +113,9 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<EngagementTab>('all')
   const [search, setSearch] = useState('')
   // Operations first; the developer account starts on every mailbox (Jarod, 20 Nov 2026).
-  const [mailbox, setMailbox] = useState(() => (seesAllMail(pageUser()?.email) ? 'all' : 'operations'))
+  const [mailbox, setMailbox] = useState('operations')
+  // The developer account starts on every mailbox; set after hydration so the server's HTML matches.
+  useEffect(() => { if (seesAllMail(pageUser()?.email)) setMailbox('all') }, [])
   const [counts, setCounts] = useState<EngagementNavCounts>(EMPTY_COUNTS)
   const [refreshing, setRefreshing] = useState(false)
   const [onRefresh, setOnRefresh] = useState<(() => void) | null>(null)

@@ -13,6 +13,7 @@ export interface BrowserUser {
   user_metadata: { name?: string | null; full_name?: string | null }
 }
 
+import { useSyncExternalStore } from 'react'
 import { from } from './query-shim'
 
 declare global { interface Window { __TRS_USER__?: BrowserUser | null } }
@@ -44,4 +45,13 @@ export function createClient() {
       },
     },
   }
+}
+
+const noop = () => () => {}
+/**
+ * The signed-in user's email in a component that renders on the server too. During hydration it
+ * answers null, as the server did, then the page's user, so server and browser HTML match.
+ */
+export function useViewerEmail(): string | null {
+  return useSyncExternalStore(noop, () => pageUser()?.email?.toLowerCase() ?? null, () => null)
 }

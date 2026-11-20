@@ -223,7 +223,7 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
             <p className="m-0 text-body font-medium truncate text-trs-ink" >{name}</p>
             <Recipients msg={msg} toNames={toNames} isOut={isOut} email={email} />
           </div>
-          <time className="ml-auto flex-shrink-0 text-small whitespace-nowrap text-trs-subtle" title={msg.sent_at ? new Date(msg.sent_at).toLocaleString('en-SG', { dateStyle: 'full', timeStyle: 'short' }) : undefined}>{fmtWhen(msg.sent_at)}</time>
+          <time suppressHydrationWarning className="ml-auto flex-shrink-0 text-small whitespace-nowrap text-trs-subtle" title={msg.sent_at ? new Date(msg.sent_at).toLocaleString('en-SG', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Singapore' }) : undefined}>{fmtWhen(msg.sent_at)}</time>
         </header>
         {newSender && <p className="m-0 mb-3 text-body text-trs-muted" >New sender in this thread. This address has not written here before.</p>}
         <MessageBody msg={msg} name={name} textBody={textBody} />

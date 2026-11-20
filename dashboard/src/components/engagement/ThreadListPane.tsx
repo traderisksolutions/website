@@ -7,7 +7,7 @@ import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { Btn, Segmented } from '@/components/crm/primitives'
 import { ConversationList } from './ConversationList'
 import type { Density } from './ThreadRow'
-import { pageUser } from '@/lib/supabase/client'
+import { useViewerEmail } from '@/lib/supabase/client'
 import { seesAllMail } from '@/lib/mail/visibility'
 
 /**
@@ -69,7 +69,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
   const n = activeTab === 'drafts' ? counts.drafts : total
 
   // Who is reading: the developer account picks any mailbox; everyone else has Operations and Me.
-  const viewer = pageUser()?.email?.toLowerCase() ?? null
+  const viewer = useViewerEmail()
   const seesAll = seesAllMail(viewer)
   const me = viewer
 
