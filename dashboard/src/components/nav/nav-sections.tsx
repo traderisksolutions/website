@@ -24,7 +24,7 @@ export type Place = {
 /**
  * The top bar (1 Nov 2026 revamp): nine flat places, no drop-downs. Every page that the old
  * menus reached is a tab of one place, or sits under the avatar (ACCOUNT_LINKS). A path belongs
- * to the place holding the longest tab href that prefixes it, so /companies/triage is Today and
+ * to the place holding the longest tab href that prefixes it, so /companies/portfolio/desk is Admin desk and
  * /companies/<id> is Clients. Today (2 Nov 2026) took Work's slot; the queue is its second tab.
  */
 export const PLACES: Place[] = [
@@ -39,6 +39,8 @@ export const PLACES: Place[] = [
     { title: 'Nexus', href: '/nexus' },
     { title: 'Portfolio', href: '/companies/portfolio' },
     { title: 'Admin desk', href: '/companies/portfolio/desk' },
+    // Jarod, 20 Nov 2026: Unfiled threads (with the Referrals review) is a Clients tab.
+    { title: 'Unfiled threads', href: '/companies/triage' },
   ] },
   // Jarod, 19 Nov 2026: one home for Employment Benefits. The register of quotations moved here
   // from Quotes, which no longer carries it. 20 Nov 2026: New quotation · Quotation register
