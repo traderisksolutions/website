@@ -4,6 +4,7 @@ import { autofileThread } from '@/lib/crm/autofile'
 import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
+import { refreshThreadSearch } from '@/lib/search/thread-search-server'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
 import { enqueue }              from '@/lib/agent-tasks/queue'
@@ -795,6 +796,11 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
     body:    JSON.stringify(participants),
   })
+
+  // 3c. The search index (thread_search, docs/search.md): this thread's row, refreshed after the
+  //     message and its people are stored. One thread, a few small reads; nothing when the table
+  //     is not there yet. Never blocks ingest.
+  waitUntil(refreshThreadSearch(thread.id).catch(e => console.warn('[ingest] search index (non-fatal):', e instanceof Error ? e.message : e)))
 
   // 4a. Placement and policy mail are read by the placement agent from the queue (intake hands
   //     every message on); nothing here reads the message twice.
