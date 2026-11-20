@@ -36,7 +36,7 @@ async function mail(draftId: string, to: string, subject: string, html: string, 
   return callApi<Sent>('/api/email/send', { method: 'POST', body: { draftId, toEmail: to, customSubject: subject, htmlBody: html, fromEmail: from, cc: cc?.length ? cc : undefined, attachments: attachments.length ? attachments : undefined } })
 }
 
-export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, aiExtras }: {
+export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, aiExtras, beforeRead }: {
   threadId: string
   /** Changes when a new message arrives on the thread. */
   refreshKey?: string | null
@@ -46,7 +46,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   actionsFooter?: React.ReactNode
   /** More AI rows from the rail (summary, draft reply), after Read thread. */
   aiExtras?: React.ReactNode
+  /** Runs first when Read thread is pressed (an insurer thread names its client); its line shows under the row. */
+  beforeRead?: () => Promise<string>
 }) {
+  const [readNote, setReadNote] = useState<string | null>(null)
+  useEffect(() => { setReadNote(null) }, [threadId])
   const [bar, setBar] = useState<Bar | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -100,7 +104,11 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     setOutcome(o => ({ ...o, [key]: r }))
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
-  const read = () => run('read', async () => { await post({ action: 'read' }) })
+  const read = () => run('read', async () => {
+    setReadNote(null)
+    if (beforeRead) setReadNote(await beforeRead())
+    await post({ action: 'read' })
+  })
   const execute = (stepIds: string[]) => run('execute', async () => { await post({ action: 'execute', stepIds }) })
   const step = (stepId: string, status: 'todo' | 'done') => run(`step:${stepId}`, async () => { await post({ action: 'step', stepId, status }) })
 
@@ -119,7 +127,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         {bar && st && (
           bar.hold?.noAction ? (
             <ActionItem eyebrow="Held" title="No action needed">
-              <Buttons><Btn size="xs" onClick={clear} disabled={!!busy}>Undo</Btn></Buttons>
+              <Buttons><Btn size="xs" level="tertiary" onClick={clear} disabled={!!busy}>Undo</Btn></Buttons>
             </ActionItem>
           ) : (
             <ActionItem
@@ -136,15 +144,15 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                 {st.kind === 'waiting' && !chaseOpen && (
                   <Btn size="xs" level="primary" onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</Btn>
                 )}
-                {st.kind === 'waiting' && <Btn size="xs" onClick={snooze} disabled={!!busy}>Snooze 3 days</Btn>}
+                {st.kind === 'waiting' && <Btn size="xs" level="tertiary" onClick={snooze} disabled={!!busy}>Snooze 3 days</Btn>}
                 {st.kind === 'reply' && bar.drafts.length === 0 && (
                   <Btn size="xs" level="primary" onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</Btn>
                 )}
                 {bar.enquiry?.stage === 'detected' && (
                   <Btn size="xs" level="primary" onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</Btn>
                 )}
-                {bar.caseItem && <LinkBtn size="xs" href={`/today/${bar.caseItem.id}`}>Open case</LinkBtn>}
-                {st.kind !== 'none' && <Btn size="xs" onClick={noAction} disabled={!!busy}>No action</Btn>}
+                {bar.caseItem && <LinkBtn size="xs" level="tertiary" href={`/today/${bar.caseItem.id}`}>Open case</LinkBtn>}
+                {st.kind !== 'none' && <Btn size="xs" level="tertiary" onClick={noAction} disabled={!!busy}>No action</Btn>}
               </Buttons>
               {elsewhere && <p className="m-0 mt-2 text-small text-trs-muted">The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px] text-trs-ink">Open that thread →</Link></p>}
               {bar.hold?.until && <button type="button" onClick={clear} className={cn(TEXT_LINK, 'mt-2 text-trs-muted')}>Cancel snooze</button>}
@@ -159,7 +167,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
               {s.kind === 'eb_scenarios'
                 ? <LinkBtn size="xs" level="primary" href={`/eb?thread=${threadId}`}>Open census</LinkBtn>
                 : <Btn size="xs" level="primary" onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</Btn>}
-              <Btn size="xs" onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</Btn>
+              <Btn size="xs" level="tertiary" onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</Btn>
             </Buttons>
           </ActionItem>
         ))}
@@ -195,7 +203,8 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
       </Group>
 
       <Group label="AI">
-        <AiRow title="Read thread" detail="Messages, files, policy → next steps as a checklist" action={bar?.read ? 'Read again' : 'Read'} onClick={read} busy={busy === 'read'} disabled={!bar}>
+        <AiRow title="Read thread" detail="Messages, files, policy → next steps as a checklist" action={bar?.read ? 'Read again' : 'Read thread'} onClick={read} busy={busy === 'read'} disabled={!bar}>
+          {readNote && <p className="m-0 mb-1 text-small text-trs-muted">{readNote}</p>}
           {bar?.read && <ReadSteps plan={bar.read} busy={busy} onExecute={execute} onStep={step} onOpenDraft={id => setOpen(id)} />}
         </AiRow>
         {aiExtras}
@@ -215,7 +224,7 @@ function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
   const emails = chosen.filter(s => s.kind === 'email').length, actions = chosen.length - emails
   const who = (s: ReadPlan['steps'][number]) => s.kind === 'email' ? `Email · ${s.to?.name ?? s.to?.email ?? ''}${s.party === 'insurer' && s.insurer ? ` · ${s.insurer}` : s.party === 'client' ? ' · client' : ''}` : 'Action'
   return (
-    <div className="mt-2.5 pl-[19px]" aria-label="Next steps">
+    <div className="mt-1" aria-label="Next steps">
       <p className="m-0 text-body font-medium text-trs-ink">Next steps</p>
       {plan.summary && <p className="m-0 mt-1 text-body text-trs-ink-2">{plan.summary}</p>}
       {plan.situation && <p className="m-0 mt-1 text-small whitespace-pre-line text-trs-muted">{plan.situation}</p>}

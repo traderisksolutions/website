@@ -12,12 +12,16 @@
  *
  * Generate response writes into the composer through `pendingRestore`, the same path a restored
  * draft already uses, so the editor, the draft row and the send flow are untouched.
+ *
+ * The state lives in `useThreadAgent`, owned by the thread view, so the two buttons can sit above
+ * the folded reply line (`ThreadAgentBar`) or in the open composer's footer (`ThreadAgentButtons`)
+ * while the results stay above the composer (`ThreadAgentResults`).
  */
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Sparkles, Search, Paperclip, ExternalLink, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Btn, inputCls } from '@/components/crm/primitives'
+import { Btn, inputCls, type BtnLevel } from '@/components/crm/primitives'
 
 type Citation = { n: number; source: 'message' | 'attachment'; fileName: string | null; sentAt: string | null }
 type NextReply = {
@@ -32,13 +36,10 @@ type Answer = {
   queries: string[]; grounded: boolean; warning: string | null; error?: string
 }
 
-export function ThreadAgentBar({
-  threadId, onDraft,
-}: {
-  threadId: string
-  /** Hands the finished reply to the composer. */
-  onDraft: (bodyHtml: string) => void
-}) {
+export type ThreadAgent = ReturnType<typeof useThreadAgent>
+
+/** The two agents' state for one thread. `onDraft` hands the finished reply to the composer. */
+export function useThreadAgent(threadId: string | null, onDraft: (bodyHtml: string) => void) {
   const [busy, setBusy] = useState<'gen' | 'ask' | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -46,80 +47,106 @@ export function ThreadAgentBar({
   const [asking, setAsking] = useState(false)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<Answer | null>(null)
+  const onDraftRef = useRef(onDraft)
+  onDraftRef.current = onDraft
+  // A reply that lands after the reader moved to another thread is dropped.
+  const liveRef = useRef(threadId)
+  liveRef.current = threadId
+
+  // A new thread starts clean, as the bar did when it remounted per thread.
+  useEffect(() => { setBusy(null); setErr(null); setReply(null); setAsking(false); setQuestion(''); setAnswer(null) }, [threadId])
 
   async function generate() {
+    const tid = threadId
+    if (!tid) return
     setBusy('gen'); setErr(null); setAnswer(null)
     try {
       const res = await fetch('/api/crm/next-reply', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ threadId }),
+        body: JSON.stringify({ threadId: tid }),
       })
       const j = await res.json() as NextReply
+      if (liveRef.current !== tid) return
       if (!res.ok || j.error) { setErr(j.error ?? `Request failed (${res.status})`); return }
       setReply(j)
       // Straight into the reply box. Plain text with blank lines between paragraphs is what the
       // editor expects; the composer converts and remounts on its own.
-      if (j.draft) onDraft(j.draft)
+      if (j.draft) onDraftRef.current(j.draft)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Request failed')
-    } finally { setBusy(null) }
+      if (liveRef.current === tid) setErr(e instanceof Error ? e.message : 'Request failed')
+    } finally { if (liveRef.current === tid) setBusy(null) }
   }
 
   async function ask() {
+    const tid = threadId
     const q = question.trim()
-    if (!q) return
+    if (!q || !tid) return
     setBusy('ask'); setErr(null); setReply(null)
     try {
       const res = await fetch('/api/ask', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q, threadId }),
+        body: JSON.stringify({ question: q, threadId: tid }),
       })
       const j = await res.json() as Answer
+      if (liveRef.current !== tid) return
       if (!res.ok || j.error) { setErr(j.error ?? `Request failed (${res.status})`); return }
       setAnswer(j)
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Request failed')
-    } finally { setBusy(null) }
+      if (liveRef.current === tid) setErr(e instanceof Error ? e.message : 'Request failed')
+    } finally { if (liveRef.current === tid) setBusy(null) }
   }
 
+  const toggleAsk = () => { setAsking(a => !a); setErr(null) }
+  const closeAsk = () => { setAsking(false); setAnswer(null); setQuestion('') }
+
+  return { busy, err, reply, asking, question, setQuestion, answer, generate, ask, toggleAsk, closeAsk }
+}
+
+/** Generate response and Ask AI, at the level the place asks for (secondary above the reply
+ *  line, tertiary beside Send). */
+export function ThreadAgentButtons({ agent, level = 'secondary' }: { agent: ThreadAgent; level?: BtnLevel }) {
+  const { busy, asking } = agent
   return (
-    <div className="px-5 sm:px-10 py-2.5 border-t border-trs-line">
-      <div className="flex flex-wrap items-center gap-2">
-        <Btn level="secondary" size="xs" onClick={generate} disabled={!!busy}>
-          <Sparkles size={13} className={busy === 'gen' ? 'animate-pulse' : ''} />
-          {busy === 'gen' ? 'Reading the client’s file…' : 'Generate response'}
-        </Btn>
+    <>
+      <Btn level={level} size="xs" onClick={() => void agent.generate()} disabled={!!busy}>
+        <Sparkles size={13} className={busy === 'gen' ? 'animate-pulse' : ''} />
+        {busy === 'gen' ? 'Reading the client’s file…' : 'Generate response'}
+      </Btn>
+      <Btn level={level} size="xs" onClick={agent.toggleAsk} disabled={!!busy} aria-pressed={asking} className={cn(asking && 'bg-trs-tint text-trs-ink')}>
+        <Search size={13} /> Ask AI
+      </Btn>
+    </>
+  )
+}
 
-        <Btn level="secondary" size="xs" onClick={() => { setAsking(a => !a); setErr(null) }} disabled={!!busy} className={cn(asking && 'bg-trs-mint')}>
-          <Search size={13} /> Ask AI
-        </Btn>
-
-        {reply && (
-          <span className="text-small tabular-nums text-trs-subtle" >
+/** What the agents returned: the read line, the question field, any error, the reply's notes or the answer. */
+export function ThreadAgentResults({ agent }: { agent: ThreadAgent }) {
+  const { busy, err, reply, asking, question, answer } = agent
+  return (
+    <>
+      {(reply || answer) && (
+        <p className="m-0 text-small tabular-nums text-trs-subtle">
+          {reply && <>
             read {reply.read.threads} thread{reply.read.threads === 1 ? '' : 's'}
             {reply.read.archivePassages > 0 && ` · ${reply.read.archivePassages} passages from ${reply.read.archiveThreads} other`}
             {reply.draft && ' · written into the reply'}
-          </span>
-        )}
-        {answer && (
-          <span className="text-small text-trs-subtle" >
-            this thread only{answer.grounded ? ` · ${answer.sources.length} web sources` : ' · not web-checked'}
-          </span>
-        )}
-      </div>
+          </>}
+          {answer && <>this thread only{answer.grounded ? ` · ${answer.sources.length} web sources` : ' · not web-checked'}</>}
+        </p>
+      )}
 
       {asking && (
         <div className="mt-2.5 flex flex-wrap items-start gap-2">
           <input
-            id="thread-ask" value={question} onChange={e => setQuestion(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void ask() } }}
+            id="thread-ask" value={question} onChange={e => agent.setQuestion(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void agent.ask() } }}
             placeholder="Ask about this thread or its attachments…"
             className={cn(inputCls, 'h-8 w-auto flex-1 min-w-0')}
           />
-          <Btn level="secondary" size="xs" onClick={ask} disabled={!!busy || !question.trim()}>
+          <Btn level="secondary" size="xs" onClick={() => void agent.ask()} disabled={!!busy || !question.trim()}>
             {busy === 'ask' ? 'Reading…' : 'Ask'}
           </Btn>
-          <Btn level="tertiary" size="xs" onClick={() => { setAsking(false); setAnswer(null); setQuestion('') }}
+          <Btn level="tertiary" size="xs" onClick={agent.closeAsk}
             className="w-8 px-0 text-trs-subtle" aria-label="Close">
             <X size={14} />
           </Btn>
@@ -182,6 +209,21 @@ export function ThreadAgentBar({
           )}
         </div>
       )}
+    </>
+  )
+}
+
+/** Is there anything for `ThreadAgentResults` to show. */
+export const hasAgentResults = (a: ThreadAgent) => !!(a.reply || a.answer || a.asking || a.err)
+
+/** The folded state: both buttons above the reply line, the results under them. */
+export function ThreadAgentBar({ agent }: { agent: ThreadAgent }) {
+  return (
+    <div className="px-5 sm:px-10 py-2.5 border-t border-trs-line">
+      <div className="flex flex-wrap items-center gap-2">
+        <ThreadAgentButtons agent={agent} />
+      </div>
+      {hasAgentResults(agent) && <div className="mt-2.5"><ThreadAgentResults agent={agent} /></div>}
     </div>
   )
 }

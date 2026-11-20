@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import {
-  Bold, Italic, Underline as ULIcon, Strikethrough, Baseline,
+  Bold, Italic, Underline as ULIcon, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, IndentIncrease, IndentDecrease, TextQuote,
-  List, ListOrdered, Link2, ImageIcon, Table2, Minus, Paperclip,
+  List, ListOrdered, Link2, ImageIcon, Table2, Minus, Paperclip, MoreHorizontal,
   Undo2, Redo2, RemoveFormatting, Maximize2, Minimize2,
 } from 'lucide-react'
 import type React from 'react'
@@ -38,11 +38,11 @@ interface RichEditorProps {
    *  resizes anything — it only reports the number. */
   onContentHeightChange?: (h: number) => void
   /** 'compact' (default; the campaign, Nexus and inline-reply call sites): 14px body, 12px 14px
-   *  padding. 'reading' (the mail composer and the New email dialog): 16px / 1.6, padding 16px
-   *  on top of the horizontal gutter `--re-gutter` (40px unless the caller sets the variable). */
+   *  padding. 'reading' (the mail composer and the New email pane): 14px / 1.6, 12px top and
+   *  bottom, the horizontal gutter `--re-gutter` at the sides (16px unless the caller sets it). */
   variant?: 'compact' | 'reading'
-  /** Extra toolbar groups (Attach, Template, Assist) rendered after the insert group. Build them
-   *  from TbGroup / TbButton / TbMenu in engagement-agent/compose-toolbar.tsx. */
+  /** Extra toolbar buttons (Attach, Signature) rendered after Link and before More. Build them
+   *  from TbButton / TbMenu in engagement-agent/compose-toolbar.tsx. */
   toolbarExtras?: ReactNode
   /** When `onToggleFullscreen` is given, a full-screen toggle closes the toolbar. */
   fullscreen?:         boolean
@@ -54,6 +54,8 @@ interface RichEditorProps {
   bodyStyle?:     CSSProperties
 }
 
+// No font or size pickers (one font, body 14): the whitelists stay registered so a pasted or
+// restored body that carries them keeps them.
 const FONTS = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana']
 const SIZES = ['10px', '12px', '14px', '16px', '18px', '24px', '32px']
 const TEXT_COLOURS = ['#202124', '#3c4043', '#5f6368', '#80868b', '#c5221f', '#1a73e8', '#188038', '#b06000'] // drift-ok: written into email HTML
@@ -72,7 +74,7 @@ const EDITOR_CSS = `
 .trs-re .ql-editor{height:auto;overflow:visible;outline:none;color:var(--trs-ink);font-family:inherit;white-space:pre-wrap;tab-size:4}
 .trs-re[data-variant="compact"] .ql-editor{font-size:14px;line-height:1.6;padding:12px 14px}
 .trs-re[data-variant="compact"][data-borderless="true"] .ql-editor{padding:14px 0 8px}
-.trs-re[data-variant="reading"] .ql-editor{font-size:16px;line-height:1.6;padding:16px var(--re-gutter,40px) 8px}
+.trs-re[data-variant="reading"] .ql-editor{font-size:14px;line-height:1.6;padding:12px var(--re-gutter,16px)}
 .trs-re .ql-editor p{margin:0 0 14px}
 .trs-re .ql-editor p:last-child{margin-bottom:0}
 .trs-re .ql-editor h1{font-size:1.5em;font-weight:500;letter-spacing:-.02em;margin:0 0 12px}
@@ -85,7 +87,7 @@ const EDITOR_CSS = `
 .trs-re .ql-editor.ql-blank::before{color:var(--trs-subtle);font-style:normal;left:auto;right:auto}
 .trs-re[data-variant="compact"] .ql-editor.ql-blank::before{left:14px}
 .trs-re[data-variant="compact"][data-borderless="true"] .ql-editor.ql-blank::before{left:0}
-.trs-re[data-variant="reading"] .ql-editor.ql-blank::before{left:var(--re-gutter,40px)}
+.trs-re[data-variant="reading"] .ql-editor.ql-blank::before{left:var(--re-gutter,16px)}
 .trs-re .ql-snow .ql-tooltip{display:none}
 `
 
@@ -331,9 +333,6 @@ export function RichEditor({
     if (r) q.removeFormat(r.index, r.length, 'user')
   }
 
-  const headerLabel = HEADERS.find(h => h.value === (fmt.header ?? false))?.label ?? 'Paragraph'
-  const fontLabel   = typeof fmt.font === 'string' ? fmt.font : 'Inter'
-  const sizeLabel   = typeof fmt.size === 'string' ? fmt.size.replace('px', '') : (variant === 'reading' ? '16' : '14')
   const alignActive = typeof fmt.align === 'string' && fmt.align !== ''
 
   const Swatch = ({ colour, on, label, onPick }: { colour: string | null; on: boolean; label: string; onPick: () => void }) => (
@@ -357,115 +356,78 @@ export function RichEditor({
     >
       <style>{EDITOR_CSS}</style>
 
-      {/* ── Toolbar — grouped, one calm row, wraps on narrow ── */}
+      {/* ── Toolbar: one row of icon buttons (B I U, lists, link, attach, signature), then More
+           for everything else. One font and one body size, so no font or size pickers. ── */}
       <div role="toolbar" aria-label="Formatting" className={cn(
-        'flex items-center gap-0.5 flex-wrap py-2 border-b border-trs-line',
-        variant === 'reading' ? 'px-[var(--re-gutter,40px)]' : (borderless ? 'px-0' : 'px-2'),
+        'flex items-center gap-0.5 flex-wrap py-1 border-b border-trs-line',
+        variant === 'reading' ? 'px-2.5' : (borderless ? 'px-0' : 'px-2'),
       )}>
-        <TbGroup label="Paragraph style">
-          <TbMenu label="Paragraph style" trigger={headerLabel} width={170}>
-            {close => HEADERS.map(h => (
-              <TbMenuItem key={h.label} active={(fmt.header ?? false) === h.value} onSelect={() => { apply('header', h.value); close() }}>{h.label}</TbMenuItem>
-            ))}
-          </TbMenu>
-        </TbGroup>
-
         <TbGroup label="Text style">
           <TbButton label="Bold" shortcut={`${MOD}B`} active={!!fmt.bold} onPress={() => apply('bold', !fmt.bold)}><Bold size={15} strokeWidth={2.5} /></TbButton>
           <TbButton label="Italic" shortcut={`${MOD}I`} active={!!fmt.italic} onPress={() => apply('italic', !fmt.italic)}><Italic size={15} strokeWidth={2} /></TbButton>
           <TbButton label="Underline" shortcut={`${MOD}U`} active={!!fmt.underline} onPress={() => apply('underline', !fmt.underline)}><ULIcon size={15} strokeWidth={2} /></TbButton>
-          <TbButton label="Strikethrough" active={!!fmt.strike} onPress={() => apply('strike', !fmt.strike)}><Strikethrough size={15} strokeWidth={2} /></TbButton>
-          <TbMenu label="Text colour and highlight" text={false} active={!!fmt.color || !!fmt.background} trigger={<Baseline size={15} strokeWidth={2} />} width={232}>
-            {close => (
-              <div className="pb-1.5">
-                <TbMenuLabel>Text</TbMenuLabel>
-                <div className="flex flex-wrap gap-1.5 px-2.5">
-                  <Swatch colour={null} on={!fmt.color} label="Default text colour" onPick={() => { apply('color', false); close() }} />
-                  {TEXT_COLOURS.map(c => <Swatch key={c} colour={c} on={fmt.color === c} label={`Text ${c}`} onPick={() => { apply('color', c); close() }} />)}
-                </div>
-                <TbMenuLabel>Highlight</TbMenuLabel>
-                <div className="flex flex-wrap gap-1.5 px-2.5">
-                  <Swatch colour={null} on={!fmt.background} label="No highlight" onPick={() => { apply('background', false); close() }} />
-                  {HIGHLIGHTS.map(c => <Swatch key={c} colour={c} on={fmt.background === c} label={`Highlight ${c}`} onPick={() => { apply('background', c); close() }} />)}
-                </div>
-              </div>
-            )}
-          </TbMenu>
         </TbGroup>
 
-        <TbGroup label="Font">
-          <TbMenu label="Font family" trigger={fontLabel} width={190}>
-            {close => FONTS.map(f => (
-              <TbMenuItem key={f} active={(fmt.font ?? 'Inter') === f} onSelect={() => { apply('font', f === 'Inter' ? false : f); close() }} style={{ fontFamily: f === 'Inter' ? undefined : f }} /* drift-ok: font preview of a choice written into email HTML */>{f}</TbMenuItem>
-            ))}
-          </TbMenu>
-          <TbMenu label="Font size" trigger={sizeLabel} width={110}>
-            {close => (
-              <>
-                <TbMenuItem active={!fmt.size} onSelect={() => { apply('size', false); close() }}>Default</TbMenuItem>
-                {SIZES.map(s => <TbMenuItem key={s} active={fmt.size === s} onSelect={() => { apply('size', s); close() }}>{s.replace('px', '')}</TbMenuItem>)}
-              </>
-            )}
-          </TbMenu>
-        </TbGroup>
-
-        <TbGroup label="Lists and layout">
+        <TbGroup label="Lists">
           <TbButton label="Bulleted list" shortcut={`${MOD}⇧8`} active={fmt.list === 'bullet'} onPress={() => apply('list', fmt.list === 'bullet' ? false : 'bullet')}><List size={16} /></TbButton>
           <TbButton label="Numbered list" shortcut={`${MOD}⇧7`} active={fmt.list === 'ordered'} onPress={() => apply('list', fmt.list === 'ordered' ? false : 'ordered')}><ListOrdered size={16} /></TbButton>
-          <TbButton label="Decrease indent" shortcut="⇧Tab" onPress={() => indent(-1)}><IndentDecrease size={16} /></TbButton>
-          <TbButton label="Increase indent" shortcut="Tab" onPress={() => indent(1)}><IndentIncrease size={16} /></TbButton>
-          <TbMenu label="Align" text={false} active={alignActive} trigger={
-            fmt.align === 'center' ? <AlignCenter size={16} /> : fmt.align === 'right' ? <AlignRight size={16} /> : fmt.align === 'justify' ? <AlignJustify size={16} /> : <AlignLeft size={16} />
-          } width={150}>
-            {close => (
-              <>
-                <TbMenuItem active={!alignActive} onSelect={() => { apply('align', false); close() }}>Left</TbMenuItem>
-                <TbMenuItem active={fmt.align === 'center'} onSelect={() => { apply('align', 'center'); close() }}>Centre</TbMenuItem>
-                <TbMenuItem active={fmt.align === 'right'} onSelect={() => { apply('align', 'right'); close() }}>Right</TbMenuItem>
-                <TbMenuItem active={fmt.align === 'justify'} onSelect={() => { apply('align', 'justify'); close() }}>Justify</TbMenuItem>
-              </>
-            )}
-          </TbMenu>
-          <TbButton label="Quote" active={!!fmt.blockquote} onPress={() => apply('blockquote', !fmt.blockquote)}><TextQuote size={16} /></TbButton>
         </TbGroup>
 
         <TbGroup label="Insert">
           <TbButton label={fmt.link ? 'Remove link' : 'Insert link'} shortcut={`${MOD}K`} active={!!fmt.link} onPress={toggleLink}><Link2 size={16} /></TbButton>
-          <TbButton label="Insert table" onPress={() => {
-            const table = quillRef.current?.getModule('table-better') as TableBetterModule | undefined
-            table?.insertTable(3, 3)
-          }}><Table2 size={16} /></TbButton>
-          <TbMenu label={imgUploading ? 'Uploading image…' : 'Insert image'} text={false} caret={false} disabled={imgUploading} trigger={<ImageIcon size={16} />} width={190}>
+          {onAttachClick && <TbButton label="Attach files" onPress={onAttachClick}><Paperclip size={15} /></TbButton>}
+          {toolbarExtras}
+          <TbMenu label="More formatting" text={false} caret={false} align="left" width={240} trigger={<MoreHorizontal size={16} />}
+            active={!!fmt.strike || !!fmt.color || !!fmt.background || alignActive || !!fmt.blockquote || !!fmt.header || !!fmt.indent}>
             {close => (
-              <>
-                <TbMenuItem onSelect={() => { fileInputRef.current?.click(); close() }}>Upload from device</TbMenuItem>
-                <TbMenuItem onSelect={() => { close(); handleInsertImageUrl() }}>From a link</TbMenuItem>
-              </>
+              <div className="max-h-[60vh] overflow-y-auto">
+                <TbMenuLabel>Text</TbMenuLabel>
+                <TbMenuItem active={!!fmt.strike} onSelect={() => { apply('strike', !fmt.strike); close() }}><span className="inline-flex items-center gap-2"><Strikethrough size={14} /> Strikethrough</span></TbMenuItem>
+                <TbMenuItem active={!!fmt.blockquote} onSelect={() => { apply('blockquote', !fmt.blockquote); close() }}><span className="inline-flex items-center gap-2"><TextQuote size={14} /> Quote</span></TbMenuItem>
+                {HEADERS.map(h => (
+                  <TbMenuItem key={h.label} active={(fmt.header ?? false) === h.value} onSelect={() => { apply('header', h.value); close() }}>{h.label}</TbMenuItem>
+                ))}
+
+                <TbMenuLabel>Colour</TbMenuLabel>
+                <div className="flex flex-wrap gap-1.5 px-2.5 pb-1">
+                  <Swatch colour={null} on={!fmt.color} label="Default text colour" onPick={() => { apply('color', false); close() }} />
+                  {TEXT_COLOURS.map(c => <Swatch key={c} colour={c} on={fmt.color === c} label={`Text ${c}`} onPick={() => { apply('color', c); close() }} />)}
+                </div>
+                <TbMenuLabel>Highlight</TbMenuLabel>
+                <div className="flex flex-wrap gap-1.5 px-2.5 pb-1">
+                  <Swatch colour={null} on={!fmt.background} label="No highlight" onPick={() => { apply('background', false); close() }} />
+                  {HIGHLIGHTS.map(c => <Swatch key={c} colour={c} on={fmt.background === c} label={`Highlight ${c}`} onPick={() => { apply('background', c); close() }} />)}
+                </div>
+
+                <TbMenuLabel>Layout</TbMenuLabel>
+                <TbMenuItem shortcut="⇧Tab" onSelect={() => { indent(-1); close() }}><span className="inline-flex items-center gap-2"><IndentDecrease size={14} /> Decrease indent</span></TbMenuItem>
+                <TbMenuItem shortcut="Tab" onSelect={() => { indent(1); close() }}><span className="inline-flex items-center gap-2"><IndentIncrease size={14} /> Increase indent</span></TbMenuItem>
+                <TbMenuItem active={!alignActive} onSelect={() => { apply('align', false); close() }}><span className="inline-flex items-center gap-2"><AlignLeft size={14} /> Align left</span></TbMenuItem>
+                <TbMenuItem active={fmt.align === 'center'} onSelect={() => { apply('align', 'center'); close() }}><span className="inline-flex items-center gap-2"><AlignCenter size={14} /> Centre</span></TbMenuItem>
+                <TbMenuItem active={fmt.align === 'right'} onSelect={() => { apply('align', 'right'); close() }}><span className="inline-flex items-center gap-2"><AlignRight size={14} /> Align right</span></TbMenuItem>
+                <TbMenuItem active={fmt.align === 'justify'} onSelect={() => { apply('align', 'justify'); close() }}><span className="inline-flex items-center gap-2"><AlignJustify size={14} /> Justify</span></TbMenuItem>
+
+                <TbMenuLabel>Insert</TbMenuLabel>
+                <TbMenuItem onSelect={() => {
+                  const table = quillRef.current?.getModule('table-better') as TableBetterModule | undefined
+                  table?.insertTable(3, 3); close()
+                }}><span className="inline-flex items-center gap-2"><Table2 size={14} /> Table</span></TbMenuItem>
+                <TbMenuItem disabled={imgUploading} onSelect={() => { fileInputRef.current?.click(); close() }}><span className="inline-flex items-center gap-2"><ImageIcon size={14} /> {imgUploading ? 'Uploading image…' : 'Image from device'}</span></TbMenuItem>
+                <TbMenuItem disabled={imgUploading} onSelect={() => { close(); handleInsertImageUrl() }}><span className="inline-flex items-center gap-2"><ImageIcon size={14} /> Image from a link</span></TbMenuItem>
+                <TbMenuItem onSelect={() => { insertEmbedAtCursor('divider', true); close() }}><span className="inline-flex items-center gap-2"><Minus size={14} /> Divider</span></TbMenuItem>
+
+                <TbMenuLabel>Edit</TbMenuLabel>
+                <TbMenuItem onSelect={() => { clearFormatting(); close() }}><span className="inline-flex items-center gap-2"><RemoveFormatting size={14} /> Clear formatting</span></TbMenuItem>
+                <TbMenuItem shortcut={`${MOD}Z`} disabled={!canUndo} onSelect={() => { quillRef.current?.history.undo(); close() }}><span className="inline-flex items-center gap-2"><Undo2 size={14} /> Undo</span></TbMenuItem>
+                <TbMenuItem shortcut={`⇧${MOD}Z`} disabled={!canRedo} onSelect={() => { quillRef.current?.history.redo(); close() }}><span className="inline-flex items-center gap-2"><Redo2 size={14} /> Redo</span></TbMenuItem>
+                {onToggleFullscreen && (
+                  <TbMenuItem shortcut={fullscreen ? 'Esc' : undefined} onSelect={() => { onToggleFullscreen(); close() }}>
+                    <span className="inline-flex items-center gap-2">{fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />} {fullscreen ? 'Exit full screen' : 'Full screen'}</span>
+                  </TbMenuItem>
+                )}
+              </div>
             )}
           </TbMenu>
-          <TbButton label="Divider" onPress={() => insertEmbedAtCursor('divider', true)}><Minus size={16} /></TbButton>
-        </TbGroup>
-
-        {(onAttachClick || toolbarExtras) && (
-          <>
-            {onAttachClick && (
-              <TbGroup label="Attach">
-                <TbButton label="Attach files" text onPress={onAttachClick}><Paperclip size={15} /> Attach</TbButton>
-              </TbGroup>
-            )}
-            {toolbarExtras}
-          </>
-        )}
-
-        <TbGroup label="History">
-          <TbButton label="Undo" shortcut={`${MOD}Z`} disabled={!canUndo} onPress={() => quillRef.current?.history.undo()}><Undo2 size={16} /></TbButton>
-          <TbButton label="Redo" shortcut={`⇧${MOD}Z`} disabled={!canRedo} onPress={() => quillRef.current?.history.redo()}><Redo2 size={16} /></TbButton>
-          <TbButton label="Clear formatting" onPress={clearFormatting}><RemoveFormatting size={16} /></TbButton>
-          {onToggleFullscreen && (
-            <TbButton label={fullscreen ? 'Exit full screen' : 'Full screen'} shortcut={fullscreen ? 'Esc' : undefined} active={!!fullscreen} onPress={onToggleFullscreen}>
-              {fullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </TbButton>
-          )}
         </TbGroup>
 
         <Input
@@ -490,7 +452,7 @@ export function RichEditor({
           <div
             className={cn(
               'pointer-events-none select-none opacity-70 border-t border-trs-line pt-3 pb-3',
-              variant === 'reading' ? 'mx-[var(--re-gutter,40px)]' : (borderless ? 'mx-0' : 'mx-3.5'),
+              variant === 'reading' ? 'mx-[var(--re-gutter,16px)]' : (borderless ? 'mx-0' : 'mx-3.5'),
             )}
             dangerouslySetInnerHTML={{ __html: sigHtml.replace(/^\s*(<br\s*\/?>)?\s*<hr[^>]*>/i, '') }}
           />

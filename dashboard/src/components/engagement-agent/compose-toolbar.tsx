@@ -164,26 +164,37 @@ export function TbMenuLabel({ children }: { children: ReactNode }) {
 
 // ─── Fields ────────────────────────────────────────────────────────────────────────────────────
 
-/** One addressing row: 56px label, content, optional faint control at the right. Hairline under. */
-export function FieldRow({ label, htmlFor, children, right, className, tall }: {
+/** One addressing row, Outlook-style: the label inline at the left (fixed width, small, muted),
+ *  the content, an optional small control at the right. 40px on a hairline; grows only when
+ *  its chips wrap. */
+export function FieldRow({ label, htmlFor, children, right, className }: {
   label:      string
   htmlFor?:   string
   children:   ReactNode
   right?:     ReactNode
   className?: string
-  /** Chip rows may wrap onto a second line; keep 40px as the minimum, not a fixed height. */
+  /** Kept for callers; every row is now a 40px minimum that grows when chips wrap. */
   tall?:      boolean
 }) {
   return (
-    <div className={cn('flex items-center gap-3 px-[var(--re-gutter,40px)] border-b border-trs-line text-body', tall ? 'min-h-10 py-1' : 'h-10', className)}>
-      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-body text-trs-muted">{label}</label>
-      <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">{children}</div>
-      {right && <div className="ml-auto flex items-center gap-2 flex-shrink-0 text-small text-trs-subtle">{right}</div>}
+    <div className={cn('flex items-center gap-2 min-h-10 py-1 px-[var(--re-gutter,16px)] border-b border-trs-line text-body', className)}>
+      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-small text-trs-muted">{label}</label>
+      <div className="flex-1 min-w-0 flex items-center gap-1 flex-wrap">{children}</div>
+      {right && <div className="ml-auto flex items-center gap-1 flex-shrink-0 text-small text-trs-muted">{right}</div>}
     </div>
   )
 }
 
-/** Recipient chip: grey pill, 18px ink initial, name. */
+/** A small text control at the end of a row (Bcc, Cc): 24px, no fill until hover. */
+export function RowTextButton({ children, onClick, label }: { children: ReactNode; onClick: () => void; label?: string }) {
+  return (
+    <Btn level="tertiary" size="xs" onClick={onClick} aria-label={label} className="h-6 px-1.5 border-0 text-small font-normal text-trs-muted hover:bg-trs-field">
+      {children}
+    </Btn>
+  )
+}
+
+/** Recipient chip: 24px, the name only, × to remove; the full address on hover. */
 export function RecipientChip({ name, email, onRemove, onClick, title }: {
   name:      string
   email?:    string
@@ -191,22 +202,20 @@ export function RecipientChip({ name, email, onRemove, onClick, title }: {
   onClick?:  () => void
   title?:    string
 }) {
-  const initial = (name || email || '?').trim().charAt(0).toUpperCase()
   const Tag: 'button' | 'span' = onClick ? 'button' : 'span'
   return (
-    <span className="inline-flex items-center gap-1.5 h-6 rounded-full bg-trs-field pl-1 pr-2 text-body max-w-full text-trs-ink" title={title ?? email ?? name}>
+    <span className="inline-flex items-center gap-1 h-6 rounded bg-trs-field pl-2 pr-1 text-body max-w-full text-trs-ink" title={title ?? email ?? name}>
       <Tag
-        {...(onClick ? { type: 'button', onClick, className: 'inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer min-w-0 text-inherit' } : { className: 'inline-flex items-center gap-1.5 min-w-0' })}
+        {...(onClick ? { type: 'button', onClick, className: 'inline-flex items-center bg-transparent border-0 p-0 cursor-pointer min-w-0 text-inherit' } : { className: 'inline-flex items-center min-w-0' })}
       >
-        <span aria-hidden className="w-5 h-5 rounded-full bg-trs-green text-white text-small font-medium inline-flex items-center justify-center flex-shrink-0">{initial}</span>
         <span className="truncate">{name || email}</span>
       </Tag>
-      {onRemove && (
+      {onRemove ? (
         <Btn level="tertiary" size="xs" onClick={onRemove} aria-label={`Remove ${name || email}`} title="Remove"
-          className="w-4 h-4 rounded-full border-0 p-0 hover:bg-trs-line-2 text-trs-muted">
+          className="w-4 h-4 min-w-0 rounded-full border-0 p-0 hover:bg-trs-line-2 text-trs-muted">
           <X size={11} strokeWidth={2} />
         </Btn>
-      )}
+      ) : <span aria-hidden className="w-1" />}
     </span>
   )
 }
