@@ -8,6 +8,9 @@ import type { LinePosition, Placement, PlacementQuote } from '@/lib/placement/ty
 import type { PolicyView } from '@/components/policies/types'
 import { Input } from '@/components/ui/input'
 import { callApi, dialogCls, errText } from './shared'
+import { unwrap } from '@/lib/action-result'
+import { issue as issueDebitNoteAction } from '@/app/debit-notes/actions'
+import type { IssueInput } from '@/lib/debit-notes/server'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const addDays = (ymd: string, n: number) => { const d = new Date(`${ymd}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return iso(d) }
@@ -78,7 +81,7 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           ? { lifecycle: 'live', policy_number: number.trim(), start_date: start, end_date: end, insurer: quote?.insurer_name }
           : { start_date: start, end_date: end } })
       }
-      const r = await callApi<Issued>('/api/debit-notes', { method: 'POST', body: {
+      const r = unwrap(await issueDebitNoteAction({
         company: { companyId: placement.company_id },
         contact: placement.client_contact_id ? { contactId: placement.client_contact_id } : null,
         policy: policy ? { policyId: policy.id } : {
@@ -90,7 +93,7 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           gstAmount: gst.trim() ? Number(gst.replace(/[^0-9.]/g, '')) : null, issueDate, paymentDueDate: dueDate || null,
           insurer: quote?.insurer_name ?? null, eventType: 'new_business', source: 'manual', origin: 'new',
         },
-      } })
+      } as unknown as IssueInput)) as unknown as Issued
       setIssued(r)
       onDone()
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }

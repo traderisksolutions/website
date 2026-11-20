@@ -19,6 +19,9 @@ import { DebitNotePreviewPanel } from '@/components/debit-notes/DebitNotePreview
 import type { ExtractedDebitNote, DocType } from '@/lib/debit-note-extract'
 import type { DebitNotePdfData, DebitNoteBankProfile } from '@/lib/debit-note-pdf'
 import { InsurerOptions, INSURER_OPTIONS_ID } from '@/components/insurers/InsurerOptions'
+import { unwrap } from '@/lib/action-result'
+import * as dn from '../actions'
+import type { BundleApproval } from '@/lib/debit-notes/server'
 
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: DocType | null; status: string; error_message: string | null }
 type Bundle = {
@@ -42,8 +45,8 @@ export default function NewDebitNotePage() {
 
   const loadBundles = useCallback(() => {
     setLoadingBundles(true)
-    fetch('/api/debit-notes/imports/bundles', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
+    dn.bundles()
+      .then(r => (r.ok ? r.data : []) as unknown as Bundle[])
       .then((rows: Bundle[]) => setBundles(Array.isArray(rows) ? rows.filter(b => b.status !== 'approved' && b.status !== 'rejected') : []))
       .finally(() => setLoadingBundles(false))
   }, [])
@@ -58,7 +61,7 @@ export default function NewDebitNotePage() {
   }, [bundles, loadBundles])
 
   async function extractBundle(id: string) {
-    await fetch(`/api/debit-notes/imports/bundles/${id}/extract`, { method: 'POST' })
+    await dn.extract(id)
   }
 
   async function uploadOne(file: File): Promise<{ storage_url: string; original_filename: string }> {
@@ -75,9 +78,7 @@ export default function NewDebitNotePage() {
       try {
         const uploaded = await uploadOne(all[0])
         setProgress({ total: 1, done: 1 })
-        const created = await fetch('/api/debit-notes/imports/bundles/from-zip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(uploaded) })
-        const bundle = await created.json()
-        if (!created.ok) throw new Error(bundle.error ?? 'Could not unpack the zip')
+        const bundle = unwrap(await dn.createBundleFromZip(uploaded.storage_url))
         await extractBundle(bundle.id)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Upload failed')
@@ -97,9 +98,7 @@ export default function NewDebitNotePage() {
         uploaded.push(await uploadOne(file))
         setProgress(p => p && { ...p, done: p.done + 1 })
       }
-      const created = await fetch('/api/debit-notes/imports/bundles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ files: uploaded }) })
-      const bundle = await created.json()
-      if (!created.ok) throw new Error(bundle.error ?? 'Could not register the bundle')
+      const bundle = unwrap(await dn.createBundle(uploaded))
       await extractBundle(bundle.id)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Upload failed')
@@ -116,7 +115,7 @@ export default function NewDebitNotePage() {
   async function cancelBundle(id: string) {
     setCancelling(id)
     try {
-      await fetch(`/api/debit-notes/imports/bundles/${id}/reject`, { method: 'POST' })
+      await dn.reject(id)
       loadBundles()
     } finally { setCancelling(null) }
   }
@@ -194,7 +193,7 @@ const fieldLabelCls = 'text-body font-medium text-trs-ink'
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
 type PolicyLookup = { id: string; policyNumber: string | null; classOfInsurance: string | null; startDate: string | null; endDate: string | null; hasDebitNotes: boolean; matchedBy: 'number' | 'base' | 'term' } | null
-/** A policy the reviewer can tag an endorsement to — /api/policies/lookup?list=1. */
+/** A policy the reviewer can tag an endorsement to — policyLookup({ list: true }). */
 type PolicyOption = { id: string; policyNumber: string | null; classOfInsurance: string | null; startDate: string | null; endDate: string | null }
 
 const fmtDay = (d: string | null) => d ? new Date(d).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
@@ -259,10 +258,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   const [previewData, setPreviewData] = useState<DebitNotePdfData | null>(null)
 
   useEffect(() => {
-    const params = new URLSearchParams({ currency })
-    if (recipient?.companyId) params.set('companyId', recipient.companyId)
-    fetch(`/api/debit-notes/preview-context?${params}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
+    dn.previewContext(currency, recipient?.companyId ?? null)
+      .then(r => r.ok ? r.data : null)
       .then(d => {
         setBankProfile(d?.bankProfile ?? null)
         setCompany(d?.company ?? null)
@@ -303,9 +300,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   async function retryExtraction() {
     setRetrying(true); setErr(null)
     try {
-      const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/extract`, { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Extraction failed again')
+      unwrap(await dn.extract(bundle.id))
       onResolved()
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not retry extraction') } finally { setRetrying(false) }
   }
@@ -317,8 +312,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (eventTypeTouched || !policyNumber.trim()) return
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/policies/lookup?policy_number=${encodeURIComponent(policyNumber.trim())}`, { cache: 'no-store' })
-        const found = res.ok ? await res.json() as PolicyLookup : null
+        const r = await dn.policyLookup({ policy_number: policyNumber.trim() })
+        const found = r.ok ? r.data as PolicyLookup | null : null
         if (!found?.hasDebitNotes) return
         const samePeriod = found.startDate === (periodStart || null) && found.endDate === (periodEnd || null)
         setEventType(samePeriod ? 'endorsement' : 'renewal')
@@ -335,12 +330,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (eventType !== 'endorsement' || !recipient?.companyId || masterPolicyTouched) return
     const t = setTimeout(async () => {
       try {
-        const qs = new URLSearchParams({ company_id: recipient.companyId! })
-        if (policyNumber.trim()) qs.set('policy_number', policyNumber.trim())
-        if (classOfInsurance.trim()) qs.set('class_of_insurance', classOfInsurance.trim())
-        if (periodEnd) qs.set('period_end', periodEnd)
-        const res = await fetch(`/api/policies/lookup?${qs}`, { cache: 'no-store' })
-        const found = res.ok ? await res.json() as PolicyLookup | null : null
+        const r = await dn.policyLookup({ company_id: recipient.companyId!, policy_number: policyNumber.trim() || undefined, class_of_insurance: classOfInsurance.trim() || undefined, period_end: periodEnd || undefined })
+        const found = r.ok ? r.data as PolicyLookup | null : null
         if (found?.id) setMasterPolicyId(found.id)
       } catch { /* best-effort pre-selection only */ }
     }, 400)
@@ -354,8 +345,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/policies/lookup?company_id=${encodeURIComponent(recipient.companyId!)}&list=1`, { cache: 'no-store' })
-        const rows = res.ok ? await res.json() as PolicyOption[] : []
+        const r = await dn.policyLookup({ company_id: recipient.companyId!, list: true })
+        const rows = r.ok ? r.data as unknown as PolicyOption[] : []
         if (!cancelled) setPolicyOptions(Array.isArray(rows) ? rows : [])
       } catch { if (!cancelled) setPolicyOptions([]) }
     })()
@@ -370,8 +361,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (debitNoteNoTouched || !issueDate) return
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/debit-notes/next-number?issueDate=${encodeURIComponent(issueDate)}`, { cache: 'no-store' })
-        const data = res.ok ? await res.json() as { debitNoteNo?: string } : null
+        const r = await dn.nextDebitNoteNumber(issueDate)
+        const data = r.ok ? r.data : null
         if (data?.debitNoteNo) setDebitNoteNo(data.debitNoteNo)
       } catch { /* best-effort suggestion only */ }
     }, 400)
@@ -395,12 +386,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   async function saveDraft() {
     setSaving(true); setErr(null); setSaved(false)
     try {
-      const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ merged: currentMerged() }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not save draft')
+      unwrap(await dn.saveBundle(bundle.id, currentMerged()))
       setSaved(true); setTimeout(() => setSaved(false), 2500)
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save draft') } finally { setSaving(false) }
   }
@@ -409,9 +395,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (!recipient?.companyId || !insurer.trim() || !grossPremium) { setErr('Company, insurer and a premium amount are required.'); return }
     setBusy(true); setErr(null)
     try {
-      const res = await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/approve`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const data = unwrap(await dn.approve(bundle.id, {
           company: { companyId: recipient.companyId },
           contact: recipient.contactId ? { contactId: recipient.contactId } : null,
           // Tagged to an existing policy when one is picked; otherwise open-ended, and the
@@ -433,17 +417,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             eventType, endorsementEffectiveDate: eventType === 'endorsement' ? (endorsementEffectiveDate || null) : null,
             origin: 'new' as const,
           },
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not approve')
+        } as unknown as BundleApproval)) as { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl?: string | null }
       setApproved({ debitNoteId: data.debitNoteId, debitNoteNo: data.debitNoteNo, downloadUrl: data.downloadUrl, driveFolderUrl: data.driveFolderUrl ?? null })
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not approve') } finally { setBusy(false) }
   }
 
   async function reject() {
     setBusy(true)
-    await fetch(`/api/debit-notes/imports/bundles/${bundle.id}/reject`, { method: 'POST' })
+    await dn.reject(bundle.id)
     setBusy(false); onResolved()
   }
 
@@ -451,9 +432,9 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
     if (!approved) return
     setBusy(true); setErr(null)
     try {
-      const res = await fetch(`/api/debit-notes/${approved.debitNoteId}`, { cache: 'no-store' })
-      const detail = await res.json()
-      if (!res.ok) throw new Error(detail.error ?? 'Could not load debit note')
+      // The full row with its company, policy and contact embeds, read untyped as the route returned it.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const detail = unwrap(await dn.debitNote(approved.debitNoteId)) as any
       setSendTarget({
         debitNoteId: approved.debitNoteId, debitNoteNo: approved.debitNoteNo,
         companyName: detail.companies?.name ?? null, contactEmail: detail.contacts?.email ?? null,

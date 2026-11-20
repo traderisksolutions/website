@@ -6,6 +6,8 @@ import { Btn, Field, inputCls, textareaCls } from './primitives'
 import { fmtMoney, fmtDate, todaySGT } from '@/lib/format'
 import { CHANNEL_LABEL, type ReceiptChannel } from '@/lib/crm/receipts'
 import type { PaymentDerived } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { recordPayment } from '@/app/finance/actions'
 
 const CHANNELS: ReceiptChannel[] = ['trs', 'insurer', 'writeoff']
 /**
@@ -47,20 +49,14 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
     if (!note) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch('/api/finance/receipts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      unwrap(await recordPayment({
           debitNoteId: note.id,
           amount: entered,
           receivedOn,
           channel,
           reference,
           note: memo,
-        }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not record that payment.')
+        }))
       onDone()
       onClose()
     } catch (e) {

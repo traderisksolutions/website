@@ -12,6 +12,8 @@ import { RecordPaymentDialog } from '@/components/crm/RecordPaymentDialog'
 import { fmtMoney, fmtDate } from '@/lib/format'
 import { CHANNEL_LABEL, type Receipt } from '@/lib/crm/receipts'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { reconciliation, removeReceipt } from './actions'
 
 const COLS = 6
 
@@ -47,8 +49,8 @@ export default function FinancePage() {
   const [undoing, setUndoing] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    fetch(`/api/finance/reconciliation${view === 'all' ? '?settled=1' : ''}`, { cache: 'no-store' })
-      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error ?? 'Could not load.'); setData(d) })
+    reconciliation(view === 'all')
+      .then(r => { if (!r.ok) throw new Error(r.error); setData(r.data as unknown as typeof data) })
       .catch(e => setError(e instanceof Error ? e.message : String(e)))
   }, [view])
 
@@ -68,9 +70,7 @@ export default function FinancePage() {
   async function undo(receiptId: string) {
     setUndoing(receiptId)
     try {
-      const res = await fetch(`/api/finance/receipts/${receiptId}`, { method: 'DELETE' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not undo that.')
+      unwrap(await removeReceipt(receiptId))
       load()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
