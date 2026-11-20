@@ -1,5 +1,6 @@
 'use client'
 
+import { FileButton } from '@/components/filing/FileButton'
 import { useMemo, useState, type MouseEvent } from 'react'
 import { ChevronRight, Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -370,7 +371,7 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
           return (
             <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white border border-trs-line">
               <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small font-semibold bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <a href={href} target="_blank" rel="noreferrer" className="block text-body font-medium truncate no-underline hover:underline text-trs-ink" >{a.filename}</a>
                 <span className="block mt-0.5 text-small text-trs-subtle" >
                   {formatBytes(a.size_bytes) && <span className="mr-1.5">{formatBytes(a.size_bytes)}</span>}
@@ -378,6 +379,7 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
                   <a href={href} download={a.filename} className="underline decoration-trs-subtle underline-offset-[3px] cursor-pointer text-trs-ink">Download</a>
                 </span>
               </span>
+              <span className="flex-shrink-0"><FileButton attachmentId={a.id} /></span>
             </li>
           )
         })}
