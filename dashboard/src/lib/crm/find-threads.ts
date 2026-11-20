@@ -1,4 +1,4 @@
-/** Searching a company's unfiled mail by name (GET /api/companies/[id]/find-threads). Pure. */
+/** Searching a company's unfiled mail by name (findUnfiledThreads in find-threads-server.ts). Pure. */
 
 /** The words of a company name worth searching a subject for: "Acme Engineering Pte Ltd" → "Acme Engineering". */
 export function nameProbe(name: string): string | null {

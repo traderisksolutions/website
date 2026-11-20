@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
 import { Input } from '@/components/ui/input'
 import type { Answer } from '@/lib/admin/k/ask'
+import { askClient } from '@/app/companies/[id]/actions'
 
 export function AskClient({ companyId }: { companyId: string }) {
   const [q, setQ] = useState('')
@@ -21,10 +22,9 @@ export function AskClient({ companyId }: { companyId: string }) {
     if (question.length < 3) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/companies/${companyId}/ask`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) })
-      const d = await res.json().catch(() => ({})) as Answer & { error?: string }
-      if (!res.ok) { setError(d.error ?? `No answer (${res.status}).`); return }
-      setOut({ ...d, question })
+      const r = await askClient(companyId, question)
+      if (!r.ok) { setError(r.error); return }
+      setOut({ ...(r.data as Answer), question })
     } catch (e) { setError(e instanceof Error ? e.message : 'No answer.') } finally { setBusy(false) }
   }
 

@@ -7,6 +7,8 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Btn } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
+import { unwrap } from '@/lib/action-result'
+import { addCompanyContact } from '@/app/companies/[id]/actions'
 
 /**
  * The company + recipient picker used by "Generate Debit Note", the PDF bulk-import review queue
@@ -125,13 +127,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     if (!value || !newEmail.trim()) return
     setSavingContact(true); setError(null)
     try {
-      const res = await fetch(`/api/companies/${value.companyId}/contacts`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newEmail.trim(), name: newName.trim() || undefined, phone: newPhone.trim() || undefined }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not save contact')
-      const c: CompanyContact = data.contact
+      const c = unwrap(await addCompanyContact(value.companyId, { email: newEmail.trim(), name: newName.trim() || undefined, phone: newPhone.trim() || undefined })) as CompanyContact
       setContacts(prev => prev.some(p => p.id === c.id) ? prev : [...prev, c])
       pickContact(c)
       setNewEmail(''); setNewName(''); setNewPhone('')

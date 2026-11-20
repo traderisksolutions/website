@@ -9,6 +9,8 @@ import { RecordPaymentDialog } from './RecordPaymentDialog'
 import { fmtMoney, fmtDate } from '@/lib/format'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { paymentReminder } from '@/app/companies/[id]/actions'
 
 /** Status in words only. A note past its due date is still awaiting payment. */
 const STATUS_LABEL: Record<DerivedPaymentStatus, string> = { paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Awaiting payment' }
@@ -44,9 +46,7 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
     setDrafting(true); setError(null)
     try {
       const ids = selected.size ? Array.from(selected) : open.map(n => n.id)
-      const res = await fetch(`/api/companies/${companyId}/payments/reminder`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ debitNoteIds: ids }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not draft the reminder.')
+      const d = unwrap(await paymentReminder(companyId, { debitNoteIds: ids }))
       openEngagementCompose(d.draft)
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); setDrafting(false) }
   }

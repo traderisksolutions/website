@@ -63,22 +63,6 @@
   "sb": 2,
   "fetch": 0
  },
- "src/app/api/companies/[id]/ask/route.ts": {
-  "sb": 9,
-  "fetch": 0
- },
- "src/app/api/companies/[id]/contacts/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/companies/[id]/find-threads/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/companies/[id]/payments/reminder/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/companies/[id]/route.ts": {
   "sb": 4,
   "fetch": 0
@@ -591,6 +575,10 @@
   "sb": 3,
   "fetch": 0
  },
+ "src/lib/admin/k/ask-server.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
  "src/lib/admin/k/deposit.ts": {
   "sb": 14,
   "fetch": 0
@@ -779,6 +767,10 @@
   "sb": 9,
   "fetch": 0
  },
+ "src/lib/crm/find-threads-server.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
  "src/lib/crm/identity.ts": {
   "sb": 4,
   "fetch": 0
@@ -789,6 +781,10 @@
  },
  "src/lib/crm/overview.ts": {
   "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/crm/payment-reminder-server.ts": {
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/crm/payments-server.ts": {

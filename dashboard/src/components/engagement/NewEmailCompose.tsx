@@ -8,6 +8,7 @@ import { useAutocomplete, SuggestionList } from '@/components/engagement/Recipie
 import { useConfirm } from '@/components/ui/confirm'
 import { X, Trash2, Signature } from 'lucide-react'
 import { Btn } from '@/components/crm/primitives'
+import { addCompanyContact } from '@/app/companies/[id]/actions'
 import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, TbMenu, TbMenuItem, externalDomain,
 } from '@/components/engagement-agent/compose-toolbar'
@@ -149,10 +150,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
       if (initial.companyId) {
         const addresses = [to.trim(), ...ccList].filter(e => e.includes('@'))
         void Promise.all(addresses.map(email =>
-          fetch(`/api/companies/${initial.companyId}/contacts`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, name: email === to.trim() ? initial.toName : undefined, role: 'stakeholder' }),
-          }).catch(() => {})
+          addCompanyContact(initial.companyId!, { email, name: email === to.trim() ? initial.toName ?? undefined : undefined, role: 'stakeholder' }).catch(() => {})
         ))
       }
 

@@ -5,6 +5,8 @@ import { Sparkles, RefreshCw, Brain } from 'lucide-react'
 import { SectionCard, Btn, Empty } from './primitives'
 import { fmtDate } from '@/lib/format'
 import { STAGE_LABEL, type AiBrief, type Company, type Person, type Stage } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { companyBrief } from '@/app/companies/[id]/actions'
 
 /**
  * "Nexus summary" — one read across every thread with this company, plus who the stakeholders
@@ -24,10 +26,7 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
   async function run(deep: boolean) {
     setBusy(deep ? 'deep' : 'flash'); setError(null)
     try {
-      const res = await fetch(`/api/companies/${company.id}/brief`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ deep }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'The summary could not be generated.')
-      onBrief(d.brief)
+      onBrief(unwrap(await companyBrief(company.id, !!deep)))
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(null) }
   }

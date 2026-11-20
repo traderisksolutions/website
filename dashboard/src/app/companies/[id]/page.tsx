@@ -6,6 +6,8 @@ import { staffUser } from '@/lib/auth/guard'
 import { loadCompanyWorkspace, type CompanyWorkspaceData } from '@/lib/companies/workspace'
 
 export const dynamic = 'force-dynamic'
+// Ask about this client (90 s) and the Nexus summary (150 s) run as server actions from here.
+export const maxDuration = 150
 
 /**
  * The company page: read on the server in one round, handed to the workspace with nothing left to

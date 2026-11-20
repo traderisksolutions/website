@@ -2,7 +2,7 @@
 
 /**
  * A client's threads by where they sit: Active, Back burner, Member movements, each with its
- * label, who it waits on and the open case it is on (GET /api/companies/:id/relevance). Insurer
+ * label, who it waits on and the open case it is on (companyThreadRelevance). Insurer
  * threads that name the client are listed "via <insurer>". A row opens the thread in the reader.
  * Threads in a colleague's mailbox are counted, never listed (INB-002). With no threads at all,
  * Find threads searches the unfiled mail by the company's domains and name.
@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Empty, Segmented, Spinner } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { callApi, errText } from '@/components/placement/shared'
+import { errText } from '@/components/placement/shared'
 import { fmtDate, DASH } from '@/lib/format'
 import { LABEL_NAME } from '@/lib/cases/labels'
 import { RELEVANCE, RELEVANCE_NAME, type Relevance } from '@/lib/cases/relevance'
@@ -19,6 +19,7 @@ import { WAITING_ON_WORD } from '@/lib/crm/waiting-on'
 import type { CompanyRelevance } from '@/lib/cases/sources-store'
 import { unwrap } from '@/lib/action-result'
 import { decideThread } from '@/app/companies/triage/actions'
+import { companyThreadRelevance, findCompanyThreads } from '@/app/companies/[id]/actions'
 
 export function CompanyThreadList({ companyId, onOpen, onLinked }: {
   companyId: string
@@ -33,7 +34,7 @@ export function CompanyThreadList({ companyId, onOpen, onLinked }: {
 
   const load = useCallback(() => {
     setData(null); setError(null)
-    callApi<CompanyRelevance>(`/api/companies/${companyId}/relevance`)
+    companyThreadRelevance(companyId).then(unwrap)
       // Open on the first group that holds anything.
       .then(d => { setData(d); setTab(RELEVANCE.find(r => d.counts[r] > 0) ?? 'active') })
       .catch(e => setError(errText(e)))
@@ -104,7 +105,7 @@ export function FindThreads({ companyId, onLinked }: { companyId: string; onLink
 
   async function find() {
     setBusy('find'); setError(null)
-    try { setFound(await callApi(`/api/companies/${companyId}/find-threads`)) }
+    try { setFound(unwrap(await findCompanyThreads(companyId))) }
     catch (e) { setError(errText(e)) }
     finally { setBusy(null) }
   }

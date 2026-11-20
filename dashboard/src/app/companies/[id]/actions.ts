@@ -19,6 +19,12 @@ import { derivePositions } from '@/lib/placement/position'
 import { isUuid } from '@/lib/placement/api'
 import { listCompanyPolicies } from '@/lib/policies/spine'
 import { companyReviewQueue } from '@/lib/policies/queue'
+import { companyRelevance } from '@/lib/cases/sources-store'
+import { findUnfiledThreads } from '@/lib/crm/find-threads-server'
+import { askAboutClient } from '@/lib/admin/k/ask-server'
+import { generateBrief } from '@/lib/crm/brief'
+import { resolveContact, linkCompanyContact } from '@/lib/debit-note-commit'
+import { draftPaymentReminder } from '@/lib/crm/payment-reminder-server'
 
 function companyId(id: string): string {
   if (!isUuid(id)) throw new Error('Company id is not valid')
@@ -58,6 +64,16 @@ export async function companyActivity(id: string) {
   })
 }
 
+/** The company's threads by relevance (active, back burner, member movements), each with its case. */
+export async function companyThreadRelevance(id: string) {
+  return staffAction('company relevance', async user => companyRelevance(companyId(id), user.email))
+}
+
+/** Unfiled threads from the company's domains or naming it, for Find threads. */
+export async function findCompanyThreads(id: string) {
+  return staffAction('find threads', async user => findUnfiledThreads(companyId(id), user.email))
+}
+
 /** The drafts waiting for review on this company's placements and policies. */
 export async function companyDrafts(id: string) {
   return staffAction('company drafts', async () => companyReviewQueue(companyId(id)))
@@ -84,4 +100,41 @@ export async function createCase(id: string, input: { name: string; description?
     void logActivity({ action: 'case.created', resource_type: 'company', resource_id: id, new_value: { case_id: caseId, name, threads: links.length } })
     return { id: caseId, linked: links.length }
   })
+}
+
+/** Ask about this client: answered from its own repository only, every figure checked (a model call). */
+export async function askClient(id: string, question: string) {
+  return staffAction('ask client', async user => askAboutClient(companyId(id), question, user.email))
+}
+
+/** The Nexus summary of the company (a model call). `deep` reads more of the mail. */
+export async function companyBrief(id: string, deep: boolean) {
+  return staffAction('company brief', async () => {
+    const company = await getCompany(companyId(id))
+    if (!company) throw new Error('Not found')
+    const result = await generateBrief(company, { deep })
+    if (!result.brief) throw new Error(result.error ?? 'No brief produced.')
+    return result.brief
+  })
+}
+
+export type NewContact = { email?: string; name?: string; phone?: string; role?: 'decision_maker' | 'cc' | 'stakeholder' | 'billing' }
+
+/** Adds a person to the company: finds or creates the contact and links it (billing by default). */
+export async function addCompanyContact(id: string, body: NewContact) {
+  return staffAction('add company contact', async () => {
+    const email = body.email?.trim()
+    if (!email) throw new Error('Enter an email address.')
+    const contactId = await resolveContact({ email, name: body.name ?? null, phone: body.phone ?? null, role: body.role })
+    if (!contactId) throw new Error('Could not resolve contact')
+    await linkCompanyContact(companyId(id), contactId, body.role ?? 'billing')
+    const contact = await one('Company contact', db().from('contacts').select('id, first_name, last_name, email, phone').eq('id', contactId).maybeSingle())
+    void logActivity({ action: 'company_contact.added', resource_type: 'company', resource_id: id, new_value: { contact_id: contactId, email } })
+    return contact ?? { id: contactId, first_name: null, last_name: null, email, phone: null }
+  })
+}
+
+/** A payment reminder email for the open debit notes, addressed to the billing contact first. */
+export async function paymentReminder(id: string, body: { debitNoteIds?: string[]; toEmail?: string } = {}) {
+  return staffAction('payment reminder', async () => draftPaymentReminder(companyId(id), body))
 }
