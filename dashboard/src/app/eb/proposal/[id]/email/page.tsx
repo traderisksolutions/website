@@ -5,7 +5,8 @@
  * RichEditor (tables included), the proposal PDF beside it, the checks above Send. The draft is
  * made once on the client thread (POST /api/eb/quotations/<id>/draft); Send goes through
  * /api/email/send unchanged, then the proposal is recorded as sent and the page opens the company
- * on Working on. No model is called.
+ * on Working on. No model is called. Every attachment passes the commission check
+ * (CommissionCheck): Send waits for it, and a blanked file goes as its client copy.
  */
 import { use, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -15,6 +16,7 @@ import { PageHeader } from '@/components/page-header'
 import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
 import { RichEditor } from '@/components/RichEditor'
 import { Checks, PdfPreview, useQuotation } from '@/components/eb/proposal-shared'
+import { CommissionCheck, type CommissionState } from '@/components/email/CommissionCheck'
 import type { ProposalCheck } from '@/lib/gb/eb-proposal'
 
 type Draft = { draftId: string; to: string; cc: string[]; subject: string; html: string; attachment: { filename: string; mime_type: string; storage_url: string }; threadId: string | null }
@@ -38,6 +40,8 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
   const [confirming, setConfirming] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [commission, setCommission] = useState<CommissionState>({ ready: false, attachments: [] })
+  const attachments = useMemo(() => (draft ? [draft.attachment] : []), [draft])
   const q = view?.quotation
 
   async function prepare(toAddress?: string) {
@@ -78,14 +82,14 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
   }
 
   async function send() {
-    if (!draft) return
+    if (!draft || !commission.ready) return
     const toIssue = !EMAIL.test(to.trim()) ? 'To must be one email address.' : null
     const bad = splitCc(cc).filter(e => !EMAIL.test(e))
     if (toIssue || bad.length) { setError(toIssue ?? `Not an email address: ${bad.join(', ')}`); setConfirming(false); return }
     setBusy('send'); setError(null)
     try {
       const res = await fetch('/api/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        draftId: draft.draftId, htmlBody: html, toEmail: to.trim(), cc: splitCc(cc), customSubject: subject, fromEmail: from || null, attachments: [draft.attachment],
+        draftId: draft.draftId, htmlBody: html, toEmail: to.trim(), cc: splitCc(cc), customSubject: subject, fromEmail: from || null, attachments: commission.attachments,
       }) })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) { setError(d.error ?? `The email was not sent (${res.status}).`); setConfirming(false); return }
@@ -140,11 +144,12 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
             </div>
           )}
           {draft && <Checks checks={view.checks} extra={extra} />}
+          {draft && <CommissionCheck attachments={attachments} onChange={setCommission} context={{ resource_type: 'eb_quotation', resource_id: id }} />}
           {confirming && (
             <div className="flex flex-col gap-2 rounded-[10px] border-[1.5px] border-trs-green px-4 py-3" role="alertdialog" aria-label="Send email">
               <p className="m-0 text-[14.5px]">Send to {to.trim()} with Proposal V{q!.version} attached?</p>
               {warn.length > 0 && <p className="m-0 text-[13px] text-trs-muted">{warn.length} check{warn.length === 1 ? '' : 's'} open: {warn.map(w => w.label).join(', ')}</p>}
-              <div className="flex justify-end gap-2"><Btn onClick={() => setConfirming(false)}>Cancel</Btn><Btn level="primary" loading={busy === 'send'} onClick={() => void send()}>Send</Btn></div>
+              <div className="flex justify-end gap-2"><Btn onClick={() => setConfirming(false)}>Cancel</Btn><Btn level="primary" loading={busy === 'send'} disabled={!commission.ready} onClick={() => void send()}>Send</Btn></div>
             </div>
           )}
           {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
@@ -154,7 +159,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
               <Link href={`/eb/proposal/${id}`} className="text-[14px] text-trs-muted no-underline hover:underline">Back to proposal</Link>
               <div className="flex gap-2">
                 <Btn loading={busy === 'save'} disabled={!!busy} onClick={() => void save()}>Save draft</Btn>
-                <Btn level="primary" disabled={!!busy || confirming || !to.trim()} onClick={() => setConfirming(true)}>Send</Btn>
+                <Btn level="primary" disabled={!!busy || confirming || !to.trim() || !commission.ready} onClick={() => setConfirming(true)}>Send</Btn>
               </div>
             </div>
           )}

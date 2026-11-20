@@ -17,6 +17,9 @@ const nextConfig = {
   // from public/ at render time; ship them with every server route so Vercel functions find them.
   outputFileTracingIncludes: {
     '/api/**/*': ['./public/fonts/**', './public/debit-note/**'],
+    // The commission check renders insurer PDF pages; pdf.js needs its own fonts and character
+    // maps for text whose font is not embedded (src/lib/commission/redact.ts).
+    '/api/attachments/commission-check': ['./node_modules/pdfjs-dist/standard_fonts/**', './node_modules/pdfjs-dist/cmaps/**'],
   },
   // Vercel sets VERCEL_GIT_COMMIT_SHA at build time but doesn't expose it to the client bundle
   // on its own — this re-exposes it under NEXT_PUBLIC_ so any page can render "which build is
