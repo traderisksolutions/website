@@ -4,6 +4,11 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Add email threads: each conversation in a thread, with its side
+
+- A thread that holds more than one conversation (a broker forwards the client's email and then writes to the insurer, and the new email is filed under the old thread) lists each one under it: subject, who wrote, the insurer, how many emails, the last date, and Client or Insurer by who wrote it. Picking one adds the thread with that side and client set. `src/lib/mail/conversations.ts`; `?conversations=1` on `/api/engagement/conversations`.
+- Out-of-office replies join the conversation they answer.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

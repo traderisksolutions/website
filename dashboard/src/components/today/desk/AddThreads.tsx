@@ -13,10 +13,12 @@ import { CompanyField, type CompanyPick } from '@/components/group-benefits/Comp
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
 import { participantsLine, type DeskSide, type Participant } from '@/lib/today/desk'
+import type { Conversation } from '@/lib/mail/conversations'
 import type { Suggestion } from '@/lib/today/learn-server'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[] }
-type Pick = { side: DeskSide; client: CompanyPick }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[] }
+/** `via`: the conversation picked inside a thread that holds more than one; its side was set from it. */
+type Pick = { side: DeskSide; client: CompanyPick; via?: string }
 
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
@@ -48,7 +50,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [addedHere, setAddedHere] = useState(0)
 
   useEffect(() => { void (async () => {
-    const r = await fetch('/api/engagement/conversations?people=1', { cache: 'no-store' })
+    const r = await fetch('/api/engagement/conversations?people=1&conversations=1', { cache: 'no-store' })
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
@@ -62,7 +64,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const ctl = new AbortController()
     const timer = setTimeout(() => {
       setSearching(true)
-      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
+      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1&conversations=1`, { cache: 'no-store', signal: ctl.signal })
         .then(r => r.json()).then(j => { setFound(Array.isArray(j) ? j : []); setSearching(false) }).catch(() => {})
     }, 350)
     return () => { clearTimeout(timer); ctl.abort() }
@@ -86,6 +88,18 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
       const side: DeskSide = c.companyKind === 'insurer' ? 'insurer' : 'client'
       const clientId = side === 'insurer' ? c.clientCompanyId : c.companyId
       n.set(c.thread_id, { side, client: clientId ? { id: clientId, name: (side === 'insurer' ? nameOf.get(clientId) : c.companyName) ?? '' } : { id: null, name: '' } })
+      return n
+    })
+  }
+  /** Picks the thread for one of its conversations: that conversation's side, and the client it is about. */
+  function pickConversation(c: Conv, v: Conversation) {
+    setPicked(p => {
+      const n = new Map(p)
+      if (n.get(c.thread_id)?.via === v.subject) { n.delete(c.thread_id); return n }
+      const side: DeskSide = v.side ?? (c.companyKind === 'insurer' ? 'insurer' : 'client')
+      const clientId = c.companyKind === 'insurer' || c.companyKind === 'partner' ? c.clientCompanyId : c.companyId
+      const name = clientId ? (clientId === c.companyId ? c.companyName : nameOf.get(clientId)) ?? '' : ''
+      n.set(c.thread_id, { side, client: clientId ? { id: clientId, name } : { id: null, name: '' }, via: v.subject })
       return n
     })
   }
@@ -152,6 +166,24 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
                           {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
                           {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
+                          {c.conversations && c.conversations.length > 1 && (
+                            <ul aria-label="Conversations in this thread" className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
+                              {c.conversations.map(v => {
+                                const on = p?.via === v.subject
+                                const hit = !!q.trim() && hasWords([v.subject, v.insurer, ...v.people], q.trim().toLowerCase())
+                                return (
+                                  <li key={v.subject}>
+                                    <button type="button" onClick={() => pickConversation(c, v)} aria-pressed={on}
+                                      className={`flex w-full items-baseline gap-2 rounded-[8px] border px-2 py-1 text-left text-[12.5px] cursor-pointer ${on ? 'border-trs-green bg-white' : 'border-trs-line-2 bg-white hover:border-trs-ink-2'}`}>
+                                      <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium text-trs-ink' : 'text-trs-ink-2'}`} title={v.subject}>{v.subject}</span>
+                                      <span className="shrink-0 text-trs-muted">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
+                                      <span className="w-[54px] shrink-0 text-right font-medium text-trs-ink">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
+                                    </button>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          )}
                         </td>
                         <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
                         <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>
