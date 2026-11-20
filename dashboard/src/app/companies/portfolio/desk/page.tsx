@@ -14,6 +14,8 @@ import { Btn, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, money } from '@/lib/format'
 import type { DeskBusiness } from '@/lib/clients/admin-desk'
+import { unfiledLine, type UnfiledMail } from '@/lib/clients/portfolio'
+import { SNOOZE_DAYS } from '@/lib/nexus/rules'
 import type { MovementBatch } from '@/app/api/policies/movements/route'
 
 const OWES: Record<string, string> = { trs: 'TRS', insurer: 'Insurer', client: 'Client', date: 'A date' }
@@ -21,7 +23,7 @@ const STAGE: Record<string, string> = { held: 'Held', to_send: 'To send', insure
 const today = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 
 export default function AdminDeskPage() {
-  const [data, setData] = useState<{ from: string | null; businesses: DeskBusiness[] } | null>(null)
+  const [data, setData] = useState<{ from: string | null; businesses: DeskBusiness[]; unfiled?: UnfiledMail | null } | null>(null)
   const [moves, setMoves] = useState<MovementBatch[]>([])
   const [pick, setPick] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -35,14 +37,14 @@ export default function AdminDeskPage() {
     setActing(true); setError(null); setNotice(null)
     let ok = 0
     for (const id of ids) {
-      const r = await fetch(`/api/nexus/follow-ups/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(what === 'done' ? { status: 'done' } : { snooze_days: 7 }) }).catch(() => null)
+      const r = await fetch(`/api/nexus/follow-ups/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(what === 'done' ? { status: 'done' } : { snooze_days: SNOOZE_DAYS }) }).catch(() => null)
       if (r?.ok) ok++
     }
     const gone = new Set(ids)
     setData(d => d && { ...d, businesses: d.businesses.map(x => ({ ...x, open: x.open.filter(q => !gone.has(q.id)) })) })
     setPicked(new Set())
     setActing(false)
-    setNotice(`${ok} ${what === 'done' ? 'marked done' : 'snoozed for 7 days'}${ok < ids.length ? `; ${ids.length - ok} not saved` : ''}.`)
+    setNotice(`${ok} ${what === 'done' ? 'marked done' : `snoozed for ${SNOOZE_DAYS} days`}${ok < ids.length ? `; ${ids.length - ok} not saved` : ''}.`)
   }
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function AdminDeskPage() {
   return (
     <div className="bg-white text-trs-ink">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
-        <PageHeader title="Admin desk" meta={data ? `Top 20% · ${data.businesses.length} businesses · ${open} open requests${data.from ? ` since ${fmtDate(data.from)}` : ''}` : 'Loading…'} />
+        <PageHeader title="Admin desk" meta={data ? [`Top 20% · ${data.businesses.length} businesses · ${open} open requests${data.from ? ` since ${fmtDate(data.from)}` : ''}`, unfiledLine(data.unfiled, fmtDate)].filter(Boolean).join(' · ') : 'Loading…'} />
         {error && <p className="mt-4 text-[14px] text-trs-neg" role="alert">{error}</p>}
         {!data && !error && <div className="mt-8"><Spinner label="Reading every request…" /></div>}
         {data && (
@@ -96,13 +98,13 @@ export default function AdminDeskPage() {
                   <h3 className="m-0 mb-2 text-[15px] font-medium">Repeats · {b.cycles.length}</h3>
                   {b.cycles.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None found.</p> : (
                     <Register label="Repeats" minWidth={760} dense={false}>
-                      <RegisterHead><RegisterTh first>Thread</RegisterTh><RegisterTh>Every</RegisterTh><RegisterTh align="right">Times</RegisterTh><RegisterTh>Last</RegisterTh><RegisterTh last>Next expected</RegisterTh></RegisterHead>
+                      <RegisterHead><RegisterTh first>Thread</RegisterTh><RegisterTh>Every</RegisterTh><RegisterTh>Times</RegisterTh><RegisterTh>Last</RegisterTh><RegisterTh last>Next expected</RegisterTh></RegisterHead>
                       <tbody>
                         {b.cycles.map(c => (
                           <RegisterRow key={c.thread_id}>
                             <RegisterCell first nowrap={false} primary={<><Link href={`/engagement?lead=${c.thread_id}`} className="block whitespace-normal text-trs-ink no-underline hover:underline">{c.label}</Link><span className="block text-[12.5px] text-trs-muted">{c.type}</span></>} />
                             <RegisterCell>{c.everyDays} days · {c.cadence}</RegisterCell>
-                            <RegisterCell align="right">{c.count}</RegisterCell>
+                            <RegisterCell className="tabular-nums">{c.count}</RegisterCell>
                             <RegisterCell>{fmtDate(c.last)}</RegisterCell>
                             <RegisterCell last><span className={c.next < t ? 'text-trs-neg' : undefined}>{fmtDate(c.next)}</span></RegisterCell>
                           </RegisterRow>
@@ -118,7 +120,7 @@ export default function AdminDeskPage() {
                     {notice && <span className="text-[13px] text-trs-muted" role="status">{notice}</span>}
                     {b.open.length > 0 && <>
                       <Btn size="sm" level="secondary" disabled={acting || !picked.size} loading={acting} onClick={() => void act([...picked], 'done')}>Mark done{picked.size ? ` · ${picked.size}` : ''}</Btn>
-                      <Btn size="sm" level="tertiary" disabled={acting || !picked.size} onClick={() => void act([...picked], 'snooze')}>Snooze 7 days</Btn>
+                      <Btn size="sm" level="secondary" disabled={acting || !picked.size} onClick={() => void act([...picked], 'snooze')}>Snooze {SNOOZE_DAYS} days</Btn>
                     </>}
                   </div>
                   {b.open.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None open.</p> : (
@@ -138,8 +140,8 @@ export default function AdminDeskPage() {
                             <RegisterCell><span className={r.due && r.due.slice(0, 10) < t ? 'text-trs-neg' : undefined}>{r.due ? fmtDate(r.due) : '—'}</span></RegisterCell>
                             <RegisterCell last>
                               <div className="flex justify-center gap-1">
-                                <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'done')}>Done</Btn>
-                                <Btn size="xs" level="tertiary" disabled={acting} onClick={() => void act([r.id], 'snooze')}>Snooze</Btn>
+                                <Btn size="xs" disabled={acting} onClick={() => void act([r.id], 'done')}>Done</Btn>
+                                <Btn size="xs" disabled={acting} onClick={() => void act([r.id], 'snooze')}>Snooze {SNOOZE_DAYS} days</Btn>
                               </div>
                             </RegisterCell>
                           </RegisterRow>
@@ -153,15 +155,15 @@ export default function AdminDeskPage() {
                   <h3 className="m-0 mb-2 text-[15px] font-medium">Member movements in progress · {myMoves.length}</h3>
                   {myMoves.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None in progress.</p> : (
                     <Register label="Member movements" minWidth={700} dense={false}>
-                      <RegisterHead><RegisterTh first>Policy</RegisterTh><RegisterTh>Stage</RegisterTh><RegisterTh align="right">Joins</RegisterTh><RegisterTh align="right">Leaves</RegisterTh><RegisterTh last align="right">Days waiting</RegisterTh></RegisterHead>
+                      <RegisterHead><RegisterTh first>Policy</RegisterTh><RegisterTh>Stage</RegisterTh><RegisterTh>Joins</RegisterTh><RegisterTh>Leaves</RegisterTh><RegisterTh last>Days waiting</RegisterTh></RegisterHead>
                       <tbody>
                         {myMoves.map(m => (
                           <RegisterRow key={m.key}>
                             <RegisterCell first primary={<Link href="/movements" className="text-trs-ink no-underline hover:underline">{m.policy_number ?? m.insurer ?? 'Policy'}</Link>} secondary={m.insurer ?? undefined} />
                             <RegisterCell>{STAGE[m.stage] ?? m.stage}</RegisterCell>
-                            <RegisterCell align="right">{m.joins}</RegisterCell>
-                            <RegisterCell align="right">{m.leaves}</RegisterCell>
-                            <RegisterCell last align="right">{m.days_waiting}</RegisterCell>
+                            <RegisterCell>{m.joins}</RegisterCell>
+                            <RegisterCell>{m.leaves}</RegisterCell>
+                            <RegisterCell last>{m.days_waiting}</RegisterCell>
                           </RegisterRow>
                         ))}
                       </tbody>

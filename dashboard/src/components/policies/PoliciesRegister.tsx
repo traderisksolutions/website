@@ -16,12 +16,13 @@ import { XlGrid, XlHead, XlHeadRow, XlTh, XlRow, XlCell } from '@/components/ui/
 import type { DerivedPaymentStatus, PaymentDerived } from '@/lib/crm/types'
 import { MembersPanel } from './MembersPanel'
 import { fmtAmount, lifecycleWord, type PolicyView, type SpineQuote } from './types'
+import { byRenewal, renewsIn } from '@/lib/companies/policy-order'
 
 type Section = 'quotes' | 'employees' | 'dns'
 const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue' }
 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
-const COLS = 11
+const COLS = 12
 /** A button inside the dense grid: 22px tall so the row stays 34px. */
 const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
 const PLAN_MAX = 36
@@ -86,7 +87,9 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
     } catch (e) { setErr(p.id, errText(e)) } finally { setBusy(null) }
   }
 
-  const sorted = useMemo(() => policies ? [...policies].sort((a, b) => (b.start_date ?? b.end_date ?? '').localeCompare(a.start_date ?? a.end_date ?? '')) : [], [policies])
+  // Policies in force first, soonest renewal first (the Renewals tab folded in here, 20 Nov 2026).
+  const sorted = useMemo(() => policies ? byRenewal(policies) : [], [policies])
+  const today = new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 
   return (
     <>
@@ -101,6 +104,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
               <RegisterTh>Insurer</RegisterTh>
               <RegisterTh align="right">Premium</RegisterTh>
               <RegisterTh>Period</RegisterTh>
+              <RegisterTh>Renews</RegisterTh>
               <RegisterTh>Status</RegisterTh>
               <RegisterTh>Documents</RegisterTh>
               {files !== undefined && <RegisterTh>File</RegisterTh>}
@@ -134,6 +138,11 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                         <RegisterCell align="left" title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-[13.5px]">{p.insurer ?? '—'}</span></RegisterCell>
                         <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
+                        <RegisterCell title="Renewal figures: loss ratio and projection">
+                          {renewsIn(p, today)
+                            ? <Link href={`/policies/${p.id}?tab=renewal`} onClick={e => e.stopPropagation()} className="text-trs-ink no-underline hover:underline tabular-nums">{renewsIn(p, today)}</Link>
+                            : <span className="text-trs-muted">—</span>}
+                        </RegisterCell>
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
                         <RegisterCell primary={docStatus?.[p.id] ? statusWord(docStatus[p.id]) : '—'}
                           title={docStatus?.[p.id]?.missing.length ? `Missing: ${docStatus[p.id].missing.map(m => m.label).join(', ')}` : undefined} />

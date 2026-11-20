@@ -168,3 +168,6 @@ export function statusOf(r: Pick<ViewRow, 'owner_party' | 'due_at'>, view: View,
   if (others) return { label: 'Waiting', tone: 'blue' }
   return { label: `Due ${shortDate(dueDay)}`, tone: 'neutral' }
 }
+
+/** One snooze length on Follow-ups and the Admin desk (20 Nov 2026). */
+export const SNOOZE_DAYS = 7

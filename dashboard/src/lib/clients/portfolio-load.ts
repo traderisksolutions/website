@@ -1,10 +1,11 @@
 /**
  * The client portfolio from the database (src/lib/clients/portfolio.ts). Server only.
  */
-import { sb } from '@/lib/crm/db'
+import { sb, enc } from '@/lib/crm/db'
+import { sbCount } from '@/lib/sales/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { clientsForThreads } from '@/lib/nexus/company-view'
-import { buildPortfolio, type Portfolio, type PortfolioInput } from './portfolio'
+import { buildPortfolio, type Portfolio, type PortfolioInput, type UnfiledMail } from './portfolio'
 
 /** Every business ranked, for the window. */
 export async function loadPortfolio(window: '12m' | 'all'): Promise<Portfolio> {
@@ -25,5 +26,16 @@ export async function loadPortfolio(window: '12m' | 'all'): Promise<Portfolio> {
   // Businesses: group roots that are clients. Insurers, partners, TPAs and vendors are not ranked.
   const roots = new Set(companies.map(c => dir.group(c.id)))
   const businesses = companies.filter(c => roots.has(c.id) && (c.kind ?? 'client') === 'client').map(c => ({ id: c.id, name: c.company_name, kind: c.kind }))
-  return buildPortfolio({ today: new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10), window, businesses, groupOf: id => dir.group(id), debitNotes, claims, policies, emails, requests })
+  const portfolio = buildPortfolio({ today: new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10), window, businesses, groupOf: id => dir.group(id), debitNotes, claims, policies, emails, requests })
+  return { ...portfolio, unfiled: await unfiledMail(portfolio.summary.emailsFrom).catch(() => null) }
+}
+
+/** Threads with no company against all threads since `from` (a count; nothing is read from them). */
+export async function unfiledMail(from: string | null): Promise<UnfiledMail> {
+  const since = from ? `&last_message_at=gte.${enc(from)}` : ''
+  const [unfiled, total] = await Promise.all([
+    sbCount(`email_threads?select=id&deleted_at=is.null&company_id=is.null${since}`),
+    sbCount(`email_threads?select=id&deleted_at=is.null${since}`),
+  ])
+  return { unfiled, total, from }
 }

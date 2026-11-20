@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { getCompany }                from '@/lib/crm/db'
 import { buildOverview }             from '@/lib/crm/overview'
+import { currentUserEmail }          from '@/lib/crm/auth'
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireStaffOrCron(req)
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const company = await getCompany(id)
     if (!company) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    const overview = await buildOverview(company)
+    const overview = await buildOverview(company, await currentUserEmail())
     return NextResponse.json({ company, ...overview })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

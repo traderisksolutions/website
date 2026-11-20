@@ -24,6 +24,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - Quotation register: Insurers column, company search, Status filter. Insurers tab on primitives and the house dialog. Brochures: Add version and Edit are full pages; stale "Rate tables" instruction removed (EB-060).
 - Removed: `useCoverNames.ts` (unused), the exported `statusOf` and `basisWord`.
 
+## 2026-11-20 — Clients review: mailbox rule, Unfiled threads, company page, People, Follow-ups
+
+- Mailbox rule (INB-002) on every Clients surface: the company Reader, Threads tab and its count, the overview, the Inbox rail's company threads, Unfiled threads (leftover, under an insurer, domain previews) and thread search. A colleague's private thread is counted ("N more in colleagues' mailboxes"), never listed (CLI-035).
+- Unfiled threads (was Match threads): registers instead of cards, the visible unfiled count in the meta, no File everything (Jarod), Keep on a duplicate asks to confirm, suggestions older than 14 days hidden (no data write; 620 of 697 are older).
+- Company page: New request is the one primary; Drafts and the appointment letter only in the rail. Renewals folded into Policies (Renews column, soonest first; `?tab=renewals` lands on Policies). Claims tab after Quotes. Threads list: Waiting on, insurer threads "via <insurer>", Find threads when empty, Breadcrumbs, tabs on phones. Every tab names a failed load.
+- Companies: the six unreachable quick views removed. People is built from contacts with company and thread links; status pills, Log referral, Import CSV and the Companies view removed.
+- Follow-ups: /nexus titled Follow-ups; /nexus/companies/<id> redirects to the company's Nexus tab; snooze is 7 days there and on the Admin desk. Portfolio and Admin desk: numbers centred; the facts line counts threads with no company.
+- Deleted with no remaining user: CompanyRenewals, RenewalCalendar, companies/attention.ts, contacts/CompaniesTab, BulkImportContacts. `/api/contacts/bulk` stays, now unused.
+- Behaviours: CLI-002, 003, 005, 006, 013, 020, 025, 027, 029, 033, INB-009, NAV-002, TOD-020, TOD-021 updated; CLI-035 to CLI-039 added. Journey: `tests/journeys/clients-review.spec.ts`.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

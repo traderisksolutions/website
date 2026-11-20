@@ -6,7 +6,7 @@
  * summary on Nexus, run on a press there) and Information (contact, address, last email, letter,
  * the company's Employment Benefits and claims).
  */
-import { ActionItem, AiRow, Arrow, Buttons, Group, InfoRow, MAIN, SECOND, Small } from '@/components/engagement/rail-bits'
+import { ActionItem, AiRow, Arrow, Buttons, Group, InfoRow, SECOND, Small } from '@/components/engagement/rail-bits'
 import { LinkBtn } from '@/components/crm/primitives'
 import { fmtDate } from '@/lib/format'
 import type { CompanyFacts } from '@/lib/companies/facts'
@@ -35,10 +35,8 @@ export function CompanyRail({ company, facts, letter, contact, lastThread, draft
         {renewals.length > 0 && (
           <ActionItem eyebrow="Renewal due" title={`${renewals.map(r => r.label).join(', ')} renew${renewals.length === 1 ? 's' : ''} ${fmtDate(renewals[0].date)}`}
             meta={`${renewals[0].days} days`} alert={renewals[0].days <= 21}>
-            <Buttons>
-              <button type="button" className={MAIN} onClick={() => onTab('working')}>Request to insurers</button>
-              {lastThread && <button type="button" className={SECOND} onClick={() => onTab('threads')}>Open thread</button>}
-            </Buttons>
+            {/* New request in the header is the page's one primary; it opens the same Working on tab. */}
+            {lastThread && <Buttons><button type="button" className={SECOND} onClick={() => onTab('threads')}>Open thread</button></Buttons>}
           </ActionItem>
         )}
         {(draftsCount ?? 0) > 0 && (

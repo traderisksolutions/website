@@ -6,6 +6,7 @@
 import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { sbTry, inChunks, getCompanyThreadIds, bareEmail, displayNameFromAddress, enc } from './db'
 import { listCompanyThreads } from './threads'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
 import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from './format'
@@ -18,9 +19,12 @@ type PolicyRow = { end_date: string | null; status: string | null; class_of_insu
 type CustomerRow = { policies: PolicyRow[] | null }
 type AuditRow = { created_at: string; user_name: string | null; new_value: { stage?: string } | null }
 
-export async function buildOverview(company: Company): Promise<CompanyOverview & { paymentSummary: PaymentSummary; nextRenewalDate: string | null }> {
+/** `viewer` = the signed-in person: their colleagues' private threads stay out of every line (INB-002). Null = cron, sees all. */
+export async function buildOverview(company: Company, viewer: string | null = null): Promise<CompanyOverview & { paymentSummary: PaymentSummary; nextRenewalDate: string | null }> {
   const today = todaySGT()
-  const threadIds = await getCompanyThreadIds(company.id)
+  const allIds = await getCompanyThreadIds(company.id)
+  const seen = await visibleThreadIds(allIds, viewer)
+  const threadIds = allIds.filter(id => seen.has(id))
   const [threads, peopleRes, pay, customers, audit, lastMsgs] = await Promise.all([
     listCompanyThreads(company.id, threadIds),
     rankPeople(company, threadIds),

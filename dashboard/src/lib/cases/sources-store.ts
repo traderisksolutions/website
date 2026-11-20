@@ -17,6 +17,8 @@ import { directory } from '@/lib/admin/k/deposit'
 import { partyOf } from '@/lib/admin/k/shape'
 import { displayName } from '@/lib/insurers'
 import { visibleThreadIds, threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { insurerThreadsFor, waitingByThread } from '@/lib/crm/threads'
+import type { WaitingOn } from '@/lib/crm/waiting-on'
 import { ownText } from '@/lib/followups/rules'
 import { labelOf, isLabel, type Label, type LabelMessage } from './labels'
 import { relevanceOf, renewalSeason, RELEVANCE, type Relevance, type Season } from './relevance'
@@ -333,12 +335,17 @@ export async function labelThreadsByRule(threadIds: readonly string[]): Promise<
 
 // ── relevance ─────────────────────────────────────────────────────────────────────────────────
 
-export type RelevanceThread = { id: string; subject: string | null; last_message_at: string | null; label: Label; label_by: string | null; relevance: Relevance; case: { id: string; title: string | null } | null }
+export type RelevanceThread = {
+  id: string; subject: string | null; last_message_at: string | null; label: Label; label_by: string | null; relevance: Relevance; case: { id: string; title: string | null } | null
+  /** The insurer or partner the thread is filed under, when it is there and names this client. */
+  via: string | null
+  waitingOn: WaitingOn | null
+}
 export type CompanyRelevance = { company_id: string; season: Season; counts: Record<Relevance, number>; hidden: number; threads: RelevanceThread[] }
 
 /** One client's threads in their groups, with whether the client is in renewal season. */
 export async function companyRelevance(companyId: string, viewer: string | null, today = todayIso()): Promise<CompanyRelevance> {
-  const [{ rows }, open, policies] = await Promise.all([
+  const [{ rows, named }, open, policies] = await Promise.all([
     clientThreads(companyId),
     sbTry<Row[]>(`work_items?company_id=eq.${enc(companyId)}&closed_at=is.null&select=id,title,case_type,deadline,work_item_threads(thread_id)&limit=500`, []),
     sbTry<Row[]>(`policies?company_id=eq.${enc(companyId)}&select=end_date&limit=500`, []),
@@ -346,13 +353,24 @@ export async function companyRelevance(companyId: string, viewer: string | null,
   const onOpen = new Map<string, { id: string; title: string | null }>()
   for (const w of open) for (const l of w.work_item_threads ?? []) onOpen.set(l.thread_id, { id: w.id, title: w.title ?? null })
   const visible = await visibleThreadIds(rows.map(t => t.id as string), viewer)
+  // Counts are of the threads this person may see; the rest are one number, `hidden` (INB-002).
+  const shownRows = rows.filter(t => visible.has(t.id))
+  const shownIds = shownRows.map(t => t.id as string)
+  const [via, waiting] = await Promise.all([
+    named.size ? insurerThreadsFor(companyId) : Promise.resolve(new Map<string, { id: string; name: string }>()),
+    waitingByThread(shownIds, new Set(shownIds.filter(id => named.has(id)))),
+  ])
   const counts = Object.fromEntries(RELEVANCE.map(r => [r, 0])) as Record<Relevance, number>
   const threads: RelevanceThread[] = []
-  for (const t of rows) {
+  for (const t of shownRows) {
     const label = labelFor(t)
     const relevance = relevanceOf({ lastMessageAt: t.last_message_at, label, onOpenCase: onOpen.has(t.id) }, today)
     counts[relevance]++
-    if (visible.has(t.id)) threads.push({ id: t.id, subject: subjectOf(t), last_message_at: t.last_message_at ?? null, label, label_by: t.label_by ?? null, relevance, case: onOpen.get(t.id) ?? null })
+    threads.push({
+      id: t.id, subject: subjectOf(t), last_message_at: t.last_message_at ?? null, label, label_by: t.label_by ?? null, relevance, case: onOpen.get(t.id) ?? null,
+      via: named.has(t.id) ? via.get(t.id)?.name ?? 'Insurer' : null,
+      waitingOn: waiting.get(t.id) ?? null,
+    })
   }
   threads.sort((a, b) => String(b.last_message_at ?? '').localeCompare(String(a.last_message_at ?? '')))
   const season = renewalSeason({ openRenewalCases: open.filter(w => w.case_type === 'renewal').map(w => ({ title: w.title ?? null, deadline: w.deadline ?? null })), policyEnds: policies.map(p => p.end_date) }, today)
