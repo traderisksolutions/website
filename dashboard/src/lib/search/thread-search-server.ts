@@ -137,7 +137,8 @@ export async function searchThreads(q: string, viewer: string | null, opts: { li
     const canOpen = fence.open
     const owner: string | null = fence.open ? null : fence.name
     return { r, people, boxes, canOpen, owner }
-  }).filter(x => listable(x.r, terms.words, x.canOpen) && (!opts.openOnly || x.canOpen))
+  // Only threads the viewer may open are found; a colleague's private thread is not (Jarod, 20 Nov 2026).
+  }).filter(x => x.canOpen && listable(x.r, terms.words, x.canOpen))
     .sort((a, b) => String(b.r.last_message_at ?? '').localeCompare(String(a.r.last_message_at ?? ''))).slice(0, limit)
 
   // Owners by name from app_users (visibility-server.ts ownersOf), the first name shown.
