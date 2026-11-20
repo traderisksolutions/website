@@ -140,7 +140,9 @@ export function planBatch(rows: BatchRow[], opts?: { minChars?: number; maxBytes
   return out
 }
 
-/** The PostgREST path for one batch: id + body_html of rows holding a data:image, after the cursor, by id. */
+/** The PostgREST path for one batch: id + body_html of the next rows after the cursor, by id. */
 export function batchPath(cursor: string | null, size = 25): string {
-  return `email_messages?select=id,body_html&body_html=like.*data:image*${cursor ? `&id=gt.${encodeURIComponent(cursor)}` : ''}&order=id.asc&limit=${size}`
+  // No LIKE filter: on the small database a body_html scan for 'data:image' times out between sparse matches.
+  // Read the next rows by id and let planBatch skip rows without images.
+  return `email_messages?select=id,body_html${cursor ? `&id=gt.${encodeURIComponent(cursor)}` : ''}&order=id.asc&limit=${size}`
 }

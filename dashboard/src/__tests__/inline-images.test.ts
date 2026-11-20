@@ -123,8 +123,8 @@ describe('dry-run planner', () => {
     expect(planBatch([]).nextCursor).toBeNull()
   })
 
-  it('reads 25 rows after the cursor by id, only rows holding data:image', () => {
-    expect(batchPath(null)).toBe('email_messages?select=id,body_html&body_html=like.*data:image*&order=id.asc&limit=25')
-    expect(batchPath('0006432e-c95c')).toBe('email_messages?select=id,body_html&body_html=like.*data:image*&id=gt.0006432e-c95c&order=id.asc&limit=25')
+  it('reads the next 25 rows after the cursor by id (no LIKE scan)', () => {
+    expect(batchPath(null)).toBe('email_messages?select=id,body_html&order=id.asc&limit=25')
+    expect(batchPath('0006432e-c95c')).toBe('email_messages?select=id,body_html&id=gt.0006432e-c95c&order=id.asc&limit=25')
   })
 })
