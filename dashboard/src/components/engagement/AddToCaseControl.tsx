@@ -2,10 +2,9 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { btnClass } from '@/components/crm/primitives'
 
 type CaseRow = { id: string; name: string; status: string }
-
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-body text-trs-ink underline underline-offset-[3px] decoration-trs-subtle hover:decoration-trs-ink'
 
 /**
  * Attach the current thread to an open Nexus case, from where a related email is noticed.
@@ -53,11 +52,11 @@ export function AddToCaseControl({ threadId }: { threadId: string | null }) {
   return (
     <div ref={ref} className="relative text-body text-trs-muted">
       {linked ? (
-        <span>
+        <span className="px-3">
           Added to {linked.name} · <a href={`/nexus/cases?case=${linked.id}`} className="underline underline-offset-[3px] decoration-trs-subtle hover:decoration-trs-ink text-trs-ink">Open in Nexus</a>
         </span>
       ) : (
-        <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="listbox" className={LINK}>Add to Nexus case</button>
+        <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="listbox" className={btnClass('tertiary', 'xs')}>Add to Nexus case</button>
       )}
 
       {open && (

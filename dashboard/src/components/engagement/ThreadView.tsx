@@ -17,7 +17,7 @@ import { pushCrumb } from '@/lib/nav/trail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { ThreadAgentBar } from '@/components/engagement/ThreadAgentBar'
+import { ThreadAgentBar, ThreadAgentButtons, ThreadAgentResults, hasAgentResults, useThreadAgent } from '@/components/engagement/ThreadAgentBar'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { plainToHtml } from '@/components/RichEditor'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
@@ -301,6 +301,14 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
     finally { setAnalyzing(false) }
   }
 
+  // Generate response and Ask AI: one state for the thread, whether the composer is folded or open.
+  const agent = useThreadAgent(thread?.id ?? null, body => {
+    // Same path a restored draft takes, so the editor, the saved draft row and
+    // the send flow are untouched by this.
+    setPendingRestore({ body: plainToHtml(body), generatedBy: 'crm_agent', stamp: Date.now() })
+    setComposerOpen(true)
+  })
+
   // ── Task from email ──────────────────────────────────────────────────────────────────────
   const [taskOpen, setTaskOpen] = useState(false)
   const [taskDone, setTaskDone] = useState<{ id: string; text: string } | null>(null)
@@ -388,17 +396,12 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
               </div>
 
               {/* The agent's read of the thread, above the composer and separate from it: the
-                  composer owns the editor and the send path, and must not gain a second writer. */}
-              {!loading && thread?.id && (
-                <ThreadAgentBar
-                  threadId={thread.id}
-                  onDraft={body => {
-                    // Same path a restored draft takes, so the editor, the saved draft row and
-                    // the send flow are untouched by this.
-                    setPendingRestore({ body: plainToHtml(body), generatedBy: 'crm_agent', stamp: Date.now() })
-                    setComposerOpen(true)
-                  }}
-                />
+                  composer owns the editor and the send path, and must not gain a second writer.
+                  Folded: both buttons and the results here. Open: the buttons sit beside Send in
+                  the composer's footer, the results stay here. */}
+              {!loading && thread?.id && !composerOpen && <ThreadAgentBar agent={agent} />}
+              {!loading && thread?.id && composerOpen && hasAgentResults(agent) && (
+                <div className="px-5 sm:px-10 py-2.5 border-t border-trs-line"><ThreadAgentResults agent={agent} /></div>
               )}
 
               {/* Composer: one line until asked, the full panel once open. Same layer as the thread. */}
@@ -409,7 +412,8 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       setToAddress={setToAddress} setCcList={setCcList} setBccList={setBccList} setCustomSubject={setCustomSubject} replyAll={replyAll} onToggleReplyAll={toggleReplyAll}
                       storedDraft={summaries[0]?.draft_reply ?? null} storedRagDraft={ragDraft?.content ?? null} storedRagSources={ragDraft?.sources ?? []}
                       onThreadRefresh={handleThreadRefresh} onAnalyze={runAnalysis} pendingRestore={pendingRestore} onMinimise={() => setComposerOpen(false)}
-                      onHeightChange={syncScrollAffordances} />
+                      onHeightChange={syncScrollAffordances}
+                      footerExtras={thread?.id ? <ThreadAgentButtons agent={agent} level="tertiary" /> : undefined} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
                       <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded flex items-center text-left text-body bg-white cursor-text border border-trs-line-2 text-trs-subtle hover:border-trs-subtle focus-visible:outline-none focus-visible:border-trs-ink')}>

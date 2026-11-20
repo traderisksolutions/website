@@ -11,14 +11,14 @@ import { daysUntil, isOpen, sortTasks } from '@/components/board/model'
 import { AddToCaseControl } from './AddToCaseControl'
 import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
-import { ThreadParty, type PartyChange } from './ThreadParty'
+import { ThreadParty, readInsurerClient, type PartyChange } from './ThreadParty'
 import { ThreadReferral } from './ThreadReferral'
 import { useCompanyCard, useInboxTeam } from './company-card'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
 import { Btn } from '@/components/crm/primitives'
-import { AiRow, Arrow, Group, InfoRow, Small } from './rail-bits'
+import { AiRow, Group, InfoRow, PlainLink, PropRow, SectionLabel, listValue } from './rail-bits'
 import type { Lead, RealMsg, StoredSummary, RagSource } from './types'
 import { fullName, timeAgo } from './helpers'
 
@@ -28,14 +28,15 @@ import { fullName, timeAgo } from './helpers'
  *                open to-dos, add to a case (src/components/engagement/ChiefBar.tsx)
  *   AI           read the thread, pricing options, summary, draft reply
  *   Information  company, policy, renewal, outstanding, contact, related threads, status and notes
- * White ground, green pill per group, spacing in place of boxes. Reads the company's card (name,
+ * Record-sidebar layout (21 Nov 2026): a plain section label per group, From as one row of pills,
+ * Information as a property list (one line per value, the full text on hover). Reads the company's card (name,
  * owner, open to-dos: company-card.tsx) and the same company APIs as Companies.
  */
 
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
 const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Referral', other: 'Company' }
-const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-body hover:underline'
+const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-small text-trs-ink hover:underline'
 
 export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask, onDraftOpen }: {
   lead: Lead
@@ -66,7 +67,6 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   // to Chubb listed Chubb's Bangkok itinerary deck, 11 Nov 2026).
   // A label set here (Client, Insurer, Referral) holds until the list reloads the thread.
   const [party, setParty] = useState<{ threadId: string | null } & PartyChange | null>(null)
-  const [readKey, setReadKey] = useState(0)
   const mine = party && party.threadId === threadId ? party : null
   const kind = mine?.kind ?? lead.companyKind ?? null
   const clientCompanyId = mine && mine.clientCompanyId !== undefined ? mine.clientCompanyId : lead.clientCompanyId ?? null
@@ -123,11 +123,11 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           {tasks.slice(0, 5).map(t => <WorkRow key={t.id} t={t} today={today} nameOf={nameOf} />)}
         </ul>
       )}
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-trs-muted">
-        {onAddTask && <button type="button" onClick={onAddTask} className={cn(QUIET_LINK, 'text-trs-ink')}>Add to-do</button>}
-        {onAddTask && threadId && <span aria-hidden>·</span>}
-        {threadId && <span className="inline-flex"><AddToCaseControl threadId={threadId} /></span>}
-      </p>
+      {/* Secondary links: tertiary text buttons on one row. */}
+      <div className="flex flex-wrap items-center gap-1 -ml-3">
+        {onAddTask && <Btn level="tertiary" size="xs" onClick={onAddTask}>Add to-do</Btn>}
+        {threadId && <AddToCaseControl threadId={threadId} />}
+      </div>
     </div>
   )
 
@@ -135,9 +135,9 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     <>
       <AiRow title="Summary" detail={summary ? `Last read ${summaries[0]?.created_at ? timeAgo(summaries[0].created_at) : 'earlier'}` : 'The thread in a few lines, with a drafted reply'} action={summariesLoading ? 'Summarising…' : summary ? (analysisOpen ? 'Hide' : 'Show') : 'Summarise'}
         onClick={() => { if (!summary) onRefreshSummaries(); else setAnalysisOpen(v => !v) }} disabled={!threadId || summariesLoading}>
-        {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-body leading-[1.5] line-clamp-3 text-trs-ink-2">{summary}</p>}
+        {summary && !analysisOpen && <p className="m-0 mb-1 text-body leading-normal line-clamp-3 text-trs-ink-2">{summary}</p>}
         {analysisOpen && (
-          <div className="mt-2 pl-[19px]">
+          <div className="mt-1">
             <AiAnalysisPanel summaries={summaries} loading={summariesLoading} threadId={threadId} latestMessageId={latestMessageId} ragSources={ragSources} onRefresh={onRefreshSummaries} />
           </div>
         )}
@@ -156,64 +156,77 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-6">
         {/* Who the thread is from comes first: it decides whose client, policy and actions the rail shows. */}
         {threadId && (
-          <div className="px-1 mb-7 empty:hidden">
+          <section className="px-1 mb-6 empty:hidden" aria-label="From">
             {/* The label applies to the company the thread is filed under: an unfiled thread links one here first. */}
-            <InfoRow label="From">
-              {lead.companyId
-                ? <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
-                    onChanged={onParty} onRead={() => setReadKey(k => k + 1)} />
-                : <LinkCompanyPopover threadId={threadId} />}
-            </InfoRow>
+            <SectionLabel>From</SectionLabel>
+            {lead.companyId
+              ? <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
+                  onChanged={onParty} />
+              : <span className="text-body"><LinkCompanyPopover threadId={threadId} /></span>}
             <ThreadReferral threadId={threadId} kind={kind} />
-          </div>
+          </section>
         )}
         {threadId
-          ? <ChiefBar threadId={threadId} refreshKey={`${latestMessageId ?? ''}:${readKey}`} onOpenChange={onDraftOpen} actionsFooter={actionsFooter} aiExtras={aiExtras} />
+          ? <ChiefBar threadId={threadId} refreshKey={latestMessageId ?? ''} onOpenChange={onDraftOpen} actionsFooter={actionsFooter} aiExtras={aiExtras}
+              beforeRead={lead.companyId && kind === 'insurer' ? () => readInsurerClient(threadId, onParty) : undefined} />
           : <Group label="AI">{aiExtras}</Group>}
 
         <Group label="Information">
-          <InfoRow label="Company">
-            {companyId ? (
-              <>
-                <Arrow href={`/companies/${companyId}`}>{company?.name ?? (counterparty ? mine?.clientName : lead.companyName) ?? 'Company'}</Arrow>
-                {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ')}</Small></>}
-                {threadId && <><br /><LinkCompanyPopover threadId={threadId} change forClient={counterparty} /></>}
-              </>
-            ) : counterparty && lead.companyId ? (
-              <>
-                <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
-                <br /><Small>{KIND_LABEL[kind ?? ''] ?? 'Company'}{clientNamed ? ` · about ${clientNamed}, not on file` : ' · client not linked'}</Small>
-                {threadId && clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={cn(QUIET_LINK, 'text-trs-ink')}>Create {clientNamed} and link</button></>}
-                {threadId && <><br /><LinkCompanyPopover threadId={threadId} forClient /></>}
-              </>
-            ) : (
-              <>Not linked{threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}</>
-            )}
-          </InfoRow>
-          {companyId && (
-            <InfoRow label="Employment Benefits">
-              <Arrow href={`/companies/${companyId}?tab=eb`}>Quotations</Arrow>
-            </InfoRow>
+          {companyId ? (() => {
+            const name = company?.name ?? (counterparty ? mine?.clientName : lead.companyName) ?? 'Company'
+            const domains = company ? listValue(company.domains.length ? company.domains : [company.domain]) : null
+            const facts = company ? [KIND_LABEL[company.kind] ?? company.kind, domains?.text, nameOf(company.owner_email) ?? 'No owner', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ') : null
+            const factsTitle = company ? [KIND_LABEL[company.kind] ?? company.kind, domains?.title, nameOf(company.owner_email) ?? 'No owner', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ') : null
+            return (
+              <PropRow label="Company" title={name} sub={facts} subTitle={factsTitle}
+                links={threadId ? <LinkCompanyPopover threadId={threadId} change forClient={counterparty} /> : undefined}>
+                <PlainLink href={`/companies/${companyId}`}>{name}</PlainLink>
+              </PropRow>
+            )
+          })() : counterparty && lead.companyId ? (
+            <PropRow label="Company" title={lead.companyName ?? 'Insurer'}
+              sub={`${KIND_LABEL[kind ?? ''] ?? 'Company'}${clientNamed ? ` · about ${clientNamed}, not on file` : ' · client not linked'}`}
+              links={threadId ? (
+                <>
+                  {clientNamed && onLinkCompany && <button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={QUIET_LINK}>Create {clientNamed} and link</button>}
+                  <LinkCompanyPopover threadId={threadId} forClient />
+                </>
+              ) : undefined}>
+              <PlainLink href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</PlainLink>
+            </PropRow>
+          ) : (
+            <PropRow label="Company" links={threadId ? <LinkCompanyPopover threadId={threadId} /> : undefined}>Not linked</PropRow>
           )}
           {companyId && (
-            <InfoRow label="Policy">
-              {!detail ? <Small>…</Small> : !policy ? <Small>None active on file</Small> : (
-                <><Arrow href={`/policies/${policy.id}`}>{policy.class_of_insurance ?? 'Policy'}</Arrow><br /><Small>{[policy.insurer, policy.policy_number].filter(Boolean).join(' · ')}{policy.insurer || policy.policy_number ? ' · ' : ''}<Arrow href={`/debit-notes?company_id=${companyId}`}>Debit notes</Arrow> · <Arrow href={`/claims?company=${companyId}`}>Claims</Arrow></Small></>
-              )}
-            </InfoRow>
+            <PropRow label="Employment Benefits">
+              <PlainLink href={`/companies/${companyId}?tab=eb`}>Quotations</PlainLink>
+            </PropRow>
           )}
+          {companyId && (() => {
+            if (!detail) return <PropRow label="Policy"><span className="text-trs-muted">…</span></PropRow>
+            if (!policy) return <PropRow label="Policy"><span className="text-trs-muted">None active on file</span></PropRow>
+            const insurers = listValue((policy.insurer ?? '').split(/\s*[,;]\s*/))
+            const facts = [insurers?.text, policy.policy_number].filter(Boolean).join(' · ')
+            const factsTitle = [insurers?.title, policy.policy_number].filter(Boolean).join(' · ')
+            return (
+              <PropRow label="Policy" title={policy.class_of_insurance ?? 'Policy'} sub={facts || null} subTitle={factsTitle || null}
+                links={<><PlainLink href={`/debit-notes?company_id=${companyId}`}>Debit notes</PlainLink><PlainLink href={`/claims?company=${companyId}`}>Claims</PlainLink></>}>
+                <PlainLink href={`/policies/${policy.id}`}>{policy.class_of_insurance ?? 'Policy'}</PlainLink>
+              </PropRow>
+            )
+          })()}
           {companyId && detail && policy?.end_date && (
-            <InfoRow label="Renewal">
-              <span className="tabular-nums">{fmtDate(policy.end_date)}</span> <Small>· {relativeDays(policy.end_date, today)} · <Arrow href={`/calendar?date=${policy.end_date.slice(0, 10)}`}>Calendar</Arrow></Small>
-            </InfoRow>
+            <PropRow label="Renewal" sub={<>{relativeDays(policy.end_date, today)} · <PlainLink href={`/calendar?date=${policy.end_date.slice(0, 10)}`}>Calendar</PlainLink></>}>
+              <span className="tabular-nums">{fmtDate(policy.end_date)}</span>
+            </PropRow>
           )}
           {companyId && (
-            <InfoRow label="Outstanding">
-              {!detail ? <Small>…</Small> : <><span className="tabular-nums">{sgd ? fmtMoney(sgd.outstanding, sgd.currency) : 'SGD 0.00'}</span> <Small>· {detail.paymentSummary.openCount} debit note{detail.paymentSummary.openCount === 1 ? '' : 's'}</Small></>}
-            </InfoRow>
+            <PropRow label="Outstanding" sub={detail ? `${detail.paymentSummary.openCount} debit note${detail.paymentSummary.openCount === 1 ? '' : 's'}` : null}>
+              {!detail ? <span className="text-trs-muted">…</span> : <span className="tabular-nums">{sgd ? fmtMoney(sgd.outstanding, sgd.currency) : 'SGD 0.00'}</span>}
+            </PropRow>
           )}
           {(contact || lead.email) && (
-            <InfoRow label="Contact">{contact || lead.email}{contact && lead.email && <><br /><Small>{lead.email}</Small></>}</InfoRow>
+            <PropRow label="Contact" title={contact || lead.email} sub={contact && lead.email ? lead.email : null} subTitle={lead.email}>{contact || lead.email}</PropRow>
           )}
           {companyId && related && threadList.some(t => t.id !== activeThreadId) && (
             <InfoRow label="Threads">

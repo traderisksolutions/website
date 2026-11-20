@@ -10,7 +10,7 @@
 import { uploadAttachment } from '@/lib/upload-attachment'
 import { toProblem } from '@/lib/email/recipients'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Paperclip, ChevronDown, X } from 'lucide-react'
+import { Paperclip, ChevronDown, X, Minus, Trash2, Signature } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAuditLog } from '@/hooks/useAuditLog'
@@ -20,9 +20,10 @@ import { useAutocomplete, SuggestionList } from '@/components/engagement/Recipie
 import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
 import { useResizableComposerHeight } from '@/hooks/useResizableComposerHeight'
 import {
-  TbGroup, TbButton, TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RecipientChip, QuietSelect, AttachmentChip,
+  TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RowTextButton, RecipientChip, QuietSelect, AttachmentChip,
 } from '@/components/engagement-agent/compose-toolbar'
-import { Btn } from '@/components/crm/primitives'
+import { Btn, Segmented } from '@/components/crm/primitives'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -50,6 +51,8 @@ interface EngagementComposePanelProps {
   onMinimise?:       () => void
   /** Fires when the editor is resized, so the thread view can re-measure its scroll affordances. */
   onHeightChange?:   () => void
+  /** Buttons beside Send in the footer (the thread view's Generate response and Ask AI). */
+  footerExtras?:     React.ReactNode
 }
 
 export function EngagementComposePanel({
@@ -58,7 +61,7 @@ export function EngagementComposePanel({
   setToAddress, setCcList, setBccList, setCustomSubject,
   replyAll, onToggleReplyAll,
   storedDraft, storedRagDraft, storedRagSources,
-  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore, onMinimise, onHeightChange,
+  onRagRefresh, onThreadRefresh, onAnalyze, pendingRestore, onMinimise, onHeightChange, footerExtras,
 }: EngagementComposePanelProps) {
 
   // ── All state preserved verbatim ──────────────────────────────────────────
@@ -76,8 +79,7 @@ export function EngagementComposePanel({
   const [errorOpen,       setErrorOpen]       = useState(false)
   const errorRef = useRef<HTMLDivElement>(null)
   const [aiDraftChecked,  setAiDraftChecked]  = useState(false)
-  const [showCc,          setShowCc]          = useState(ccList.length > 0)
-  const [showBcc,         setShowBcc]         = useState(bccList.length > 0)
+  const [showBcc,        setShowBcc]         = useState(bccList.length > 0)
   // The To row shows the recipient as a chip; clicking it opens the editable field. Starts
   // collapsed — the recipient is virtually always pre-filled from the thread/lead.
   const [headerExpanded,  setHeaderExpanded]  = useState(false)
@@ -132,9 +134,6 @@ export function EngagementComposePanel({
   const aiOriginalRef = useRef<string>('')
 
   const log = useAuditLog()
-
-  // Reveal the CC row whenever it gets populated (e.g. Reply All fills it after mount).
-  useEffect(() => { if (ccList.length > 0) setShowCc(true) }, [ccList.length])
 
   // Close the expanded error detail on an outside click.
   useEffect(() => {
@@ -360,6 +359,14 @@ export function EngagementComposePanel({
   const hasDraft = draftHtml.replace(/<[^>]+>/g, '').trim().length > 0
   const canSend  = hasDraft && !!toAddress.trim()
 
+  // Close and Discard fold the panel, as Minimise does, after one confirm when there is text.
+  // Folding unmounts the panel, so the text goes with it; a draft saved on the server stays.
+  const confirmBox = useConfirm()
+  async function discard() {
+    if (hasDraft && !(await confirmBox({ title: 'Discard this reply?', body: 'Unsaved changes will be lost.', action: 'Discard', danger: true }))) return
+    onMinimise?.()
+  }
+
   const contactName = fullName(lead)
   const toName = toAddress && lead.email && toAddress.trim().toLowerCase() === lead.email.toLowerCase() && contactName ? contactName : toAddress
   const selectedSender = senders.find(s => s.email === selectedFrom)
@@ -390,39 +397,49 @@ export function EngagementComposePanel({
       }}
       aria-label="Reply"
     >
-      <div className={cn('w-full max-w-[1040px] mx-auto flex flex-col min-h-0 [--re-gutter:24px] lg:[--re-gutter:40px]', fullscreen && 'flex-1')}>
+      <div className={cn('w-full max-w-[1040px] mx-auto flex flex-col min-h-0 [--re-gutter:16px]', fullscreen && 'flex-1')}>
 
-        {/* ── Top bar: Reply · save state · spacer · Minimise ── */}
-        <div className="flex items-center gap-2.5 px-[var(--re-gutter)] h-12 flex-shrink-0">
-          <h3 className="m-0 text-heading font-medium text-trs-ink">Reply</h3>
+        {/* ── Header: Reply | Reply all · spacer · From · Minimise · Close ── */}
+        <div className="flex items-center gap-2 px-[var(--re-gutter)] h-12 flex-shrink-0 border-b border-trs-line">
+          {onToggleReplyAll ? (
+            <>
+              <h3 className="sr-only">{replyAll ? 'Reply all' : 'Reply'}</h3>
+              <Segmented<'one' | 'all'>
+                value={replyAll ? 'all' : 'one'}
+                onChange={v => { if ((v === 'all') !== !!replyAll) onToggleReplyAll() }}
+                options={[{ value: 'one', label: 'Reply' }, { value: 'all', label: 'Reply all' }]}
+                label="Reply"
+                className="flex-nowrap"
+              />
+            </>
+          ) : (
+            <h3 className="m-0 text-heading font-medium text-trs-ink">Reply</h3>
+          )}
           {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
           <span className="flex-1" />
+          {senders.length > 0 && (
+            <span className="inline-flex items-center gap-1 min-w-0 text-small text-trs-muted">
+              <span>From</span>
+              <QuietSelect label="From" value={selectedFrom} onChange={setSelectedFrom}>
+                {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
+              </QuietSelect>
+            </span>
+          )}
           {onMinimise && (
-            <Btn level="tertiary" size="xs" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className="px-2.5">
-              Minimise
+            <Btn level="tertiary" size="xs" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className="w-8 px-0">
+              <Minus size={16} />
+            </Btn>
+          )}
+          {onMinimise && (
+            <Btn level="tertiary" size="xs" onClick={() => void discard()} title="Close" aria-label="Close" className="w-8 px-0">
+              <X size={16} />
             </Btn>
           )}
         </div>
 
-        {/* ── To ── */}
-        <FieldRow label="To" tall htmlFor="compose-to" right={
-          <>
-            {onToggleReplyAll && (
-              <Btn
-                level="tertiary"
-                size="xs"
-                onClick={onToggleReplyAll}
-                aria-pressed={replyAll}
-                title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
-                className={cn('px-2 rounded border-0 font-normal text-small hover:bg-trs-field', replyAll ? 'bg-trs-field font-medium text-trs-ink hover:text-trs-ink' : 'text-trs-subtle hover:text-trs-subtle')}
-              >
-                Reply all
-              </Btn>
-            )}
-            {!showCc && <Btn level="tertiary" size="xs" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-8 px-1.5 rounded border-0 font-normal text-small text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Cc</Btn>}
-            {!showCc && !showBcc && <span aria-hidden>·</span>}
-            {!showBcc && <Btn level="tertiary" size="xs" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-8 px-1.5 rounded border-0 font-normal text-small text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Bcc</Btn>}
-          </>
+        {/* ── To · Bcc on demand ── */}
+        <FieldRow label="To" htmlFor="compose-to" right={
+          !showBcc ? <RowTextButton onClick={() => setShowBcc(true)} label="Add Bcc">Bcc</RowTextButton> : undefined
         }>
           {headerExpanded || !toAddress ? (
             <ToAutocompleteInput id="compose-to" value={toAddress} onChange={setToAddress} placeholder="Type a name or email…"
@@ -432,47 +449,20 @@ export function EngagementComposePanel({
           )}
         </FieldRow>
 
-        {/* ── Cc / Bcc — revealed from the To row ── */}
-        {showCc && (
-          <FieldRow label="Cc" tall right={
-            <Btn level="tertiary" size="xs" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-8 px-0 rounded border-0 text-trs-muted hover:bg-trs-field"><X size={13} /></Btn>
-          }>
-            <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
-          </FieldRow>
-        )}
+        {/* ── Cc, then Bcc once asked for ── */}
+        <FieldRow label="Cc">
+          <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
+        </FieldRow>
         {showBcc && (
-          <FieldRow label="Bcc" tall right={
-            <Btn level="tertiary" size="xs" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-8 px-0 rounded border-0 text-trs-muted hover:bg-trs-field"><X size={13} /></Btn>
+          <FieldRow label="Bcc" right={
+            <Btn level="tertiary" size="xs" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-6 h-6 px-0 border-0 text-trs-muted hover:bg-trs-field"><X size={13} /></Btn>
           }>
             <ChipInput chips={bccList} onChange={setBccList} placeholder="Add Bcc…" />
           </FieldRow>
         )}
 
-        {/* ── Subject · From · Signature ── */}
-        <FieldRow label="Subject" htmlFor="compose-subject" right={
-          (senders.length > 0 || signatures.length > 0) ? (
-            <>
-              {senders.length > 0 && (
-                <span className="inline-flex items-center gap-1">
-                  <span>From</span>
-                  <QuietSelect label="From" value={selectedFrom} onChange={setSelectedFrom}>
-                    {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
-                  </QuietSelect>
-                </span>
-              )}
-              {senders.length > 0 && signatures.length > 0 && <span aria-hidden>·</span>}
-              {signatures.length > 0 && (
-                <span className="inline-flex items-center gap-1">
-                  <span>Signature:</span>
-                  <QuietSelect label="Signature" value={selectedSigId} onChange={setSelectedSigId}>
-                    <option value="">None</option>
-                    {signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </QuietSelect>
-                </span>
-              )}
-            </>
-          ) : undefined
-        }>
+        {/* ── Subject ── */}
+        <FieldRow label="Subject" htmlFor="compose-subject">
           <input
             id="compose-subject"
             value={customSubject}
@@ -513,9 +503,8 @@ export function EngagementComposePanel({
           bodyStyle={fullscreen ? undefined : { height: 'var(--engagement-composer-h, 180px)' }}
           toolbarExtras={
             <>
-              <TbGroup label="Attach">
-                <TbMenu label={uploading ? 'Uploading…' : 'Attach files'} open={attachMenuOpen} onOpenChange={setAttachMenuOpen} caret={threadFiles.length > 0} width={260}
-                  trigger={<><Paperclip size={15} /> {uploading ? 'Uploading…' : 'Attach'}</>}>
+                <TbMenu label={uploading ? 'Uploading…' : 'Attach files'} text={false} caret={false} open={attachMenuOpen} onOpenChange={setAttachMenuOpen} width={260}
+                  trigger={<Paperclip size={15} className={uploading ? 'animate-pulse' : undefined} />}>
                   {close => (
                     <>
                       <TbMenuItem onSelect={() => { fileInputRef.current?.click(); close() }}>Upload from computer</TbMenuItem>
@@ -531,13 +520,19 @@ export function EngagementComposePanel({
                     </>
                   )}
                 </TbMenu>
-              </TbGroup>
-              {/* No house-template picker exists in this panel yet, so there is no Template menu. */}
-              {/* The Assist menu's "Generate AI reply" lived here. Drafting is now one control,
-                  "Generate response", in the bar above this composer — it reads the company
-                  record and the client's other threads, not just this one, and writes the result
-                  straight into this editor. Two buttons that both produced a draft, from
-                  different amounts of context, was the thing worth removing. */}
+                {/* Signature: the same choice as before, moved from the Subject row. */}
+                {signatures.length > 0 && (
+                  <TbMenu label="Signature" text={false} caret={false} width={220} trigger={<Signature size={16} />}>
+                    {close => (
+                      <>
+                        <TbMenuItem active={selectedSigId === ''} onSelect={() => { setSelectedSigId(''); close() }}>None</TbMenuItem>
+                        {signatures.map(s => <TbMenuItem key={s.id} active={selectedSigId === s.id} onSelect={() => { setSelectedSigId(s.id); close() }}>{s.name}</TbMenuItem>)}
+                      </>
+                    )}
+                  </TbMenu>
+                )}
+              {/* No house-template picker exists in this panel yet, so there is no Template menu.
+                  Drafting is one control, "Generate response", beside Send in the footer. */}
             </>
           }
         />
@@ -603,8 +598,19 @@ export function EngagementComposePanel({
         )}
         <input ref={fileInputRef} type="file" multiple className="hidden" onChange={e => uploadLocalFiles(e.target.files)} aria-hidden tabIndex={-1} />
 
-        {/* ── Footer: note or error · spacer · Approve & Send ── */}
-        <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2 pb-4 flex-shrink-0">
+        {/* ── Footer: Approve & Send · Generate response · Ask AI · note or error · Discard ── */}
+        <div className="flex items-center gap-1 px-[var(--re-gutter)] pt-2 pb-3 flex-shrink-0">
+          {/* Approve & Send — the one filled primary in the panel */}
+          <Btn
+            level="primary"
+            onClick={handleSend}
+            disabled={!!loading || !canSend}
+            className="mr-1"
+          >
+            {loading === 'send' ? 'Sending…' : 'Approve & Send'}
+          </Btn>
+          {footerExtras}
+          <span className="flex-1 min-w-2" />
           {error ? (
             <div className="relative min-w-0" ref={errorRef}>
               <Btn
@@ -618,7 +624,7 @@ export function EngagementComposePanel({
                 {error}
               </Btn>
               {errorOpen && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-64 overflow-auto rounded border border-trs-line bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
+                <div className="absolute bottom-full right-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-64 overflow-auto rounded border border-trs-line bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
                   <div className="mb-1.5 flex items-center justify-between gap-2">
                     <span className="text-small text-trs-muted">Error detail</span>
                     <div className="flex items-center gap-2">
@@ -631,17 +637,13 @@ export function EngagementComposePanel({
               )}
             </div>
           ) : (
-            <span className="text-small truncate text-trs-subtle">Signature and quoted message are added on send</span>
+            <span className="min-w-0 text-small truncate text-trs-subtle">Signature and quoted message are added on send</span>
           )}
-          <span className="flex-1" />
-          {/* Approve & Send — the one filled primary in the panel */}
-          <Btn
-            level="primary"
-            onClick={handleSend}
-            disabled={!!loading || !canSend}
-          >
-            {loading === 'send' ? 'Sending…' : 'Approve & Send'}
-          </Btn>
+          {onMinimise && (
+            <Btn level="tertiary" size="xs" onClick={() => void discard()} title="Discard" aria-label="Discard the reply" className="w-8 px-0 flex-shrink-0">
+              <Trash2 size={15} />
+            </Btn>
+          )}
         </div>
       </div>
     </div>

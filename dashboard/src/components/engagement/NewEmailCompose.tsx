@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 import { useConfirm } from '@/components/ui/confirm'
+import { X, Trash2, Signature } from 'lucide-react'
 import { Btn } from '@/components/crm/primitives'
 import {
-  FieldRow, RecipientChip, QuietSelect, AttachmentChip, externalDomain,
+  FieldRow, RecipientChip, QuietSelect, AttachmentChip, TbMenu, TbMenuItem, externalDomain,
 } from '@/components/engagement-agent/compose-toolbar'
 
 /**
@@ -72,7 +73,6 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
   const [draftId,  setDraftId]  = useState(initial.draftId)
   const [draftSaved, setDraftSaved] = useState(false)
   const [error,    setError]    = useState<string | null>(null)
-  const [showCc,   setShowCc]   = useState(!!(initial.cc ?? '').trim())
   const [fullscreen, setFullscreen] = useState(false)
   const contentRef = useRef<HTMLElement>(null)
 
@@ -196,21 +196,27 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
       className={cn(
         'flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-white text-trs-ink focus:outline-none',
         fullscreen && 'fixed inset-0 z-50',
-        '[--re-gutter:20px] sm:[--re-gutter:40px]',
+        '[--re-gutter:16px]',
       )}
     >
-          {/* ── Bar: New email · Draft saved · Close ── */}
-          <div className="flex items-center gap-2.5 px-[var(--re-gutter)] pt-4 pb-2.5 flex-shrink-0">
-            <h1 className="m-0 text-heading font-semibold text-trs-ink">New email</h1>
+          {/* ── Header: New email · Draft saved · From · Close ── */}
+          <div className="flex items-center gap-2 px-[var(--re-gutter)] h-12 flex-shrink-0 border-b border-trs-line">
+            <h1 className="m-0 text-heading font-medium text-trs-ink">New email</h1>
             <span className="flex-1" />
             {savedState && <span className="text-small mr-1 text-trs-subtle" role="status">{savedState}</span>}
-            <Btn level="tertiary" size="xs" onClick={requestClose} className="px-2.5" aria-label="Close" title="Close (Esc)">Close</Btn>
+            {senders.length > 0 && (
+              <span className="inline-flex items-center gap-1 min-w-0 text-small text-trs-muted">
+                <span>From</span>
+                <QuietSelect label="From" value={fromEmail} onChange={setFromEmail}>
+                  {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
+                </QuietSelect>
+              </span>
+            )}
+            <Btn level="tertiary" size="xs" onClick={requestClose} className="w-8 px-0" aria-label="Close" title="Close (Esc)"><X size={16} /></Btn>
           </div>
 
           {/* ── To ── */}
-          <FieldRow label="To" tall htmlFor="new-email-to" right={
-            !showCc ? <Btn level="tertiary" size="xs" onClick={() => setShowCc(true)} aria-label="Add Cc" className="px-1.5 border-0 text-small font-normal text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Cc</Btn> : undefined
-          }>
+          <FieldRow label="To" htmlFor="new-email-to">
             {toDone && to.trim() ? (
               <RecipientChip name={toName} email={to} onRemove={() => { setTo(''); setToDone(false) }} />
             ) : (
@@ -236,9 +242,8 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
             )}
           </FieldRow>
 
-          {/* ── Cc — revealed from the To row. A personal sender auto-Ccs operations@ on the server. ── */}
-          {showCc && (
-            <FieldRow label="Cc" tall htmlFor="new-email-cc">
+          {/* ── Cc. A personal sender auto-Ccs operations@ on the server. ── */}
+          <FieldRow label="Cc" htmlFor="new-email-cc">
               {ccChips.map((email, i) => (
                 <RecipientChip key={`${email}-${i}`} name={email} email={email} onRemove={() => setCc(joinCc(ccChips.filter((_, j) => j !== i), ccQuery))} />
               ))}
@@ -262,33 +267,9 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                 {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => { setCc([...ccChips, c.email].join(', ') + ', '); ccAc.close() }} />}
               </div>
             </FieldRow>
-          )}
 
-          {/* ── Subject · From · Signature ── */}
-          <FieldRow label="Subject" htmlFor="new-email-subject" right={
-            (senders.length > 0 || sigs.length > 0) ? (
-              <>
-                {senders.length > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <span>From</span>
-                    <QuietSelect label="From" value={fromEmail} onChange={setFromEmail}>
-                      {senders.map(s => <option key={s.email} value={s.email}>{s.label}</option>)}
-                    </QuietSelect>
-                  </span>
-                )}
-                {senders.length > 0 && sigs.length > 0 && <span aria-hidden>·</span>}
-                {sigs.length > 0 && (
-                  <span className="inline-flex items-center gap-1">
-                    <span>Signature:</span>
-                    <QuietSelect label="Signature" value={sigId} onChange={setSigId}>
-                      <option value="">None</option>
-                      {sigs.map(s => <option key={s.id} value={s.id}>{s.name}{s.title ? ` · ${s.title}` : ''}</option>)}
-                    </QuietSelect>
-                  </span>
-                )}
-              </>
-            ) : undefined
-          }>
+          {/* ── Subject ── */}
+          <FieldRow label="Subject" htmlFor="new-email-subject">
             <input
               id="new-email-subject"
               value={subject}
@@ -311,6 +292,17 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
             onToggleFullscreen={() => setFullscreen(v => !v)}
             className="flex-1 min-h-0"
             bodyClassName="flex-1 min-h-0 overflow-y-auto"
+            toolbarExtras={sigs.length > 0 ? (
+              // Signature: the same choice as before, moved from the Subject row.
+              <TbMenu label="Signature" text={false} caret={false} width={240} trigger={<Signature size={16} />}>
+                {close => (
+                  <>
+                    <TbMenuItem active={sigId === ''} onSelect={() => { setSigId(''); close() }}>None</TbMenuItem>
+                    {sigs.map(s => <TbMenuItem key={s.id} active={sigId === s.id} onSelect={() => { setSigId(s.id); close() }}>{s.name}{s.title ? ` · ${s.title}` : ''}</TbMenuItem>)}
+                  </>
+                )}
+              </TbMenu>
+            ) : undefined}
           />
 
           {initial.attachment && (
@@ -319,20 +311,21 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
             </div>
           )}
 
-          {/* ── Footer: external note or error · Save draft · Send ── */}
-          <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2.5 pb-4 flex-shrink-0 flex-wrap">
+          {/* ── Footer: Send · Save draft · external note or error · Discard ── */}
+          <div className="flex items-center gap-1 px-[var(--re-gutter)] pt-2 pb-3 flex-shrink-0">
+            <Btn level="primary" onClick={send} disabled={sending} className="mr-1">
+              {sending ? 'Sending…' : 'Send'}
+            </Btn>
+            <Btn level="tertiary" size="xs" onClick={saveAsDraft} disabled={savingDraft || sending}>
+              {savingDraft ? 'Saving…' : 'Save draft'}
+            </Btn>
+            <span className="flex-1 min-w-2" />
             {error ? (
               <span className="text-small min-w-0 truncate text-trs-neg" role="alert">{error}</span>
             ) : external ? (
               <span className="text-small min-w-0 truncate text-trs-subtle">External recipient · {external}</span>
             ) : null}
-            <span className="flex-1" />
-            <Btn level="secondary" onClick={saveAsDraft} disabled={savingDraft || sending}>
-              {savingDraft ? 'Saving…' : 'Save draft'}
-            </Btn>
-            <Btn level="primary" onClick={send} disabled={sending} className="h-9">
-              {sending ? 'Sending…' : 'Send'}
-            </Btn>
+            <Btn level="tertiary" size="xs" onClick={requestClose} className="w-8 px-0 flex-shrink-0" aria-label="Discard" title="Discard"><Trash2 size={15} /></Btn>
           </div>
     </section>
   )
