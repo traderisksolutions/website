@@ -455,14 +455,6 @@
   "sb": 1,
   "fetch": 0
  },
- "src/app/api/placements/register/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/unmatched/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/placements/working/route.ts": {
   "sb": 1,
   "fetch": 0

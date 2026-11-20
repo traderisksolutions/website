@@ -335,14 +335,6 @@
   "height": 1,
   "control": 1
  },
- "src/app/rfq/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 3
- },
  "src/app/roadplus/page.tsx": {
   "style": 13,
   "hex": 10,
