@@ -93,9 +93,11 @@ export function listable(row: Pick<IndexRow, 'subject' | 'people' | 'attachments
 
 /** The people on the found threads whose name or address holds every word: newest thread first, counted. */
 export function peopleHits(threads: readonly Pick<ThreadHit, 'people' | 'lastAt'>[], words: readonly string[], max = 6): PersonHit[] {
+  const nameOf = new Map<string, string>()
+  for (const t of threads) for (const p of t.people) if (p.name && !nameOf.has(p.email)) nameOf.set(p.email, p.name)
   const by = new Map<string, PersonHit>()
   for (const t of threads) for (const p of t.people) {
-    if (/@trade-risksol\.com$/i.test(p.email) || !hasEvery(`${p.name ?? ''} ${p.email}`, words)) continue
+    if (/@trade-risksol\.com$/i.test(p.email) || !hasEvery(`${p.name ?? nameOf.get(p.email) ?? ''} ${p.email}`, words)) continue
     const cur = by.get(p.email)
     if (!cur) by.set(p.email, { ...p, threads: 1, lastAt: t.lastAt })
     else { cur.threads++; if (!cur.name && p.name) cur.name = p.name; if (String(t.lastAt ?? '') > String(cur.lastAt ?? '')) cur.lastAt = t.lastAt }

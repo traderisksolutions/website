@@ -77,16 +77,33 @@ export function suggestProjects(threads: readonly SubjectThread[], exclude: Iter
   for (const [key, g] of ranked) {
     if (already.has(key)) continue
     if (chosen.some(c => [...g.ids].every(id => c.ids.has(id)))) continue
-    const name = [...g.shapes.entries()].sort((a, b) => b[1] - a[1] || (/\p{Lu}/u.test(b[0]) ? 1 : 0) - (/\p{Lu}/u.test(a[0]) ? 1 : 0))[0][0]
+    // One word ("Dover") reads better as the name it most often starts ("Dover Drive") when that
+    // name is on at least three quarters of its threads; the threads stay the word's.
+    let shapes = g.shapes
+    if (g.len === 1) {
+      const ext = ranked.filter(([k, x]) => x.len > 1 && k.startsWith(`${key} `) && x.ids.size >= 0.75 * g.ids.size)
+        .sort((a, b) => b[1].ids.size - a[1].ids.size || a[1].len - b[1].len)[0]
+      if (ext) shapes = ext[1].shapes
+    }
+    const name = [...shapes.entries()].sort((a, b) => b[1] - a[1] || (/\p{Lu}/u.test(b[0]) ? 1 : 0) - (/\p{Lu}/u.test(a[0]) ? 1 : 0))[0][0]
+    if (already.has(name.toLowerCase())) continue
     chosen.push({ key, ids: g.ids, name })
     if (chosen.length >= 5) break
   }
   return chosen.map(c => ({ name: c.name, threadIds: [...c.ids] }))
 }
 
-/** The words of a company's name and of insurers' names, for `exclude`. */
+/**
+ * The words of a company's name and of insurers' names, for `exclude`, with each name's initials
+ * ("China Communications Construction Company Limited" → cccc, ccccl): subjects often use them.
+ */
 export function nameWords(...names: (string | null | undefined)[]): string[] {
-  return names.flatMap(n => subjectWords(n).map(w => w.toLowerCase()))
+  return names.flatMap(n => {
+    const ws = subjectWords(n).map(w => w.toLowerCase())
+    const core = ws.filter(w => !/^(pte|ltd|limited|llp|inc|the|and|of)$/.test(w))
+    const initials = [ws, core].map(x => x.map(w => w[0]).join('')).filter(i => i.length >= 3)
+    return [...ws, ...initials]
+  })
 }
 
 // ── Parties ──────────────────────────────────────────────────────────────────────────────────────

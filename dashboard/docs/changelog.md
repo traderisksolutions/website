@@ -4,6 +4,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Today 2.0: one search, ring-fence, Calendar on Today, client substance
+
+- **Top bar:** the TRS logo opens Today; Today is no longer a place. Calendar is a view on Today (By client · By email · Calendar, `/today?calendar=1`); `/calendar` keeps working (TOD-049, TOD-050).
+- **Search:** ⌘K finds email by name, address, subject, file name or any word, grouped Threads · People · Companies · Files, each conversation of a joined thread under it; Add email threads uses the same search. Index `thread_search` (migration written, **not applied**), refreshed from ingest, backfilled by hand (`docs/search.md`; INB-050, INB-051).
+- **Ring-fence (Jarod):** everyone sees every Today row and thread (subject, status, counts); a colleague's private thread opens "This email lives in <First name>'s inbox." with Close and Ask <Name> (copies a link). The server refuses its mail and never hands it to a model for someone else. Everyone's Today: others' drafts are read-only (INB-052, TOD-051).
+- **Client rows:** load first; facts after (Renews, Current insurer and premium, Stage, Waiting on); an open row reads Documents, Insurers, Timeline and links on open (TOD-052, TOD-053).
+- **Projects and parties:** suggested projects from repeated names in a client's subjects, confirmed by the owner; parties per project (TOD-054).
+- **Condense:** per client or project, labelled facts (Client asked, TRS promised, Owed by, Next step), each date and figure checked against the text read; kept with the threads' state. The Read returns the same facts in place of summary sentences (TOD-055; feature `today_condense`).
+- **Old drafts:** older drafts repeating the same ask to the same person on the same thread are greyed with Discard only (TOD-056).
+
 ## 2026-11-20 — Every thread listed for everyone; client links by rule; no joined threads; Read in plain steps
 
 - **Visibility (Jarod):** every thread is listed for everyone at TRS (Inbox, Add email threads). A thread read only from a colleague's own mailbox shows "Access blocked · Owner: <name>" and opens only for those it was visible to before; its snippet and email text are withheld from the others (`ownersOf`, `privateThread` in `lib/mail/visibility-server.ts`).
