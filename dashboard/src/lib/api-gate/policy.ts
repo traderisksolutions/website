@@ -41,11 +41,6 @@ export const API_RULES: ApiRule[] = [
     reason: 'Google OAuth redirect; a third party cannot send our header and the OAuth state is the check.',
   },
   {
-    prefix: '/api/auth/onedrive/callback',
-    requirement: 'open',
-    reason: 'Microsoft OAuth redirect; same reasoning as the Gmail callback.',
-  },
-  {
     // Clicked from an email body by a recipient who has no login and never
     // will. The link carries an HMAC over the lead id
     // (src/lib/unsubscribe-token.ts) so it cannot be used to unsubscribe

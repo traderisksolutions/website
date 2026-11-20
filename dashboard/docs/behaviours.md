@@ -312,7 +312,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | FIN-009 | An insurer debit note on a client policy creates a TRS debit note in the review queue, and the work item says "Approve the TRS debit note in the review queue". | project_trs_nathan_method (3 Nov) | extract-bundle.ts | Seed insurer note; bundle needs review. |
 | FIN-010 | The TRS debit note PDF has the TRS 保风 mark top-left, title in the header, one plain table with a total row, PayNow QR for SGD and the correspondent bank for USD; SWIFT reads DBSSSGSG. | project_trs_placement (29 Oct) | debit-note pdf | PDF snapshot (Phase 6). |
 | FIN-011 | Billing is fixed: the client pays TRS against the TRS debit note and TRS settles the insurer; the relay adds this line when sending documents. | project_trs_nathan_method | relay compose | Draft contains billing line. |
-| FIN-012 | Earnings shows commission and premium by month net of credit notes and fee rebates, top 10 by lifetime value, and renewals due in 90 days. | project_trs_dashboard_crm (2 Oct, 6 Oct) | /analytics/earnings | Unit in earnings.ts. |
+| FIN-012 | **Removed** (Jarod, 20 Nov 2026: old pages deleted). Was: Earnings shows commission and premium by month net of credit notes and fee rebates, top 10 by lifetime value, and renewals due in 90 days. | project_trs_dashboard_crm (2 Oct, 6 Oct) | /analytics/earnings | Unit in earnings.ts. |
 | FIN-013 | Must not: red totals, overdue alarms or money warnings on any page. | CL 29 Sep | all | rule |
 
 ## Documents
@@ -442,7 +442,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | --- | --- | --- | --- | --- |
 | GRO-001 | Every Marketing page carries a site switch kept in ?site=. | CL 12 Oct; project_trs_marketing_module | /marketing/* | Switch persists on reload. |
 | GRO-002 | A site's banned terms hold an article from publishing even when approval is off. | CL 12 Oct | content engine | Article with a banned term held. |
-| GRO-003 | Campaigns approve every recipient before scheduling, send 15 minutes apart in office hours, cap 30 a day (max 45), stop on reply or bounce, pause over 5% bounces, offer one-click unsubscribe, and send nothing until CAMPAIGN_SENDING_ENABLED. | CL 12 Oct (Sales) | /sales/campaigns | Unit on scheduler. |
+| GRO-003 | **Removed** (Jarod, 20 Nov 2026: old pages deleted). Was: Campaigns approve every recipient before scheduling, send 15 minutes apart in office hours, cap 30 a day (max 45), stop on reply or bounce, pause over 5% bounces, offer one-click unsubscribe, and send nothing until CAMPAIGN_SENDING_ENABLED. | CL 12 Oct (Sales) | /sales/campaigns | Unit on scheduler. |
 | GRO-004 | The knowledge file is read-only until Edit; Save makes a version; old versions can be viewed and restored. | project_trs_marketing_v2 | /marketing/knowledge | Save twice; restore v1. |
 
 ---

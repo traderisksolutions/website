@@ -33,7 +33,6 @@ const policyFile = join(repoRoot, 'src', 'lib', 'api-gate', 'policy.ts')
 // entry's reason lives beside it in src/lib/api-gate/policy.ts.
 const EXPECTED_OPEN = [
   '/api/auth/gmail/callback',    // Google OAuth redirect
-  '/api/auth/onedrive/callback', // Microsoft OAuth redirect
   '/api/marketing/gsc/callback', // Google OAuth redirect (Search Console)
   '/api/public/blog',            // published-article feed read by the business's own websites
   '/api/public/email-image',     // images inside sent emails; image files in the email-images Drive folder only
