@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — AI Agents, monitoring
+
+- **AI Agents** on the top bar (Agents · Usage), read on the server from the usage log: each agent's source pages, model, key (own, shared or missing), status, runs, failures and S$; an agent's workflow, runs a day and functions; usage by agent and model (AGT-001, AGT-002). AI spend moves from the avatar menu to AI Agents › Usage. Instructions and Knowledge (versioned text) follow once the agents read them.
+
 ## 2026-11-21 — Employment Benefits: each insurer on a proposal, tracked
 
 - **Insurers** on the proposal page: route with why or a broker's override with its reason; status (Not asked, Requested, Chased, Quoted, Declined, Revised) with the date of each step; a note; the placement module's quotes for the client (`eb_quotation_insurers`, `20261121_w_eb_quotation_insurers.sql`, EB-075).

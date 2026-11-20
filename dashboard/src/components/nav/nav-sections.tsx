@@ -76,6 +76,11 @@ export const PLACES: Place[] = [
   // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its
   // articles, enquiries, newsletter and Search Console, which keep their ?site= pages.
   { label: 'Marketing', href: WEBSITES[0].href, icon: Megaphone, tabs: WEBSITES },
+  // Jarod, 20 Nov 2026 (approved design): AI Agents, monitoring only. Usage replaces AI spend under the avatar.
+  { label: 'AI Agents', href: '/agents', icon: Cpu, tabs: [
+    { title: 'Agents', href: '/agents' },
+    { title: 'Usage', href: '/agents/usage' },
+  ] },
 ]
 
 /** Today and its Calendar: opened by the logo, not a place on the bar; listed for ⌘K. */
@@ -88,7 +93,6 @@ export const HOME_LINKS: { label: string; href: string }[] = [
 export const ACCOUNT_LINKS: { title: string; href: string; icon: LucideIcon }[] = [
   { title: 'Settings',     href: '/settings',            icon: Settings },
   { title: 'Error log',    href: '/analytics/error-log', icon: AlertTriangle },
-  { title: 'AI spend',     href: '/analytics/ai-usage',  icon: Cpu },
 ]
 
 export function pathMatches(pathname: string, href: string) {

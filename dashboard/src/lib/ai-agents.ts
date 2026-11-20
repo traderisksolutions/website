@@ -263,3 +263,12 @@ export function agentKey(id: Exclude<AgentId, 'unattributed'>): { key: string | 
   }
   return { key: null, via: 'none' }
 }
+
+/**
+ * Which key an agent would answer with, by name only: its own, a shared one, or none. For the AI
+ * Agents place; never returns a key's value.
+ */
+export function agentKeyStatus(id: Exclude<AgentId, 'unattributed'>): 'own' | 'shared' | 'missing' {
+  const via = agentKey(id).via
+  return via === AGENTS[id].envKey ? 'own' : via === 'none' ? 'missing' : 'shared'
+}

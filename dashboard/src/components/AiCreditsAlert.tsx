@@ -118,8 +118,8 @@ export function AiCreditsAlert() {
         rows={rows}
         onDismiss={() => setHidden(true)}
         dataAttr="data-ai-credits-alert"
-        actionLabel="AI spend"
-        actionHref="/analytics/ai-usage"
+        actionLabel="Usage"
+        actionHref="/agents/usage"
       />
     </div>
   )
