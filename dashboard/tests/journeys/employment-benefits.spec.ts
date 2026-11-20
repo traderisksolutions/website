@@ -2,11 +2,11 @@
 import { test, expect } from '@playwright/test'
 import { companyId, dbRows, openClean } from './helpers'
 
-test('Employment Benefits tabs are New quotation, Quotation register and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
+test('Employment Benefits tabs are New quotation, Quotation register, Products and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
   await openClean(page, '/eb/quotations')
   await expect(page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true })).toHaveAttribute('aria-current', 'page')
   const tabs = page.getByRole('navigation', { name: 'Employment Benefits' })
-  await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Brochures'])
+  await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Products', 'Brochures'])
   await expect(tabs.getByRole('link', { name: 'Quotation register', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('heading', { name: 'Quotation register', level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Quotes' })).toHaveCount(0)
@@ -86,4 +86,13 @@ test('EB-061 an old quotation address redirects to its re-priced proposal; one n
 test('a report link that is not signed is refused', async ({ page }) => {
   const res = await page.request.get('/api/public/gb-report/1AbCdEfGhIjKlMnOp.9999999999.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
   expect(res.status()).toBe(404)
+})
+
+test('EB-073 Products: the five house products from the workbook beside their rate tables, differences and the read queue', async ({ page }) => {
+  await openClean(page, '/eb/products')
+  const products = page.getByRole('table', { name: 'Products', exact: true })
+  await expect(products).toBeVisible({ timeout: 90_000 })
+  for (const p of ['Steadfast MCare+', 'RCC Enhanced III', 'Income FlexCare', 'Singlife MyBenefits Plus', 'AIA Flexi Vital Care Plus']) await expect(products.getByRole('row', { name: new RegExp(p.replace('+', '\\+')) })).toBeVisible()
+  await expect(products.locator('thead th')).toContainText(['Product', 'Covers', 'Plans', 'Rates', 'Benefits', 'Rate tables', 'Same', 'With GST', 'Different', 'Workbook only', 'Table only'])
+  await expect(page.getByRole('heading', { name: 'Read queue' })).toBeVisible()
 })

@@ -51,6 +51,8 @@ export const PLACES: Place[] = [
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'New quotation', href: '/eb' },
     { title: 'Quotation register', href: '/eb/quotations' },
+    // 21 Nov 2026: Products, the workbook beside the rate tables (docs/eb-v2.md P3).
+    { title: 'Products', href: '/eb/products' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [

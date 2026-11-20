@@ -275,6 +275,16 @@ Copy: say what something is and what it waits on. Name the person or insurer, gi
 
 Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry in `docs/changelog.md`, deploy only on Jarod's "ok deploy".
 
+### P3 status (21 Nov 2026, branch eb-library-2026-11-21, EB-073)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G12 Two price sources | **Compared** | Employment Benefits › Products sets the workbook against every rate table rate by rate. 21 Nov: RCC 291 of 291 same; QBE V12 brochure 381 same, 12 different (dental); QBE calculator table 362 of 393 different; Singlife 2022 table 142 different; Income and AIA differences mostly the same price with 9% GST. |
+| G15 Discrepancy register | **First cut** | The differences are computed live, not stored; no decision is recorded yet. |
+| G17 Changed brochure queued | **Done** | The read queue lists files not read and changed since. |
+| One price source for placements and analysis | Not done | They still price from the rate tables; switching follows Nathan settling the differences. |
+| G14 Rules as data, G16 benefits merged | Not done | |
+
 ### P2 and P4 status (21 Nov 2026, branch eb-scheme-2026-11-21, EB-071, EB-072)
 
 | Gap | Status | What exists |
@@ -292,7 +302,7 @@ Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry
 | --- | --- | --- |
 | G20 Insurer quotes beside engine prices | **Partly done** | An insurer's schedule added on /eb (Insurer pricing) is read and compared beside the brochure columns, figure by figure with source and status. `placement_quotes` from the placement module are not pulled in yet. |
 | G23 Two quotation screens | **Done** | /eb is the one quotation screen (release 1, EB-055); Brochure and Insurer pricing are two modes of it. |
-| G24 Route per insurer | **Not done** | The pricing mode is chosen per quotation, not per insurer; no `routeFor`. Headcount and rate-date rules show as warnings on the column (EB-069). |
+| G24 Route per insurer | **Done (21 Nov)** | `routeFor` (gb/routes.ts): Brochure price or Insurer to quote per house insurer with the reasons, shown as Routes under the census (EB-074). A broker override is not recorded yet. |
 | G25 Upload and read an insurer quotation | **Done** | xlsx, xls, csv and PDF read by code; Read with AI for scans; every figure with source and status (EB-065). |
 | G26 Per-insurer status | **Not done** | ProposalTrack stays per proposal. |
 

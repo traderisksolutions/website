@@ -184,3 +184,18 @@ test('EB-072 the census column offers the data room\'s typed member lists for th
   expect(scheme.status()).toBe(200)
   expect(typeof (await scheme.json()).tables).toBe('boolean')
 })
+
+test('EB-074 Routes: each house insurer is Brochure price or Insurer to quote, with why', async ({ page }) => {
+  await openClean(page, '/eb')
+  const census = [
+    'Name,Date of birth,Relationship,Category,GHS Plan',
+    'Journey Route One,12/03/1980,Employee,Staff,Plan 3',
+    'Journey Route Two,12/03/1985,Employee,Staff,Plan 3',
+    'Journey Route Senior,01/01/1950,Employee,Staff,Plan 3',
+  ].join('\n')
+  await page.locator('#eb-census-add').setInputFiles({ name: 'journey-routes.csv', mimeType: 'text/csv', buffer: Buffer.from(census) })
+  const routes = page.getByRole('table', { name: 'Routes' })
+  await expect(routes).toBeVisible({ timeout: 30_000 })
+  await expect(routes.getByRole('row', { name: /Steadfast MCare\+.*Insurer to quote.*aged 70 or over needs underwriting/ })).toBeVisible()
+  await expect(routes.getByRole('row', { name: /RCC Enhanced III.*Brochure price/ })).toBeVisible()
+})
