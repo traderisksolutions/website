@@ -436,6 +436,21 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | DAT-018 | Every /api route sits behind the API gate (x-api-key plus session or cron credential). | CL 30 Sep; project_trs_dashboard_crm | middleware | API-gate coverage check. |
 | DAT-019 | Migrations grant to service_role only (Cloud SQL has no auth schema); PostgREST schema is reloaded after a new table. | project_trs_client_structure (1 Nov); project_trs_marketing_v2 | supabase/migrations | rule |
 
+## Renewals
+
+| ID | Behaviour | Source | Where | Test |
+| --- | --- | --- | --- | --- |
+| REN-001 | [Standing] A renewal is its own record, opened from the policy 120 days before expiry, 180 for Employment Benefits; one open record per policy. | Jarod, 20 Nov 2026 | src/lib/renewals/rules.ts opensOn, open.ts | open.test.ts |
+| REN-002 | Opening is idempotent: a policy that has ever had a record gets none; a policy whose next term is on the register, a quote, an endorsement or one ended over 30 days ago gets none. Person-triggered (Open renewals due); not in the admin sweep yet. | Jarod, 20 Nov 2026 | /api/renewals/open | open.test.ts; journey renewals.spec.ts |
+| REN-003 | Each record carries four tasks at 90, 60, 30 and 15 days before expiry. | Jarod, 20 Nov 2026 | tasksFor | rules.test.ts |
+| REN-004 | Stages: Open, Data asked, Marketing, Quotes in, Proposed, Instructed, then Renewed or Lost. Renewed only with the new policy linked (renewed_policy_id); Lost only with a reason (price, service, no contact, client closed, other + note). A closed record does not change. | Jarod, 20 Nov 2026 | checkChange, PATCH /api/renewals | rules.test.ts |
+| REN-005 | Expiring premium and commission are the latest new business or renewal debit note for the policy, net of the notes that reverse or correct it; computed by code. | Jarod, 20 Nov 2026 | expiringFrom | rules.test.ts |
+| REN-006 | Owner is the client's account owner (companies.owner_email), else empty and editable. | Jarod, 20 Nov 2026 | openDueRenewals | rule |
+| REN-007 | Every policy maps by rules to one line of a fixed list; a person confirms a spelling's line on To fix before policy_line_aliases and policies.line_code are written. | Jarod, 20 Nov 2026 | src/lib/renewals/lines.ts, /renewals/fix | lines.test.ts (real spellings) |
+| REN-008 | To fix lists live policies without an end date with a suggested date (start + 1 year − 1 day, else last placing debit note + 1 year − 1 day), marked Suggested; end_date is written only on a person's Confirm or Confirm all suggested (asked first), and never over a date already set. | Jarod, 20 Nov 2026 | /renewals/fix | journey renewals.spec.ts |
+| REN-009 | To fix lists live policies with no placing debit note, each linked to its policy page. | Jarod, 20 Nov 2026 | /renewals/fix | journey renewals.spec.ts |
+| REN-010 | /renewals lists the open records (client, line, insurer, expires, days, premium, commission, stage, owner) with a days-to-expiry filter; every renewal route answers { tables: false } until 20261120_renewals.sql is applied. | Jarod, 20 Nov 2026 | /renewals, /api/renewals | journey renewals.spec.ts |
+
 ## Growth
 
 | ID | Behaviour | Source | Where | Test |
