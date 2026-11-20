@@ -38,6 +38,17 @@ Built from Jarod's approved design on /eb (New quotation). No model prices anyth
 - A thread that holds more than one conversation (a broker forwards the client's email and then writes to the insurer, and the new email is filed under the old thread) lists each one under it: subject, who wrote, the insurer, how many emails, the last date, and Client or Insurer by who wrote it. Picking one adds the thread with that side and client set. `src/lib/mail/conversations.ts`; `?conversations=1` on `/api/engagement/conversations`.
 - Out-of-office replies join the conversation they answer.
 
+## 2026-11-20 — Database: inline images out of email_messages
+
+email_messages was 2,538 MB of a 2,895 MB database, almost all body_html; a 50-row sample put 79% of it in data:image URIs. Nothing is applied to production yet; the run order is in `docs/database.md`.
+
+- Ingest stores inline images (cid: parts and data: URIs) in Drive, `email-images/stored/<YYYY-MM>/`, and writes a signed link (`/api/public/email-image/<id>?s=`); the route serves a stored image only with its signature. The editor uploads pasted and dropped images instead of inserting data: URIs.
+- `scripts/move-inline-images.ts`: dry run by default, 25 rows a batch by id, 2 s apart; `--apply` logs each image and keeps an undo file. Then `20261120_reclaim_email_space.sql` (VACUUM FULL, off-hours). Estimated 1.7–2.0 GB freed.
+- Admin sweep trims logs daily: finished agent_tasks over 30 days, error_logs over 90 days; `scripts/trim-logs.ts` for counts. Nothing qualifies today.
+- `20261120_statement_timeout.sql`: 30 s for `authenticator`, applied last.
+- company_chunks_embedding_idx is not dropped: `match_company_chunks` is still called by drafts, Ask AI and the CRM agent.
+- Behaviours DAT-020 to DAT-024.
+
 ## 2026-11-20 — Old quotations deleted
 
 Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.

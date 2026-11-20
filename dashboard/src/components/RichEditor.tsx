@@ -164,6 +164,21 @@ export function RichEditor({
           if (url?.trim()) q.format('link', url.trim(), 'user')
         }
 
+        const uploadPasted = async (index: number, files: File[]) => {
+          setImgUploading(true)
+          try {
+            for (const file of files) {
+              const form = new FormData()
+              form.append('file', file)
+              const data = await fetch('/api/upload/image', { method: 'POST', body: form }).then(r => r.json()).catch(() => ({})) as { url?: string; error?: string }
+              if (!data.url) { alert(data.error ?? 'Image upload failed'); continue }
+              q?.insertEmbed(index, 'image', data.url, 'user')
+              index += 1
+            }
+            q?.setSelection(index, 0, 'user')
+          } finally { setImgUploading(false) }
+        }
+
         q = new Quill(mountRef.current, {
           theme: 'snow',
           modules: {
@@ -177,6 +192,10 @@ export function RichEditor({
             history: { delay: 1000, maxStack: 100, userOnly: true },
             keyboard: { bindings: { link: { key: 'k', shortKey: true, handler: () => { promptLink() } } } },
             table: false,
+            // A pasted or dropped image goes to Drive through /api/upload/image and is inserted as
+            // its link. Quill's own handler inserts a data: URI, which kept the bytes in
+            // email_messages.body_html once sent (20 Nov 2026).
+            uploader: { mimetypes: ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], handler: (range: { index: number }, files: File[]) => { void uploadPasted(range.index, files) } },
             'table-better': { menus: ['column', 'row', 'merge', 'table', 'cell', 'wrap', 'copy', 'delete'] },
           },
           placeholder,

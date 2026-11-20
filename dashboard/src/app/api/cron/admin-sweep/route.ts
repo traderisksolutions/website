@@ -1,6 +1,6 @@
 /**
  * GET /api/cron/admin-sweep — daily (vercel.json "10 1 * * *", 09:10 SGT). Queues the day's
- * renewals, chases and claims sync, then drains the Phase B agents for up to 4 minutes. Every
+ * renewals, chases and claims sync, trims old agent_tasks and error_logs, then drains the Phase B agents for up to 4 minutes. Every
  * draft waits on /work for a person. ?today=YYYY-MM-DD replays a day.
  * Bearer CRON_SECRET, like the other crons.
  */
@@ -16,6 +16,7 @@ import { sweepClientLinks } from '@/lib/crm/client-link'
 import { clientLinkRulesOn, housekeepingOn } from '@/lib/housekeeping-switch'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
 import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
+import { trimLogs } from '@/lib/maintenance/log-trim'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -35,10 +36,12 @@ export async function GET(req: NextRequest) {
     const notices = await applyTpaNotices(new Date(Date.now() - 3 * 86_400_000).toISOString()).catch(() => null)
     // Enrolment cycles: chases and reminders prepared as drafts by rule (src/lib/clients/enrolment-cycle.ts).
     const enrolment = await runEnrolmentCycles({ today }).then(r => ({ chases: r.chases, reminders: r.reminders })).catch(() => null)
+    // Log trim, code only: old finished agent_tasks and error_logs (src/lib/maintenance/log-trim.ts).
+    const logs = await trimLogs().catch(() => null)
     await enqueue(dailySweepTasks(today))
     const r = await drain({ agents: [...PHASE_B_AGENTS], budgetMs: 240_000 })
     console.log('[admin-sweep]', today, JSON.stringify(r))
-    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, ...r })
+    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, logs, ...r })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
