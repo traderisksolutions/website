@@ -78,6 +78,14 @@ describe('company threads by mailbox rule', () => {
     expect(asHasya.hidden).toBe(2)
   })
 
+  it('ownIds: the visible threads filed under the company, never a colleague’s or an insurer’s (the company page overview and people read these)', async () => {
+    const asHasya = await listVisibleCompanyThreads('c1', 'hasya@trade-risksol.com', { insurers: true })
+    expect([...asHasya.ownIds].sort()).toEqual(['t-nathan-cc', 't-shared'])
+    const asNathan = await listVisibleCompanyThreads('c1', 'nathan@trade-risksol.com', { insurers: true })
+    expect(asNathan.ownIds).toContain('t-nathan')
+    expect(asNathan.ownIds).not.toContain('t-insurer')
+  })
+
   it('a cron call (no viewer) sees everything', async () => {
     const { threads, hidden } = await listVisibleCompanyThreads('c1', null)
     expect(threads).toHaveLength(3)

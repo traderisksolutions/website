@@ -9,39 +9,25 @@ import type { NextRequest } from 'next/server'
 import { errorResponse, fail, gate, isUuid } from '@/lib/placement/api'
 import * as store from '@/lib/documents/store'
 import { uploadDocument } from '@/lib/documents/ingest'
-import { dataRoomStatus, isDocType } from '@/lib/documents/taxonomy'
+import { isDocType } from '@/lib/documents/taxonomy'
+import { dataRooms } from '@/lib/documents/rooms'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 const MAX_BYTES = 25 * 1024 * 1024
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { unauthorized } = await gate(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!isUuid(id)) return fail('Company id is not valid')
   try {
     const [policies, docs] = await Promise.all([store.companyPolicies(id), store.companyDocuments(id)])
-    const byPolicy = new Map<string, store.PolicyDocument[]>()
-    for (const d of docs) if (d.policy_id) byPolicy.set(d.policy_id, [...(byPolicy.get(d.policy_id) ?? []), d])
-    const rooms = policies
-      .filter(p => p.lifecycle !== 'closed' && p.lifecycle !== 'declined')
-      .map(p => {
-        const held = byPolicy.get(p.id) ?? []
-        return {
-          policy: { id: p.id, label: p.label ?? p.class_of_insurance, insurer: p.insurer, policy_number: p.policy_number ?? p.cover_note_no, lifecycle: p.lifecycle, start_date: p.start_date, end_date: p.end_date, drive_folder_url: p.drive_folder_url, is_eb: p.is_eb },
-          status: dataRoomStatus({ lifecycle: p.lifecycle, is_eb: p.is_eb, product_line: p.product_line }, held.map(d => d.doc_type)),
-          documents: held,
-        }
-      })
-    const letters = docs.filter(d => !d.policy_id && d.doc_type === 'broker_appointment')
-    const unsorted = docs.filter(d => !d.policy_id && d.doc_type !== 'broker_appointment')
-    return NextResponse.json({ rooms, unsorted, letters, total: docs.length })
+    return NextResponse.json(dataRooms(policies, docs))
   } catch (e) {
     return errorResponse(e)
   }
-}
+})
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { unauthorized, actor } = await gate(req)

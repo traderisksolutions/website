@@ -7,28 +7,44 @@ import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { sbTry, inChunks, getCompanyThreadIds, bareEmail, displayNameFromAddress, enc } from './db'
 import { listCompanyThreads } from './threads'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
-import { rankPeople } from './people'
+import { rankPeople, type PeopleResult } from './people'
 import { loadCompanyPayments } from './payments-server'
 import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from '@/lib/format'
 import { STAGE_LABEL } from './types'
 import { threadTitle, cleanSubject } from './subject'
-import type { Alert, Company, CompanyOverview, LeftOff, PaymentSummary } from './types'
+import type { Alert, Company, CompanyOverview, CompanyThread, LeftOff, PaymentSummary } from './types'
 
 type MsgRow = { thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }
 type PolicyRow = { end_date: string | null; status: string | null; class_of_insurance: string | null }
 type CustomerRow = { policies: PolicyRow[] | null }
 type AuditRow = { created_at: string; user_name: string | null; new_value: { stage?: string } | null }
 
+/**
+ * Reads the caller has already made, so a page that also shows them reads each once. The caller
+ * has applied the viewer's mail visibility: `threadIds` and `threads` hold only the threads filed
+ * under the company that the viewer may see, and `people` was ranked from those ids.
+ */
+export interface OverviewInputs {
+  threadIds: string[]
+  threads: CompanyThread[]
+  people: Promise<PeopleResult>
+  payments: ReturnType<typeof loadCompanyPayments>
+}
+
 /** `viewer` = the signed-in person: their colleagues' private threads stay out of every line (INB-002). Null = cron, sees all. */
-export async function buildOverview(company: Company, viewer: string | null = null): Promise<CompanyOverview & { paymentSummary: PaymentSummary; nextRenewalDate: string | null }> {
+export async function buildOverview(company: Company, viewer: string | null = null, pre?: OverviewInputs): Promise<CompanyOverview & { paymentSummary: PaymentSummary; nextRenewalDate: string | null }> {
   const today = todaySGT()
-  const allIds = await getCompanyThreadIds(company.id)
-  const seen = await visibleThreadIds(allIds, viewer)
-  const threadIds = allIds.filter(id => seen.has(id))
+  let threadIds: string[]
+  if (pre) threadIds = pre.threadIds
+  else {
+    const allIds = await getCompanyThreadIds(company.id)
+    const seen = await visibleThreadIds(allIds, viewer)
+    threadIds = allIds.filter(id => seen.has(id))
+  }
   const [threads, peopleRes, pay, customers, audit, lastMsgs] = await Promise.all([
-    listCompanyThreads(company.id, threadIds),
-    rankPeople(company, threadIds),
-    loadCompanyPayments(company.id),
+    pre?.threads ?? listCompanyThreads(company.id, threadIds),
+    pre?.people ?? rankPeople(company, threadIds),
+    pre?.payments ?? loadCompanyPayments(company.id),
     sbTry<CustomerRow[]>(`customers?company_id=eq.${enc(company.id)}&select=policies(id,policy_number,description,end_date,status,class_of_insurance)`, []),
     sbTry<AuditRow[]>(`audit_logs?resource_type=eq.company&resource_id=eq.${enc(company.id)}&action=eq.company.stage&select=created_at,user_name,new_value&order=created_at.desc&limit=1`, []),
     threadIds.length ? inChunks(threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=40`, [])) : Promise.resolve([] as MsgRow[]),

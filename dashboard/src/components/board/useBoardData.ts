@@ -15,8 +15,9 @@ import type { BoardActions } from './actions'
 
 export type Row = { company: BoardPayload['companies'][number]; d: Derived }
 
-export function useBoardData() {
-  const [data, setData] = useState<BoardPayload | null>(null)
+/** `initial`: the board as read on the server. Given, nothing is fetched on mount; null or absent, it is read here. */
+export function useBoardData(initial?: BoardPayload | null) {
+  const [data, setData] = useState<BoardPayload | null>(initial ?? null)
   const [error, setError] = useState<string | null>(null)
   const [sync, setSync] = useState<SyncState>('idle')
   const reloadTimer = useRef<number | null>(null)
@@ -31,7 +32,8 @@ export function useBoardData() {
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  const hadInitial = useRef(!!initial)
+  useEffect(() => { if (!hadInitial.current) void load() }, [load])
 
   // The board is every client company with its to-dos: one heavy read. It was re-read every 20s
   // in every open tab, which kept the database busy for nothing (20 Nov 2026). Now it reloads when

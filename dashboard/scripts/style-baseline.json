@@ -47,22 +47,6 @@
   "height": 1,
   "control": 4
  },
- "src/app/companies/[id]/page.tsx": {
-  "style": 2,
-  "hex": 3,
-  "font": 7,
-  "radius": 4,
-  "height": 2,
-  "control": 1
- },
- "src/app/companies/page.tsx": {
-  "style": 8,
-  "hex": 8,
-  "font": 13,
-  "radius": 6,
-  "height": 2,
-  "control": 8
- },
  "src/app/companies/portfolio/desk/page.tsx": {
   "style": 0,
   "hex": 1,
@@ -751,6 +735,14 @@
   "height": 0,
   "control": 0
  },
+ "src/components/companies/CompaniesBoard.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 13,
+  "radius": 6,
+  "height": 2,
+  "control": 8
+ },
  "src/components/companies/CompanyEb.tsx": {
   "style": 1,
   "hex": 2,
@@ -774,6 +766,14 @@
   "radius": 2,
   "height": 2,
   "control": 4
+ },
+ "src/components/companies/CompanyWorkspace.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
  },
  "src/components/companies/OwnerPicker.tsx": {
   "style": 2,
