@@ -14,6 +14,7 @@ import { EaListPanel, EaWorkspaceArea, EaWorkspaceEmptyState } from '@/component
 import { useEngagementNav, type LinkResult } from '@/providers/engagement-nav-provider'
 import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 import { inMailbox } from '@/lib/mail/visibility'
+import { usePrivateThread } from '@/components/today/desk/PrivateThread'
 import type { InboxCounts } from '@/lib/mail/inbox-list'
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ async function fetchThread(
     : email ? `email=${encodeURIComponent(email)}` : null
   if (!param) return { thread: null, messages: [] }
   const res = await fetch(`/api/engagement/thread?${param}`, { cache: 'no-store' })
+  // A colleague's private thread: listed for everyone, opened only by those it is visible to.
+  if (res.status === 403) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'This email lives in a colleague’s inbox.')
   if (!res.ok) return { thread: null, messages: [] }
   const data = await res.json()
   return {
@@ -177,7 +180,7 @@ function EngagementPageInner() {
       if (initLeadId) deepLinkDone.current = true
       if (linked) setMobilePanelView('thread')
       // Default selection = the newest conversation.
-      const newest = [...all].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
+      const newest = [...all].filter(l => !l.private).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]?.id ?? null
       setSelectedId(prev => prev ?? linked?.id ?? newest)
     } catch (e) {
       if (id !== request.current) return
@@ -342,7 +345,15 @@ function EngagementPageInner() {
   }, [load, setRefreshing])
   useEffect(() => { setOnRefresh(() => handleRefresh) }, [handleRefresh, setOnRefresh])
 
-  const handleSelect = useCallback((id: string) => { setNewCompose(null); setSelectedId(id); setMobilePanelView('thread') }, [])
+  // A colleague's private thread opens the ring-fence modal, not the reading pane (Jarod, 20 Nov 2026).
+  const openPrivate = usePrivateThread()
+  const byIdRef = useRef(byId)
+  useEffect(() => { byIdRef.current = byId }, [byId])
+  const handleSelect = useCallback((id: string) => {
+    const lead = byIdRef.current[id]
+    if (lead?.private) { void openPrivate(lead.thread_id ?? id, { name: (lead.private.owner ?? 'a colleague').split(/[\s,]+/)[0] }); return }
+    setNewCompose(null); setSelectedId(id); setMobilePanelView('thread')
+  }, [openPrivate])
   useEffect(() => { setOnSelect(() => handleSelect) }, [handleSelect, setOnSelect])
   const handleOpenDraft = useCallback((draft: NewEmailDraft) => { setNewCompose({ draft, key: Date.now() }); setMobilePanelView('thread') }, [])
   useEffect(() => { setNavOnOpenDraft(() => handleOpenDraft) }, [handleOpenDraft, setNavOnOpenDraft])

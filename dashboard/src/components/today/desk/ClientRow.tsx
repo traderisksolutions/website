@@ -8,22 +8,30 @@
  * are the only model calls, each on its button.
  */
 import Link from 'next/link'
-import { useState } from 'react'
-import { ChevronRight, ExternalLink, MessageSquare, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronRight, MessageSquare, Sparkles } from 'lucide-react'
 import { Btn, Chip, inputCls } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
 import { useConfirm } from '@/components/ui/confirm'
-import { fmtDay, money, timeAgo } from '@/lib/format'
+import { fmtDay, timeAgo } from '@/lib/format'
 import type { ReadPlan } from '@/lib/chief/read'
-import { foldSummary, groupProjects, projectNames, threadForStep, threadHref, type DeskDraft, type DeskRow, type DeskSide, type DeskThread, type FoldLine, type ProjectGroup } from '@/lib/today/desk'
+import { foldSummary, groupProjects, projectNames, threadForStep, type DeskDraft, type DeskRow, type DeskSide, type DeskThread, type FoldLine, type ProjectGroup } from '@/lib/today/desk'
+import type { Condensed } from '@/lib/today/condense'
+import { markOlderDrafts } from '@/lib/today/old-drafts'
+import { waitingOnRow, type RowFacts } from '@/lib/today/substance'
+import type { RowDetail } from '@/lib/today/substance-server'
 import { DraftCard } from './DraftCard'
+import { OpenThread, ThreadTitle } from './PrivateThread'
+import { CondensedFacts, FactsLine, PartiesLine, RowDetailBlocks, SuggestedProjects } from './RowSubstance'
 import { InlineConfirm } from './InlineConfirm'
 
 const SIDE_LABEL: Record<DeskSide, string> = { client: 'To client', insurer: 'To insurer' }
 const first = (s: string) => s.split(/[\s@]/)[0]
 
-export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNotice, projectsOn = false }: {
+export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNotice, projectsOn = false, facts }: {
   row: DeskRow; open: boolean; onToggle: () => void; showOwner: boolean; me: string
+  /** Renewal, current insurer and premium, stage: read after the rows (/api/today/desk/facts). */
+  facts?: RowFacts | null
   onChange: () => void; onNotice: (m: string) => void
   /** The project columns exist (20261120_today_thread_project.sql applied). */
   projectsOn?: boolean
@@ -41,6 +49,35 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   const groups = groupProjects(row)
   const hasProjects = groups.some(g => g.project)
   const projects = projectNames(row)
+  const ages = useMemo(() => markOlderDrafts(row.drafts), [row.drafts])
+  const privateOf = useCallback((id: string) => row.threads.find(t => t.threadId === id)?.private ?? null, [row.threads])
+
+  // The row's detail is read when it is opened, never on the page's first load.
+  const [detail, setDetail] = useState<RowDetail | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const threadKey = ids.join(',') + '|' + row.threads.map(t => t.project ?? '').join(',')
+  const loadDetail = useCallback(() => {
+    setDetailLoading(true); setDetailError(null)
+    callApi<RowDetail>('/api/today/desk/detail', { method: 'POST', body: { owner: row.owner, companyId: row.companyId, threadIds: threadKey.split('|')[0].split(',') } })
+      .then(setDetail).catch(e => setDetailError(errText(e))).finally(() => setDetailLoading(false))
+  }, [row.owner, row.companyId, threadKey])
+  useEffect(() => { if (open) loadDetail() }, [open, loadDetail])
+  const condensedOf = (project: string | null) => detail?.projects.find(p => (p.project ?? '').toLowerCase() === (project ?? '').toLowerCase())
+  async function condense(project: string | null, threadIds: string[]) {
+    setBusy(`condense:${project ?? ''}`); setError(null)
+    try {
+      const r = await callApi<{ condensed: Condensed }>('/api/today/desk', { method: 'POST', body: { action: 'condense', ...base, project, projectThreadIds: threadIds } })
+      setDetail(d => d && ({ ...d, projects: d.projects.map(p => ((p.project ?? '').toLowerCase() === (project ?? '').toLowerCase() ? { ...p, condensed: { ...r.condensed, stale: false } } : p)) }))
+    } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+  }
+  async function confirmProject(name: string, threadIds: string[]) {
+    setBusy(`suggest:${name}`); setError(null)
+    try {
+      await callApi('/api/today/desk', { method: 'POST', body: { action: 'project', owner: row.owner, companyId: row.companyId, threadIds, project: name, note: '' } })
+      onNotice(`${threadIds.length} thread${threadIds.length === 1 ? '' : 's'} moved to ${name}.`); onChange()
+    } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+  }
 
   async function doRead() {
     setBusy('read'); setError(null)
@@ -48,7 +85,8 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
       const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'read', ...base } })
       setRead(r.read)
       setTicked(new Set(r.read.steps.filter(s => s.kind === 'email' && s.status === 'proposed').map(s => s.id)))
-      if (!open) onToggle()
+      // The Read's facts are kept as the client's state: shown in State, not as sentences.
+      if (!open) onToggle(); else loadDetail()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function doDraft() {
@@ -92,6 +130,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   const saved = (m: string) => { onNotice(m); onChange() }
   const draftCard = (d: DeskDraft) => (
     <DraftCard key={d.id} draft={d} threads={ids}
+      age={ages.get(d.id)} readOnly={!mine} onNotice={onNotice}
       onSent={to => { onNotice(`Sent to ${to}.`); onChange() }}
       onDiscarded={() => { onNotice('Email discarded.'); onChange() }}
       onSaved={saved} onRedone={saved} />
@@ -99,7 +138,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   const threadList = (ts: DeskThread[]) => (
     <ul className="m-0 list-none p-0 flex flex-col gap-1.5">
       {ts.map(t => (
-        <ThreadLine key={t.threadId} t={t} mine={mine} projectsOn={projectsOn} projects={projects} busy={busy}
+        <ThreadLine key={t.threadId} t={t} mine={mine} onNotice={onNotice} projectsOn={projectsOn} projects={projects} busy={busy}
           onRemove={() => removeThread(t)} onProject={(p, n) => saveProject(t, p, n)} />
       ))}
     </ul>
@@ -137,13 +176,13 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
           ? <Link href={`/companies/${row.companyId}`} className="text-[15px] font-semibold text-trs-ink no-underline hover:underline">{row.companyName}</Link>
           : <span className="text-[15px] font-semibold text-trs-ink">{row.companyName}</span>}
         <span className="text-[12.5px] text-trs-muted">{row.threads.length} thread{row.threads.length === 1 ? '' : 's'}{row.lastAt ? ` · last ${timeAgo(row.lastAt)}` : ''}</span>
-        {row.premium && row.premium.length > 0 && <span className="text-[12.5px] text-trs-ink" title="Current annual premium: latest new-business or renewal debit note per live policy, else the policy premium">Premium <span className="font-mono">{row.premium.map(p => money(p.amount, { ccy: p.currency, dp: 0 })).join(' + ')}</span></span>}
         {showOwner && <span className="text-[12.5px] text-trs-muted">Owner {first(row.owner)}</span>}
         <span className="flex-1" />
         <Chip tone={left ? 'neutral' : 'green'}>{left ? `${left} to send` : 'Cleared'}</Chip>
         {!hasProjects && <Btn size="xs" level="tertiary" onClick={() => { setThreadsOpen(v => !v); if (!open) onToggle() }} aria-expanded={threadsOpen}><MessageSquare size={14} /> Threads</Btn>}
         <Btn size="xs" onClick={doRead} loading={busy === 'read'} disabled={!!busy}><Sparkles size={14} /> {read ? 'Read again' : 'Read'}</Btn>
         {mine && <Btn size="xs" level="tertiary" onClick={remove} disabled={!!busy}>Remove</Btn>}
+        <FactsLine facts={facts} waiting={waitingOnRow(row.threads)} />
       </header>
 
       {error && <p className="m-0 md:pl-[42px] pt-1.5 text-[13px] text-trs-neg" role="alert">{error}</p>}
@@ -164,11 +203,9 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
           {read && (
             <div className="md:pl-[42px] py-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-trs-green"><Sparkles size={13} /> Summary</span>
-                <span className="text-[12px] text-trs-muted">Read {timeAgo(read.at)} by {first(read.by)}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-trs-green"><Sparkles size={13} /> Read</span>
+                <span className="text-xs text-trs-muted">{timeAgo(read.at)} by {first(read.by)}</span>
               </div>
-              <p className="m-0 text-[14px] font-medium text-trs-ink">{read.summary}</p>
-              {read.situation && <ul className="m-0 pl-5 list-disc flex flex-col gap-0.5 text-[13px] leading-[1.5] text-trs-ink-2">{read.situation.split('\n').filter(Boolean).map((p, i) => <li key={i}>{p}</li>)}</ul>}
               {read.steps.length > 0 && (
                 <div className="mt-1 flex flex-col gap-1">
                   <span className="text-[12.5px] font-semibold text-trs-ink">Suggested</span>
@@ -189,7 +226,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                           {s.status === 'todo' && <span className="text-trs-muted"> · to do</span>}
                           {s.status === 'done' && <span className="text-trs-pos"> · done</span>}
                           <span className="block text-[12.5px] text-trs-muted">{s.detail}</span>
-                          {(() => { const th = threadForStep(s, row); return th ? <Link href={threadHref(th)} target="_blank" className="inline-flex items-center gap-1 text-[12px] text-trs-green-2 underline-offset-[3px] hover:underline"><ExternalLink size={11} aria-hidden /> Open thread</Link> : null })()}
+                          {(() => { const th = threadForStep(s, row); return th ? <OpenThread threadId={th} owner={privateOf(th)} onNotice={onNotice} /> : null })()}
                         </span>
                         {s.status === 'proposed' && s.op && s.draftId && (
                           <span className="flex flex-none gap-1.5">
@@ -212,6 +249,13 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
             </div>
           )}
 
+          <div className="md:pl-[42px] py-3 flex flex-col gap-4">
+            <CondensedFacts title={row.companyName} c={condensedOf(null)?.condensed ?? null} canRun={mine} busy={busy === 'condense:'} onCondense={() => condense(null, ids)} />
+            {detail && <SuggestedProjects suggestions={detail.suggestions} mine={mine && projectsOn} busy={busy} onConfirm={confirmProject} />}
+            {!hasProjects && detail?.projects[0] && <PartiesLine parties={detail.projects[0].parties} />}
+            <RowDetailBlocks detail={detail} loading={detailLoading} error={detailError} onRetry={loadDetail} onNotice={onNotice} privateOf={privateOf} />
+          </div>
+
           {!hasProjects ? (
             <>
               {threadsOpen && <div className="md:pl-[42px] py-2.5">{threadList(row.threads)}</div>}
@@ -225,6 +269,12 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                   {g.note && <span className="text-[12.5px] text-trs-muted">{g.note}</span>}
                   <span className="text-[12px] text-trs-subtle">{g.threads.length} thread{g.threads.length === 1 ? '' : 's'}</span>
                 </header>
+              )}
+              {g.project && condensedOf(g.project) && (
+                <div className="flex flex-col gap-2 pt-2">
+                  <PartiesLine parties={condensedOf(g.project)!.parties} />
+                  <CondensedFacts title={g.project} c={condensedOf(g.project)!.condensed} canRun={mine} busy={busy === `condense:${g.project}`} onCondense={() => condense(g.project, g.threads.map(t => t.threadId))} />
+                </div>
               )}
               {g.threads.length > 0 && <div className="pt-2.5">{threadList(g.threads)}</div>}
               {g.drafts.length > 0 && sideGrid(g, false)}
@@ -250,8 +300,8 @@ function Line({ l }: { l: FoldLine }) {
 }
 
 /** One thread on the row: side, subject (opens it), counts; for the owner, Project and Remove. */
-function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject }: {
-  t: DeskThread; mine: boolean; projectsOn: boolean; projects: string[]; busy: string | null
+function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject, onNotice }: {
+  t: DeskThread; mine: boolean; projectsOn: boolean; projects: string[]; busy: string | null; onNotice: (m: string) => void
   onRemove: () => Promise<void>; onProject: (project: string, note: string) => Promise<boolean>
 }) {
   const [editing, setEditing] = useState(false)
@@ -262,7 +312,7 @@ function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject }
     <li className="flex flex-col gap-1.5 text-[13px]">
       <span className="flex flex-wrap items-center gap-2">
         <Chip>{t.side === 'client' ? 'Client' : 'Insurer'}</Chip>
-        <Link href={threadHref(t.threadId)} className="font-medium text-trs-ink">{t.subject}</Link>
+        <ThreadTitle threadId={t.threadId} subject={t.subject} owner={t.private} onNotice={onNotice} />
         <span className="text-trs-muted">{t.messages} email{t.messages === 1 ? '' : 's'}{t.lastAt ? ` · ${fmtDay(t.lastAt)}` : ''}{t.lastInbound ? ' · waiting on TRS' : ''}</span>
         {mine && (
           <span className="ml-auto inline-flex items-center gap-1">

@@ -9,16 +9,19 @@ interface PageHeaderProps {
   /** Under the title row: the page's Segmented filters or tabs. */
   children?: React.ReactNode
   className?: string
+  /** Drawn inside another page (Calendar on Today): the title is a section heading, not the page's. */
+  embedded?: boolean
 }
 
 /** Every page opens with this: the title (EB Garamond, a noun), an optional facts line, the
  *  page's actions top right, then its filters. No grey description line, by standing rule. */
-export function PageHeader({ title, meta, actions, children, className }: PageHeaderProps) {
+export function PageHeader({ title, meta, actions, children, className, embedded = false }: PageHeaderProps) {
+  const H = embedded ? 'h2' : 'h1'
   return (
     <header className={cn('flex flex-col gap-3 min-w-0', className)}>
       <div className="flex flex-wrap items-end justify-between gap-3 min-w-0">
         <div className="min-w-0">
-          <h1 className="m-0 text-[32px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
+          <H className="m-0 text-[32px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</H>
           {meta && <div className="mt-1 text-[13.5px] tabular-nums text-trs-muted">{meta}</div>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2 min-w-0 max-w-full">{actions}</div>}

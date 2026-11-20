@@ -6,19 +6,20 @@
  * /api/email/send), so a draft sends the same way wherever it is opened. Nothing sends without the
  * click. Discard and redo writes the email again from its thread (one model call, on the button).
  */
-import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { ExternalLink, Paperclip } from 'lucide-react'
-import { Btn, InlineSpinner, inputCls, textareaCls } from '@/components/crm/primitives'
+import { Paperclip } from 'lucide-react'
+import { Btn, Chip, InlineSpinner, inputCls, textareaCls } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
 import { useConfirm } from '@/components/ui/confirm'
 import { toProblem } from '@/lib/email/recipients'
 import { timeAgo } from '@/lib/format'
 import { uploadAttachment } from '@/lib/upload-attachment'
-import { MAX_ATTACHMENTS, draftThread, editedAt, previewHref, suggestFiles, threadHref, type DeskAttachment, type DeskDraft, type ThreadFile } from '@/lib/today/desk'
+import { MAX_ATTACHMENTS, draftThread, editedAt, previewHref, suggestFiles, type DeskAttachment, type DeskDraft, type ThreadFile } from '@/lib/today/desk'
 import { AttachmentRow } from './AttachmentRow'
 import { CommissionCheck, type CommissionState } from '@/components/email/CommissionCheck'
 import { InlineConfirm } from './InlineConfirm'
+import { OpenThread } from './PrivateThread'
+import type { DraftAge } from '@/lib/today/old-drafts'
 
 let senderOnce: Promise<string | null> | null = null
 /** The signed-in person's own mailbox, else the first they may send from. */
@@ -45,8 +46,13 @@ export async function sendDraft(d: DeskDraft, e: { to: string; cc: string; subje
 
 const nameOf = (d: DeskDraft) => d.person ?? d.to
 
-export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, threads, startEditing = false, bare = false }: {
+export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, threads, startEditing = false, bare = false, age, readOnly = false, onNotice }: {
   draft: DeskDraft; onSent: (to: string) => void; onDiscarded: () => void
+  /** Older drafts that repeat the same ask (old-drafts.ts): greyed, Discard only. The newest is Latest. */
+  age?: DraftAge
+  /** A colleague's Today: the email is shown, not edited or sent (Send only for your own). */
+  readOnly?: boolean
+  onNotice?: (m: string) => void
   /** After Save or a change of files: the notice to show. */
   onSaved?: (notice: string) => void
   /** After Discard and redo: the notice to show. */
@@ -123,8 +129,29 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
   )
   const commission = toClient && <CommissionCheck attachments={files} onChange={setCheck} context={{ resource_type: 'ai_draft', resource_id: d.id }} />
   const updated = savedAt && <span className="text-[12px] font-medium text-trs-green" title={new Date(savedAt).toLocaleString('en-SG')}>Updated {timeAgo(savedAt)}</span>
-  const threadLink = thread && <Link href={threadHref(thread)} className="inline-flex items-center gap-1 text-[12px] text-trs-green-2 underline-offset-[3px] hover:underline" target="_blank"><ExternalLink size={12} aria-hidden /> Open thread</Link>
+  const threadLink = thread && <OpenThread threadId={thread} owner={d.private} onNotice={onNotice} />
   const frame = bare ? '' : 'rounded-[10px] border border-trs-line-2 bg-white'
+
+  // A colleague's email, an older repeat of the same ask, or one whose thread is in a colleague's
+  // inbox: shown without Edit and Send. An older repeat keeps Discard.
+  if (readOnly || age === 'older' || d.private) return (
+    <article className={`${frame} flex flex-col gap-1.5 p-3.5 min-w-0 ${age === 'older' ? 'opacity-60' : ''}`} aria-label={`Email to ${nameOf(d)}`}>
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+        {age && <Chip tone={age === 'older' ? 'amber' : 'green'}>{age === 'older' ? 'Older · same ask' : 'Latest'}</Chip>}
+        <span className="text-sm font-semibold text-trs-ink truncate" title={d.to}>{nameOf(d)}</span>
+        <span className="ml-auto text-xs text-trs-muted">{d.label} · drafted {timeAgo(d.createdAt)}</span>
+      </div>
+      {threadLink && <div className="flex flex-wrap items-center gap-2">{threadLink}</div>}
+      <div className="text-sm font-medium text-trs-ink">{d.subject || '(no subject)'}</div>
+      {d.private
+        ? <div className="text-xs text-trs-muted">Message in {d.private.name}’s inbox</div>
+        : <div className="text-sm leading-normal text-trs-ink-2 whitespace-pre-line line-clamp-4">{d.body}</div>}
+      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+      {age === 'older' && !readOnly && !d.private && (
+        <div className="mt-1 flex justify-end"><Btn size="xs" level="danger" onClick={discard} loading={busy === 'discard'} disabled={!!busy}>Discard</Btn></div>
+      )}
+    </article>
+  )
 
   if (editing) return (
     <Drop onFiles={fs => uploadFiles(fs, files, saveFiles, setError, setBusy)} className={`${frame} flex flex-col gap-2 p-3.5`}>
@@ -148,6 +175,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
   return (
     <Drop onFiles={fs => uploadFiles(fs, files, saveFiles, setError, setBusy)} className={`${frame} flex flex-col gap-1.5 p-3.5 min-w-0`} as="article">
       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
+        {age === 'latest' && <Chip tone="green">Latest</Chip>}
         <span className="text-[13px] font-semibold text-trs-ink truncate" title={d.to}>{nameOf(d)}</span>
         {d.cc && <span className="text-[12px] text-trs-muted truncate">Cc {d.cc}</span>}
         <span className="ml-auto text-[12px] text-trs-muted">{d.label} · drafted {timeAgo(d.createdAt)}</span>

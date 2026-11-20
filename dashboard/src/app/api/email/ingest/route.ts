@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sameConversation } from '@/lib/mail/conversations'
 import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
 import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
+import { refreshThreadSearch } from '@/lib/search/thread-search-server'
 import { extractHighlights }    from '@/lib/extract-highlights'
 import { internalHeaders }      from '@/lib/api-gate/internal'
 import { enqueue }              from '@/lib/agent-tasks/queue'
@@ -677,9 +679,15 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     if (any) { knownThreadId = any.thread_id; await saveAlias(mailbox, gmailThreadId, any.thread_id) }
   }
   if (!knownThreadId && !(await first<{ id: string }>(`email_threads?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=id`))) {
+    // The headers point to a parent; it is the same thread only when it is the same conversation
+    // (src/lib/mail/conversations.ts sameConversation): a new subject to new people starts its own.
+    const outside = allParticipants.map(p => p.email.toLowerCase()).filter(e => !isInternal(e) && !isAutomated(e))
     for (const ref of [inReplyTo, ...references.reverse()].filter((r): r is string => !!r)) {
-      const parent = await first<{ thread_id: string }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id&limit=1`)
-      if (parent) { knownThreadId = parent.thread_id; await saveAlias(mailbox, gmailThreadId, parent.thread_id); break }
+      const parent = await first<{ thread_id: string; subject: string | null }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id,subject&limit=1`)
+      if (!parent) continue
+      const shared = outside.length > 0 && !!(await first<{ thread_id: string }>(`email_participants?thread_id=eq.${parent.thread_id}&email=in.(${outside.map(e => `"${encodeURIComponent(e)}"`).join(',')})&select=thread_id&limit=1`))
+      if (!sameConversation(subject, parent.subject, shared)) break
+      knownThreadId = parent.thread_id; await saveAlias(mailbox, gmailThreadId, parent.thread_id); break
     }
   }
   if (knownThreadId) {
@@ -795,6 +803,11 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     headers: sbHeaders('return=minimal,resolution=ignore-duplicates'),
     body:    JSON.stringify(participants),
   })
+
+  // 3c. The search index (thread_search, docs/search.md): this thread's row, refreshed after the
+  //     message and its people are stored. One thread, a few small reads; nothing when the table
+  //     is not there yet. Never blocks ingest.
+  waitUntil(refreshThreadSearch(thread.id).catch(e => console.warn('[ingest] search index (non-fatal):', e instanceof Error ? e.message : e)))
 
   // 4a. Placement and policy mail are read by the placement agent from the queue (intake hands
   //     every message on); nothing here reads the message twice.
