@@ -52,7 +52,7 @@ export function EbQuotationRegister({ companyId }: { companyId?: string }) {
         {!companyId && <input type="search" aria-label="Search by company" placeholder="Search by company" value={search} onChange={e => setSearch(e.target.value)} className={`${inputCls} max-w-[320px]`} />}
         <Segmented label="Status" value={status} onChange={setStatus} options={[{ value: 'all', label: 'All', count: count('all') }, { value: 'draft', label: 'Draft', count: count('draft') }, { value: 'sent', label: 'Sent', count: count('sent') }]} />
       </div>
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       <Register label="Quotation register" minWidth={companyId ? 720 : 900}>
         <RegisterHead>
           {!companyId && <RegisterTh first>Company</RegisterTh>}

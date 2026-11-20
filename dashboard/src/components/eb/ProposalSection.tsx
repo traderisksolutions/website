@@ -68,8 +68,8 @@ export function ProposalSection({ priced, picks, members, company, companyId, th
   return (
     <section id="eb-proposal" className="flex flex-col gap-3" aria-labelledby="eb-proposal-h">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="eb-proposal-h" className="m-0 text-[17px] font-semibold">Proposal</h2>
-        <span className="text-[12.5px] text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
+        <h2 id="eb-proposal-h" className="m-0 text-heading font-semibold">Proposal</h2>
+        <span className="text-small text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
       </div>
       <div className={tableFrame}>
         <table className="trs-table" style={{ minWidth: 640 }} aria-label="Insurers in the proposal">
@@ -83,7 +83,7 @@ export function ProposalSection({ priced, picks, members, company, companyId, th
                   <td className="cell-left px-3">{p}</td>
                   <td className="px-3"><input type="checkbox" checked={on} onChange={() => toggle(p)} aria-label={`Include ${p}`} className="h-4 w-4 accent-[#132c1c] cursor-pointer" /></td>
                   <td className={`px-3 tabular-nums${on && lowest === p ? ' cell-best' : ''}`} style={{ color: on ? undefined : '#8c958f' }}>{f0(totals[i])}</td>
-                  <td className="cell-left px-3 text-[12.5px]">
+                  <td className="cell-left px-3 text-small">
                     {flags.length
                       ? <span className="inline-flex items-center gap-1.5 text-trs-warn"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-trs-subtle" />{flags.join(', ')}: priced at S$0 or not priced</span>
                       : <span className="text-trs-muted">—</span>}
@@ -94,8 +94,8 @@ export function ProposalSection({ priced, picks, members, company, companyId, th
           </tbody>
         </table>
       </div>
-      {census?.kind === 'warn' && <p className="m-0 text-[12.5px] text-trs-warn">{census.text}</p>}
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {census?.kind === 'warn' && <p className="m-0 text-small text-trs-warn">{census.text}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         <Btn loading={busy === 'save'} disabled={!!busy || !include.length} onClick={() => void keep('save')}>Save quotation</Btn>
         <Btn level="primary" loading={busy === 'prepare'} disabled={!!busy || !include.length} onClick={() => void keep('prepare')}>{`Prepare proposal · ${include.length} insurer${include.length === 1 ? '' : 's'}`}</Btn>

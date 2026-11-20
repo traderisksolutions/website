@@ -54,8 +54,8 @@ export default function MovementsPage() {
           { value: 'billed', label: STAGE.billed, count: n('billed') },
         ]} />
       </PageHeader>
-      {error && <p className="m-0 mb-3 text-13.5 text-trs-neg">{error}</p>}
-      {notice && <p className="m-0 mb-3 text-13.5 text-trs-ink">{notice}</p>}
+      {error && <p className="m-0 mb-3 text-body text-trs-neg">{error}</p>}
+      {notice && <p className="m-0 mb-3 text-body text-trs-ink">{notice}</p>}
       {!rows ? <Spinner label="Loading movements…" /> : shown.length === 0 ? <Empty>No movements here.</Empty> : (
         <Register label="Member movements" minWidth={1180}>
           <RegisterHead>
@@ -73,7 +73,7 @@ export default function MovementsPage() {
               <RegisterRow key={b.key}>
                 <RegisterCell first identityWidth={240} primary={b.company_name} secondary={`reported ${fmtDate(b.reported_at)}`} />
                 <RegisterCell align="left" primary={b.policy_number ?? '—'} secondary={b.insurer ?? undefined} />
-                <RegisterCell align="left" nowrap={false}><span className="block text-14 text-trs-ink">{counts(b)}</span><span className="block text-12 max-w-[260px] truncate text-trs-muted" title={b.names.join(', ')}>{b.names.join(', ')}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false}><span className="block text-body text-trs-ink">{counts(b)}</span><span className="block text-small max-w-[260px] truncate text-trs-muted" title={b.names.join(', ')}>{b.names.join(', ')}</span></RegisterCell>
                 <RegisterCell><Chip tone={b.stage === 'to_bill' ? 'amber' : b.stage === 'billed' ? 'green' : 'neutral'}>{STAGE[b.stage]}</Chip></RegisterCell>
                 <RegisterCell align="right" primary={`${b.days_waiting} day${b.days_waiting === 1 ? '' : 's'}`} secondary={b.chase_count ? `${b.chase_count} chaser${b.chase_count === 1 ? '' : 's'}` : undefined} />
                 <RegisterCell align="right" primary={money(b.expected)} />
@@ -82,8 +82,8 @@ export default function MovementsPage() {
                   {b.stage === 'to_bill' && b.can_raise
                     ? <Btn size="xs" level="secondary" loading={busy === b.key} disabled={busy !== null} onClick={() => void raise(b)}>Raise TRS note</Btn>
                     : b.stage === 'to_bill' && b.bundle_id
-                      ? <Link href="/debit-notes/new" className="text-14 no-underline hover:underline text-trs-ink">Review TRS note</Link>
-                      : <Link href={`/companies/${b.company_id}?tab=members`} className="text-14 no-underline hover:underline text-trs-ink">{b.stage === 'held' ? 'Ask the client for the date' : b.stage === 'to_send' ? (b.draft_id ? 'Review the request' : 'Request from insurer') : 'Open'}</Link>}
+                      ? <Link href="/debit-notes/new" className="text-body no-underline hover:underline text-trs-ink">Review TRS note</Link>
+                      : <Link href={`/companies/${b.company_id}?tab=members`} className="text-body no-underline hover:underline text-trs-ink">{b.stage === 'held' ? 'Ask the client for the date' : b.stage === 'to_send' ? (b.draft_id ? 'Review the request' : 'Request from insurer') : 'Open'}</Link>}
                 </RegisterCell>
               </RegisterRow>
             ))}

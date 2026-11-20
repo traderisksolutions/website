@@ -79,7 +79,7 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
   return (
     <HrModal open={open} onClose={onClose} title={`${shortInsurer(insurer)} contacts`} width={780}>
       <div className="flex flex-col gap-4">
-        {people.length === 0 && <p className="m-0 text-[14px]" style={{ color: MUTED }}>No employee benefits contact on file.</p>}
+        {people.length === 0 && <p className="m-0 text-body text-trs-muted" >No employee benefits contact on file.</p>}
         {people.map(p => {
           const d = drafts[p.contact_id] ?? { name: '', email: '' }
           return (
@@ -100,7 +100,7 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
           <Btn type="button" level="secondary" loading={busy === 'new'} disabled={!newEmail.trim()} onClick={() => void add()}>Add</Btn>
         </div>
 
-        {error && <p className="m-0 text-[12.5px]" style={{ color: '#a1242f' }}>{error}</p>}
+        {error && <p className="m-0 text-small text-trs-neg" >{error}</p>}
         <div className="flex justify-end"><Btn type="button" level="tertiary" onClick={onClose}>Done</Btn></div>
       </div>
     </HrModal>

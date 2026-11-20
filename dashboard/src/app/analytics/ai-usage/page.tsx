@@ -62,8 +62,8 @@ const MODEL_RATE: Record<string, string> = {
 }
 
 const th = 'font-medium px-3 whitespace-nowrap'
-const td = 'px-3 text-13 align-middle'
-const num = 'px-3 text-13 text-center tabular-nums align-middle whitespace-nowrap'
+const td = 'px-3 text-body align-middle'
+const num = 'px-3 text-body text-center tabular-nums align-middle whitespace-nowrap'
 
 export default function AISpendPage() {
   const [d, setD] = useState<Payload | null>(null)
@@ -102,8 +102,8 @@ export default function AISpendPage() {
         {/* The figure lives in the page's own header line. */}
         <header className="flex flex-wrap items-end justify-between gap-4 pb-5" style={{ borderBottom: `1px solid ${RULE}` }}>
           <div>
-            <h1 className="text-20 font-medium tracking-[-0.01em] text-trs-ink">AI spend</h1>
-            <p className="mt-1.5 text-14 text-trs-muted">
+            <h1 className="text-heading font-medium text-trs-ink">AI spend</h1>
+            <p className="mt-1.5 text-body text-trs-muted">
               {loading && !d ? 'Reading the ledger…' : (
                 <>
                   <span className="tabular-nums font-medium text-trs-ink">{usd(d?.total.cost ?? 0)}</span>
@@ -132,13 +132,13 @@ export default function AISpendPage() {
         </header>
 
         {/* What the ledger actually covers. A zero month is usually an unrecorded one. */}
-        <p className="pt-3 text-12 text-trs-subtle">
+        <p className="pt-3 text-small text-trs-subtle">
           Ledger runs {date(d?.ledgerFirst ?? null)} to {date(d?.ledgerLast ?? null)}.
           {d?.truncated ? ' Read stopped at 100,000 rows.' : ''}
         </p>
 
         {err && (
-          <div className="mt-5 rounded-10 px-3.5 py-3 text-13" style={{ border: `1px solid #d5d9d4`, color: INK }}>
+          <div className="mt-5 rounded px-3.5 py-3 text-body" style={{ border: `1px solid #d5d9d4`, color: INK }}>
             {err}
           </div>
         )}
@@ -148,11 +148,11 @@ export default function AISpendPage() {
         {d && !hasSpend && (
           <div className="mt-6">
             <SectionCard title="Nothing recorded in this window">
-              <div className="text-13 leading-relaxed text-trs-muted">
+              <div className="text-body leading-relaxed text-trs-muted">
                 <p>The ledger holds no rows for the last {d.days} days.</p>
                 <p className="mt-2">
                   Writes stopped between {date(d.ledgerFirst)} and {date(d.ledgerLast)} because every
-                  insert carrying a <code className="text-12">metadata</code> field was rejected and the
+                  insert carrying a <code className="text-small">metadata</code> field was rejected and the
                   failure was never checked. Work done in that period is not recoverable — it was
                   never written.
                 </p>
@@ -207,7 +207,7 @@ export default function AISpendPage() {
                             <span className="inline-block h-2 w-2 rounded-full" style={{ background: AGENT_INK[id] }} />
                             <span className="text-trs-ink">{agentLabel(id)}</span>
                           </span>
-                          <div className="mt-0.5 text-12 pl-4 text-trs-subtle">
+                          <div className="mt-0.5 text-small pl-4 text-trs-subtle">
                             {spec ? spec.work : 'Logged under a feature no agent claims.'}
                           </div>
                         </td>

@@ -183,9 +183,9 @@ export default function GbReviewPage() {
   const sources = (((d.table.rules as { sources?: { driveFileId: string; filename: string; kind: string; insurer?: string; planYear?: string | null }[] } | null)?.sources) ?? [])
   const brochure = sources.find(x => x.kind === 'brochure') ?? sources.find(x => /\.pdf$/i.test(x.filename))
   const ver = verificationOf(d.table.rules)
-  const mi = 'w-full text-[12.5px] border border-border rounded-md px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
-  const ci = 'w-full text-[12px] px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white'
-  const btn = 'flex items-center gap-1.5 text-[12.5px] font-medium px-2.5 py-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
+  const mi = 'w-full text-small border border-border rounded px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
+  const ci = 'w-full text-small px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white'
+  const btn = 'flex items-center gap-1.5 text-small font-medium px-2.5 py-1.5 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
   const reading = !editable && status !== 'extracting'
@@ -194,20 +194,20 @@ export default function GbReviewPage() {
   const tabLabel = (label: string) => { const c = resolveProduct(label).codes; return c.length ? c.map(x => PRODUCT_BY_CODE[x].abbrev).join('+') : '' }
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink" >
     <div className="mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20">
       <Breadcrumbs className="mb-3" current={{ label: `Rate table · ${insurerLabel}`, href: `/pricing-matrix/${id}` }} fallback={{ label: 'Employment Benefits', href: '/pricing-matrix' }} />
 
       <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] truncate">{insurerLabel}</h1>
-          <p className="m-0 text-[13.5px] mt-2 truncate tabular-nums" style={{ color: '#4a5550' }}>
+          <h1 className="m-0 text-title font-medium leading-[1.08] truncate">{insurerLabel}</h1>
+          <p className="m-0 text-body mt-2 truncate tabular-nums text-trs-muted" >
             {STATUS_WORD[status] ?? status} · {VERIFICATION[ver.status].label} · {t.plan_year ? `${t.plan_year} · ` : ''}age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {dirty && <span className="text-[11px] font-medium text-[#2a332f] mr-2">Unsaved changes</span>}
-          {msg && !dirty && <span className={cn('text-[12px] mr-2', /fail/i.test(msg) ? 'text-[#a1242f]' : 'text-[#2a332f]')}>{msg}</span>}
+          {dirty && <span className="text-small font-medium text-[#2a332f] mr-2">Unsaved changes</span>}
+          {msg && !dirty && <span className={cn('text-small mr-2', /fail/i.test(msg) ? 'text-[#a1242f]' : 'text-[#2a332f]')}>{msg}</span>}
           {/* One document button and one menu. Status sits in the line under the name. */}
           {brochure
             ? <a href={`/api/group-benefits/sources/file/${brochure.driveFileId}`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> Brochure</a>
@@ -235,7 +235,7 @@ export default function GbReviewPage() {
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
               </button>
               {status === 'in_review' && (
-                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-[14px] font-medium h-9 px-4 rounded-[10px] bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
+                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-body font-medium h-9 px-4 rounded bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
                   {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
                 </button>
               )}
@@ -250,9 +250,9 @@ export default function GbReviewPage() {
         <div className="mb-6 flex items-center gap-6 overflow-x-auto" style={{ borderBottom: '1px solid #e6e8e4' }} role="tablist">
           {[...productTabs, 'benefits', 'documents'].map(tab => (
             <button key={tab} role="tab" aria-selected={current === tab} onClick={() => setView(tab)}
-              className={cn('relative pb-2.5 text-[14px] bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
+              className={cn('relative pb-2.5 text-body bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
               {tab === 'benefits' ? 'Benefits' : tab === 'documents' ? `Documents${sources.length ? ` · ${sources.length}` : ''}` : tab}
-              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-[11px] font-normal" style={{ color: '#8c958f' }}>{tabLabel(tab)}</span>}
+              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-small font-normal text-trs-subtle" >{tabLabel(tab)}</span>}
               {current === tab && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#0f1412]" aria-hidden />}
             </button>
           ))}
@@ -262,30 +262,30 @@ export default function GbReviewPage() {
       {reading && current === 'documents' && (
         <section className="mb-8">
           {sources.length === 0 ? (
-            <p className="text-[13px]" style={{ color: '#4a5550' }}>No documents linked.</p>
+            <p className="text-body text-trs-muted" >No documents linked.</p>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="rounded-lg border border-[#e6e8e4] divide-y divide-[#f1f2ee]">
+              <div className="rounded border border-[#e6e8e4] divide-y divide-[#f1f2ee]">
                 {sources.map(f => (
                   <div key={f.driveFileId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
-                      <div className="text-[13.5px] font-medium break-words">{f.filename}</div>
-                      <div className="text-[12px]" style={{ color: '#4a5550' }}>{f.kind === 'brochure' ? 'Brochure' : f.kind === 'calculator' ? 'Insurer calculator' : f.kind === 'workbook' ? 'TRS workbook' : 'File'}{f.planYear ? ` · ${f.planYear}` : ''}</div>
+                      <div className="text-body font-medium break-words">{f.filename}</div>
+                      <div className="text-small text-trs-muted" >{f.kind === 'brochure' ? 'Brochure' : f.kind === 'calculator' ? 'Insurer calculator' : f.kind === 'workbook' ? 'TRS workbook' : 'File'}{f.planYear ? ` · ${f.planYear}` : ''}</div>
                     </div>
                     <div className="flex items-center gap-2">
                       {/\.pdf$/i.test(f.filename) && (
-                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-[12.5px] px-3 py-1.5 rounded-lg border border-[#d5d9d4] hover:bg-[#faf9f6]">
+                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-small px-3 py-1.5 rounded border border-[#d5d9d4] hover:bg-[#faf9f6]">
                           {previewId === f.driveFileId ? 'Hide preview' : 'Preview'}
                         </button>
                       )}
-                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-[12.5px] px-3 py-1.5 rounded-lg border border-[#d5d9d4] hover:bg-[#faf9f6]"><Download size={13} /> Download</a>
+                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-small px-3 py-1.5 rounded border border-[#d5d9d4] hover:bg-[#faf9f6]"><Download size={13} /> Download</a>
                     </div>
                   </div>
                 ))}
               </div>
               {(previewId ?? (brochure && /\.pdf$/i.test(brochure.filename) ? brochure.driveFileId : null)) && (
                 <iframe title="Document preview" src={`/api/group-benefits/sources/file/${previewId ?? brochure!.driveFileId}`}
-                        className="w-full h-[78vh] min-h-[480px] rounded-lg" style={{ border: '1px solid #e6e8e4' }} />
+                        className="w-full h-[78vh] min-h-[480px] rounded" style={{ border: '1px solid #e6e8e4' }} />
               )}
             </div>
           )}
@@ -294,10 +294,10 @@ export default function GbReviewPage() {
 
       {/* Extracted metadata — read from the PDF, editable in review or edit mode */}
       {editable && (
-        <div className="rounded-lg border border-border bg-white p-4 mb-6">
+        <div className="rounded border border-border bg-white p-4 mb-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
             <div className="col-span-2 md:col-span-1">
-              <label className="text-[12.5px] text-muted-foreground/60">Insurer</label>
+              <label className="text-small text-muted-foreground/60">Insurer</label>
               <select value={insurerCompanyId} aria-label="Insurer"
                 onChange={e => { const cid = e.target.value; setMeta(m => ({ ...m, insurer_company_id: cid, insurer_name: insurers.find(i => i.id === cid)?.name ?? m.insurer_name })) }}
                 className={`${mi} mt-1`}>
@@ -305,22 +305,22 @@ export default function GbReviewPage() {
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
               {!insurerCompanyId && meta.insurer_name && (
-                <Link href="/companies?kind=insurer" className="block mt-1 text-[12px] no-underline hover:underline" style={{ color: '#4a5550' }}>Add this insurer in Companies</Link>
+                <Link href="/companies?kind=insurer" className="block mt-1 text-small no-underline hover:underline text-trs-muted" >Add this insurer in Companies</Link>
               )}
             </div>
             <div>
-              <label className="text-[12.5px] text-muted-foreground/60">Age basis</label>
+              <label className="text-small text-muted-foreground/60">Age basis</label>
               <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={`${mi} mt-1`}>
                 <option value="next_birthday">Next birthday</option>
                 <option value="last_birthday">Last birthday</option>
               </select>
             </div>
             <div>
-              <label className="text-[12.5px] text-muted-foreground/60">Plan year</label>
+              <label className="text-small text-muted-foreground/60">Plan year</label>
               <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={`${mi} mt-1`} />
             </div>
             <div>
-              <label className="text-[12.5px] text-muted-foreground/60">Effective date</label>
+              <label className="text-small text-muted-foreground/60">Effective date</label>
               <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={`${mi} mt-1`} />
             </div>
           </div>
@@ -331,11 +331,11 @@ export default function GbReviewPage() {
         const stage = (d.table as { extract_stage?: string | null }).extract_stage ?? 'reading'
         const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
         return (
-          <div className="rounded-lg border border-[#e6e8e4] bg-[#faf9f6] px-4 py-3.5">
-            <p className="text-[12px] font-semibold text-[#2a332f] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+          <div className="rounded border border-[#e6e8e4] bg-[#faf9f6] px-4 py-3.5">
+            <p className="text-small font-semibold text-[#2a332f] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
             <div className="flex flex-col gap-1.5">
               {STAGES.map((s, i) => (
-                <div key={s.key} className="flex items-center gap-2 text-[12px]">
+                <div key={s.key} className="flex items-center gap-2 text-small">
                   {i < cur ? <CheckCircle2 size={14} className="text-[#2a332f] flex-shrink-0" />
                     : i === cur ? <Loader2 size={14} className="animate-spin text-[#2a332f] flex-shrink-0" />
                     : <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex-shrink-0" />}
@@ -351,14 +351,14 @@ export default function GbReviewPage() {
         <>
           {/* Per-extractor status — surfaces a failed model/key so partial data isn't silent */}
           {d.extractors && !reading && (
-            <div className="flex flex-wrap items-center gap-2 mb-3 text-[11px]">
+            <div className="flex flex-wrap items-center gap-2 mb-3 text-small">
               {/* "opus" is the stored key for the first read, kept so extraction runs recorded
                    before 2 Oct 2026 still read back. Both reads are Gemini now. */}
               {(['opus', 'gemini', 'parser'] as const).map(k => {
                 const e = d.extractors![k]
                 if (!e) return null
                 return (
-                  <span key={k} className={cn('px-2 py-0.5 rounded-[6px] font-medium',
+                  <span key={k} className={cn('px-2 py-0.5 rounded font-medium',
                     e.error ? 'bg-[#f1f2ee] text-[#2a332f]' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
                     {({ opus: 'first read', gemini: 'second read', parser: 'text parser' } as const)[k]}: {e.error ? 'failed' : `${e.rates} cells`}
@@ -369,7 +369,7 @@ export default function GbReviewPage() {
           )}
 
           {/* Conflict summary — only when there is something to verify, or while reviewing */}
-          {(d.conflicts.length > 0 || !reading) && <div className={cn('flex items-center gap-2 rounded-lg px-4 py-2.5 mb-5 text-[12.5px]',
+          {(d.conflicts.length > 0 || !reading) && <div className={cn('flex items-center gap-2 rounded px-4 py-2.5 mb-5 text-small',
             d.conflicts.length ? 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]' : 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]')}>
             {d.conflicts.length ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
@@ -379,7 +379,7 @@ export default function GbReviewPage() {
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
           {(d.wordingDiff?.length ?? 0) > 0 && (
-            <div className="rounded-lg px-4 py-3 mb-5 text-[12.5px] bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]">
+            <div className="rounded px-4 py-3 mb-5 text-small bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]">
               <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
               <ul className="flex flex-col gap-0.5">
                 {d.wordingDiff!.map((w, i) => (
@@ -392,7 +392,7 @@ export default function GbReviewPage() {
           )}
 
           {rates.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-[13px]">
+            <div className="text-center py-12 text-muted-foreground text-body">
               No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-[#0f1412] underline">re-run</button>.
             </div>
           )}
@@ -400,7 +400,7 @@ export default function GbReviewPage() {
           {/* Rates: a matrix (age band × plan) per product → member type */}
           {productTabs.filter(shows).map(product => [product, byProduct.get(product)!] as const).map(([product, prRates]) => (
             <section key={product} className="mb-8">
-              {!reading && <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">{product}</h2>}
+              {!reading && <h2 className="text-body font-semibold text-foreground mb-3 pb-1.5 border-b border-border">{product}</h2>}
               {Array.from(groupBy(prRates, r => r.member_type ?? '').entries()).map(([mt, mtRates]) => {
                 const plans = Array.from(new Set(mtRates.map(r => r.plan_code)))
                 const order = new Map<string, number>()
@@ -410,9 +410,9 @@ export default function GbReviewPage() {
                 for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
                 return (
                   <div key={mt} className="mb-5">
-                    {mtLabel(mt || null) && <p className="text-[12.5px] text-[#4a5550] mb-2">{mtLabel(mt || null)}</p>}
-                    <div className="rounded-lg border border-border overflow-x-auto">
-                      <table className="trs-table data-table matrix-table w-full border-collapse text-[12.5px]">
+                    {mtLabel(mt || null) && <p className="text-small text-[#4a5550] mb-2">{mtLabel(mt || null)}</p>}
+                    <div className="rounded border border-border overflow-x-auto">
+                      <table className="trs-table data-table matrix-table w-full border-collapse text-small">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
                           <tr>
                             <th className="text-left pl-4">Age band</th>
@@ -421,7 +421,7 @@ export default function GbReviewPage() {
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-center">
                                     <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="w-24 text-center text-[12px] font-medium px-2 py-1 rounded border border-transparent focus:border-[#0f1412] focus:outline-none bg-white !text-[#0f1412]" />
+                                      className="w-24 text-center text-small font-medium px-2 py-1 rounded border border-transparent focus:border-[#0f1412] focus:outline-none bg-white !text-[#0f1412]" />
                                     <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-[#8c958f] hover:text-[#a1242f]"><X size={12} /></button>
                                   </span>
                                 ) : plan}
@@ -436,21 +436,21 @@ export default function GbReviewPage() {
                               <td className="pl-4 whitespace-nowrap">
                                 {editable
                                   ? <input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
-                                      className="w-28 text-[12.5px] font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white" />
+                                      className="w-28 text-small font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white" />
                                   : <span className="font-medium text-foreground/70">{band}</span>}
                               </td>
                               {plans.map(plan => {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-[12.5px]', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f2ee] text-[#2a332f] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-small', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f2ee] text-[#2a332f] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
                                     <input type="number" step="0.01" value={r ? r.premium : ''} placeholder="—"
                                       onChange={e => setCell(product, mt, band, plan, e.target.value)}
                                       title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''}
-                                      className={cn('w-24 text-center tabular-nums text-[12.5px] px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
+                                      className={cn('w-24 text-center tabular-nums text-small px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
                                         conflict ? 'border-[#d5d9d4] bg-[#faf9f6]' : 'border-transparent hover:border-border')} />
                                   </td>
                                 )
@@ -460,7 +460,7 @@ export default function GbReviewPage() {
                           ))}
                           {editable && (
                             <tr><td colSpan={plans.length + 2} className="pl-4">
-                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
+                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-small text-[#0f1412] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
                             </td></tr>
                           )}
                         </tbody>
@@ -473,15 +473,15 @@ export default function GbReviewPage() {
           ))}
 
           {editable && (
-            <button onClick={addProduct} className="flex items-center gap-1.5 text-[12px] font-medium text-[#0f1412] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
+            <button onClick={addProduct} className="flex items-center gap-1.5 text-small font-medium text-[#0f1412] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
           )}
 
           {/* Coverage / sum assured */}
           {shows('benefits') && (coverage.length > 0 || editable) && (
             <section className="mb-8">
-              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
-              <div className="rounded-lg border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
-                <table className="trs-table data-table w-full border-collapse text-[12.5px]">
+              <h2 className="text-body font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
+              <div className="rounded border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table className="trs-table data-table w-full border-collapse text-small">
                   <thead><tr>
                     <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
@@ -504,7 +504,7 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
+                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-small text-[#0f1412] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -514,9 +514,9 @@ export default function GbReviewPage() {
           {/* Benefits */}
           {shows('benefits') && (benefits.length > 0 || editable) && (
             <section className="mb-8">
-              <h2 className="text-[14px] font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
-              <div className="rounded-lg border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
-                <table className="trs-table data-table w-full border-collapse text-[12px]">
+              <h2 className="text-body font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
+              <div className="rounded border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
+                <table className="trs-table data-table w-full border-collapse text-small">
                   <thead><tr>
                     <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
@@ -535,12 +535,12 @@ export default function GbReviewPage() {
                         </td>
                         <td className="text-right pr-2 py-1">
                           <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className={cn('w-44 text-center text-[12px] px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#0f1412]' : 'border-transparent')} />
+                            className={cn('w-44 text-center text-small px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#0f1412]' : 'border-transparent')} />
                         </td>
                         {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>}
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-[11.5px] text-[#0f1412] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
+                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-small text-[#0f1412] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
                   </tbody>
                 </table>
               </div>

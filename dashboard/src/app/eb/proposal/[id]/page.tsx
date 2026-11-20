@@ -22,7 +22,7 @@ export default function ProposalPage({ params }: { params: Promise<{ id: string 
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1280px] px-4 sm:px-8 pt-8 pb-20 flex flex-col gap-5">
         <Breadcrumbs current={q ? { label: `Proposal V${q.version}`, href: `/eb/proposal/${id}` } : null} fallback={owner} />
-        {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
         {!view ? (error ? null : <Spinner label="Reading the quotation…" />) : <>
           <PageHeader title={`Proposal V${q!.version}`}
             meta={`${q!.company_name} · ${view.model.products.length} insurers · ${view.model.period} · ${q!.sent_at ? `sent ${shortDate(q!.sent_at)} to ${q!.sent_to}` : `saved ${shortDate(q!.created_at)}`}`}

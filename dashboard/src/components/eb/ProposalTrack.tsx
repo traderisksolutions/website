@@ -33,18 +33,18 @@ export function ProposalTrack({ companyId, justSent }: { companyId: string; just
   ]
   return (
     <section className="mb-8 flex flex-col gap-4" aria-labelledby="eb-track-h">
-      {justSent && sent && <p className="m-0 text-[13.5px] text-trs-pos" role="status">Sent 1 email. Proposal V{sent.version} is on the client’s thread.</p>}
+      {justSent && sent && <p className="m-0 text-body text-trs-pos" role="status">Sent 1 email. Proposal V{sent.version} is on the client’s thread.</p>}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="eb-track-h" className="m-0 text-[17px] font-semibold">Employment Benefits proposal</h2>
-        <span className="text-[13px] text-trs-muted">{last.period} · {last.lives} lives · {sent ? 'waiting on the client' : 'TRS to act'}</span>
+        <h2 id="eb-track-h" className="m-0 text-heading font-semibold">Employment Benefits proposal</h2>
+        <span className="text-body text-trs-muted">{last.period} · {last.lives} lives · {sent ? 'waiting on the client' : 'TRS to act'}</span>
       </div>
       <div className="overflow-x-auto">
         <ol className="m-0 p-0 list-none grid grid-cols-5 border-t border-trs-ink min-w-[640px]" aria-label="Where the proposal stands">
           {steps.map(s => (
             <li key={s.label} className="flex flex-col gap-1 border-r border-trs-line px-3 pt-3 pb-1 first:pl-0 last:border-r-0">
               <span aria-hidden className={`h-2.5 w-2.5 rounded-full border-[1.5px] ${s.state === 'done' ? 'border-trs-green bg-trs-green' : s.state === 'now' ? 'border-trs-green-2 bg-[#e0fcd8]' : 'border-trs-line-2 bg-white'}`} />
-              <span className={`text-[14px] ${s.state === 'later' ? 'text-trs-subtle' : 'font-medium text-trs-ink'}`}>{s.label}</span>
-              <span className="text-[12.5px] text-trs-muted">{s.detail}</span>
+              <span className={`text-body ${s.state === 'later' ? 'text-trs-subtle' : 'font-medium text-trs-ink'}`}>{s.label}</span>
+              <span className="text-small text-trs-muted">{s.detail}</span>
             </li>
           ))}
         </ol>
@@ -58,9 +58,9 @@ export function ProposalTrack({ companyId, justSent }: { companyId: string; just
                 <td className="cell-left px-3">V{r.version}</td>
                 <td className="px-3 tabular-nums">{shortDate(r.created_at)}</td>
                 <td className="px-3">{r.products.length}</td>
-                <td className="px-3 tabular-nums">{r.lowest != null ? `S$${f0(r.totals[r.lowest])}` : '—'}<span className="block text-[12px] text-trs-muted">{r.lowest != null ? r.products[r.lowest] : ''}</span></td>
-                <td className="px-3">{r.sent_at ? <>{shortDate(r.sent_at)}<span className="block text-[12px] text-trs-muted">{r.sent_to}</span></> : <span className="text-trs-muted">Not sent</span>}</td>
-                <td className="px-3"><Link href={r.sent_at ? `/eb/proposal/${r.id}` : `/eb/proposal/${r.id}/email`} className="text-[13px] underline decoration-trs-line-2 underline-offset-2">{r.sent_at ? 'Open' : 'Email to client'}</Link></td>
+                <td className="px-3 tabular-nums">{r.lowest != null ? `S$${f0(r.totals[r.lowest])}` : '—'}<span className="block text-small text-trs-muted">{r.lowest != null ? r.products[r.lowest] : ''}</span></td>
+                <td className="px-3">{r.sent_at ? <>{shortDate(r.sent_at)}<span className="block text-small text-trs-muted">{r.sent_to}</span></> : <span className="text-trs-muted">Not sent</span>}</td>
+                <td className="px-3"><Link href={r.sent_at ? `/eb/proposal/${r.id}` : `/eb/proposal/${r.id}/email`} className="text-body underline decoration-trs-line-2 underline-offset-2">{r.sent_at ? 'Open' : 'Email to client'}</Link></td>
               </tr>
             ))}
           </tbody>

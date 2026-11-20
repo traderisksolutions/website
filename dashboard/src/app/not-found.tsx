@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <PageFrame width="read">
       <PageHeader title="Page not found" actions={<LinkBtn href="/today" level="primary">Today</LinkBtn>} />
-      <p className="m-0 text-sm text-trs-muted">The address has no page, or the record was removed.</p>
+      <p className="m-0 text-body text-trs-muted">The address has no page, or the record was removed.</p>
     </PageFrame>
   )
 }

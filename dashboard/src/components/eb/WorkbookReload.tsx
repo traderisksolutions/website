@@ -34,10 +34,10 @@ export function WorkbookReload() {
         <h2 id="eb-workbook-h" className={headingCls}>House workbook</h2>
         <Btn size="xs" loading={busy} disabled={busy} onClick={() => void reload()}>Reload workbook</Btn>
       </div>
-      <p className="m-0 text-sm text-trs-muted">
+      <p className="m-0 text-body text-trs-muted">
         {file === undefined ? 'Reading…' : file === null ? 'Not imported' : `${file.name} · changed in Drive ${fmtDateTime(file.modifiedAt)} · imported ${fmtDateTime(file.readAt)}`}
       </p>
-      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
     </section>
   )
 }

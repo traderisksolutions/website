@@ -24,8 +24,8 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
   if (!data) {
     return (
       <PageFrame>
-        <Link href="/companies" className="text-sm text-trs-muted no-underline hover:underline">Companies</Link>
-        <p className="m-0 text-base text-trs-muted">{failed ? 'Could not load this company.' : 'Company not found.'}</p>
+        <Link href="/companies" className="text-body text-trs-muted no-underline hover:underline">Companies</Link>
+        <p className="m-0 text-body text-trs-muted">{failed ? 'Could not load this company.' : 'Company not found.'}</p>
       </PageFrame>
     )
   }

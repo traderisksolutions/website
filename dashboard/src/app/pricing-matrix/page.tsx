@@ -106,7 +106,7 @@ function PricingMatrix() {
 
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink" >
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
       {/* Jarod, 20 Nov 2026: the register of quotations kept from /eb. One primary: New quotation. */}
       <PageHeader title="Quotation register" actions={<>
@@ -161,7 +161,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
       .map(n => ({ key: n, insurer: n, label: shortInsurer(n), rates: 'Tier C · On request', plan: undefined })),
   ]
   const who = (name: string | null) => contactsFor(name ?? '', contacts)
-  const h2 = 'm-0 text-[16px] font-medium tracking-[-0.01em]'
+  const h2 = 'm-0 text-heading font-medium '
 
   return (
     <div className="flex flex-col gap-10">
@@ -171,9 +171,9 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
           <h2 className={h2}>Priced here · {tables.length}</h2>
           <Btn size="xs" onClick={onUpload}><UploadCloud size={14} /> Upload rate PDF</Btn>
         </div>
-        {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading…</p>
+        {loading ? <p className="m-0 py-10 text-center text-body text-trs-muted" >Loading…</p>
         : tables.length === 0 ? (
-          <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>No rate tables yet. Upload an insurer rate PDF to begin.</p>
+          <p className="m-0 py-16 text-center text-body text-trs-muted" >No rate tables yet. Upload an insurer rate PDF to begin.</p>
         ) : (
           <Register label="Insurers priced here" minWidth={980}>
             <RegisterHead>
@@ -187,7 +187,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
               {tables.map(t => (
                 <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
                   <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
-                  <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                  <RegisterCell><span className="text-body tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
                   <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <Chip title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</Chip> })()}</RegisterCell>
                   <RegisterCell align="left" nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
                   <RegisterCell last>
@@ -202,7 +202,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
 
       <section>
         <h2 className={cn(h2, 'mb-3')}>Quote on request · {onRequest.length}</h2>
-        {contactsError && <p className="m-0 mb-3 text-[13px]" style={{ color: '#a1242f' }}>{contactsError}</p>}
+        {contactsError && <p className="m-0 mb-3 text-body text-trs-neg" >{contactsError}</p>}
         <Register label="Quoted on request" minWidth={860}>
           <RegisterHead>
             <RegisterTh first width={220}>Plan</RegisterTh>
@@ -214,7 +214,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
             {onRequest.map(r => (
               <RegisterRow key={r.key}>
                 <RegisterCell first primary={r.label} secondary={r.plan ? r.insurer : undefined} />
-                <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.rates}</span></RegisterCell>
+                <RegisterCell><span className="text-body text-trs-ink-2" >{r.rates}</span></RegisterCell>
                 <RegisterCell align="left" nowrap={false}><ContactLines people={who(r.insurer)} /></RegisterCell>
                 <RegisterCell last>
                   <span className="inline-flex items-center gap-2">
@@ -269,15 +269,15 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
-          <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold tracking-[-0.02em] text-trs-ink">Upload insurer rate PDF</DialogPrimitive.Title>
-          <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
+          <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">Upload insurer rate PDF</DialogPrimitive.Title>
+          <label className="flex flex-col items-center justify-center gap-2 rounded py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
             <UploadCloud size={24} className="text-trs-muted" />
-            <span className="text-[13px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
+            <span className="text-body font-medium">{file ? file.name : 'Choose a PDF'}</span>
             <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
           </label>
-          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
           <div className="flex justify-end gap-2">
             <Btn onClick={onClose}>Cancel</Btn>
             <Btn level="primary" loading={busy} disabled={busy || !file} onClick={() => void submit()}>{busy ? 'Uploading…' : 'Upload and extract'}</Btn>

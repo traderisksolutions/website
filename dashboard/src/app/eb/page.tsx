@@ -23,10 +23,10 @@ function Eb() {
   const id = (k: string) => { const v = p.get(k) ?? ''; return UUID.test(v) ? v : null }
   const quotation = id('quotation')
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink" >
       <div className="mx-auto max-w-[1500px] px-4 sm:px-12 pt-8 pb-20">
         <Breadcrumbs className="mb-4" current={quotation ? { label: 'Edit quotation', href: `/eb?quotation=${quotation}` } : { label: 'Employment Benefits', href: '/eb' }} fallback={quotation ? { label: 'Proposal', href: `/eb/proposal/${quotation}` } : { label: 'Inbox', href: '/engagement' }} />
-        <h1 className="m-0 mb-6 text-[32px] font-medium tracking-[-0.03em] leading-[1.1]">{quotation ? 'Edit quotation' : 'Employment Benefits'}</h1>
+        <h1 className="m-0 mb-6 text-title font-medium leading-[1.1]">{quotation ? 'Edit quotation' : 'Employment Benefits'}</h1>
         <EbQuotation key={quotation ?? 'new'} threadId={p.get('thread')} companyId={id('company') ?? id('companyId')} hrLinkId={id('hrLink')} quotationId={quotation} />
       </div>
     </div>

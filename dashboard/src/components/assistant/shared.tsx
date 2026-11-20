@@ -69,24 +69,24 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
     <Dialog open={!!threadId} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className={dialogCls}>
         <div className="sticky top-0 z-10 bg-white border-b border-trs-line px-5 py-3 flex items-center justify-between gap-3">
-          <DialogTitle className="m-0 text-16 font-medium truncate">{thread?.subject ?? 'Thread'}</DialogTitle>
-          {threadId && <a className="text-13 text-trs-muted no-underline hover:underline shrink-0" href={`/engagement?thread=${threadId}`}>Open in Inbox</a>}
+          <DialogTitle className="m-0 text-heading font-medium truncate">{thread?.subject ?? 'Thread'}</DialogTitle>
+          {threadId && <a className="text-body text-trs-muted no-underline hover:underline shrink-0" href={`/engagement?thread=${threadId}`}>Open in Inbox</a>}
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">
-          {error && <p className="m-0 text-13.5 text-trs-neg">{error}</p>}
+          {error && <p className="m-0 text-body text-trs-neg">{error}</p>}
           {!thread && !error && <Spinner label="Loading the thread…" />}
           {thread?.messages.map((m, i) => (
-            <article key={i} className={`rounded-8 border px-3.5 py-3 text-13.5 ${m.rebuilt ? 'border-dashed border-trs-line-2 bg-trs-canvas' : 'border-trs-line bg-white'}`}>
+            <article key={i} className={`rounded border px-3.5 py-3 text-body ${m.rebuilt ? 'border-dashed border-trs-line-2 bg-trs-canvas' : 'border-trs-line bg-white'}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-medium text-trs-ink break-all">{m.from ?? 'Unknown sender'}</span>
-                <span className="font-mono text-12 text-trs-muted">{fmtWhen(m.at)}</span>
+                <span className="font-mono text-small text-trs-muted">{fmtWhen(m.at)}</span>
               </div>
-              {m.to.length > 0 && <div className="text-12.5 text-trs-muted break-all">To {m.to.join(', ')}</div>}
+              {m.to.length > 0 && <div className="text-small text-trs-muted break-all">To {m.to.join(', ')}</div>}
               {m.rebuilt && <div className="mt-1"><Chip tone="amber">{m.rebuilt === 'forward' ? 'From a forward' : 'Rebuilt from quoted history'}</Chip></div>}
-              <pre className="m-0 mt-2 whitespace-pre-wrap font-sans text-13.5 leading-relaxed text-trs-ink-2">{m.body || '(no text)'}</pre>
+              <pre className="m-0 mt-2 whitespace-pre-wrap font-sans text-body leading-relaxed text-trs-ink-2">{m.body || '(no text)'}</pre>
             </article>
           ))}
-          {thread && thread.messages.length === 0 && <p className="m-0 text-13.5 text-trs-muted">No messages on file for this thread.</p>}
+          {thread && thread.messages.length === 0 && <p className="m-0 text-body text-trs-muted">No messages on file for this thread.</p>}
         </div>
       </DialogContent>
     </Dialog>
@@ -100,12 +100,12 @@ export function DocModal({ doc, onClose }: { doc: { title: string; drive_url: st
     <Dialog open={!!doc} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className={dialogCls}>
         <div className="sticky top-0 z-10 bg-white border-b border-trs-line px-5 py-3 flex items-center justify-between gap-3">
-          <DialogTitle className="m-0 text-16 font-medium truncate">{doc?.title ?? 'Document'}</DialogTitle>
-          {doc?.drive_url && <a className="text-13 text-trs-muted no-underline hover:underline shrink-0" href={doc.drive_url} target="_blank" rel="noreferrer">Open in Drive</a>}
+          <DialogTitle className="m-0 text-heading font-medium truncate">{doc?.title ?? 'Document'}</DialogTitle>
+          {doc?.drive_url && <a className="text-body text-trs-muted no-underline hover:underline shrink-0" href={doc.drive_url} target="_blank" rel="noreferrer">Open in Drive</a>}
         </div>
         {preview
           ? <iframe title={doc?.title ?? 'Document'} src={preview} className="block w-full h-[70vh] border-0 bg-trs-canvas" />
-          : <p className="m-0 px-5 py-4 text-13.5 text-trs-muted">This file is not in the data room yet.</p>}
+          : <p className="m-0 px-5 py-4 text-body text-trs-muted">This file is not in the data room yet.</p>}
       </DialogContent>
     </Dialog>
   )

@@ -26,7 +26,7 @@ export function Tip({ text, placement = 'top', width = 260 }: {
     <span className="group relative ml-1 inline-flex cursor-help items-center align-middle leading-none text-trs-subtle" tabIndex={0} aria-label={text}>
       <HelpCircle size={12} />
       <span role="tooltip" style={{ width: `min(${width}px, 80vw)` }} // drift-ok: width is the caller's number
-        className={cn('pointer-events-none invisible absolute z-50 rounded-md bg-trs-ink px-2.5 py-1.5 text-xs leading-relaxed text-white opacity-0 shadow-md transition-opacity group-hover:visible group-hover:opacity-100 group-focus:visible group-focus:opacity-100', AT[placement])}>
+        className={cn('pointer-events-none invisible absolute z-50 rounded bg-trs-ink px-2.5 py-1.5 text-small leading-relaxed text-white opacity-0 shadow-md transition-opacity group-hover:visible group-hover:opacity-100 group-focus:visible group-focus:opacity-100', AT[placement])}>
         {text}
       </span>
     </span>

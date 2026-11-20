@@ -92,22 +92,22 @@ export default function SchedulePage() {
     })
   }, [d])
 
-  if (!d && !error) return <div className="p-8"><Loader2 className="animate-spin" style={{ color: '#4a5550' }} /></div>
+  if (!d && !error) return <div className="p-8"><Loader2 className="animate-spin text-trs-muted" /></div>
 
   const t = d?.table
-  const cell = 'px-3 py-2 text-[13px] tabular-nums align-top'
+  const cell = 'px-3 py-2 text-body tabular-nums align-top'
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink" >
       <div className="mx-auto max-w-[1280px] px-6 sm:px-12 pt-12 pb-20">
         <Breadcrumbs className="mb-3" current={{ label: 'Benefit schedule', href: `/pricing-matrix/${id}/schedule` }} fallback={{ label: t?.insurerName ? `Rate table · ${t.insurerName}` : 'Rate table', href: `/pricing-matrix/${id}` }} />
 
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">
+            <h1 className="m-0 text-title font-medium leading-[1.08]">
               {t?.insurerName || 'Benefit schedule'}
             </h1>
-            <p className="m-0 text-[13.5px] mt-2 tabular-nums" style={{ color: '#4a5550' }}>
+            <p className="m-0 text-body mt-2 tabular-nums text-trs-muted" >
               {t?.planYear ? `${t.planYear} plan year · ` : ''}
               {d?.candidates.length ?? 0} line{(d?.candidates.length ?? 0) === 1 ? '' : 's'} read
               {d?.pending ? ` · ${d.pending} awaiting a decision` : ' · all decided'}
@@ -116,20 +116,20 @@ export default function SchedulePage() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={scan} disabled={!!busy}
-                    className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50"
-                    style={{ color: '#0f1412' }}>
+                    className="flex items-center gap-1.5 text-small font-semibold px-3 py-1.5 rounded border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink"
+                    >
               {busy === 'scan' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
               {busy === 'scan' ? 'Reading the brochure…' : t?.scannedAt ? 'Scan again' : 'Scan the brochure'}
             </button>
             {!!d?.pending && (
               <>
                 <button onClick={() => decide('rejected')} disabled={!!busy}
-                        className="flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-lg border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50"
-                        style={{ color: '#0f1412' }}>
+                        className="flex items-center gap-1.5 text-small font-semibold px-3 py-1.5 rounded border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink"
+                        >
                   <X size={13} /> Reject all {d.pending}
                 </button>
                 <button onClick={() => decide('accepted')} disabled={!!busy}
-                        className="flex items-center gap-1.5 text-[12.5px] font-semibold px-4 py-1.5 rounded-lg bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
+                        className="flex items-center gap-1.5 text-small font-semibold px-4 py-1.5 rounded bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
                   {busy === 'accepted' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Accept all {d.pending}
                 </button>
@@ -138,26 +138,26 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        {error && <p className="text-[12.5px] mb-4" style={{ color: '#a1242f' }}>{error}</p>}
+        {error && <p className="text-small mb-4 text-trs-neg" >{error}</p>}
 
         {t?.notes && (
-          <p className="text-[12.5px] mb-6 px-3 py-2.5 rounded-lg border border-[#e6e8e4] bg-[#faf9f6]" style={{ color: '#2a332f' }}>
+          <p className="text-small mb-6 px-3 py-2.5 rounded border border-[#e6e8e4] bg-[#faf9f6] text-trs-ink-2" >
             {t.notes}
           </p>
         )}
 
         {grids.length === 0 && !busy && (
-          <p className="text-[13px]" style={{ color: '#4a5550' }}>
+          <p className="text-body text-trs-muted" >
             Nothing read from this brochure yet.
           </p>
         )}
 
         {grids.map(g => (
           <section key={g.product} className="mb-8">
-            <h2 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#4a5550' }}>
+            <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
               {g.product}
             </h2>
-            <div className="border border-[#e6e8e4] rounded-lg overflow-x-auto">
+            <div className="border border-[#e6e8e4] rounded overflow-x-auto">
               <table className="trs-table w-full border-collapse" style={{ minWidth: 260 + g.plans.length * 150 }}>
                 <thead>
                   <tr>
@@ -174,9 +174,9 @@ export default function SchedulePage() {
                 <tbody>
                   {g.lines.map(([code, line]) => (
                     <tr key={code}>
-                      <td className="px-3 py-2 text-[13px] sticky left-0 bg-white z-10" style={{ color: '#0f1412' }}>
+                      <td className="px-3 py-2 text-body sticky left-0 bg-white z-10 text-trs-ink" >
                         {line.name}
-                        <span className="block text-[11px]" style={{ color: '#8c958f' }}>{code}</span>
+                        <span className="block text-small text-trs-subtle" >{code}</span>
                       </td>
                       {g.plans.map(p => {
                         const c = line.byPlan.get(p)
@@ -186,15 +186,15 @@ export default function SchedulePage() {
                           <td key={p} className={cell} style={{ color: '#0f1412' }}>
                             {c.value_text}
                             {changed && (
-                              <span className="block text-[11px] line-through" style={{ color: '#8c958f' }}>
+                              <span className="block text-small line-through text-trs-subtle" >
                                 {c.current_text}
                               </span>
                             )}
                             {c.source && !changed && (
-                              <span className="block text-[11px]" style={{ color: '#8c958f' }}>{c.source}</span>
+                              <span className="block text-small text-trs-subtle" >{c.source}</span>
                             )}
                             {c.status !== 'pending' && (
-                              <span className="block text-[11px]" style={{ color: c.status === 'accepted' ? '#137333' : '#a1242f' }}>
+                              <span className="block text-small" style={{ color: c.status === 'accepted' ? '#137333' : '#a1242f' }}>
                                 {c.status}
                               </span>
                             )}
@@ -211,18 +211,18 @@ export default function SchedulePage() {
 
         {!!t?.unmatched?.length && (
           <section className="mb-8">
-            <h2 className="m-0 mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#4a5550' }}>
+            <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
               Printed in the brochure, not in the canonical schedule
             </h2>
-            <div className="border border-[#e6e8e4] rounded-lg overflow-hidden">
+            <div className="border border-[#e6e8e4] rounded overflow-hidden">
               {Array.from(new Map(t.unmatched.map(u => [u.label, u])).values()).map(u => (
                 <div key={u.label} className="flex items-baseline justify-between gap-4 px-3 py-2 border-t border-[#f1f2ee] first:border-t-0">
-                  <span className="text-[13px]" style={{ color: '#0f1412' }}>{u.label}</span>
-                  <span className="text-[13px] tabular-nums text-right" style={{ color: '#4a5550' }}>{u.value}</span>
+                  <span className="text-body text-trs-ink" >{u.label}</span>
+                  <span className="text-body tabular-nums text-right text-trs-muted" >{u.value}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[11.5px] mt-1.5" style={{ color: '#4a5550' }}>
+            <p className="text-small mt-1.5 text-trs-muted" >
               These cannot be compared across insurers until the line is added to the canonical schedule in
               src/lib/gb/canon.ts.
             </p>

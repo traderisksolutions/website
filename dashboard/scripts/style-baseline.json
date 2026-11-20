@@ -167,29 +167,13 @@
   "height": 2,
   "control": 35
  },
- "src/app/eb/page.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/eb/proposal/[id]/email/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 11,
-  "radius": 2,
-  "height": 0,
-  "control": 5
- },
- "src/app/eb/proposal/[id]/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 5
  },
  "src/app/finance/page.tsx": {
   "style": 0,
@@ -320,34 +304,34 @@
   "control": 59
  },
  "src/app/pricing-matrix/[id]/page.tsx": {
-  "style": 8,
-  "hex": 8,
-  "font": 42,
-  "radius": 2,
+  "style": 2,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 4,
   "control": 35
  },
  "src/app/pricing-matrix/[id]/schedule/page.tsx": {
-  "style": 23,
-  "hex": 23,
-  "font": 19,
+  "style": 6,
+  "hex": 6,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
  "src/app/pricing-matrix/hr-links/[id]/page.tsx": {
-  "style": 20,
-  "hex": 16,
-  "font": 20,
+  "style": 3,
+  "hex": 6,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/app/pricing-matrix/page.tsx": {
-  "style": 6,
-  "hex": 7,
-  "font": 9,
-  "radius": 2,
+  "style": 1,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 1
  },
@@ -880,17 +864,17 @@
   "control": 4
  },
  "src/components/eb/EbQuotation.tsx": {
-  "style": 38,
-  "hex": 12,
-  "font": 33,
-  "radius": 4,
+  "style": 34,
+  "hex": 11,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 12
  },
  "src/components/eb/EbQuotationRegister.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -898,7 +882,7 @@
  "src/components/eb/ProposalSection.tsx": {
   "style": 2,
   "hex": 1,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -906,7 +890,7 @@
  "src/components/eb/ProposalTrack.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 8,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -914,8 +898,8 @@
  "src/components/eb/proposal-shared.tsx": {
   "style": 2,
   "hex": 1,
-  "font": 1,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 0
  },
@@ -1160,25 +1144,25 @@
   "control": 2
  },
  "src/components/group-benefits/CompanyField.tsx": {
-  "style": 5,
-  "hex": 5,
-  "font": 3,
-  "radius": 3,
+  "style": 1,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 3
  },
  "src/components/group-benefits/InsurerContactsDialog.tsx": {
-  "style": 3,
-  "hex": 3,
-  "font": 2,
+  "style": 1,
+  "hex": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
  "src/components/group-benefits/InsurerEmailDialog.tsx": {
-  "style": 9,
-  "hex": 7,
-  "font": 10,
+  "style": 0,
+  "hex": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 8
@@ -1186,40 +1170,40 @@
  "src/components/group-benefits/PlanRules.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 8
  },
  "src/components/group-benefits/SourceFilesTab.tsx": {
-  "style": 16,
-  "hex": 18,
-  "font": 15,
-  "radius": 3,
+  "style": 1,
+  "hex": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/group-benefits/hr/HrLinksTab.tsx": {
-  "style": 10,
-  "hex": 11,
-  "font": 9,
+  "style": 2,
+  "hex": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/group-benefits/hr/HrModal.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 1,
-  "radius": 1,
+  "style": 1,
+  "hex": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/group-benefits/hr/SendLinkDialog.tsx": {
-  "style": 13,
-  "hex": 7,
-  "font": 7,
-  "radius": 2,
+  "style": 2,
+  "hex": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 6
  },

@@ -69,7 +69,7 @@ export default function RenewalSeasonPage() {
         ]} />
       </PageHeader>
 
-      {error && <p className="m-0 mb-3 text-13.5 text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
       {!view ? (error ? null : <Spinner label="Loading the renewals…" />) : <SeasonTable rows={shown} starting={starting} onStart={r => void start(r)} onPick={pick}
         onWishes={r => { if (r.case) setWishing({ id: r.case.id, title: [r.company, r.policy?.name ?? r.case.title].filter(Boolean).join(' · ') }) }} />}
 

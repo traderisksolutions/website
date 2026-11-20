@@ -3,7 +3,11 @@ import type { Config } from 'tailwindcss'
 const config: Config = {
   darkMode: ['class'],
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  // Minimal type (Jarod, 20 Nov 2026): no uppercase styling, no custom letter spacing.
+  corePlugins: { textTransform: false, letterSpacing: false },
   theme: {
+    // Two weights carry everything: regular and medium; semibold for emphasis. Bold folds in.
+    fontWeight: { normal: '400', medium: '500', semibold: '600', bold: '600' },
     extend: {
       // One face (Jarod, 20 Nov 2026): Helvetica for everything, titles and figures included.
       fontFamily: {

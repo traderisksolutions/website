@@ -96,20 +96,20 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="m-0 text-[13.5px] tabular-nums" style={{ color: MUTED }}>
+        <p className="m-0 text-body tabular-nums text-trs-muted" >
           {loading ? 'Loading…' : pending ? MIGRATION_PENDING_LINE : `${rows.length} requested from client HR`}
         </p>
         <Btn level="secondary" onClick={() => setDialog(true)} disabled={pending}>Send HR a link</Btn>
       </div>
 
       {notice && (
-        <p className="m-0 text-[13.5px]" style={{ color: '#2a332f' }}>
+        <p className="m-0 text-body text-trs-ink-2" >
           {notice.text}{' '}
-          <button onClick={() => router.push(`/pricing-matrix/hr-links/${notice.linkId}`)} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#0f1412' }}>Open</button>
-          {notice.url && <>{' · '}<button onClick={() => { void navigator.clipboard?.writeText(notice.url!).catch(() => {}) }} className="bg-transparent border-0 p-0 cursor-pointer underline" style={{ color: '#0f1412' }}>Copy link</button></>}
+          <button onClick={() => router.push(`/pricing-matrix/hr-links/${notice.linkId}`)} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Open</button>
+          {notice.url && <>{' · '}<button onClick={() => { void navigator.clipboard?.writeText(notice.url!).catch(() => {}) }} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Copy link</button></>}
         </p>
       )}
-      {error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }}>{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" >{error}</p>}
 
       {!pending && !loading && (
         <Register label="Employee lists" minWidth={920}>
@@ -133,24 +133,24 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
                 <RegisterRow key={r.id} onClick={() => router.push(`/pricing-matrix/hr-links/${r.id}`)}>
                   <RegisterCell first identityWidth={180} primary={r.reference} secondary={r.effective_date ? `effective ${fmtDate(r.effective_date)}` : 'no policy start'} />
                   <RegisterCell align="left" className="max-w-[260px]">
-                    <span className="block text-[14px] truncate" style={{ color: '#0f1412' }} title={r.company_name}>{r.company_name}</span>
+                    <span className="block text-body truncate text-trs-ink" title={r.company_name}>{r.company_name}</span>
                     {policyHref && (
-                      <Link href={policyHref} onClick={e => e.stopPropagation()} className="block text-[12.5px] truncate no-underline hover:underline" style={{ color: MUTED }}>
+                      <Link href={policyHref} onClick={e => e.stopPropagation()} className="block text-small truncate no-underline hover:underline text-trs-muted" >
                         {policy ? `${policy.label} · ${policy.lifecycle_label}` : 'Policy'}
                       </Link>
                     )}
                   </RegisterCell>
-                  <RegisterCell align="left" primary={<span className="text-[14px] font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
+                  <RegisterCell align="left" primary={<span className="text-body font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
                   <RegisterCell><span className={CHIP}>{linkStatusWord(r)}</span></RegisterCell>
                   <RegisterCell primary={fmtDate(r.sent_at)} secondary={`valid to ${fmtDate(r.expires_at)}`} />
-                  <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: r.submitted_at ? '#0f1412' : '#8c958f' }}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>
-                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: n != null ? '#0f1412' : '#8c958f' }}>{n ?? '—'}</span></RegisterCell>
+                  <RegisterCell><span className="text-body tabular-nums" style={{ color: r.submitted_at ? '#0f1412' : '#8c958f' }}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className="text-body tabular-nums" style={{ color: n != null ? '#0f1412' : '#8c958f' }}>{n ?? '—'}</span></RegisterCell>
                   <RegisterCell last align="right">
                     {r.submitted_at
                       ? (policy
                         ? <Btn size="xs" level="primary" loading={pricing === r.id} onClick={e => { e.stopPropagation(); void priceOnPolicy(r, policy) }}>Quote</Btn>
                         : <Btn size="xs" level="primary" onClick={e => { e.stopPropagation(); router.push(`/eb?hrLink=${r.id}`) }}>Quote</Btn>)
-                      : <span className="text-[13px]" style={{ color: '#8c958f' }}>Waiting for HR</span>}
+                      : <span className="text-body text-trs-subtle" >Waiting for HR</span>}
                   </RegisterCell>
                 </RegisterRow>
               )
