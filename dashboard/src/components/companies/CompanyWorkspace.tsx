@@ -25,7 +25,7 @@ import { ProposalTrack } from '@/components/eb/ProposalTrack'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import type { LetterStatus } from '@/lib/letters/appointment'
 import { MembersPanel } from '@/components/policies/MembersPanel'
-import { ReviewDraftsDrawer, type QueueItem } from '@/components/placement/ReviewDraftsDrawer'
+import { ReviewDraftsDrawer } from '@/components/placement/ReviewDraftsDrawer'
 import type { PolicyView } from '@/components/policies/types'
 import type { ActivityEvent, CaseRow, Company, CompanyThread, PaymentDerived, PaymentSummary, Stage } from '@/lib/crm/types'
 import type { CompanyWorkspaceData, PlacementData, WorkspaceOverview } from '@/lib/companies/workspace'
@@ -33,6 +33,8 @@ import { CompanyKnowledge } from '@/components/assistant/CompanyKnowledge'
 import { CompanyClaims } from '@/components/companies/CompanyClaims'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { PageFrame } from '@/components/page-frame'
+import type { ActionResult } from '@/lib/auth/action'
+import { companyActivity, companyCases, companyDrafts, companyPlacements, companyPolicies, companyThreads } from '@/app/companies/[id]/actions'
 
 type Detail = { payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
@@ -132,14 +134,26 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
     return k ? <p className="m-0 mb-4 text-body text-trs-neg" role="alert">This tab did not load: {failed[k]}</p> : null
   }
 
-  const loadThreads = useCallback(() => j<{ threads: CompanyThread[]; hidden?: number }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => { setThreads(r.threads); setThreadsHidden(r.hidden ?? 0) }), [id, j])
+  /** The same, for a server action: a section's reload records its failure under the route's old key. */
+  const run = useCallback(async <T,>(key: string, action: Promise<ActionResult<T>>, fallback: T): Promise<T> => {
+    try {
+      const r = await action
+      if (r.ok) { setFailed(f => { if (!(key in f)) return f; const n = { ...f }; delete n[key]; return n }); return r.data }
+      setFailed(f => ({ ...f, [key]: r.error }))
+    } catch (e) {
+      setFailed(f => ({ ...f, [key]: e instanceof Error ? e.message : 'Could not load.' }))
+    }
+    return fallback
+  }, [])
+
+  const loadThreads = useCallback(() => run('/threads', companyThreads(id), { threads: [], hidden: 0 }).then(r => { setThreads(r.threads); setThreadsHidden(r.hidden) }), [id, run])
   // A thread filed under an insurer that names this client is not in the reader's list: it opens in the Inbox.
   const openThread = (threadId: string) => { if (threads?.some(t => t.id === threadId)) setThreadView('reader', threadId); else router.push(`/engagement?thread=${threadId}`) }
-  const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
-  const loadPlacements = useCallback(() => j<PlacementData>(`/api/companies/${id}/placements`, EMPTY_BUNDLE).then(setPlacementData), [id, j])
-  const loadPolicies = useCallback(() => j<{ policies: PolicyView[] }>(`/api/companies/${id}/policies`, { policies: [] }).then(r => setPolicies(r.policies)), [id, j])
-  const loadActivity = useCallback(() => j<{ events: ActivityEvent[] }>(`/api/companies/${id}/activity`, { events: [] }).then(r => setActivity(r.events)), [id, j])
-  const loadDrafts = useCallback(() => j<{ queue: QueueItem[] }>(`/api/companies/${id}/drafts`, { queue: [] }).then(r => setDraftsCount(r.queue.length)), [id, j])
+  const loadCases = useCallback(() => run('/cases', companyCases(id), []).then(setCases), [id, run])
+  const loadPlacements = useCallback(() => run('/placements', companyPlacements(id), EMPTY_BUNDLE).then(setPlacementData), [id, run])
+  const loadPolicies = useCallback(() => run('/policies', companyPolicies(id), []).then(setPolicies), [id, run])
+  const loadActivity = useCallback(() => run('/activity', companyActivity(id), []).then(setActivity), [id, run])
+  const loadDrafts = useCallback(() => run('/drafts', companyDrafts(id), []).then(q => setDraftsCount(q.length)), [id, run])
   const loadLetter = useCallback(() => j<{ status: LetterStatus | null }>(`/api/letters/appointment?company_id=${id}`, { status: null }).then(r => setLetter(r.status)), [id, j])
   const reloadDetail = useCallback(() => { void j<Detail>(`/api/companies/${id}`, EMPTY_DETAIL).then(setDetail) }, [id, j])
 

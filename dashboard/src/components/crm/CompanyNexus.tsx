@@ -9,6 +9,7 @@ import { CaseThreadPicker } from './CaseThreadPicker'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
 import { fmtRelative, fmtDate } from '@/lib/format'
 import type { AiBrief, CaseRow, Company, CompanyThread, Person, Stage } from '@/lib/crm/types'
+import { createCase } from '@/app/companies/[id]/actions'
 
 /**
  * Nexus for one company: the whole-relationship summary, the cases already opened, and a picker
@@ -62,12 +63,9 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
     setCreating(true); setError(null)
     try {
       const name = typedName || defaultCaseName(threads, ids, company.name)
-      const res = await fetch(`/api/companies/${company.id}/cases`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, threadIds: ids }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not create the case.')
+      const r = await createCase(company.id, { name, threadIds: ids })
+      if (!r.ok) throw new Error(r.error)
+      const d = r.data
       setPicking(false)
       onCasesChanged()
       setAnalysing({ caseId: d.id, threadIds: ids })   // straight into the analysis

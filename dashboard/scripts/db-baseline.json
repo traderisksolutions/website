@@ -67,10 +67,6 @@
   "sb": 9,
   "fetch": 0
  },
- "src/app/api/companies/[id]/cases/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
  "src/app/api/companies/[id]/contacts/route.ts": {
   "sb": 0,
   "fetch": 1

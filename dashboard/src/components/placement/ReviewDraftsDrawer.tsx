@@ -14,6 +14,7 @@ import { productLineLabel } from '@/lib/product-lines'
 import type { PlacementBundle, PlacementDispatch } from '@/lib/placement/types'
 import type { PolicyMovement, PolicyView } from '@/components/policies/types'
 import { callApi, errText } from './shared'
+import { companyDrafts } from '@/app/companies/[id]/actions'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 const LAYOUT_KEY = 'trs.drafts.layout'
@@ -22,7 +23,7 @@ type Layout = 'modal' | 'dock'
 const KIND_WORD = { request: 'Request', chase: 'Follow-up', tier: 'Option ask', letter: 'Appointment letter', client: 'Comparison to client', confirm: 'Confirm to insurer', movement: 'Movement' } as const
 
 type DraftRow = { id: string; to_email: string | null; subject: string | null; body: string; status: string; thread_id: string | null; contact_id: string; email_type: string | null; created_at: string; attachments?: { filename: string; mime_type?: string; storage_url: string }[] | null }
-/** GET /api/companies/[id]/drafts → { queue: QueueItem[] } */
+/** companyDrafts(id) → QueueItem[] */
 export type QueueItem = { draft: DraftRow; kind: 'request' | 'chase' | 'tier' | 'client' | 'confirm' | 'movement' | 'letter'; dispatches: PlacementDispatch[]; movements?: PolicyMovement[]; policyId?: string | null }
 type SendState = { phase: 'idle' } | { phase: 'sending' } | { phase: 'sent' } | { phase: 'error'; message: string }
 /** One recipient of a request item while its fan-out runs: the dispatch id keys the line. */
@@ -119,7 +120,9 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   const load = useCallback(async () => {
     setError(null)
     try {
-      const d = await callApi<{ queue: QueueItem[] }>(`/api/companies/${companyId}/drafts`)
+      const r = await companyDrafts(companyId)
+      if (!r.ok) throw new Error(r.error)
+      const d = { queue: r.data }
       const prev = new Map((itemsRef.current ?? []).map(x => [x.draft.id, x]))
       const next: Item[] = d.queue.map(q => {
         const kept = prev.get(q.draft.id)

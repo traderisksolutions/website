@@ -21,6 +21,7 @@ import { Btn } from '@/components/crm/primitives'
 import { AiRow, Group, InfoRow, PlainLink, PropRow, SectionLabel, listValue } from './rail-bits'
 import type { Lead, RealMsg, StoredSummary, RagSource } from './types'
 import { fullName, timeAgo } from './helpers'
+import { companyThreads } from '@/app/companies/[id]/actions'
 
 /**
  * The context rail beside a thread, in three groups (11 Nov 2026):
@@ -90,7 +91,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     setDetail(null); setRelated(null)
     if (!companyId) return
     fetch(`/api/companies/${companyId}`, { cache: 'no-store' }).then(r => r.json()).then(setDetail).catch(() => {})
-    fetch(`/api/companies/${companyId}/threads`, { cache: 'no-store' }).then(r => r.json()).then(d => setRelated(d.threads ?? [])).catch(() => setRelated([]))
+    companyThreads(companyId).then(r => setRelated(r.ok ? r.data.threads : [])).catch(() => setRelated([]))
   }, [companyId])
 
   const company = card?.company ?? null
