@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { threadVisibleTo, privateThread } from '@/lib/mail/visibility-server'
 
 // DELETE /api/engagement/thread?thread_id=X
 // Soft-deletes a thread and all dependent rows by setting deleted_at.
@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!thread) return NextResponse.json({ thread: null, messages: [] })
-    if (!(await threadVisibleTo(thread.id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
+    if (!(await threadVisibleTo(thread.id, await currentUserEmail()))) return NextResponse.json(await privateThread(thread.id), { status: 403 })
 
     // 3. Fetch all messages for this thread
     const msgRes = await fetch(

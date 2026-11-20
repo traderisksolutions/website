@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { conversationsOf, type Conversation, type ConvMessage } from '@/lib/mail/conversations'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
+import { mailboxesByThread, ownersOf, visibleThreadIds } from '@/lib/mail/visibility-server'
 import { personalMailboxes } from '@/lib/mail/visibility'
 import { inboxIndex, visibleRows } from '@/lib/mail/inbox-index'
 import { inboxPage, parseView, type InboxCounts } from '@/lib/mail/inbox-list'
@@ -199,10 +200,12 @@ export async function GET(req: NextRequest) {
       }
       threads = ids.flatMap(id => have.get(id) ?? [])
       page = { total: p.total, counts: p.counts, nextOffset: p.nextOffset, offset, mailboxes: personalMailboxes(rows) }
-    } else {
-      const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
-      threads = threads.filter(t => ok.has(t.id))
     }
+    // Everyone at TRS sees every thread in the list (Jarod, 20 Nov 2026); a thread read only from a
+    // colleague's own mailbox is marked with its owner and opens only for those it is visible to.
+    // Its email text (snippet, the matched passage) is withheld from the others.
+    const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
+    const owners = await ownersOf(threads.filter(t => !ok.has(t.id)).map(t => t.id))
     const boxes = await mailboxesByThread(threads.map(t => t.id))
     const answer = (rows: unknown[]) => NextResponse.json(page ? { rows, ...page } : rows)
     if (threads.length === 0) return answer([])
@@ -237,6 +240,7 @@ export async function GET(req: NextRequest) {
     const threadSenderMap = new Map<string, string>() // thread_id -> best external email
     const lastDirection = new Map<string, 'inbound' | 'outbound'>() // thread_id -> direction of the last real message
     const chaseDue = new Map<string, string>() // thread_id -> the day a chaser is due, when TRS wrote last
+    let threadMsgs: ConvMessage[] = []
     if (allThreadIds.length > 0) {
       // Prefer inbound messages first (direct client email). Every row: the API stops at 1,000,
       // which left the newest messages of the list unread and their status wrong.
@@ -245,6 +249,7 @@ export async function GET(req: NextRequest) {
         sbHeaders(),
       ).catch(() => [])
       await readStatus(msgs, threads, lastDirection, chaseDue)
+      if (Array.isArray(msgs)) threadMsgs = msgs
       // First pass: inbound messages
       for (const m of (Array.isArray(msgs) ? msgs : [])) {
         if (m.direction === 'inbound' && !threadSenderMap.has(m.thread_id) &&
@@ -295,7 +300,21 @@ export async function GET(req: NextRequest) {
         if (!cur) list.push({ name, email }); else if (!cur.name && name) cur.name = name
         people.set(p.thread_id, list)
       }
+
       for (const list of people.values()) list.sort((a, b) => Number(isInternal(a.email)) - Number(isInternal(b.email)))
+    }
+
+    // 3c. ?conversations=1: a thread that holds more than one conversation (a client's and an
+    //     insurer's filed together) lists each, with its side (src/lib/mail/conversations.ts).
+    let convs = new Map<string, Conversation[]>()
+    if (req.nextUrl.searchParams.get('conversations') === '1' && threadMsgs.length) {
+      const insurers = await fetch(`${SB_URL}/rest/v1/companies?kind=eq.insurer&select=company_name,domains`, { headers: sbHeaders(), cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => [])
+      const insurerByDomain = new Map<string, string>()
+      for (const c of (Array.isArray(insurers) ? insurers : []) as { company_name: string; domains: string[] | null }[]) for (const d of c.domains ?? []) insurerByDomain.set(d.toLowerCase(), c.company_name)
+      const insurerOf = (d: string) => { for (const [k, v] of insurerByDomain) if (d === k || d.endsWith(`.${k}`)) return v; return null }
+      const nameBy = new Map<string, string>()
+      for (const list of people.values()) for (const p of list) if (p.name) nameBy.set(p.email, p.name)
+      convs = conversationsOf(threadMsgs, insurerOf, isInternal, e => nameBy.get(e) ?? null)
     }
 
     // 4. Shape one entry per thread
@@ -334,9 +353,11 @@ export async function GET(req: NextRequest) {
         source:           'email' as const,
         subject:          t.subject,
         display_subject:  t.display_subject ?? null,
-        snippet:          t.snippet,
-        match:            matchBy.get(t.id) ?? null,
+        snippet:          ok.has(t.id) ? t.snippet : null,
+        match:            ok.has(t.id) ? matchBy.get(t.id) ?? null : null,
+        private:          ok.has(t.id) ? undefined : { owner: owners.get(t.id) ?? null },
         participants:     people.get(t.id)?.slice(0, 40) ?? undefined,
+        conversations:    convs.get(t.id),
         first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
         last_name:        contact?.last_name  ?? null,
         email,

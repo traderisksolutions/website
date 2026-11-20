@@ -69,9 +69,11 @@ describe('addItemsFrom', () => {
 })
 
 describe('normalisePoints', () => {
-  it('strings only, one line each, at most five', async () => {
+  it('one line each, the client first, at most six (three a side)', async () => {
     const { normalisePoints } = await import('./desk-read')
-    expect(normalisePoints(['a\n b', '', null, 'c', 'd', 'e', 'f', 'g'])).toEqual(['a b', 'c', 'd', 'e', 'f'])
+    expect(normalisePoints(['a\n b', '', null, 'c', 'd', 'e', 'f', 'g', 'h'])).toEqual(['a b', 'c', 'd', 'e', 'f', 'g'])
+    expect(normalisePoints([{ side: 'insurer', who: 'ECICS', text: 'Sent the revised cover note', date: '19 Nov' }, { side: 'client', who: 'sean.foo@ccccltd.sg', text: 'Asked to correct the insured name' }]))
+      .toEqual(['Client · Sean Foo: asked to correct the insured name', 'Insurer · ECICS: sent the revised cover note · 19 Nov'])
     expect(normalisePoints('not a list')).toEqual([])
     expect(normalisePoints(['x'.repeat(400)])[0]).toHaveLength(220)
   })
@@ -82,8 +84,7 @@ describe('oneEmailPerPerson', () => {
     const { oneEmailPerPerson } = await import('./desk-read')
     const step = (id: string, email: string) => ({ id, kind: 'email' as const, party: 'client' as const, insurer: null, productLine: null, title: `Ask ${id}`, detail: 'd', to: { email, name: 'Janice', contactId: null }, status: 'proposed' as const, draftId: null })
     const out = oneEmailPerPerson([step('a', 'Janice@x.invalid'), step('b', 'other@x.invalid')], [{ id: 'd1', email: 'janice@x.invalid', name: 'Janice Sim' }])
-    expect(out[0]).toMatchObject({ kind: 'action', to: null, title: 'Add to the pending email to Janice', op: 'update', draftId: 'd1' })
-    expect(out[0].detail).toContain('Ask a')
+    expect(out[0]).toMatchObject({ kind: 'action', to: null, title: 'Update the draft to Janice Sim: ask a', detail: 'd', op: 'update', draftId: 'd1' })
     expect(out[1]).toMatchObject({ kind: 'email' })
   })
 })

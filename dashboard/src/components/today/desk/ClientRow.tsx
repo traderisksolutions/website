@@ -85,7 +85,8 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
       const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'read', ...base } })
       setRead(r.read)
       setTicked(new Set(r.read.steps.filter(s => s.kind === 'email' && s.status === 'proposed').map(s => s.id)))
-      if (!open) onToggle()
+      // The Read's facts are kept as the client's state: shown in State, not as sentences.
+      if (!open) onToggle(); else loadDetail()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function doDraft() {
@@ -202,11 +203,9 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
           {read && (
             <div className="md:pl-[42px] py-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-trs-green"><Sparkles size={13} /> Summary</span>
-                <span className="text-[12px] text-trs-muted">Read {timeAgo(read.at)} by {first(read.by)}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-trs-green"><Sparkles size={13} /> Read</span>
+                <span className="text-xs text-trs-muted">{timeAgo(read.at)} by {first(read.by)}</span>
               </div>
-              <p className="m-0 text-[14px] font-medium text-trs-ink">{read.summary}</p>
-              {read.situation && <ul className="m-0 pl-5 list-disc flex flex-col gap-0.5 text-[13px] leading-[1.5] text-trs-ink-2">{read.situation.split('\n').filter(Boolean).map((p, i) => <li key={i}>{p}</li>)}</ul>}
               {read.steps.length > 0 && (
                 <div className="mt-1 flex flex-col gap-1">
                   <span className="text-[12.5px] font-semibold text-trs-ink">Suggested</span>

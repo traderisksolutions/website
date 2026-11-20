@@ -5,6 +5,8 @@
  * browser-safe. Tested in src/__tests__/search-query.test.ts.
  */
 
+import type { Conversation } from '@/lib/mail/conversations'
+
 export type SearchTerms = {
   /** Lower-case words of two or more characters, at most eight, in the order typed. */
   words: string[]
@@ -64,6 +66,8 @@ export type ThreadHit = {
   canOpen: boolean; owner: string | null
   /** Where the words were found: subject, people, a file name, or the text of the mail. */
   via: 'subject' | 'people' | 'file' | 'text'
+  /** Each conversation inside a thread that holds more than one (src/lib/mail/conversations.ts). */
+  conversations?: Conversation[]
 }
 export type PersonHit = Person & { threads: number; lastAt: string | null }
 export type CompanyHit = { id: string; name: string; kind: string | null }

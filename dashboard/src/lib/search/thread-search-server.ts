@@ -6,10 +6,11 @@
  */
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { ownWords } from '@/lib/admin/b/relay/intent'
-import { mailboxesByThread } from '@/lib/mail/visibility-server'
-import { canSeeThread } from '@/lib/mail/visibility'
-import { firstNameOf, inboxLabel } from '@/lib/mail/ring-fence'
+import { mailboxesByThread, ownersOf } from '@/lib/mail/visibility-server'
+import { inboxLabel, ringFence } from '@/lib/mail/ring-fence'
 import { isNoise } from '@/lib/documents/taxonomy'
+import { conversationsOf, type ConvMessage } from '@/lib/mail/conversations'
+import { insurerNames } from '@/lib/today/desk-server'
 import {
   fileHits, hasEvery, listable, parsePeople, peopleHits, peopleText, searchTerms, viaOf,
   type CompanyHit, type IndexRow, type Person, type SearchAnswer, type ThreadHit,
@@ -132,12 +133,16 @@ export async function searchThreads(q: string, viewer: string | null, opts: { li
   const shaped = [...rows.values()].map(r => {
     const people = parsePeople(r.people)
     const boxes = r.mailboxes ?? []
-    const canOpen = canSeeThread(viewer, boxes, people.map(p => p.email))
-    const owner = canOpen ? null : firstNameOf(boxes.find(b => !/^operations@/i.test(b)) ?? boxes[0] ?? '')
+    const fence = ringFence(viewer, boxes, people.map(p => p.email))
+    const canOpen = fence.open
+    const owner: string | null = fence.open ? null : fence.name
     return { r, people, boxes, canOpen, owner }
   }).filter(x => listable(x.r, terms.words, x.canOpen) && (!opts.openOnly || x.canOpen))
     .sort((a, b) => String(b.r.last_message_at ?? '').localeCompare(String(a.r.last_message_at ?? ''))).slice(0, limit)
 
+  // Owners by name from app_users (visibility-server.ts ownersOf), the first name shown.
+  const owners = await ownersOf(shaped.filter(x => !x.canOpen).map(x => x.r.thread_id)).catch(() => new Map<string, string>())
+  for (const x of shaped) if (!x.canOpen && owners.get(x.r.thread_id)) x.owner = owners.get(x.r.thread_id)!.split(/[\s,]+/)[0]
   const companyIds = Array.from(new Set(shaped.map(x => x.r.company_id).filter((x): x is string => !!x)))
   const named = companyIds.length ? await sbTry<Row[]>(`companies?id=in.${inList(companyIds)}&select=id,company_name,kind`, []) : []
   const co = new Map(named.map(c => [c.id as string, c]))
@@ -146,6 +151,17 @@ export async function searchThreads(q: string, viewer: string | null, opts: { li
     companyKind: co.get(r.company_id ?? '')?.kind ?? null, people, lastAt: r.last_message_at, mailboxes: boxes, inbox: inboxLabel(boxes),
     canOpen, owner, via: viaOf(r, terms.words),
   }))
+  // The conversations inside joined threads (a client's and an insurer's filed together): one read for the hits.
+  if (threads.length) {
+    const [msgs, insurers] = await Promise.all([
+      sbTry<ConvMessage[]>(`email_messages?thread_id=in.${inList(threads.map(t => t.threadId))}&deleted_at=is.null&select=thread_id,subject,from_address,direction,sent_at&limit=${threads.length * 40}`, []),
+      insurerNames().catch(() => new Map<string, string>()),
+    ])
+    const insurerOf = (d: string) => { for (const [dom, n] of insurers) if (d === dom || d.endsWith(`.${dom}`)) return n || dom; return null }
+    const names = new Map(threads.flatMap(t => t.people.filter(p => p.name).map(p => [p.email, p.name!] as const)))
+    const convs = conversationsOf(msgs, insurerOf, e => /@trade-risksol\.com$/i.test(e), e => names.get(e) ?? null)
+    for (const t of threads) { const c = convs.get(t.threadId); if (c) t.conversations = c }
+  }
   const companyHits: CompanyHit[] = companies.filter(c => hasEvery(String(c.company_name ?? ''), terms.words)).slice(0, 6).map(c => ({ id: c.id, name: c.company_name, kind: c.kind ?? null }))
   const files = fileHits(shaped.map(x => ({ thread_id: x.r.thread_id, attachments: x.r.attachments, subject: x.r.subject || '(no subject)', lastAt: x.r.last_message_at, canOpen: x.canOpen, owner: x.owner })), terms.words)
   // The attachment ids of the files found, for a direct link: one read for at most eight threads.

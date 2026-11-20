@@ -13,11 +13,13 @@ import { CompanyField, type CompanyPick } from '@/components/group-benefits/Comp
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
 import { participantsLine, type DeskSide, type Participant } from '@/lib/today/desk'
+import type { Conversation } from '@/lib/mail/conversations'
 import type { Suggestion } from '@/lib/today/learn-server'
 import type { SearchAnswer } from '@/lib/search/query'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[] }
-type Pick = { side: DeskSide; client: CompanyPick }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[]; private?: { owner: string | null } }
+/** `via`: the conversation picked inside a thread that holds more than one; its side was set from it. */
+type Pick = { side: DeskSide; client: CompanyPick; via?: string }
 
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
@@ -27,13 +29,14 @@ const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[1
 
 /** Threads from the search index, shaped as the list reads them; null when the index is not there. */
 async function searchIndex(q: string, signal: AbortSignal): Promise<Conv[] | null> {
-  const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&open=1&limit=200`, { cache: 'no-store', signal })
+  const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=200`, { cache: 'no-store', signal })
   const j = await r.json().catch(() => null) as SearchAnswer | { index: false } | null
   if (!r.ok || !j || !j.index) return null
   return j.threads.map(t => ({
     thread_id: t.threadId, subject: t.subject, display_subject: t.subject, snippet: null, match: t.via === 'text' ? 'Words in the email text' : t.via === 'file' ? 'A file name' : null,
     first_name: t.people[0]?.name ?? null, last_name: null, email: t.people[0]?.email ?? null, companyId: t.companyId, companyName: t.companyName, companyKind: t.companyKind,
     clientCompanyId: null, created_at: t.lastAt ?? '', last_message_at: t.lastAt, participants: t.people,
+    private: t.canOpen ? undefined : { owner: t.owner }, conversations: t.conversations,
   }))
 }
 
@@ -61,7 +64,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [addedHere, setAddedHere] = useState(0)
 
   useEffect(() => { void (async () => {
-    const r = await fetch('/api/engagement/conversations?people=1', { cache: 'no-store' })
+    const r = await fetch('/api/engagement/conversations?people=1&conversations=1', { cache: 'no-store' })
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
@@ -75,9 +78,10 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const ctl = new AbortController()
     const timer = setTimeout(() => {
       setSearching(true)
-      // The email search index (docs/search.md) first, the same search as ⌘K; threads in a
-      // colleague's private inbox are left out here. Before the index exists: the old search.
-      void searchIndex(t, ctl.signal).then(async hits => hits ?? await fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
+      // One search with ⌘K (docs/search.md): the index first; before it exists, the Inbox search
+      // with each conversation inside a joined thread. A colleague's private thread is listed and
+      // can sit on Today; its mail opens only for those who hold it.
+      void searchIndex(t, ctl.signal).then(async hits => hits ?? await fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1&conversations=1`, { cache: 'no-store', signal: ctl.signal })
         .then(r => r.json()).then(j => (Array.isArray(j) ? j as Conv[] : [])))
         .then(list => { setFound(list); setSearching(false) }).catch(() => {})
     }, 350)
@@ -102,6 +106,18 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
       const side: DeskSide = c.companyKind === 'insurer' ? 'insurer' : 'client'
       const clientId = side === 'insurer' ? c.clientCompanyId : c.companyId
       n.set(c.thread_id, { side, client: clientId ? { id: clientId, name: (side === 'insurer' ? nameOf.get(clientId) : c.companyName) ?? '' } : { id: null, name: '' } })
+      return n
+    })
+  }
+  /** Picks the thread for one of its conversations: that conversation's side, and the client it is about. */
+  function pickConversation(c: Conv, v: Conversation) {
+    setPicked(p => {
+      const n = new Map(p)
+      if (n.get(c.thread_id)?.via === v.subject) { n.delete(c.thread_id); return n }
+      const side: DeskSide = v.side ?? (c.companyKind === 'insurer' ? 'insurer' : 'client')
+      const clientId = c.companyKind === 'insurer' || c.companyKind === 'partner' ? c.clientCompanyId : c.companyId
+      const name = clientId ? (clientId === c.companyId ? c.companyName : nameOf.get(clientId)) ?? '' : ''
+      n.set(c.thread_id, { side, client: clientId ? { id: clientId, name } : { id: null, name: '' }, via: v.subject })
       return n
     })
   }
@@ -168,6 +184,24 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
                           {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
                           {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
+                          {c.private && <div className="text-xs font-medium text-trs-warn">In {c.private.owner ? `${c.private.owner.split(/\s+/)[0]}’s` : 'a colleague’s'} inbox</div>}
+                          {c.conversations && c.conversations.length > 1 && (
+                            <ul aria-label="Conversations in this thread" className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
+                              {c.conversations.map(v => {
+                                const on = p?.via === v.subject
+                                const hit = !!q.trim() && hasWords([v.subject, v.insurer, ...v.people], q.trim().toLowerCase())
+                                return (
+                                  <li key={v.subject}>
+                                    <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} className="w-full justify-start gap-2 text-left">
+                                      <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium' : ''}`} title={v.subject}>{v.subject}</span>
+                                      <span className="shrink-0 text-xs font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
+                                      <span className="w-14 shrink-0 text-right font-medium">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
+                                    </Btn>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          )}
                         </td>
                         <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
                         <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>

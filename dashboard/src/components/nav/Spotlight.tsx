@@ -18,22 +18,23 @@ import { Btn, InlineSpinner } from '@/components/crm/primitives'
 import { fmtDay } from '@/lib/format'
 import { peopleHits, searchTerms, hasEvery, type SearchAnswer, type ThreadHit } from '@/lib/search/query'
 import { threadHref } from '@/lib/today/desk'
+import type { Conversation } from '@/lib/mail/conversations'
 import { usePrivateThread } from '@/components/today/desk/PrivateThread'
 
 export type PageLink = { label: string; href: string }
 
-type OldConv = { thread_id: string; subject: string | null; display_subject: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; last_message_at?: string | null; created_at: string; mailboxes?: string[]; participants?: { name: string | null; email: string }[] }
+type OldConv = { thread_id: string; subject: string | null; display_subject: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; last_message_at?: string | null; created_at: string; mailboxes?: string[]; participants?: { name: string | null; email: string }[]; conversations?: Conversation[]; private?: { owner: string | null } }
 
 /** Before the index exists: the Inbox's search (subject, senders, people; no email text), as hits. */
 async function oldSearch(q: string, signal: AbortSignal): Promise<SearchAnswer> {
-  const r = await fetch(`/api/engagement/conversations?q=${encodeURIComponent(q)}&people=1`, { cache: 'no-store', signal })
+  const r = await fetch(`/api/engagement/conversations?q=${encodeURIComponent(q)}&people=1&conversations=1`, { cache: 'no-store', signal })
   const j = await r.json().catch(() => [])
   const words = searchTerms(q).words
   const threads: ThreadHit[] = (Array.isArray(j) ? j as OldConv[] : []).slice(0, 40).map(c => ({
     threadId: c.thread_id, subject: c.display_subject || c.subject || '(no subject)', companyId: c.companyId, companyName: c.companyName, companyKind: c.companyKind,
     people: c.participants ?? [], lastAt: c.last_message_at ?? c.created_at, mailboxes: c.mailboxes ?? [],
     inbox: (c.mailboxes ?? []).some(m => /^operations@/i.test(m)) || !(c.mailboxes ?? []).length ? 'Operations' : (c.mailboxes ?? []).map(m => m.split('@')[0].split('.')[0]).join(', '),
-    canOpen: true, owner: null, via: 'subject',
+    canOpen: !c.private, owner: c.private ? (c.private.owner ?? 'a colleague').split(/[\s,]+/)[0] : null, via: 'subject', conversations: c.conversations,
   }))
   const companies = Array.from(new Map(threads.filter(t => t.companyId && t.companyName && hasEvery(t.companyName, words)).map(t => [t.companyId!, { id: t.companyId!, name: t.companyName!, kind: t.companyKind }])).values()).slice(0, 6)
   return { index: true, threads, people: peopleHits(threads, words), companies, files: [] }
@@ -119,6 +120,12 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-trs-ink">{t.subject}</span>
                       <span className="flex-none font-mono text-xs text-trs-muted">{fmtDay(t.lastAt)}</span>
                     </span>
+                    {t.conversations && t.conversations.length > 1 && t.conversations.map(v => (
+                      <span key={v.subject} className="flex w-full min-w-0 gap-2 pl-3 text-xs text-trs-ink-2">
+                        <span className="min-w-0 flex-1 truncate">{v.subject}</span>
+                        <span className="flex-none text-trs-muted">{[v.people[0], v.insurer].filter(Boolean).join(' · ')} · {v.count} email{v.count === 1 ? '' : 's'} · {v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
+                      </span>
+                    ))}
                     <span className="w-full truncate text-xs text-trs-muted">
                       {[t.companyName, t.people.slice(0, 3).map(p => p.name || p.email).join(', ') + (t.people.length > 3 ? ` +${t.people.length - 3}` : ''), t.canOpen ? t.inbox : `${t.owner}’s inbox`].filter(Boolean).join(' · ')}
                     </span>

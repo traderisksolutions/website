@@ -4,8 +4,9 @@
  */
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { oneRecipient } from '@/lib/email/recipients'
-import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
-import { ringFence } from '@/lib/mail/ring-fence'
+import { mailboxesByThread, ownersOf, visibleThreadIds } from '@/lib/mail/visibility-server'
+import { OPERATIONS_MAILBOX } from '@/lib/mail/visibility'
+import { firstNameOf } from '@/lib/mail/ring-fence'
 import type { ReadPlan } from '@/lib/chief/read'
 import { signalsForAdd } from './learn-server'
 import { annualPremium, groupRows, readKey, sideOfAddress, type AddItem, type DeskAttachment, type DeskDraft, type DeskPremium, type DeskRow, type DeskThread } from './desk'
@@ -16,8 +17,11 @@ const inList = (ids: readonly string[]) => `(${ids.map(i => `"${i}"`).join(',')}
 const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()
 const nameOf = (c: Row | undefined) => c ? [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || null : null
 const isTrs = (a: string) => /@trade-risksol\.com$/i.test(a)
-/** Whose inbox holds a thread the viewer may not open. */
-const privateOf = (boxes: readonly string[]) => { const f = ringFence('', boxes); return f.open ? { inbox: '', name: 'a colleague' } : { inbox: f.inbox, name: f.name } }
+/** Whose inbox holds a thread the viewer may not open: the owner's first name (ownersOf), else from the mailbox. */
+const privateInbox = (boxes: readonly string[], owner: string | undefined) => {
+  const inbox = boxes.map(b => b.toLowerCase()).find(b => b !== OPERATIONS_MAILBOX) ?? ''
+  return { inbox, name: owner?.split(/[\s,]+/)[0] || (inbox ? firstNameOf(inbox) : 'a colleague') }
+}
 
 const LABEL: Record<string, string> = {
   gb_client_options: 'Employment benefits pricing', CASE_WORK: 'Prepared email', CONVERSATION: 'Reply',
@@ -77,6 +81,8 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
   // the viewer may not open is marked with whose inbox holds it, and its drafts carry no text.
   const allIds = Array.from(new Set(mine.map(r => r.thread_id as string)))
   const [visible, boxes] = await Promise.all([visibleThreadIds(allIds, viewer), mailboxesByThread(allIds)])
+  const holders = await ownersOf(allIds.filter(id => !visible.has(id))).catch(() => new Map<string, string>())
+  const privateOf = (id: string) => privateInbox(boxes.get(id) ?? [], holders.get(id))
   const listed = mine
   const ids = allIds
 
@@ -99,7 +105,7 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
       companyId: r.company_id ?? t.company_id ?? null, lastAt: last?.sent_at ?? t.last_message_at ?? null,
       lastFrom: last ? bare(last.from_address) : null, lastInbound: last?.direction === 'inbound' && !isTrs(bare(last.from_address)),
       messages: ms.length, addedAt: r.added_at, project: r.project ?? null, projectNote: r.project_note ?? null,
-      private: visible.has(r.thread_id) ? null : privateOf(boxes.get(r.thread_id) ?? []),
+      private: visible.has(r.thread_id) ? null : privateOf(r.thread_id),
     }
   })
 
@@ -124,7 +130,7 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
     removed: [...r.removed, ...((ctx.removed_recipients as string[] | undefined) ?? [])],
     workItemId: d.work_item_id ?? null, createdAt: d.created_at, updatedAt: d.updated_at ?? null,
     insurer: insurerOf(r.to, insurers),
-    ...(visible.has(d.thread_id ?? anchor ?? '') ? {} : { private: privateOf(boxes.get(d.thread_id ?? anchor ?? '') ?? []), body: '', attachments: [] }),
+    ...(visible.has(d.thread_id ?? anchor ?? '') ? {} : { private: privateOf(d.thread_id ?? anchor ?? ''), body: '', attachments: [] }),
   }))
 
   const companyIds = Array.from(new Set(deskThreads.map(t => t.companyId).filter((x): x is string => !!x)))

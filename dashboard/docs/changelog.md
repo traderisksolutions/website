@@ -4,6 +4,19 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Every thread listed for everyone; client links by rule; no joined threads; Read in plain steps
+
+- **Visibility (Jarod):** every thread is listed for everyone at TRS (Inbox, Add email threads). A thread read only from a colleague's own mailbox shows "Access blocked · Owner: <name>" and opens only for those it was visible to before; its snippet and email text are withheld from the others (`ownersOf`, `privateThread` in `lib/mail/visibility-server.ts`).
+- **Client links by rule run again** with mail filing off: their own switch (`clientLinkRulesOn`, `CLIENT_LINK_RULES`, on unless "off"); the model read of the rest still waits for `HOUSEKEEPING=on`. The acronym rule also reads a name's leading words up to "Company" or "Corporation" (CCCC, CHEC), which is why no CCCC insurer thread was ever linked.
+- **Joined threads stop at ingest:** a reply follows its headers into a thread only when it is the same conversation (same subject without RE:/FW:, or someone outside TRS on it is already on that thread); a new subject to new people starts its own thread (`sameConversation`).
+- **Read on Today in plain steps:** the model returns the parts of each step and point; code writes the sentence ("Send <who> <what> and ask for <ask>", "Request a quotation from <insurer> for <project> (<line>)", "Chase…", "Ask…", "Confirm cover with…", "Update / Discard the draft to <name>") and drops padding words (`lib/today/read-words.ts`). Points by side, the client first, people by name.
+- `CLAUDE.md`: never run `git worktree prune` (the Mac and the Linux machine share `.git`).
+
+## 2026-11-20 — Add email threads: each conversation in a thread, with its side
+
+- A thread that holds more than one conversation (a broker forwards the client's email and then writes to the insurer, and the new email is filed under the old thread) lists each one under it: subject, who wrote, the insurer, how many emails, the last date, and Client or Insurer by who wrote it. Picking one adds the thread with that side and client set. `src/lib/mail/conversations.ts`; `?conversations=1` on `/api/engagement/conversations`.
+- Out-of-office replies join the conversation they answer.
+
 ## 2026-11-20 — Old quotations deleted
 
 Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.
