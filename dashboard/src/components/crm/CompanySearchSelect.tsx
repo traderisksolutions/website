@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { inputCls } from './primitives'
 
 /**
  * Pick a company by typing. A native select of ninety-odd names is unusable, so this filters as
@@ -46,10 +47,10 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
 
   if (picked && !open) {
     return (
-      <span className={cn('inline-flex items-center gap-1.5 h-9 rounded-[7px] border bg-white pl-3 pr-1.5 text-[14px] max-w-[260px]', className)} style={{ borderColor: '#d5d9d4', color: '#0f1412' }}>
+      <span className={cn('inline-flex items-center gap-1.5 h-9 rounded border bg-white pl-3 pr-1.5 text-body max-w-[260px] border-trs-line-2 text-trs-ink', className)}>
         <span className="truncate">{picked.name}</span>
         <button type="button" disabled={disabled} onClick={() => { onChange(''); setOpen(true) }} aria-label="Clear company"
-          className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0 text-trs-muted"><X size={12} /></button>
+          className="w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-trs-field flex-shrink-0 text-trs-muted"><X size={12} /></button>
       </span>
     )
   }
@@ -67,21 +68,19 @@ export function CompanySearchSelect({ options, value, onChange, placeholder = 'S
             else if (e.key === 'Escape') { setOpen(false) }
           }}
           placeholder={placeholder} aria-label="Search companies" role="combobox" aria-expanded={open} aria-controls="company-options"
-          className="h-9 w-full min-w-[200px] rounded-[7px] border bg-white pl-9 pr-3 text-[14px] outline-none transition-colors focus:border-[#0f1412] disabled:opacity-50"
-          style={{ borderColor: '#d5d9d4', color: '#0f1412' }} />
+          className={cn(inputCls, 'h-9 min-w-[200px] pl-9 disabled:opacity-50')} />
       </span>
       {open && (
         <ul id="company-options" role="listbox"
-          className="absolute left-0 top-full mt-1 z-30 w-[300px] max-h-[290px] overflow-auto rounded-[12px] bg-white p-1.5 m-0 list-none"
-          style={{ border: '1px solid #e6e8e4', boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
-          {matches.length === 0 && <li className="px-3 py-2.5 text-[13.5px] text-trs-muted">No company matches “{q.trim()}”.</li>}
+          className="absolute left-0 top-full mt-1 z-30 w-[300px] max-h-72 overflow-auto rounded bg-white p-1.5 m-0 list-none border border-trs-line shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+          {matches.length === 0 && <li className="px-3 py-2.5 text-body text-trs-muted">No company matches “{q.trim()}”.</li>}
           {matches.map((o, i) => (
             <li key={o.id} role="option" aria-selected={i === active}>
               <button type="button" onMouseEnter={() => setActive(i)} onClick={() => pick(o)}
-                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
-                <span className="block text-[14px] truncate text-trs-ink">{o.name}</span>
+                className={cn('w-full text-left px-3 py-2 rounded border-0 cursor-pointer', i === active ? 'bg-trs-field' : 'bg-transparent')}>
+                <span className="block text-body truncate text-trs-ink">{o.name}</span>
                 {(o.domains?.[0] || o.kind) && (
-                  <span className="block text-[12.5px] truncate text-trs-muted">{[o.domains?.[0], o.kind && o.kind !== 'client' ? o.kind : null].filter(Boolean).join(' · ')}</span>
+                  <span className="block text-small truncate text-trs-muted">{[o.domains?.[0], o.kind && o.kind !== 'client' ? o.kind : null].filter(Boolean).join(' · ')}</span>
                 )}
               </button>
             </li>

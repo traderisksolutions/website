@@ -29,10 +29,13 @@ export type WorkingRow = {
 const typeWord = (t: string | null) => REQUEST_TYPES.find(([k]) => k === t)?.[1] ?? null
 const today = () => new Date(Date.now() + 8 * 3_600_000).toISOString().slice(0, 10)
 
+/** Done steps green, the current one ink, the rest a hairline. */
+const stepCls = (i: number, at: number) => (i < at ? 'bg-trs-green' : i === at ? 'bg-trs-ink' : 'bg-trs-line-2')
+
 function Track({ at }: { at: number }) {
   return (
     <span className="flex gap-[3px] w-[90px] mb-1.5" aria-hidden>
-      {[0, 1, 2, 3, 4].map(i => <i key={i} className="flex-1 h-1 rounded-[2px]" style={{ background: i < at ? 'var(--trs-green)' : i === at ? 'var(--trs-ink)' : 'var(--trs-line-2)' }} />)}
+      {[0, 1, 2, 3, 4].map(i => <i key={i} className={`flex-1 h-1 rounded ${stepCls(i, at)}`} />)}
     </span>
   )
 }
@@ -40,7 +43,7 @@ function Track({ at }: { at: number }) {
 function StageSelect<T extends string>({ value, list, label, onChange }: { value: T; list: readonly (readonly [T, string])[]; label: string; onChange: (v: T) => void }) {
   return (
     <select value={value} aria-label={label} onChange={e => onChange(e.target.value as T)}
-      className="h-[30px] rounded-7 border border-trs-line-2 bg-white px-2 text-13 text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
+      className="h-8 rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
       {list.map(([k, w]) => <option key={k} value={k}>{w}</option>)}
     </select>
   )
@@ -97,11 +100,11 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
                             <RegisterRow key={r.line_id}>
                               <RegisterCell first identityWidth={260} nowrap={false}>
                                 {r.thread_id
-                                  ? <Link href={`/engagement?lead=${r.thread_id}`} className="block text-13.5 font-medium text-trs-ink underline decoration-trs-line-2 underline-offset-[3px]" title="Open the email thread">{r.label} ↗</Link>
-                                  : <span className="block text-13.5 font-medium text-trs-ink">{r.label}</span>}
-                                <span className="block text-12 text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
-                                {r.thread_subject && <span className="block text-12 text-trs-muted truncate">Email · {r.thread_subject}</span>}
-                                <Link href={`/policies/working/${r.line_id}`} className="text-12 text-trs-green underline underline-offset-[3px]">Policy page</Link>
+                                  ? <Link href={`/engagement?lead=${r.thread_id}`} className="block text-body font-medium text-trs-ink underline decoration-trs-line-2 underline-offset-[3px]" title="Open the email thread">{r.label} ↗</Link>
+                                  : <span className="block text-body font-medium text-trs-ink">{r.label}</span>}
+                                <span className="block text-small text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
+                                {r.thread_subject && <span className="block text-small text-trs-muted truncate">Email · {r.thread_subject}</span>}
+                                <Link href={`/policies/working/${r.line_id}`} className="text-small text-trs-green underline underline-offset-[3px]">Policy page</Link>
                               </RegisterCell>
                               <RegisterCell primary={r.existing == null ? '—' : r.existing ? 'Yes' : 'No'} />
                               <RegisterCell primary={r.renewal_date ? fmtDate(r.renewal_date) : '—'} secondary={days != null ? <span className={days <= 21 ? 'text-trs-neg' : ''}>{days} days</span> : undefined} />
@@ -114,7 +117,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
                                 <div className="flex flex-col items-center"><Track at={ii} />
                                   <StageSelect value={r.insurer_stage} list={INSURER_STAGES} label={`Insurer side, ${r.label}`} onChange={v => void patch(r, { insurer_stage: v }, `${r.label} insurer side ${INSURER_STAGES.find(([k]) => k === v)?.[1]}`)} />
                                   {(r.quoted.length > 0 || r.waiting.length > 0 || r.declined.length > 0) && (
-                                    <span className="mt-1.5 max-w-[260px] whitespace-normal text-12 text-trs-muted">
+                                    <span className="mt-1.5 max-w-[260px] whitespace-normal text-small text-trs-muted">
                                       {[r.quoted.length ? <span key="q" className="text-trs-pos">{r.quoted.join(', ')} quoted</span> : null,
                                         r.waiting.length ? <span key="w">{r.waiting.join(', ')} waiting</span> : null,
                                         r.declined.length ? <span key="d" className="text-trs-neg">{r.declined.join(', ')} declined</span> : null]
@@ -123,8 +126,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
                                 </div>
                               </RegisterCell>
                               <RegisterCell last>
-                                <button type="button" aria-label={`Remove ${r.label}`} onClick={() => void remove(r)}
-                                  className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full border-0 bg-transparent text-trs-subtle cursor-pointer hover:bg-trs-field hover:text-trs-ink"><X size={14} /></button>
+                                <Btn level="tertiary" size="xs" aria-label={`Remove ${r.label}`} onClick={() => void remove(r)}><X size={14} /></Btn>
                               </RegisterCell>
                             </RegisterRow>
                           )
@@ -136,10 +138,10 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
   const added = async (n: number, cos: string[], lineIds: string[]) => {
     setAdding(null); setOpen(o => ({ ...o, ...Object.fromEntries(cos.map(c => [c, true])) })); await load()
     setNote(<span className="inline-flex items-center gap-3"><span className="text-trs-pos">✓ Added {n} {n === 1 ? 'policy' : 'policies'} · {fmtDateTime(new Date().toISOString())}</span>
-      <button type="button" className="border-0 bg-transparent p-0 text-trs-muted underline cursor-pointer" onClick={async () => {
+      <Btn level="tertiary" size="xs" onClick={async () => {
         await Promise.all(lineIds.map(id => fetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
         setNote(<span className="text-trs-muted">Undone · {n} {n === 1 ? 'policy' : 'policies'} taken off the list</span>); await load()
-      }}>Undo</button></span>)
+      }}>Undo</Btn></span>)
   }
   const addModal = adding && <AddFromEmails company={adding.company} taken={takenThreads} onClose={() => setAdding(null)} onAdded={added} />
 
@@ -148,13 +150,13 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
     return (
       <div className="flex flex-col gap-3 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-13 text-trs-muted">{rows ? `${g.rows.length} ${g.rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}</span>
+          <span className="text-body text-trs-muted">{rows ? `${g.rows.length} ${g.rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}</span>
           <Btn onClick={() => setAdding({ company })}>Add from emails</Btn>
         </div>
-        {note && <div className="text-13" role="status">{note}</div>}
-        {error && <div className="text-13 text-trs-neg">{error}</div>}
+        {note && <div className="text-body" role="status">{note}</div>}
+        {error && <div className="text-body text-trs-neg">{error}</div>}
         {!rows && !error && <Spinner label="Loading the policies being worked on" />}
-        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-8 border border-trs-line-2 px-4 py-8 text-center text-13 text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
+        {rows && (g.rows.length ? policyTable(g) : <div className="rounded border border-trs-line-2 px-4 py-8 text-center text-body text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
         {addModal}
       </div>
     )
@@ -164,13 +166,13 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
       <PageHeader title="Policies" meta={rows ? `${groups.length} ${groups.length === 1 ? 'client' : 'clients'} · ${rows.length} ${rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}
         actions={<>
-          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-11 text-trs-muted">Pending AI build</span></span>
+          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-small text-trs-muted">Pending AI build</span></span>
           <Btn level="primary" onClick={() => setAdding({})}>Add from emails</Btn>
         </>}>
         {filters}
       </PageHeader>
-      {note && <div className="text-13" role="status">{note}</div>}
-      {error && <div className="text-13 text-trs-neg">{error}</div>}
+      {note && <div className="text-body" role="status">{note}</div>}
+      {error && <div className="text-body text-trs-neg">{error}</div>}
       {!rows && !error && <Spinner label="Loading the policies being worked on" />}
       {rows && (
         <Register label="Clients with policies being worked on" minWidth={480}>

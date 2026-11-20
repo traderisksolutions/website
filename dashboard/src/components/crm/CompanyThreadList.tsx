@@ -38,7 +38,7 @@ export function CompanyThreadList({ companyId, onOpen, onLinked }: {
   }, [companyId])
   useEffect(() => { load() }, [load])
 
-  if (error) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">Threads did not load: {error}</p>
+  if (error) return <p className="m-0 text-body text-trs-neg" role="alert">Threads did not load: {error}</p>
   if (!data) return <Spinner label="Loading threads…" />
   if (data.threads.length === 0) {
     return (
@@ -54,7 +54,7 @@ export function CompanyThreadList({ companyId, onOpen, onLinked }: {
     <section aria-label="Threads by relevance" className="flex flex-col gap-3 min-w-0">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 min-w-0">
         <Segmented<Relevance> value={tab} onChange={setTab} label="Relevance" options={RELEVANCE.map(r => ({ value: r, label: RELEVANCE_NAME[r], count: data.counts[r] }))} />
-        {data.season.on && <span className="text-[13px] text-trs-ink-2">Renewal season · {[data.season.basis, data.season.date ? fmtDate(data.season.date) : null].filter(Boolean).join(' ')}</span>}
+        {data.season.on && <span className="text-body text-trs-ink-2">Renewal season · {[data.season.basis, data.season.date ? fmtDate(data.season.date) : null].filter(Boolean).join(' ')}</span>}
       </div>
       {rows.length === 0 ? <Empty compact>No threads in this group.</Empty> : (
         <Register label="Threads" minWidth={860}>
@@ -84,7 +84,7 @@ export function CompanyThreadList({ companyId, onOpen, onLinked }: {
 /** The count of threads in colleagues' mailboxes (never listed) and the mail rule (INB-002). */
 export function HiddenThreads({ hidden }: { hidden: number }) {
   return (
-    <div className="text-[13px] text-trs-muted">
+    <div className="text-body text-trs-muted">
       {hidden > 0 && <p className="m-0">{hidden} more in colleagues’ mailboxes</p>}
       <p className="m-0">Mail you see: own inbox and Operations, plus threads you are on.</p>
     </div>
@@ -120,7 +120,7 @@ export function FindThreads({ companyId, onLinked }: { companyId: string; onLink
   return (
     <div className="flex flex-col gap-3 min-w-0">
       {!found && <Empty action={<Btn level="primary" loading={busy === 'find'} onClick={() => void find()}>Find threads</Btn>}>No threads are filed under this company.</Empty>}
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       {found && (found.threads.length === 0
         ? <Empty compact>No unfiled threads match {searched || 'this company'}.</Empty>
         : (
@@ -138,7 +138,7 @@ export function FindThreads({ companyId, onLinked }: { companyId: string; onLink
             </tbody>
           </Register>
         ))}
-      {found && found.hidden > 0 && <p className="m-0 text-[13px] text-trs-muted">{found.hidden} more in colleagues’ mailboxes</p>}
+      {found && found.hidden > 0 && <p className="m-0 text-body text-trs-muted">{found.hidden} more in colleagues’ mailboxes</p>}
     </div>
   )
 }

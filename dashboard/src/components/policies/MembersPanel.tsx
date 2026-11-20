@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { SectionCard, Empty, Spinner, Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
@@ -9,7 +10,7 @@ import { fmtDate } from '@/lib/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
 import type { PlacementBundle } from '@/lib/placement/types'
-import { callApi, errText, dialogCls, selectCls, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText, dialogCls, selectCls } from '@/components/placement/shared'
 import { ContactPicker } from '@/components/placement/ContactPicker'
 import {
   fmtAmount, MOVEMENT_WORD, MOVEMENT_STATUS_WORD, RELATION_WORD,
@@ -110,9 +111,9 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
 
   return (
     <SectionCard title={title}>
-      {error && <p className="text-13 m-0 mb-3 text-trs-neg">{error}</p>}
-      {notice && <p className="text-13 m-0 mb-3 text-trs-ink">{notice}</p>}
-      {loadError && <p className="text-13 m-0 mb-3 text-trs-neg">{loadError}</p>}
+      {error && <p className="text-body m-0 mb-3 text-trs-neg">{error}</p>}
+      {notice && <p className="text-body m-0 mb-3 text-trs-ink">{notice}</p>}
+      {loadError && <p className="text-body m-0 mb-3 text-trs-neg">{loadError}</p>}
 
       {/* 1. Employee list */}
       <Sub
@@ -125,13 +126,13 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
           </>
         ) : (
           <>
-            <input ref={listRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => void uploadMemberList(e.target.files)} />
+            <Input ref={listRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={e => void uploadMemberList(e.target.files)} />
             <Btn size="xs" level="secondary" loading={busy === 'list'} disabled={busy !== null} onClick={() => listRef.current?.click()}>Upload member list</Btn>
           </>
         )}
       >
         {quoting ? (
-          <p className="m-0 text-14 text-trs-ink">
+          <p className="m-0 text-body text-trs-ink">
             {!lineId && 'No placement line linked to this policy.'}
             {lineId && (
               <>
@@ -236,17 +237,17 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                   <RegisterCell align="right" primary={t.pax ?? '—'} />
                   <RegisterCell align="right" primary={fmtAmount(t.amount, t.currency)} />
                   <RegisterCell align="right" primary={t.estimate_amount != null ? fmtAmount(Number(t.estimate_amount), t.currency) : '—'} secondary={t.variance_amount != null && Math.abs(Number(t.variance_amount)) > 1 ? `${Number(t.variance_amount) > 0 ? '+' : ''}${fmtAmount(Number(t.variance_amount), t.currency)} vs expected` : undefined} />
-                  <RegisterCell align="left" nowrap={false}><span className="block text-14 max-w-[360px] text-trs-ink">{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
+                  <RegisterCell align="left" nowrap={false}><span className="block text-body max-w-[360px] text-trs-ink">{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
                   <RegisterCell>
                     {t.source_thread_id
-                      ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-14 no-underline hover:underline text-trs-ink">Thread</Link>
-                      : <span className="text-14 text-trs-muted">—</span>}
+                      ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-body no-underline hover:underline text-trs-ink">Thread</Link>
+                      : <span className="text-body text-trs-muted">—</span>}
                   </RegisterCell>
                   <RegisterCell last>
                     {t.debit_note_id
-                      ? <Link href="/debit-notes" className="text-14 no-underline hover:underline text-trs-ink">Issued</Link>
+                      ? <Link href="/debit-notes" className="text-body no-underline hover:underline text-trs-ink">Issued</Link>
                       : t.bundle_id
-                        ? <Link href="/debit-notes/new" className="text-14 no-underline hover:underline text-trs-ink">In review</Link>
+                        ? <Link href="/debit-notes/new" className="text-body no-underline hover:underline text-trs-ink">In review</Link>
                         : <Btn size="xs" level="tertiary" loading={busy === `bill:${t.id}`} disabled={busy !== null || !t.source_attachment_id} title={t.source_attachment_id ? undefined : 'No insurer document on file; raise it from Debit notes'} onClick={() => void raiseNote(t.id)}>Raise TRS note</Btn>}
                   </RegisterCell>
                 </RegisterRow>
@@ -308,7 +309,7 @@ function Sub({ title, actions, children }: { title: string; actions?: React.Reac
   return (
     <div className="py-4 first:pt-0 border-t first:border-t-0 border-trs-line">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <h3 className="m-0 text-14 font-medium text-trs-ink">{title}</h3>
+        <h3 className="m-0 text-body font-medium text-trs-ink">{title}</h3>
         {actions && <div className="flex items-center gap-1.5 flex-wrap">{actions}</div>}
       </div>
       {children}
@@ -346,10 +347,10 @@ function AskTierCDialog({ open, lineId, productLine, onClose, onDone }: {
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <ContactPicker productLines={[productLine]} tier="c" value={picks} onChange={setPicks} />
-          {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+          {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-9 px-4" onClick={draft} loading={busy} disabled={picks === null}>Draft the requests</Btn>
+            <Btn level="primary" onClick={draft} loading={busy} disabled={picks === null}>Draft the requests</Btn>
           </div>
         </div>
       </DialogContent>
@@ -394,15 +395,15 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
         </DialogHeader>
         {result ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-14 text-trs-ink">{result.count} on the list · {result.quotes} engine quote{result.quotes === 1 ? '' : 's'}{result.partial ? ' · some insurers could not be priced' : ''}</p>
-            {result.notes.length > 0 && <ul className="m-0 pl-4 text-13 text-trs-muted">{result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            {result.issues.length > 0 && <ul className="m-0 pl-4 text-13 text-trs-muted">{result.issues.slice(0, 10).map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
+            <p className="m-0 text-body text-trs-ink">{result.count} on the list · {result.quotes} engine quote{result.quotes === 1 ? '' : 's'}{result.partial ? ' · some insurers could not be priced' : ''}</p>
+            {result.notes.length > 0 && <ul className="m-0 pl-4 text-body text-trs-muted">{result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+            {result.issues.length > 0 && <ul className="m-0 pl-4 text-body text-trs-muted">{result.issues.slice(0, 10).map((n, i) => <li key={i}>{n}</li>)}</ul>}
+            <div className="flex justify-end pt-2"><Btn level="primary" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             <Field label="File">
-              <input type="file" accept=".xlsx,.xls,.csv" className="block w-full text-14" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+              <Input type="file" accept=".xlsx,.xls,.csv" className="block w-full text-body" onChange={e => setFile(e.target.files?.[0] ?? null)} />
             </Field>
             <Field label="Basis">
               <select className={selectCls} value={basis} onChange={e => setBasis(e.target.value as 'new_business' | 'renewal')}>
@@ -410,10 +411,10 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
                 <option value="renewal">Renewal</option>
               </select>
             </Field>
-            {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+            {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy !== null}>Cancel</Btn>
-              <Btn level="primary" className="h-9 px-4" onClick={run} loading={busy !== null} disabled={!file}>{busy === 'reading' ? 'Reading the list…' : busy === 'pricing' ? 'Pricing…' : 'Upload and price'}</Btn>
+              <Btn level="primary" onClick={run} loading={busy !== null} disabled={!file}>{busy === 'reading' ? 'Reading the list…' : busy === 'pricing' ? 'Pricing…' : 'Upload and price'}</Btn>
             </div>
           </div>
         )}
@@ -459,22 +460,22 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
         </DialogHeader>
         {sent ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-14 text-trs-ink">{sent.mailError ? `Link created. Email not sent: ${sent.mailError}` : 'Link sent.'}</p>
-            <p className="m-0 text-13 break-all text-trs-muted">{sent.url}</p>
-            <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
+            <p className="m-0 text-body text-trs-ink">{sent.mailError ? `Link created. Email not sent: ${sent.mailError}` : 'Link sent.'}</p>
+            <p className="m-0 text-body break-all text-trs-muted">{sent.url}</p>
+            <div className="flex justify-end pt-2"><Btn level="primary" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Recipient name"><input className={inputCls} value={name} onChange={e => setName(e.target.value)} /></Field>
-              <Field label="Recipient email"><input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} /></Field>
+              <Field label="Recipient name"><Input className={inputCls} value={name} onChange={e => setName(e.target.value)} /></Field>
+              <Field label="Recipient email"><Input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} /></Field>
             </div>
-            <Field label="Copy"><input className={inputCls} type="email" value={cc} onChange={e => setCc(e.target.value)} /></Field>
+            <Field label="Copy"><Input className={inputCls} type="email" value={cc} onChange={e => setCc(e.target.value)} /></Field>
             <Field label="Message"><textarea className={textareaCls} rows={4} value={message} onChange={e => setMessage(e.target.value)} /></Field>
-            {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+            {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-              <Btn level="primary" className="h-9 px-4" onClick={send} loading={busy}>Send</Btn>
+              <Btn level="primary" onClick={send} loading={busy}>Send</Btn>
             </div>
           </div>
         )}
@@ -531,16 +532,16 @@ function RecordMovementDialog({ open, policyId, onClose, onDone }: { open: boole
               </select>
             </Field>
           </div>
-          <Field label="Member name"><input className={inputCls} value={name} onChange={e => setName(e.target.value)} /></Field>
+          <Field label="Member name"><Input className={inputCls} value={name} onChange={e => setName(e.target.value)} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Effective on"><input className={inputCls} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></Field>
-            <Field label="Pax"><input className={inputCls} type="number" min={1} step={1} value={pax} onChange={e => setPax(e.target.value)} /></Field>
+            <Field label="Effective on"><Input className={inputCls} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></Field>
+            <Field label="Pax"><Input className={inputCls} type="number" min={1} step={1} value={pax} onChange={e => setPax(e.target.value)} /></Field>
           </div>
-          <Field label="Detail"><input className={inputCls} value={detail} onChange={e => setDetail(e.target.value)} placeholder="Plan, category, date of birth" /></Field>
-          {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+          <Field label="Detail"><Input className={inputCls} value={detail} onChange={e => setDetail(e.target.value)} placeholder="Plan, category, date of birth" /></Field>
+          {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>
+            <Btn level="primary" onClick={save} loading={busy}>Record</Btn>
           </div>
         </div>
       </DialogContent>
@@ -602,24 +603,24 @@ function RecordNoteDialog({ open, policyId, currency: defaultCurrency, onClose, 
                 <option value="credit">Credit</option>
               </select>
             </Field>
-            <Field label="Note no"><input className={inputCls} value={noteNo} onChange={e => setNoteNo(e.target.value)} /></Field>
-            <Field label="Issued on"><input className={inputCls} type="date" value={issued} onChange={e => setIssued(e.target.value)} /></Field>
+            <Field label="Note no"><Input className={inputCls} value={noteNo} onChange={e => setNoteNo(e.target.value)} /></Field>
+            <Field label="Issued on"><Input className={inputCls} type="date" value={issued} onChange={e => setIssued(e.target.value)} /></Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Field label="Amount"><input className={inputCls} type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></Field>
-            <Field label="Currency"><input className={inputCls} value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} /></Field>
-            <Field label="Pax"><input className={inputCls} type="number" min={0} step={1} value={pax} onChange={e => setPax(e.target.value)} /></Field>
+            <Field label="Amount"><Input className={inputCls} type="number" min={0} step="0.01" value={amount} onChange={e => setAmount(e.target.value)} /></Field>
+            <Field label="Currency"><Input className={inputCls} value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} /></Field>
+            <Field label="Pax"><Input className={inputCls} type="number" min={0} step={1} value={pax} onChange={e => setPax(e.target.value)} /></Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Period start"><input className={inputCls} type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} /></Field>
-            <Field label="Period end"><input className={inputCls} type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} /></Field>
+            <Field label="Period start"><Input className={inputCls} type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} /></Field>
+            <Field label="Period end"><Input className={inputCls} type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} /></Field>
           </div>
-          <Field label="Description"><input className={inputCls} value={description} onChange={e => setDescription(e.target.value)} /></Field>
-          <Field label="Member names" hint="Comma-separated"><input className={inputCls} value={names} onChange={e => setNames(e.target.value)} /></Field>
-          {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+          <Field label="Description"><Input className={inputCls} value={description} onChange={e => setDescription(e.target.value)} /></Field>
+          <Field label="Member names" hint="Comma-separated"><Input className={inputCls} value={names} onChange={e => setNames(e.target.value)} /></Field>
+          {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>
+            <Btn level="primary" onClick={save} loading={busy}>Record</Btn>
           </div>
         </div>
       </DialogContent>

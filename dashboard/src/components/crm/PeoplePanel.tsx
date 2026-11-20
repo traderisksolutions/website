@@ -9,8 +9,6 @@ import type { StaffMember } from '@/lib/crm/staff'
 import { fmtRelative } from '@/lib/format'
 import type { Person, PersonParty } from '@/lib/crm/types'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
 const PARTY_LABEL: Record<PersonParty, string> = { client: 'Client', insurer: 'Insurer', trs: 'TRS', other: 'Other' }
 
 export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain }: {
@@ -35,14 +33,14 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
     <span className="flex items-center gap-3 min-w-0">
       <PersonTag email={p.email} staff={names} size="md" />
       <span className="min-w-0">
-        <span className="block text-[15px] font-medium leading-tight truncate text-trs-ink">{p.name ?? p.email}</span>
-        <span className="block text-[12.5px] mt-0.5 truncate text-trs-muted">{p.title ?? 'No title on file'}</span>
+        <span className="block text-body font-medium leading-tight truncate text-trs-ink">{p.name ?? p.email}</span>
+        <span className="block text-small mt-0.5 truncate text-trs-muted">{p.title ?? 'No title on file'}</span>
       </span>
     </span>
   )
 
   const email = (p: Person) => (
-    <a href={`mailto:${p.email}`} className="text-[14px] no-underline hover:underline text-trs-ink">{p.email}</a>
+    <a href={`mailto:${p.email}`} className="text-body no-underline hover:underline text-trs-ink">{p.email}</a>
   )
 
   return (
@@ -69,7 +67,7 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
                       {p.isPrimary && <Chip title="Most active client contact">Point person</Chip>}
                       {p.party === 'other' && <Chip title="Domain is not one of the company's domains">{PARTY_LABEL.other}</Chip>}
                       {p.sent === 0 && p.received === 0 && p.cc > 0 && <Chip title="Only ever copied, never wrote or was written to">Copied only</Chip>}
-                      {!p.isPrimary && p.party !== 'other' && !(p.sent === 0 && p.received === 0 && p.cc > 0) && <span className="text-[13.5px] text-trs-ink-2">Contact</span>}
+                      {!p.isPrimary && p.party !== 'other' && !(p.sent === 0 && p.received === 0 && p.cc > 0) && <span className="text-body text-trs-ink-2">Contact</span>}
                     </span>
                   </RegisterCell>
                   <RegisterCell primary={p.topics[0] ? <span className="capitalize">{p.topics.slice(0, 2).map(t => t.category).join(', ')}</span> : <span className="text-trs-subtle">—</span>} />
@@ -83,7 +81,7 @@ export function PeoplePanel({ people, observedDomains, knownDomains, onAddDomain
 
         {onAddDomain && newDomains.length > 0 && (
           <div className="mt-4">
-            <p className="text-[13px] m-0 mb-2 text-trs-muted">Seen on client emails but not in this company&apos;s domain list</p>
+            <p className="text-body m-0 mb-2 text-trs-muted">Seen on client emails but not in this company&apos;s domain list</p>
             <div className="flex flex-wrap gap-2">
               {newDomains.map(d => (
                 <Btn key={d.domain} size="xs" level="secondary" loading={adding === d.domain} onClick={async () => { setAdding(d.domain); try { await onAddDomain(d.domain) } finally { setAdding(null) } }}>

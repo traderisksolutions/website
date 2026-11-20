@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { RefreshCw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
 import { Tip } from '@/components/Tip'
 import type { StoredSummary, RagSource } from '@/components/engagement/types'
 import { timeAgo, fmtDateTime } from '@/components/engagement/helpers'
@@ -14,14 +15,7 @@ import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineP
 /** Summary, next action and draft provenance for the open thread. Quiet AI: ink text on white,
  *  one field-grey block for the next action, text links for the actions. */
 
-const INK = '#0f1412'
-const BODY = '#2a332f'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const HAIR = '#e6e8e4'
-const FIELD = '#f1f2ee'
-
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-13 underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] disabled:cursor-default disabled:no-underline disabled:opacity-50'
+const LINK = 'h-auto bg-transparent border-0 p-0 font-normal text-body underline underline-offset-[3px] decoration-trs-subtle hover:bg-transparent hover:decoration-trs-ink disabled:cursor-default disabled:no-underline disabled:opacity-50'
 
 interface DraftMeta {
   emailType:   string | null
@@ -83,30 +77,30 @@ export function AiAnalysisPanel({
   }
 
   return (
-    <div className="flex-shrink-0" style={{ borderBottom: `1px solid ${HAIR}` }}>
+    <div className="flex-shrink-0 border-b border-trs-line">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="text-13 font-medium text-trs-ink">Analysis</span>
+          <span className="text-body font-medium text-trs-ink">Analysis</span>
           {meta?.emailType && <EmailTypeBadge type={meta.emailType} size="xs" />}
           {latest && (
-            <span className="text-12 text-trs-subtle">· {timeAgo(latest.created_at)}</span>
+            <span className="text-small text-trs-subtle">· {timeAgo(latest.created_at)}</span>
           )}
           <Tip text="Generated each time the contact sends a new email. Summarises the thread and suggests a next step." />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {regenErr && <span className="text-12 max-w-[120px] truncate text-trs-ink-2" role="alert">{regenErr}</span>}
+          {regenErr && <span className="text-small max-w-[120px] truncate text-trs-ink-2" role="alert">{regenErr}</span>}
           {threadId && latestMessageId && (
-            <button
-              type="button"
+            <Btn
+              level="tertiary"
+              size="xs"
               onClick={handleRegenerate}
               disabled={regenerating || loading}
-              className={cn(LINK, 'inline-flex items-center gap-1')}
-              style={{ color: INK }}
+              className={cn(LINK, 'gap-1 text-trs-ink hover:text-trs-ink')}
             >
               <RefreshCw size={11} strokeWidth={2} className={cn(regenerating && 'animate-spin')} aria-hidden />
               {regenerating ? 'Generating…' : latest ? 'Refresh' : 'Generate'}
-            </button>
+            </Btn>
           )}
         </div>
       </div>
@@ -117,14 +111,14 @@ export function AiAnalysisPanel({
         )}
 
         {!loading && !regenerating && !latest && (
-          <p className="text-13 leading-relaxed m-0 text-trs-muted">
+          <p className="text-body leading-relaxed m-0 text-trs-muted">
             Generated on each new email. Refresh above to run it now.
           </p>
         )}
 
         {latest && (
           <>
-            <p className="text-13 leading-[1.6] m-0 mb-2.5 text-trs-ink-2">{latest.summary}</p>
+            <p className="text-body leading-[1.6] m-0 mb-2.5 text-trs-ink-2">{latest.summary}</p>
 
             {/* "Next action" was shown here as well. It is now one answer, from "Generate
                 response" above the composer, which reads the whole company file rather than this
@@ -151,26 +145,26 @@ export function AiAnalysisPanel({
             )}
 
             {older.length > 0 && (
-              <button
-                type="button"
+              <Btn
+                level="tertiary"
+                size="xs"
                 onClick={() => setHistoryOpen(v => !v)}
                 aria-expanded={historyOpen}
-                className={cn(LINK, 'inline-flex items-center gap-1 mt-2.5')}
-                style={{ color: MUTED }}
+                className={cn(LINK, 'gap-1 mt-2.5 text-trs-muted hover:text-trs-muted')}
               >
                 <ChevronDown size={12} className={cn('transition-transform', historyOpen && 'rotate-180')} aria-hidden />
                 {older.length} earlier {older.length === 1 ? 'summary' : 'summaries'}
-              </button>
+              </Btn>
             )}
 
             {historyOpen && (
               <div className="mt-2 flex flex-col gap-2">
                 {older.map(s => (
-                  <div key={s.id} className="px-3 py-2.5 rounded-10 bg-trs-field">
-                    <p className="text-12 m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
-                    <p className="text-12.5 leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
+                  <div key={s.id} className="px-3 py-2.5 rounded bg-trs-field">
+                    <p className="text-small m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
+                    <p className="text-small leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
                     {s.next_action && (
-                      <p className="text-12.5 mt-1 m-0 text-trs-muted">Next: {s.next_action}</p>
+                      <p className="text-small mt-1 m-0 text-trs-muted">Next: {s.next_action}</p>
                     )}
                   </div>
                 ))}

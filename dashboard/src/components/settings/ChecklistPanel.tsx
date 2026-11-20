@@ -16,6 +16,7 @@ import { actorName, type Staff } from '@/lib/cases/names'
 import { FOUND_BY, FOUND_BY_NAME, LABEL_MAX, checklistLine, lineName, type ChecklistItem, type FoundBy } from '@/lib/cases/checklist'
 import type { ChecklistList } from '@/lib/cases/brief-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
+import { Register } from '@/components/ui/register'
 
 type Data = { lists: ChecklistList[]; staff: Staff[]; doc_types: { slug: string; label: string }[] }
 type Draft = { line: string; id: string | null; label: string; found_by: FoundBy; doc_types: string[]; words: string; required: boolean }
@@ -33,7 +34,7 @@ export function ChecklistPanel() {
   const load = useCallback(() => callApi<Data>('/api/settings/checklists'), [])
   useEffect(() => { load().then(setData).catch(e => setFailed(errText(e))) }, [load])
 
-  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!data) return <Spinner label="Loading checklists…" />
 
   async function send(key: string, method: 'POST' | 'PATCH', body: Record<string, unknown>, onFail: (m: string) => void = setError): Promise<boolean> {
@@ -60,11 +61,11 @@ export function ChecklistPanel() {
 
   return (
     <div className="flex flex-col gap-6 min-w-0">
-      {error && <p className="m-0 text-13.5 text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       {data.lists.map(l => (
         <section key={l.line} aria-label={l.name} className="flex flex-col gap-2 min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-            <h3 className="m-0 flex flex-wrap items-center gap-2 text-14 font-semibold text-trs-ink">
+            <h3 className="m-0 flex flex-wrap items-center gap-2 text-body font-semibold text-trs-ink">
               {l.name}
               {l.confirmed_by
                 ? <Chip tone="green">Confirmed · {actorName(l.confirmed_by, data.staff)}{l.confirmed_at ? ` · ${fmtDay(l.confirmed_at)}` : ''}</Chip>
@@ -76,23 +77,22 @@ export function ChecklistPanel() {
             </span>
           </div>
           {l.items.length === 0 ? <Empty compact>No document on this list.</Empty> : (
-            <div className="relative overflow-x-auto">
-              <table className="trs-table w-full text-13" style={{ minWidth: 760 }} aria-label={`${l.name} documents`}>
+            <Register label={`${l.name} documents`} minWidth={760}>
                 <thead><tr><th>Document</th><th>Need</th><th>Found by</th><th>File name says</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>
                   {l.items.map(i => (
                     <tr key={i.id} className={i.active ? 'align-top' : 'align-top opacity-50'}>
-                      <td className="cell-left py-1.5 px-3 min-w-[200px] text-trs-ink">{i.label}</td>
-                      <td className="cell-left py-1 px-3">
+                      <td className="cell-left min-w-[200px] text-trs-ink">{i.label}</td>
+                      <td className="cell-left">
                         <select className={selectCls} aria-label={`${i.label}: required or optional`} value={i.required ? 'required' : 'optional'} disabled={busy !== null}
                           onChange={e => void send(`need:${i.id}`, 'PATCH', { id: i.id, required: e.target.value === 'required' })}>
                           <option value="required">Required</option>
                           <option value="optional">Optional</option>
                         </select>
                       </td>
-                      <td className="cell-left py-1.5 px-3 whitespace-nowrap">{FOUND_BY_NAME[i.found_by]}</td>
-                      <td className="cell-left py-1.5 px-3 [overflow-wrap:anywhere]">{says(i) || <span className="text-trs-muted">{DASH}</span>}</td>
-                      <td className="py-1.5 px-3 whitespace-nowrap">
+                      <td className="cell-left whitespace-nowrap">{FOUND_BY_NAME[i.found_by]}</td>
+                      <td className="cell-left [overflow-wrap:anywhere]">{says(i) || <span className="text-trs-muted">{DASH}</span>}</td>
+                      <td className="whitespace-nowrap">
                         <span className="flex justify-end gap-1.5">
                           <Btn size="xs" level="tertiary" disabled={busy !== null} onClick={() => edit(i)}>Edit</Btn>
                           <Btn size="xs" level="tertiary" disabled={busy !== null} loading={busy === i.id} onClick={() => void send(i.id, 'PATCH', { id: i.id, active: !i.active })}>{i.active ? 'Retire' : 'Use again'}</Btn>
@@ -101,8 +101,7 @@ export function ChecklistPanel() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Register>
           )}
         </section>
       ))}
@@ -141,10 +140,10 @@ export function ChecklistPanel() {
               </Field>
               {draft.found_by === 'file' && <>
                 <fieldset className="m-0 p-0 border-0 min-w-0">
-                  <legend className="block text-12.5 mb-1.5 text-trs-muted">Document types</legend>
+                  <legend className="block text-small mb-1.5 text-trs-muted">Document types</legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                     {data.doc_types.map(t => (
-                      <label key={t.slug} className="flex items-center gap-2 text-13 text-trs-ink min-w-0">
+                      <label key={t.slug} className="flex items-center gap-2 text-body text-trs-ink min-w-0">
                         <input type="checkbox" checked={draft.doc_types.includes(t.slug)}
                           onChange={e => setDraft({ ...draft, doc_types: e.target.checked ? [...draft.doc_types, t.slug] : draft.doc_types.filter(s => s !== t.slug) })} />
                         <span className="truncate">{t.label}</span>
@@ -156,7 +155,7 @@ export function ChecklistPanel() {
                   <input className={inputCls} value={draft.words} onChange={e => setDraft({ ...draft, words: e.target.value })} />
                 </Field>
               </>}
-              {draftError && <p className="m-0 text-13 text-trs-neg" role="alert">{draftError}</p>}
+              {draftError && <p className="m-0 text-body text-trs-neg" role="alert">{draftError}</p>}
             </div>
           )}
           <DialogFooter className="gap-2 sm:space-x-0">

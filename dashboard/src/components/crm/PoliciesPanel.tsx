@@ -5,9 +5,6 @@ import { SectionCard, Empty } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, fmtRelative, fmtMoney } from '@/lib/format'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 export type Policy = {
   id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null
   broker?: string | null; currency: string | null; premium?: number | null
@@ -73,9 +70,9 @@ export function PoliciesPanel({ policies, value }: { policies: Policy[]; value?:
           })}
           {subtotal > 0 && rows.length > 1 && (
             <RegisterRow>
-              <RegisterCell first colSpan={3}><span className="text-[13px] text-trs-muted">Subtotal</span></RegisterCell>
-              <RegisterCell align="right"><span className="text-[14px] font-medium tabular-nums text-trs-ink">{fmtMoney(subtotal, currency)}</span></RegisterCell>
-              <RegisterCell align="right"><span className="text-[14px] tabular-nums text-trs-muted">{fmtMoney(commissionTotal, currency)}</span></RegisterCell>
+              <RegisterCell first colSpan={3}><span className="text-body text-trs-muted">Subtotal</span></RegisterCell>
+              <RegisterCell align="right"><span className="text-body font-medium tabular-nums text-trs-ink">{fmtMoney(subtotal, currency)}</span></RegisterCell>
+              <RegisterCell align="right"><span className="text-body tabular-nums text-trs-muted">{fmtMoney(commissionTotal, currency)}</span></RegisterCell>
               <RegisterCell last />
             </RegisterRow>
           )}
@@ -94,7 +91,7 @@ export function PoliciesPanel({ policies, value }: { policies: Policy[]; value?:
       {past.length > 0 && <SectionCard title="Expired and cancelled">{table(past, 'Expired and cancelled policies')}</SectionCard>}
 
       {value && value.byCurrency.length > 0 && policies.every(p => p.premium == null) && (
-        <p className="text-[13px] mt-3 m-0 text-trs-muted">
+        <p className="text-body mt-3 m-0 text-trs-muted">
           Premiums come from the debit notes raised against each policy. Notes that are not linked to a
           policy still count toward the total billed above.
         </p>
@@ -112,22 +109,22 @@ function ValueTiles({ value }: { value: CompanyValue }) {
   return (
     <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       {value.byCurrency.map(v => (
-        <div key={v.currency} className="rounded-[16px] p-5 bg-trs-field">
-          <p className="m-0 text-[12.5px] text-trs-muted">Total billed ({v.currency})</p>
-          <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">
+        <div key={v.currency} className="rounded p-5 bg-trs-field">
+          <p className="m-0 text-small text-trs-muted">Total billed ({v.currency})</p>
+          <p className="m-0 mt-1.5 text-title font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">
             {v.billed.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
-          <p className="m-0 mt-2 text-[12.5px] text-trs-muted">
+          <p className="m-0 mt-2 text-small text-trs-muted">
             {v.notes} debit note{v.notes === 1 ? '' : 's'}
             {v.commission > 0 && <> · commission {fmtMoney(v.commission, v.currency)} ({Math.round((v.commission / v.billed) * 100)}%)</>}
           </p>
         </div>
       ))}
 
-      <div className="rounded-[16px] p-5 bg-trs-field">
-        <p className="m-0 text-[12.5px] text-trs-muted">Policies</p>
-        <p className="m-0 mt-1.5 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value.policyCount}</p>
-        <p className="m-0 mt-2 text-[12.5px] text-trs-muted">
+      <div className="rounded p-5 bg-trs-field">
+        <p className="m-0 text-small text-trs-muted">Policies</p>
+        <p className="m-0 mt-1.5 text-title font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value.policyCount}</p>
+        <p className="m-0 mt-2 text-small text-trs-muted">
           {value.activePolicies} in force
           {value.firstBilled && <> · client since {fmtDate(value.firstBilled)}{years && years >= 1 ? ` (${years} yr)` : ''}</>}
           {value.lastBilled && <> · last billed {fmtDate(value.lastBilled)}</>}

@@ -120,7 +120,7 @@ export function CommissionCheck({ attachments, onChange, context }: {
         const c = checks[a.storage_url]
         const needsTick = !!c && (c.phase === 'failed' || (c.phase === 'done' && c.status !== 'clean'))
         return (
-          <div key={a.storage_url} className="flex flex-col gap-1 text-13.5">
+          <div key={a.storage_url} className="flex flex-col gap-1 text-body">
             {!c || c.phase === 'checking' ? (
               <InlineSpinner label={`Checking ${a.filename} for commission`} />
             ) : c.phase === 'failed' ? (
@@ -139,14 +139,14 @@ export function CommissionCheck({ attachments, onChange, context }: {
               <span className="text-trs-neg">Not checked: {a.filename}{c.reason ? ` · ${c.reason}` : ''}</span>
             )}
             {c?.phase === 'done' && c.status === 'blanked' && c.hits.length > 0 && (
-              <ul className="m-0 pl-4 text-12.5 text-trs-muted">
+              <ul className="m-0 pl-4 text-small text-trs-muted">
                 {c.hits.slice(0, 6).map((h, i) => <li key={i}>{h.page ? `p${h.page} · ` : h.cell ? `${h.sheet ? `${h.sheet}!` : ''}${h.cell} · ` : ''}{h.text}</li>)}
                 {c.hits.length > 6 && <li>+{c.hits.length - 6}</li>}
               </ul>
             )}
             {needsTick && (
-              <label className="inline-flex items-center gap-2 text-13.5 text-trs-ink">
-                <input type="checkbox" checked={!!ticked[a.storage_url]} onChange={e => tick(a, c!, e.target.checked)} className="h-4 w-4 accent-[#1f4e3a]" />
+              <label className="inline-flex items-center gap-2 text-body text-trs-ink">
+                <input type="checkbox" checked={!!ticked[a.storage_url]} onChange={e => tick(a, c!, e.target.checked)} className="h-4 w-4 accent-trs-green-2" />
                 Checked: no commission in this file
               </label>
             )}

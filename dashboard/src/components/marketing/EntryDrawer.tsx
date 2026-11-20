@@ -7,10 +7,6 @@ import { KnowledgeStatusChip } from './chips'
 import { SECTIONS, SECTION_BY_KEY, marketLabel, type KnowledgeEntry, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
 import { fmtDate } from '@/lib/marketing/labels'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const RULE = '#e6e8e4'
-
 type Form = { section: KnowledgeSection; title: string; body: string; attributes: Record<string, string>; markets: string[]; status: 'draft' | 'verified'; priority: number; language: 'en' | 'id' }
 
 const fromEntry = (e: KnowledgeEntry | null, section: KnowledgeSection): Form => ({
@@ -74,22 +70,21 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
 
   return (
     <aside ref={panel} tabIndex={-1} role="dialog" aria-label={existing ? existing.title : 'New entry'}
-      className="fixed right-0 z-40 w-full sm:w-[480px] bg-white flex flex-col outline-none"
-      style={{ top: 'var(--top-nav-h)', bottom: 0, borderLeft: `1px solid ${RULE}`, boxShadow: '-24px 0 48px -32px rgba(15,20,18,0.25)', color: INK }}>
-      <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
+      className="fixed right-0 top-[var(--top-nav-h)] bottom-0 z-40 w-full sm:w-[480px] bg-white flex flex-col outline-none border-l border-trs-line shadow-[-24px_0_48px_-32px_rgba(15,20,18,0.25)] text-trs-ink">
+      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-trs-line">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-20 font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{existing ? existing.title : 'New entry'}</h2>
-            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-13.5 text-trs-muted">
+            <h2 className="m-0 text-heading font-medium leading-[1.2] tracking-[-0.01em] [text-wrap:balance]">{existing ? existing.title : 'New entry'}</h2>
+            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-body text-trs-muted">
               {existing && <KnowledgeStatusChip status={existing.status} />}
               <span>{meta.label}</span>
               {existing && <span>· updated {fmtDate(existing.updated_at)}{existing.updated_by ? ` by ${existing.updated_by}` : ''}</span>}
             </p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 -mr-2 -mt-1">
-            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default text-trs-muted"><ChevronUp size={18} /></button>
-            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default text-trs-muted"><ChevronDown size={18} /></button>
-            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><X size={18} /></button>
+            <Btn onClick={onPrev} disabled={!onPrev} aria-label="Previous entry" level="tertiary" className="w-9 h-9 p-0 rounded-full border-0 hover:bg-trs-field disabled:opacity-30 disabled:cursor-default"><ChevronUp size={18} /></Btn>
+            <Btn onClick={onNext} disabled={!onNext} aria-label="Next entry" level="tertiary" className="w-9 h-9 p-0 rounded-full border-0 hover:bg-trs-field disabled:opacity-30 disabled:cursor-default"><ChevronDown size={18} /></Btn>
+            <Btn onClick={onClose} aria-label="Close" level="tertiary" className="w-9 h-9 p-0 rounded-full border-0 hover:bg-trs-field"><X size={18} /></Btn>
           </div>
         </div>
       </div>
@@ -107,7 +102,7 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
           </Field>
         ))}
         <Field label="Applies to" hint="None selected = every market">
-          <div className="flex flex-wrap gap-3 text-14">
+          <div className="flex flex-wrap gap-3 text-body">
             {markets.map(m => (
               <label key={m} className="inline-flex items-center gap-1.5 cursor-pointer">
                 <input type="checkbox" checked={form.markets.includes(m)} onChange={e => setForm(f => ({ ...f, markets: e.target.checked ? Array.from(new Set([...f.markets, m])) : f.markets.filter(x => x !== m) }))} />
@@ -120,9 +115,9 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
           <Field label="Language"><Segmented value={form.language} onChange={v => setForm(f => ({ ...f, language: v }))} options={[{ value: 'en', label: 'English' }, { value: 'id', label: 'Bahasa' }]} /></Field>
           <Field label="Priority (0 to 10)"><input type="number" min={0} max={10} value={form.priority} onChange={e => setForm(f => ({ ...f, priority: Number(e.target.value) }))} className={inputCls} /></Field>
         </div>
-        {error && <p className="m-0 text-13" role="alert">{error}</p>}
+        {error && <p className="m-0 text-body" role="alert">{error}</p>}
       </div>
-      <div className="flex-shrink-0 px-6 py-4 flex items-center gap-2 flex-wrap" style={{ borderTop: `1px solid ${RULE}` }}>
+      <div className="flex-shrink-0 px-6 py-4 flex items-center gap-2 flex-wrap border-t border-trs-line">
         <Btn level="primary" disabled={!!busy || !valid} onClick={() => save()}>{busy === 'save' ? 'Saving…' : existing ? 'Save' : 'Add entry'}</Btn>
         {form.status !== 'verified' && <Btn level="secondary" disabled={!!busy || !valid} onClick={() => save('verified')}>{busy === 'verified' ? 'Saving…' : 'Save as verified'}</Btn>}
         {form.status === 'verified' && existing && <Btn level="secondary" disabled={!!busy} onClick={() => save('draft')}>Back to draft</Btn>}

@@ -10,6 +10,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
 import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
+import { Input } from '@/components/ui/input'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { cn } from '@/lib/utils'
 import { fmtDateTime } from '@/lib/format'
 import { LINES, rowsFrom, type Part, type Row } from '@/lib/placement/line-library'
 
@@ -19,8 +22,8 @@ type Data = { parts: Record<Part, Current>; versions: Record<Part, Version[]>; s
 type Save = (part: Part, body: unknown) => Promise<string | null>
 
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
-  <section className="flex min-w-0 flex-col overflow-hidden rounded-8 border border-trs-line-2 bg-white">
-    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-14 font-semibold">{title}</h3><span className="flex items-center gap-2 text-12 font-normal text-trs-muted">{meta}</span></header>
+  <section className="flex min-w-0 flex-col overflow-hidden rounded border border-trs-line-2 bg-white">
+    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-body font-semibold">{title}</h3><span className="flex items-center gap-2 text-small font-normal text-trs-muted">{meta}</span></header>
     {children}
   </section>
 )
@@ -47,21 +50,21 @@ export function LinesLibrary() {
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
-      <PageHeader title="Lines" meta={<span className="text-13 text-trs-muted">{LINES.length} lines · starting text from the 19 Nov 2026 mail study</span>} />
+      <PageHeader title="Lines" meta={<span className="text-body text-trs-muted">{LINES.length} lines · starting text from the 19 Nov 2026 mail study</span>} />
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Lines" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
           {LINES.map(l => (
-            <button key={l.key} type="button" onClick={() => router.replace(`/lines?line=${l.key}`, { scroll: false })}
+            <Btn key={l.key} level="tertiary" onClick={() => router.replace(`/lines?line=${l.key}`, { scroll: false })}
               aria-current={l.key === key ? 'page' : undefined}
-              className={`shrink-0 cursor-pointer rounded-6 border-0 px-3 py-2 text-left text-13.5 ${l.key === key ? 'bg-trs-ink text-white font-medium' : 'bg-transparent text-trs-ink hover:bg-trs-tint'}`}>{l.short}</button>
+              className={cn('shrink-0 h-auto justify-start border-0 px-3 py-2 text-left text-body font-normal', l.key === key ? 'bg-trs-ink text-white font-medium hover:bg-trs-ink hover:text-white' : 'bg-transparent text-trs-ink hover:bg-trs-tint')}>{l.short}</Btn>
           ))}
         </nav>
         <div className="flex min-w-0 flex-col gap-5">
           <div>
-            <h2 className="m-0 text-16 font-semibold text-trs-ink">{line.short}</h2>
-            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-13"><span className="text-trs-muted">{line.label}</span><span><span className="text-trs-muted">Brochure price </span>{line.brochure}</span></div>
+            <h2 className="m-0 text-heading font-semibold text-trs-ink">{line.short}</h2>
+            <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-body"><span className="text-trs-muted">{line.label}</span><span><span className="text-trs-muted">Brochure price </span>{line.brochure}</span></div>
           </div>
-          {error && <div className="text-14 text-trs-neg">{error}</div>}
+          {error && <div className="text-body text-trs-neg">{error}</div>}
           {!data && !error && <Spinner label="Loading the line" />}
           {data && <>
             <div className="grid gap-5 xl:grid-cols-2">
@@ -87,9 +90,9 @@ export function LinesLibrary() {
 function ListBlock({ title, rows }: { title: string; rows: [string, string][] }) {
   return (
     <Card title={`${title} · ${rows.length}`} meta="Mail study">
-      {rows.length === 0 && <div className="px-4 py-6 text-center text-13 text-trs-muted">None seen.</div>}
+      {rows.length === 0 && <div className="px-4 py-6 text-center text-body text-trs-muted">None seen.</div>}
       <ul className="m-0 list-none p-0">{rows.map(([a, b], i) => (
-        <li key={i} className="grid grid-cols-[minmax(0,1fr)_96px] gap-3 border-b border-trs-line px-4 py-2.5 text-13 last:border-b-0">
+        <li key={i} className="grid grid-cols-[minmax(0,1fr)_96px] gap-3 border-b border-trs-line px-4 py-2.5 text-body last:border-b-0">
           <span className="text-trs-ink">{a}</span><span className="text-center text-trs-muted">{b}</span>
         </li>))}</ul>
     </Card>
@@ -108,9 +111,9 @@ function Versions({ part, data, save, render }: { part: Part; data: Data; save: 
   const list = data.versions[part]
   return (
     <div className="border-b border-trs-line bg-trs-tint">
-      {list.length === 0 && <div className="px-4 py-3 text-13 text-trs-muted">No saved versions. The text shown is the mail study.</div>}
+      {list.length === 0 && <div className="px-4 py-3 text-body text-trs-muted">No saved versions. The text shown is the mail study.</div>}
       <ol className="m-0 list-none p-0">{list.map((v, i) => (
-        <li key={v.id} className="flex items-center justify-between gap-3 border-b border-trs-line px-4 py-2 text-12.5 last:border-b-0">
+        <li key={v.id} className="flex items-center justify-between gap-3 border-b border-trs-line px-4 py-2 text-small last:border-b-0">
           <span className="min-w-0"><b className="font-medium text-trs-ink">Version {list.length - i}</b> <span className="text-trs-muted">· {v.edited_by} · {fmtDateTime(v.created_at)}{i === 0 ? ' · current' : ''}</span>
             <span className="block truncate text-trs-muted">{render(v.body)}</span></span>
           {i > 0 && <Btn size="xs" onClick={async () => {
@@ -118,7 +121,7 @@ function Versions({ part, data, save, render }: { part: Part; data: Data; save: 
             setErr(await save(part, part === 'client_data' || part === 'insurer_asks' ? rowsFrom(v.body) : v.body))
           }}>Restore</Btn>}
         </li>))}</ol>
-      {err && <div className="px-4 py-2 text-12 text-trs-neg">{err}</div>}
+      {err && <div className="px-4 py-2 text-small text-trs-neg">{err}</div>}
     </div>
   )
 }
@@ -137,11 +140,11 @@ function TextBlock({ title, part, data, save }: { title: string; part: Part; dat
     </>}>
       {showVersions && <Versions part={part} data={data} save={save} render={b => b.slice(0, 140)} />}
       {draft == null
-        ? <div className="whitespace-pre-wrap px-4 py-3 text-13.5 leading-[1.6] text-trs-ink">{cur.body}</div>
+        ? <div className="whitespace-pre-wrap px-4 py-3 text-body leading-[1.6] text-trs-ink">{cur.body}</div>
         : <div className="flex flex-col gap-2 px-4 py-3">
-          <textarea aria-label={title} value={draft} onChange={e => setDraft(e.target.value)} rows={Math.min(28, Math.max(8, draft.split('\n').length + 1))} className={`${inputCls} h-auto py-2 font-[inherit] text-13.5 leading-[1.6]`} />
+          <textarea aria-label={title} value={draft} onChange={e => setDraft(e.target.value)} rows={Math.min(28, Math.max(8, draft.split('\n').length + 1))} className={`${inputCls} h-auto py-2 font-[inherit] text-body leading-[1.6]`} />
           <div className="flex items-center justify-end gap-2">
-            {err && <span className="mr-auto text-12 text-trs-neg">{err}</span>}
+            {err && <span className="mr-auto text-small text-trs-neg">{err}</span>}
             <Btn onClick={() => setDraft(null)}>Cancel</Btn>
             <Btn level="primary" loading={busy} disabled={draft.trim() === cur.body.trim()} onClick={async () => {
               setBusy(true); const e = await save(part, draft); setBusy(false)
@@ -170,37 +173,35 @@ function TableBlock({ title, part, cols, data, save }: { title: string; part: Pa
       {draft == null && <Btn size="xs" disabled={!data.saving} title={data.saving ? undefined : 'Saving starts once the texts table is added'} onClick={() => { setDraft(rows); setNote(null); setErr(null) }}>Edit</Btn>}
     </>}>
       {showVersions && <Versions part={part} data={data} save={save} render={b => rowsFrom(b).map(r => r.item).join(' · ')} />}
-      <div className="overflow-x-auto">
-        <table className="trs-table w-full border-collapse text-13">
-          <thead><tr className="border-b border-trs-line text-12 text-trs-muted">
-            <th className="px-4 py-2 text-left font-medium">{cols[0]}</th><th className="px-3 py-2 text-left font-medium">{cols[1]}</th><th className="w-[110px] px-3 py-2 text-center font-medium">{cols[2]}</th>
-            {draft && <th className="w-[84px] px-3 py-2 text-center font-medium">Remove</th>}
-          </tr></thead>
+      <Register label={title} minWidth={480}>
+          <RegisterHead>
+            <RegisterTh>{cols[0]}</RegisterTh><RegisterTh>{cols[1]}</RegisterTh><RegisterTh width={110}>{cols[2]}</RegisterTh>
+            {draft && <RegisterTh width={84}>Remove</RegisterTh>}
+          </RegisterHead>
           <tbody>
-            {shown.length === 0 && <tr><td colSpan={draft ? 4 : 3} className="px-4 py-6 text-center text-trs-muted">No rows.</td></tr>}
+            {shown.length === 0 && <RegisterEmpty colSpan={draft ? 4 : 3}>No rows.</RegisterEmpty>}
             {shown.map((r, i) => draft ? (
-              <tr key={i} className="border-b border-trs-line align-top last:border-b-0">
-                <td className="px-4 py-1.5"><input aria-label={`${cols[0]} ${i + 1}`} value={r.item} onChange={e => set(i, 'item', e.target.value)} className={inputCls} /></td>
-                <td className="cell-left px-3 py-1.5"><input aria-label={`${cols[1]} ${i + 1}`} value={r.detail} onChange={e => set(i, 'detail', e.target.value)} className={inputCls} /></td>
-                <td className="px-3 py-1.5"><input aria-label={`${cols[2]} ${i + 1}`} value={r.seen} onChange={e => set(i, 'seen', e.target.value)} className={`${inputCls} text-center`} /></td>
-                <td className="px-3 py-1.5 text-center"><Btn size="xs" onClick={async () => {
+              <RegisterRow key={i}>
+                <RegisterCell align="left"><Input aria-label={`${cols[0]} ${i + 1}`} value={r.item} onChange={e => set(i, 'item', e.target.value)} className={inputCls} /></RegisterCell>
+                <RegisterCell align="left"><Input aria-label={`${cols[1]} ${i + 1}`} value={r.detail} onChange={e => set(i, 'detail', e.target.value)} className={inputCls} /></RegisterCell>
+                <RegisterCell><Input aria-label={`${cols[2]} ${i + 1}`} value={r.seen} onChange={e => set(i, 'seen', e.target.value)} className={`${inputCls} text-center`} /></RegisterCell>
+                <RegisterCell><Btn size="xs" onClick={async () => {
                   if (!await confirm({ title: 'Remove this row?', body: r.item || 'Blank row', action: 'Remove', danger: true })) return
                   setDraft(d => d && d.filter((_, j) => j !== i))
-                }}>Remove</Btn></td>
-              </tr>
+                }}>Remove</Btn></RegisterCell>
+              </RegisterRow>
             ) : (
-              <tr key={i} className="border-b border-trs-line align-top last:border-b-0">
-                <td className="px-4 py-2.5 text-trs-ink">{r.item}</td>
-                <td className="cell-left px-3 py-2.5 text-trs-muted">{r.detail || '—'}</td>
-                <td className="px-3 py-2.5 text-center text-trs-muted">{r.seen || '—'}</td>
-              </tr>
+              <RegisterRow key={i}>
+                <RegisterCell align="left" nowrap={false} className="text-trs-ink">{r.item}</RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="text-trs-muted">{r.detail || '—'}</RegisterCell>
+                <RegisterCell className="text-trs-muted">{r.seen || '—'}</RegisterCell>
+              </RegisterRow>
             ))}
           </tbody>
-        </table>
-      </div>
+        </Register>
       {draft && <div className="flex items-center justify-end gap-2 border-t border-trs-line px-4 py-3">
         <Btn className="mr-auto" onClick={() => setDraft(d => d && [...d, { item: '', detail: '', seen: '' }])}>Add row</Btn>
-        {err && <span className="text-12 text-trs-neg">{err}</span>}
+        {err && <span className="text-small text-trs-neg">{err}</span>}
         <Btn onClick={() => setDraft(null)}>Cancel</Btn>
         <Btn level="primary" loading={busy} onClick={async () => {
           setBusy(true); const e = await save(part, draft); setBusy(false)

@@ -20,13 +20,12 @@ export function EmailTypeBadge({ type, size = 'sm', className }: EmailTypeBadgeP
   return (
     <span
       className={cn(
-        'inline-flex items-center font-medium rounded-6 whitespace-nowrap flex-shrink-0 leading-none',
-        size === 'xs' && 'text-12 px-2 h-[20px]',
-        size === 'sm' && 'text-12 px-2.5 h-[22px]',
-        size === 'md' && 'text-13 px-3 h-[26px]',
+        'inline-flex items-center font-medium rounded whitespace-nowrap flex-shrink-0 leading-none bg-trs-field text-trs-ink-2',
+        size === 'xs' && 'text-small px-2 h-5',
+        size === 'sm' && 'text-small px-2.5 h-6',
+        size === 'md' && 'text-body px-3 h-7',
         className,
       )}
-      style={{ background: '#f1f2ee', color: '#2a332f' }}
     >
       {et.label}
     </span>

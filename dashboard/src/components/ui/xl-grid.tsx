@@ -13,29 +13,29 @@ import { cn } from '@/lib/utils'
  * cells are the point (prices side by side, counts, dates).
  */
 
-const LINE = 'var(--trs-line)'
-const HEAD = 'var(--trs-tint)'
-const INK = 'var(--trs-ink)'
-const MUTED = 'var(--trs-muted)'
-
 /** Light fills, all readable with ink text. */
 export const XL_FILL = {
   good: 'var(--trs-soft)',
-  bad: '#fdecec',
-  warn: '#fff4dc',
-  info: '#eaf1f7',
+  bad: 'var(--trs-neg-bg)',
+  warn: 'var(--trs-warn-bg)',
+  info: 'var(--trs-info-bg)',
   quiet: 'var(--trs-field)',
-  pick: '#dcefd2',
+  pick: 'var(--trs-mint)',
 } as const
 export type XlFill = keyof typeof XL_FILL
+
+/** The same fills as classes, so a cell carries no inline colour. */
+const FILL_CLASS: Record<XlFill, string> = {
+  good: 'bg-trs-soft', bad: 'bg-trs-neg-bg', warn: 'bg-trs-warn-bg', info: 'bg-trs-info-bg', quiet: 'bg-trs-field', pick: 'bg-trs-mint',
+}
 
 export function XlGrid({ children, label, minWidth, maxHeight, className }: {
   children: React.ReactNode; label: string; minWidth?: number; maxHeight?: string; className?: string
 }) {
   return (
-    <div className={cn('rounded-10 bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
+    <div className={cn('rounded bg-white overflow-hidden border border-trs-line', className)}>
       <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-        <table className="xl-grid w-full border-collapse text-13 tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
+        <table className="xl-grid w-full border-collapse text-body tabular-nums text-trs-ink" style={{ minWidth }} /* drift-ok: minimum width set by the caller */ aria-label={label}>{children}</table>
       </div>
     </div>
   )
@@ -50,7 +50,7 @@ export function XlHeadRow({ children }: { children: React.ReactNode }) {
   return <tr>{children}</tr>
 }
 
-const edge = { borderRight: `1px solid ${LINE}`, borderBottom: `1px solid ${LINE}` }
+const edge = 'border-r border-b border-trs-line'
 
 export function XlTh({ children, colSpan, rowSpan, align = 'center', sticky, width, title, className, strong }: {
   children?: React.ReactNode; colSpan?: number; rowSpan?: number; align?: 'left' | 'center' | 'right'
@@ -59,8 +59,8 @@ export function XlTh({ children, colSpan, rowSpan, align = 'center', sticky, wid
 }) {
   return (
     <th scope="col" colSpan={colSpan} rowSpan={rowSpan} title={title}
-      className={cn('h-8 px-2.5 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-center' : 'text-center', sticky && 'sticky left-0 z-30', className)}
-      style={{ ...edge, background: HEAD, color: strong ? INK : MUTED, width, minWidth: width }}>
+      className={cn('h-8 px-2.5 whitespace-nowrap', strong ? 'font-medium' : 'font-normal', align === 'left' ? 'text-left' : align === 'right' ? 'text-center' : 'text-center', sticky && 'sticky left-0 z-30', className, edge, 'bg-trs-tint', strong ? 'text-trs-ink' : 'text-trs-muted')}
+      style={{ width, minWidth: width }} /* drift-ok: column width set by the caller */>
       {children}
     </th>
   )
@@ -74,8 +74,7 @@ export function XlRow({ children, onClick, selected, group, className }: {
   return (
     <tr tabIndex={onClick ? 0 : undefined} onClick={onClick} aria-selected={onClick ? !!selected : undefined}
       onKeyDown={onClick ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } } : undefined}
-      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--trs-ink)]', className)}
-      style={{ background: selected ? 'var(--trs-soft)' : group ? '#fafafa' : undefined }}>
+      className={cn('group', onClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-trs-ink', selected ? 'bg-trs-soft' : group && 'bg-trs-tint', className)}>
       {children}
     </tr>
   )
@@ -83,7 +82,7 @@ export function XlRow({ children, onClick, selected, group, className }: {
 
 /** The row number gutter, as in a spreadsheet. */
 export function XlNum({ n }: { n: number }) {
-  return <td className="h-6 w-8 px-1 text-center text-11 select-none" style={{ ...edge, background: HEAD, color: '#8c958f' }}>{n}</td>
+  return <td className={cn('h-6 w-8 px-1 text-center text-small select-none bg-trs-tint text-trs-subtle', edge)}>{n}</td>
 }
 
 const isBlank = (v: React.ReactNode) => v === null || v === undefined || v === '' || v === false
@@ -96,13 +95,13 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
   children?: React.ReactNode; align?: 'left' | 'center' | 'right'; fill?: XlFill | null; label?: boolean
   colSpan?: number; title?: string; className?: string; muted?: boolean; strong?: boolean; nowrap?: boolean; width?: number
 }) {
-  const bg = fill ? XL_FILL[fill] : label ? '#fff' : undefined
+  const bg = fill ? FILL_CLASS[fill] : label ? 'bg-white' : undefined
   return (
     <td colSpan={colSpan} title={title}
       className={cn('h-8 px-2.5 align-middle', nowrap && 'whitespace-nowrap', align === 'left' ? 'text-left' : align === 'right' ? 'text-center' : 'text-center',
-        label && 'sticky left-0 z-10 group-hover:bg-[var(--trs-tint)]', strong && 'font-medium', className)}
-      style={{ ...edge, background: bg, color: muted ? MUTED : INK, width, minWidth: width, maxWidth: width }}>
-      {isBlank(children) ? <span style={{ color: '#c4c7c5' }}>–</span> : children}
+        label && 'sticky left-0 z-10 group-hover:bg-trs-tint', strong && 'font-medium', className, edge, bg, muted ? 'text-trs-muted' : 'text-trs-ink')}
+      style={{ width, minWidth: width, maxWidth: width }} /* drift-ok: column width set by the caller */>
+      {isBlank(children) ? <span className="text-trs-line-2">–</span> : children}
     </td>
   )
 }
@@ -111,14 +110,14 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-12.5" style={{ ...edge, background: '#fafafa', color: 'var(--trs-ink-2)' }}>{children}</td>
+      <td colSpan={colSpan} className={cn('h-8 px-2.5 text-left font-medium text-small bg-trs-tint text-trs-ink-2', edge)}>{children}</td>
     </tr>
   )
 }
 
 export function XlEmpty({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
-  return <tr><td colSpan={colSpan} className="py-6 text-center text-12.5 text-trs-muted">{children}</td></tr>
+  return <tr><td colSpan={colSpan} className="py-6 text-center text-small text-trs-muted">{children}</td></tr>
 }
 
 /** A 20px button that fits inside a 24px grid row. */
-export const XL_BTN = 'h-5 px-1.5 text-12 rounded-6 leading-none'
+export const XL_BTN = 'h-5 px-1.5 text-small rounded leading-none'
