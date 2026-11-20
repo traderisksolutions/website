@@ -64,38 +64,6 @@ async function notesByPolicy(): Promise<Map<string, NoteLike[]>> {
   return by
 }
 
-// ── List ─────────────────────────────────────────────────────────────────────────────────────────
-
-export type RenewalRow = {
-  id: string; policy_id: string; company_id: string | null; company: string | null; policy_number: string | null; class_of_insurance: string | null
-  line_code: string | null; line: string | null; insurer: string | null; expiry_date: string; days: number; bucket: Bucket
-  premium: number | null; commission: number | null; currency: string; owner: string | null; stage: Stage
-}
-export type RenewalFilters = { bucket?: string | null; owner?: string | null; line?: string | null; stage?: string | null }
-export type RenewalsView = { tables: boolean; today: string; rows: RenewalRow[]; total: number }
-
-export async function listRenewals(f: RenewalFilters = {}, today = renewalsToday()): Promise<RenewalsView> {
-  const recs = await sbTry<Row[] | null>(`renewals?outcome=is.null&select=${RENEWAL_COLS}&order=expiry_date.asc&limit=1000`, null)
-  if (!recs) return { tables: false, today, rows: [], total: 0 }
-  const policies = await inChunks(recs.map(r => r.policy_id as string), 80, list => sb<Row[]>(`policies?id=in.(${list.join(',')})&select=id,policy_number,class_of_insurance,companies!policies_company_id_fkey(company_name)`))
-  const byId = new Map(policies.map(p => [p.id as string, p]))
-  const all: RenewalRow[] = recs.map(r => {
-    const p = byId.get(r.policy_id)
-    const days = daysBetween(today, r.expiry_date)
-    return {
-      id: r.id, policy_id: r.policy_id, company_id: r.company_id, company: p?.companies?.company_name ?? null, policy_number: p?.policy_number ?? null,
-      class_of_insurance: p?.class_of_insurance ?? null, line_code: r.line_code, line: lineName(r.line_code), insurer: r.insurer, expiry_date: r.expiry_date,
-      days, bucket: bucketOf(days), premium: r.expiring_premium == null ? null : Number(r.expiring_premium),
-      commission: r.expiring_commission == null ? null : Number(r.expiring_commission), currency: r.currency || 'SGD', owner: r.owner, stage: r.stage,
-    }
-  })
-  const rows = all.filter(r => (!isBucket(f.bucket) || r.bucket === f.bucket)
-    && (!f.owner || (f.owner === 'none' ? !r.owner : r.owner === f.owner.toLowerCase()))
-    && (!f.line || (f.line === 'none' ? !r.line_code : r.line_code === f.line))
-    && (!isOpenStage(f.stage) || r.stage === f.stage))
-  return { tables: true, today, rows, total: all.length }
-}
-
 // ── Change ───────────────────────────────────────────────────────────────────────────────────────
 
 export async function changeRenewal(id: string, change: Change): Promise<{ id: string; stage: Stage }> {
