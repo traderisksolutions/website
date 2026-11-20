@@ -33,7 +33,7 @@ import { CompanyKnowledge } from '@/components/assistant/CompanyKnowledge'
 import { CompanyClaims } from '@/components/companies/CompanyClaims'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { PageFrame } from '@/components/page-frame'
-import type { ActionResult } from '@/lib/auth/action'
+import type { ActionResult } from '@/lib/action-result'
 import { companyActivity, companyCases, companyDrafts, companyPlacements, companyPolicies, companyThreads } from '@/app/companies/[id]/actions'
 
 type Detail = { payments: PaymentDerived[]; paymentSummary: PaymentSummary }

@@ -17,6 +17,8 @@ import { LABEL_NAME } from '@/lib/cases/labels'
 import { RELEVANCE, RELEVANCE_NAME, type Relevance } from '@/lib/cases/relevance'
 import { WAITING_ON_WORD } from '@/lib/crm/waiting-on'
 import type { CompanyRelevance } from '@/lib/cases/sources-store'
+import { unwrap } from '@/lib/action-result'
+import { decideThread } from '@/app/companies/triage/actions'
 
 export function CompanyThreadList({ companyId, onOpen, onLinked }: {
   companyId: string
@@ -109,7 +111,7 @@ export function FindThreads({ companyId, onLinked }: { companyId: string; onLink
   async function link(id: string) {
     setBusy(id); setError(null)
     try {
-      await callApi(`/api/companies/triage/${id}`, { method: 'POST', body: { decision: 'link', companyId } })
+      unwrap(await decideThread(id, { decision: 'link', companyId }))
       setLinked(s => new Set(s).add(id))
       onLinked()
     } catch (e) { setError(errText(e)) }

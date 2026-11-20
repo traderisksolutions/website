@@ -6,6 +6,8 @@ import { inboxFirst, type InboxFirst } from '@/lib/engagement/inbox-first'
 import { InboxClient } from '@/components/engagement/InboxClient'
 
 export const dynamic = 'force-dynamic'
+// "File all from <domain>" runs as a server action from here; it was a 300 s route.
+export const maxDuration = 300
 
 type Params = { lead?: string | string[]; thread?: string | string[] }
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) || null

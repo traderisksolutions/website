@@ -15,6 +15,8 @@ import { HiddenThreads } from '@/components/crm/CompanyThreadList'
 import { timeAgo as fmtRelative } from '@/lib/format'
 import { COMPANY_KINDS, type CompanyKind, type LinkSuggestion } from '@/lib/crm/types'
 import type { ReferralRow } from '@/lib/crm/referral-review'
+import { unwrap } from '@/lib/action-result'
+import { decideDomainThreads, decideThread, duplicateCompanies, mergeCompanyInto, misfiledThreads, referralRows, unfiledThreads, unknownDomains, type DomainDecision, type ThreadDecision } from './actions'
 
 /**
  * Unfiled threads (/companies/triage): mail with no company yet, as registers. Domains to decide,
@@ -69,60 +71,46 @@ export default function TriagePage() {
   const loadDomains = useCallback(async (read = false) => {
     setDomains(null)
     try {
-      const res = await fetch(`/api/companies/domains${read ? '?read=1' : ''}`, { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not load domains.')
+      const d = unwrap(await unknownDomains({ read }))
       setDomains(d.domains); setCompanies(d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load domains.'); setDomains([]) }
   }, [])
 
   const loadThreads = useCallback(async () => {
     try {
-      const res = await fetch('/api/companies/triage', { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not load the leftover threads.')
-      setThreads(d.threads); setHidden(h => ({ ...h, threads: d.hidden ?? 0 }))
+      const d = unwrap(await unfiledThreads())
+      setThreads(d.threads); setHidden(h => ({ ...h, threads: d.hidden }))
       setCompanies(prev => prev.length ? prev : d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load the leftover threads.'); setThreads([]) }
   }, [])
 
   const loadDups = useCallback(async () => {
     try {
-      const res = await fetch('/api/companies/merge', { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not compare companies.')
-      setDups(d.pairs)
+      setDups(unwrap(await duplicateCompanies()))
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not compare companies.'); setDups([]) }
   }, [])
 
   const loadMisfiled = useCallback(async () => {
     setMisfiled(null)
     try {
-      const res = await fetch('/api/companies/misfiled', { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not read insurer mail.')
-      setMisfiled(d.groups); setHidden(h => ({ ...h, insurer: d.hidden ?? 0 })); if (d.companies) setCompanies(d.companies)
+      const d = unwrap(await misfiledThreads())
+      setMisfiled(d.groups); setHidden(h => ({ ...h, insurer: d.hidden })); setCompanies(d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not read insurer mail.'); setMisfiled([]) }
   }, [])
 
   const loadReferrals = useCallback(async () => {
     try {
-      const res = await fetch('/api/companies/referrals', { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not load the referrals.')
-      setReferrals(d.rows)
+      setReferrals(unwrap(await referralRows()).rows)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load the referrals.'); setReferrals([]) }
   }, [])
 
   // Every queue loads on arrival, not when its tab is opened, so the counts on the tabs are true.
   useEffect(() => { loadDomains(); loadThreads(); loadDups(); loadMisfiled(); loadReferrals() }, [loadDomains, loadThreads, loadDups, loadMisfiled, loadReferrals])
 
-  async function decideDomain(domain: string, body: Record<string, unknown>) {
+  async function decideDomain(domain: string, body: Omit<DomainDecision, 'domain'>) {
     setRunning(domain); setError(null)
     try {
-      const res = await fetch('/api/companies/domains', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ domain, ...body }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not apply.')
+      const d = unwrap(await decideDomainThreads({ domain, ...body }))
       setDomains(prev => prev?.filter(x => x.domain !== domain) ?? null)
       setNotice(d.threadsLinked > 0 ? `Filed ${plural(d.threadsLinked, 'thread')} from ${domain}.` : `${domain} marked as not tracked.`)
       void loadThreads()
@@ -135,9 +123,7 @@ export default function TriagePage() {
     if (!ok) return
     setRunning(loser.id); setError(null)
     try {
-      const res = await fetch('/api/companies/merge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ loserId: loser.id, winnerId: winner.id }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not merge.')
+      const d = unwrap(await mergeCompanyInto(loser.id, winner.id))
       setNotice(`Merged. ${Object.entries(d.moved).filter(([, n]) => (n as number) > 0).map(([t, n]) => `${n} ${t.replace(/_/g, ' ')}`).join(', ') || 'Nothing needed moving'}.`)
       setDups(null); void loadDups()
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
@@ -344,12 +330,11 @@ function MisfiledRowView({ group, companies, onDone, onError }: { group: Misfile
   const n = group.threads.length
   const insurers = Array.from(new Set(group.threads.map(t => t.filedUnder.name)))
 
-  const decideAll = async (body: Record<string, unknown>) => {
+  const decideAll = async (body: ThreadDecision) => {
     setBusy(true)
     try {
       for (const t of group.threads) {
-        const res = await fetch(`/api/companies/triage/${t.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not move the threads.')
+        unwrap(await decideThread(t.id, body))
       }
       onDone()
     } catch (e) { onError(e instanceof Error ? e.message : String(e)) }
@@ -395,11 +380,10 @@ function ThreadRowView({ row, companies, onDone, onError }: { row: ThreadRow; co
   const s = row.suggestion && row.suggestion.status === 'pending' && row.suggestion.verdict !== 'unsure' ? row.suggestion : null
   const suggested = s ? (s.verdict === 'not_client' ? 'Not a client' : s.suggested_name ?? companies.find(c => c.id === s.suggested_company_id)?.name ?? null) : null
 
-  const decide = async (body: Record<string, unknown>) => {
+  const decide = async (body: ThreadDecision) => {
     setBusy(true)
     try {
-      const res = await fetch(`/api/companies/triage/${row.id}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not file the thread.')
+      unwrap(await decideThread(row.id, body))
       onDone()
     } catch (e) { onError(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }

@@ -6,6 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { useConfirm } from '@/components/ui/confirm'
 import { Btn, InlineSpinner, inputCls } from '@/components/crm/primitives'
+import { decideDomainThreads } from '@/app/companies/triage/actions'
 
 type CompanySuggestion = { id: string; name: string; domain: string | null }
 type Pick = { id: string | null; name: string }
@@ -17,8 +18,7 @@ const ROW = 'w-full text-left px-2 py-1.5 rounded text-body text-trs-ink bg-tran
  * thread, "Change company" on a filed one. Search the companies on file (GET /api/companies),
  * or "+ Add as a new company" from what was typed (POST /api/companies, with the thread's outside
  * domain). On an unfiled thread with an outside domain, "File all from <domain>" shows how many
- * other unfiled threads share it and, after a confirm, files them all under the pick (POST
- * /api/companies/domains). Every step is a person's click; nothing files on its own. The link
+ * other unfiled threads share it and, after a confirm, files them all under the pick (decideDomainThreads). Every step is a person's click; nothing files on its own. The link
  * itself goes through the page's onLinkCompany (PATCH /api/engagement/thread/[id]/company); a
  * failure shows in red with Retry. On a thread filed under an insurer or partner the pick is the
  * client the thread is about, and the domain tools are off.
@@ -96,12 +96,8 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
       if (r && !r.ok) throw new Error(r.error)
       if (many) {
         setBusy('Filing…')
-        const res = await fetch('/api/companies/domains', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ domain: many.domain, decision: 'assign', companyId: target.id }),
-        })
-        const d = await res.json().catch(() => ({})) as { error?: string }
-        if (!res.ok) throw new Error(d.error ? `This thread is linked; the others are not: ${d.error}` : `This thread is linked; the others are not (${res.status}).`)
+        const r = await decideDomainThreads({ domain: many.domain, decision: 'assign', companyId: target.id })
+        if (!r.ok) throw new Error(`This thread is linked; the others are not: ${r.error}`)
         onRefresh?.()
       }
       setOpen(false); setQuery(''); setFileAll(false); setDomain(null)

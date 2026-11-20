@@ -10,8 +10,7 @@
  * text the route's 500 carried. Nothing is thrown across the boundary.
  */
 import { staffUser, type StaffUser } from './guard'
-
-export type ActionResult<T> = { ok: true; data: T } | { ok: false; error: string }
+import type { ActionResult } from '@/lib/action-result'
 
 export async function staffAction<T>(label: string, fn: (user: StaffUser & { email: string }) => Promise<T>): Promise<ActionResult<T>> {
   const user = await staffUser()
