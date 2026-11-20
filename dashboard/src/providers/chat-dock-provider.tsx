@@ -179,7 +179,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) merge(await res.json() as ChatMessage[])
       } catch { /* transient */ }
     }
-    const poll = window.setInterval(() => { void tick() }, 5000)
+    const poll = window.setInterval(() => { void tick() }, 15_000)
     document.addEventListener('visibilitychange', () => { void tick() })
     return () => { stopped = true; window.clearInterval(poll) }
   }, [state.activeThreadId])

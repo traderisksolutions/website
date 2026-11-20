@@ -31,11 +31,19 @@ export async function sbTry<T>(path: string, fallback: T, init?: RequestInit): P
   try { return await sb<T>(path, init) } catch { return fallback }
 }
 
-/** Runs one request per chunk of ids so a PostgREST `in.(...)` filter never overflows the URL. */
-export async function inChunks<T>(ids: string[], size: number, fn: (chunk: string[]) => Promise<T[]>): Promise<T[]> {
-  const out: T[] = []
-  for (let i = 0; i < ids.length; i += size) out.push(...await fn(ids.slice(i, i + size)))
-  return out
+/**
+ * Runs one request per chunk of ids so a PostgREST `in.(...)` filter never overflows the URL.
+ * Up to three chunks run at once (they ran one after another until 20 Nov 2026); results keep
+ * the chunk order.
+ */
+export async function inChunks<T>(ids: string[], size: number, fn: (chunk: string[]) => Promise<T[]>, parallel = 3): Promise<T[]> {
+  const chunks: string[][] = []
+  for (let i = 0; i < ids.length; i += size) chunks.push(ids.slice(i, i + size))
+  const results: T[][] = new Array(chunks.length)
+  let next = 0
+  const worker = async () => { while (next < chunks.length) { const i = next++; results[i] = await fn(chunks[i]) } }
+  await Promise.all(Array.from({ length: Math.min(parallel, chunks.length) }, worker))
+  return results.flat()
 }
 
 // ── Email helpers ─────────────────────────────────────────────────────────────────────────────

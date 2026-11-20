@@ -7,7 +7,7 @@
  * dropped and only counted (`hidden`). A cron or the server's own reads pass no viewer.
  */
 import { sbTry, inChunks, enc, getCompanyThreadIds } from './db'
-import { personName } from './format'
+import { personName } from '@/lib/format'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { waitingOn } from './waiting-on'
 import type { CompanyThread } from './types'

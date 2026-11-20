@@ -12,7 +12,7 @@ import { getCompany, sb, sbTry, enc, getCompanyContactIds, PUBLIC_EMAIL_DOMAINS 
 import { loadCompanyPayments }       from '@/lib/crm/payments-server'
 import { isStage }                   from '@/lib/crm/stage'
 import { COMPANY_KINDS }             from '@/lib/crm/types'
-import { personName }                from '@/lib/crm/format'
+import { personName }                from '@/lib/format'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 

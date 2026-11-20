@@ -10,7 +10,7 @@
 import { sb, sbTry, inChunks, enc, listClientCompanies, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS } from './db'
 import { geminiJson } from './ai'
 import { GEMINI_LITE } from '@/lib/gemini-models'
-import { personName } from './format'
+import { personName } from '@/lib/format'
 import type { Company, LinkSuggestion, LinkVerdict, Stage } from './types'
 import { logActivity } from '@/lib/log-activity'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'

@@ -3,8 +3,8 @@ import { PageHeader } from '@/components/page-header'
 import { UrlFilters } from '@/components/ui/url-filters'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { Chip } from '@/components/crm/primitives'
-import { sbTry, enc } from '@/lib/crm/db'
-import { fmtDate } from '@/lib/crm/format'
+import { db, rows } from '@/lib/db/client'
+import { fmtDate } from '@/lib/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { LIFECYCLE_LABEL, type PolicyLifecycle } from '@/lib/policies/types'
 import { todaySGT } from '@/lib/sgt-time'
@@ -33,26 +33,25 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
   if (view === 'working') return <WorkingOn filters={<UrlFilters<View> param="view" value={view} options={VIEWS} query={q} placeholder="Client, insurer or policy no." />} />
   const today = todaySGT()
   const in60 = new Date(Date.parse(today) + 60 * 86_400_000).toISOString().slice(0, 10)
-  const filter: Record<Exclude<View, 'working'>, string> = {
-    in_force: 'lifecycle=in.(bound,live,renewal_due)',
-    renewing: `lifecycle=in.(bound,live,renewal_due)&end_date=gte.${today}&end_date=lte.${in60}`,
-    quoting: 'lifecycle=in.(quoting,presented)',
-    ended: 'lifecycle=in.(lapsed,declined,closed)',
-    all: '',
-  }
   // A search matches the policy number, the insurer, or the client's name.
-  const like = enc(`*${q.replace(/[(),*]/g, ' ')}*`)
-  const matched = q ? await sbTry<{ id: string }[]>(`companies?company_name=ilike.${like}&select=id&limit=200`, []) : []
-  const search = q ? `&or=(policy_number.ilike.${like},insurer.ilike.${like}${matched.length ? `,company_id.in.(${matched.map(c => c.id).join(',')})` : ''})` : ''
-  const rows = await sbTry<Row[]>(
-    `policies?select=id,company_id,insurer,class_of_insurance,product_line,policy_number,start_date,end_date,lifecycle,companies!policies_company_id_fkey(company_name)&${filter[view]}${search}&order=end_date.asc.nullslast&limit=${LIMIT}`,
-    [],
-  )
-  const expired = rows.filter(r => (r.lifecycle === 'live' || r.lifecycle === 'bound') && r.end_date && r.end_date < today).length
+  const like = `%${q.replace(/[(),*%]/g, ' ')}%`
+  const matched = q ? await rows('Policies: client search', db().from('companies').select('id').ilike('company_name', like).limit(200)) : []
+  // Typed against the schema (src/lib/db): a wrong column or an ambiguous embed fails the build,
+  // and a failed read shows the error page instead of an empty list.
+  let query = db().from('policies')
+    .select('id, company_id, insurer, class_of_insurance, product_line, policy_number, start_date, end_date, lifecycle, companies!policies_company_id_fkey(company_name)')
+  if (view === 'in_force') query = query.in('lifecycle', ['bound', 'live', 'renewal_due'])
+  if (view === 'renewing') query = query.in('lifecycle', ['bound', 'live', 'renewal_due']).gte('end_date', today).lte('end_date', in60)
+  if (view === 'quoting') query = query.in('lifecycle', ['quoting', 'presented'])
+  if (view === 'ended') query = query.in('lifecycle', ['lapsed', 'declined', 'closed'])
+  if (q) query = query.or([`policy_number.ilike.${like}`, `insurer.ilike.${like}`, ...(matched.length ? [`company_id.in.(${matched.map(c => c.id).join(',')})`] : [])].join(','))
+  const found: Row[] = (await rows('Policies', query.order('end_date', { ascending: true, nullsFirst: false }).limit(LIMIT)))
+    .map(r => ({ ...r, lifecycle: r.lifecycle as PolicyLifecycle }))
+  const expired = found.filter(r => (r.lifecycle === 'live' || r.lifecycle === 'bound') && r.end_date && r.end_date < today).length
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
-      <PageHeader title="Policies" meta={<>{rows.length}{rows.length === LIMIT ? '+' : ''} {rows.length === 1 ? 'policy' : 'policies'}{expired > 0 && view === 'in_force' ? ` · ${expired} past expiry` : ''}</>}>
+      <PageHeader title="Policies" meta={<>{found.length}{found.length === LIMIT ? '+' : ''} {found.length === 1 ? 'policy' : 'policies'}{expired > 0 && view === 'in_force' ? ` · ${expired} past expiry` : ''}</>}>
         <UrlFilters<View> param="view" value={view} options={VIEWS} query={q} placeholder="Client, insurer or policy no." />
       </PageHeader>
       <Register label="Policies" minWidth={860}>
@@ -65,8 +64,8 @@ export default async function PoliciesPage({ searchParams }: { searchParams: Pro
           <RegisterTh last>Status</RegisterTh>
         </RegisterHead>
         <tbody>
-          {rows.length === 0 && <RegisterEmpty colSpan={6}>No policies in this view</RegisterEmpty>}
-          {rows.map(r => {
+          {found.length === 0 && <RegisterEmpty colSpan={6}>No policies in this view</RegisterEmpty>}
+          {found.map(r => {
             const lapsedLive = (r.lifecycle === 'live' || r.lifecycle === 'bound') && !!r.end_date && r.end_date < today
             return (
               <RegisterRow key={r.id}>

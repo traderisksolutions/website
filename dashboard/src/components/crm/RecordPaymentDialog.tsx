@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls, textareaCls } from './primitives'
-import { fmtMoney, fmtDate, todaySGT } from '@/lib/crm/format'
+import { fmtMoney, fmtDate, todaySGT } from '@/lib/format'
 import { CHANNEL_LABEL, type ReceiptChannel } from '@/lib/crm/receipts'
 import type { PaymentDerived } from '@/lib/crm/types'
 

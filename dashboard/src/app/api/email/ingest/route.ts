@@ -11,10 +11,10 @@ import { drain as drainAgents } from '@/lib/admin'
 import { autoSendRun } from '@/lib/autonomy'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 import { captureAttachments, hasRealAttachments } from '@/lib/gmail/attachments'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 300
 
-const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const TRS_DOMAIN      = 'trade-risksol.com'

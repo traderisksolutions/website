@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { SB_URL } from '@/lib/sb'
 
 // DELETE /api/engagement/thread?thread_id=X
 // Soft-deletes a thread and all dependent rows by setting deleted_at.
@@ -37,7 +38,6 @@ export async function DELETE(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbHeaders() {
   const k = process.env.SUPABASE_SERVICE_KEY

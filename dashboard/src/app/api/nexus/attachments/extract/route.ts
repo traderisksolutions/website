@@ -28,10 +28,10 @@ import { geminiUrl, GEMINI_FLASH as GEMINI_FLASH_MODEL } from '@/lib/gemini-mode
 import { isEncryptedWorkbook, xlsxSheetsAsText } from '@/lib/xlsx-text'
 const ENCRYPTED_MARK = '[ENCRYPTED — password-protected workbook]'
 import { modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 300
 
-const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const STORAGE_BUCKET  = 'email-attachments'
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'

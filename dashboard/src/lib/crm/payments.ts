@@ -4,7 +4,7 @@
  * whether it is past due and by how many days. Pure functions, safe on the client.
  */
 import type { DebitNoteRow, PaymentDerived, PaymentSummary, MoneyByCurrency } from './types'
-import { daysBetween, todaySGT } from './format'
+import { daysBetween, todaySGT } from '@/lib/format'
 
 export function outstandingOf(row: Pick<DebitNoteRow, 'status' | 'gross_amount' | 'net_amount' | 'paid_amount' | 'paid_direct_amount'>): number {
   const total = Number(row.net_amount ?? row.gross_amount ?? 0)

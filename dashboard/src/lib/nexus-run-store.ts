@@ -5,8 +5,8 @@
  * functions that actually do the AI work.
  */
 import type { NexusPhase1State, NexusPhase2State } from '@/lib/run-nexus-analysis'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

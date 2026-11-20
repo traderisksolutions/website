@@ -7,7 +7,7 @@
  * on the same threads are kept but labelled, so the page can show "also on these threads".
  */
 import { sbTry, inChunks, getCompanyThreadIds, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS } from './db'
-import { personName } from './format'
+import { personName } from '@/lib/format'
 import type { Company, Person, PersonParty } from './types'
 
 type Participant = { thread_id: string; message_id: string | null; email: string; name: string | null; role: 'from' | 'to' | 'cc' | 'bcc'; contact_id: string | null }

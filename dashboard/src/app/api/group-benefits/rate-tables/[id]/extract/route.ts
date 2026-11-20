@@ -16,10 +16,10 @@ import { GEMINI_FLASH, GEMINI_DEEP } from '@/lib/gemini-models'
 import { diffBenefits } from '@/lib/gb-diff'
 import { documentBytes } from '@/lib/gb/documents'
 import { NEVER_STORED } from '@/lib/storage/attachment-bytes'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 300
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

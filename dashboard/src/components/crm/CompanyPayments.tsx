@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { SectionCard, Empty, Btn, LinkBtn } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { RecordPaymentDialog } from './RecordPaymentDialog'
-import { fmtMoney, fmtDate } from '@/lib/crm/format'
+import { fmtMoney, fmtDate } from '@/lib/format'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 

@@ -10,7 +10,8 @@ import { storeUpload } from '@/lib/storage/drive-upload'
 import { getDriveWriteToken } from '@/lib/gdrive-write'
 import { NEVER_STORED, driveIdOf, driveRef, driveWebLink, isDriveRef, requireRefBytes } from '@/lib/storage/attachment-bytes'
 
-export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
+export { SB_URL } from '@/lib/sb'
+import { SB_URL } from '@/lib/sb'
 
 /** debit_note_no is "DN260805" — no space, since 30 Sep 2026. Kept as a guard anyway so
  *  file names stay free of spaces. Historical rows and hand-typed overrides can still carry one. */

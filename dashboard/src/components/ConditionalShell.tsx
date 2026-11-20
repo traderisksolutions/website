@@ -11,6 +11,7 @@ import { RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 import { ConfirmProvider } from '@/components/ui/confirm'
 import { TableAlign } from '@/components/ui/table-align'
 import { NewTabLinks } from '@/components/nav/NewTabLinks'
+import { VersionWatch } from '@/components/nav/VersionWatch'
 
 function MainContent({ children }: { children: React.ReactNode }) {
   // /engagement renders its conversation list as a fixed left rail (see EngagementRail) instead
@@ -29,6 +30,7 @@ function MainContent({ children }: { children: React.ReactNode }) {
       style={{ background: 'hsl(var(--background))', marginLeft }}
     >
       {/* A live AI fault under the nav. The "Since you were away" report was removed (Jarod, 20 Nov 2026). */}
+      <VersionWatch />
       <AiCreditsAlert />
       {children}
     </div>

@@ -32,6 +32,8 @@ type Affected = {
 type Payload = { ok: boolean; severity: 'ok' | 'warning' | 'error'; windowMinutes: number; affected: Affected[]; cap_usd?: number | null; error?: string }
 
 const BILLING_URL = 'https://aistudio.google.com/billing'
+const STATUS_KEY = 'trs.ai-status'
+const STATUS_TTL = 2 * 60_000
 
 const when = (iso: string | null) =>
   iso ? new Date(iso).toLocaleString('en-SG', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }) : 'recently'
@@ -52,18 +54,33 @@ export function AiCreditsAlert() {
   const [d, setD] = useState<Payload | null>(null)
   const [hidden, setHidden] = useState(false)
 
-  const load = useCallback(() => {
+  // One answer serves every tab for two minutes: links open in new tabs, and each used to ask again.
+  const load = useCallback((force = false) => {
+    try {
+      const kept = JSON.parse(localStorage.getItem(STATUS_KEY) ?? 'null') as { at: number; d: Payload } | null
+      if (!force && kept && Date.now() - kept.at < STATUS_TTL) { setD(kept.d); return }
+    } catch { /* storage blocked: ask the server */ }
     fetch('/api/ai/status', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
-      .then(j => { if (j && !j.error) setD(j as Payload) })
+      .then(j => {
+        if (!j || j.error) return
+        setD(j as Payload)
+        try { localStorage.setItem(STATUS_KEY, JSON.stringify({ at: Date.now(), d: j })) } catch { /* not kept */ }
+      })
       .catch(() => {})
   }, [])
 
   useEffect(() => {
-    load()
-    // While a key is down the state changes without anyone navigating, so re-check periodically.
-    const t = setInterval(load, 5 * 60_000)
-    return () => clearInterval(t)
+    // After the page has drawn, so the check never competes with the page's own data.
+    const idle = typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(() => load(), { timeout: 3000 })
+      : window.setTimeout(() => load(), 1500)
+    const t = setInterval(() => load(true), 5 * 60_000)
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idle as number)
+      else window.clearTimeout(idle as number)
+      clearInterval(t)
+    }
   }, [load])
 
   if (!d || d.ok || hidden) return null

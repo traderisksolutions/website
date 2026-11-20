@@ -10,7 +10,7 @@ import { getCompany, sbTry, enc }    from '@/lib/crm/db'
 import { loadCompanyPayments, loadDebitNotesByIds } from '@/lib/crm/payments-server'
 import { rankPeople }                from '@/lib/crm/people'
 import { buildReminderDraft }        from '@/lib/crm/reminder'
-import { personName }                from '@/lib/crm/format'
+import { personName }                from '@/lib/format'
 
 type ContactRow = { id: string; email: string | null; first_name: string | null; last_name: string | null }
 

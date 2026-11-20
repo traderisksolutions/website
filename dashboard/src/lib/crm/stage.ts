@@ -12,7 +12,7 @@
  */
 import type { Stage } from './types'
 import { STAGES } from './types'
-import { daysBetween, todaySGT } from './format'
+import { daysBetween, todaySGT } from '@/lib/format'
 
 export interface StageFacts {
   activePolicies: number

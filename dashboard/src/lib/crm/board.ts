@@ -72,17 +72,20 @@ type TaskRow = Omit<BoardTask, 'commentCount' | 'collaborators'> & { collaborato
 type CatRow = { company_id: string | null; category: string | null }
 
 export async function listBoard(): Promise<BoardPayload> {
-  const [companies, staff, tasks, activity] = await Promise.all([
+  // Recent activity is not shown on any screen; it is no longer read here (20 Nov 2026).
+  const [companies, staff, tasks] = await Promise.all([
     listCompanySummaries({ kinds: ['client', 'insurer'] }),
     listStaff(),
     sbTry<TaskRow[]>(`board_tasks?select=*&order=position.asc,created_at.asc&limit=2000`, []),
-    recentActivity(),
   ])
 
   const ids = companies.map(c => c.id)
-  const cats = ids.length
-    ? await inChunks(ids, 100, c => sbTry<CatRow[]>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&status=eq.active&select=company_id,category`, []))
-    : []
+  const taskIds = tasks.map(t => t.id)
+  // Thread categories and comment counts depend only on the first round: read them together.
+  const [cats, commentRows] = await Promise.all([
+    ids.length ? inChunks(ids, 100, c => sbTry<CatRow[]>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&status=eq.active&select=company_id,category`, [])) : Promise.resolve([] as CatRow[]),
+    taskIds.length ? inChunks(taskIds, 100, c => sbTry<{ task_id: string }[]>(`board_comments?task_id=in.(${c.join(',')})&select=task_id`, [])) : Promise.resolve([] as { task_id: string }[]),
+  ])
   const catsByCompany = new Map<string, Record<string, number>>()
   for (const r of cats) {
     if (!r.company_id) continue
@@ -92,12 +95,8 @@ export async function listBoard(): Promise<BoardPayload> {
     catsByCompany.set(r.company_id, cur)
   }
 
-  const taskIds = tasks.map(t => t.id)
   const counts = new Map<string, number>()
-  if (taskIds.length) {
-    const rows = await inChunks(taskIds, 100, c => sbTry<{ task_id: string }[]>(`board_comments?task_id=in.(${c.join(',')})&select=task_id`, []))
-    for (const r of rows) counts.set(r.task_id, (counts.get(r.task_id) ?? 0) + 1)
-  }
+  for (const r of commentRows) counts.set(r.task_id, (counts.get(r.task_id) ?? 0) + 1)
 
   const byCompany = new Map<string, BoardTask[]>()
   for (const t of tasks) {
@@ -111,36 +110,7 @@ export async function listBoard(): Promise<BoardPayload> {
     threadsByCategory: catsByCompany.get(c.id) ?? {},
   }))
 
-  return { companies: rows, staff, me: null, activity, today: new Date().toISOString().slice(0, 10) }
-}
-
-type AuditRow = { created_at: string; user_name: string | null; user_email: string | null; action: string; new_value: Record<string, unknown> | null }
-
-async function recentActivity(limit = 30): Promise<BoardActivity[]> {
-  const rows = await sbTry<AuditRow[]>(`audit_logs?resource_type=eq.board&select=created_at,user_name,user_email,action,new_value&order=created_at.desc&limit=${limit}`, [])
-  return rows.map(r => ({
-    at: r.created_at,
-    who: r.user_name || (r.user_email ?? '').split('@')[0] || 'Someone',
-    what: describe(r.action, r.new_value ?? {}),
-    companyId: (r.new_value?.companyId as string | undefined) ?? null,
-    companyName: (r.new_value?.companyName as string | undefined) ?? null,
-  }))
-}
-
-function describe(action: string, v: Record<string, unknown>): string {
-  const co = (v.companyName as string | undefined) ?? 'a company'
-  const task = v.title ? `“${String(v.title).slice(0, 60)}”` : 'an item'
-  switch (action) {
-    case 'board.add_task':      return `added ${task} on ${co}${v.assignedName ? ` for ${v.assignedName}` : ''}`
-    case 'board.complete_task': return `completed ${task} on ${co}`
-    case 'board.reopen_task':   return `reopened ${task} on ${co}`
-    case 'board.assign_task':   return `handed ${task} on ${co} to ${v.assignedName ?? 'nobody'}`
-    case 'board.status_task':   return `marked ${task} on ${co} ${String(v.status ?? '').replace('_', ' ')}`
-    case 'board.edit_task':     return `edited ${task} on ${co}`
-    case 'board.remove_task':   return `removed ${task} from ${co}`
-    case 'board.comment':       return `commented on ${task} on ${co}`
-    default:                    return action
-  }
+  return { companies: rows, staff, me: null, activity: [], today: new Date().toISOString().slice(0, 10) }
 }
 
 // ── Writes ────────────────────────────────────────────────────────────────────────────────────

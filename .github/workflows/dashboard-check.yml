@@ -26,4 +26,5 @@ jobs:
       - run: npx tsc --noEmit -p tsconfig.json
       - run: npx next lint --dir src
       - run: node scripts/check-style-drift.mjs
+      - run: node scripts/check-db-drift.mjs
       - run: npx vitest run

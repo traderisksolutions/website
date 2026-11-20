@@ -7,7 +7,7 @@ import { SectionCard, Empty, Spinner, Btn, Field, inputCls } from '@/components/
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { statusWord } from '@/components/documents/DataRoom'
 import type { DataRoomStatus } from '@/lib/documents/taxonomy'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
 import type { PlacementBundle, PlacementRound } from '@/lib/placement/types'

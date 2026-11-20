@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ThreadModal } from '@/components/engagement/ThreadModal'
 import { SectionCard, Empty } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/crm/format'
+import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/format'
 import type { Alert, LeftOff } from '@/lib/crm/types'
 
 const MUTED = '#4a5550'

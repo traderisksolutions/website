@@ -1,0 +1,1258 @@
+{
+ "src/app/api/activity/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/admin/backfill-message-ids/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/agent-tasks/[id]/resolve/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/agent-tasks/approvals/route.ts": {
+  "sb": 2,
+  "fetch": 1
+ },
+ "src/app/api/agent-tasks/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/ai/status/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/analytics/ai-usage/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/analytics/error-log/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/audit-log/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/auth/gmail/callback/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/auth/gmail/disconnect/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/auth/profile/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/brochures/[id]/upload-url/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/brochures/route.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/app/api/calendar/events/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/chat/messages/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/chat/route.ts": {
+  "sb": 4,
+  "fetch": 16
+ },
+ "src/app/api/claims/[id]/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/claims/register/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/companies/[id]/ask/route.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/app/api/companies/[id]/cases/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/companies/[id]/contacts/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/companies/[id]/find-threads/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/companies/[id]/payments/reminder/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/companies/[id]/route.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/app/api/companies/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/companies/threads/search/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/contacts/bulk/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/contacts/cc-participants/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/contacts/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/contacts/search/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/cron/gmail-watch/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/db/[table]/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/[id]/pdf/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 8
+ },
+ "src/app/api/debit-notes/[id]/zip-attachment/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/imports/bundles/[id]/approve/route.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/app/api/debit-notes/imports/bundles/[id]/reject/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/imports/bundles/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/imports/bundles/from-zip/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/debit-notes/imports/bundles/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/debit-notes/imports/items/[id]/pdf/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/preview-context/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/debit-notes/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/dev-logs/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/eb/policies/route.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/app/api/eb/quotations/[id]/sent/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/email/attachments/for-thread/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/email/available-senders/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/email/classify/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/email/health/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/email/ingest/route.ts": {
+  "sb": 0,
+  "fetch": 33
+ },
+ "src/app/api/email/send/route.ts": {
+  "sb": 0,
+  "fetch": 23
+ },
+ "src/app/api/engagement/conversation/promote/route.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/app/api/engagement/conversation/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/engagement/conversations/route.ts": {
+  "sb": 0,
+  "fetch": 12
+ },
+ "src/app/api/engagement/draft/route.ts": {
+  "sb": 0,
+  "fetch": 25
+ },
+ "src/app/api/engagement/drafts/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/engagement/drafts/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/engagement/refresh-summary/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/engagement/thread-summaries/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/engagement/thread/[id]/company/route.ts": {
+  "sb": 2,
+  "fetch": 1
+ },
+ "src/app/api/engagement/thread/[id]/party/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/engagement/thread/route.ts": {
+  "sb": 0,
+  "fetch": 13
+ },
+ "src/app/api/finance/reconciliation/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/followups/route.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/app/api/forms/route.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/app/api/group-benefits/analysis/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/group-benefits/census/read/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/group-benefits/census/sources/route.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/app/api/group-benefits/insurer-contacts/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/group-benefits/last-year/read/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/group-benefits/rate-tables/[id]/approve/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/group-benefits/rate-tables/[id]/extract/route.ts": {
+  "sb": 0,
+  "fetch": 14
+ },
+ "src/app/api/group-benefits/rate-tables/[id]/pdf/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/group-benefits/rate-tables/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 11
+ },
+ "src/app/api/group-benefits/rate-tables/[id]/schedule/route.ts": {
+  "sb": 0,
+  "fetch": 13
+ },
+ "src/app/api/group-benefits/rate-tables/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/group-benefits/sources/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/inbound/auto-draft/route.ts": {
+  "sb": 0,
+  "fetch": 10
+ },
+ "src/app/api/inbound/reply/route.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/app/api/insurers/[id]/threads/route.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/app/api/insurers/declines/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/leads/route.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/app/api/letters/appointment/route.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/app/api/marketing/gsc/callback/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/marketing/gsc/disconnect/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/marketing/gsc/select-property/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/methods/[key]/route.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/app/api/nexus/attachments/extract/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/nexus/cases/[id]/analyze/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/nexus/cases/[id]/company/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/nexus/cases/[id]/edit-analysis/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/nexus/cases/[id]/rescan-reanalyze/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/nexus/cases/[id]/restore-analysis/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/nexus/cases/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/app/api/nexus/cases/[id]/runs/[runId]/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/nexus/cases/[id]/runs/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/nexus/cases/[id]/suggest/route.ts": {
+  "sb": 0,
+  "fetch": 8
+ },
+ "src/app/api/nexus/cases/[id]/threads/route.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/app/api/nexus/cases/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/nexus/companies/[id]/case/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/nexus/draft-create/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/nexus/follow-ups/[id]/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/nexus/step-draft/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/placements/[id]/log/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/[id]/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/auto/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/dispatches/[id]/quote/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/dispatches/[id]/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/line-texts/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/placements/lines/[id]/request/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/placements/lines/[id]/route.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/app/api/placements/prefill/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/register/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/placements/unmatched/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/placements/working/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/policies/[id]/members/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/policies/[id]/movements/request/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/policies/[id]/renewal/calendar/route.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/app/api/policies/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/app/api/policies/lookup/route.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/app/api/policies/movements/route.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/app/api/public/hr/[token]/submit/route.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/api/public/sales/unsubscribe/route.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/app/api/settings/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/settings/voice/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/signatures/[id]/route.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/app/api/signatures/route.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/app/api/thread-insurers/[id]/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/app/api/today/eb-renewals/route.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/app/api/unsubscribe/route.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/app/api/users/route.ts": {
+  "sb": 0,
+  "fetch": 7
+ },
+ "src/app/api/work/[id]/edit/route.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/app/documents/page.tsx": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/app/pricing-matrix/quote/[id]/[[...rest]]/page.tsx": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/admin/a/document-clerk.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/admin/a/intake.ts": {
+  "sb": 31,
+  "fetch": 0
+ },
+ "src/lib/admin/a/knowledge.ts": {
+  "sb": 13,
+  "fetch": 0
+ },
+ "src/lib/admin/a/policy-reader.ts": {
+  "sb": 14,
+  "fetch": 0
+ },
+ "src/lib/admin/a/references.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/admin/a/resolver.ts": {
+  "sb": 15,
+  "fetch": 0
+ },
+ "src/lib/admin/b/claims-agent.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/admin/b/contact-id.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/admin/b/data.ts": {
+  "sb": 25,
+  "fetch": 0
+ },
+ "src/lib/admin/b/documents/store.ts": {
+  "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/admin/b/drafter.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/amendments.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/batches.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/intake.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/notes.ts": {
+  "sb": 12,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/store.ts": {
+  "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/admin/b/endorsements/sync.ts": {
+  "sb": 15,
+  "fetch": 0
+ },
+ "src/lib/admin/b/later.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/admin/b/policy-agents.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/admin/b/register.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/admin/b/relay/agent.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/admin/b/renewals/advice-agent.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/admin/b/sweeps.ts": {
+  "sb": 14,
+  "fetch": 0
+ },
+ "src/lib/admin/b/voice.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/admin/k/deposit.ts": {
+  "sb": 14,
+  "fetch": 0
+ },
+ "src/lib/admin/k/retrieve.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/admin/ledger.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/agent-activity.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/agent-tasks/queue.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/agents/ask-ai.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/agents/company-retrieval.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/agents/crm-agent.ts": {
+  "sb": 3,
+  "fetch": 2
+ },
+ "src/lib/agents/endorsement/main.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/ai-call.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/analytics/autonomy/compute.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/api-gate/verify.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/app-settings.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/auth/users.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/autonomy/digest.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/autonomy/ladder.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/autonomy/send.ts": {
+  "sb": 15,
+  "fetch": 0
+ },
+ "src/lib/cases/brief-store.ts": {
+  "sb": 23,
+  "fetch": 0
+ },
+ "src/lib/cases/combine-store.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/cases/compare-store.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/cases/mail-store.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/cases/memory-store.ts": {
+  "sb": 19,
+  "fetch": 0
+ },
+ "src/lib/cases/rounds-draft.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/cases/rounds-store.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/cases/season-store.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/cases/sources-store.ts": {
+  "sb": 39,
+  "fetch": 0
+ },
+ "src/lib/cases/sync.ts": {
+  "sb": 18,
+  "fetch": 0
+ },
+ "src/lib/casework/queue.ts": {
+  "sb": 20,
+  "fetch": 0
+ },
+ "src/lib/casework/run.ts": {
+  "sb": 27,
+  "fetch": 0
+ },
+ "src/lib/chief/bar.ts": {
+  "sb": 13,
+  "fetch": 0
+ },
+ "src/lib/chief/read.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/chief/suggest.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/claim-review/store.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/claims/tpa-notices.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/clients/admin-desk-load.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/clients/enrolment-cycle.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/clients/people.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/clients/portfolio-load.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/crm/activity.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/crm/aggregates.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/crm/autofile.ts": {
+  "sb": 21,
+  "fetch": 0
+ },
+ "src/lib/crm/board.ts": {
+  "sb": 14,
+  "fetch": 0
+ },
+ "src/lib/crm/brief.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/crm/cases.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/crm/client-link.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/crm/contact-for-email.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/crm/context.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/crm/domains.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/crm/identity.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/crm/misfiled.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/crm/overview.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/crm/payments-server.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/crm/people.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/crm/quotes.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/crm/receipts.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/crm/referral-review.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/crm/resolve.ts": {
+  "sb": 23,
+  "fetch": 0
+ },
+ "src/lib/crm/signature.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/crm/staff.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/crm/thread-referral.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/crm/thread-title.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/crm/threads.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/crm/triage.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/customer-profile.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/lib/debit-note-bank-profile.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/debit-note-commit.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/debit-notes/extract-bundle.ts": {
+  "sb": 0,
+  "fetch": 8
+ },
+ "src/lib/documents/drive.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/documents/members-store.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/documents/money-store.ts": {
+  "sb": 16,
+  "fetch": 0
+ },
+ "src/lib/documents/policy.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/documents/store.ts": {
+  "sb": 18,
+  "fetch": 0
+ },
+ "src/lib/error-log.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/followups/monitor.ts": {
+  "sb": 20,
+  "fetch": 0
+ },
+ "src/lib/forms/library.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/gb/analysis.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/gb/brief.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/gb/builder.ts": {
+  "sb": 0,
+  "fetch": 7
+ },
+ "src/lib/gb/client-draft.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
+ "src/lib/gb/compare-cover.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/gb/compare-quotation.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/gb/documents.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/gb/draft.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/gb/eb-proposal-store.ts": {
+  "sb": 19,
+  "fetch": 0
+ },
+ "src/lib/gb/intake.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/gb/limit-facts.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/gb/outreach.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/gb/plan-pairs.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/gb/quotation.ts": {
+  "sb": 0,
+  "fetch": 7
+ },
+ "src/lib/gb/scenario-run.ts": {
+  "sb": 13,
+  "fetch": 0
+ },
+ "src/lib/gb/workbook.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/gemini-usage.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/gmail/attachments.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/gmail/mailboxes.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/hr/links.ts": {
+  "sb": 19,
+  "fetch": 0
+ },
+ "src/lib/insurer-products.ts": {
+  "sb": 16,
+  "fetch": 0
+ },
+ "src/lib/insurers.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/insurers/thread-sweep.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/intake/store.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/log-activity.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/mail/inbox-index.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/mail/visibility-server.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/marketing/articles.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/marketing/competitors.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/marketing/engine.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/marketing/gsc/data.ts": {
+  "sb": 5,
+  "fetch": 0
+ },
+ "src/lib/marketing/gsc/sync.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/marketing/knowledge-file.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/marketing/knowledge.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/marketing/schedule.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/marketing/sites.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/methods/method.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/newsletter/store.ts": {
+  "sb": 29,
+  "fetch": 0
+ },
+ "src/lib/nexus-run-store.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/nexus/chases.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/nexus/company-view.ts": {
+  "sb": 15,
+  "fetch": 0
+ },
+ "src/lib/nexus/ledger.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/nexus/reader.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/nexus/sources.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/placement/adopt.ts": {
+  "sb": 11,
+  "fetch": 0
+ },
+ "src/lib/placement/auto-attach.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/placement/auto.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/placement/eb.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/placement/quote-read.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/placement/store.ts": {
+  "sb": 44,
+  "fetch": 0
+ },
+ "src/lib/placement/workflow.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/policies/expire.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/policies/inbound.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/policies/ledger/advice.ts": {
+  "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/policies/ledger/index.ts": {
+  "sb": 12,
+  "fetch": 0
+ },
+ "src/lib/policies/members.ts": {
+  "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/policies/movement-flow.ts": {
+  "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/policies/position.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/policies/queue.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/policies/spine.ts": {
+  "sb": 13,
+  "fetch": 0
+ },
+ "src/lib/policies/transactions.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/roadplus-db.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/run-auto-summarize.ts": {
+  "sb": 0,
+  "fetch": 7
+ },
+ "src/lib/run-nexus-analysis.ts": {
+  "sb": 0,
+  "fetch": 14
+ },
+ "src/lib/run-rag-draft.ts": {
+  "sb": 0,
+  "fetch": 7
+ },
+ "src/lib/sales/audience.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/sales/db.ts": {
+  "sb": 2,
+  "fetch": 3
+ },
+ "src/lib/sales/enrich.ts": {
+  "sb": 7,
+  "fetch": 0
+ },
+ "src/lib/sales/events.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/sales/ingest.ts": {
+  "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/storage/attachment-bytes.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/thread-attachment-context.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/today/ask.ts": {
+  "sb": 15,
+  "fetch": 0
+ },
+ "src/lib/today/data.ts": {
+  "sb": 40,
+  "fetch": 0
+ },
+ "src/lib/today/desk-read.ts": {
+  "sb": 16,
+  "fetch": 0
+ },
+ "src/lib/today/desk-server.ts": {
+  "sb": 17,
+  "fetch": 0
+ },
+ "src/lib/today/digest.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/today/learn-server.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/voice.ts": {
+  "sb": 0,
+  "fetch": 1
+ }
+}

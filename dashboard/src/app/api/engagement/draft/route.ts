@@ -13,8 +13,8 @@ import { buildCitations, renderProvenance, CITE_INSTRUCTION } from '@/lib/agents
 import { routeModel }                     from '@/lib/agents/router'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL    = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 // Small calls below (first-name extraction, email-type classification) emit one word each.
 // They run on Lite; only the drafter needs Flash.

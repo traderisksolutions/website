@@ -6,7 +6,7 @@ import { SectionCard, Chip, Empty, Btn } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { PersonTag } from '@/components/board/TodoEditor'
 import type { StaffMember } from '@/lib/crm/staff'
-import { fmtRelative } from '@/lib/crm/format'
+import { fmtRelative } from '@/lib/format'
 import type { Person, PersonParty } from '@/lib/crm/types'
 
 const INK = '#0f1412'

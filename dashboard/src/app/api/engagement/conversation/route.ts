@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { SB_URL } from '@/lib/sb'
 
 // GET /api/engagement/conversation?thread_id=X
 // Returns every thread grouped into the same conversation as X (the anchor client thread
@@ -7,7 +8,6 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 // party (contact) and a message summary. Powers the party switcher in the right details
 // panel. suggest_nexus flips true once a conversation spans 3+ parties/threads.
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const NEXUS_SUGGEST_THRESHOLD = 3
 
 function sbHeaders() {

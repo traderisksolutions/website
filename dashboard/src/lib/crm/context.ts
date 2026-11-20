@@ -9,7 +9,7 @@ import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
 import { listCompanyQuotes } from './quotes'
 import { listCompanyCases } from './cases'
-import { fmtMoney, todaySGT } from './format'
+import { fmtMoney, todaySGT } from '@/lib/format'
 import { STAGE_LABEL } from './types'
 import type { Company, CompanyThread, Person, PaymentDerived, PaymentSummary, QuoteRow, CaseRow } from './types'
 

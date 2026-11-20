@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Chip, Empty, Segmented, inputCls } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { fmtRelative } from '@/lib/crm/format'
+import { fmtRelative } from '@/lib/format'
 import type { CompanyThread } from '@/lib/crm/types'
 
 /**

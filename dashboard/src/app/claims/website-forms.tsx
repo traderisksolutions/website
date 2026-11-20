@@ -208,7 +208,7 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
 
   useEffect(() => {
     load()
-    const t = setInterval(() => load(), 30000)
+    const t = setInterval(() => load(), 120_000)
     return () => clearInterval(t)
   }, [load])
 

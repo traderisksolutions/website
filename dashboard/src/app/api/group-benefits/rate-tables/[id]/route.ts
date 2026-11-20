@@ -9,8 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { bandBounds }                from '@/lib/gb-extract'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 /** The rate-table fields a reviewer may edit. Everything else on the row is set by the system. */
 const META_FIELDS = ['insurer_name', 'product_code', 'product_name', 'age_basis', 'plan_year', 'effective_date', 'notes'] as const

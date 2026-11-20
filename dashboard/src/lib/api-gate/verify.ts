@@ -1,5 +1,6 @@
 import { keyMatches, keyPrefixOf, secretMatches } from './keys'
 import { DEFAULT_API_RULE, matchApiRule, type ApiRule } from './policy'
+import { SB_URL } from '@/lib/sb'
 
 // The gate. Runs in middleware.ts for every /api/** request, before any
 // route handler.
@@ -46,7 +47,6 @@ interface ApiClientRow {
   key_hash: string; scopes: string[] | null; status: string
 }
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 async function lookupClient(prefix: string): Promise<ApiClientRow | null | 'unavailable'> {
   const serviceKey = process.env.SUPABASE_SERVICE_KEY
