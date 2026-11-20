@@ -101,6 +101,12 @@ Jarod: "After migrating the quotations > delete the old quotations and pages." 1
 - Fix: drafts to a new address failed (contacts has no unique key on email; `on_conflict=email` returned 42P10). `/api/engagement/draft` (Reply, Compare cover's Send by email, the quotation drafts), `/api/engagement/drafts` (Save draft) and `/api/nexus/draft-create` (New email) look the contact up and insert only when none (`src/lib/crm/contact-for-email.ts`).
 - Behaviours INB-038 to INB-049.
 
+## 2026-11-20 — Renewals, release 1: records and data fixes
+
+- Renewals become their own record (`renewals`, `renewal_tasks`), opened from the policy 120 days before expiry, 180 for Employment Benefits, with tasks at 90, 60, 30 and 15 days. Migration `20261120_renewals.sql` (also `policy_lines`, `policy_line_aliases`, `policies.line_code`) is written, **not applied**; every route answers `{ tables: false }` until it is.
+- `/renewals`: the open records as one table, Open renewals due (`POST /api/renewals/open`, idempotent, person-triggered; not in the admin sweep), the stage moves in the row. `/renewals/fix` (To fix): policies without an end date with a suggested date, lines to map with a suggested line, policies with no placing debit note. Nothing is written without a person's Confirm.
+- Pure rules in `src/lib/renewals/` (lines, opening, tasks, expiring premium net of reversals, stage checks), tested against the real class-of-insurance spellings (person names removed). Pipeline and Forecast are release 2. The calendar keeps dates only; unchanged. Not in the top bar yet. REN-001 to REN-010. Docs: `docs/renewals.md`.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.
