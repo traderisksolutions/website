@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const { snapshot, ...rest } = q
     const sent = await draftSent(q)
     const edit = req.nextUrl.searchParams.get('edit') === '1'
-      ? { edit: snapshot.edit ?? null, products: snapshot.products, effectiveDate: snapshot.effectiveDate, basis: snapshot.basis,
+      ? { edit: snapshot.edit ?? null, census: snapshot.members ?? [], products: snapshot.products, effectiveDate: snapshot.effectiveDate, basis: snapshot.basis,
           picks: Object.fromEntries(snapshot.categories.map(c => [c.name, Object.fromEntries(snapshot.products.map(p => [p, Object.fromEntries(Object.entries(c.covers).map(([k, cells]) => [k, cells[p]?.plan ?? '']))]))])) }
       : {}
     return NextResponse.json({ quotation: { ...rest, draft_sent: sent }, model: proposalModel(snapshot), checks: proposalChecks(snapshot), ...edit })

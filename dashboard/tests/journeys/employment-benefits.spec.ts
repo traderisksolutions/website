@@ -15,10 +15,10 @@ test('Employment Benefits tabs are New quotation, Quotation register and Brochur
   await expect(page.getByText(/^EB$/)).toHaveCount(0)
 })
 
-test('EB-052 the Quotation register lists eb_quotations: Company, Effective date, Basis, Products, Version, Status, Updated; a row opens its proposal', async ({ page }) => {
+test('EB-052 the Quotation register lists eb_quotations: Company, Effective date, Basis, Insurers, Version, Status, Updated; a row opens its proposal', async ({ page }) => {
   await openClean(page, '/pricing-matrix')
   const table = page.getByRole('table', { name: 'Quotation register' })
-  await expect(table.locator('thead th')).toHaveText(['Company', 'Effective date', 'Basis', 'Products', 'Version', 'Status', 'Updated'])
+  await expect(table.locator('thead th')).toHaveText(['Company', 'Effective date', 'Basis', 'Insurers', 'Version', 'Status', 'Updated'])
   const [q] = await dbRows<{ id: string }>('eb_quotations?select=id&order=created_at.desc&limit=1')
   test.skip(!q, 'no quotation kept from /eb')
   await expect(table.locator(`a[href="/eb/proposal/${q.id}"]`)).toBeVisible({ timeout: 30_000 })
@@ -69,7 +69,7 @@ test('Employment Benefits › Plan rules: the brochure rules for Income, RCC and
 
 test('an HR link\'s list opens New quotation, not the retired Quick quote', async ({ page }) => {
   await page.goto('/pricing-matrix?tab=quote&hrLink=00000000-0000-0000-0000-000000000000')
-  await expect(page).toHaveURL(/\/pricing-matrix\/new\?hrLink=/)
+  await expect(page).toHaveURL(/\/eb\?hrLink=/)
 })
 
 test('EB-061 an old quotation address redirects to its re-priced proposal; one not moved lands on the Quotation register', async ({ page }) => {

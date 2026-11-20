@@ -3,7 +3,7 @@
  * census is an uploaded file made up here, read and priced, never saved.
  */
 import { test, expect } from '@playwright/test'
-import { openClean } from './helpers'
+import { dbRows, openClean } from './helpers'
 
 const CENSUS = [
   'Name,Date of birth,Relationship,Category,GHS Plan',
@@ -52,7 +52,7 @@ test('a census in categories, one tier lower first, then premiums per category w
   await expect(directors.getByRole('columnheader', { name: 'Current' })).toBeVisible()
   await expect(directors.getByRole('cell', { name: 'Against current' }).first()).toBeVisible()
   await expect(directors.getByRole('cell', { name: 'Per person' })).toBeVisible()
-  await expect(page.getByText(/^Today$|Against today|^A life$/)).toHaveCount(0)
+  await expect(page.locator('main').getByText(/^Today$|Against today|^A life$/)).toHaveCount(0)
   await expect(page.getByText('Other insurer')).toHaveCount(0)
 
   // Proposal under Total (EB-051): every insurer ticked, one taken out, nothing saved here.
@@ -92,10 +92,11 @@ test('changing the company clears the census read for the last one', async ({ pa
 
 test('a proposal reopens as Edit quotation with its census and insurers; a sent one never offers Email to client (EB-055, EB-056)', async ({ page }) => {
   test.setTimeout(120_000)
-  await openClean(page, '/pricing-matrix')
-  const first = page.getByRole('table', { name: 'Quotation register' }).locator('tbody a').first()
-  test.skip(!(await first.count()), 'no kept quotation')
-  await first.click()
+  // A kept quotation whose saved copy holds a census (one saved before 19 Nov holds none and says so).
+  const kept = await dbRows<{ id: string; snapshot: { members?: unknown[]; categories?: unknown[] } }>('eb_quotations?select=id,snapshot&order=updated_at.desc&limit=50')
+  const q = kept.find(r => (r.snapshot?.members?.length ?? 0) > 0 && (r.snapshot?.categories?.length ?? 0) <= 4)
+  test.skip(!q, 'no kept quotation with a census')
+  await openClean(page, `/eb/proposal/${q!.id}`)
   await expect(page).toHaveURL(/\/eb\/proposal\/[0-9a-f-]{36}$/)
   const id = page.url().split('/').pop()!
   await expect(page.getByRole('button', { name: 'Back' })).toHaveCount(0)
