@@ -6,6 +6,8 @@ import type { BoardPayload, BoardTask } from '@/lib/crm/board'
 export type SyncState = 'idle' | 'syncing' | 'saved' | 'error'
 import { derive, isOpen, staffByEmail, urgencyOf, type Derived } from './model'
 import type { BoardActions } from './actions'
+import { unwrap } from '@/lib/action-result'
+import { addBoardTask, boardData, removeBoardTask, updateBoardTask, updateCompany } from '@/app/companies/actions'
 
 /**
  * The one source of truth for everything company-shaped on screen. Home and Companies both
@@ -25,9 +27,7 @@ export function useBoardData(initial?: BoardPayload | null) {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch('/api/board', { cache: 'no-store' })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error ?? 'Could not load companies.')
+      const d = unwrap(await boardData())
       setData(d); setError(null)
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
   }, [])
@@ -75,12 +75,10 @@ export function useBoardData(initial?: BoardPayload | null) {
       }
       setData(d => d ? { ...d, companies: d.companies.map(c => c.id === companyId ? { ...c, tasks: [...c.tasks, optimistic] } : c) } : d)
       try {
-        const r = await fetch('/api/board/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyId, ...input }) })
-        const d = await r.json()
-        if (!r.ok) throw new Error(d.error)
-        patchLocal(tmpId, () => d.task)
+        const task = unwrap(await addBoardTask({ companyId, ...input })) as BoardTask
+        patchLocal(tmpId, () => task)
         flashSaved()
-        return d.task
+        return task
       } catch {
         setData(d => d ? { ...d, companies: d.companies.map(c => ({ ...c, tasks: c.tasks.filter(t => t.id !== tmpId) })) } : d)
         setSync('error')
@@ -104,10 +102,8 @@ export function useBoardData(initial?: BoardPayload | null) {
         }
       })
       try {
-        const r = await fetch(`/api/board/tasks/${taskId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) })
-        const d = await r.json()
-        if (!r.ok) throw new Error(d.error)
-        patchLocal(taskId, () => d.task)
+        const task = unwrap(await updateBoardTask(taskId, patch)) as BoardTask
+        patchLocal(taskId, () => task)
         flashSaved()
       } catch {
         if (before.t) { const t = before.t; patchLocal(taskId, () => t) }
@@ -119,8 +115,7 @@ export function useBoardData(initial?: BoardPayload | null) {
       const removed: { t: BoardTask | null } = { t: null }
       setData(d => d ? { ...d, companies: d.companies.map(c => { const t = c.tasks.find(x => x.id === taskId); if (t) removed.t = t; return { ...c, tasks: c.tasks.filter(x => x.id !== taskId) } }) } : d)
       try {
-        const r = await fetch(`/api/board/tasks/${taskId}`, { method: 'DELETE' })
-        if (!r.ok) throw new Error('delete failed')
+        unwrap(await removeBoardTask(taskId))
         flashSaved()
       } catch {
         if (removed.t) { const t = removed.t; setData(d => d ? { ...d, companies: d.companies.map(c => c.id === t.company_id ? { ...c, tasks: [...c.tasks, t] } : c) } : d) }
@@ -133,9 +128,7 @@ export function useBoardData(initial?: BoardPayload | null) {
   const patchCompany = useCallback(async (companyId: string, body: Record<string, unknown>) => {
     setSync('syncing')
     try {
-      const r = await fetch(`/api/companies/${companyId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error)
+      const d = unwrap(await updateCompany(companyId, body))
       setData(x => x ? { ...x, companies: x.companies.map(c => c.id === companyId ? { ...c, ...d.company } : c) } : x)
       flashSaved()
     } catch { setSync('error') }

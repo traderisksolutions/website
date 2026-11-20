@@ -14,6 +14,8 @@ import { selectCls } from '@/components/cases/shared'
 import { DASH, fmtDay } from '@/lib/format'
 import { COMPANY_KINDS, type CompanyKind } from '@/lib/crm/types'
 import type { ReferralRow } from '@/lib/crm/referral-review'
+import { unwrap } from '@/lib/action-result'
+import { updateCompany } from '@/app/companies/actions'
 
 const KIND_NAME: Record<CompanyKind, string> = { partner: 'Referral', client: 'Client', insurer: 'Insurer', tpa: 'Third-party administrator', vendor: 'Vendor', other: 'Other' }
 const KINDS: CompanyKind[] = ['partner', ...COMPANY_KINDS.filter(k => k !== 'partner')]
@@ -30,7 +32,7 @@ export function ReferralReview({ rows, onChange, onNotice, onError }: {
   async function decide(r: ReferralRow, kind: CompanyKind) {
     setBusy(r.id); onError(null)
     try {
-      const d = await callApi<{ company: { confirmed_at?: string | null; confirmed_by?: string | null } | null }>(`/api/companies/${r.id}`, { method: 'PATCH', body: { kind, confirmed: true } })
+      const d = unwrap(await updateCompany(r.id, { kind, confirmed: true }))
       onChange(rows.map(x => x.id === r.id ? { ...x, kind, checkedAt: d.company?.confirmed_at ?? new Date().toISOString(), checkedBy: d.company?.confirmed_by ?? null } : x))
       onNotice(kind === 'partner' ? `${r.name} kept as a referral.` : `${r.name} set to ${KIND_NAME[kind].toLowerCase()}.`)
     } catch (e) { onError(errText(e)) } finally { setBusy(null) }

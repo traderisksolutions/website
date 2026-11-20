@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 
 test('an API call with no session is refused', async ({ baseURL }) => {
   const anon = await pwRequest.newContext({ baseURL, storageState: { cookies: [], origins: [] } })
-  const res = await anon.get('/api/companies?search=a')
+  const res = await anon.get('/api/engagement/conversations?paged=1')
   expect([401, 403]).toContain(res.status())
 })
 

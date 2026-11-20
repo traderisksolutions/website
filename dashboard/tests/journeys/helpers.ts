@@ -21,11 +21,9 @@ export async function openClean(page: Page, href: string) {
   expect(errors, `${href} script errors`).toEqual([])
 }
 
-/** A company id by name, through the app's own API with the signed-in session. */
-export async function companyId(page: Page, name: string): Promise<string> {
-  const res = await page.request.get(`/api/companies?search=${encodeURIComponent(name)}`, { headers: process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {} })
-  expect(res.ok(), 'company search').toBeTruthy()
-  const rows = await res.json() as { id: string; name: string }[]
+/** A company id by name, read-only from the database (company search is a server action now). */
+export async function companyId(_page: Page, name: string): Promise<string> {
+  const rows = await dbRows<{ id: string }>(`companies?select=id&company_name=ilike.${encodeURIComponent(`*${name}*`)}&order=company_name.asc&limit=1`)
   expect(rows.length, `a company named like ${name}`).toBeGreaterThan(0)
   return rows[0].id
 }

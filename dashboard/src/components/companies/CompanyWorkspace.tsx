@@ -35,6 +35,8 @@ import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { PageFrame } from '@/components/page-frame'
 import type { ActionResult } from '@/lib/action-result'
 import { companyActivity, companyCases, companyDrafts, companyPlacements, companyPolicies, companyThreads } from '@/app/companies/[id]/actions'
+import { unwrap } from '@/lib/action-result'
+import { companyDetail, updateCompany } from '@/app/companies/actions'
 
 type Detail = { payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
@@ -155,7 +157,7 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
   const loadActivity = useCallback(() => run('/activity', companyActivity(id), []).then(setActivity), [id, run])
   const loadDrafts = useCallback(() => run('/drafts', companyDrafts(id), []).then(q => setDraftsCount(q.length)), [id, run])
   const loadLetter = useCallback(() => j<{ status: LetterStatus | null }>(`/api/letters/appointment?company_id=${id}`, { status: null }).then(r => setLetter(r.status)), [id, j])
-  const reloadDetail = useCallback(() => { void j<Detail>(`/api/companies/${id}`, EMPTY_DETAIL).then(setDetail) }, [id, j])
+  const reloadDetail = useCallback(() => { void run('detail', companyDetail(id).then(r => r.ok ? { ok: true as const, data: { payments: r.data.payments, paymentSummary: r.data.paymentSummary } } : r), EMPTY_DETAIL).then(setDetail) }, [id, run])
 
   // Cases (Nexus) and the activity log are read when their tab first opens, not on arrival.
   useEffect(() => { if (tab === 'nexus' && cases === null) void loadCases() }, [tab, cases, loadCases])
@@ -177,11 +179,9 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
   }, [ov])
 
   async function patchCompany(body: Record<string, unknown>) {
-    const res = await fetch(`/api/companies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-    const d = await res.json()
-    if (!res.ok) throw new Error(d.error ?? 'Could not save.')
+    const d = unwrap(await updateCompany(id, body))
     setOv(prev => ({ ...prev, company: d.company }))
-    return d.company as Company
+    return d.company
   }
 
   const { company } = ov

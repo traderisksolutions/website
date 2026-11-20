@@ -1,6 +1,6 @@
 /**
  * What the Inbox shows about one company beside a thread: its name, kind, domains and owner, and
- * its open to-dos. Replaces the whole board (/api/board: every client and insurer with every task),
+ * its open to-dos. Replaces the whole board (boardData: every client and insurer with every task),
  * which the Inbox read for one row. Clients and insurers only, as on the board. The staff names the
  * board carried come with the page (InboxTeam in src/components/engagement/company-card.tsx).
  */

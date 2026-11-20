@@ -17,6 +17,7 @@ import { relTime } from '@/lib/activity-labels'
 import { createClient } from '@/lib/supabase/client'
 import { usePolledRefresh } from '@/hooks/usePolledRefresh'
 import { fmtDate, timeAgo } from '@/lib/format'
+import { companyDetail, searchCompanies } from '@/app/companies/actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -324,8 +325,8 @@ export default function NexusPage() {
     const params = new URLSearchParams(window.location.search)
     const companyId = params.get('newCase') === '1' ? params.get('companyId') : null
     if (!companyId) return
-    fetch(`/api/companies/${companyId}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
+    companyDetail(companyId)
+      .then(r => r.ok ? r.data : null)
       .then(d => { if (d?.company) { setPrefillCompany({ id: d.company.id, name: d.company.name }); setCreateOpen(true) } })
   }, [])
 
@@ -482,7 +483,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
   const [saving, setSaving] = useState(false)
 
   // Company — required. Pre-filled (and locked) when opened from a company page's "+ New case";
-  // otherwise a debounced typeahead over the same /api/companies?search= LinkCompanyPopover uses,
+  // otherwise a debounced typeahead over the same searchCompanies LinkCompanyPopover uses,
   // resolved server-side (find-or-create by name) so typing a brand-new name still works.
   const [companyQuery, setCompanyQuery]     = useState('')
   const [companyResults, setCompanyResults] = useState<{ id: string; name: string }[]>([])
@@ -494,8 +495,8 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
     if (prefillCompany || !companyPickerOpen) return
     setCompanySearching(true)
     const t = setTimeout(() => {
-      fetch(`/api/companies?search=${encodeURIComponent(companyQuery.trim())}`, { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : [])
+      searchCompanies(companyQuery.trim())
+        .then(r => r.ok ? r.data : [])
         .then((rows: { id: string; name: string }[]) => setCompanyResults(Array.isArray(rows) ? rows : []))
         .finally(() => setCompanySearching(false))
     }, 200)

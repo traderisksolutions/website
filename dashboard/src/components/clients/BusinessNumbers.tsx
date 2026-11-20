@@ -7,12 +7,12 @@
 import { useEffect, useState } from 'react'
 import { fmtDate, money } from '@/lib/format'
 import { REQUEST_TYPES, type Portfolio } from '@/lib/clients/portfolio'
+import { portfolio } from '@/app/companies/actions'
 
 export function BusinessNumbers({ companyId }: { companyId: string }) {
   const [p, setP] = useState<Portfolio | null>(null)
   useEffect(() => {
-    fetch(`/api/clients/portfolio?window=12m&business=${encodeURIComponent(companyId)}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null).then(setP).catch(() => setP(null))
+    portfolio('12m', companyId).then(r => setP(r.ok ? r.data : null)).catch(() => setP(null))
   }, [companyId])
   const r = p?.rows[0]
   if (!p || !r) return null
