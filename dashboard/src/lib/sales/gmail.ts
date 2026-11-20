@@ -4,28 +4,21 @@
 // Sent mail lands in the Sent folder and replies thread into the inbox like any other email.
 import 'server-only'
 
-const TOKEN_URL = process.env.GMAIL_TOKEN_URL || 'https://oauth2.googleapis.com/token'
+import { GoogleAuthError, gmailToken } from '@/lib/google/auth'
+
 const API = process.env.GMAIL_API_BASE || 'https://gmail.googleapis.com/gmail/v1/users/me'
 
 export class GmailError extends Error {
   constructor(message: string, readonly status: number) { super(message) }
 }
 
-let cached: { token: string; exp: number } | null = null
-
 async function accessToken(): Promise<string> {
-  if (cached && cached.exp > Date.now() + 60_000) return cached.token
-  const { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN } = process.env
-  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) throw new GmailError('Gmail not connected', 0)
-  const res = await fetch(TOKEN_URL, {
-    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: GMAIL_CLIENT_ID, client_secret: GMAIL_CLIENT_SECRET, refresh_token: GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token' }),
-    signal: AbortSignal.timeout(15_000),
-  })
-  const json = (await res.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: string }
-  if (!res.ok || !json.access_token) throw new GmailError(`gmail token: ${json.error ?? res.status}`, res.status)
-  cached = { token: json.access_token, exp: Date.now() + (json.expires_in ?? 3600) * 1000 }
-  return json.access_token
+  try {
+    return await gmailToken()
+  } catch (e) {
+    if (e instanceof GoogleAuthError) throw new GmailError(e.message, e.status)
+    throw e
+  }
 }
 
 /** Is the sender a verified "Send mail as" alias of the connected mailbox? Null = cannot tell. */

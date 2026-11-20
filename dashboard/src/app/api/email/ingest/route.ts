@@ -12,10 +12,10 @@ import { autoSendRun } from '@/lib/autonomy'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 import { captureAttachments, hasRealAttachments } from '@/lib/gmail/attachments'
 import { SB_URL } from '@/lib/sb'
+import { gmailToken } from '@/lib/google/auth'
 
 export const maxDuration = 300
 
-const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const TRS_DOMAIN      = 'trade-risksol.com'
 
@@ -37,21 +37,7 @@ const isAutomated = (e: string) => {
          l.includes('mailer-daemon') || l.includes('postmaster')
 }
 
-async function getAccessToken(): Promise<string> {
-  const res = await fetch(GMAIL_TOKEN_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id:     process.env.GMAIL_CLIENT_ID!,
-      client_secret: process.env.GMAIL_CLIENT_SECRET!,
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN!,
-      grant_type:    'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error('Failed to get Gmail access token')
-  return data.access_token
-}
+const getAccessToken = gmailToken
 
 async function fetchGmailMessage(token: string, messageId: string) {
   const res = await fetch(`${GMAIL_API}/messages/${messageId}?format=full`, {

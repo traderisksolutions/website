@@ -1,9 +1,8 @@
 // HR Connect: the email HR receives, the receipt after submit, and the notice to the sender.
 // Sent as operations@trade-risksol.com with a plain-text part, one link, no images, no tracking.
 // The token appears only inside the URL that goes into the message; it is never logged.
-import { createSign } from 'node:crypto'
 import { buildRawEmail, DEFAULT_FROM, htmlToText } from '@/lib/email-mime'
-import { getGmailToken } from '@/lib/gmail-send'
+import { gmailToken, serviceAccountToken } from '@/lib/google/auth'
 import type { HrLink, HrSubmission } from './types'
 import { displayNameFromEmail } from './tokens'
 
@@ -128,27 +127,11 @@ export function senderNoticeEmail(link: HrLink, submission: HrSubmission): HrEma
 
 // operations@ is a Google Workspace mailbox. With a service account the send is impersonated
 // (same path as /api/email/send and /api/inbound/reply); without one the legacy refresh token
-// in gmail-send.ts is used.
-async function serviceAccountToken(fromEmail: string): Promise<string> {
-  const sa: { client_email: string; private_key: string } = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON!)
-  const privateKey = sa.private_key.replace(/\\n/g, '\n')
-  const now = Math.floor(Date.now() / 1000)
-  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
-  const input = `${b64({ alg: 'RS256', typ: 'JWT' })}.${b64({ iss: sa.client_email, sub: fromEmail, scope: 'https://www.googleapis.com/auth/gmail.send', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 })}`
-  const sign = createSign('RSA-SHA256')
-  sign.update(input)
-  const jwt = `${input}.${sign.sign(privateKey, 'base64url')}`
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error('Service account token failed')
-  return data.access_token as string
-}
-
+// from GMAIL_REFRESH_TOKEN is used.
 async function opsToken(): Promise<string> {
-  return process.env.GOOGLE_SERVICE_ACCOUNT_JSON ? serviceAccountToken(DEFAULT_FROM) : getGmailToken()
+  return process.env.GOOGLE_SERVICE_ACCOUNT_JSON
+    ? serviceAccountToken('https://www.googleapis.com/auth/gmail.send', 'legacy', DEFAULT_FROM)
+    : gmailToken()
 }
 
 async function sendRaw(raw: string): Promise<void> {

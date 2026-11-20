@@ -1,10 +1,10 @@
 import { listMailboxes, watchMailbox } from '@/lib/gmail/mailboxes'
 import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL } from '@/lib/sb'
+import { gmailToken } from '@/lib/google/auth'
 
 export const maxDuration = 30
 
-const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const ALERT_TO        = 'developer@trade-risksol.com'
 
@@ -38,21 +38,7 @@ async function writeConfig(key: string, value: string) {
 
 // ── Gmail OAuth ───────────────────────────────────────────────────────────────
 
-async function getAccessToken(): Promise<string> {
-  const res = await fetch(GMAIL_TOKEN_URL, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body:    new URLSearchParams({
-      client_id:     process.env.GMAIL_CLIENT_ID!,
-      client_secret: process.env.GMAIL_CLIENT_SECRET!,
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN!,
-      grant_type:    'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error(`OAuth failed: ${data.error ?? JSON.stringify(data)}`)
-  return data.access_token as string
-}
+const getAccessToken = gmailToken
 
 // ── Gmail watch ───────────────────────────────────────────────────────────────
 

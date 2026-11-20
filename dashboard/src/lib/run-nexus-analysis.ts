@@ -28,6 +28,7 @@ import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 import { attachmentRefBytes, isDriveRef } from '@/lib/storage/attachment-bytes'
 import { anthropicKeyGated, modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { gmailToken } from '@/lib/google/auth'
 
 // Model ids come from one place so an env override actually takes effect here too.
 // Reading the whole case is the quality-critical step, so it runs on the Pro tier; Flash drafts.
@@ -37,7 +38,6 @@ const GEMINI_URL      = `https://generativelanguage.googleapis.com/v1beta/models
 const GEMINI_FLASH    = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_DRAFT_MODEL}:generateContent`
 const GEMINI_UPLOAD   = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 
-const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
 function sbHeaders(prefer = 'return=representation') {
@@ -261,22 +261,7 @@ export type NexusAnalysisV1 = {
 
 // ── Gmail attachment fetcher ──────────────────────────────────────────────────
 
-async function getGmailToken(): Promise<string | null> {
-  const { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN } = process.env
-  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) return null
-  try {
-    const res = await fetch(GMAIL_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: GMAIL_CLIENT_ID, client_secret: GMAIL_CLIENT_SECRET,
-        refresh_token: GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token',
-      }),
-    })
-    const data = await res.json()
-    return data.access_token ?? null
-  } catch { return null }
-}
+const getGmailToken = (): Promise<string | null> => gmailToken().catch(() => null)
 
 async function fetchGmailAttachment(
   token: string, gmailMsgId: string, attachmentId: string
