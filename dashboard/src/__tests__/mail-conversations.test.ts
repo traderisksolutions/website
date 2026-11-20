@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { conversationsOf, subjectRoot, type ConvMessage } from '@/lib/mail/conversations'
+import { conversationsOf, sameConversation, subjectRoot, type ConvMessage } from '@/lib/mail/conversations'
 
 const insurerOf = (d: string) => (d === 'chubb.com' ? 'Chubb' : null)
 const isTrs = (e: string) => e.endsWith('@trade-risksol.com')
@@ -37,5 +37,16 @@ describe('conversationsOf', () => {
     expect(one.size).toBe(0)
     const two = conversationsOf([m('Quote', 'a@client.sg', '1'), m('Internal note', 'b@trade-risksol.com', '2', 'outbound')], insurerOf, isTrs).get('t1')!
     expect(two.map(c => c.side)).toEqual(['client', null])
+  })
+})
+
+describe('sameConversation', () => {
+  it('starts a new thread for a new subject to new people', () => {
+    expect(sameConversation('(TRS) Chubb - Deluge (Annual Travel)', 'Fwd: Manfred: Deluge Annual Travel Insurance', false)).toBe(false)
+  })
+  it('keeps a reply with the same subject, or with someone already on the thread', () => {
+    expect(sameConversation('RE: [EXTERNAL] Re: (TRS) Chubb - Deluge (Annual Travel)', '(TRS) Chubb - Deluge (Annual Travel)', false)).toBe(true)
+    expect(sameConversation('Updated census', 'Re: Renewal 2027', true)).toBe(true)
+    expect(sameConversation('', 'Renewal', false)).toBe(true)
   })
 })

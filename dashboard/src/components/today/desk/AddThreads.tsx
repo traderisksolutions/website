@@ -16,7 +16,7 @@ import { participantsLine, type DeskSide, type Participant } from '@/lib/today/d
 import type { Conversation } from '@/lib/mail/conversations'
 import type { Suggestion } from '@/lib/today/learn-server'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[] }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[]; private?: { owner: string | null } }
 /** `via`: the conversation picked inside a thread that holds more than one; its side was set from it. */
 type Pick = { side: DeskSide; client: CompanyPick; via?: string }
 
@@ -160,12 +160,13 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                     const p = picked.get(c.thread_id)
                     return (
                       <tr key={c.thread_id} aria-selected={!!p}>
-                        <td><input type="checkbox" aria-label={`Add ${subjectOf(c)}`} checked={!!p} onChange={() => toggle(c)} /></td>
+                        <td><input type="checkbox" aria-label={`Add ${subjectOf(c)}`} checked={!!p} disabled={!!c.private} onChange={() => toggle(c)} /></td>
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
                           {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
                           {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
+                          {c.private && <div className="text-xs font-medium text-trs-warn">Access blocked{c.private.owner ? ` · Owner: ${c.private.owner}` : ''}</div>}
                           {c.conversations && c.conversations.length > 1 && (
                             <ul aria-label="Conversations in this thread" className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
                               {c.conversations.map(v => {
@@ -173,7 +174,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                                 const hit = !!q.trim() && hasWords([v.subject, v.insurer, ...v.people], q.trim().toLowerCase())
                                 return (
                                   <li key={v.subject}>
-                                    <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} className="w-full justify-start gap-2 text-left">
+                                    <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} disabled={!!c.private} className="w-full justify-start gap-2 text-left">
                                       <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium' : ''}`} title={v.subject}>{v.subject}</span>
                                       <span className="shrink-0 text-xs font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
                                       <span className="w-14 shrink-0 text-right font-medium">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>

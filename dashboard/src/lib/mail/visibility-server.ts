@@ -52,3 +52,23 @@ export async function threadVisibleTo(threadId: string, viewer: string | null | 
 
 /** The 403 body every thread read returns for a colleague's private thread. */
 export const PRIVATE_THREAD = { error: 'This thread is in a colleague’s mailbox.' }
+
+/** Who holds a private thread, by first name ("Ernest"): the personal mailboxes it was read from. */
+export async function ownersOf(ids: readonly string[]): Promise<Map<string, string>> {
+  const boxes = await mailboxesByThread(ids)
+  const emails = Array.from(new Set([...boxes.values()].flat().filter(m => m !== OPERATIONS_MAILBOX)))
+  const people = emails.length ? await sbTry<{ email: string; name: string | null }[]>(`app_users?email=in.(${emails.map(e => `"${encodeURIComponent(e)}"`).join(',')})&select=email,name`, []) : []
+  const nameOf = (e: string) => {
+    const n = people.find(p => p.email.toLowerCase() === e.toLowerCase())?.name?.trim()
+    return n || e.split('@')[0].split('.')[0].replace(/^./, c => c.toUpperCase())
+  }
+  const out = new Map<string, string>()
+  for (const [id, m] of boxes) { const own = m.filter(x => x !== OPERATIONS_MAILBOX).map(nameOf); if (own.length) out.set(id, own.join(', ')) }
+  return out
+}
+
+/** The 403 body for one private thread, naming who holds it: "Access blocked. Owner: Ernest". */
+export async function privateThread(threadId: string): Promise<{ error: string; owner: string | null }> {
+  const owner = (await ownersOf([threadId])).get(threadId) ?? null
+  return { error: owner ? `Access blocked. Owner: ${owner}` : PRIVATE_THREAD.error, owner }
+}

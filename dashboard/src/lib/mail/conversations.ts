@@ -77,3 +77,15 @@ export function conversationsOf(
   }
   return out
 }
+
+/**
+ * Whether a reply belongs to the thread its headers point to. A broker forwards the client's email
+ * and then writes to an insurer with a new subject; the new email carries the old headers and used
+ * to join the client's thread. It joins only when the subject is the same conversation's, or when
+ * someone outside TRS on it is already on that thread. Pure.
+ */
+export function sameConversation(subject: string | null | undefined, parentSubject: string | null | undefined, sharesOutsidePeople: boolean): boolean {
+  if (sharesOutsidePeople) return true
+  const a = subjectRoot(subject).toLowerCase(), b = subjectRoot(parentSubject).toLowerCase()
+  return !a || !b || a === b
+}

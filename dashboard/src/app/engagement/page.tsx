@@ -57,6 +57,8 @@ async function fetchThread(
     : email ? `email=${encodeURIComponent(email)}` : null
   if (!param) return { thread: null, messages: [] }
   const res = await fetch(`/api/engagement/thread?${param}`, { cache: 'no-store' })
+  // A colleague's private thread: listed for everyone, opened only by those it is visible to.
+  if (res.status === 403) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'Access blocked')
   if (!res.ok) return { thread: null, messages: [] }
   const data = await res.json()
   return {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { acronym, clientByName, matchClient, nameWords, plausibleClientName, type ClientRef } from '@/lib/crm/client-link'
+import { acronym, acronyms, clientByName, matchClient, nameWords, plausibleClientName, type ClientRef } from '@/lib/crm/client-link'
 
 const aas: ClientRef = { id: 'aas', company_name: 'AUTOMOBILE ASSOCIATION OF SINGAPORE', domain: 'aas.com.sg', domains: ['aas.com.sg', 'legacyfa-asia.com'] }
 const oue: ClientRef = { id: 'oue', company_name: 'OUE Limited', domain: null, domains: [] }
@@ -55,5 +55,22 @@ describe('plausibleClientName', () => {
   it('refuses the broker, Kyn, domains and projects; keeps company names', () => {
     for (const bad of ['trade risk solutions pte ltd', 'TRS', 'kyn.com.sg', 'Project Nusa', 'weixian@mednefits.com', 'ab']) expect(plausibleClientName(bad)).toBe(false)
     for (const ok of ['OUE Limited', 'CCCC Chencharu Close', 'STT GDC Malaysia 2 Sdn. Bhd', 'Flower Chimp']) expect(plausibleClientName(ok)).toBe(true)
+  })
+})
+
+describe('acronyms of Chinese state groups', () => {
+  const cccc = { id: 'cccc', company_name: 'CHINA COMMUNICATIONS CONSTRUCTION COMPANY LIMITED' }
+  const chec = { id: 'chec', company_name: 'CHINA HARBOUR ENGINEERING COMPANY LTD SINGAPORE BRANCH' }
+  const jv = { id: 'jv', company_name: 'SWC-CCCC (SG) JV' }
+  it('reads the leading words up to Company', () => {
+    expect(acronyms(cccc.company_name)).toEqual(['CCC', 'CCCC'])
+    expect(acronyms(chec.company_name)).toEqual(['CHESB', 'CHEC'])
+  })
+  it('files "(TRS) ECICS - CCCC (Dover Show Flat CAR)" under CCCC, not the joint venture', () => {
+    expect(matchClient('(TRS) ECICS - CCCC (Dover Show Flat CAR)', [cccc, chec, jv])?.client.id).toBe('cccc')
+    expect(matchClient('[Binding] Liberty - CCCC Chencharu Close CAR Fac RI', [cccc, chec, jv])?.client.id).toBe('cccc')
+  })
+  it('still needs the acronym in capitals', () => {
+    expect(matchClient('(TRS) ECICS - cccc dover', [cccc])).toBeNull()
   })
 })

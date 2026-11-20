@@ -55,6 +55,22 @@ export function acronym(name: string): string | null {
   return w.length >= 3 ? w.map(x => x[0]).join('').toUpperCase() : null
 }
 
+/**
+ * Every acronym a name goes by. Besides `acronym`, the leading words up to and including "Company"
+ * or "Corporation", which is how Chinese state groups write theirs: "CHINA COMMUNICATIONS
+ * CONSTRUCTION COMPANY LIMITED" → CCC and CCCC; "CHINA HARBOUR ENGINEERING COMPANY LTD SINGAPORE
+ * BRANCH" → CHESB and CHEC. Pure.
+ */
+export function acronyms(name: string): string[] {
+  const out = new Set<string>()
+  const a = acronym(name)
+  if (a) out.add(a)
+  const w = words(name).filter(x => /^[a-z]/.test(x))
+  const stop = w.findIndex(x => x === 'company' || x === 'corporation')
+  if (stop >= 2) out.add(w.slice(0, stop + 1).map(x => x[0]).join('').toUpperCase())
+  return [...out]
+}
+
 function hasSequence(tokens: string[], seq: string[]): boolean {
   if (seq.length === 0) return false
   outer: for (let i = 0; i + seq.length <= tokens.length; i++) {
@@ -75,8 +91,7 @@ export function matchClient(subject: string | null | undefined, clients: ClientR
   for (const c of clients) {
     const key = nameWords(c.company_name)
     if (key.length > 0 && key.join('').length >= 3 && hasSequence(tokens, key)) { found.set(c.id, { client: c, how: 'name' }); continue }
-    const ac = acronym(c.company_name)
-    if (ac && upper.has(ac)) { found.set(c.id, { client: c, how: 'acronym' }); continue }
+    if (acronyms(c.company_name).some(a => upper.has(a))) { found.set(c.id, { client: c, how: 'acronym' }); continue }
     for (const d of [c.domain, ...(c.domains ?? [])]) {
       const label = String(d ?? '').toLowerCase().split('.')[0]
       if (label.length >= 3 && !GENERIC_LABELS.has(label) && lower.has(label)) { found.set(c.id, { client: c, how: 'domain' }); break }

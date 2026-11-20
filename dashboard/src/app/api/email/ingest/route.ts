@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sameConversation } from '@/lib/mail/conversations'
 import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
 import { housekeepingOn } from '@/lib/housekeeping-switch'
@@ -677,9 +678,15 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     if (any) { knownThreadId = any.thread_id; await saveAlias(mailbox, gmailThreadId, any.thread_id) }
   }
   if (!knownThreadId && !(await first<{ id: string }>(`email_threads?gmail_thread_id=eq.${encodeURIComponent(gmailThreadId)}&select=id`))) {
+    // The headers point to a parent; it is the same thread only when it is the same conversation
+    // (src/lib/mail/conversations.ts sameConversation): a new subject to new people starts its own.
+    const outside = allParticipants.map(p => p.email.toLowerCase()).filter(e => !isInternal(e) && !isAutomated(e))
     for (const ref of [inReplyTo, ...references.reverse()].filter((r): r is string => !!r)) {
-      const parent = await first<{ thread_id: string }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id&limit=1`)
-      if (parent) { knownThreadId = parent.thread_id; await saveAlias(mailbox, gmailThreadId, parent.thread_id); break }
+      const parent = await first<{ thread_id: string; subject: string | null }>(`email_messages?rfc822_message_id=eq.${encodeURIComponent(ref)}&select=thread_id,subject&limit=1`)
+      if (!parent) continue
+      const shared = outside.length > 0 && !!(await first<{ thread_id: string }>(`email_participants?thread_id=eq.${parent.thread_id}&email=in.(${outside.map(e => `"${encodeURIComponent(e)}"`).join(',')})&select=thread_id&limit=1`))
+      if (!sameConversation(subject, parent.subject, shared)) break
+      knownThreadId = parent.thread_id; await saveAlias(mailbox, gmailThreadId, parent.thread_id); break
     }
   }
   if (knownThreadId) {

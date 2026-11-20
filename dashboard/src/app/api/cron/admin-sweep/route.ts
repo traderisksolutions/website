@@ -13,7 +13,7 @@ import { checkMailboxes } from '@/lib/gmail/health'
 import { todaySGT } from '@/lib/sgt-time'
 import { expirePolicies } from '@/lib/policies/expire'
 import { sweepClientLinks } from '@/lib/crm/client-link'
-import { housekeepingOn } from '@/lib/housekeeping-switch'
+import { clientLinkRulesOn, housekeepingOn } from '@/lib/housekeeping-switch'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
 import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
 
@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
     const today = q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : todaySGT()
     const mail = await checkMailboxes().catch(() => [] as string[])
     const expired = await expirePolicies(today).catch(() => ({ expired: -1 }))
-    const clients = !housekeepingOn() ? null : await sweepClientLinks({ since: new Date(Date.now() - 3 * 86_400_000).toISOString(), agentLimit: 40 }).catch(() => null)
+    // The client of an insurer thread, by the subject rules (client-link.ts): code only, so it runs
+    // with mail filing off (Jarod, 20 Nov 2026). The model read of the rest waits for HOUSEKEEPING=on.
+    const clients = clientLinkRulesOn() ? await sweepClientLinks({ since: new Date(Date.now() - 3 * 86_400_000).toISOString(), agentLimit: housekeepingOn() ? 40 : 0 }).catch(() => null) : null
     // TPA claim notices move claims on the register by rule (src/lib/claims/tpa-notices.ts).
     const notices = await applyTpaNotices(new Date(Date.now() - 3 * 86_400_000).toISOString()).catch(() => null)
     // Enrolment cycles: chases and reminders prepared as drafts by rule (src/lib/clients/enrolment-cycle.ts).

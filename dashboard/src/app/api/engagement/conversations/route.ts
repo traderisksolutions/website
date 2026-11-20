@@ -5,7 +5,7 @@ import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
+import { mailboxesByThread, ownersOf, visibleThreadIds } from '@/lib/mail/visibility-server'
 
 const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
@@ -168,8 +168,11 @@ export async function GET(req: NextRequest) {
     }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
+    // Everyone at TRS sees every thread in the list (Jarod, 20 Nov 2026); a thread read only from a
+    // colleague's own mailbox is marked with its owner and opens only for those it is visible to.
+    // Its email text (snippet, the matched passage) is withheld from the others.
     const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
-    threads = threads.filter(t => ok.has(t.id))
+    const owners = await ownersOf(threads.filter(t => !ok.has(t.id)).map(t => t.id))
     const boxes = await mailboxesByThread(threads.map(t => t.id))
     if (threads.length === 0) return NextResponse.json([])
 
@@ -316,8 +319,9 @@ export async function GET(req: NextRequest) {
         source:           'email' as const,
         subject:          t.subject,
         display_subject:  t.display_subject ?? null,
-        snippet:          t.snippet,
-        match:            matchBy.get(t.id) ?? null,
+        snippet:          ok.has(t.id) ? t.snippet : null,
+        match:            ok.has(t.id) ? matchBy.get(t.id) ?? null : null,
+        private:          ok.has(t.id) ? undefined : { owner: owners.get(t.id) ?? null },
         participants:     people.get(t.id)?.slice(0, 40) ?? undefined,
         conversations:    convs.get(t.id),
         first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
