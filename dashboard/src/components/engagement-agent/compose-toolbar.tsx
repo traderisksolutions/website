@@ -1,7 +1,7 @@
 'use client'
 
 // Compose kit — the presentational atoms shared by the reply panel (engagement-compose-panel.tsx),
-// the "New email" dialog (engagement/NewEmailComposeModal.tsx) and the editor toolbar
+// the "New email" pane (engagement/NewEmailCompose.tsx) and the editor toolbar
 // (components/RichEditor.tsx). Tokens only: ink #0f1412, body #2a332f, muted #4a5550, faint #6f7a74,
 // hairline #e6e8e4, control #d5d9d4, field #f1f2ee, hover #faf9f6. No business logic here.
 

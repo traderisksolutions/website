@@ -1,25 +1,48 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
+import { useConfirm } from '@/components/ui/confirm'
+import { Btn, InlineSpinner, inputCls } from '@/components/crm/primitives'
 
 type CompanySuggestion = { id: string; name: string; domain: string | null }
+type Pick = { id: string | null; name: string }
 
-/** "Link company": a text link that opens a debounced typeahead over GET /api/companies?search=,
- *  the same pattern CompanyContactPicker uses. On selection it calls the onLinkCompany callback
- *  registered by engagement/page.tsx (which owns the real `leads` state) via EngagementNavProvider,
- *  so the row and header update without a full refetch. Used in the reader header, the context
- *  rail and the Unlinked list rows. */
-export function LinkCompanyPopover({ threadId, className }: { threadId: string; className?: string }) {
-  const { onLinkCompany } = useEngagementNav()
-  const [open, setOpen]         = useState(false)
-  const [query, setQuery]       = useState('')
-  const [results, setResults]   = useState<CompanySuggestion[]>([])
+const ROW = 'w-full text-left px-2 py-1.5 rounded-lg text-sm text-trs-ink bg-transparent border-0 cursor-pointer hover:bg-trs-tint'
+
+/**
+ * Filing a thread by hand (the filing agent is off, 20 Nov 2026). "Link company" on an unfiled
+ * thread, "Change company" on a filed one. Search the companies on file (GET /api/companies),
+ * or "+ Add as a new company" from what was typed (POST /api/companies, with the thread's outside
+ * domain). On an unfiled thread with an outside domain, "File all from <domain>" shows how many
+ * other unfiled threads share it and, after a confirm, files them all under the pick (POST
+ * /api/companies/domains). Every step is a person's click; nothing files on its own. The link
+ * itself goes through the page's onLinkCompany (PATCH /api/engagement/thread/[id]/company); a
+ * failure shows in red with Retry. On a thread filed under an insurer or partner the pick is the
+ * client the thread is about, and the domain tools are off.
+ */
+export function LinkCompanyPopover({ threadId, change = false, forClient = false, className }: {
+  threadId: string
+  /** The thread is filed: the label reads Change company and the domain filing is not offered. */
+  change?: boolean
+  /** The thread is filed under an insurer or partner: the pick is the client it is about, so the
+   *  thread's domain (the insurer's) is never given to the client or used to file others. */
+  forClient?: boolean
+  className?: string
+}) {
+  const { onLinkCompany, onRefresh } = useEngagementNav()
+  const confirm = useConfirm()
+  const [open, setOpen]           = useState(false)
+  const [query, setQuery]         = useState('')
+  const [results, setResults]     = useState<CompanySuggestion[]>([])
   const [searching, setSearching] = useState(false)
-  const [linking, setLinking]   = useState(false)
+  const [busy, setBusy]           = useState<string | null>(null)
+  const [error, setError]         = useState<string | null>(null)
+  const [retry, setRetry]         = useState<(() => void) | null>(null)
+  const [domain, setDomain]       = useState<{ domain: string | null; unfiled: number } | null>(null)
+  const [fileAll, setFileAll]     = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -28,68 +51,127 @@ export function LinkCompanyPopover({ threadId, className }: { threadId: string; 
       fetch(`/api/companies?search=${encodeURIComponent(query.trim())}`, { cache: 'no-store' })
         .then(r => r.ok ? r.json() : [])
         .then((rows: CompanySuggestion[]) => setResults(Array.isArray(rows) ? rows : []))
+        .catch(() => setResults([]))
         .finally(() => setSearching(false))
     }, 200)
     return () => clearTimeout(t)
   }, [query, open])
 
-  function select(c: CompanySuggestion) {
-    setLinking(true)
-    onLinkCompany?.(threadId, c.id, c.name)
-    setLinking(false)
-    setOpen(false)
+  // The thread's outside domain and the unfiled threads that share it: read when an unfiled thread's picker opens.
+  useEffect(() => {
+    if (!open || forClient || domain) return
+    fetch(`/api/engagement/thread/${threadId}/company`, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { domain: string | null; unfiled: number } | null) => setDomain(d ?? { domain: null, unfiled: 0 }))
+      .catch(() => setDomain({ domain: null, unfiled: 0 }))
+  }, [open, forClient, domain, threadId])
+
+  async function file(pick: Pick) {
+    setError(null); setRetry(null)
+    const again = () => void file(pick)
+    const many = !change && fileAll && domain?.domain && domain.unfiled > 0 ? domain : null
+    if (many) {
+      const ok = await confirm({
+        title: `File ${many.unfiled + 1} threads under ${pick.name}?`,
+        body: `This thread and ${many.unfiled} other unfiled thread${many.unfiled === 1 ? '' : 's'} from ${many.domain} go under ${pick.name}. ${many.domain} is added to ${pick.name}.`,
+        action: 'File all',
+      })
+      setOpen(true)
+      if (!ok) return
+    }
+    try {
+      let target = pick
+      if (!target.id) {
+        setBusy('Adding…')
+        const res = await fetch('/api/companies', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: target.name, domain: domain?.domain ?? null }),
+        })
+        const d = await res.json().catch(() => ({})) as { id?: string; name?: string; error?: string }
+        if (!res.ok || !d.id) throw new Error(d.error ? `Not added: ${d.error}` : `Not added (${res.status}).`)
+        target = { id: d.id, name: d.name ?? target.name }
+      }
+      setBusy('Linking…')
+      const r = await onLinkCompany?.(threadId, target.id, target.name)
+      if (r && !r.ok) throw new Error(r.error)
+      if (many) {
+        setBusy('Filing…')
+        const res = await fetch('/api/companies/domains', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: many.domain, decision: 'assign', companyId: target.id }),
+        })
+        const d = await res.json().catch(() => ({})) as { error?: string }
+        if (!res.ok) throw new Error(d.error ? `This thread is linked; the others are not: ${d.error}` : `This thread is linked; the others are not (${res.status}).`)
+        onRefresh?.()
+      }
+      setOpen(false); setQuery(''); setFileAll(false); setDomain(null)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Not linked.')
+      setRetry(() => again)
+    } finally { setBusy(null) }
   }
 
+  const typed = query.trim()
+  const exact = results.some(c => c.name.toLowerCase() === typed.toLowerCase())
+  const label = change ? 'Change company' : 'Link company'
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={o => { if (!busy) setOpen(o) }}>
       <PopoverTrigger asChild>
         <span
           role="button"
           tabIndex={0}
           onClick={e => e.stopPropagation()}
           onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true) } }}
-          title="Link to company"
-          aria-label="Link company"
-          className={cn('flex-shrink-0 inline-flex items-center text-[inherit] font-normal underline underline-offset-[3px] decoration-[#8c958f] cursor-pointer hover:decoration-[#0f1412]', className)}
-          style={{ color: '#0f1412' }}
+          title={label}
+          aria-label={label}
+          className={cn('flex-shrink-0 inline-flex items-center text-[inherit] font-normal text-trs-ink underline underline-offset-[3px] decoration-trs-subtle cursor-pointer hover:decoration-trs-ink', className)}
         >
-          Link company
+          {label}
         </span>
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-2 rounded-[12px]" style={{ border: '1px solid #e6e8e4' }} onClick={e => e.stopPropagation()}>
+      <PopoverContent className="w-80 p-2 rounded-xl border border-trs-line" onClick={e => e.stopPropagation()}>
         <input
           autoFocus
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Search companies"
           aria-label="Search companies"
-          className="w-full h-9 text-[13.5px] rounded-[7px] px-3 outline-none bg-white mb-1.5 focus:border-[#0f1412]"
-          style={{ border: '1px solid #d5d9d4', color: '#0f1412' }}
+          disabled={!!busy}
+          className={cn(inputCls, 'h-9 mb-1.5 text-sm')}
         />
-        {(searching || linking) && (
-          <div className="px-2 py-2 text-[12.5px] flex items-center gap-1.5" style={{ color: '#4a5550' }}>
-            <Loader2 size={11} className="animate-spin" /> {linking ? 'Linking…' : 'Searching…'}
+        {!change && domain?.domain && domain.unfiled > 0 && (
+          <label className="flex items-center gap-2 px-2 py-1.5 text-sm text-trs-ink cursor-pointer">
+            <input type="checkbox" checked={fileAll} onChange={e => setFileAll(e.target.checked)} disabled={!!busy} />
+            File all from {domain.domain} <span className="tabular-nums text-trs-subtle">{domain.unfiled} more</span>
+          </label>
+        )}
+        {(searching || busy) && <div className="px-2 py-2"><InlineSpinner label={busy ?? 'Searching…'} /></div>}
+        {error && (
+          <div className="px-2 py-2 text-xs flex items-start justify-between gap-2" role="alert">
+            <span className="text-trs-neg">{error}</span>
+            {retry && <Btn size="xs" onClick={() => retry()}>Retry</Btn>}
           </div>
         )}
-        {!searching && !linking && results.length === 0 && (
-          <div className="px-2 py-2 text-[12.5px]" style={{ color: '#4a5550' }}>
-            {query.trim() ? 'No matches.' : 'Type to search companies.'}
-          </div>
+        {!searching && !busy && results.length === 0 && !typed && (
+          <div className="px-2 py-2 text-xs text-trs-muted">Type to search companies.</div>
         )}
-        {!searching && !linking && (
+        {!searching && !busy && (
           <ul className="m-0 p-0 list-none max-h-64 overflow-y-auto" role="listbox" aria-label="Companies">
             {results.map(c => (
               <li key={c.id} role="option" aria-selected={false}>
-                <button
-                  type="button"
-                  onClick={() => select(c)}
-                  className="w-full text-left px-2 py-1.5 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]"
-                  style={{ color: '#0f1412' }}
-                >
-                  {c.name}{c.domain && <span className="ml-1.5 text-[12.5px]" style={{ color: '#6f7a74' }}>{c.domain}</span>}
+                <button type="button" onClick={() => void file({ id: c.id, name: c.name })} className={ROW}>
+                  {c.name}{c.domain && <span className="ml-1.5 text-xs text-trs-subtle">{c.domain}</span>}
                 </button>
               </li>
             ))}
+            {typed && !exact && (
+              <li>
+                <button type="button" onClick={() => void file({ id: null, name: typed })} className={cn(ROW, 'font-medium')}>
+                  + Add “{typed}” as a new company{domain?.domain ? <span className="ml-1.5 font-normal text-xs text-trs-subtle">{domain.domain}</span> : null}
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </PopoverContent>

@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { RefreshCw, X, FileEdit, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Lead, ThreadState } from './types'
 import { ThreadRow, type Density } from './ThreadRow'
 import { leadNeedsReply } from './helpers'
-import type { NewEmailDraft } from './NewEmailComposeModal'
+import type { NewEmailDraft } from './NewEmailCompose'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { useConfirm } from '@/components/ui/confirm'
+import { Btn } from '@/components/crm/primitives'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
 
 /** One saved threadless "new compose" draft — shape returned by GET /api/engagement/drafts. */
@@ -38,6 +39,12 @@ interface ConversationListProps {
   /** Avatar-only rows for a very narrow host. The navigator's own collapsed state is the icon
    *  rail in ThreadListPane (CollapsedNavRail); this stays for compatibility. */
   iconOnly?:      boolean
+  /** More rows on the server: a sentinel at the foot loads them on scroll; More does the same. */
+  hasMore?:       boolean
+  loadingMore?:   boolean
+  onMore?:        () => void
+  /** The list failed to load: the error with Retry, never "no conversations". */
+  loadError?:     string | null
 }
 
 const INK = '#0f1412'
@@ -77,6 +84,7 @@ export function ConversationList({
   activeTab, search,
   loading, refreshing,
   onSelect, onRefresh, onOpenDraft, hideHeader, iconOnly, density = 'standard',
+  hasMore = false, loadingMore = false, onMore, loadError = null,
 }: ConversationListProps) {
   const { setCounts, setSearch } = useEngagementNav()
   const needsReplyCount = leads.filter(l => leadNeedsReply(l, threadMap[l.id])).length
@@ -93,6 +101,18 @@ export function ConversationList({
   useEffect(loadDrafts, [])
   useEffect(() => { if (activeTab === 'drafts') loadDrafts() }, [activeTab])
   useEffect(() => { setCounts(c => ({ ...c, drafts: drafts.length })) }, [drafts.length, setCounts])
+
+  // The foot of the list in view loads the next page.
+  const sentinel = useRef<HTMLDivElement>(null)
+  const more = useRef(onMore)
+  more.current = onMore
+  useEffect(() => {
+    const el = sentinel.current
+    if (!el || !hasMore || loadingMore || typeof IntersectionObserver === 'undefined') return
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) more.current?.() }, { rootMargin: '200px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [hasMore, loadingMore, visible.length])
 
   const confirmBox = useConfirm()
   async function discardDraft(id: string, e: MouseEvent) {
@@ -120,7 +140,7 @@ export function ConversationList({
         <div className="flex-shrink-0 flex items-center justify-between px-4 h-11" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[14px] font-medium truncate" style={{ color: INK }}>
-              {activeTab === 'all' ? 'All inbox' : activeTab === 'prospects' ? 'Prospects' : activeTab === 'clients' ? 'Clients' : 'Drafts'}
+              {activeTab === 'drafts' ? 'Drafts' : 'Inbox'}
             </span>
             {!loading && needsReplyCount > 0 && (
               <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{needsReplyCount} need a reply</span>
@@ -170,14 +190,21 @@ export function ConversationList({
           </>
         ) : (
           <>
-            {loading && (iconOnly
+            {loading && !loadError && (iconOnly
               ? <div className="flex items-center justify-center py-12"><Loader2 size={14} className="animate-spin" style={{ color: MUTED }} /></div>
               : <SkeletonRows />)}
 
-            {!loading && !iconOnly && visible.length === 0 && (
+            {loadError && !iconOnly && (
+              <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center" role="alert">
+                <p className="m-0 text-sm text-trs-neg">{loadError}</p>
+                <Btn size="xs" onClick={onRefresh} disabled={refreshing}>{refreshing ? 'Retrying…' : 'Retry'}</Btn>
+              </div>
+            )}
+
+            {!loading && !loadError && !iconOnly && visible.length === 0 && (
               search
                 ? empty('No conversations match this search.', { label: 'Clear search', onClick: () => setSearch('') })
-                : empty('No conversations yet.')
+                : empty('No conversations.')
             )}
 
             {!loading && visible.length > 0 && visible.map(lead => (
@@ -185,6 +212,12 @@ export function ConversationList({
                 <ThreadRow lead={lead} isActive={lead.id === selectedId} threadState={threadMap[lead.id]} onClick={() => onSelect(lead.id)} density={density} />
               </div>
             ))}
+
+            {!loading && hasMore && !iconOnly && (
+              <div ref={sentinel} className="flex justify-center py-3">
+                <Btn level="tertiary" size="xs" onClick={() => onMore?.()} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'More'}</Btn>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Who the thread is from, labelled by a person: Client, Insurer or Referral
+ * Who the thread is from, labelled by a person: Client, Insurer or Referral, as three pills
  * (`src/lib/crm/thread-party.ts`). The label sets the kind of the company the thread is filed
  * under. Client or Insurer: Read thread runs the model on the thread; on an insurer thread it
  * names the client the thread is about. Referral: the client is picked in the shared company
@@ -11,7 +11,8 @@ import { useEffect, useState } from 'react'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { callApi, errText } from '@/components/placement/shared'
 import { PARTIES, PARTY_LABEL, partyOfKind, type Party } from '@/lib/crm/thread-party'
-import { ERROR, INK, MUTED, SECOND } from './rail-bits'
+import { Segmented } from '@/components/crm/primitives'
+import { ERROR, MUTED, SECOND } from './rail-bits'
 
 export type PartyChange = { kind: string; clientCompanyId?: string | null; clientName?: string | null; clientNamed?: string | null }
 
@@ -71,18 +72,14 @@ export function ThreadParty({ threadId, companyName, kind, clientCompanyId, clie
 
   return (
     <div className="flex flex-col gap-2">
-      <select
-        value={party ?? ''}
-        disabled={busy !== null}
-        onChange={e => void label(e.target.value as Party)}
-        aria-label="Thread from"
-        title={companyName ? `Applies to every thread from ${companyName}` : undefined}
-        className="h-8 w-full max-w-[200px] rounded-[7px] border bg-white pl-2 pr-7 text-[13.5px] cursor-pointer outline-none focus:border-[#0f1412] disabled:opacity-50"
-        style={{ borderColor: '#d5d9d4', color: INK }}
-      >
-        {!party && <option value="" disabled>Choose</option>}
-        {PARTIES.map(p => <option key={p} value={p}>{PARTY_LABEL[p]}</option>)}
-      </select>
+      <div title={companyName ? `Applies to every thread from ${companyName}` : undefined} className={busy !== null ? 'opacity-60 pointer-events-none' : undefined}>
+        <Segmented<Party | ''>
+          value={party ?? ''}
+          onChange={p => { if (p && p !== party && busy === null) void label(p) }}
+          label="Thread from"
+          options={PARTIES.map(p => ({ value: p, label: PARTY_LABEL[p] }))}
+        />
+      </div>
 
       {(party === 'client' || party === 'insurer') && (
         <div className="flex items-center gap-2 flex-wrap">

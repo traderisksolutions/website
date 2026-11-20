@@ -57,7 +57,7 @@ async function patchNotes(id: string, notes: string) {
 function InboundLeadsPage() {
   const searchParams = useSearchParams()
   const initFilter   = (searchParams.get('filter') as Filter | null) ?? 'all'
-  // Deep-link from Pipeline (?lead=<inbound_leads.id>) — pre-selects that lead on load.
+  // ?lead=<inbound_leads.id> pre-selects that lead on load.
   const initLead      = searchParams.get('lead')
 
   const [leads,      setLeads]      = useState<Lead[]>([])
@@ -143,33 +143,8 @@ function InboundLeadsPage() {
           </button>
         </div>
 
-        {/* ── Metric tiles: each one filters the list; the active filter gets an ink border ── */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-[92px] rounded-[16px] bg-[#f1f2ee] animate-pulse" aria-hidden />)
-            : (
-              [
-                { key: 'all' as Filter,      label: 'Total leads',  value: leads.length, sub: undefined },
-                { key: 'new' as Filter,      label: 'New',          value: totalNew,     sub: undefined },
-                { key: 'email' as Filter,    label: 'Email / form', value: emCount,      sub: emNew > 0 ? `${emNew} new` : undefined },
-                { key: 'whatsapp' as Filter, label: 'WhatsApp',     value: waCount,      sub: waNew > 0 ? `${waNew} new` : undefined },
-              ].map(t => {
-                const on = filter === t.key
-                return (
-                  <button key={t.key} type="button" onClick={() => setFilter(t.key)} aria-pressed={on}
-                    className="text-left rounded-[16px] px-5 py-4 cursor-pointer transition-colors hover:bg-[#e6e8e4]"
-                    style={{ background: '#f1f2ee', border: `1px solid ${on ? INK : '#f1f2ee'}` }}>
-                    <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{t.label}</p>
-                    <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums" style={{ color: INK }}>{t.value}</p>
-                    <p className="m-0 mt-1.5 text-[12.5px] min-h-[16px]" style={{ color: MUTED }}>{t.sub ?? ''}</p>
-                  </button>
-                )
-              })
-            )}
-        </div>
-
         {/* ── Filter + search row ─────────────────────────────────────────── */}
-        <div className="mt-5 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
+        <div className="mt-6 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <div className="flex gap-1.5 flex-wrap" role="group" aria-label="Filter leads">
             {FILTERS.map(f => (
               <button

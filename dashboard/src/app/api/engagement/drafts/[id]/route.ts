@@ -1,6 +1,6 @@
 /**
  * DELETE /api/engagement/drafts/[id]  → discard a saved "new compose" draft (also used to clean
- * up a draft once it's actually been sent — see NewEmailComposeModal's send()).
+ * up a draft once it's actually been sent — see NewEmailCompose's send()).
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'

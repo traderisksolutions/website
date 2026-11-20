@@ -16,17 +16,19 @@
  */
 import { createContext, useContext, useEffect, useState, type Dispatch, type SetStateAction, type ReactNode } from 'react'
 import type { Lead, ThreadState } from '@/components/engagement/types'
-import type { NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
+import type { NewEmailDraft } from '@/components/engagement/NewEmailCompose'
+import type { InboxView } from '@/lib/mail/inbox-list'
 
-export type EngagementTab =
-  | 'all' | 'needs_reply' | 'awaiting_client' | 'unlinked' | 'unassigned' | 'drafts'
-  | 'renewals' | 'claims' | 'clients' | 'prospects'
+export type EngagementTab = InboxView | 'drafts'
 export type EngagementNavCounts = Record<EngagementTab, number>
 
-const EMPTY_COUNTS: EngagementNavCounts = { all: 0, needs_reply: 0, awaiting_client: 0, unlinked: 0, unassigned: 0, drafts: 0, renewals: 0, claims: 0, clients: 0, prospects: 0 }
+const EMPTY_COUNTS: EngagementNavCounts = { all: 0, needs_reply: 0, awaiting_client: 0, unlinked: 0, unassigned: 0, drafts: 0 }
 
 /** localStorage key for the navigator's collapsed state (64px icon rail vs the full column). */
-export const KEY_NAV_COLLAPSED = 'engagement_nav_collapsed'
+const KEY_NAV_COLLAPSED = 'engagement_nav_collapsed'
+
+/** The result of a person's Link company: ok, or the error to show in red with Retry. */
+export type LinkResult = { ok: true } | { ok: false; error: string }
 
 interface EngagementNavContextValue {
   activeTab: EngagementTab
@@ -57,19 +59,37 @@ interface EngagementNavContextValue {
   setSelectedId: Dispatch<SetStateAction<string | null>>
   loading: boolean
   setLoading: Dispatch<SetStateAction<boolean>>
+  /** The current view's true total on the server (every page, not the rows loaded). */
+  total: number
+  setTotal: Dispatch<SetStateAction<number>>
+  /** More rows on the server: the list loads them on scroll or More. */
+  hasMore: boolean
+  setHasMore: Dispatch<SetStateAction<boolean>>
+  loadingMore: boolean
+  setLoadingMore: Dispatch<SetStateAction<boolean>>
+  onMore: (() => void) | null
+  setOnMore: Dispatch<SetStateAction<(() => void) | null>>
+  /** The list failed to load: shown with Retry, never as an empty list. */
+  loadError: string | null
+  setLoadError: Dispatch<SetStateAction<string | null>>
+  /** Personal mailboxes among every thread the viewer may see, for the Mailbox pill. */
+  mailboxes: string[]
+  setMailboxes: Dispatch<SetStateAction<string[]>>
   onSelect: ((id: string) => void) | null
   setOnSelect: Dispatch<SetStateAction<((id: string) => void) | null>>
   onOpenDraft: ((draft: NewEmailDraft) => void) | null
   setOnOpenDraft: Dispatch<SetStateAction<((draft: NewEmailDraft) => void) | null>>
-  /** Manually link a thread to a company from the "Unlinked" tab's inline picker — registered by
-   *  page.tsx (which owns the real `leads` state) so the row updates without a full refetch. */
-  onLinkCompany: ((threadId: string, companyId: string | null, companyName: string) => void) | null
-  setOnLinkCompany: Dispatch<SetStateAction<((threadId: string, companyId: string | null, companyName: string) => void) | null>>
+  /** A person links a thread to a company (Link company, Change company) — registered by page.tsx
+   *  (which owns the real `leads` state) so the row updates without a full refetch. */
+  onLinkCompany: LinkFn | null
+  setOnLinkCompany: Dispatch<SetStateAction<LinkFn | null>>
   /** Navigator collapsed to the 64px icon rail (desktop only). Persisted under KEY_NAV_COLLAPSED;
    *  EngagementRail renders the icon rail and ConditionalShell narrows its margin to match. */
   navCollapsed: boolean
   setNavCollapsed: Dispatch<SetStateAction<boolean>>
 }
+
+type LinkFn = (threadId: string, companyId: string | null, companyName: string) => Promise<LinkResult>
 
 const EngagementNavContext = createContext<EngagementNavContextValue | null>(null)
 
@@ -92,9 +112,15 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [threadMap, setThreadMap] = useState<Record<string, ThreadState>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [total, setTotal] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [onMore, setOnMore] = useState<(() => void) | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [mailboxes, setMailboxes] = useState<string[]>([])
   const [onSelect, setOnSelect] = useState<((id: string) => void) | null>(null)
   const [onOpenDraft, setOnOpenDraft] = useState<((draft: NewEmailDraft) => void) | null>(null)
-  const [onLinkCompany, setOnLinkCompany] = useState<((threadId: string, companyId: string | null, companyName: string) => void) | null>(null)
+  const [onLinkCompany, setOnLinkCompany] = useState<LinkFn | null>(null)
 
   // Collapsed state: render expanded on first paint, correct from localStorage in a client-only
   // effect (same SSR-safe pattern as useResizableDimension), then persist every change.
@@ -114,7 +140,8 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
       activeTab, setActiveTab, search, setSearch, mailbox, setMailbox,
       counts, setCounts, refreshing, setRefreshing, onRefresh, setOnRefresh,
       leads, setLeads, visible, setVisible, threadMap, setThreadMap,
-      selectedId, setSelectedId, loading, setLoading, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
+      selectedId, setSelectedId, loading, setLoading, total, setTotal, hasMore, setHasMore, loadingMore, setLoadingMore,
+      onMore, setOnMore, loadError, setLoadError, mailboxes, setMailboxes, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
       onLinkCompany, setOnLinkCompany,
       navCollapsed, setNavCollapsed,
     }}>

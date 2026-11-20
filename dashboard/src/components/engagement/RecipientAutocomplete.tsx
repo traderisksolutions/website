@@ -44,7 +44,7 @@ function filterLocal(rows: ContactSuggestion[], query: string): ContactSuggestio
 
 // Suggestions for the given query. Filters the prefetched cache locally (instant); if the
 // cache hasn't loaded yet, does a one-off server query as a fallback for that keystroke.
-export function useContactSearch(query: string): ContactSuggestion[] {
+function useContactSearch(query: string): ContactSuggestion[] {
   const [rows, setRows]       = useState<ContactSuggestion[]>(CACHE?.rows ?? [])
   const [results, setResults] = useState<ContactSuggestion[]>([])
 

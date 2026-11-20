@@ -1,4 +1,4 @@
-import type { NewEmailDraft } from '@/components/engagement/NewEmailComposeModal'
+import type { NewEmailDraft } from '@/components/engagement/NewEmailCompose'
 
 /**
  * Client-side handoff to the Engagement Agent's standalone composer — the same

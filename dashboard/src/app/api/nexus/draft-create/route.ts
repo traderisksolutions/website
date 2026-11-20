@@ -11,6 +11,7 @@
  * Returns: { draftId: string }
  */
 
+import { contactIdFor } from '@/lib/crm/contact-for-email'
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 
@@ -51,29 +52,9 @@ export async function POST(req: NextRequest) {
       contactId = Array.isArray(threads) ? (threads[0]?.contact_id ?? null) : null
     }
 
-    // 2. No contact from thread — upsert one from to_email
-    if (!contactId && to_email.includes('@')) {
-      const uRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?on_conflict=email`,
-        {
-          method:  'POST',
-          headers: sbHeaders('return=representation,resolution=merge-duplicates'),
-          body:    JSON.stringify({ email: to_email.toLowerCase().trim(), source: 'nexus' }),
-        }
-      )
-      const rows = uRes.ok ? await uRes.json() : []
-      contactId  = Array.isArray(rows) && rows[0]?.id ? rows[0].id : null
-
-      if (!contactId) {
-        // Fallback: fetch after upsert
-        const fRes = await fetch(
-          `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(to_email.toLowerCase().trim())}&select=id&limit=1`,
-          { headers: sbHeaders() }
-        )
-        const fRows = fRes.ok ? await fRes.json() : []
-        contactId   = Array.isArray(fRows) ? (fRows[0]?.id ?? null) : null
-      }
-    }
+    // 2. No contact from thread: the contact for to_email, looked up and inserted only when none
+    //    (contacts has no unique key on email, so an on_conflict upsert fails with 42P10).
+    if (!contactId && to_email.includes('@')) contactId = await contactIdFor(to_email, { source: 'nexus' })
 
     if (!contactId) {
       return NextResponse.json(
