@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
+import { PageFrame } from '@/components/page-frame'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { Chip, Segmented } from '@/components/crm/primitives'
 import { Register, RegisterCell, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
@@ -16,6 +17,8 @@ import { NODE_KIND, type NodeKind } from '@/lib/agents/flows'
 import type { AgentDetail, AgentSummary, Place, Tally } from '@/lib/agents/place'
 
 const sgd = (n: number) => n.toFixed(2)
+/** gb_last_year_read → "EB last year read": the logged feature, readable. */
+const fnName = (f: string) => { const w = f.replace(/^gb_/, 'EB_').replace(/_/g, ' '); return w.charAt(0).toUpperCase() + w.slice(1) }
 const tokens = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}m` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n)
 const errRate = (t: Tally) => t.calls ? `${Math.round((100 * t.failed) / t.calls)}%` : '–'
 const KEY_CHIP = { own: <Chip tone="green">Own key</Chip>, shared: <Chip tone="amber">Shared</Chip>, missing: <Chip tone="red">Missing</Chip> }
@@ -24,7 +27,7 @@ const sourceChips = (xs: string[]) => <span className="inline-flex flex-wrap jus
 export function AgentsList({ place }: { place: Place }) {
   const router = useRouter()
   return (
-    <div className="flex flex-col gap-5">
+    <PageFrame>
       <PageHeader title="AI Agents" meta={`${place.agents.length} agents · last 30 days · ${place.mode === 'manual' ? 'every model call started by a person' : 'automatic runs on'}`} />
       <Register label="AI Agents" minWidth={1040}>
         <RegisterHead>
@@ -46,7 +49,7 @@ export function AgentsList({ place }: { place: Place }) {
           ))}
         </tbody>
       </Register>
-    </div>
+    </PageFrame>
   )
 }
 
@@ -56,7 +59,7 @@ const KIND_CLASS: Record<NodeKind, string> = {
 const KIND_MARK: Record<NodeKind, string> = { trigger: '▶', model: '✦', code: '{ }', decide: '?', person: '●', write: '↓' }
 
 function Canvas({ a, sel, onSel }: { a: AgentDetail; sel: number; onSel: (i: number) => void }) {
-  const W = 172, H = 104, PX = 20, PY = 26
+  const W = 204, H = 108, PX = 20, PY = 26, MID = 42
   const cols = Math.max(...a.flow.nodes.map(n => n.col)) + 1
   const pos = a.flow.nodes.map(n => ({ x: PX + n.col * W, y: PY + n.row * H }))
   const sw = PX * 2 + cols * W - 32, sh = PY * 2 + 3 * H - 30
@@ -65,11 +68,11 @@ function Canvas({ a, sel, onSel }: { a: AgentDetail; sel: number; onSel: (i: num
       <div className="relative" style={{ width: sw, height: sh }} /* drift-ok: canvas size from the flow */>
         <svg className="pointer-events-none absolute inset-0 overflow-visible text-trs-subtle" width={sw} height={sh} viewBox={`0 0 ${sw} ${sh}`} aria-hidden>
           {a.flow.edges.map(([f, t, l], i) => {
-            const s = pos[f], e = pos[t], x1 = s.x + 150, y1 = s.y + 34, x2 = e.x, y2 = e.y + 34, dx = Math.max(40, (x2 - x1) / 2)
+            const s = pos[f], e = pos[t], x1 = s.x + 150, y1 = s.y + MID, x2 = e.x, y2 = e.y + MID, dx = Math.max(24, (x2 - x1) / 2)
             return (
               <g key={i}>
                 <path d={`M${x1} ${y1} C${x1 + dx} ${y1},${x2 - dx} ${y2},${x2} ${y2}`} fill="none" stroke="currentColor" strokeWidth={1.6} />
-                {l && <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 6} textAnchor="middle" fontSize={11} fill="currentColor">{l}</text>}
+                {l && <text x={(x1 + x2) / 2} y={Math.min(y1, y2) - 6} textAnchor="middle" fontSize={11} className="fill-trs-muted">{l}</text>}
               </g>
             )
           })}
@@ -127,7 +130,7 @@ function Functions({ a, cost }: { a: AgentDetail; cost: boolean }) {
         {a.functions.length === 0 ? <RegisterRow><RegisterCell first colSpan={cost ? 6 : 4} align="left">No runs in 30 days</RegisterCell></RegisterRow>
           : a.functions.map(f => (
             <RegisterRow key={`${f.feature}|${f.model}`}>
-              <RegisterCell first primary={f.feature.replace(/_/g, ' ')} align="left" />
+              <RegisterCell first primary={fnName(f.feature)} align="left" />
               <RegisterCell>{f.model}</RegisterCell>
               <RegisterCell>{f.calls}</RegisterCell>
               <RegisterCell last={!cost}>{f.failed}</RegisterCell>
@@ -148,7 +151,7 @@ export function AgentPage({ a }: { a: AgentDetail }) {
     ['Error rate', errRate(a.last30), errRate(a.previous)], ['Tokens', tokens(a.last30.tokens), tokens(a.previous.tokens)], ['S$', sgd(a.last30.sgd), sgd(a.previous.sgd)],
   ]
   return (
-    <div className="flex flex-col gap-5">
+    <PageFrame>
       <Breadcrumbs current={{ label: a.name, href: `/agents/${a.id}` }} fallback={{ label: 'AI Agents', href: '/agents' }} />
       <PageHeader title={a.name} meta={`${a.model} · ${a.keyName} · last run ${a.lastRun ? fmtDateTime(a.lastRun) : 'none in 30 days'}`}
         actions={<span className="inline-flex gap-2">{KEY_CHIP[a.key]}{a.status === 'Active' ? <Chip tone="green">Active</Chip> : <Chip>Off</Chip>}</span>} />
@@ -177,7 +180,7 @@ export function AgentPage({ a }: { a: AgentDetail }) {
           <Functions a={a} cost={false} />
         </>
       ) : <Functions a={a} cost />}
-    </div>
+    </PageFrame>
   )
 }
 
@@ -194,7 +197,7 @@ export function AgentsUsage({ place }: { place: Place }) {
     </RegisterRow>
   )
   return (
-    <div className="flex flex-col gap-6">
+    <PageFrame>
       <PageHeader title="Usage" meta={`Last 30 days · S$${total.toFixed(2)} · ${calls.toLocaleString('en-SG')} calls · S$ at ${'1.35'} per US$`} />
       <Register label="By agent" minWidth={760}>
         <RegisterHead><RegisterTh first width={260}>By agent</RegisterTh><RegisterTh>Key</RegisterTh><RegisterTh>Calls</RegisterTh><RegisterTh>Tokens</RegisterTh><RegisterTh>S$</RegisterTh><RegisterTh last>Before</RegisterTh></RegisterHead>
@@ -209,6 +212,6 @@ export function AgentsUsage({ place }: { place: Place }) {
         <RegisterHead><RegisterTh first width={260}>By model</RegisterTh><RegisterTh>Agents</RegisterTh><RegisterTh>Calls</RegisterTh><RegisterTh last>S$</RegisterTh></RegisterHead>
         <tbody>{place.byModel.map(m => <RegisterRow key={m.model}><RegisterCell first primary={m.model} align="left" /><RegisterCell>{m.agents}</RegisterCell><RegisterCell>{m.tally.calls}</RegisterCell><RegisterCell last>{sgd(m.tally.sgd)}</RegisterCell></RegisterRow>)}</tbody>
       </Register>
-    </div>
+    </PageFrame>
   )
 }

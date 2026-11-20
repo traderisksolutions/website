@@ -7,6 +7,7 @@
  */
 import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
+import { PageFrame } from '@/components/page-frame'
 import { Btn } from '@/components/crm/primitives'
 import { Register, RegisterCell, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
 import { fmtDate } from '@/lib/format'
@@ -19,17 +20,17 @@ const tableName = (t: LibraryTable) => [t.planYear, t.source ?? t.insurer].filte
 export function ProductLibrary({ data, error }: { data: Library | null; error: string | null }) {
   const router = useRouter()
   if (!data) return (
-    <div className="flex flex-col gap-4">
+    <PageFrame>
       <PageHeader title="Products" />
       <p className="m-0 text-body text-trs-neg" role="alert">{error ?? 'The products could not be read.'}</p>
       <div><Btn onClick={() => router.refresh()}>Retry</Btn></div>
-    </div>
+    </PageFrame>
   )
   const wb = data.workbook
   const tables = data.products.flatMap(p => p.tables.map(t => ({ product: p.product, t })))
   const queue = [...data.queue.changed.map(r => ({ r, status: 'Changed since read' })), ...data.queue.notRead.map(r => ({ r, status: 'Not read' }))]
   return (
-    <div className="flex flex-col gap-8">
+    <PageFrame className="gap-8">
       <PageHeader title="Products" meta={wb ? `${wb.name} · modified ${fmtDate(wb.modifiedAt)} · imported ${fmtDate(wb.readAt)}` : 'No workbook imported'} />
 
       <Register label="Products" minWidth={980}>
@@ -130,6 +131,6 @@ export function ProductLibrary({ data, error }: { data: Library | null; error: s
           </tbody>
         </Register>
       )}
-    </div>
+    </PageFrame>
   )
 }
