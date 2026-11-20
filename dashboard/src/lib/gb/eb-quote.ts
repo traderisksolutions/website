@@ -13,6 +13,7 @@
 import type { Member } from '@/lib/gb-quote'
 import type { CategoryFacts, LastYear, LastYearCategory } from './last-year'
 import type { PlanRule } from './plan-pairs'
+import type { CoverTarget, TierPick } from './compare-cover'
 import type { COVERS, Workbook } from './workbook'
 
 export const MAX_CATEGORIES = 4
@@ -139,7 +140,8 @@ export const lastYearNet = (ly: LastYear | null): number | null => {
 }
 
 export type PlanOption = { plan: string; words: string; premium: number | null }
-export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean }
+/** One cover at one product for one category: every plan priced, the Same and Lower tier picks with their reasons. `pick` is the Same pick. */
+export type PricedCover = { options: PlanOption[]; pick: string; locked: boolean; same: TierPick; lower: TierPick }
 export type PricedCategory = { name: string; employees: number; lives: number; today: { words: Record<CoverKey, string>; premium: Record<CoverKey, number | null>; product: string | null }; products: Record<string, Record<CoverKey, PricedCover>> }
 export type Priced = { products: string[]; categories: PricedCategory[]; notes: string[]; workbook: Workbook['file']; rules: PlanRule[] }
 
@@ -161,4 +163,43 @@ export function insurerOf(read: string | null | undefined): string {
   const s = String(read ?? '').replace(/\s+/g, ' ').trim()
   if (!s) return ''
   return HOUSE_MATCH.find(([re]) => re.test(s))?.[1] ?? `${UNKNOWN_INSURER}${s.slice(0, 80)}`
+}
+
+
+/**
+ * What the tiers are matched to for one category: last year's policy as read (ward, beds, limit
+ * and its basis, co-insurance, each cover's amount) where it was read; else the census plan's ward,
+ * with the limit not on file; covers neither states take the plain programme (DEFAULT_DESIGN). Pure.
+ */
+export function targetOf(today: Partial<Design>, facts?: CategoryFacts | null): CoverTarget {
+  const d = { ...DEFAULT_DESIGN, ...today }
+  const tier = TIER_OF.hs.tiers[d.hs]?.hosp ?? TIER_OF.hs.tiers[DEFAULT_DESIGN.hs].hosp!
+  const amt = (k: CoverKey) => TIER_OF[k].tiers[d[k]]?.amount ?? null
+  const hosp = facts?.hospital && facts.beds
+    ? { hospital: facts.hospital, beds: facts.beds, limit: facts.limit, basis: facts.limit != null ? facts.limitKind : null, coins: facts.coins ?? 0 }
+    : { hospital: tier.hospital, beds: tier.beds, limit: null, basis: null, coins: 0 }
+  if (!facts) return { hosp, gmm: amt('mm'), gpCopay: amt('gp'), spLimit: amt('sp'), dental: amt('gd'), pa: amt('pa') }
+  return { hosp, gmm: facts.gmm, gpCopay: facts.gpCopay ?? amt('gp'), spLimit: facts.spLimit, dental: facts.dentalLimit, pa: facts.pa }
+}
+
+/** Last year's category for a census category: the same name, or the only one. Pure. */
+export function factsFor(ly: LastYear | null, name: string): CategoryFacts | null {
+  if (!ly?.categories.length) return null
+  const key = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '').slice(0, 5)
+  const c = ly.categories.length === 1 ? ly.categories[0] : ly.categories.find(x => key(x.name) && key(x.name) === key(name))
+  return c?.facts ?? null
+}
+
+const LY_KEY: Partial<Record<string, CoverKey>> = { GHS: 'hs', EMM: 'mm', GOPC: 'gp', GOSC: 'sp', GD: 'gd', GPA: 'pa' }
+export type CurrentPremium = { byCover: Record<CoverKey, number | null>; total: number | null }
+/**
+ * The Current column (call note 23): only what a premium or debit note states, as read, net of GST.
+ * Never estimated from renewal rates; blank when nothing was read. Pure.
+ */
+export function currentFromLastYear(ly: LastYear | null): CurrentPremium {
+  const byCover = Object.fromEntries(TIERS.map(t => [t.key, null])) as Record<CoverKey, number | null>
+  if (!ly) return { byCover, total: null }
+  const k = ly.gst === 'included' ? 1 / 1.09 : 1
+  for (const [c, v] of Object.entries(ly.premiumByCover)) { const key = LY_KEY[c]; if (key && v != null) byCover[key] = Math.round(((byCover[key] ?? 0) + v * k) * 100) / 100 }
+  return { byCover, total: lastYearNet(ly) }
 }

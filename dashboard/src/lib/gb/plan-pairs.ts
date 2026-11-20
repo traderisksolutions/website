@@ -20,7 +20,21 @@ export const DEFAULT_RULES: PlanRule[] = [
   { id: 'rcc-mm', product: 'RCC Enhanced III', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: false, premium: 'own', source: 'RCC Enhanced III brochure, 14 Jul 2025, page 18' },
   { id: 'rcc-sp', product: 'RCC Enhanced III', cover: 'Outpatient Specialist', tiedTo: 'Outpatient GP', match: 'any_plan', required: false, premium: 'own', source: 'RCC Enhanced III brochure, 14 Jul 2025, pages 4 and 18' },
   { id: 'singlife-mm', product: 'Singlife MyBenefits Plus', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: false, premium: 'own', source: 'MyBenefits Plus brochure, Jun 2022, page 12' },
+  // AIA has no major medical plan of its own: it is in the hospital plan and its premium; plan 4's annual limit follows major medical.
+  { id: 'aia-mm', product: 'AIA Flexi Vital Care Plus', cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'any_plan', required: true, premium: 'included', source: 'Client call 19 Nov 2026, note 21; house workbook BenefitData: "Bundled in H&S"' },
 ]
+
+/** The plan AIA's major medical shows: no plan of its own, priced in the hospital premium. */
+export const IN_HOSPITAL = 'In hospital premium'
+
+/**
+ * Stored rules with any default rule they lack (by product and cover) added at read time, so a
+ * default added in code (aia-mm, 20 Nov 2026) reaches a saved rule set without a data write. Pure.
+ */
+export function withDefaults(rules: PlanRule[]): PlanRule[] {
+  const has = new Set(rules.map(r => `${r.product}|${r.cover}`))
+  return [...rules, ...DEFAULT_RULES.filter(d => !has.has(`${d.product}|${d.cover}`))]
+}
 
 /** The plan numbers a plan name carries: "Plan 2A/2B" → 2a, 2b; "Plan 1 (Private 1-bed)" → 1. */
 export const planNumbers = (plan: string): string[] => {
@@ -90,7 +104,7 @@ export type StoredRules = { rules: PlanRule[]; updatedBy: string | null; updated
 export async function loadRules(): Promise<StoredRules> {
   const { sbTry } = await import('@/lib/crm/db')
   const [r] = await sbTry<{ value: string }[]>(`app_settings?key=eq.${KEY}&select=value&limit=1`, [])
-  try { if (r?.value) { const v = JSON.parse(r.value) as StoredRules; if (Array.isArray(v.rules)) return { ...v, rules: v.rules.map(x => ({ ...x, premium: x.premium ?? 'own', source: x.source ?? '' })) } } } catch { /* default below */ }
+  try { if (r?.value) { const v = JSON.parse(r.value) as StoredRules; if (Array.isArray(v.rules)) return { ...v, rules: withDefaults(v.rules.map(x => ({ ...x, premium: x.premium ?? 'own', source: x.source ?? '' }))) } } } catch { /* default below */ }
   return { rules: DEFAULT_RULES, updatedBy: null, updatedAt: null }
 }
 
