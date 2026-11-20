@@ -15,7 +15,7 @@
 import type { Member } from '@/lib/gb-quote'
 import { memberAge } from '@/lib/gb-quote'
 import { coverWords } from './compare-words'
-import { indexRates, lowerTierOf, priceCover, productOf, ruledTier, sameTier } from './compare-cover'
+import { indexRates, lowerTierOf, priceCover, productOf, ruledTier, sameTier, withTiedRiders } from './compare-cover'
 import { IN_HOSPITAL, type PlanRule } from './plan-pairs'
 import { COVERS, PRODUCTS, type Workbook } from './workbook'
 import type { CategoryFacts } from './last-year'
@@ -52,8 +52,8 @@ export function priceDesign(input: {
     const products: PricedCategory['products'] = {}
     for (const p of PRODUCTS) {
       const opts = Object.fromEntries(COVERS.map(c => [c, optionsOf(p, c)]))
-      const same = ruledTier(rules, p, sameTier(benefitsOf(p), opts, target, p), opts)
-      const lower = ruledTier(rules, p, lowerTierOf(benefitsOf(p), opts, same, p), opts)
+      const same = ruledTier(rules, p, withTiedRiders(rules, p, sameTier(benefitsOf(p), opts, target, p), opts), opts)
+      const lower = ruledTier(rules, p, withTiedRiders(rules, p, lowerTierOf(benefitsOf(p), opts, same, p), opts), opts)
       products[p] = Object.fromEntries(TIERS.map(t => [t.key, {
         options: opts[t.cover].map(plan => ({ plan, words: wordsOf(p, t.cover, plan), premium: premium(p, t.cover, plan, cat.members) })),
         pick: same[t.cover]?.plan ?? '',
@@ -68,7 +68,7 @@ export function priceDesign(input: {
       products,
     }
   })
-  const notes = ['Term life is not in the house workbook and is not priced here.', 'AIA personal accident is not priced until its rate rule is confirmed.']
+  const notes: string[] = []
   const unpriced = all.filter(m => memberAge(m, input.effectiveDate, 'last_birthday') == null).length
   if (unpriced) notes.push(`${unpriced} ${unpriced === 1 ? 'life has' : 'lives have'} no date of birth or age and ${unpriced === 1 ? 'is' : 'are'} not priced.`)
   return { products: [...PRODUCTS], categories, notes, workbook: wb.file, rules }
@@ -81,5 +81,5 @@ function todayWords(t: ReturnType<typeof targetOf>): Record<CoverKey, string> {
   const ward = h ? `${h.hospital === 'private' ? 'Private' : 'Government'}${h.beds ? ` ${h.beds}-bed` : ''}` : ''
   const hs = !h ? 'Not on the census' : h.limit != null ? `${ward} · ${money(h.limit)} ${h.basis === 'per_disability' ? 'per disability' : 'a year'}` : ward
   const amt = (v: number | null) => v == null ? 'None' : money(v)
-  return { hs, mm: amt(t.gmm), gp: t.gpCopay == null ? 'None' : t.gpCopay === 0 ? 'No co-pay' : `${money(t.gpCopay)} co-pay`, sp: amt(t.spLimit), gd: amt(t.dental), pa: amt(t.pa) }
+  return { hs, mm: amt(t.gmm), gp: t.gpCopay == null ? 'None' : t.gpCopay === 0 ? 'No co-pay' : `${money(t.gpCopay)} co-pay`, sp: amt(t.spLimit), gd: amt(t.dental), tl: amt(t.tl ?? null), pa: amt(t.pa) }
 }

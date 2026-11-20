@@ -17,7 +17,7 @@ import type { CoverTarget, TierPick } from './compare-cover'
 import type { COVERS, Workbook } from './workbook'
 
 export const MAX_CATEGORIES = 4
-export type CoverKey = 'hs' | 'mm' | 'gp' | 'sp' | 'gd' | 'pa'
+export type CoverKey = 'hs' | 'mm' | 'gp' | 'sp' | 'gd' | 'tl' | 'pa'
 type HospTier = { hospital: 'private' | 'government'; beds: number; limit: number; basis: 'per_disability' | 'annual' }
 
 /** The tiers a broker chooses from, lowest first. `amount` null means not covered. */
@@ -34,13 +34,14 @@ export const TIERS: { key: CoverKey; cover: (typeof COVERS)[number]; label: stri
   { key: 'gp', cover: 'Outpatient GP', label: 'Outpatient GP', tiers: [{ words: 'S$15 co-pay a visit', amount: 15 }, { words: 'S$10 co-pay a visit', amount: 10 }, { words: 'No co-pay', amount: 0 }] },
   { key: 'sp', cover: 'Outpatient Specialist', label: 'Outpatient specialist', tiers: [{ words: 'None', amount: null }, { words: 'S$800 a year', amount: 800 }, { words: 'S$1,000 a year', amount: 1_000 }, { words: 'S$1,500 a year', amount: 1_500 }] },
   { key: 'gd', cover: 'Dental', label: 'Dental', tiers: [{ words: 'None', amount: null }, { words: 'S$300 a year', amount: 300 }, { words: 'S$500 a year', amount: 500 }, { words: 'S$750 a year', amount: 750 }] },
+  { key: 'tl', cover: 'Term Life', label: 'Term life', tiers: [{ words: 'None', amount: null }, { words: 'S$50,000', amount: 50_000 }, { words: 'S$100,000', amount: 100_000 }, { words: 'S$200,000', amount: 200_000 }, { words: 'S$500,000', amount: 500_000 }] },
   { key: 'pa', cover: 'Personal Accident', label: 'Personal accident', tiers: [{ words: 'None', amount: null }, { words: 'S$50,000', amount: 50_000 }, { words: 'S$100,000', amount: 100_000 }, { words: 'S$200,000', amount: 200_000 }] },
 ]
 export const TIER_OF: Record<CoverKey, (typeof TIERS)[number]> = Object.fromEntries(TIERS.map(t => [t.key, t])) as Record<CoverKey, (typeof TIERS)[number]>
 /** A design: the tier index per cover. */
 export type Design = Record<CoverKey, number>
 /** Where nothing on the census says what a category holds: a plain private 4-bed programme. */
-export const DEFAULT_DESIGN: Design = { hs: 2, mm: 0, gp: 1, sp: 2, gd: 2, pa: 0 }
+export const DEFAULT_DESIGN: Design = { hs: 2, mm: 0, gp: 1, sp: 2, gd: 2, tl: 0, pa: 0 }
 
 /** One tier below today; never down to None for a cover held today; today itself at the floor. */
 export function lowerTier(key: CoverKey, today: number): number {
@@ -178,8 +179,9 @@ export function targetOf(today: Partial<Design>, facts?: CategoryFacts | null): 
   const hosp = facts?.hospital && facts.beds
     ? { hospital: facts.hospital, beds: facts.beds, limit: facts.limit, basis: facts.limit != null ? facts.limitKind : null, coins: facts.coins ?? 0 }
     : { hospital: tier.hospital, beds: tier.beds, limit: null, basis: null, coins: 0 }
-  if (!facts) return { hosp, gmm: amt('mm'), gpCopay: amt('gp'), spLimit: amt('sp'), dental: amt('gd'), pa: amt('pa') }
-  return { hosp, gmm: facts.gmm, gpCopay: facts.gpCopay ?? amt('gp'), spLimit: facts.spLimit, dental: facts.dentalLimit, pa: facts.pa }
+  if (!facts) return { hosp, gmm: amt('mm'), gpCopay: amt('gp'), spLimit: amt('sp'), dental: amt('gd'), tl: amt('tl'), pa: amt('pa') }
+  // Term life as a fixed sum is matched; a multiple of salary is not a sum (no salary basis on a plan), so none is chosen.
+  return { hosp, gmm: facts.gmm, gpCopay: facts.gpCopay ?? amt('gp'), spLimit: facts.spLimit, dental: facts.dentalLimit, tl: facts.life?.kind === 'sum' ? facts.life.n : null, pa: facts.pa }
 }
 
 /** Last year's category for a census category: the same name, or the only one. Pure. */
@@ -190,7 +192,7 @@ export function factsFor(ly: LastYear | null, name: string): CategoryFacts | nul
   return c?.facts ?? null
 }
 
-const LY_KEY: Partial<Record<string, CoverKey>> = { GHS: 'hs', EMM: 'mm', GOPC: 'gp', GOSC: 'sp', GD: 'gd', GPA: 'pa' }
+const LY_KEY: Partial<Record<string, CoverKey>> = { GHS: 'hs', EMM: 'mm', GOPC: 'gp', GOSC: 'sp', GD: 'gd', GTL: 'tl', GPA: 'pa' }
 export type CurrentPremium = { byCover: Record<CoverKey, number | null>; total: number | null }
 /**
  * The Current column (call note 23): only what a premium or debit note states, as read, net of GST.

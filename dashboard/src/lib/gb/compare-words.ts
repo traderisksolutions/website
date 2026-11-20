@@ -35,7 +35,7 @@ export function coverWords(cover: string, plan: string, b: Record<string, string
   if (!plan) return 'None'
   if (cover === 'Hospital & Surgical') { const h = hospitalParts(b); return [h.ward, h.limit].filter(Boolean).join(' · ') }
   if (cover === 'Outpatient GP') return `${/nil|no co-pay/i.test(`${plan} ${b['gp.copay'] ?? ''}`) ? 'No co-pay' : `${sg(b['gp.copay'] ?? '')} co-pay`}${b['gp.nonpanel'] ? ` · non-panel ${sg(b['gp.nonpanel'])}` : ''}`
-  const key: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Personal Accident': 'pa.death' }
+  const key: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Term Life': 'gtl.sum_assured', 'Personal Accident': 'pa.death' }
   const v = b[key[cover]]
   return v ? sg(v) : plan
 }

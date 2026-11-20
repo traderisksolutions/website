@@ -17,7 +17,7 @@ import * as XLSX from 'xlsx'
 
 export const PRODUCTS = ['Steadfast MCare+', 'RCC Enhanced III', 'Income FlexCare', 'Singlife MyBenefits Plus', 'AIA Flexi Vital Care Plus'] as const
 export type Product = typeof PRODUCTS[number]
-export const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Personal Accident'] as const
+export const COVERS = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental', 'Term Life', 'Personal Accident'] as const
 export type Cover = typeof COVERS[number]
 export const MEDICAL: readonly string[] = ['Hospital & Surgical', 'Major Medical', 'Outpatient GP', 'Outpatient Specialist', 'Dental']
 

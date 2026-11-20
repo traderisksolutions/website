@@ -18,7 +18,7 @@ import { memberAge, type Member } from '../gb-quote'
 import { ALL, planValue, type Schedule } from './current'
 import { COVERS, MEDICAL, PRODUCTS, type Product, type Workbook, type WbRate } from './workbook'
 import { amountOf, documentHref } from './compare-words'
-import { applyRules, type PlanRule } from './plan-pairs'
+import { allowedPlans, applyRules, type PlanRule } from './plan-pairs'
 import type { LastYear, LastYearCover } from './last-year'
 export { amountOf }
 
@@ -150,8 +150,9 @@ export function priceCover(idx: RateIndex, product: string, cover: string, plan:
   const rows = idx.get(`${product}|${cover}|${plan}`)
   if (!rows?.length) return { premium: null, missing: members.length }
   if (product === 'AIA Flexi Vital Care Plus' && cover === 'Outpatient GP') return { premium: 0, missing: 0 } // in AIA's GP and specialist rider
-  // AIA's accident rows carry two rates per class and the workbook's rule for them is not on file: not priced rather than guessed.
-  if (product === 'AIA Flexi Vital Care Plus' && cover === 'Personal Accident') return { premium: null, missing: 0 }
+  // AIA's accident (Rates rows 1511-1546) and term life (rows 1161-1280) carry two rates, told apart by the Life column
+  // (Rates!K: EE, Dep), as the workbook's Calc!AY2 and Calc!AW2 select them. Accident and term life cover employees
+  // here (MEDICAL below), so an employee takes the EE rate of their class; the Dep rates are not used.
   let t = 0, missing = 0, priced = 0
   const anb = product === 'RCC Enhanced III'
   for (const m of members) {
@@ -312,7 +313,7 @@ export type MatchReason = 'same' | 'no same plan' | 'lower' | 'with hospital' | 
 export type TierPick = { plan: string; reason: MatchReason }
 /** Today's hospital cover as numbers. `limit` and `basis` null when not on file (a census plan name gives the ward only). */
 export type HospTarget = { hospital: 'private' | 'government'; beds: number | null; limit: number | null; basis: 'annual' | 'per_disability' | null; coins: number }
-export type CoverTarget = { hosp: HospTarget | null; gmm: number | null; gpCopay: number | null; spLimit: number | null; dental: number | null; pa: number | null }
+export type CoverTarget = { hosp: HospTarget | null; gmm: number | null; gpCopay: number | null; spLimit: number | null; dental: number | null; pa: number | null; tl?: number | null }
 
 const FW = /FW|WP\/S Pass|WP\/SP/i
 /** Ward order, highest first: private 1-bed 6, 2-bed 5, 4-bed 4; government 1-bed 3, 2-bed 2, 4-bed 1. */
@@ -369,7 +370,7 @@ export function lowerHospital(benefitsOf: (cover: string, plan: string) => Recor
   return ([...(kept.length ? kept : ward)].sort(byHigh)[0] ?? nextWardDown(opts, wardRank(me.f), me.f.basis, me.f.limit))?.p ?? null
 }
 
-const AMOUNT_KEY: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Personal Accident': 'pa.death' }
+const AMOUNT_KEY: Record<string, string> = { 'Major Medical': 'gmm.annual_limit', 'Outpatient Specialist': 'sp.annual_limit', Dental: 'dental.annual_limit', 'Term Life': 'gtl.sum_assured', 'Personal Accident': 'pa.death' }
 /** What a plan of a non-hospital cover gives, as one number where more is better (GP: minus the co-pay). Null when it cannot be read. */
 export function coverValue(cover: string, plan: string, b: Record<string, string>): number | null {
   if (cover === 'Outpatient GP') {
@@ -378,7 +379,8 @@ export function coverValue(cover: string, plan: string, b: Record<string, string
     const n = amountOf(v) ?? amountOf(plan.match(/\$\s?\d+/)?.[0] ?? '')
     return n == null ? null : -n
   }
-  const n = amountOf(b[AMOUNT_KEY[cover]] ?? '')
+  // A sum assured the benefit rows do not state is read from the plan name: "Plan 1 ($500k)".
+  const n = amountOf(b[AMOUNT_KEY[cover]] ?? '') ?? (cover === 'Term Life' || cover === 'Personal Accident' ? amountOf(plan.match(/\$\s?[\d,.]+k?/i)?.[0] ?? '') : null)
   return n == null ? null : n
 }
 
@@ -408,7 +410,7 @@ export function lowerAmount(benefitsOf: (cover: string, plan: string) => Record<
 
 /** Same tier at one product for one category, every cover, before plan rules. Pure. */
 export function sameTier(benefitsOf: (cover: string, plan: string) => Record<string, string>, options: Record<string, string[]>, t: CoverTarget, product?: string | null): Record<string, TierPick> {
-  const want: Record<string, number | null> = { 'Major Medical': t.gmm, 'Outpatient GP': t.gpCopay, 'Outpatient Specialist': t.spLimit, Dental: t.dental, 'Personal Accident': t.pa }
+  const want: Record<string, number | null> = { 'Major Medical': t.gmm, 'Outpatient GP': t.gpCopay, 'Outpatient Specialist': t.spLimit, Dental: t.dental, 'Term Life': t.tl ?? null, 'Personal Accident': t.pa }
   const out: Record<string, TierPick> = {}
   for (const c of COVERS) out[c] = c === HOSP ? sameHospital(benefitsOf, options[c] ?? [], t.hosp, product) : sameAmount(benefitsOf, options[c] ?? [], c, want[c] ?? null)
   return out
@@ -422,6 +424,21 @@ export function lowerTierOf(benefitsOf: (cover: string, plan: string) => Record<
     if (!s.plan) { out[c] = s; continue }
     const down = c === HOSP ? lowerHospital(benefitsOf, options[c] ?? [], s.plan, product) : lowerAmount(benefitsOf, options[c] ?? [], c, s.plan)
     out[c] = down ? { plan: down, reason: 'lower' } : s
+  }
+  return out
+}
+
+/**
+ * A rider the insurer ties to its hospital plan (plan-pairs: RCC and Singlife major medical) is in
+ * both tiers with that hospital plan, whether or not today's cover has it (Jarod, 20 Nov 2026), so
+ * the tier is priced with it. Pure.
+ */
+export function withTiedRiders(rules: PlanRule[], product: string, tier: Record<string, TierPick>, options: Record<string, string[]>): Record<string, TierPick> {
+  const out = { ...tier }
+  for (const r of rules) {
+    if (r.product !== product || r.tiedTo !== HOSP || r.match !== 'same_plan' || out[r.cover]?.plan) continue
+    const allowed = allowedPlans(r, out[HOSP]?.plan ?? '', options[r.cover] ?? [])
+    if (allowed.length) out[r.cover] = { plan: allowed[0], reason: 'with hospital' }
   }
   return out
 }
