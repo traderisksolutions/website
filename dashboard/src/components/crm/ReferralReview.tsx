@@ -39,21 +39,21 @@ export function ReferralReview({ rows, onChange, onNotice, onError }: {
   if (rows.length === 0) return <Empty>No referrals on file.</Empty>
 
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-trs-line bg-white">
-      <table className="trs-table table-fixed" style={{ minWidth: 1040 }} aria-label="Referrals">
-        <colgroup><col style={{ width: '20%' }} /><col style={{ width: '15%' }} /><col style={{ width: 78 }} /><col style={{ width: 84 }} /><col /><col style={{ width: 128 }} /><col style={{ width: 150 }} /><col style={{ width: 104 }} /></colgroup>
+    <div className="overflow-x-auto">
+      <table className="trs-table table-fixed min-w-[1040px]" aria-label="Referrals">
+        <colgroup><col className="w-[20%]" /><col className="w-[15%]" /><col className="w-[78px]" /><col className="w-[84px]" /><col /><col className="w-[128px]" /><col className="w-[150px]" /><col className="w-[104px]" /></colgroup>
         <thead><tr><th>Company</th><th>Domain</th><th>Threads</th><th>From TRS</th><th>Last email</th><th>Reads as</th><th>Kind</th><th>Checked</th></tr></thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.id} className="align-top">
-              <td className="px-3 py-2"><Link href={`/companies/${r.id}`} className="text-[13px] text-trs-ink no-underline hover:underline [overflow-wrap:anywhere]">{r.name}</Link></td>
-              <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">
+              <td><Link href={`/companies/${r.id}`} className="text-body text-trs-ink no-underline hover:underline [overflow-wrap:anywhere]">{r.name}</Link></td>
+              <td className="cell-left text-body [overflow-wrap:anywhere]">
                 {r.domains.length ? r.domains.join(', ') : dash}
                 {r.shared.map(o => <span key={o.id} className="block text-trs-ink-2">Also on <Link href={`/companies/${o.id}`} className="text-trs-ink-2 underline">{o.name}</Link></span>)}
               </td>
-              <td className="px-3 py-2 tabular-nums">{r.threads}</td>
-              <td className="px-3 py-2 tabular-nums">{r.fromTrs}</td>
-              <td className="cell-left px-3 py-2 text-[13px]">
+              <td className="tabular-nums">{r.threads}</td>
+              <td className="tabular-nums">{r.fromTrs}</td>
+              <td className="cell-left text-body">
                 {!r.last ? dash : (
                   <>
                     <span className="block tabular-nums whitespace-nowrap">{fmtDay(r.last.at)}</span>
@@ -61,7 +61,7 @@ export function ReferralReview({ rows, onChange, onNotice, onError }: {
                   </>
                 )}
               </td>
-              <td className="cell-left px-3 py-2 text-[13px]">
+              <td className="cell-left text-body">
                 {r.voice.referral + r.voice.market === 0 ? dash : (
                   <>
                     {r.voice.referral > 0 && <span className="block whitespace-nowrap">Referral · {r.voice.referral}</span>}
@@ -69,12 +69,12 @@ export function ReferralReview({ rows, onChange, onNotice, onError }: {
                   </>
                 )}
               </td>
-              <td className="px-2 py-1.5">
+              <td>
                 <select className={`${selectCls} w-full`} aria-label={`Kind of ${r.name}`} value={r.kind} disabled={busy !== null} onChange={e => void decide(r, e.target.value as CompanyKind)}>
                   {KINDS.map(k => <option key={k} value={k}>{KIND_NAME[k]}</option>)}
                 </select>
               </td>
-              <td className="px-2 py-1.5 whitespace-nowrap tabular-nums">
+              <td className="whitespace-nowrap tabular-nums">
                 {r.checkedAt ? fmtDay(r.checkedAt) : <Btn size="xs" disabled={busy !== null} loading={busy === r.id} onClick={() => void decide(r, 'partner')}>Keep</Btn>}
               </td>
             </tr>

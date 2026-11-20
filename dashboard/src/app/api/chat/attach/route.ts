@@ -6,8 +6,8 @@
  * with the next message.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 const MAX_BYTES = 15_000_000
@@ -39,12 +39,8 @@ async function extract(buf: Buffer, name: string, mime: string): Promise<string>
   }
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const form = await req.formData()
     const file = form.get('file')
     if (!(file instanceof File)) return NextResponse.json({ error: 'file required' }, { status: 400 })
@@ -58,4 +54,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

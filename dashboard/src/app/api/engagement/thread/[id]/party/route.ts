@@ -12,12 +12,12 @@
  *   it is about (`linkClientForThread`, forced). Answers { clientCompanyId, named }.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { linkClientForThread, setClientForThread } from '@/lib/crm/client-link'
 import { enc, sb, sbTry }            from '@/lib/crm/db'
 import { isParty, kindOfParty }      from '@/lib/crm/thread-party'
 import { logActivity }               from '@/lib/log-activity'
 import { createClient }              from '@/lib/supabase/server'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
@@ -28,9 +28,7 @@ async function loadThread(id: string): Promise<Thread | null> {
   return t ?? null
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const body = await req.json().catch(() => ({})) as { party?: unknown; client?: { companyId?: string | null; name?: string | null } | null }
@@ -62,11 +60,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const thread = await loadThread(id)
@@ -78,4 +74,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

@@ -30,7 +30,7 @@ export type Place = {
 export const PLACES: Place[] = [
   // Jarod, 20 Nov 2026: Today is not a place on the bar. The TRS logo opens it; Calendar is a view
   // on Today (/today?calendar=1) and keeps /calendar. Both are in HOME_LINKS for ⌘K.
-  // Jarod, 20 Nov 2026: Portfolio and Admin desk left the Clients tabs; they keep their addresses.
+  // Jarod, 20 Nov 2026: Portfolio and Admin desk left the Clients tabs.
   { label: 'Clients', href: '/companies', icon: Building2, tabs: [
     { title: 'Companies', href: '/companies' },
     { title: 'People', href: '/contacts' },

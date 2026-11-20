@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { resolveCompany } from '@/lib/debit-note-commit'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
@@ -11,10 +11,7 @@ function sbHeaders(prefer = 'return=representation') {
 }
 
 // GET /api/nexus/cases — list all cases with thread count + last activity
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async () => {
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/cases?order=updated_at.desc&select=*`,
@@ -49,13 +46,10 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // POST /api/nexus/cases — create a new case
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { name, description, companyId, companyName } = await req.json() as {
       name: string; description?: string; companyId?: string; companyName?: string
@@ -78,4 +72,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

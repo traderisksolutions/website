@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { getAppSetting } from '@/lib/app-settings'
 import { sendGmailNotification } from '@/lib/gmail-send'
 import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
@@ -8,6 +7,7 @@ import { logError } from '@/lib/error-log'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 const EMBED_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
@@ -59,10 +59,7 @@ async function searchInboundChunks(queryText: string, apiKey: string): Promise<C
 
 // GET /api/inbound/auto-draft?leadId=X
 // Returns existing draft body + id for UI pre-load.
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const leadId = new URL(req.url).searchParams.get('leadId')
     if (!leadId) return NextResponse.json({ content: null, draftId: null })
@@ -87,15 +84,12 @@ export async function GET(req: NextRequest) {
   } catch {
     return NextResponse.json({ content: null, draftId: null })
   }
-}
+})
 
 // POST /api/inbound/auto-draft
 // Body: { leadId, force? }
 // Called by Supabase webhook on INSERT, or by the UI's Generate/Regenerate button.
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { leadId, force } = await req.json() as { leadId: string; force?: boolean }
     if (!leadId) return NextResponse.json({ error: 'leadId required' }, { status: 400 })
@@ -298,4 +292,4 @@ OUTPUT FORMAT — exactly two parts, in this order:
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

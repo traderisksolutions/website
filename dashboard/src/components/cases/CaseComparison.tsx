@@ -18,12 +18,13 @@ import {
 } from '@/lib/cases/compare'
 import type { CompareAnswer } from '@/app/api/work/[id]/compare/route'
 import { WishListDialog } from './WishListDialog'
-import { headingCls, selectCls, tableFrame } from './shared'
+import { headingCls, selectCls } from './shared'
+import { Register } from '@/components/ui/register'
 
 /** What a person typed and has not saved, by case: it survives a look at another section. */
 const drafts = new Map<string, Comparison>()
 
-const cellCls = 'block w-full rounded-[6px] border border-transparent bg-transparent px-2 py-1.5 text-[13px] leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
+const cellCls = 'block w-full rounded border border-transparent bg-transparent px-2 py-1.5 text-body leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
 const fileKey = (f: { message_id: string; filename: string }) => `${f.message_id}|${f.filename}`
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}`
 
@@ -136,7 +137,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
   return (
     <section aria-label="Comparison" className="flex flex-col gap-5 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <p className="m-0 text-[13px] text-trs-muted">
+        <p className="m-0 text-body text-trs-muted">
           {dirty ? 'Unsaved changes' : view.saved ? `Saved by ${actorName(view.saved.by, view.staff)} on ${fmtDay(view.saved.at)}` : 'Not saved'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -151,9 +152,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <h2 className={headingCls}>Options · {offered(c)}</h2>
           <Btn size="xs" disabled={working || c.options.length >= OPTIONS_MAX} onClick={addOption}>Add option</Btn>
         </div>
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: 700 }} aria-label="Options">
-            <colgroup><col style={{ width: 160 }} /><col style={{ width: 170 }} /><col /><col style={{ width: 176 }} /></colgroup>
+        <Register label="Options" minWidth={700} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col className="w-[160px]" /><col className="w-[170px]" /><col /><col className="w-[176px]" /></colgroup>
             <thead><tr><th>Option</th><th>Insurer</th><th>Source document</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
               {c.options.map(o => {
@@ -162,7 +162,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 return (
                   <tr key={o.id} className="align-middle">
                     <td className="px-1.5 py-1.5">
-                      {o.id === CURRENT ? <span className="block px-2 text-[13px] text-trs-ink">{o.name}</span>
+                      {o.id === CURRENT ? <span className="block px-2 text-body text-trs-ink">{o.name}</span>
                         : <input className={cellCls} aria-label="Option name" maxLength={NAME_MAX} value={o.name} onChange={e => setOption(o.id, { name: e.target.value })} />}
                     </td>
                     <td className="px-1.5 py-1.5"><input className={cellCls} aria-label={`Insurer for ${o.name}`} placeholder="Insurer" maxLength={80} value={o.insurer ?? ''} onChange={e => setOption(o.id, { insurer: e.target.value || null })} /></td>
@@ -185,8 +185,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 )
               })}
             </tbody>
-          </table>
-        </div>
+          </Register>
       </div>
 
       <div className="flex flex-col gap-2 min-w-0">
@@ -194,9 +193,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <h2 className={headingCls}>Policy terms</h2>
           <Btn size="xs" disabled={working || c.rows.length >= ROWS_MAX} onClick={addRow}>Add term</Btn>
         </div>
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: gridWidth }} aria-label="Policy terms">
-            <colgroup><col style={{ width: 200 }} />{c.options.map(o => <col key={o.id} />)}<col style={{ width: 44 }} /></colgroup>
+        <Register label="Policy terms" minWidth={gridWidth} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col className="w-[200px]" />{c.options.map(o => <col key={o.id} />)}<col className="w-[44px]" /></colgroup>
             <thead><tr><th>Term</th>{c.options.map(o => <th key={o.id}>{optionName(o)}</th>)}<th><span className="sr-only">Remove</span></th></tr></thead>
             <tbody>
               {terms.map(r => (
@@ -208,25 +206,24 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                     </td>
                   ))}
                   <td className="px-1 py-1.5 text-center">
-                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-[6px] border-0 bg-transparent text-[16px] leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
+                    <Btn level="tertiary" size="xs" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="w-8 px-0 text-heading leading-none">×</Btn>
                   </td>
                 </tr>
               ))}
               {premium && (
                 <tr className="align-top">
-                  <td className="px-1.5 py-1.5"><span className="block border border-transparent px-2 py-1.5 text-[13px] leading-[1.45] font-medium text-trs-ink">{premium.label}</span></td>
+                  <td className="px-1.5 py-1.5"><span className="block border border-transparent px-2 py-1.5 text-body leading-[1.45] font-medium text-trs-ink">{premium.label}</span></td>
                   {c.options.map((o, n) => (
                     <td key={o.id} className="px-1.5 py-1.5">
                       <input className={`${cellCls} tabular-nums`} inputMode="decimal" aria-label={`${premium.label}: ${o.name}`} placeholder="0.00" maxLength={40} value={premium.cells[o.id] ?? ''} onChange={e => setCell(PREMIUM, o.id, e.target.value)} />
-                      {o.id !== CURRENT && <span className="block px-2 pt-0.5 text-left text-[12px] tabular-nums text-trs-muted" aria-label={`Change from current policy: ${o.name}`}>{changeText(lines[n]) ?? DASH}</span>}
+                      {o.id !== CURRENT && <span className="block px-2 pt-0.5 text-left text-small tabular-nums text-trs-muted" aria-label={`Change from current policy: ${o.name}`}>{changeText(lines[n]) ?? DASH}</span>}
                     </td>
                   ))}
                   <td />
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
+          </Register>
       </div>
 
       <div className="flex flex-col gap-2 min-w-0">
@@ -235,15 +232,14 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <Btn size="xs" disabled={working} onClick={() => setWishing(true)}>Edit wish list</Btn>
         </div>
         {wishes.length === 0 ? <Empty compact>No wishes on the case.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 380 + c.options.length * 160 }} aria-label="Client wish list by option">
-              <colgroup><col /><col style={{ width: 120 }} />{c.options.map(o => <col key={o.id} style={{ width: 160 }} />)}</colgroup>
+          <Register label="Client wish list by option" minWidth={380 + c.options.length * 160} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col /><col className="w-[120px]" />{c.options.map(o => <col key={o.id} className="w-[160px]" />)}</colgroup>
               <thead><tr><th>Wish</th><th>Need</th>{c.options.map(o => <th key={o.id}>{o.name}</th>)}</tr></thead>
               <tbody>
                 {wishes.map(w => (
                   <tr key={w.id} className="align-middle">
-                    <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{w.text}</td>
-                    <td className="cell-left px-3 py-2 text-[13px]">{w.need ? NEED_NAME[w.need] : <span className="text-trs-muted">Not graded</span>}</td>
+                    <td className="cell-left px-3 py-2 text-body leading-[1.5] break-words">{w.text}</td>
+                    <td className="cell-left px-3 py-2 text-body">{w.need ? NEED_NAME[w.need] : <span className="text-trs-muted">Not graded</span>}</td>
                     {c.options.map(o => (
                       <td key={o.id} className="px-2 py-1.5">
                         <select className={`${selectCls} w-full`} aria-label={`${o.name}: ${w.text}`} value={c.wishes[w.id]?.[o.id] ?? ''} onChange={e => setMark(w.id, o.id, isMet(e.target.value) ? e.target.value : null)}>
@@ -256,13 +252,12 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 ))}
                 {anyMust && (
                   <tr>
-                    <td className="cell-left px-3 py-2 text-[13px] font-medium" colSpan={2}>Must have met</td>
-                    {counts.map(k => <td key={k.option} className="cell-left px-3 py-2 text-[13px] tabular-nums">{k.must.met} of {k.must.of}</td>)}
+                    <td className="cell-left px-3 py-2 text-body font-medium" colSpan={2}>Must have met</td>
+                    {counts.map(k => <td key={k.option} className="cell-left px-3 py-2 text-body tabular-nums">{k.must.met} of {k.must.of}</td>)}
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
       </div>
 
@@ -287,7 +282,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
             <DialogTitle>Client summary</DialogTitle>
             <DialogDescription className="sr-only">The saved comparison as a PDF.</DialogDescription>
           </DialogHeader>
-          {pdf && <iframe title="Client summary PDF" src={pdf.url} className="w-full h-[68vh] rounded-[10px] border border-trs-line bg-white" />}
+          {pdf && <iframe title="Client summary PDF" src={pdf.url} className="w-full h-[68vh] rounded border border-trs-line bg-white" />}
           <DialogFooter className="gap-2 sm:space-x-0">
             <Btn onClick={() => setPdf(null)}>Close</Btn>
             <Btn level="primary" onClick={download}>Download</Btn>

@@ -5,7 +5,7 @@
  * The threads are read from the owner's Today list, not taken from the request.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { sbTry, enc } from '@/lib/crm/db'
 import { rowDetail } from '@/lib/today/substance-server'

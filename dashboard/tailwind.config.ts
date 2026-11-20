@@ -3,12 +3,25 @@ import type { Config } from 'tailwindcss'
 const config: Config = {
   darkMode: ['class'],
   content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
+  // Minimal type (Jarod, 20 Nov 2026): no uppercase styling, no custom letter spacing.
+  corePlugins: { textTransform: false, letterSpacing: false },
   theme: {
+    // Two weights carry everything: regular and medium; semibold for emphasis. Bold folds in.
+    fontWeight: { normal: '400', medium: '500', semibold: '600', bold: '600' },
     extend: {
+      // One face (Jarod, 20 Nov 2026): Helvetica for everything, titles and figures included.
       fontFamily: {
-        sans: ['var(--font-geist)', 'Geist', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        serif: ['var(--font-serif)', 'EB Garamond', 'Georgia', 'serif'],
-        mono: ['var(--font-mono)', 'Geist Mono', 'ui-monospace', 'Menlo', 'monospace'],
+        sans: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        serif: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif'],
+      },
+      // Four sizes (Jarod, 20 Nov 2026): title 24, heading 16, body 14, small 12. The older names
+      // fold into them, so every page follows without a rewrite. Change a size here, nowhere else.
+      fontSize: {
+        title: '24px', heading: '16px', body: '14px', small: '12px',
+        '11': '12px', '12': '12px', '12.5': '12px', '13': '14px', '13.5': '14px', '14': '14px',
+        '15': '14px', '16': '16px', '20': '16px', '24': '24px', '32': '24px',
+        xs: '12px', sm: '14px', base: '14px', lg: '16px', xl: '16px', '2xl': '24px', '3xl': '24px', '4xl': '24px',
       },
       colors: {
         // Revamp tokens (globals.css :root). Use these in class names instead of hex literals.
@@ -65,12 +78,12 @@ const config: Config = {
           ring:                 'hsl(var(--sidebar-ring))',
         },
       },
+      // One radius (Jarod, 20 Nov 2026): 7px for everything; circles stay round (rounded-full).
       borderRadius: {
-        lg:   'var(--radius)',
-        md:   'calc(var(--radius) - 2px)',
-        sm:   'calc(var(--radius) - 4px)',
-        xl:   'calc(var(--radius) + 4px)',
-        '2xl':'calc(var(--radius) + 8px)',
+        DEFAULT: 'var(--radius-one)', sm: 'var(--radius-one)', md: 'var(--radius-one)', lg: 'var(--radius-one)',
+        xl: 'var(--radius-one)', '2xl': 'var(--radius-one)', '3xl': 'var(--radius-one)',
+        '4': 'var(--radius-one)', '6': 'var(--radius-one)', '7': 'var(--radius-one)', '8': 'var(--radius-one)',
+        '10': 'var(--radius-one)', '12': 'var(--radius-one)', '16': 'var(--radius-one)', '28': 'var(--radius-one)',
       },
       width:  { sidebar: 'var(--sidebar-width)' },
       height: { topnav:  'var(--topnav-height)' },

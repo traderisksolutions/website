@@ -10,9 +10,6 @@ import { fmtMoney, fmtDate } from '@/lib/format'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 /** Status in words only. A note past its due date is still awaiting payment. */
 const STATUS_LABEL: Record<DerivedPaymentStatus, string> = { paid: 'Settled', partial: 'Part paid', unpaid: 'Awaiting payment', overdue: 'Awaiting payment' }
 
@@ -70,26 +67,26 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
         </>
       }
     >
-      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#a1242f' }}>{error}</p>}
+      {error && <p className="text-body mb-2 m-0 text-trs-neg">{error}</p>}
 
       {notes.length > 0 && (
         <div className="mb-5">
-          <p className="text-[14px] m-0" style={{ color: INK }}>
-            <span style={{ color: MUTED }}>Collected </span>
+          <p className="text-body m-0 text-trs-ink">
+            <span className="text-trs-muted">Collected </span>
             <span className="font-medium tabular-nums">{fmtMoney(collected, currency)}</span>
-            <span style={{ color: MUTED }}> of </span>
+            <span className="text-trs-muted"> of </span>
             <span className="font-medium tabular-nums">{fmtMoney(billed, currency)}</span>
-            <span style={{ color: MUTED }}> billed</span>
+            <span className="text-trs-muted"> billed</span>
             {summary.byCurrency.map(m => (
               <span key={m.currency}>
-                <span style={{ color: MUTED }}> · Still to collect </span>
+                <span className="text-trs-muted"> · Still to collect </span>
                 <span className="font-medium tabular-nums">{fmtMoney(m.outstanding, m.currency)}</span>
               </span>
             ))}
-            {summary.nextDue && <><span style={{ color: MUTED }}> · Next due </span>{fmtDate(summary.nextDue)}</>}
+            {summary.nextDue && <><span className="text-trs-muted"> · Next due </span>{fmtDate(summary.nextDue)}</>}
           </p>
-          <div className="mt-2.5 h-1 rounded-full overflow-hidden" style={{ background: '#d5d9d4' }} aria-hidden>
-            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: INK }} />
+          <div className="mt-2.5 h-1 rounded-full overflow-hidden bg-trs-line-2" aria-hidden>
+            <div className="h-full rounded-full bg-trs-ink" style={{ width: `${pct}%` }} /* drift-ok: bar width from the paid share */ />
           </div>
         </div>
       )}
@@ -118,10 +115,10 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
                         {openNote && <input type="checkbox" checked={on} onChange={() => toggle(n.id)} onClick={e => e.stopPropagation()} aria-label={`Select ${n.debit_note_no}`} />}
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-[15px] font-medium leading-tight truncate tabular-nums" style={{ color: INK }}>{n.debit_note_no}</span>
-                        <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>
+                        <span className="block text-body font-medium leading-tight truncate tabular-nums text-trs-ink">{n.debit_note_no}</span>
+                        <span className="block text-small mt-0.5 truncate text-trs-muted">
                           {n.drive_folder_url
-                            ? <a href={n.drive_folder_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: MUTED }} title="Open Drive folder">Drive folder</a>
+                            ? <a href={n.drive_folder_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className="no-underline hover:underline text-trs-muted" title="Open Drive folder">Drive folder</a>
                             : `Issued ${fmtDate(n.issue_date)}`}
                         </span>
                       </span>
@@ -147,14 +144,14 @@ export function CompanyPayments({ companyId, notes, summary, onChanged }: {
       )}
 
       {settled.length > 0 && (
-        <button type="button" onClick={() => setShowPaid(v => !v)} className="mt-3 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>
+        <Btn size="xs" level="tertiary" onClick={() => setShowPaid(v => !v)} className="mt-3">
           {showPaid ? 'Hide settled' : `Show ${settled.length} settled debit note${settled.length === 1 ? '' : 's'}`}
-        </button>
+        </Btn>
       )}
 
-      <p className="text-[13px] m-0 mt-4" style={{ color: MUTED }}>
+      <p className="text-body m-0 mt-4 text-trs-muted">
         Recording a payment here clears the balance on the debit note. To work through everything at once, use{' '}
-        <Link href="/finance" className="underline underline-offset-4" style={{ color: INK }}>Finance</Link>.
+        <Link href="/finance" className="underline underline-offset-4 text-trs-ink">Finance</Link>.
       </p>
 
       <RecordPaymentDialog

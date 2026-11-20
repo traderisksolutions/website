@@ -41,7 +41,7 @@ export function EbTiers({ priced, tier, onTier, lastYearRead }: { priced: Priced
   }
   const card = (t: Tier, title: string, line: string) => (
     <ChoiceCard pressed={tier === t} onClick={() => onTier(t)} title={title} line={line}>
-      <dl className="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 text-sm sm:grid-cols-[8rem_minmax(0,1fr)]">
+      <dl className="m-0 grid grid-cols-1 gap-x-3 gap-y-1.5 text-body sm:grid-cols-[8rem_minmax(0,1fr)]">
         {rows[t].map(([k, v]) => [<dt key={`${k}t`} className="text-trs-muted">{k}</dt>, <dd key={`${k}d`} className="m-0">{v}</dd>])}
       </dl>
     </ChoiceCard>

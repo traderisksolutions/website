@@ -2,6 +2,7 @@
 
 import { Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Btn } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 
 // ── Toolbar container ──────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export function DataTableToolbar({ children, className }: DataTableToolbarProps)
   return (
     <div
       className={cn(
-        'flex items-center gap-2.5 px-6 sm:px-10 py-3 border-b border-[#e6e8e4] bg-white flex-shrink-0 flex-wrap',
+        'flex items-center gap-2.5 px-6 sm:px-10 py-3 border-b border-trs-line bg-white flex-shrink-0 flex-wrap',
         className,
       )}
     >
@@ -39,30 +40,31 @@ export function DataTableSearch({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 h-9 px-3.5 rounded-[7px] border border-[#d5d9d4] bg-white',
-        'transition-colors focus-within:border-[#0f1412]',
+        'flex items-center gap-2 h-9 px-3.5 rounded border border-trs-line-2 bg-white',
+        'transition-colors focus-within:border-trs-ink',
         'min-w-[220px] max-w-[320px]',
         className,
       )}
     >
-      <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#6f7a74' }} />
+      <Search className="h-4 w-4 flex-shrink-0 text-trs-subtle" />
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] text-[#0f1412] placeholder:text-[#6f7a74]"
+        className="flex-1 min-w-0 bg-transparent border-none outline-none text-body text-trs-ink placeholder:text-trs-subtle"
       />
       {value && (
-        <button
-          type="button"
+        <Btn
+          level="tertiary"
+          size="xs"
           onClick={() => onChange('')}
           aria-label="Clear search"
-          className="text-muted-foreground/45 hover:text-muted-foreground transition-colors"
+          className="h-6 w-6 px-0"
         >
           <X className="h-3 w-3" />
-        </button>
+        </Btn>
       )}
     </div>
   )
@@ -87,8 +89,8 @@ export function DataTableFilter({
       size="compact"
       onClick={onClick}
       className={cn(
-        'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-[13px]',
-        active && 'bg-[#132c1c] text-white border-[#132c1c] hover:bg-[#1f4e3a] hover:opacity-90',
+        'h-9 rounded px-3.5 font-medium gap-1.5 text-body',
+        active && 'bg-trs-green text-white border-trs-green hover:bg-trs-green-2 hover:opacity-90',
         className,
       )}
     >
@@ -96,10 +98,10 @@ export function DataTableFilter({
       {count !== undefined && count > 0 && (
         <span
           className={cn(
-            'text-[11px] tabular-nums px-1.5 py-px rounded',
+            'text-small tabular-nums px-1.5 py-px rounded',
             active
               ? 'bg-white/20 text-white'
-              : 'bg-[#f1f2ee] text-[#4a5550]',
+              : 'bg-trs-field text-trs-muted',
           )}
         >
           {count}
@@ -122,7 +124,7 @@ export function DataTableReset({ onReset, className }: DataTableResetProps) {
       variant="ghost"
       size="compact"
       onClick={onReset}
-      className={cn('h-[30px] text-muted-foreground hover:text-foreground px-2 gap-1', className)}
+      className={cn('h-8 text-muted-foreground hover:text-foreground px-2 gap-1', className)}
     >
       Reset
       <X className="h-3 w-3" />

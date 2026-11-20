@@ -7,15 +7,13 @@
  * a signed-in staff member, like the other crons.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { computeWindow } from '@/lib/analytics/autonomy/compute'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const days = Math.min(30, Math.max(1, Number(new URL(req.url).searchParams.get('days') ?? 3) || 3))
     const to = new Date().toISOString()
@@ -26,4 +24,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

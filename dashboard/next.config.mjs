@@ -28,11 +28,28 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
   },
-  // Group Benefits became Pricing Matrix on 2 Oct 2026. Old links and bookmarks still land.
+  // Every moved address in one list (not a page per redirect), so old links and bookmarks land.
   async redirects() {
     return [
       { source: '/group-benefits', destination: '/pricing-matrix', permanent: true },
       { source: '/group-benefits/:path*', destination: '/pricing-matrix/:path*', permanent: true },
+      { source: '/insurers', destination: '/companies?kind=insurer', permanent: false },
+      { source: '/marketing', destination: '/websites/traderisksolutions', permanent: false },
+      { source: '/sales', destination: '/sales/enquiries', permanent: false },
+      { source: '/companies/portfolio', destination: '/companies', permanent: false },
+      { source: '/work', destination: '/today', permanent: false },
+      { source: '/documents', destination: '/claims/documents', permanent: true },
+      // Employment Benefits has one home, /eb (Jarod, 20 Nov 2026). /pricing-matrix/quote/... stays: it
+      // resolves an old quotation id to its proposal.
+      { source: '/pricing-matrix', destination: '/eb/quotations', permanent: true },
+      // An old New quotation link named the company by id; /eb reads it as ?company=<id>.
+      { source: '/pricing-matrix/new', has: [{ type: 'query', key: 'companyId', value: '(?<cid>.+)' }], destination: '/eb?company=:cid', permanent: true },
+      { source: '/pricing-matrix/new', destination: '/eb', permanent: true },
+      { source: '/pricing-matrix/hr-links/:id', destination: '/eb/hr-links/:id', permanent: true },
+      { source: '/pricing-matrix/company/:id', destination: '/companies/:id?tab=eb', permanent: true },
+      { source: '/pricing-matrix/:id/schedule', destination: '/eb/rates/:id/schedule', permanent: true },
+      { source: '/pricing-matrix/:id((?!quote$)[^/]+)', destination: '/eb/rates/:id', permanent: true },
+      { source: '/companies/portfolio/desk', destination: '/companies', permanent: false },
     ]
   },
 };

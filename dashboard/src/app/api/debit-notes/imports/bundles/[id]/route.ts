@@ -6,17 +6,13 @@
  * `needs_review` — this never creates a debit note.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import type { ExtractedDebitNote }   from '@/lib/debit-note-extract'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { merged } = await req.json() as { merged?: Partial<ExtractedDebitNote> }
     if (!merged) return NextResponse.json({ error: 'merged required' }, { status: 400 })
 
@@ -28,4 +24,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

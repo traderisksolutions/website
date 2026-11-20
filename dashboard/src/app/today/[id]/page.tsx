@@ -59,7 +59,7 @@ type Staff = { email: string; name: string }
 type Edit = { to: string; cc: string; subject: string; body: string }
 const asEdit = (d: TodayDraft): Edit => ({ to: d.to, cc: d.cc ?? '', subject: d.subject, body: d.body })
 const changed = (a: Edit, d: TodayDraft) => a.to !== d.to || a.cc !== (d.cc ?? '') || a.subject !== d.subject || a.body !== d.body
-const inputCls = 'w-full min-w-0 h-9 rounded-[7px] border border-trs-line-2 bg-white px-3 text-[14px] text-trs-ink outline-none focus:border-trs-ink'
+const inputCls = 'w-full min-w-0 h-9 rounded border border-trs-line-2 bg-white px-3 text-body text-trs-ink outline-none focus:border-trs-ink'
 /** The To and Cc as saved on the draft (edits are saved before Send): the first To is the
  *  recipient, the rest go as Cc with the draft's own Cc. The send route takes both as given. */
 const recipients = (d: { to: string; cc: string | null }) => {
@@ -171,7 +171,7 @@ function Review() {
     return `Sent ${sent.length} email${sent.length === 1 ? '' : 's'}.`
   })
 
-  if (error && !item) return <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto"><p className="m-0 text-[14px] text-trs-neg">{error}</p><Link href="/today" className="text-[13.5px]">Today</Link></div>
+  if (error && !item) return <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto"><p className="m-0 text-body text-trs-neg">{error}</p><Link href="/today" className="text-body">Today</Link></div>
   if (!item) return <div className="px-4 md:px-8 py-6"><Spinner label="Loading the case…" /></div>
 
   const st = STATUS[item.status] ?? STATUS.trs_to_act
@@ -179,19 +179,19 @@ function Review() {
   const facts = [item.client, item.insurer_name, CASE_TYPE[item.case_type] ?? item.case_type, item.policy_number, item.waiting_since ? `waiting since ${fmtDate(item.waiting_since)}` : null].filter(Boolean).join(' · ')
   const ownerName = item.owner_email ? (staff.find(s => s.email === item.owner_email)?.name ?? item.owner_email.split('@')[0]) : null
   const received = item.register.filter(r => r.status === 'received' || r.status === 'waived').length
-  const quietLink = 'bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer text-trs-muted hover:text-trs-ink'
+  const quietLink = 'bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer text-trs-muted hover:text-trs-ink'
 
   return (
     <div className="px-4 md:px-8 py-6 max-w-[1180px] mx-auto w-full min-w-0 flex flex-col gap-4">
       <Breadcrumbs current={{ label: item.title, href: `/today/${item.id}` }} fallback={{ label: 'Today', href: '/today' }} />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="m-0 text-[28px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
-          <div className="mt-1 text-[13.5px] text-trs-muted">{forward ? `${item.title} · ${facts}` : facts}</div>
+          <h1 className="m-0 text-title font-medium leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
+          <div className="mt-1 text-body text-trs-muted">{forward ? `${item.title} · ${facts}` : facts}</div>
         </div>
       </header>
-      {notice && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {notice && <p className="m-0 text-body text-trs-ink" role="status">{notice}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       <div><Segmented<CaseSection> variant="tabs" value={section} onChange={go} label="Case sections" size="sm" options={CASE_SECTIONS.filter(s => s.value !== 'comparison' || item.case_type === 'renewal').map(s => ({ ...s }))} /></div>
 
       {section === 'sources' && <CaseSourcesPanel id={item.id} staff={staff} onOpenThread={setThread} onChanged={refresh} onNotice={setNotice} onError={setError} />}
@@ -202,23 +202,23 @@ function Review() {
 
       {section === 'overview' && <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-4 items-start">
         <div className="flex flex-col gap-6 min-w-0">
-        <section className="rounded-[10px] border border-trs-line bg-white min-w-0 flex flex-col" aria-label="Draft">
+        <section className="rounded border border-trs-line bg-white min-w-0 flex flex-col" aria-label="Draft">
           {item.needs_human && (
             <div className="px-4 py-3 border-b border-trs-line">
-              <div className="text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-neg">Decision</div>
-              <p className="m-0 mt-1 text-[14px] text-trs-ink">{item.needs_human}</p>
+              <div className="text-small font-semibold text-trs-neg">Decision</div>
+              <p className="m-0 mt-1 text-body text-trs-ink">{item.needs_human}</p>
             </div>
           )}
           {item.draft && main ? <>
             <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 border-b border-trs-line">
               <Chip tone="neutral">{forward ? 'Forward to insurer' : partyLabel(item.draft.party, 'Reply')}</Chip>
-              <span className="text-[12px] text-trs-muted">Signed with your name on send</span>
+              <span className="text-small text-trs-muted">Signed with your name on send</span>
             </div>
             <DraftFields value={main} onChange={setMain} files={item.draft.attachments.map(a => a.filename)}
               picker={<AttachmentPicker itemId={item.id} draftId={item.draft.id} files={item.draft.attachments.map(a => a.filename)} documents={item.documents} onChanged={() => { setNotice('Attachments updated.'); load() }} onError={setError} />} />
             {item.paired.map(p => (
               <div key={p.id} className="border-t border-trs-line">
-                <label className="flex items-center gap-2 px-4 py-2.5 cursor-pointer text-[13.5px] text-trs-ink">
+                <label className="flex items-center gap-2 px-4 py-2.5 cursor-pointer text-body text-trs-ink">
                   <input type="checkbox" checked={!!include[p.id]} onChange={e => setInclude(s => ({ ...s, [p.id]: e.target.checked }))} />
                   {forward && p.party === 'client' ? 'Tell the client it was lodged' : `Also update the ${p.party === 'insurer' ? 'insurer' : 'client'}`}
                 </label>
@@ -227,7 +227,7 @@ function Review() {
               </div>
             ))}
           </> : (
-            <div className="px-4 py-4 text-[14px] text-trs-ink-2 flex flex-col gap-2">
+            <div className="px-4 py-4 text-body text-trs-ink-2 flex flex-col gap-2">
               <div className="flex flex-wrap gap-1.5"><Chip tone={st.tone}>{st.label}</Chip></div>
               {item.next_action ? <p className="m-0">{item.next_action}</p> : <p className="m-0 text-trs-muted">No draft on this case.</p>}
             </div>
@@ -245,9 +245,9 @@ function Review() {
               ? <>
                   <Btn disabled={busy !== null} loading={busy === 'save'} onClick={() => void run('save', async () => { await saveAll(); load(); return 'Draft saved.' })}>Save draft</Btn>
                   {(() => { const c = chase ?? chaseDefault(item.draft); return (
-                    <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted">
+                    <span className="inline-flex items-center gap-2 text-body text-trs-muted">
                       <label className="inline-flex items-center gap-1.5">Chase if no reply
-                        <select aria-label="Chase if no reply" value={c.days} onChange={e => setChase({ ...c, days: Number(e.target.value) })} className="h-8 rounded-[6px] border border-trs-line bg-white px-2 text-[13px] text-trs-ink">
+                        <select aria-label="Chase if no reply" value={c.days} onChange={e => setChase({ ...c, days: Number(e.target.value) })} className="h-8 rounded border border-trs-line bg-white px-2 text-body text-trs-ink">
                           {CHASE_DAYS.map(d => <option key={d} value={d}>{d === 0 ? 'No chase' : `after ${d} ${item.draft?.party === 'insurer' ? 'working ' : ''}day${d === 1 ? '' : 's'}`}</option>)}
                         </select>
                       </label>
@@ -270,7 +270,7 @@ function Review() {
             {item.needs_human && <ActionItem eyebrow="Decision" title={item.needs_human} alert />}
             {item.register.length > 0 && (
               <ActionItem eyebrow="Before binding" title={`${received} of ${item.register.length} documents in`}>
-                <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5 text-[13px]">
+                <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5 text-body">
                   {item.register.map(r => (
                     <li key={r.kind} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 min-w-0">
                       <Chip tone={r.status === 'received' ? 'green' : r.status === 'waived' ? undefined : 'amber'}>{r.status === 'received' ? 'Received' : r.status === 'waived' ? 'Waived' : r.status === 'requested' ? 'Asked' : 'Needed'}</Chip>
@@ -292,7 +292,7 @@ function Review() {
                           <Btn size="xs" type="button" onClick={() => setWaiving(null)}>Cancel</Btn>
                         </form>
                       )}
-                      {r.basis && r.status !== 'received' && <span className="basis-full text-[12px] text-trs-muted">{r.basis}</span>}
+                      {r.basis && r.status !== 'received' && <span className="basis-full text-small text-trs-muted">{r.basis}</span>}
                     </li>
                   ))}
                 </ul>
@@ -339,21 +339,21 @@ function Review() {
           </Group>
 
           <Group label="Source">
-            {item.threads.length === 0 && item.documents.length === 0 && <p className="m-0 text-[13px] text-trs-muted">No threads or files linked.</p>}
+            {item.threads.length === 0 && item.documents.length === 0 && <p className="m-0 text-body text-trs-muted">No threads or files linked.</p>}
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {item.threads.map(t => (
                 <li key={t.id}>
                   <button type="button" onClick={() => setThread(t.id)} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer min-w-0">
-                    <span className="block text-[13.5px] text-trs-ink truncate hover:underline">{t.subject ?? 'Thread'} <span className="text-trs-subtle">→</span></span>
-                    <span className="block text-[12.5px] text-trs-muted truncate">{t.side === 'insurer' ? 'Insurer' : t.side === 'client' ? 'Client' : 'Other'} · {t.messages} email{t.messages === 1 ? '' : 's'}{t.joined_by ? ` · joined by ${t.joined_by.replace('_', ' ')}` : ''}</span>
+                    <span className="block text-body text-trs-ink truncate hover:underline">{t.subject ?? 'Thread'} <span className="text-trs-subtle">→</span></span>
+                    <span className="block text-small text-trs-muted truncate">{t.side === 'insurer' ? 'Insurer' : t.side === 'client' ? 'Client' : 'Other'} · {t.messages} email{t.messages === 1 ? '' : 's'}{t.joined_by ? ` · joined by ${t.joined_by.replace('_', ' ')}` : ''}</span>
                   </button>
                 </li>
               ))}
               {item.documents.slice(0, 8).map(d => (
                 <li key={d.id}>
                   <button type="button" onClick={() => setDoc({ title: d.title, drive_url: d.drive_url })} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer min-w-0">
-                    <span className="block text-[13.5px] text-trs-ink truncate hover:underline">{d.title} <span className="text-trs-subtle">→</span></span>
-                    <span className="block text-[12.5px] text-trs-muted truncate">Data room · {d.doc_type.replace(/_/g, ' ')}{d.received_at ? ` · ${fmtDate(d.received_at)}` : ''}</span>
+                    <span className="block text-body text-trs-ink truncate hover:underline">{d.title} <span className="text-trs-subtle">→</span></span>
+                    <span className="block text-small text-trs-muted truncate">Data room · {d.doc_type.replace(/_/g, ' ')}{d.received_at ? ` · ${fmtDate(d.received_at)}` : ''}</span>
                   </button>
                 </li>
               ))}
@@ -362,10 +362,10 @@ function Review() {
 
           {timeline.length > 0 && (
             <Group label="Timeline">
-              <ol className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13px]">
+              <ol className="m-0 p-0 list-none flex flex-col gap-1.5 text-body">
                 {timeline.map((t, n) => (
                   <li key={n} className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-3">
-                    <span className="font-mono text-[11.5px] text-trs-muted pt-[2px] tabular-nums">{fmtWhen(t.at)}</span>
+                    <span className="font-mono text-small text-trs-muted pt-[2px] tabular-nums">{fmtWhen(t.at)}</span>
                     <span className="text-trs-ink-2 min-w-0 break-words">{t.text}{t.links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="ml-1.5 text-trs-muted">{l.label}</a>)}</span>
                   </li>
                 ))}
@@ -386,14 +386,14 @@ function DraftFields({ value, onChange, files, compact, picker }: { value: Edit;
   return (
     <div className="flex flex-col">
       {(['to', 'cc', 'subject'] as const).map(k => (
-        <label key={k} className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2 px-4 py-1.5 border-b border-trs-line text-[12.5px] text-trs-muted">
+        <label key={k} className="grid grid-cols-[64px_minmax(0,1fr)] items-center gap-2 px-4 py-1.5 border-b border-trs-line text-small text-trs-muted">
           {k === 'to' ? 'To' : k === 'cc' ? 'Cc' : 'Subject'}
           <input className={inputCls} value={value[k]} onChange={set(k)} />
         </label>
       ))}
       <textarea aria-label="Message" value={value.body} onChange={set('body')} rows={compact ? 6 : 12}
-        className="block w-full border-0 px-4 py-3 text-[14px] leading-relaxed text-trs-ink outline-none resize-y bg-white font-sans" />
-      {picker ?? (files.length > 0 && <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-t border-trs-line text-[12.5px] text-trs-muted">Attached {files.map(f => <Chip key={f}>{f}</Chip>)}</div>)}
+        className="block w-full border-0 px-4 py-3 text-body leading-relaxed text-trs-ink outline-none resize-y bg-white font-sans" />
+      {picker ?? (files.length > 0 && <div className="flex flex-wrap gap-1.5 px-4 py-2.5 border-t border-trs-line text-small text-trs-muted">Attached {files.map(f => <Chip key={f}>{f}</Chip>)}</div>)}
     </div>
   )
 }

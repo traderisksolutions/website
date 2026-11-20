@@ -87,8 +87,8 @@ export function RenewalsList() {
         )}
       </PageHeader>
 
-      {note && <p className="m-0 mb-3 text-sm text-trs-ink" role="status">{note}</p>}
-      {error && <p className="m-0 mb-3 text-sm text-trs-neg" role="alert">{error}</p>}
+      {note && <p className="m-0 mb-3 text-body text-trs-ink" role="status">{note}</p>}
+      {error && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
       {!view ? (error ? null : <Spinner label="Loading the renewals…" />)
         : !view.tables ? <Empty>Renewal records are not set up yet.</Empty>
         : rows.length === 0 ? <Empty>No renewal records yet. Open renewals due to start.</Empty>

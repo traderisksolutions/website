@@ -6,7 +6,8 @@
  * rules understood, so a line they could not read is visible before it matters.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { Btn, Chip } from '@/components/crm/primitives'
+import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import type { RenewalMethod } from '@/lib/methods/method'
 
 type Meta = { version: number; created_by: string | null; created_at: string }
@@ -41,11 +42,11 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
     } catch (e) { setMsg(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   }
 
-  if (!data) return <p className="text-[13.5px] text-trs-muted">{msg ?? 'Loading…'}</p>
+  if (!data) return <p className="text-body text-trs-muted">{msg ?? 'Loading…'}</p>
   const p = data.parsed
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-2 text-[13px] text-trs-muted">
+      <div className="flex flex-wrap items-center gap-2 text-body text-trs-muted">
         <Chip tone="blue">{data.isDefault ? 'Default method' : `Version ${data.current?.version}`}</Chip>
         {data.current && <span>{data.current.created_by?.split('@')[0]} · {day(data.current.created_at)}</span>}
         {data.migrationPending && <Chip tone="amber">Saving needs migration 20261103_agent_methods</Chip>}
@@ -54,38 +55,38 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
         {editing && <><Btn size="sm" level="tertiary" onClick={() => { setEditing(false); setDraft(data.text) }}>Cancel</Btn><Btn size="sm" level="primary" disabled={busy} onClick={() => void save({ text: draft })}>Save as new version</Btn></>}
         {view && isAdmin && <Btn size="sm" level="secondary" disabled={busy} onClick={() => void save({ restore: view })}>Restore this version</Btn>}
       </div>
-      {msg && <p className="m-0 text-[13.5px] text-trs-ink">{msg}</p>}
+      {msg && <p className="m-0 text-body text-trs-ink">{msg}</p>}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <textarea value={draft} onChange={e => setDraft(e.target.value)} readOnly={!editing} spellCheck={false} aria-label="Renewal method"
-          className="w-full min-h-[560px] rounded-[10px] border border-trs-line bg-white p-4 font-mono text-[13px] leading-[1.6] text-trs-ink outline-none focus:border-trs-green" />
-        <aside className="flex flex-col gap-4 text-[13px] min-w-0">
+        <textarea value={draft} onChange={e => setDraft(e.target.value)} readOnly={!editing} spellCheck={false} aria-label="Renewal method" rows={24}
+          className={cn(textareaCls, 'border-trs-line p-4 font-mono leading-[1.6] resize-none focus:border-trs-green')} />
+        <aside className="flex flex-col gap-4 text-body min-w-0">
           <div>
-            <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-ink">What the rules read</h3>
-            <table className="w-full"><tbody className="[&_td]:py-1 [&_td:last-child]:text-right [&_td:last-child]:tabular-nums">
-              <tr><td>Hold below loss ratio</td><td>{pct(p.holdBelow)}</td></tr>
-              <tr><td>Increase above loss ratio</td><td>{pct(p.increaseAbove)}</td></tr>
-              <tr><td>Exposure change that adjusts</td><td>{pct(p.exposureShift)}</td></tr>
-              <tr><td>No claims on file</td><td>{p.noClaimsUnknown ? 'Unknown' : 'Clean'}</td></tr>
-              <tr><td>Clients always marketed</td><td>{p.marketClients.length}</td></tr>
-              <tr><td>Lines always marketed</td><td>{p.marketLines.map(l => LINE[l] ?? l).join(', ') || '0'}</td></tr>
-              <tr><td>Insurer and market notes</td><td>{p.insurerNotes.length}</td></tr>
-              <tr><td>Line notes</td><td>{Object.keys(p.lineNotes).length}</td></tr>
-            </tbody></table>
+            <h3 className="m-0 mb-2 text-body font-semibold text-trs-ink">What the rules read</h3>
+            <dl className="m-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 [&_dd]:m-0 [&_dd]:text-right [&_dd]:tabular-nums">
+              <dt>Hold below loss ratio</dt><dd>{pct(p.holdBelow)}</dd>
+              <dt>Increase above loss ratio</dt><dd>{pct(p.increaseAbove)}</dd>
+              <dt>Exposure change that adjusts</dt><dd>{pct(p.exposureShift)}</dd>
+              <dt>No claims on file</dt><dd>{p.noClaimsUnknown ? 'Unknown' : 'Clean'}</dd>
+              <dt>Clients always marketed</dt><dd>{p.marketClients.length}</dd>
+              <dt>Lines always marketed</dt><dd>{p.marketLines.map(l => LINE[l] ?? l).join(', ') || '0'}</dd>
+              <dt>Insurer and market notes</dt><dd>{p.insurerNotes.length}</dd>
+              <dt>Line notes</dt><dd>{Object.keys(p.lineNotes).length}</dd>
+            </dl>
           </div>
           {p.unread.length > 0 && (
             <div>
-              <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-neg">Lines the rules could not read · {p.unread.length}</h3>
+              <h3 className="m-0 mb-2 text-body font-semibold text-trs-neg">Lines the rules could not read · {p.unread.length}</h3>
               <ul className="m-0 pl-4 flex flex-col gap-1 text-trs-muted">{p.unread.map((u, i) => <li key={i} className="break-words">{u}</li>)}</ul>
             </div>
           )}
           {data.versions.length > 0 && (
             <div>
-              <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-ink">Versions</h3>
+              <h3 className="m-0 mb-2 text-body font-semibold text-trs-ink">Versions</h3>
               <ul className="m-0 p-0 list-none flex flex-col gap-1">
                 {data.versions.map(v => (
-                  <li key={v.version}><button type="button" onClick={() => setView(v.version === data.versions[0]?.version ? null : v.version)}
-                    className={`bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] ${(view ?? data.versions[0]?.version) === v.version ? 'text-trs-ink font-medium' : 'text-trs-muted'} hover:underline`}>
-                    Version {v.version} · {v.created_by?.split('@')[0]} · {day(v.created_at)}</button></li>
+                  <li key={v.version}><Btn level="tertiary" size="xs" onClick={() => setView(v.version === data.versions[0]?.version ? null : v.version)}
+                    className={cn('h-auto p-0 border-0 justify-start text-left whitespace-normal font-normal hover:bg-transparent hover:underline', (view ?? data.versions[0]?.version) === v.version ? 'text-trs-ink font-medium' : 'text-trs-muted hover:text-trs-muted')}>
+                    Version {v.version} · {v.created_by?.split('@')[0]} · {day(v.created_at)}</Btn></li>
                 ))}
               </ul>
             </div>

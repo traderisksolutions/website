@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronLeft, Maximize2, PanelRight, Paperclip, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Empty, Spinner } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { RichEditor } from '@/components/RichEditor'
 import { TbGroup, TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RecipientChip, QuietSelect, AttachmentChip } from '@/components/engagement-agent/compose-toolbar'
 import { bodyToHtml } from '@/lib/placement/compare'
@@ -356,16 +357,16 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
               data-draft={item.draft.id}
               onClick={() => select(item.draft.id)}
               className={cn(
-                'w-full text-left border-0 border-b border-[--border-subtle] border-l-2 cursor-pointer px-4 py-2.5 flex flex-col gap-0.5 outline-none focus-visible:bg-muted',
-                on ? 'border-l-primary bg-primary/[0.05]' : 'border-l-transparent bg-transparent hover:bg-muted/60',
+                'w-full text-left border-0 border-b border-trs-line border-l-2 cursor-pointer px-4 py-2.5 flex flex-col gap-0.5 outline-none focus-visible:bg-trs-tint',
+                on ? 'border-l-trs-green bg-trs-mint' : 'border-l-transparent bg-transparent hover:bg-trs-tint',
               )}
             >
               <span className="flex items-baseline justify-between gap-3">
-                <span className="text-[14px] font-medium text-foreground truncate">{titleOf(item)}</span>
-                <span className={cn('text-[12px] flex-shrink-0', item.state.phase === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{statusWord(item.state)}</span>
+                <span className="text-body font-medium text-trs-ink truncate">{titleOf(item)}</span>
+                <span className={cn('text-small flex-shrink-0', item.state.phase === 'error' ? 'text-trs-neg' : 'text-trs-muted')}>{statusWord(item.state)}</span>
               </span>
-              <span className="text-[12.5px] text-muted-foreground truncate">{recipientOf(item)}</span>
-              {context && <span className="text-[12.5px] text-muted-foreground truncate">{context}</span>}
+              <span className="text-small text-trs-muted truncate">{recipientOf(item)}</span>
+              {context && <span className="text-small text-trs-muted truncate">{context}</span>}
             </button>
           </li>
         )
@@ -391,19 +392,19 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
     ].filter(Boolean).join(' · ')
     return (
       <div className="flex flex-col min-h-0 h-full">
-        <div className="flex items-center gap-2 px-[var(--re-gutter)] py-2.5 flex-shrink-0 border-b border-[--border-subtle]">
+        <div className="flex items-center gap-2 px-[var(--re-gutter)] py-2.5 flex-shrink-0 border-b border-trs-line">
           {!docked && (
-            <button type="button" onClick={() => setMobileView('list')} className="md:hidden inline-flex items-center gap-1 h-[30px] pr-2 bg-transparent border-0 cursor-pointer text-[13px] text-muted-foreground">
+            <Btn size="xs" level="tertiary" onClick={() => setMobileView('list')} className="md:hidden gap-1 pl-0 pr-2 border-0 font-normal text-body text-trs-muted">
               <ChevronLeft size={15} /> All drafts
-            </button>
+            </Btn>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="m-0 text-[15px] font-medium text-foreground truncate">
+            <h3 className="m-0 text-body font-medium text-trs-ink truncate">
               {KIND_WORD[item.kind] ?? item.kind}{item.kind === 'request' && linesOf(item) ? ` · ${linesOf(item)}` : ''}
             </h3>
-            {context && <p className="m-0 text-[12.5px] text-muted-foreground truncate">{context}</p>}
+            {context && <p className="m-0 text-small text-trs-muted truncate">{context}</p>}
           </div>
-          <span role="status" className={cn('text-[13px] flex-shrink-0', item.state.phase === 'error' ? 'text-destructive' : 'text-muted-foreground')}>
+          <span role="status" className={cn('text-body flex-shrink-0', item.state.phase === 'error' ? 'text-trs-neg' : 'text-trs-muted')}>
             {item.state.phase === 'idle' ? '' : statusWord(item.state)}
           </span>
         </div>
@@ -413,7 +414,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
             <QuietSelect label="From" value={from} onChange={setFrom}>
               {senders.map(s => <option key={s.email} value={s.email}>{s.email}</option>)}
             </QuietSelect>
-          ) : <span className="text-[13.5px] text-foreground truncate">{from}</span>}
+          ) : <span className="text-body text-trs-ink truncate">{from}</span>}
         </FieldRow>
 
         <FieldRow label="To" tall>
@@ -422,10 +423,10 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
               {item.dispatches.map(d => {
                 const r = item.recipients[d.id]
                 return (
-                  <li key={d.id} className="flex items-baseline justify-between gap-3 text-[13px]">
-                    <span className="min-w-0 truncate text-foreground">{d.insurer_name} <span className="text-muted-foreground">{d.to_email}</span></span>
+                  <li key={d.id} className="flex items-baseline justify-between gap-3 text-body">
+                    <span className="min-w-0 truncate text-trs-ink">{d.insurer_name} <span className="text-trs-muted">{d.to_email}</span></span>
                     {r && (
-                      <span className={cn('flex-shrink-0 text-[12.5px]', r.phase === 'error' ? 'text-destructive' : 'text-muted-foreground')}>
+                      <span className={cn('flex-shrink-0 text-small', r.phase === 'error' ? 'text-trs-neg' : 'text-trs-muted')}>
                         {r.phase === 'queued' ? 'Queued' : r.phase === 'sending' ? 'Sending…' : r.phase === 'sent' ? 'Sent' : r.message ?? 'Not sent'}
                       </span>
                     )}
@@ -435,33 +436,33 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
             </ul>
           ) : item.draft.to_email ? (
             <RecipientChip name={item.dispatches[0]?.insurer_name ?? item.draft.to_email} email={item.draft.to_email} />
-          ) : <span className="text-[13.5px] text-destructive">No recipient</span>}
+          ) : <span className="text-body text-trs-neg">No recipient</span>}
         </FieldRow>
 
         <FieldRow label="Cc" htmlFor="drafts-cc">
-          <input
+          <Input
             id="drafts-cc"
             value={item.cc}
             disabled={busy || sent}
             onChange={e => setItem(item.draft.id, { cc: e.target.value })}
             placeholder={personal ? 'operations@ is added on send' : 'Add addresses, separated by commas'}
             autoComplete="off"
-            className="w-full text-[14px] bg-transparent border-none outline-none py-1 text-foreground placeholder:text-muted-foreground disabled:opacity-60"
+            className="h-auto w-full rounded-none text-body bg-transparent border-0 outline-none px-0 py-1 text-trs-ink placeholder:text-trs-muted focus-visible:border-0 disabled:opacity-60"
           />
         </FieldRow>
 
         <FieldRow label="Subject" htmlFor="drafts-subject">
-          <input
+          <Input
             id="drafts-subject"
             value={item.subject}
             disabled={busy || sent}
             onChange={e => setItem(item.draft.id, { subject: e.target.value })}
-            className="w-full text-[14px] bg-transparent border-none outline-none py-1 text-foreground disabled:opacity-60"
+            className="h-auto w-full rounded-none text-body bg-transparent border-0 outline-none px-0 py-1 text-trs-ink focus-visible:border-0 disabled:opacity-60"
           />
         </FieldRow>
 
         {sent ? (
-          <div className="trs-re flex-1 min-h-0 overflow-y-auto px-[var(--re-gutter)] py-4 text-[15px] leading-relaxed text-foreground [&_table]:border-collapse [&_td]:border [&_td]:border-input [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-input [&_th]:px-2 [&_th]:py-1 [&_p]:m-0 [&_p]:mb-3"
+          <div className="trs-re flex-1 min-h-0 overflow-y-auto px-[var(--re-gutter)] py-4 text-body leading-relaxed text-foreground [&_table]:border-collapse [&_td]:border [&_td]:border-input [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-input [&_th]:px-2 [&_th]:py-1 [&_p]:m-0 [&_p]:mb-3"
             dangerouslySetInnerHTML={{ __html: item.html }} />
         ) : (
           <div className={cn('flex-1 min-h-0 flex flex-col', busy && 'pointer-events-none opacity-60')} aria-busy={busy}>
@@ -506,8 +507,8 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
           </div>
         )}
 
-        <div className="flex items-center gap-2 px-[var(--re-gutter)] py-3 flex-shrink-0 flex-wrap border-t border-[--border-subtle]">
-          {item.state.phase === 'error' && <span role="alert" className="text-[13px] text-destructive min-w-0 break-words">{item.state.message}</span>}
+        <div className="flex items-center gap-2 px-[var(--re-gutter)] py-3 flex-shrink-0 flex-wrap border-t border-trs-line">
+          {item.state.phase === 'error' && <span role="alert" className="text-body text-trs-neg min-w-0 break-words">{item.state.message}</span>}
           <span className="flex-1" />
           {!sent && (
             <>
@@ -522,24 +523,24 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
 
   // ── Shell ────────────────────────────────────────────────────────────────────────────────────
   const header = (
-    <header className="flex items-center gap-2 px-4 sm:px-5 h-14 flex-shrink-0 border-b border-[--border-subtle]">
-      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] text-foreground">Drafts to approve</h2>
-      <span className="text-[13px] tabular-nums text-muted-foreground">{items ? pending.length : ''}</span>
+    <header className="flex items-center gap-2 px-4 sm:px-5 h-14 flex-shrink-0 border-b border-trs-line">
+      <h2 className="m-0 text-heading font-medium text-trs-ink">Drafts to approve</h2>
+      <span className="text-body tabular-nums text-trs-muted">{items ? pending.length : ''}</span>
       <div className="ml-auto flex items-center gap-1.5">
         <Btn level="secondary" size="xs" onClick={() => void sendAll()} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>
         {!phone && (docked
           ? <Btn level="tertiary" size="xs" onClick={() => switchLayout('modal')}><Maximize2 size={13} /> Expand</Btn>
           : <Btn level="tertiary" size="xs" onClick={() => switchLayout('dock')}><PanelRight size={13} /> Dock to side</Btn>)}
-        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent cursor-pointer text-foreground hover:bg-muted">
+        <Btn size="xs" level="tertiary" onClick={onClose} aria-label="Close" title="Close (Esc)" className="w-8 px-0 border-0 text-trs-ink hover:bg-trs-tint">
           <X size={16} />
-        </button>
+        </Btn>
       </div>
     </header>
   )
 
   const states = (
     <>
-      {error && <p role="alert" className="text-[13px] m-0 px-4 py-3 text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-body m-0 px-4 py-3 text-trs-neg">{error}</p>}
       {!items && <div className="p-4"><Spinner label="Loading drafts…" /></div>}
       {items && items.length === 0 && !error && <div className="p-4"><Empty compact>No drafts waiting.</Empty></div>}
     </>
@@ -552,13 +553,13 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         tabIndex={-1}
         role="dialog"
         aria-label="Drafts to approve"
-        className="fixed top-0 right-0 bottom-0 z-50 w-[600px] max-w-full bg-background flex flex-col border-l border-[--border-subtle] shadow-[var(--shadow-panel)] outline-none [--re-gutter:16px]"
+        className="fixed top-0 right-0 bottom-0 z-50 w-[600px] max-w-full bg-background flex flex-col border-l border-trs-line shadow-[var(--shadow-panel)] outline-none [--re-gutter:16px]"
       >
         {header}
         {states}
         {items && items.length > 0 && (
           <>
-            <div className="flex-shrink-0 max-h-[32%] overflow-y-auto border-b border-[--border-subtle]">{list}</div>
+            <div className="flex-shrink-0 max-h-[32%] overflow-y-auto border-b border-trs-line">{list}</div>
             <div className="flex-1 min-h-0">{editor}</div>
           </>
         )}
@@ -575,13 +576,13 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         role="dialog"
         aria-modal="true"
         aria-label="Drafts to approve"
-        className="fixed z-50 inset-0 sm:inset-6 lg:inset-8 mx-auto max-w-[1400px] bg-background flex flex-col overflow-hidden sm:rounded-[16px] shadow-[var(--shadow-modal)] outline-none [--re-gutter:16px] sm:[--re-gutter:24px]"
+        className="fixed z-50 inset-0 sm:inset-6 lg:inset-8 mx-auto max-w-[1400px] bg-background flex flex-col overflow-hidden sm:rounded shadow-[var(--shadow-modal)] outline-none [--re-gutter:16px] sm:[--re-gutter:24px]"
       >
         {header}
         {states}
         {items && items.length > 0 && (
           <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[340px_minmax(0,1fr)]">
-            <nav aria-label="Drafts" className={cn('min-h-0 overflow-y-auto md:border-r md:border-[--border-subtle]', mobileView === 'editor' && 'hidden md:block')}>{list}</nav>
+            <nav aria-label="Drafts" className={cn('min-h-0 overflow-y-auto md:border-r md:border-trs-line', mobileView === 'editor' && 'hidden md:block')}>{list}</nav>
             <section className={cn('min-h-0 min-w-0', mobileView === 'list' && 'hidden md:block')}>{editor}</section>
           </div>
         )}

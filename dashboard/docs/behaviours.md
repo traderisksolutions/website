@@ -170,7 +170,7 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | CLI-036 | The company page has a Claims tab after Quotes: the claims register narrowed to the company (same rows as /claims?company=); a row opens the claim. | 20 Nov review | CompanyClaims.tsx | journey clients-review CLI-036. |
 | CLI-037 | Each company tab whose data fails to load says so in red instead of showing an empty list; the Threads view's section tabs show and wrap on a phone; its trail is Breadcrumbs (company › Threads). | 20 Nov review | src/app/companies/[id]/page.tsx | 390px shows the tabs. |
 | CLI-038 | Follow-ups (/nexus) is titled Follow-ups; a company opens its page's Nexus tab; /nexus/companies/<id> redirects there. Snooze is 7 days on Follow-ups and the Admin desk. | 20 Nov review | FollowUpsLedger.tsx, src/lib/nexus/rules.ts | Snooze label reads 7 days. |
-| CLI-039 | Portfolio and Admin desk state in the facts line how many threads since the emails start have no company, since the per-business counts miss them. | 20 Nov review | src/lib/clients/portfolio-load.ts | Facts line shows the unfiled count. |
+| CLI-039 | **Removed** (Jarod, 20 Nov 2026: Portfolio and Admin desk pages removed; the enrolment cycle in the admin sweep stays). Was: Portfolio and Admin desk state in the facts line how many threads since the emails start have no company, since the per-business counts miss them. | 20 Nov review | src/lib/clients/portfolio-load.ts | Facts line shows the unfiled count. |
 
 ## Quotes › Employment Benefits
 

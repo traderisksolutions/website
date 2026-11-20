@@ -15,9 +15,9 @@
  *   402 / 403 billing       — terminal on the first occurrence. Billing does not re-enable
  *                             itself, so waiting for a second one only delays the warning.
  */
-import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { NextResponse } from 'next/server'
 import { agentOfFeature, AGENTS, type AgentId } from '@/lib/ai-agents'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 /** How far back a failure still counts as "now". */
@@ -43,10 +43,7 @@ function isBilling(r: ErrRow): boolean {
   return r.status_code === 403 && (m.includes('billing') || m.includes('quota') || m.includes('suspend'))
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async () => {
   try {
     const since = new Date(Date.now() - WINDOW_MIN * 60_000).toISOString()
 
@@ -113,4 +110,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

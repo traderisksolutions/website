@@ -91,7 +91,7 @@ test('inbox opens a thread with the rail groups', async ({ page }) => {
 
 test('no page offers a hand-made back link or button; breadcrumbs carry Back', async ({ page }) => {
   const id = await companyId(page, 'OUE')
-  for (const href of ['/pricing-matrix', `/companies/${id}`, '/policies', '/today']) {
+  for (const href of ['/eb/quotations', `/companies/${id}`, '/policies', '/today']) {
     await openClean(page, href)
     await expect(page.getByRole('link', { name: /^←/ })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^←/ })).toHaveCount(0)

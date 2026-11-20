@@ -35,17 +35,17 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
     <Dialog open={threadId !== null} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-[860px] w-[calc(100vw-32px)] max-h-[86vh] p-0 gap-0 flex flex-col overflow-hidden">
         <header className="flex items-center gap-4 pl-6 pr-14 py-4 border-b border-[#e6e8e4]">
-          <DialogTitle className="text-[17px] truncate min-w-0 flex-1">{title}</DialogTitle>
+          <DialogTitle className="text-heading truncate min-w-0 flex-1">{title}</DialogTitle>
           {threadId && (
-            <Link href={`/engagement?lead=${threadId}`} className="inline-flex items-center gap-1 text-[13.5px] font-medium whitespace-nowrap no-underline hover:underline text-[#132c1c]">
+            <Link href={`/engagement?lead=${threadId}`} className="inline-flex items-center gap-1 text-body font-medium whitespace-nowrap no-underline hover:underline text-[#132c1c]">
               Go to inbox <ArrowUpRight size={14} />
             </Link>
           )}
         </header>
         <div className="overflow-y-auto min-h-0 flex-1 px-6 py-4">
           {!state ? <Spinner label="Loading thread…" />
-            : state.error ? <p className="m-0 text-[14px] text-destructive">{state.error}</p>
-            : !latest ? <p className="m-0 text-[14px] text-muted-foreground">No messages on this thread.</p>
+            : state.error ? <p className="m-0 text-body text-destructive">{state.error}</p>
+            : !latest ? <p className="m-0 text-body text-muted-foreground">No messages on this thread.</p>
             : (
               <div className="flex flex-col gap-2">
                 <MessageBlock key={latest.id} msg={latest} defaultOpen isLatest />

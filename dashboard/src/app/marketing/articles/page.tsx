@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { DataTableSearch } from '@/components/data-table/toolbar'
-import { Segmented } from '@/components/crm/primitives'
+import { Btn, Segmented } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
@@ -86,10 +86,10 @@ function Articles() {
     <MarketingPage
       title="Articles"
       line={!counts ? (sitesError ?? 'Loading…') : <>
-        <button type="button" onClick={() => go({ status: 'pending' })} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-2 text-[15px]" style={{ color: '#0f1412' }}>{n(counts.pending)} awaiting approval</button>
+        <Btn level="tertiary" size="xs" onClick={() => go({ status: 'pending' })} className="h-auto px-0 border-0 font-normal underline underline-offset-2 text-body text-trs-ink hover:bg-transparent">{n(counts.pending)} awaiting approval</Btn>
         {' '}· {n(counts.published)} published · {n(counts.draft)} drafts · {n(counts.archived)} archived
       </>}
-      line2={data && <>Public feed <a href={`/api/public/blog?site=${data.site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: '#0f1412' }}>/api/public/blog?site={data.site.domain}</a> · articles render at {data.site.domain}{data.site.blog_base_path}/…</>}
+      line2={data && <>Public feed <a href={`/api/public/blog?site=${data.site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-trs-ink">/api/public/blog?site={data.site.domain}</a> · articles render at {data.site.domain}{data.site.blog_base_path}/…</>}
       sites={sites} siteKey={siteKey} onSite={setSiteKey}
       actions={<>
         <Button size="lg" variant="outline" asChild><a href={withSite('/marketing/generate', siteKey)}>Generate</a></Button>
@@ -118,14 +118,14 @@ function Articles() {
               <RegisterCell first identityWidth={320} primary={r.title} secondary={[`/${r.slug}`, r.topic].filter(Boolean).join(' · ')} />
               <RegisterCell><ArticleStatusChip status={r.status} /></RegisterCell>
               <RegisterCell><CategoryChip category={r.category} /></RegisterCell>
-              <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{r.word_count ?? '–'}</span></RegisterCell>
-              <RegisterCell><span style={{ color: MUTED }}>{fmtDay(r.updated_at)}</span></RegisterCell>
-              <RegisterCell last><span style={{ color: MUTED }}>{fmtDay(r.published_at) ?? '–'}</span></RegisterCell>
+              <RegisterCell align="right"><span className="tabular-nums text-trs-muted">{r.word_count ?? '–'}</span></RegisterCell>
+              <RegisterCell><span className="text-trs-muted">{fmtDay(r.updated_at)}</span></RegisterCell>
+              <RegisterCell last><span className="text-trs-muted">{fmtDay(r.published_at) ?? '–'}</span></RegisterCell>
             </RegisterRow>
           ))}
         </tbody>
       </Register>
-      {data && <p className="m-0 mt-4 text-[13px] tabular-nums" style={{ color: MUTED }} aria-live="polite">{loading ? 'Loading…' : `${n(rows.length)} of ${n(all)} articles`}</p>}
+      {data && <p className="m-0 mt-4 text-body tabular-nums text-trs-muted" aria-live="polite">{loading ? 'Loading…' : `${n(rows.length)} of ${n(all)} articles`}</p>}
       <NewArticleDialog open={creating} onOpenChange={setCreating} siteKey={siteKey} topics={data?.site.topics ?? []}
         onCreated={id => { setCreating(false); router.push(withSite(`/marketing/articles/${id}`, siteKey)) }} />
     </MarketingPage>

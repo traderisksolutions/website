@@ -152,7 +152,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
             <span className="self-start"><Chip>{SIDE_LABEL[s]} <span className="font-mono">{ds.length}</span></Chip></span>
             {ds.map(draftCard)}
             {ds.length === 0 && emptyBoxes && (
-              <div className="text-[13px] text-trs-muted">
+              <div className="text-body text-trs-muted">
                 {read ? 'No draft. Tick a suggestion above to draft one.' : 'No draft. Read to get suggestions.'}
               </div>
             )}
@@ -169,14 +169,14 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   return (
     <section className="bg-white scroll-mt-20" data-company={row.companyId ?? undefined}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5">
-        <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Open'} ${row.companyName}`} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-[7px] border-0 bg-transparent text-trs-ink cursor-pointer hover:bg-trs-field">
+        <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Open'} ${row.companyName}`} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded border-0 bg-transparent text-trs-ink cursor-pointer hover:bg-trs-field">
           <ChevronRight size={16} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
         </button>
         {row.companyId
-          ? <Link href={`/companies/${row.companyId}`} className="text-[15px] font-semibold text-trs-ink no-underline hover:underline">{row.companyName}</Link>
-          : <span className="text-[15px] font-semibold text-trs-ink">{row.companyName}</span>}
-        <span className="text-[12.5px] text-trs-muted">{row.threads.length} thread{row.threads.length === 1 ? '' : 's'}{row.lastAt ? ` · last ${timeAgo(row.lastAt)}` : ''}</span>
-        {showOwner && <span className="text-[12.5px] text-trs-muted">Owner {first(row.owner)}</span>}
+          ? <Link href={`/companies/${row.companyId}`} className="text-body font-semibold text-trs-ink no-underline hover:underline">{row.companyName}</Link>
+          : <span className="text-body font-semibold text-trs-ink">{row.companyName}</span>}
+        <span className="text-small text-trs-muted">{row.threads.length} thread{row.threads.length === 1 ? '' : 's'}{row.lastAt ? ` · last ${timeAgo(row.lastAt)}` : ''}</span>
+        {showOwner && <span className="text-small text-trs-muted">Owner {first(row.owner)}</span>}
         <span className="flex-1" />
         <Chip tone={left ? 'neutral' : 'green'}>{left ? `${left} to send` : 'Cleared'}</Chip>
         {!hasProjects && <Btn size="xs" level="tertiary" onClick={() => { setThreadsOpen(v => !v); if (!open) onToggle() }} aria-expanded={threadsOpen}><MessageSquare size={14} /> Threads</Btn>}
@@ -185,7 +185,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
         <FactsLine facts={facts} waiting={waitingOnRow(row.threads)} />
       </header>
 
-      {error && <p className="m-0 md:pl-[42px] pt-1.5 text-[13px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 md:pl-[42px] pt-1.5 text-body text-trs-neg" role="alert">{error}</p>}
 
       {!open && (
         <button type="button" onClick={onToggle} className="grid w-full grid-cols-1 gap-x-8 md:grid-cols-2 border-0 bg-white p-0 text-left cursor-pointer">
@@ -203,15 +203,15 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
           {read && (
             <div className="md:pl-[42px] py-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-trs-green"><Sparkles size={13} /> Read</span>
-                <span className="text-xs text-trs-muted">{timeAgo(read.at)} by {first(read.by)}</span>
+                <span className="inline-flex items-center gap-1.5 text-small font-semibold text-trs-green"><Sparkles size={13} /> Read</span>
+                <span className="text-small text-trs-muted">{timeAgo(read.at)} by {first(read.by)}</span>
               </div>
               {read.steps.length > 0 && (
                 <div className="mt-1 flex flex-col gap-1">
-                  <span className="text-[12.5px] font-semibold text-trs-ink">Suggested</span>
+                  <span className="text-small font-semibold text-trs-ink">Suggested</span>
                   <ul className="m-0 p-0 list-none flex flex-col gap-1">
                     {read.steps.map(s => (
-                      <li key={s.id} className="flex items-start gap-2 text-[13px]">
+                      <li key={s.id} className="flex items-start gap-2 text-body">
                         {s.status !== 'proposed'
                           ? <span className="mt-[2px] w-[13px] text-trs-pos" aria-hidden>✓</span>
                           : s.op && s.draftId
@@ -221,11 +221,11 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                           <Chip className="mr-1.5">{s.kind === 'action' ? 'Action' : s.party === 'insurer' ? (s.insurer ?? 'Insurer') : 'Client'}</Chip>
                           <span className="font-medium text-trs-ink">{s.title}</span>
                           {s.to && <span className="text-trs-muted"> · {s.to.name ?? s.to.email}</span>}
-                          {s.source && <span className={`ml-1.5 rounded-full px-1.5 py-[1px] text-[11px] font-medium ${s.source === 'thread' ? 'bg-trs-pos-bg text-trs-pos' : 'bg-trs-warn-bg text-trs-warn'}`} title={s.source === 'thread' ? 'This person is already on the client’s threads.' : 'Picked from the Insurers page: not yet on the client’s threads.'}>{s.source === 'thread' ? 'On the thread' : 'From Insurers list'}</span>}
+                          {s.source && <span className={`ml-1.5 rounded-full px-1.5 py-[1px] text-small font-medium ${s.source === 'thread' ? 'bg-trs-pos-bg text-trs-pos' : 'bg-trs-warn-bg text-trs-warn'}`} title={s.source === 'thread' ? 'This person is already on the client’s threads.' : 'Picked from the Insurers page: not yet on the client’s threads.'}>{s.source === 'thread' ? 'On the thread' : 'From Insurers list'}</span>}
                           {s.status === 'drafted' && <span className="text-trs-pos"> · drafted</span>}
                           {s.status === 'todo' && <span className="text-trs-muted"> · to do</span>}
                           {s.status === 'done' && <span className="text-trs-pos"> · done</span>}
-                          <span className="block text-[12.5px] text-trs-muted">{s.detail}</span>
+                          <span className="block text-small text-trs-muted">{s.detail}</span>
                           {(() => { const th = threadForStep(s, row); return th ? <OpenThread threadId={th} owner={privateOf(th)} onNotice={onNotice} /> : null })()}
                         </span>
                         {s.status === 'proposed' && s.op && s.draftId && (
@@ -265,9 +265,9 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
             <section key={g.project ?? '(client)'} aria-label={g.project ?? row.companyName} className="md:pl-[42px] pt-4">
               {g.project && (
                 <header className="flex flex-wrap items-baseline gap-x-2">
-                  <span className="text-[14px] font-semibold text-trs-ink">{g.project}</span>
-                  {g.note && <span className="text-[12.5px] text-trs-muted">{g.note}</span>}
-                  <span className="text-[12px] text-trs-subtle">{g.threads.length} thread{g.threads.length === 1 ? '' : 's'}</span>
+                  <span className="text-body font-semibold text-trs-ink">{g.project}</span>
+                  {g.note && <span className="text-small text-trs-muted">{g.note}</span>}
+                  <span className="text-small text-trs-subtle">{g.threads.length} thread{g.threads.length === 1 ? '' : 's'}</span>
                 </header>
               )}
               {g.project && condensedOf(g.project) && (
@@ -289,12 +289,12 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
 
 function Line({ l }: { l: FoldLine }) {
   return (
-    <span className="flex min-w-0 items-center gap-2 text-[13px]">
+    <span className="flex min-w-0 items-center gap-2 text-body">
       <span className="h-[7px] w-[7px] flex-none rounded-full bg-trs-line-2" aria-hidden />
       <span className="font-medium text-trs-ink whitespace-nowrap">{l.party}</span>
       {l.project && <span className="whitespace-nowrap text-trs-ink-2">{l.project}</span>}
       <span className="truncate text-trs-muted">{l.todo}</span>
-      {l.more > 0 && <span className="flex-none text-[12px] text-trs-muted">+{l.more}</span>}
+      {l.more > 0 && <span className="flex-none text-small text-trs-muted">+{l.more}</span>}
     </span>
   )
 }
@@ -309,7 +309,7 @@ function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject, 
   const [note, setNote] = useState(t.projectNote ?? '')
   const listId = `projects-${t.threadId}`
   return (
-    <li className="flex flex-col gap-1.5 text-[13px]">
+    <li className="flex flex-col gap-1.5 text-body">
       <span className="flex flex-wrap items-center gap-2">
         <Chip>{t.side === 'client' ? 'Client' : 'Insurer'}</Chip>
         <ThreadTitle threadId={t.threadId} subject={t.subject} owner={t.private} onNotice={onNotice} />
@@ -323,9 +323,9 @@ function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject, 
       </span>
       {editing && (
         <span className="flex flex-wrap items-center gap-2 pl-1">
-          <input aria-label="Project" list={listId} placeholder="Project, e.g. Main project" value={project} onChange={e => setProject(e.target.value)} className={`${inputCls} !h-8 w-[220px] text-[13px]`} />
+          <input aria-label="Project" list={listId} placeholder="Project, e.g. Main project" value={project} onChange={e => setProject(e.target.value)} className={`${inputCls} !h-8 w-[220px] text-body`} />
           <datalist id={listId}>{projects.map(p => <option key={p} value={p} />)}</datalist>
-          <input aria-label="Project description" placeholder="Description" value={note} onChange={e => setNote(e.target.value)} maxLength={160} className={`${inputCls} !h-8 w-[260px] text-[13px]`} />
+          <input aria-label="Project description" placeholder="Description" value={note} onChange={e => setNote(e.target.value)} maxLength={160} className={`${inputCls} !h-8 w-[260px] text-body`} />
           <Btn size="xs" onClick={async () => { if (await onProject(project, note)) setEditing(false) }} loading={busy === `project:${t.threadId}`} disabled={!!busy}>Save</Btn>
           <Btn size="xs" level="tertiary" onClick={() => { setEditing(false); setProject(t.project ?? ''); setNote(t.projectNote ?? '') }} disabled={!!busy}>Cancel</Btn>
         </span>

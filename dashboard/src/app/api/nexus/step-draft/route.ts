@@ -10,11 +10,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }            from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { geminiUrl, GEMINI_FLASH } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 
@@ -44,10 +44,7 @@ async function resolveThreadForEmail(email: string): Promise<string | null> {
   return tid ?? null
 }
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { case_id, action, rationale, party_type, to_email } = await req.json() as {
       case_id?: string; action?: string; rationale?: string; party_type?: string; to_email?: string
@@ -118,4 +115,4 @@ Write a concise, professional email that achieves the action. Singapore business
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

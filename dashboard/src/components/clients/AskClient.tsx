@@ -7,6 +7,7 @@
  */
 import { useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import type { Answer } from '@/lib/admin/k/ask'
 
 export function AskClient({ companyId }: { companyId: string }) {
@@ -29,19 +30,19 @@ export function AskClient({ companyId }: { companyId: string }) {
 
   return (
     <section className="mb-4 min-w-0" aria-label="Ask about this client">
-      <h2 className="m-0 mb-2 text-[11.5px] font-semibold uppercase tracking-[0.07em] text-trs-muted">Ask about this client</h2>
+      <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted">Ask about this client</h2>
       <form className="flex gap-2 max-w-[760px]" onSubmit={e => { e.preventDefault(); void ask() }}>
-        <input value={q} onChange={e => setQ(e.target.value)} maxLength={500} aria-label="Question about this client" placeholder="What did they pay for WICA last year, and what was claimed?"
-          className="h-9 flex-1 min-w-0 rounded-[8px] border border-trs-line-2 bg-white px-3 text-[14px] outline-none focus:border-trs-ink" />
+        <Input value={q} onChange={e => setQ(e.target.value)} maxLength={500} aria-label="Question about this client" placeholder="What did they pay for WICA last year, and what was claimed?"
+          className="flex-1 min-w-0" />
         <Btn type="submit" level="secondary" loading={busy} disabled={busy || q.trim().length < 3}>Ask</Btn>
       </form>
-      {error && <p className="m-0 mt-2 text-[13px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 mt-2 text-body text-trs-neg" role="alert">{error}</p>}
       {out && (
-        <div className="mt-3 max-w-[760px] text-[13.5px]" role="status">
-          <div className="text-[12px] text-trs-muted">{out.question}</div>
+        <div className="mt-3 max-w-[760px] text-body" role="status">
+          <div className="text-small text-trs-muted">{out.question}</div>
           {out.refused ? <p className="m-0 mt-1 text-trs-muted">{out.refused}</p> : <p className="m-0 mt-1 whitespace-pre-wrap text-trs-ink">{out.answer}</p>}
           {out.sources.length > 0 && (
-            <ul className="m-0 mt-2 p-0 list-none flex flex-wrap gap-x-3 gap-y-1 text-[12.5px]">
+            <ul className="m-0 mt-2 p-0 list-none flex flex-wrap gap-x-3 gap-y-1 text-small">
               {out.sources.map(s => <li key={s.id}>{s.href ? <a href={s.href} className="text-trs-ink underline">{s.label}</a> : <span className="text-trs-muted">{s.label}</span>}</li>)}
             </ul>
           )}

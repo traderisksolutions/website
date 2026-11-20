@@ -29,11 +29,11 @@ import { isEncryptedWorkbook, xlsxSheetsAsText } from '@/lib/xlsx-text'
 const ENCRYPTED_MARK = '[ENCRYPTED — password-protected workbook]'
 import { modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { gmailToken } from '@/lib/google/auth'
 
 export const maxDuration = 300
 
 const STORAGE_BUCKET  = 'email-attachments'
-const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GMAIL_API       = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const GEMINI_FLASH    = geminiUrl(GEMINI_FLASH_MODEL)
 
@@ -81,22 +81,7 @@ async function uploadToStorage(path: string, data: Buffer, mimeType: string): Pr
 
 // ── Gmail helpers ─────────────────────────────────────────────────────────────
 
-async function getGmailToken(): Promise<string | null> {
-  const { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN } = process.env
-  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN) return null
-  try {
-    const res = await fetch(GMAIL_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: GMAIL_CLIENT_ID, client_secret: GMAIL_CLIENT_SECRET,
-        refresh_token: GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token',
-      }),
-    })
-    const d = await res.json()
-    return d.access_token ?? null
-  } catch { return null }
-}
+const getGmailToken = (): Promise<string | null> => gmailToken().catch(() => null)
 
 async function downloadFromGmail(token: string, gmailMsgId: string, attachmentId: string): Promise<Buffer | null> {
   try {

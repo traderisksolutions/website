@@ -2,8 +2,8 @@
 import { test, expect } from '@playwright/test'
 import { companyId, dbRows, openClean } from './helpers'
 
-test('NAV-002 Employment Benefits tabs are New quotation, Quotation register (/eb/quotations) and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
-  await openClean(page, '/eb')
+test('Employment Benefits tabs are New quotation, Quotation register and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
+  await openClean(page, '/eb/quotations')
   await expect(page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true })).toHaveAttribute('aria-current', 'page')
   const tabs = page.getByRole('navigation', { name: 'Employment Benefits' })
   await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Brochures'])
@@ -16,7 +16,7 @@ test('NAV-002 Employment Benefits tabs are New quotation, Quotation register (/e
 })
 
 test('EB-052 the Quotation register lists eb_quotations: Company, Effective date, Basis, Insurers, Version, Status, Updated; a row opens its proposal', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
+  await openClean(page, '/eb/quotations')
   const table = page.getByRole('table', { name: 'Quotation register' })
   await expect(table.locator('thead th')).toHaveText(['Company', 'Effective date', 'Basis', 'Insurers', 'Version', 'Status', 'Updated'])
   const [q] = await dbRows<{ id: string }>('eb_quotations?select=id&order=created_at.desc&limit=1')
@@ -26,7 +26,7 @@ test('EB-052 the Quotation register lists eb_quotations: Company, Effective date
 })
 
 test('New quotation on the register opens the quotation page: company, census and last year side by side', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
+  await openClean(page, '/eb/quotations')
   await page.getByRole('link', { name: 'New quotation', exact: true }).last().click()
   await expect(page).toHaveURL(/\/eb$/)
   await expect(page.getByRole('heading', { name: 'Employment Benefits', level: 1 })).toBeVisible()
@@ -61,14 +61,14 @@ test('the old New quotation and company links land on /eb and the company tab (E
 })
 
 test('Employment Benefits › Plan rules: the brochure rules for Income, RCC and Singlife, each with its pairs', async ({ page }) => {
-  await openClean(page, '/pricing-matrix?tab=rules')
+  await openClean(page, '/eb/quotations?tab=rules')
   const insurers = await page.locator('select[aria-label$=" insurer"]').evaluateAll(els => els.map(e => (e as HTMLSelectElement).value))
   for (const p of ['Income FlexCare', 'RCC Enhanced III', 'Singlife MyBenefits Plus']) expect(insurers).toContain(p)
   await expect(page.getByText(/Plan 3 → Plan 3/).first()).toBeVisible()
 })
 
 test('an HR link\'s list opens New quotation, not the retired Quick quote', async ({ page }) => {
-  await page.goto('/pricing-matrix?tab=quote&hrLink=00000000-0000-0000-0000-000000000000')
+  await page.goto('/eb/quotations?tab=quote&hrLink=00000000-0000-0000-0000-000000000000')
   await expect(page).toHaveURL(/\/eb\?hrLink=/)
 })
 
@@ -80,7 +80,7 @@ test('EB-061 an old quotation address redirects to its re-priced proposal; one n
     await expect(page).toHaveURL(new RegExp(`/eb/proposal/${m.id}$`))
   }
   await page.goto('/pricing-matrix/quote/00000000-0000-0000-0000-000000000000/compare')
-  await expect(page).toHaveURL(/\/pricing-matrix$/)
+  await expect(page).toHaveURL(/\/eb\/quotations$/)
 })
 
 test('a report link that is not signed is refused', async ({ page }) => {

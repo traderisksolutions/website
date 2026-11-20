@@ -6,8 +6,10 @@
  * printed letter, PDF and Word filed in Drive, draft to the client), upload the signed copy, open it.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import { Btn, Spinner, btnClass } from '@/components/crm/primitives'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
+import { Register } from '@/components/ui/register'
 import { fmtDate, fmtDateTime } from '@/lib/format'
 import type { LetterStatus } from '@/lib/letters/appointment'
 
@@ -46,28 +48,28 @@ export function AppointmentLetterPanel({ companyId, companyName, placementId }: 
   if (!status && !error) return <Spinner label="Loading the appointment letter" />
   const [word, tone] = status ? WORD[status.state] : ['—', 'text-trs-muted']
   return (
-    <section className="flex min-w-0 flex-col overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
+    <section className="flex min-w-0 flex-col overflow-hidden rounded border border-trs-line-2 bg-white">
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5">
-        <h3 className="m-0 text-[14px] font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
+        <h3 className="m-0 text-body font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
         <span className="flex flex-wrap items-center gap-2">
           {status?.url && <a href={status.url} target="_blank" rel="noreferrer" className={`${btnClass('secondary', 'xs')} no-underline`}>Open letter ↗</a>}
           {status?.state === 'sent' && (
             <label className="inline-flex cursor-pointer">
-              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" className="hidden" aria-label="Upload signed letter" onChange={e => void upload(e.target.files)} />
+              <Input type="file" accept=".pdf,.png,.jpg,.jpeg,.docx" className="hidden" aria-label="Upload signed letter" onChange={e => void upload(e.target.files)} />
               <span className={btnClass('secondary', 'xs')}>{uploading ? 'Uploading…' : 'Upload signed letter'}</span>
             </label>
           )}
           <Btn size="xs" level={status?.state === 'signed' ? 'secondary' : 'primary'} onClick={() => setOpen(true)}>{status?.state === 'signed' ? 'New letter' : 'Create letter'}</Btn>
         </span>
       </header>
-      <table className="trs-table">
-        <thead><tr><th className="px-4">Status</th><th className="px-3">Date</th></tr></thead>
+      <Register label="Appointment letter status" minWidth={0} dense={false}>
+        <thead><tr><th>Status</th><th>Date</th></tr></thead>
         <tbody><tr>
-          <td className={`px-4 font-medium ${tone}`}>{word}</td>
-          <td className="px-3">{status?.at ? fmtDate(status.at) : '—'}</td>
+          <td className={`font-medium ${tone}`}>{word}</td>
+          <td>{status?.at ? fmtDate(status.at) : '—'}</td>
         </tr></tbody>
-      </table>
-      {(note || error) && <div className={`border-t border-trs-line px-4 py-2 text-[12.5px] ${error ? 'text-trs-neg' : 'text-trs-pos'}`} role="status">{error ?? note}</div>}
+      </Register>
+      {(note || error) && <div className={`border-t border-trs-line px-4 py-2 text-small ${error ? 'text-trs-neg' : 'text-trs-pos'}`} role="status">{error ?? note}</div>}
       <AppointmentLetterDialog open={open} onClose={() => setOpen(false)} companyId={companyId} placementId={placementId ?? null}
         onDone={() => { setNote(`✓ Letter filed in Drive · ${fmtDateTime(new Date().toISOString())}`); void load() }} />
     </section>

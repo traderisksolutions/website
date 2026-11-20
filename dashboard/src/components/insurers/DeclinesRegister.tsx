@@ -7,9 +7,9 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Chip, Spinner } from '@/components/crm/primitives'
+import { Btn, Chip, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
-import { callApi, errText, ERROR, MUTED } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 
 type Decline = { id: string; insurer_company_id: string | null; insurer_name: string; kind: string; line: string | null; risk: string | null; reason: string | null; quote: string | null; client_name: string | null; declined_on: string | null; thread_id: string | null; source: string }
 const KIND: Record<string, { label: string; tone: 'neutral' | 'amber' | 'red' | 'blue' }> = { appetite: { label: 'Appetite', tone: 'red' }, blocked: { label: 'Another broker first', tone: 'amber' }, onboarding: { label: 'TRS not onboarded', tone: 'blue' }, other: { label: 'Other', tone: 'neutral' } }
@@ -35,11 +35,11 @@ export function DeclinesRegister({ q, line }: { q: string; line: string }) {
   if (!rows) return <Spinner label="Loading declines…" />
   return (
     <div className="flex flex-col gap-4">
-      {error && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
-      <div className="flex flex-wrap items-center gap-2 text-[13px]" style={{ color: MUTED }}>
+      {error && <p className="m-0 text-body text-trs-neg">{error}</p>}
+      <div className="flex flex-wrap items-center gap-2 text-body text-trs-muted">
         <span>{list.length} declines from {byInsurer.length} insurers</span>
         {Object.entries(KIND).map(([k, v]) => (
-          <button key={k} type="button" onClick={() => setKind(kind === k ? '' : k)} className="bg-transparent border-0 p-0 cursor-pointer"><Chip tone={kind === k ? v.tone : 'neutral'}>{v.label} · {rows.filter(r => r.kind === k).length}</Chip></button>
+          <Btn key={k} level="tertiary" size="xs" onClick={() => setKind(kind === k ? '' : k)} className="h-auto p-0 border-0 hover:bg-transparent"><Chip tone={kind === k ? v.tone : 'neutral'}>{v.label} · {rows.filter(r => r.kind === k).length}</Chip></Btn>
         ))}
       </div>
       <Register label="Insurer declines" minWidth={1180}>
@@ -51,17 +51,17 @@ export function DeclinesRegister({ q, line }: { q: string; line: string }) {
           {list.length === 0 && <RegisterEmpty colSpan={6}>No declines match.</RegisterEmpty>}
           {byInsurer.flatMap(([name, ds]) => ds.map((r, i) => (
             <RegisterRow key={r.id}>
-              <RegisterCell first>{i === 0 ? <span className="font-medium">{name}<span className="block text-[12px] font-normal" style={{ color: MUTED }}>{ds.length} declined</span></span> : null}</RegisterCell>
+              <RegisterCell first>{i === 0 ? <span className="font-medium">{name}<span className="block text-small font-normal text-trs-muted">{ds.length} declined</span></span> : null}</RegisterCell>
               <RegisterCell>{day(r.declined_on)}</RegisterCell>
               <RegisterCell>{r.line ?? '–'}</RegisterCell>
               <RegisterCell align="left" title={r.quote ?? undefined}>
                 <div>{r.risk ?? '–'}</div>
-                <div className="text-[12.5px]" style={{ color: MUTED }}>{r.reason}</div>
+                <div className="text-small text-trs-muted">{r.reason}</div>
               </RegisterCell>
               <RegisterCell><Chip tone={KIND[r.kind]?.tone ?? 'neutral'}>{KIND[r.kind]?.label ?? r.kind}</Chip></RegisterCell>
               <RegisterCell align="left" last>
                 <div className="truncate">{r.client_name ?? '–'}</div>
-                {r.thread_id && <Link href={`/engagement?lead=${r.thread_id}`} className="text-[12.5px] underline underline-offset-2" style={{ color: MUTED }}>Open thread</Link>}
+                {r.thread_id && <Link href={`/engagement?lead=${r.thread_id}`} className="text-small underline underline-offset-2 text-trs-muted">Open thread</Link>}
               </RegisterCell>
             </RegisterRow>
           )))}

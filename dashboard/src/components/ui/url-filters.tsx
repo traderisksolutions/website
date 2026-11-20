@@ -21,10 +21,10 @@ export function UrlFilters<T extends string>({ param, value, options, query, pla
   return (
     <>
       <Segmented<T> value={value} onChange={v => go({ [param]: v })} options={options} label="Filter" />
-      <form role="search" onSubmit={e => { e.preventDefault(); go({ q: q.trim() }) }} className="flex items-center gap-2 h-[30px] px-2.5 rounded-[7px] border border-trs-line-2 bg-white min-w-0 w-full sm:w-[260px]">
+      <form role="search" onSubmit={e => { e.preventDefault(); go({ q: q.trim() }) }} className="flex items-center gap-2 h-8 px-2.5 rounded border border-trs-line-2 bg-white min-w-0 w-full sm:w-[260px]">
         <Search className="h-3.5 w-3.5 flex-shrink-0 text-trs-muted" />
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={placeholder} aria-label={placeholder}
-          className="flex-1 min-w-0 h-full border-0 outline-none bg-transparent text-[13px] text-trs-ink placeholder:text-trs-subtle" />
+          className="flex-1 min-w-0 h-full border-0 outline-none bg-transparent text-body text-trs-ink placeholder:text-trs-subtle" />
       </form>
     </>
   )

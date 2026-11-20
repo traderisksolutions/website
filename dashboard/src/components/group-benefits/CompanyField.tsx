@@ -63,7 +63,7 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
     <div ref={box} className="relative">
       <Field label={label} hint={hint}>
         <span className="relative block">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: '#6f7a74' }} />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-trs-subtle" />
           <input
             value={value.name} role="combobox" aria-expanded={open} aria-controls={listId} aria-label={label} autoComplete="off"
             onFocus={() => { if (hits.length || canCreate) setOpen(true) }}
@@ -79,21 +79,21 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
       </Field>
       {open && (hits.length > 0 || canCreate) && (
         <ul id={listId} role="listbox"
-          className="absolute left-0 top-full mt-1 z-30 w-full max-h-[260px] overflow-auto rounded-[12px] bg-white p-1.5 m-0 list-none"
+          className="absolute left-0 top-full mt-1 z-30 w-full max-h-[260px] overflow-auto rounded bg-white p-1.5 m-0 list-none"
           style={{ border: '1px solid #e6e8e4', boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
           {hits.map((h, i) => (
             <li key={h.id} role="option" aria-selected={i === active}>
               <button type="button" onMouseEnter={() => setActive(i)} onClick={() => pick(h)}
-                className={cn('w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
-                <span className="block text-[14px] truncate" style={{ color: '#0f1412' }}>{h.name}</span>
-                {h.domain && <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{h.domain}</span>}
+                className={cn('w-full text-left px-3 py-2 rounded border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
+                <span className="block text-body truncate text-trs-ink" >{h.name}</span>
+                {h.domain && <span className="block text-small truncate text-trs-muted" >{h.domain}</span>}
               </button>
             </li>
           ))}
           {canCreate && (
             <li role="option" aria-selected={false}>
               <button type="button" onClick={() => void create()} disabled={creating}
-                className="w-full text-left px-3 py-2 rounded-[8px] border-0 cursor-pointer bg-transparent inline-flex items-center gap-2 text-[14px]" style={{ color: '#0f1412' }}>
+                className="w-full text-left px-3 py-2 rounded border-0 cursor-pointer bg-transparent inline-flex items-center gap-2 text-body text-trs-ink" >
                 <Plus size={14} /> {creating ? 'Adding…' : `Add "${value.name.trim()}" as a new company`}
               </button>
             </li>

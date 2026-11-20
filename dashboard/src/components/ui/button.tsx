@@ -26,7 +26,7 @@ function buttonVariants({ variant, size, className }: { variant?: Variant | null
   const v = variant ?? "default"
   const s = size ?? "default"
   const small = SMALL.includes(s)
-  if (v === "link") return cn(LINK, small ? "text-[13px]" : "text-[14px]", SVG, className)
+  if (v === "link") return cn(LINK, small ? "text-body" : "text-body", SVG, className)
   const square = s.startsWith("icon") ? (small ? "w-8 px-0" : "w-10 px-0") : ""
   return cn(btnClass(LEVEL[v], small ? "xs" : "sm"), square, SVG, small ? "[&_svg]:size-3.5" : "[&_svg]:size-4", className)
 }

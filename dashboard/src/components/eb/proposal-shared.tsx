@@ -35,7 +35,7 @@ export function Checks({ checks, extra = [] }: { checks: ProposalCheck[]; extra?
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-1.5" aria-label="Checks">
       {all.map(c => (
-        <li key={`${c.label}|${c.text}`} className="grid grid-cols-1 sm:grid-cols-[170px_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-[13.5px]">
+        <li key={`${c.label}|${c.text}`} className="grid grid-cols-1 sm:grid-cols-[170px_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-body">
           <span className={`inline-flex items-center gap-2 ${c.kind === 'warn' ? 'text-trs-warn' : 'text-trs-ink'}`}><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-trs-subtle" />{c.label}</span>
           <span className="text-trs-ink">{c.text}</span>
         </li>
@@ -46,7 +46,7 @@ export function Checks({ checks, extra = [] }: { checks: ProposalCheck[]; extra?
 
 export function PdfPreview({ id, height = 900, stamp }: { id: string; height?: number; stamp?: string }) {
   return (
-    <div className="rounded-[10px] overflow-hidden min-w-0" style={{ background: '#efebe7' }}>
+    <div className="rounded overflow-hidden min-w-0" style={{ background: '#efebe7' }}>
       <iframe title="Proposal preview" src={`/api/eb/quotations/${id}/pdf${stamp ? `?v=${stamp}` : ''}#view=FitH`} className="block w-full border-0" style={{ height }} />
     </div>
   )
@@ -69,7 +69,7 @@ export function MarkSent({ id, onDone }: { id: string; onDone: () => void }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-3" role="alert">
-      <span className="text-sm text-trs-neg">Sent, but not marked sent.{error ? ` ${error}` : ''}</span>
+      <span className="text-body text-trs-neg">Sent, but not marked sent.{error ? ` ${error}` : ''}</span>
       <Btn size="xs" loading={busy} disabled={busy} onClick={() => void retry()}>Try again</Btn>
     </div>
   )

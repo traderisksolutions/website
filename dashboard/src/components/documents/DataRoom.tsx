@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ExternalLink, FolderOpen, Upload } from 'lucide-react'
 import { Btn, Chip, Empty, SectionCard, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
-import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 import { DOC_TYPES, docLabel, type DataRoomStatus } from '@/lib/documents/taxonomy'
 import type { PolicyDocument } from '@/lib/documents/store'
 import { fmtDate } from '@/lib/format'
@@ -22,7 +22,7 @@ type Data = { rooms: Room[]; unsorted: PolicyDocument[]; letters?: PolicyDocumen
 
 const LIFECYCLE_WORD: Record<string, string> = { quoting: 'Quoting', presented: 'Presented', bound: 'Bound', live: 'In force', renewal_due: 'Renewal due', lapsed: 'Lapsed' }
 const period = (a: string | null, b: string | null) => a || b ? `${fmtDate(a)} – ${fmtDate(b)}` : null
-const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-[12.5px] outline-none focus:border-[#0f1412] max-w-[190px]'
+const selCls = 'h-8 rounded border border-trs-line-2 bg-white px-1.5 text-small outline-none focus:border-trs-ink max-w-[190px]'
 
 export function statusWord(s: DataRoomStatus): string {
   if (s.state === 'none') return 'Nothing required'
@@ -91,14 +91,14 @@ export function DataRoom({ companyId }: { companyId: string }) {
         {d.needs_review && <span className="ml-2"><Chip title="The agent was not sure; check the type and the policy">Check</Chip></span>}
       </RegisterCell>
       <RegisterCell align="left" title={d.filename}>
-        <a href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="no-underline hover:underline" style={{ color: INK }}>{d.title || d.filename}</a>
+        <a href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="no-underline hover:underline text-trs-ink">{d.title || d.filename}</a>
       </RegisterCell>
-      <RegisterCell align="left">{d.insurer_name ?? <span style={{ color: MUTED }}>–</span>}</RegisterCell>
+      <RegisterCell align="left">{d.insurer_name ?? <span className="text-trs-muted">–</span>}</RegisterCell>
       <RegisterCell align="left">{d.source === 'upload' ? `Uploaded${d.uploaded_by ? ` by ${d.uploaded_by.split('@')[0]}` : ''}` : (d.from_address ?? '–')}</RegisterCell>
       <RegisterCell>
-        {d.status === 'filed' && d.drive_url ? <a href={d.drive_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 no-underline hover:underline" style={{ color: INK }}>Drive <ExternalLink size={11} /></a>
-          : d.status === 'failed' ? <span title={d.error ?? ''} style={{ color: ERROR }}>Not filed</span>
-          : <span style={{ color: MUTED }}>Filing…</span>}
+        {d.status === 'filed' && d.drive_url ? <a href={d.drive_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 no-underline hover:underline text-trs-ink">Drive <ExternalLink size={11} /></a>
+          : d.status === 'failed' ? <span title={d.error ?? ''} className="text-trs-neg">Not filed</span>
+          : <span className="text-trs-muted">Filing…</span>}
       </RegisterCell>
       <RegisterCell last align="right">
         {sortable ? (
@@ -142,22 +142,22 @@ export function DataRoom({ companyId }: { companyId: string }) {
           <Btn level="primary" disabled={busy === 'upload'} loading={busy === 'upload'} onClick={() => fileRef.current?.click()}><Upload size={14} /> Upload document</Btn>
         </>}
       >
-        {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
+        {notice && <p className="m-0 mb-3 text-body text-trs-ink">{notice}</p>}
         {data.rooms.length === 0 && data.unsorted.length === 0 && !data.letters?.length && <Empty>No documents yet. Upload one, or they arrive here from email.</Empty>}
 
         {data.rooms.map(r => (
           <div key={r.policy.id} className="mb-6">
-            <div className="flex items-center gap-3 flex-wrap mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px]" style={{ color: INK }}>{r.policy.label ?? 'Policy'}</b>
-              {r.policy.insurer && <span style={{ color: MUTED }}>{r.policy.insurer}</span>}
-              {r.policy.policy_number && <span style={{ color: MUTED }}>{r.policy.policy_number}</span>}
-              {period(r.policy.start_date, r.policy.end_date) && <span style={{ color: MUTED }}>{period(r.policy.start_date, r.policy.end_date)}</span>}
+            <div className="flex items-center gap-3 flex-wrap mb-2 text-body">
+              <b className="font-medium text-body text-trs-ink">{r.policy.label ?? 'Policy'}</b>
+              {r.policy.insurer && <span className="text-trs-muted">{r.policy.insurer}</span>}
+              {r.policy.policy_number && <span className="text-trs-muted">{r.policy.policy_number}</span>}
+              {period(r.policy.start_date, r.policy.end_date) && <span className="text-trs-muted">{period(r.policy.start_date, r.policy.end_date)}</span>}
               <Chip>{LIFECYCLE_WORD[r.policy.lifecycle] ?? r.policy.lifecycle}</Chip>
               <Chip title={r.status.missing.length ? `Missing: ${r.status.missing.map(m => m.label).join(', ')}` : undefined}>Documents: {statusWord(r.status)}</Chip>
-              {r.policy.drive_folder_url && <a href={r.policy.drive_folder_url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 no-underline hover:underline" style={{ color: INK }}><FolderOpen size={13} /> Drive folder</a>}
+              {r.policy.drive_folder_url && <a href={r.policy.drive_folder_url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 no-underline hover:underline text-trs-ink"><FolderOpen size={13} /> Drive folder</a>}
             </div>
             {r.status.missing.length > 0 && (
-              <p className="m-0 mb-2 text-[13px]" style={{ color: MUTED }}>Missing: {r.status.missing.map(m => m.label).join(' · ')}</p>
+              <p className="m-0 mb-2 text-body text-trs-muted">Missing: {r.status.missing.map(m => m.label).join(' · ')}</p>
             )}
             <Register label={`Documents for ${r.policy.label ?? 'policy'}`} minWidth={980}>
               {head}
@@ -170,9 +170,9 @@ export function DataRoom({ companyId }: { companyId: string }) {
 
         {!!data.letters?.length && (
           <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px]" style={{ color: INK }}>Letters</b>
-              <span style={{ color: MUTED }}>{data.letters.length}</span>
+            <div className="flex items-center gap-3 mb-2 text-body">
+              <b className="font-medium text-body text-trs-ink">Letters</b>
+              <span className="text-trs-muted">{data.letters.length}</span>
             </div>
             <Register label="Letters" minWidth={980}>
               {head}
@@ -185,9 +185,9 @@ export function DataRoom({ companyId }: { companyId: string }) {
 
         {data.unsorted.length > 0 && (
           <div className="mt-2">
-            <div className="flex items-center gap-3 mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px]" style={{ color: INK }}>To sort</b>
-              <span style={{ color: MUTED }}>{data.unsorted.length}</span>
+            <div className="flex items-center gap-3 mb-2 text-body">
+              <b className="font-medium text-body text-trs-ink">To sort</b>
+              <span className="text-trs-muted">{data.unsorted.length}</span>
             </div>
             <Register label="Documents to sort" minWidth={1080}>
               {head}

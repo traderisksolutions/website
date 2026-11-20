@@ -24,7 +24,7 @@ export default function PageError({ error, reset }: { error: Error & { digest?: 
     <PageFrame width="read">
       <PageHeader title="This page could not load" meta={error.digest ? `Reference ${error.digest}` : undefined}
         actions={<><LinkBtn href="/today">Today</LinkBtn><Btn level="primary" onClick={reset}>Try again</Btn></>} />
-      <p className="m-0 text-sm text-trs-muted">{isStale(error) ? 'A new version went live while this tab was open. Reload the page.' : error.message || 'An unexpected error.'}</p>
+      <p className="m-0 text-body text-trs-muted">{isStale(error) ? 'A new version went live while this tab was open. Reload the page.' : error.message || 'An unexpected error.'}</p>
     </PageFrame>
   )
 }

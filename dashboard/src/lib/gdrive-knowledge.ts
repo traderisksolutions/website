@@ -5,8 +5,8 @@
  * them to Gemini's file API so they can be passed as file_data parts.
  */
 
-import { createSign } from 'crypto'
 import { logError } from './error-log'
+import { serviceAccountToken } from './google/auth'
 
 const GEMINI_UPLOAD = 'https://generativelanguage.googleapis.com/upload/v1beta/files'
 const DRIVE_API     = 'https://www.googleapis.com/drive/v3'
@@ -18,36 +18,7 @@ const TOPIC_KEYWORDS = [
   'directors', 'officers', 'trade', 'credit', 'product',
 ]
 
-function b64url(input: string | Buffer): string {
-  const b64 = Buffer.isBuffer(input) ? input.toString('base64') : Buffer.from(input).toString('base64')
-  return b64.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-}
-
-async function getServiceAccountToken(): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not set')
-  const creds = JSON.parse(raw)
-  const now   = Math.floor(Date.now() / 1000)
-  const hdr   = b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
-  const pay   = b64url(JSON.stringify({
-    iss: creds.client_email,
-    scope: 'https://www.googleapis.com/auth/drive.readonly',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now, exp: now + 3600,
-  }))
-  const unsigned = `${hdr}.${pay}`
-  const signer   = createSign('RSA-SHA256')
-  signer.update(unsigned)
-  const jwt = `${unsigned}.${b64url(signer.sign(creds.private_key))}`
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error(`Drive auth failed: ${JSON.stringify(data)}`)
-  return data.access_token
-}
+const getServiceAccountToken = () => serviceAccountToken('https://www.googleapis.com/auth/drive.readonly', 'legacy')
 
 type DriveFile = { id: string; name: string; mimeType: string }
 

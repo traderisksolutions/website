@@ -6,19 +6,17 @@
  *                                      applies the decision and files every thread on that domain.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { describeDomains, decideDomain, type DomainDecisionInput } from '@/lib/crm/domains'
 import { listClientCompanies }       from '@/lib/crm/db'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { visibleThreadIds }          from '@/lib/mail/visibility-server'
 import { COMPANY_KINDS }             from '@/lib/crm/types'
 import { logActivity }               from '@/lib/log-activity'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const limit = Number(req.nextUrl.searchParams.get('limit') ?? 40)
     const [domains, companies] = await Promise.all([
@@ -36,11 +34,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const b = await req.json() as { domain?: string; decision?: string; companyId?: string; name?: string; kind?: string }
     if (!b.domain) return NextResponse.json({ error: 'domain required' }, { status: 400 })
@@ -66,4 +62,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

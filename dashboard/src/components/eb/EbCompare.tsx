@@ -39,14 +39,14 @@ export function EbCompare({ model, onChoose, onCopy, onRemove }: {
   }, [model.columns.length])
 
   const planCell = (cell: PlanCell, colLabel: string, colId: string, key: CoverKey, rowLabel: string) => {
-    if (cell.perCategory.every(x => !x.options.length)) return <span className="text-xs text-trs-muted">Not offered</span>
+    if (cell.perCategory.every(x => !x.options.length)) return <span className="text-small text-trs-muted">Not offered</span>
     const chosen = cell.perCategory.filter(x => x.plan)
     const price = cell.premium != null ? (chosen.length && chosen.every(x => x.locked && x.premium === 0) ? 'In hospital premium' : fmtMoney0(cell.premium)) : chosen.length ? 'Not priced' : '—'
     return (
       <div className="flex flex-col items-center gap-1.5">
         {cell.perCategory.map(x => (
           <div key={x.category} className="flex w-full flex-col items-center gap-0.5">
-            {multi && <span className="text-xs text-trs-muted">{x.category}</span>}
+            {multi && <span className="text-small text-trs-muted">{x.category}</span>}
             {/* A cover the plan rules set with the hospital plan (Income, AIA, Steadfast major medical) follows it: shown, not chosen. */}
             <SelectBox label={`${colLabel}, ${rowLabel}${multi ? `, ${x.category}` : ''}`} value={x.plan} changed={x.reason === 'changed'} disabled={x.locked}
               onChange={v => onChoose(colId, x.category, key, v)} className="max-w-48"
@@ -59,15 +59,15 @@ export function EbCompare({ model, onChoose, onCopy, onRemove }: {
               : x.reason && x.reason !== 'changed' && x.reason !== 'none' && <Chip tone={x.reason === 'no same plan' ? 'red' : 'neutral'}>{x.reason}</Chip>}
           </div>
         ))}
-        <span className="text-xs text-trs-ink-2">{price}</span>
+        <span className="text-small text-trs-ink-2">{price}</span>
       </div>
     )
   }
   const scheduleCell = (cell: ScheduleCell) => cell.status == null
-    ? <span className="text-xs text-trs-muted">Not in the schedule</span>
+    ? <span className="text-small text-trs-muted">Not in the schedule</span>
     : (
       <div className="flex flex-col items-center gap-1" title={cell.sources.join('\n')}>
-        <span className="text-sm">{cell.premium != null ? fmtMoney0(cell.premium) : '—'}</span>
+        <span className="text-body">{cell.premium != null ? fmtMoney0(cell.premium) : '—'}</span>
         <Chip tone={STATUS_TONE[cell.status]}>{cell.status}</Chip>
       </div>
     )
@@ -78,13 +78,13 @@ export function EbCompare({ model, onChoose, onCopy, onRemove }: {
         <tr>
           <CTh first>Cover</CTh>
           <CTh>
-            <div className="flex flex-col items-center gap-1"><span>Current</span><span className="text-xs font-normal text-trs-muted">{model.current.total != null ? 'Last year’s policy' : 'Not on file'}</span></div>
+            <div className="flex flex-col items-center gap-1"><span>Current</span><span className="text-small font-normal text-trs-muted">{model.current.total != null ? 'Last year’s policy' : 'Not on file'}</span></div>
           </CTh>
           {model.columns.map(c => (
             <CTh key={c.id} tone={c.kind === 'copy' ? 'copy' : undefined}>
               <div className="flex flex-col items-center gap-1">
                 <span className="text-trs-ink">{c.label}</span>
-                <span className="text-xs font-normal text-trs-muted">{c.source}</span>
+                <span className="text-small font-normal text-trs-muted">{c.source}</span>
                 {c.flags > 0 && <Chip tone="red">{`No same plan on ${c.flags} ${c.flags === 1 ? 'cover' : 'covers'}`}</Chip>}
                 {c.warnings.map(w => <Chip key={w} tone="amber" className="whitespace-normal">{w}</Chip>)}
                 {c.kind !== 'schedule' && (
@@ -116,7 +116,7 @@ export function EbCompare({ model, onChoose, onCopy, onRemove }: {
             <CTd key={c.id} tone={c.kind === 'copy' ? 'copy' : undefined}>
               <div className="flex flex-col items-center">
                 <span>{fmtMoney0(c.total)}</span>
-                {c.vsOriginal != null && Math.round(c.vsOriginal) !== 0 && <span className="text-xs font-semibold">{`${fmtSigned(c.vsOriginal)} vs original`}</span>}
+                {c.vsOriginal != null && Math.round(c.vsOriginal) !== 0 && <span className="text-small font-semibold">{`${fmtSigned(c.vsOriginal)} vs original`}</span>}
               </div>
             </CTd>
           ))}

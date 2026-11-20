@@ -202,15 +202,15 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
     >
           {/* ── Bar: New email · Draft saved · Close ── */}
           <div className="flex items-center gap-2.5 px-[var(--re-gutter)] pt-4 pb-2.5 flex-shrink-0">
-            <h1 className="m-0 text-[19px] font-semibold tracking-[-0.015em]" style={{ color: INK }}>New email</h1>
+            <h1 className="m-0 text-heading font-semibold" style={{ color: INK }}>New email</h1>
             <span className="flex-1" />
-            {savedState && <span className="text-[12.5px] mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
+            {savedState && <span className="text-small mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
             <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
           </div>
 
           {/* ── To ── */}
           <FieldRow label="To" tall htmlFor="new-email-to" right={
-            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
+            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded bg-transparent border-0 cursor-pointer text-small hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
           }>
             {toDone && to.trim() ? (
               <RecipientChip name={toName} email={to} onRemove={() => { setTo(''); setToDone(false) }} />
@@ -230,7 +230,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   aria-label="Recipient email address"
                   autoComplete="off"
                   autoFocus
-                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
+                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
                   style={{ color: INK }}
                 />
                 {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); setToDone(true); toAc.close() }} />}
@@ -259,7 +259,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   placeholder={ccChips.length === 0 ? (personal ? 'operations@ is added on send' : 'Add Cc…') : ''}
                   aria-label="Cc"
                   autoComplete="off"
-                  className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
+                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
                   style={{ color: INK }}
                 />
                 {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => { setCc([...ccChips, c.email].join(', ') + ', '); ccAc.close() }} />}
@@ -298,7 +298,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
               onChange={e => setSubject(e.target.value)}
               placeholder="Subject"
               aria-label="Subject"
-              className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
+              className="w-full text-body bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
               style={{ color: INK }}
             />
           </FieldRow>
@@ -326,15 +326,15 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
           {/* ── Footer: external note or error · Save draft · Send ── */}
           <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2.5 pb-4 flex-shrink-0 flex-wrap">
             {error ? (
-              <span className="text-[12.5px] min-w-0 truncate" role="alert" style={{ color: '#a1242f' }}>{error}</span>
+              <span className="text-small min-w-0 truncate text-trs-neg" role="alert" >{error}</span>
             ) : external ? (
-              <span className="text-[12.5px] min-w-0 truncate" style={{ color: FAINT }}>External recipient · {external}</span>
+              <span className="text-small min-w-0 truncate" style={{ color: FAINT }}>External recipient · {external}</span>
             ) : null}
             <span className="flex-1" />
             <button type="button" onClick={saveAsDraft} disabled={savingDraft || sending} className={BTN_SECONDARY}>
               {savingDraft ? 'Saving…' : 'Save draft'}
             </button>
-            <button type="button" onClick={send} disabled={sending} className={cn(BTN_PRIMARY, 'h-9 text-[13.5px]')}>
+            <button type="button" onClick={send} disabled={sending} className={cn(BTN_PRIMARY, 'h-9 text-body')}>
               {sending ? 'Sending…' : 'Send'}
             </button>
           </div>

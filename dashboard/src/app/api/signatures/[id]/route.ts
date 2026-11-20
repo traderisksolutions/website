@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
@@ -41,12 +41,9 @@ function canEdit(sig: { owner_user_id: string | null } | null, userId: string, i
 }
 
 // PATCH /api/signatures/[id]
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const { sig, isAdmin } = await getSignatureAndProfile(id, user.id)
     if (!canEdit(sig, user.id, isAdmin)) {
@@ -79,15 +76,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 // DELETE /api/signatures/[id] — soft delete
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   try {
     const { id } = await params
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
     const { sig, isAdmin } = await getSignatureAndProfile(id, user.id)
     if (!canEdit(sig, user.id, isAdmin)) {
@@ -103,4 +97,4 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

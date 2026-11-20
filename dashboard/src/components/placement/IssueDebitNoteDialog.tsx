@@ -6,7 +6,8 @@ import { Btn, Field, inputCls } from '@/components/crm/primitives'
 import { optionLabel } from '@/lib/placement/compare'
 import type { LinePosition, Placement, PlacementQuote } from '@/lib/placement/types'
 import type { PolicyView } from '@/components/policies/types'
-import { callApi, dialogCls, errText, ERROR, INK, MUTED } from './shared'
+import { Input } from '@/components/ui/input'
+import { callApi, dialogCls, errText } from './shared'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const addDays = (ymd: string, n: number) => { const d = new Date(`${ymd}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return iso(d) }
@@ -104,35 +105,35 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           <DialogDescription>{title}{quote ? ` · ${quote.insurer_name}${product ? ` · ${product}` : ''}` : ''}</DialogDescription>
         </DialogHeader>
         {issued ? (
-          <div className="flex flex-col gap-3 text-[14px]" style={{ color: INK }}>
+          <div className="flex flex-col gap-3 text-body text-trs-ink">
             <p className="m-0">{issued.debitNoteNo} issued{issued.driveFolderUrl ? ' and filed in Drive. The line is done.' : '. It is not in Drive yet, so the line stays open until it is filed.'}</p>
             <div className="flex gap-3">
-              {issued.debitNoteId && <a href={`/debit-notes?open=${issued.debitNoteId}`} data-same-tab style={{ color: INK }}>Open debit note</a>}
-              {issued.downloadUrl && <a href={issued.downloadUrl} target="_blank" rel="noreferrer" style={{ color: INK }}>Open PDF ↗</a>}
-              {issued.driveFolderUrl && <a href={issued.driveFolderUrl} target="_blank" rel="noreferrer" style={{ color: INK }}>Drive folder ↗</a>}
+              {issued.debitNoteId && <a href={`/debit-notes?open=${issued.debitNoteId}`} data-same-tab className="text-trs-ink">Open debit note</a>}
+              {issued.downloadUrl && <a href={issued.downloadUrl} target="_blank" rel="noreferrer" className="text-trs-ink">Open PDF ↗</a>}
+              {issued.driveFolderUrl && <a href={issued.driveFolderUrl} target="_blank" rel="noreferrer" className="text-trs-ink">Drive folder ↗</a>}
             </div>
             <div className="flex justify-end"><Btn level="primary" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {!quote && <p className="m-0 text-[13px]" style={{ color: MUTED }}>No chosen quote on this line; fill the figures in by hand.</p>}
-            {!target?.policy && <p className="m-0 text-[13px]" style={{ color: MUTED }}>This line has no policy record; one is created with the note, and the line is closed by hand.</p>}
-            <Field label="Policy number (from the insurer)"><input className={inputCls} value={number} onChange={e => setNumber(e.target.value)} placeholder="Leave blank if not issued yet" /></Field>
+            {!quote && <p className="m-0 text-body text-trs-muted">No chosen quote on this line; fill the figures in by hand.</p>}
+            {!target?.policy && <p className="m-0 text-body text-trs-muted">This line has no policy record; one is created with the note, and the line is closed by hand.</p>}
+            <Field label="Policy number (from the insurer)"><Input className={inputCls} value={number} onChange={e => setNumber(e.target.value)} placeholder="Leave blank if not issued yet" /></Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Cover from"><input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
-              <Field label="Cover to"><input className={inputCls} type="date" value={end} onChange={e => setEnd(e.target.value)} /></Field>
+              <Field label="Cover from"><Input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
+              <Field label="Cover to"><Input className={inputCls} type="date" value={end} onChange={e => setEnd(e.target.value)} /></Field>
             </div>
-            <Field label="Description on the note"><input className={inputCls} value={description} onChange={e => setDescription(e.target.value)} /></Field>
+            <Field label="Description on the note"><Input className={inputCls} value={description} onChange={e => setDescription(e.target.value)} /></Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label={`Premium (${quote?.currency ?? 'SGD'})`}><input className={inputCls} inputMode="decimal" value={premium} onChange={e => setPremium(e.target.value)} /></Field>
-              <Field label="GST, if the insurer charges it"><input className={inputCls} inputMode="decimal" value={gst} onChange={e => setGst(e.target.value)} placeholder="0.00" /></Field>
+              <Field label={`Premium (${quote?.currency ?? 'SGD'})`}><Input className={inputCls} inputMode="decimal" value={premium} onChange={e => setPremium(e.target.value)} /></Field>
+              <Field label="GST, if the insurer charges it"><Input className={inputCls} inputMode="decimal" value={gst} onChange={e => setGst(e.target.value)} placeholder="0.00" /></Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Issue date"><input className={inputCls} type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></Field>
-              <Field label="Payment due"><input className={inputCls} type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field>
+              <Field label="Issue date"><Input className={inputCls} type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></Field>
+              <Field label="Payment due"><Input className={inputCls} type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field>
             </div>
-            {quote?.premium_text && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>As quoted: {quote.premium_text}</p>}
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {quote?.premium_text && <p className="m-0 text-small text-trs-muted">As quoted: {quote.premium_text}</p>}
+            {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
               <Btn level="primary" className="h-9 px-4" onClick={issue} loading={busy}>Issue and file in Drive</Btn>

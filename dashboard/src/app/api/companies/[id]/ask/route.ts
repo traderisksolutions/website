@@ -8,7 +8,6 @@
  * thread in a colleague's own mailbox.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, inChunks, sbTry } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { callGemini } from '@/lib/ai-call'
@@ -16,14 +15,12 @@ import { GEMINI_DEEP } from '@/lib/gemini-models'
 import { ASK_SYSTEM, buildAskContext, checkAnswer } from '@/lib/admin/k/ask'
 import { logActivity } from '@/lib/log-activity'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 90
 type Row = Record<string, any>
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   const body = await req.json().catch(() => ({})) as { question?: unknown }
   const question = typeof body.question === 'string' ? body.question.trim().slice(0, 500) : ''
@@ -61,4 +58,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const out = checkAnswer(parsed, ctx)
   void logActivity({ action: 'client.asked', resource_type: 'company', resource_id: id, new_value: { question, refused: out.refused, sources: out.sources.map(s => s.id) }, metadata: { by: user.email ?? null } })
   return NextResponse.json(out)
-}
+}, { error: 'Not authenticated' })

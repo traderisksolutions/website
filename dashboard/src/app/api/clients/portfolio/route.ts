@@ -5,16 +5,14 @@
  * Computed from records on each call and kept 10 minutes.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { loadPortfolio } from '@/lib/clients/portfolio-load'
 import type { Portfolio } from '@/lib/clients/portfolio'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 const cache = new Map<string, { at: number; p: Portfolio }>()
 
-export async function GET(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   const sp = new URL(req.url).searchParams
   const window = sp.get('window') === 'all' ? 'all' : '12m'
   let hit = cache.get(window)
@@ -26,4 +24,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ...hit.p, rows: hit.p.rows.filter(r => r.id === g) })
   }
   return NextResponse.json(hit.p)
-}
+})

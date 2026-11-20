@@ -6,17 +6,14 @@
  * Every change is written to work_item_events as kind 'edit' with the before and after values.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { editItem, setDraftAttachments, type ItemEdit } from '@/lib/today/data'
 import { sb, enc } from '@/lib/crm/db'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const ITEM_KEYS = new Set(['title', 'company_id', 'policy_id', 'case_type', 'status', 'owner_email', 'deadline', 'deadline_basis', 'next_action', 'insurer_name', 'pending_override', 'pending_override_reason'])
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to edit work items.' }, { status: 401 })
   const { id } = await params
   const body = await req.json().catch(() => null) as { item?: Record<string, unknown>; attachments?: { draft_id?: string; keep?: unknown; add?: unknown } } | null
@@ -45,4 +42,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

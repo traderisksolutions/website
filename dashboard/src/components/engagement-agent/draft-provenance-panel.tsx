@@ -3,16 +3,11 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
 import type { RagSource } from '@/components/engagement/types'
 import { RetrievalSourcesPanel } from './retrieval-sources-panel'
 import { ApprovedExamplesPanel } from './approved-examples-panel'
 import { AntiPatternPanel } from './anti-pattern-panel'
-
-const BODY = '#2a332f'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const DOT = '#8c958f'
-const HAIR = '#e6e8e4'
 
 interface Example {
   id:              string
@@ -43,17 +38,18 @@ export function DraftProvenancePanel({
   if (signalCount === 0) return null
 
   return (
-    <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
-      <button
-        type="button"
+    <div className="mt-3 pt-3 border-t border-trs-line">
+      <Btn
+        level="tertiary"
+        size="xs"
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="flex items-center justify-between w-full text-left bg-transparent border-0 p-0 cursor-pointer"
+        className="justify-between w-full h-auto text-left bg-transparent border-0 p-0 font-normal hover:bg-transparent"
       >
         <span className="flex items-center gap-1.5">
-          <span className="text-[12.5px] font-medium" style={{ color: BODY }}>How this draft was made</span>
+          <span className="text-small font-medium text-trs-ink-2">How this draft was made</span>
           {!open && (
-            <span className="text-[12px] tabular-nums" style={{ color: FAINT }}>
+            <span className="text-small tabular-nums text-trs-subtle">
               {signalCount} signal{signalCount !== 1 ? 's' : ''}
             </span>
           )}
@@ -61,14 +57,13 @@ export function DraftProvenancePanel({
         <ChevronDown
           size={13}
           strokeWidth={2}
-          className={cn('transition-transform flex-shrink-0', open && 'rotate-180')}
-          style={{ color: DOT }}
+          className={cn('transition-transform flex-shrink-0 text-trs-subtle', open && 'rotate-180')}
           aria-hidden
         />
-      </button>
+      </Btn>
 
       {open && (
-        <div className="mt-1 text-[12.5px]" style={{ color: MUTED }}>
+        <div className="mt-1 text-small text-trs-muted">
           <RetrievalSourcesPanel sources={ragSources} gdocNames={gdocNames} generatedBy={generatedBy} />
           <ApprovedExamplesPanel examples={examples} />
           <AntiPatternPanel watchOuts={watchOuts} />

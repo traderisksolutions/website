@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { Star, X } from 'lucide-react'
 import { Btn } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import type { InsurerProduct } from '@/lib/placement/rank'
-import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 
-const cell = 'h-[30px] w-full rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
-const label = 'text-[11.5px] font-medium'
+const cell = 'h-8 w-full rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink outline-none focus:border-trs-ink placeholder:text-trs-subtle'
+const label = 'text-small font-medium text-trs-muted'
 const splitList = (s: string) => s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean)
 
 /**
@@ -52,45 +53,45 @@ export function ProductEditor({ product, onSaved, onClose }: {
   const remove = (contactId: string) => run(() => callApi(`/api/insurers/products/${id}/contacts`, { method: 'DELETE', body: { contact_id: contactId } }))
 
   return (
-    <div className="px-4 py-3 flex flex-col gap-3" style={{ background: '#fafafa', color: INK }}>
-      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Product name</span><input id={`p-name-${id}`} className={cell} value={name} onChange={e => setName(e.target.value)} /></label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Line</span>
+    <div className="px-4 py-3 flex flex-col gap-3 bg-trs-tint text-trs-ink">
+      <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+        <label className="flex flex-col gap-1"><span className={label}>Product name</span><input id={`p-name-${id}`} className={cell} value={name} onChange={e => setName(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><span className={label}>Line</span>
           <select id={`p-line-${id}`} className={cell} value={line} onChange={e => setLine(e.target.value)}>
             {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
           </select>
         </label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Takes (comma separated)</span><input id={`p-acc-${id}`} className={cell} value={accepts} onChange={e => setAccepts(e.target.value)} placeholder="Blank = no stated limit" /></label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Won&apos;t take</span><input id={`p-dec-${id}`} className={cell} value={declines} onChange={e => setDeclines(e.target.value)} placeholder="e.g. Construction, Marine" /></label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Min premium (S$)</span><input id={`p-min-${id}`} className={cell} inputMode="decimal" value={minPremium} onChange={e => setMinPremium(e.target.value)} /></label>
-        <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Max lives</span><input id={`p-max-${id}`} className={cell} inputMode="numeric" value={maxLives} onChange={e => setMaxLives(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><span className={label}>Takes (comma separated)</span><input id={`p-acc-${id}`} className={cell} value={accepts} onChange={e => setAccepts(e.target.value)} placeholder="Blank = no stated limit" /></label>
+        <label className="flex flex-col gap-1"><span className={label}>Won&apos;t take</span><input id={`p-dec-${id}`} className={cell} value={declines} onChange={e => setDeclines(e.target.value)} placeholder="e.g. Construction, Marine" /></label>
+        <label className="flex flex-col gap-1"><span className={label}>Min premium (S$)</span><input id={`p-min-${id}`} className={cell} inputMode="decimal" value={minPremium} onChange={e => setMinPremium(e.target.value)} /></label>
+        <label className="flex flex-col gap-1"><span className={label}>Max lives</span><input id={`p-max-${id}`} className={cell} inputMode="numeric" value={maxLives} onChange={e => setMaxLives(e.target.value)} /></label>
       </div>
-      <label className="flex flex-col gap-1"><span className={label} style={{ color: MUTED }}>Notes</span><input id={`p-notes-${id}`} className={cell} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything a broker should know before asking" /></label>
+      <label className="flex flex-col gap-1"><span className={label}>Notes</span><input id={`p-notes-${id}`} className={cell} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Anything a broker should know before asking" /></label>
 
       <div className="flex flex-col gap-1">
-        <span className={label} style={{ color: MUTED }}>People to ask · the starred person gets the request</span>
+        <span className={label}>People to ask · the starred person gets the request</span>
         <div className="flex flex-col">
-          {product.contacts.length === 0 && <span className="text-[13px] py-1" style={{ color: ERROR }}>No one on file. Add a person, or this product cannot be asked.</span>}
+          {product.contacts.length === 0 && <span className="text-body py-1 text-trs-neg">No one on file. Add a person, or this product cannot be asked.</span>}
           {product.contacts.map(c => (
-            <div key={c.contact_id} className="flex items-center gap-3 h-8 text-[13px]">
-              <button type="button" onClick={() => makeDefault(c.contact_id)} disabled={busy || c.is_default} aria-label={c.is_default ? `${c.email} gets the request` : `Send requests to ${c.email}`}
-                className="bg-transparent border-0 p-0 cursor-pointer disabled:cursor-default" style={{ color: c.is_default ? INK : '#bfc5bf' }}>
-                <Star size={14} fill={c.is_default ? INK : 'none'} />
-              </button>
+            <div key={c.contact_id} className="flex items-center gap-3 h-8 text-body">
+              <Btn level="tertiary" size="xs" onClick={() => makeDefault(c.contact_id)} disabled={busy || c.is_default} aria-label={c.is_default ? `${c.email} gets the request` : `Send requests to ${c.email}`}
+                className={c.is_default ? 'h-auto p-0 border-0 hover:bg-transparent disabled:opacity-100 disabled:cursor-default text-trs-ink hover:text-trs-ink' : 'h-auto p-0 border-0 hover:bg-transparent disabled:cursor-default text-trs-line-2 hover:text-trs-ink'}>
+                <Star size={14} fill={c.is_default ? 'currentColor' : 'none'} />
+              </Btn>
               <span className="w-[180px] truncate">{c.name ?? '—'}</span>
-              <span className="flex-1 truncate" style={{ color: MUTED }}>{c.email}</span>
-              <button type="button" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+              <span className="flex-1 truncate text-trs-muted">{c.email}</span>
+              <Btn level="tertiary" size="xs" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="h-auto p-1 border-0 hover:bg-trs-field"><X size={13} /></Btn>
             </div>
           ))}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <input id={`p-person-${id}`} className={cell} style={{ width: 180 }} placeholder="Name" value={person} onChange={e => setPerson(e.target.value)} />
-          <input id={`p-email-${id}`} className={cell} style={{ width: 240 }} placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && email.trim()) addPerson() }} />
+          <input id={`p-person-${id}`} className={cn(cell, 'w-[180px]')} placeholder="Name" value={person} onChange={e => setPerson(e.target.value)} />
+          <input id={`p-email-${id}`} className={cn(cell, 'w-[240px]')} placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && email.trim()) addPerson() }} />
           <Btn size="xs" onClick={addPerson} disabled={busy || !email.trim()}>Add person</Btn>
         </div>
       </div>
 
-      {error && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg">{error}</p>}
       <div className="flex items-center gap-2">
         <Btn level="primary" size="xs" onClick={save} loading={busy}>Save</Btn>
         <Btn size="xs" onClick={onClose} disabled={busy}>Close</Btn>

@@ -5,16 +5,14 @@
  * note is linked back and the movements it covers are marked billed.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { bundleForTransaction } from '@/lib/policies/movement-flow'
 import { internalHeaders } from '@/lib/api-gate/internal'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 200
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Transaction id is not valid' }, { status: 400 })
   try {
@@ -29,4 +27,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const msg = e instanceof Error ? e.message : 'Could not raise the note'
     return NextResponse.json({ error: msg }, { status: /already linked|no document|no longer/.test(msg) ? 400 : 500 })
   }
-}
+}, { error: 'Not authenticated' })

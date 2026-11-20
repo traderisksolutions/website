@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
+import { Btn, textareaCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 
 // Source of truth for the "Send documents" email raised from the Debit Notes drawer and the
 // new-debit-note flow — SendDocumentsModal reads this instead of a hardcoded subject/body.
@@ -69,43 +71,45 @@ export default function DebitNoteEmailTemplatePanel() {
         </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {tpl === null ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-body text-trs-muted">Loading…</p>
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-foreground/80">Subject</label>
+              <label className="text-small font-medium text-trs-ink">Subject</label>
               <Input value={tpl.subject} onChange={e => setTpl({ ...tpl, subject: e.target.value })} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-foreground/80">Body</label>
+              <label className="text-small font-medium text-trs-ink">Body</label>
               <textarea
                 value={tpl.body}
                 onChange={e => setTpl({ ...tpl, body: e.target.value })}
                 rows={10}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-relaxed font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className={cn(textareaCls, 'leading-relaxed font-mono')}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] text-muted-foreground">Available placeholders (click to copy):</span>
+              <span className="text-small text-trs-muted">Available placeholders (click to copy):</span>
               <div className="flex flex-wrap gap-1.5">
                 {DEBIT_NOTE_PLACEHOLDERS.map(p => (
-                  <button
+                  <Btn
                     key={p}
+                    size="xs"
+                    level="secondary"
                     onClick={() => navigator.clipboard.writeText(p)}
-                    className="text-[11px] font-mono rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground hover:border-[#202124]/40 transition-colors"
+                    className="text-small font-mono"
                     title="Copy"
                   >
                     {p}
-                  </button>
+                  </Btn>
                 ))}
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save template'}</Button>
-              {saved && <span className="text-xs text-[#202124] font-medium">Saved ✓</span>}
+              {saved && <span className="text-small text-trs-ink font-medium">Saved ✓</span>}
             </div>
           </>
         )}

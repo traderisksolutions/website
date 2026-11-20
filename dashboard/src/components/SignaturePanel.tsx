@@ -3,6 +3,8 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
+import { Btn } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -50,12 +52,8 @@ function isAllowedEmail(e: string) {
 
 function TypeBadge({ type }: { type: 'personal' | 'shared' }) {
   return (
-    <span style={{
-      fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, flexShrink: 0,
-      background: type === 'personal' ? 'var(--primary-light-bg, rgba(15,61,145,0.08))' : 'hsl(var(--muted))',
-      color:      type === 'personal' ? 'var(--primary-hex, #1d4ed8)' : 'var(--text-secondary, #6b7280)',
-      border:     `1px solid ${type === 'personal' ? 'var(--primary-light-border, rgba(15,61,145,0.18))' : 'var(--border-subtle)'}`,
-    }}>
+    <span className={cn('self-start flex-shrink-0 rounded-full border px-[7px] py-0.5 text-small font-semibold',
+      type === 'personal' ? 'bg-trs-info-bg text-trs-info border-trs-info/20' : 'bg-trs-field text-trs-muted border-trs-line')}>
       {type === 'personal' ? 'You · Gmail' : 'Shared'}
     </span>
   )
@@ -65,16 +63,19 @@ function SigPreview({ sig }: { sig: UserSignature }) {
   const parts = [sig.title, sig.phone, sig.email].filter(Boolean)
   return (
     <div>
-      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: '#202124' }}>{sig.name}</p>
+      <p className="m-0 text-small font-medium text-trs-ink">{sig.name}</p>
       {parts.length > 0 && (
-        <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-muted, #9ca3af)' }}>{parts.join(' · ')}</p>
+        <p className="m-0 mt-0.5 text-small text-trs-subtle">{parts.join(' · ')}</p>
       )}
       {sig.company_tagline && (
-        <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--text-muted, #9ca3af)', opacity: 0.8 }}>{sig.company_tagline}</p>
+        <p className="m-0 mt-px text-small text-trs-subtle opacity-80">{sig.company_tagline}</p>
       )}
     </div>
   )
 }
+
+const FORM_INPUT = 'h-8 px-2.5 py-1.5 text-small text-trs-ink-2'
+const FORM_LABEL = 'block mb-1 text-small font-semibold   text-trs-subtle'
 
 function InlineForm({
   sendingEmail,
@@ -103,58 +104,43 @@ function InlineForm({
     onChange(next)
   }
 
-  const inp: React.CSSProperties = {
-    width: '100%', fontSize: 12, padding: '6px 9px',
-    border: '1px solid hsl(var(--border))', borderRadius: 6,
-    background: 'hsl(var(--background))', color: 'var(--text-secondary)',
-    boxSizing: 'border-box', fontFamily: 'inherit', outline: 'none',
-  }
-
-  const lbl: React.CSSProperties = { display: 'block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', marginBottom: 4 }
-
   return (
-    <div style={{ padding: '14px 20px', background: 'hsl(var(--muted) / 0.5)', borderTop: '1px solid var(--border-subtle)' }}>
-      <p style={{ margin: '0 0 12px', fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
-        Signature for <strong style={{ color: 'var(--text-secondary)' }}>{sendingEmail}</strong>
+    <div className="px-5 py-3.5 bg-trs-tint border-t border-trs-line">
+      <p className="m-0 mb-3 text-small font-medium text-trs-subtle">
+        Signature for <strong className="text-trs-ink-2">{sendingEmail}</strong>
       </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+      <div className="grid grid-cols-3 gap-2.5 mb-2.5">
         <div>
-          <label style={lbl}>Full Name *</label>
-          <input style={inp} value={form.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Jarod Hong" />
+          <label className={FORM_LABEL}>Full Name *</label>
+          <Input className={FORM_INPUT} value={form.name} onChange={e => update('name', e.target.value)} placeholder="e.g. Jarod Hong" />
         </div>
         <div>
-          <label style={lbl}>Title</label>
-          <input style={inp} value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Risk Analyst" />
+          <label className={FORM_LABEL}>Title</label>
+          <Input className={FORM_INPUT} value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. Risk Analyst" />
         </div>
         <div>
-          <label style={lbl}>Phone</label>
-          <input style={inp} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="e.g. +65 9123 4567" />
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-        <div>
-          <label style={lbl}>Reply-to Email in Signature</label>
-          <input style={inp} value={form.email} onChange={e => update('email', e.target.value)} placeholder={sendingEmail} />
-        </div>
-        <div>
-          <label style={lbl}>Company Tagline / Website</label>
-          <input style={inp} value={form.company_tagline} onChange={e => update('company_tagline', e.target.value)} placeholder="Trade Risk Solutions | www.trade-risksol.com" />
+          <label className={FORM_LABEL}>Phone</label>
+          <Input className={FORM_INPUT} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="e.g. +65 9123 4567" />
         </div>
       </div>
-      {error && <p style={{ margin: '0 0 8px', fontSize: 11, color: '#ef4444' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button
-          onClick={onSave} disabled={saving}
-          style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 6, border: 'none', background: '#1d4ed8', color: '#fff', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}
-        >
+      <div className="grid grid-cols-2 gap-2.5 mb-3">
+        <div>
+          <label className={FORM_LABEL}>Reply-to Email in Signature</label>
+          <Input className={FORM_INPUT} value={form.email} onChange={e => update('email', e.target.value)} placeholder={sendingEmail} />
+        </div>
+        <div>
+          <label className={FORM_LABEL}>Company Tagline / Website</label>
+          <Input className={FORM_INPUT} value={form.company_tagline} onChange={e => update('company_tagline', e.target.value)} placeholder="Trade Risk Solutions | www.trade-risksol.com" />
+        </div>
+      </div>
+      {error && <p className="m-0 mb-2 text-small text-trs-neg">{error}</p>}
+      <div className="flex gap-2">
+        <Btn level="primary" size="xs" onClick={onSave} disabled={saving}>
           {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button
-          onClick={onCancel}
-          style={{ fontSize: 12, padding: '6px 14px', borderRadius: 6, border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-muted)', cursor: 'pointer' }}
-        >
+        </Btn>
+        <Btn size="xs" onClick={onCancel}>
           Cancel
-        </button>
+        </Btn>
       </div>
     </div>
   )
@@ -346,43 +332,39 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const thStyle: React.CSSProperties = {
-    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-    color: 'var(--text-muted)', padding: '8px 20px', textAlign: 'left', background: 'hsl(var(--muted) / 0.5)',
-    borderBottom: '1px solid var(--border-subtle)',
-  }
+  const TH = 'px-5 py-2 text-left text-small font-semibold   text-trs-subtle bg-trs-tint border-b border-trs-line'
 
   return (
-    <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 12, overflow: 'hidden', background: 'hsl(var(--card))' }}>
+    <div className="rounded border border-trs-line overflow-hidden bg-white">
 
       {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div className="px-5 py-3.5 border-b border-trs-line flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h2 style={{ margin: 0, fontSize: 15, fontWeight: 500, color: '#202124' }}>Email signatures</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted, #9ca3af)' }}>
+          <h2 className="m-0 text-body font-medium text-trs-ink">Email signatures</h2>
+          <p className="m-0 mt-0.5 text-small text-trs-subtle">
             One signature per sending address. Selected automatically when you choose a From address.
           </p>
         </div>
         {isAdmin && (
-          <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'hsl(var(--muted))', borderRadius: 6, padding: '3px 10px', border: '1px solid var(--border-subtle)' }}>
+          <span className="rounded border border-trs-line bg-trs-field px-2.5 py-[3px] text-small text-trs-subtle">
             {sharedCount}/{MAX_SHARED} shared slots
           </span>
         )}
       </div>
 
       {loading ? (
-        <p style={{ margin: '16px 20px', fontSize: 13, color: 'var(--text-muted)' }}>Loading…</p>
+        <p className="mx-5 my-4 text-body text-trs-subtle">Loading…</p>
       ) : addressRows.length === 0 ? (
-        <p style={{ margin: '16px 20px', fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+        <p className="mx-5 my-4 text-body text-trs-subtle italic">
           {profile?.gmail_email ? 'No shared addresses configured.' : 'Connect your Gmail above or ask an admin to add a shared address.'}
         </p>
       ) : (
         <div>
           {/* Column headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr auto' }}>
-            <div style={thStyle}>Sending from</div>
-            <div style={thStyle}>Signature</div>
-            <div style={{ ...thStyle, minWidth: 120, textAlign: 'right' }}>Action</div>
+          <div className="grid grid-cols-[1fr_1.6fr_auto]">
+            <div className={TH}>Sending from</div>
+            <div className={TH}>Signature</div>
+            <div className={cn(TH, 'min-w-[120px] text-right')}>Action</div>
           </div>
 
           {/* Address rows */}
@@ -393,34 +375,28 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
             return (
               <React.Fragment key={row.email}>
                 {/* Main row */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 1.6fr auto',
-                  borderBottom: `1px solid var(--border-subtle)`,
-                  background: isExpanded ? 'hsl(var(--primary) / 0.04)' : '#fff',
-                  transition: 'background 0.1s',
-                }}>
+                <div className={cn('grid grid-cols-[1fr_1.6fr_auto] border-b border-trs-line transition-colors', isExpanded ? 'bg-trs-soft' : 'bg-white')}>
                   {/* From address */}
-                  <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 4, justifyContent: 'center' }}>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' }}>{row.email}</span>
+                  <div className="px-5 py-3 flex flex-col gap-1 justify-center">
+                    <span className="text-small text-trs-ink-2 font-mono break-all">{row.email}</span>
                     <TypeBadge type={row.type} />
                   </div>
 
                   {/* Signature preview */}
-                  <div style={{ padding: '12px 20px', borderLeft: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center' }}>
+                  <div className="px-5 py-3 border-l border-trs-line flex items-center">
                     {row.sig
                       ? <SigPreview sig={row.sig} />
-                      : <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>— No signature —</span>
+                      : <span className="text-small text-trs-subtle italic">— No signature —</span>
                     }
                   </div>
 
                   {/* Actions */}
-                  <div style={{ padding: '12px 16px', borderLeft: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                  <div className="px-4 py-3 border-l border-trs-line flex items-center gap-1.5 justify-end">
                     {canEditRow && !isExpanded && (
                       <>
                         <Button
                           size="sm" variant={row.sig ? 'outline' : 'default'}
                           onClick={() => openEdit(row)}
-                          style={{ fontSize: 11, height: 28, padding: '0 10px' }}
                         >
                           {row.sig ? 'Edit' : 'Add'}
                         </Button>
@@ -428,25 +404,25 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                           <Button
                             size="sm" variant="ghost"
                             onClick={() => setConfirmDel(row.sig!.id)}
-                            style={{ fontSize: 11, height: 28, padding: '0 8px', color: '#ef4444' }}
+                            className="text-trs-neg hover:text-trs-neg"
                           >
                             Delete
                           </Button>
                         )}
                         {row.sig && confirmDel === row.sig.id && (
                           <>
-                            <button
+                            <Btn
+                              level="danger" size="xs"
                               onClick={() => deleteSignature(row.sig!.id)} disabled={deleting}
-                              style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', opacity: deleting ? 0.6 : 1 }}
                             >
                               {deleting ? '…' : 'Confirm'}
-                            </button>
-                            <button
+                            </Btn>
+                            <Btn
+                              size="xs"
                               onClick={() => setConfirmDel(null)}
-                              style={{ fontSize: 11, padding: '3px 9px', borderRadius: 6, border: '1px solid hsl(var(--border))', background: '#fff', color: 'var(--text-muted)', cursor: 'pointer' }}
                             >
                               Cancel
-                            </button>
+                            </Btn>
                           </>
                         )}
                         {isAdmin && row.type === 'shared' && (
@@ -454,7 +430,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                             size="sm" variant="ghost"
                             onClick={() => removeAlias(row.email)}
                             disabled={aliasSaving}
-                            style={{ fontSize: 10, height: 28, padding: '0 8px', color: 'var(--text-muted)' }}
+                            className="px-2 text-small"
                             title="Remove this address"
                           >
                             ✕
@@ -463,7 +439,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                       </>
                     )}
                     {isExpanded && (
-                      <Button size="sm" variant="ghost" onClick={closeEdit} style={{ fontSize: 11, height: 28, padding: '0 10px' }}>
+                      <Button size="sm" variant="ghost" onClick={closeEdit}>
                         Cancel
                       </Button>
                     )}
@@ -472,7 +448,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
                 {/* Inline edit form */}
                 {isExpanded && (
-                  <div style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+                  <div className="border-b border-trs-line">
                     <InlineForm
                       sendingEmail={row.email}
                       initial={formState}
@@ -492,12 +468,12 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
       {/* Add shared alias — admin only */}
       {isAdmin && (
-        <div style={{ padding: '14px 20px', borderTop: addressRows.length > 0 ? '1px solid var(--border-subtle)' : 'none', background: 'hsl(var(--muted) / 0.3)' }}>
-          <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)' }}>
+        <div className={cn('px-5 py-3.5 bg-trs-tint', addressRows.length > 0 && 'border-t border-trs-line')}>
+          <p className="m-0 mb-2 text-small font-semibold text-trs-subtle">
             Add Shared Address
           </p>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', maxWidth: 480 }}>
-            <div style={{ flex: 1 }}>
+          <div className="flex gap-2 items-start max-w-[480px]">
+            <div className="flex-1">
               <Input
                 type="email"
                 value={newAlias}
@@ -505,18 +481,18 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addAlias() } }}
                 placeholder="e.g. sales@trade-risksol.com"
                 disabled={!canAddAlias || aliasSaving}
-                style={{ fontSize: 12, height: 34 }}
+                className="h-9 text-small"
               />
-              {aliasError && <p style={{ fontSize: 11, color: '#ef4444', margin: '4px 0 0' }}>{aliasError}</p>}
+              {aliasError && <p className="m-0 mt-1 text-small text-trs-neg">{aliasError}</p>}
               {!canAddAlias && !aliasError && (
-                <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '4px 0 0' }}>Maximum of {MAX_SHARED} shared addresses reached.</p>
+                <p className="m-0 mt-1 text-small text-trs-subtle">Maximum of {MAX_SHARED} shared addresses reached.</p>
               )}
             </div>
-            <Button onClick={addAlias} disabled={!canAddAlias || aliasSaving} style={{ height: 34, fontSize: 12 }}>
+            <Button onClick={addAlias} disabled={!canAddAlias || aliasSaving} className="h-9 text-small">
               {aliasSaving ? 'Saving…' : 'Add'}
             </Button>
           </div>
-          <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
+          <p className="m-0 mt-1.5 text-small text-trs-subtle">
             The service account handles sending — no Gmail alias setup required.
           </p>
         </div>

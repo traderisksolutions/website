@@ -14,12 +14,12 @@ export function InlineProgress({ label, value, className = '' }: { label?: strin
   return (
     <div className={`flex flex-col gap-1.5 ${className}`} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={determinate ? Math.round(pct) : undefined}>
       {label && (
-        <span className="text-[12.5px] flex items-center gap-1.5" style={{ color: '#6f7a74' }}>
-          <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: '#0f1412' }} aria-hidden />
+        <span className="text-small flex items-center gap-1.5 text-trs-subtle" >
+          <span className="inline-block w-1.5 h-1.5 rounded-full animate-pulse bg-trs-ink" aria-hidden />
           {label}{determinate && <span className="tabular-nums">· {Math.round(pct)}%</span>}
         </span>
       )}
-      <div className="relative h-1 w-full overflow-hidden rounded-full" style={{ background: '#e6e8e4' }}>
+      <div className="relative h-1 w-full overflow-hidden rounded-full bg-trs-line" >
         {determinate ? (
           <span
             className="absolute left-0 top-0 h-full rounded-full transition-[width] duration-300 ease-out"

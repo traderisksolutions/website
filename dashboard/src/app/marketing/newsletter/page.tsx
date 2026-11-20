@@ -2,13 +2,15 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Btn, inputCls, textareaCls } from '@/components/crm/primitives'
-import { MarketingPage, MUTED, RULE } from '@/components/marketing/page-shell'
+import { Btn, textareaCls } from '@/components/crm/primitives'
+import { MarketingPage, MUTED } from '@/components/marketing/page-shell'
+import { Input } from '@/components/ui/input'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { useConfirm } from '@/components/ui/confirm'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
-const INK = '#0f1412'
+// The iframe's own HTML document while the preview loads (an email body, not the app's styles).
+const PREVIEW_LOADING = '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>' // drift-ok: email preview HTML
 
 type Sub = { id: string; email: string; status: 'pending' | 'confirmed' | 'unsubscribed'; source_url: string | null; confirm_sent_at: string | null; confirmed_at: string | null; created_at: string }
 type Issue = { id: string; subject: string; intro: string; article_ids: string[]; status: 'draft' | 'sending' | 'sent'; test_sent_at: string | null; approved_by: string | null; approved_at: string | null; sent_at: string | null; recipients: number; failures: number; created_at: string }
@@ -69,13 +71,13 @@ function Newsletter() {
       line={c ? `${c.confirmed} confirmed · ${c.pending} awaiting confirmation · ${c.unsubscribed} unsubscribed` : 'Loading…'}
       line2={data ? (data.sender.ready ? `Sends as ${data.site.newsletter_sender_name || data.site.name} <${data.site.newsletter_sender_email}> · weekly, approved before sending` : `Not sending: ${data.sender.reason}`) : undefined}
       actions={<Btn level="primary" onClick={newIssue} loading={busy} disabled={!data}>New issue</Btn>}>
-      {error && <p className="m-0 mb-4 text-[14px]" role="alert">{error}</p>}
+      {error && <p className="m-0 mb-4 text-body" role="alert">{error}</p>}
       {data && (
         <div className="grid gap-12">
           {open && <IssueEditor key={open.id} issue={open} articles={data.articles} senderReady={data.sender.ready} onClose={() => setOpenId(null)} onChanged={load} />}
 
           <section className="grid gap-3">
-            <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">Issues</h2>
+            <h2 className="m-0 text-heading font-medium">Issues</h2>
             <Register label="Issues" minWidth={720}>
               <RegisterHead>
                 <RegisterTh first>Subject</RegisterTh>
@@ -92,7 +94,7 @@ function Newsletter() {
                       <RegisterCell align="right"><span className="tabular-nums">{i.article_ids.length}</span></RegisterCell>
                       <RegisterCell primary={STATUS[i.status]} />
                       <RegisterCell align="right"><span className="tabular-nums">{i.status === 'draft' ? '–' : `${i.recipients}${i.failures ? ` · ${i.failures} failed` : ''}`}</span></RegisterCell>
-                      <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{day(i.sent_at ?? i.created_at)}</span></RegisterCell>
+                      <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{day(i.sent_at ?? i.created_at)}</span></RegisterCell>
                     </RegisterRow>
                   ))}
               </tbody>
@@ -102,7 +104,7 @@ function Newsletter() {
           <Sender site={data.site} ready={data.sender.ready} pendingUnsent={data.subscribers.filter(s => s.status === 'pending' && !s.confirm_sent_at).length} post={post} onChanged={load} />
 
           <section className="grid gap-3">
-            <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">Subscribers</h2>
+            <h2 className="m-0 text-heading font-medium">Subscribers</h2>
             <Register label="Subscribers" minWidth={720} maxHeight="560px">
               <RegisterHead>
                 <RegisterTh first>Email</RegisterTh>
@@ -116,8 +118,8 @@ function Newsletter() {
                     <RegisterRow key={s.id}>
                       <RegisterCell first identityWidth={300} primary={s.email} />
                       <RegisterCell primary={STATUS[s.status]} secondary={s.status === 'pending' ? (s.confirm_sent_at ? `Confirmation sent ${day(s.confirm_sent_at)}` : 'Confirmation not sent yet') : undefined} />
-                      <RegisterCell align="left" primary={<span className="block max-w-[320px] truncate" style={{ color: MUTED }}>{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
-                      <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{day(s.confirmed_at ?? s.created_at)}</span></RegisterCell>
+                      <RegisterCell align="left" primary={<span className="block max-w-[320px] truncate text-trs-muted">{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
+                      <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{day(s.confirmed_at ?? s.created_at)}</span></RegisterCell>
                     </RegisterRow>
                   ))}
               </tbody>
@@ -144,21 +146,21 @@ function Sender({ site, ready, pendingUnsent, post, onChanged }: { site: Payload
   }
   return (
     <section className="grid gap-3">
-      <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">Sender</h2>
+      <h2 className="m-0 text-heading font-medium">Sender</h2>
       <div className="grid gap-3 max-w-[640px]">
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Sender email
-            <input value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="news@corpcover.com" autoComplete="off" />
+          <label className="grid gap-1 text-small text-trs-muted">Sender email
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="news@corpcover.com" autoComplete="off" />
           </label>
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Sender name
-            <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder={site.name} />
+          <label className="grid gap-1 text-small text-trs-muted">Sender name
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={site.name} />
           </label>
         </div>
-        <p className="m-0 text-[13px]" style={{ color: MUTED }}>Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
+        <p className="m-0 text-body text-trs-muted">Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
         <div className="flex items-center gap-3 flex-wrap">
           <Btn onClick={() => run('save')} loading={busy === 'save'}>Save sender</Btn>
           {ready && pendingUnsent > 0 && <Btn onClick={() => run('confirm')} loading={busy === 'confirm'}>Send {pendingUnsent} pending confirmation{pendingUnsent === 1 ? '' : 's'}</Btn>}
-          {msg && <span className="text-[13.5px]" role="status">{msg}</span>}
+          {msg && <span className="text-body" role="status">{msg}</span>}
         </div>
       </div>
     </section>
@@ -214,29 +216,29 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const toggle = (id: string) => setIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : cur.length >= 6 ? cur : [...cur, id])
 
   return (
-    <section className="grid gap-5 rounded-[16px] p-6" style={{ border: `1px solid ${RULE}` }} aria-label="Issue">
+    <section className="grid gap-5 rounded p-6 border border-trs-line" aria-label="Issue">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
+        <h2 className="m-0 text-heading font-medium">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
         <Btn level="tertiary" onClick={onClose}>Close</Btn>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-4 content-start">
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Subject
-            <input value={subject} onChange={e => setSubject(e.target.value)} disabled={!draft} className={inputCls} maxLength={150} />
+          <label className="grid gap-1 text-small text-trs-muted">Subject
+            <Input value={subject} onChange={e => setSubject(e.target.value)} disabled={!draft} maxLength={150} />
           </label>
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Opening note (optional)
+          <label className="grid gap-1 text-small text-trs-muted">Opening note (optional)
             <textarea value={intro} onChange={e => setIntro(e.target.value)} disabled={!draft} rows={4} className={textareaCls} maxLength={2000} placeholder="Two or three lines above the articles" />
           </label>
           <fieldset className="grid gap-1.5 m-0 p-0 border-0" disabled={!draft}>
-            <legend className="text-[12.5px] mb-1.5" style={{ color: MUTED }}>Articles, in order; the first leads ({ids.length} of up to 6)</legend>
-            {articles.length === 0 && <p className="m-0 text-[14px]" style={{ color: MUTED }}>No published articles on this site.</p>}
-            <div className="grid gap-1 max-h-[300px] overflow-auto pr-1">
+            <legend className="text-small mb-1.5 text-trs-muted">Articles, in order; the first leads ({ids.length} of up to 6)</legend>
+            {articles.length === 0 && <p className="m-0 text-body text-trs-muted">No published articles on this site.</p>}
+            <div className="grid gap-1 max-h-72 overflow-auto pr-1">
               {articles.map(a => {
                 const pos = ids.indexOf(a.id)
                 return (
-                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-[10px] px-3 py-2 text-[14px] cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
-                    <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1" />
-                    <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-[12.5px]" style={{ color: MUTED }}>Published {day(a.published_at)}</span></span>
+                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded px-3 py-2 text-body cursor-pointer', pos >= 0 ? 'bg-trs-soft' : 'hover:bg-trs-tint')}>
+                    <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1 accent-trs-green" />
+                    <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-small text-trs-muted">Published {day(a.published_at)}</span></span>
                   </label>
                 )
               })}
@@ -248,12 +250,12 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
             {issue.status !== 'sent' && <Btn level="primary" onClick={sendAll} disabled={!senderReady || ids.length === 0} loading={busy === 'send'}>{issue.status === 'sending' ? 'Resume sending' : 'Approve and send'}</Btn>}
             {draft && <Btn level="tertiary" onClick={remove} loading={busy === 'delete'}>Delete</Btn>}
           </div>
-          {(msg || progress) && <p className="m-0 text-[13.5px]" role="status">{[progress, msg].filter(Boolean).join(' · ')}</p>}
-          {issue.status === 'sent' && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Sent {day(issue.sent_at)} to {issue.recipients}{issue.failures ? `, ${issue.failures} failed` : ''}.</p>}
+          {(msg || progress) && <p className="m-0 text-body" role="status">{[progress, msg].filter(Boolean).join(' · ')}</p>}
+          {issue.status === 'sent' && <p className="m-0 text-body text-trs-muted">Sent {day(issue.sent_at)} to {issue.recipients}{issue.failures ? `, ${issue.failures} failed` : ''}.</p>}
         </div>
         <div className="grid gap-1.5 content-start">
-          <span className="text-[12.5px]" style={{ color: MUTED }}>Preview{dirty ? ' (save to refresh)' : ''}</span>
-          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-[12px] bg-white" style={{ border: `1px solid ${RULE}` }} />
+          <span className="text-small text-trs-muted">Preview{dirty ? ' (save to refresh)' : ''}</span>
+          <iframe title="Email preview" sandbox="" srcDoc={preview ?? PREVIEW_LOADING} className="w-full h-[640px] rounded bg-white border border-trs-line" />
         </div>
       </div>
     </section>

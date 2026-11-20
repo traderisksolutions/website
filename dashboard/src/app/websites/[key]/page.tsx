@@ -85,7 +85,7 @@ function Website() {
   return (
     <MarketingPage
       title={site?.name ?? 'Website'}
-      line={site ? <a href={site.base_url} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: INK }}>{site.domain}</a> : (error ?? 'Loading…')}
+      line={site ? <a href={site.base_url} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-trs-ink">{site.domain}</a> : (error ?? 'Loading…')}
       sites={sites} siteKey={key} onSite={k => router.push(`/websites/${k}`)}
     >
       {error && <Note role="alert">{error}</Note>}
@@ -106,7 +106,7 @@ function Website() {
                 <RegisterCell>{r.figures}</RegisterCell>
                 <RegisterCell last>
                   <span className="inline-flex gap-3">
-                    {r.links.length === 0 ? '—' : r.links.map(l => <a key={l.title} href={l.href} className="underline underline-offset-2" style={{ color: INK }}>{l.title}</a>)}
+                    {r.links.length === 0 ? '—' : r.links.map(l => <a key={l.title} href={l.href} className="underline underline-offset-2 text-trs-ink">{l.title}</a>)}
                   </span>
                 </RegisterCell>
               </RegisterRow>

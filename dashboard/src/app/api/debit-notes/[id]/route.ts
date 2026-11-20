@@ -10,12 +10,12 @@
  *                                  any). Never cascades to the policy or sibling debit notes.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, signRead, deleteObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import type { DebitNotePdfLineItem } from '@/lib/debit-note-pdf'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
 async function loadFull(id: string) {
   const res = await fetch(`${SB_URL}/rest/v1/debit_notes?id=eq.${id}&select=*,companies(id,name:company_name,address),policies(*),contacts(id,first_name,last_name,email)&limit=1`, { headers: sbH(), cache: 'no-store' })
@@ -23,20 +23,16 @@ async function loadFull(id: string) {
   return (await res.json())[0] ?? null
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const row = await loadFull(id)
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json(row)
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 type PayStatus = 'unpaid' | 'partially_paid' | 'paid'
 type EventType = 'new_business' | 'renewal' | 'endorsement'
@@ -56,13 +52,9 @@ type Patch = {
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const patch = await req.json() as Patch
     const before = await loadFull(id)
     if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -157,15 +149,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const before = await loadFull(id)
     if (!before) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -190,4 +178,4 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

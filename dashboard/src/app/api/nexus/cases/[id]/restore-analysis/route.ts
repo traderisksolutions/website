@@ -5,9 +5,9 @@
  * snapshot back onto the latest analysis row.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -17,13 +17,9 @@ function sbH(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaff(async (req: NextRequest, props: Params) => {
   const params = await props.params;
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { snapshot } = await req.json() as { snapshot?: unknown }
     if (!snapshot || typeof snapshot !== 'object') return NextResponse.json({ error: 'snapshot required' }, { status: 400 })
 
@@ -42,4 +38,4 @@ export async function POST(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

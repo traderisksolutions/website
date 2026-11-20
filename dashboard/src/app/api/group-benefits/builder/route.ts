@@ -5,11 +5,11 @@
  * Returns { insurers, grids, tables, employees, dependants }.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { priceBuilder, saveBuilder, type BuilderInput } from '@/lib/gb/builder'
 import { DEFAULT_REQUIREMENT, type CategoryInput, type Requirement } from '@/lib/gb/ladder'
 import type { Member } from '@/lib/gb-quote'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -59,9 +59,7 @@ function parse(b: Record<string, unknown>): BuilderInput | string {
   return { members, categories, effective_date: b.effective_date, basis: b.basis === 'renewal' ? 'renewal' : 'new_business', tier_b: b.tier_b === true }
 }
 
-export async function POST(req: NextRequest) {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest) => {
   const b = await req.json().catch(() => null) as Record<string, unknown> | null
   if (!b) return NextResponse.json({ error: 'Body must be JSON' }, { status: 400 })
   const input = parse(b)
@@ -81,4 +79,4 @@ export async function POST(req: NextRequest) {
     console.error('[gb/builder]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not price' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

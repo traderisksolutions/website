@@ -81,7 +81,9 @@
     --border:                90 8% 90%;      /* #E6E8E4 hairline */
     --input:                 108 6% 84%;     /* #D5D9D4 control border */
     --ring:                  142 40% 12%;    /* deep green focus */
-    --radius:                0.625rem;
+    --radius:                0.4375rem;
+    /* One radius (Jarod, 20 Nov 2026): every corner in the app reads this. */
+    --radius-one:            7px;
 
     /* ── Sidebar palette ── */
     --sidebar-bg:            0 0% 100%;
@@ -197,13 +199,15 @@
   * { box-sizing: border-box; border-color: hsl(var(--border)); }
 
   html, body, input, button, select, textarea {
-    font-family: var(--font-geist), 'Geist', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    /* One face (Jarod, 20 Nov 2026). */
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
   body {
     /* Defined here, not on :root: the next/font variables they read are set on <body>. */
-    --font-serif-stack: var(--font-serif), "EB Garamond", "Iowan Old Style", Georgia, serif;
-    --font-mono-stack:  var(--font-mono), "Geist Mono", ui-monospace, Menlo, monospace;
+    --font-serif-stack: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-mono-stack:  "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
     margin: 0;
     /* Global UI scale — enlarges fonts AND spacing uniformly (customer feedback:
        everything read too small). Tune --ui-zoom in one place; full-height (vh)
@@ -220,14 +224,9 @@
     letter-spacing: -0.02em;
   }
 
-  /* Page titles in the website's serif (EB Garamond 500). Section headings stay Geist. */
-  h1 {
-    font-family: var(--font-serif-stack);
-    font-weight: 500 !important;
-    letter-spacing: -0.01em;
-  }
-  [role="dialog"] h2:first-of-type { font-family: var(--font-serif-stack); font-weight: 500; letter-spacing: -0.005em; }
-  code, kbd, .font-mono { font-family: var(--font-mono-stack); }
+  /* Titles in the same face, set by weight (Jarod, 20 Nov 2026: one font). */
+  h1 { font-weight: 600 !important; letter-spacing: -0.01em; }
+  code, kbd, .font-mono { font-family: var(--font-mono-stack); font-variant-numeric: tabular-nums; }
 }
 
 /* ── Scrollbar — fine, neutral ── */
@@ -634,8 +633,8 @@ select:focus-visible {
    survive. Reading body 14.5px / 1.6 ink; earlier messages 14px body colour; signature 13.5px
    muted. Data tables are wrapped by MessageBlock (wrapTables) in .email-tbl. */
 .email-html-body, .email-html-body * {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-  font-size: 14.5px !important; line-height: 1.6 !important; color: #0f1412 !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  font-size: 14px !important; line-height: 1.6 !important; color: #0f1412 !important;
   background: transparent !important; max-width: 100%;
 }
 .email-html-body.is-earlier, .email-html-body.is-earlier * { font-size: 14px !important; }
@@ -691,7 +690,7 @@ table.register td .mt-0\.5 { margin-top: 0; }
 .trs-place:hover { color: var(--trs-ink); }
 .trs-place[aria-current="page"] { color: var(--trs-green); border-bottom-color: var(--trs-green); }
 .trs-place:focus-visible, .trs-subtab:focus-visible { outline: 2px solid var(--trs-green); outline-offset: -2px; }
-.trs-place .cnt { font-family: var(--font-mono), ui-monospace, monospace; font-size: 11px; color: var(--trs-muted); }
+.trs-place .cnt { font-family: inherit; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--trs-muted); }
 .trs-place[aria-current="page"] .cnt { color: var(--trs-green); }
 .trs-place-tabs { gap: 18px !important; height: 38px !important; background: var(--trs-tint) !important; border-top: 1px solid var(--trs-line); }
 .trs-subtab { display: inline-flex; align-items: center; height: 38px; padding: 0; font-size: 13px; color: var(--trs-muted); white-space: nowrap; text-decoration: none; }
@@ -704,7 +703,7 @@ table.register td .mt-0\.5 { margin-top: 0; }
    .cell-left (names, subjects, descriptions, notes) read left. Hover is the site's tint; a selected
    row is mint with a green edge; a total row (.row-total) is ruled above and below. Applied by
    Register and every hand-built table through .trs-table; email bodies and client pages keep their own. ── */
-table.trs-table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+table.trs-table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
 table.trs-table thead th { background: #ffffff; color: #4a5550; font-weight: 600; font-size: 12px; height: 40px; padding-top: 0; padding-bottom: 0; border-bottom: 1px solid #0f1412; white-space: nowrap; text-align: center; vertical-align: middle; }
 table.trs-table th + th, table.trs-table td + td { box-shadow: inset 1px 0 0 #e6e8e4; }
 table.trs-table tbody td { height: 46px; padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #e6e8e4; text-align: center; }
@@ -739,3 +738,29 @@ table.trs-table td.cell-best { background-color: var(--trs-mint); }
 @keyframes trs-rise-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 28px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
 @keyframes trs-rise-out { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, calc(-50% + 28px)); } }
 @media (prefers-reduced-motion: reduce) { .trs-modal-overlay, .trs-modal-panel { animation: none !important; } }
+
+/* ── One table (Jarod, 20 Nov 2026: every table follows the same style) ────────────────────────
+   Every data table in the app reads as the ledger: header 12px muted on a dark rule, 46px rows on
+   hairlines, lines between columns, no band, no zebra, no outer box; headers and short cells
+   centred, the first column and .cell-left read left. Written once here so a hand-built <table>
+   follows too. Email bodies, drafts and editors keep the sender's own tables. */
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) {
+  border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; border-radius: 0; box-shadow: none;
+}
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) thead th {
+  background: #ffffff; color: var(--trs-muted); font-weight: 600; font-size: 12px; height: 40px;
+  padding: 0 12px; border-bottom: 1px solid var(--trs-ink); white-space: nowrap; text-align: center; vertical-align: middle;
+}
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody td {
+  height: 46px; padding: 4px 12px; border-bottom: 1px solid var(--trs-line); background-color: transparent; text-align: center; vertical-align: middle;
+}
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) :is(th + th, td + td) { box-shadow: inset 1px 0 0 var(--trs-line); }
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody td:first-child,
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody td.cell-left { text-align: left; }
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr:nth-child(even) > td { background-color: transparent; }
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr:hover > td { background-color: var(--trs-tint); }
+/* No outer box: the element that directly holds a table (its scroll wrapper) draws no border,
+   corner or shadow, so every table reads as the open ledger. Email bodies and editors excluded. */
+.main-content :is(div, section):has(> table):not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) *) {
+  border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+}

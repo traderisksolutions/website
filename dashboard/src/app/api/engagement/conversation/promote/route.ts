@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 // POST /api/engagement/conversation/promote
 // Body: { thread_id: string, name?: string }
@@ -30,10 +30,7 @@ function contactLabel(c: ContactRow | undefined): string | null {
   return full || c.company || c.email || null
 }
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { thread_id, name } = await req.json() as { thread_id?: string; name?: string }
     if (!thread_id) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
@@ -107,4 +104,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

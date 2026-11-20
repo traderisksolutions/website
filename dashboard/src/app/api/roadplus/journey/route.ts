@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
-
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
+import { withStaff } from '@/lib/auth/guard'
 
 // GET /api/roadplus/journey?ref=RP-XXXX | ?policy_id=P000...  → the step-by-step
 // trace for one customer journey (or the most recent failures when no query).
-export async function GET(req: NextRequest) {
-  if (!(await requireUser()))
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (req: NextRequest) => {
   if (!rpConfigured())
     return NextResponse.json({ configured: false, rows: [] })
 
@@ -36,4 +28,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ configured: true, rows: [], error: String(e) }, { status: 502 })
   }
-}
+}, { error: 'Not authenticated' })

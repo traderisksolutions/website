@@ -17,7 +17,8 @@ import { actorName, type Staff } from '@/lib/cases/names'
 import type { Candidate, Proposal, Side } from '@/lib/cases/sources'
 import type { CaseSources } from '@/lib/cases/sources-store'
 import { MoveThreadDialog, type Conflict } from './MoveThreadDialog'
-import { count, subjectBtn, tableFrame } from './shared'
+import { count, subjectBtn } from './shared'
+import { Register } from '@/components/ui/register'
 import { SideSelect, type From } from './SideSelect'
 
 type Tab = 'proposed' | 'recent' | 'older' | 'on' | 'removed'
@@ -65,7 +66,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
     }).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!data) return <Spinner label="Loading sources…" />
 
   const offered: Record<'proposed' | 'recent' | 'older', (Candidate | Proposal)[]> = { proposed: data.proposed, recent: data.recent, older: data.older }
@@ -133,8 +134,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
 
       {tab === 'on' ? (
         data.picked.length === 0 ? <Empty compact>No threads on the case.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table" style={{ minWidth: 860 }}>
+          <Register label="Threads on the case" minWidth={860} dense={false}>
               <thead><tr><th>Thread</th><th>Side</th><th>Label</th><th>Picked by</th><th>Emails</th><th>Last message</th><th><span className="sr-only">Action</span></th></tr></thead>
               <tbody>
                 {data.picked.map(t => (
@@ -149,13 +149,11 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )
       ) : tab === 'removed' ? (
         data.excluded.length === 0 ? <Empty compact>No threads removed from the case.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table" style={{ minWidth: 720 }}>
+          <Register label="Threads removed from the case" minWidth={720} dense={false}>
               <thead><tr><th>Thread</th><th>Label</th><th>Removed by</th><th>Last message</th><th><span className="sr-only">Action</span></th></tr></thead>
               <tbody>
                 {data.excluded.map(t => (
@@ -168,12 +166,10 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )
       ) : rows.length === 0 ? <Empty compact>No threads in this group.</Empty> : (
-        <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 980 }}>
+        <Register label="Threads" minWidth={980} dense={false}>
             <thead><tr><th className="w-10"><span className="sr-only">Pick</span></th><th>Thread</th><th>Side</th><th>Label</th><th>Matched on</th><th>Last message</th><th>On case</th></tr></thead>
             <tbody>
               {rows.map(t => (
@@ -189,10 +185,9 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Register>
       )}
-      {data.hidden > 0 && <p className="m-0 text-[13px] text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
+      {data.hidden > 0 && <p className="m-0 text-body text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
 
       <MoveThreadDialog conflicts={conflicts} caseTitle={data.item.title ?? 'This case'} staff={staff} busy={busy === 'add'}
         onCancel={() => { setConflicts([]); setTicked(new Set()) }}

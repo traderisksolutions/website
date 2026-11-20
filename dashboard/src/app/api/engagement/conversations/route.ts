@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { conversationsOf, type Conversation, type ConvMessage } from '@/lib/mail/conversations'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'

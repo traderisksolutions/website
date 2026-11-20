@@ -56,7 +56,7 @@ function Analytics() {
       {ok && (
         <div className="flex flex-col gap-10">
           <section>
-            <h2 className="m-0 mb-3 text-[17px] font-medium">Visits</h2>
+            <h2 className="m-0 mb-3 text-heading font-medium">Visits</h2>
             <Register label="Totals" minWidth={640}>
               <RegisterHead><RegisterTh first>Measure</RegisterTh><RegisterTh>{PERIOD_LABEL[period]}</RegisterTh><RegisterTh>Before</RegisterTh><RegisterTh last>Change</RegisterTh></RegisterHead>
               <tbody>
@@ -74,9 +74,9 @@ function Analytics() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-[17px] font-medium">Visits by day</h2>
+            <h2 className="m-0 mb-3 text-heading font-medium">Visits by day</h2>
             {ok.daily.length === 0 ? <Note>No visits in this period.</Note> : (
-              <div className="h-[280px] w-full" role="img" aria-label={`Visits and people by day, ${PERIOD_LABEL[period]}`}>
+              <div className="h-72 w-full" role="img" aria-label={`Visits and people by day, ${PERIOD_LABEL[period]}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={ok.daily} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                     <CartesianGrid vertical={false} stroke="var(--trs-line)" />
@@ -118,7 +118,7 @@ function Total({ label, now, before }: { label: string; now: number; before: num
 function Breakdown({ title, keyLabel, rows, total, format }: { title: string; keyLabel: string; rows: Row[]; total: number; format?: (k: string) => string }) {
   return (
     <section>
-      <h2 className="m-0 mb-3 text-[17px] font-medium">{title}</h2>
+      <h2 className="m-0 mb-3 text-heading font-medium">{title}</h2>
       <Register label={title} minWidth={720}>
         <RegisterHead><RegisterTh first>{keyLabel}</RegisterTh><RegisterTh>Visits</RegisterTh><RegisterTh>Share</RegisterTh><RegisterTh>People</RegisterTh><RegisterTh last>Engaged rate</RegisterTh></RegisterHead>
         <tbody>
@@ -140,7 +140,7 @@ function Breakdown({ title, keyLabel, rows, total, format }: { title: string; ke
 function NotConnected({ traffic }: { traffic: Extract<Traffic, { status: 'not_connected' }> }) {
   return (
     <section className="max-w-[720px]">
-      <h2 className="m-0 mb-3 text-[17px] font-medium">Not connected</h2>
+      <h2 className="m-0 mb-3 text-heading font-medium">Not connected</h2>
       <Register label="Connection" minWidth={560}>
         <RegisterHead><RegisterTh first>Item</RegisterTh><RegisterTh last>Value</RegisterTh></RegisterHead>
         <tbody>

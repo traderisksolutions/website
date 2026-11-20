@@ -4,7 +4,7 @@
  * route: the Drive copy when the document is filed, else the bytes fetched again from Gmail.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { sbTry, enc } from '@/lib/crm/db'
 import { privateThread, threadVisibleTo } from '@/lib/mail/visibility-server'

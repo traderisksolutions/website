@@ -43,9 +43,9 @@ export function ThreadTitle({ threadId, subject, owner, onNotice, className = ''
 /** "Open thread" for a card: a new-tab link, or the ring-fence modal. */
 export function OpenThread({ threadId, owner, onNotice }: { threadId: string; owner: PrivateInbox | null | undefined; onNotice?: (m: string) => void }) {
   const openPrivate = usePrivateThread()
-  if (!owner) return <Link href={threadHref(threadId)} target="_blank" className="inline-flex items-center gap-1 text-xs text-trs-green-2 underline-offset-[3px] hover:underline"><ExternalLink size={12} aria-hidden /> Open thread</Link>
+  if (!owner) return <Link href={threadHref(threadId)} target="_blank" className="inline-flex items-center gap-1 text-small text-trs-green-2 underline-offset-[3px] hover:underline"><ExternalLink size={12} aria-hidden /> Open thread</Link>
   return (
-    <Btn size="xs" level="tertiary" className="!h-auto !px-0 text-xs" onClick={async () => { const m = await openPrivate(threadId, owner); if (m) onNotice?.(m) }}>
+    <Btn size="xs" level="tertiary" className="!h-auto !px-0 text-small" onClick={async () => { const m = await openPrivate(threadId, owner); if (m) onNotice?.(m) }}>
       <Lock size={12} aria-hidden /> Open thread
     </Btn>
   )

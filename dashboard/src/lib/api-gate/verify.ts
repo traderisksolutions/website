@@ -20,9 +20,9 @@ import { SB_URL } from '@/lib/sb'
 // keeping that true forever; per credential type needs no such list and
 // cannot drift.
 //
-// This is authentication only. requireStaffOrCron() stays in the handlers
-// and still decides who may act — the gate does not replace it, and the
-// domain rule keeps exactly one implementation.
+// This is authentication only. The handler wrappers in src/lib/auth/guard.ts
+// (withStaff, withCron, withStaffOrCron, can) still decide who may act — the
+// gate does not replace them.
 //
 // Note what this does NOT cover: the browser also talks to Supabase
 // directly for chat, Realtime and Storage (src/lib/supabase/chat-queries.ts

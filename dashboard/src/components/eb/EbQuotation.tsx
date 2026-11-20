@@ -351,8 +351,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4" aria-labelledby="eb-step1">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-trs-muted">Step 1</div>
-          <h2 id="eb-step1" className="m-0 text-2xl font-medium tracking-tight">Pricing</h2>
+          <div className="text-small font-semibold text-trs-muted">Step 1</div>
+          <h2 id="eb-step1" className="m-0 text-title font-medium">Pricing</h2>
         </div>
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2" role="group" aria-label="Pricing">
           <ChoiceCard pressed={mode === 'brochure'} onClick={() => setMode('brochure')} title="Brochure pricing" line="Priced now from the insurers’ published rates"
@@ -362,7 +362,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
         </div>
         <div className="mx-auto mt-2 flex w-full max-w-xl flex-col items-center gap-1.5">
           <div className="w-full"><CompanyField value={pick} onChange={setPick} allowCreate listId="eb-company-options" /></div>
-          {threads != null && <span className="text-xs text-trs-muted">{`Files found in ${threads} filed ${threads === 1 ? 'thread' : 'threads'}`}</span>}
+          {threads != null && <span className="text-small text-trs-muted">{`Files found in ${threads} filed ${threads === 1 ? 'thread' : 'threads'}`}</span>}
         </div>
         <div className={`grid grid-cols-1 gap-x-8 gap-y-8 ${mode === 'insurer' ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
           <DocColumn id="eb-census" title="Census" company={company}
@@ -393,13 +393,13 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
           <div><Btn loading={readingPolicy} disabled={readingPolicy} onClick={() => void readPolicy()}>{readingPolicy ? `Reading ${uploads.length + docIds.length} ${uploads.length + docIds.length === 1 ? 'document' : 'documents'}…` : 'Read policy'}</Btn></div>
         )}
         {lastYear && (
-          <div className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-body">
             <div className="flex flex-wrap items-center gap-3"><span className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</span><Btn size="xs" level="tertiary" onClick={() => void removePolicy()}>Remove policy read</Btn></div>
             <div className="text-trs-muted">{[lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null ? `${fmtMoney0(lyNet)} a year, net of GST` : 'No premium read'].filter(Boolean).join(' · ')}</div>
             {lastYear.conflicts.map(c => <div key={c} className="text-trs-warn">{c}</div>)}
           </div>
         )}
-        {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
 
         {members && (
           <>
@@ -429,7 +429,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
                 </RegisterRow>
               </tbody>
             </Register>
-            <p className="m-0 text-xs text-trs-muted">{chosen.reduce((a, c) => a + c.employees, 0)} employees in this quotation · spouses and children not counted as headcount</p>
+            <p className="m-0 text-small text-trs-muted">{chosen.reduce((a, c) => a + c.employees, 0)} employees in this quotation · spouses and children not counted as headcount</p>
             <div className="flex flex-wrap items-end gap-4">
               <Field label="Policy start date"><Input id="eb-start" type="date" value={effDate} onChange={e => { setEffDate(e.target.value); setPriced(null) }} /></Field>
               <Field label="Basis"><Segmented size="sm" label="Basis" value={basis} onChange={v => { setBasis(v); setPriced(null) }} options={[{ value: 'renewal', label: 'Renewal' }, { value: 'new_business', label: 'New business' }]} /></Field>
@@ -449,8 +449,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       {priced && (
         <section id="eb-options" className="flex flex-col gap-4" aria-labelledby="eb-step2">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-trs-muted">Step 2</div>
-            <h2 id="eb-step2" className="m-0 text-2xl font-medium tracking-tight">Options for the client</h2>
+            <div className="text-small font-semibold text-trs-muted">Step 2</div>
+            <h2 id="eb-step2" className="m-0 text-title font-medium">Options for the client</h2>
           </div>
           <EbTiers priced={priced} tier={tier} onTier={chooseTier} lastYearRead={!!lastYear} />
         </section>
@@ -459,9 +459,9 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       {priced && model && members && editState && (
         <section className="flex flex-col gap-4" aria-labelledby="eb-step3">
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-trs-muted">Step 3</div>
-            <h2 id="eb-step3" className="m-0 text-2xl font-medium tracking-tight">Compare</h2>
-            <p className="m-0 mt-1 text-xs text-trs-muted">{`${model.employees} employees · ${priced.categories.reduce((a, c) => a + c.lives, 0)} lives${unaged ? ` · ${unaged} without an age, not priced` : ''} · S$ a year, net of GST · ${priced.workbook.name}`}</p>
+            <div className="text-small font-semibold text-trs-muted">Step 3</div>
+            <h2 id="eb-step3" className="m-0 text-title font-medium">Compare</h2>
+            <p className="m-0 mt-1 text-small text-trs-muted">{`${model.employees} employees · ${priced.categories.reduce((a, c) => a + c.lives, 0)} lives${unaged ? ` · ${unaged} without an age, not priced` : ''} · S$ a year, net of GST · ${priced.workbook.name}`}</p>
           </div>
           {mode === 'insurer' && !allCols.some(c => c.kind === 'schedule') && <Chip tone="amber">No insurer schedule read yet</Chip>}
           <EbCompare model={model} onChoose={choose} onCopy={copyColumn} onRemove={id => void removeColumn(id)} />

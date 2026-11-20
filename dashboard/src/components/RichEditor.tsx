@@ -350,7 +350,7 @@ export function RichEditor({
       data-borderless={borderless ? 'true' : 'false'}
       className={cn(
         'trs-re flex flex-col min-w-0',
-        borderless ? '' : 'border border-[#dadce0] rounded-[10px] bg-white overflow-hidden',
+        borderless ? '' : 'border border-[#dadce0] rounded bg-white overflow-hidden',
         className,
       )}
     >
@@ -471,7 +471,7 @@ export function RichEditor({
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={handleImageUpload}
           aria-hidden
           tabIndex={-1}

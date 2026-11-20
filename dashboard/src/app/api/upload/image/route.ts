@@ -4,18 +4,15 @@
  * to recipients, who have no login, by /api/public/email-image/<id>. Max 5 MB.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { storeUpload }               from '@/lib/storage/drive-upload'
 import { driveIdOf }                 from '@/lib/storage/attachment-bytes'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const MAX_BYTES = 5 * 1024 * 1024  // 5 MB
 // No SVG: it can carry script, and the image is served from the dashboard's own origin.
 const ALLOWED   = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const formData = await req.formData()
     const file     = formData.get('file') as File | null
@@ -34,4 +31,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

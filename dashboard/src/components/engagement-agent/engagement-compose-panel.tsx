@@ -21,8 +21,8 @@ import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineP
 import { useResizableComposerHeight } from '@/hooks/useResizableComposerHeight'
 import {
   TbGroup, TbButton, TbMenu, TbMenuItem, TbMenuLabel, FieldRow, RecipientChip, QuietSelect, AttachmentChip,
-  BTN_PRIMARY, BTN_TERTIARY, INK, BODY, MUTED, FAINT,
 } from '@/components/engagement-agent/compose-toolbar'
+import { Btn } from '@/components/crm/primitives'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -154,12 +154,12 @@ export function EngagementComposePanel({
   function buildSigHtml(sig: SigOption): string {
     return [
       '<br>',
-      '<hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">',
-      `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
-      sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
-      sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-      sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1f4e3a;text-decoration:none">${sig.email}</a></p>` : '',
-      sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>',
+      '<hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">', // drift-ok: email signature HTML
+      `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`, // drift-ok: email signature HTML
+      sig.title           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '', // drift-ok: email signature HTML
+      sig.phone           ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '', // drift-ok: email signature HTML
+      sig.email           ? `<p style="margin:4px 0 0;font-size:12px;color:#666"><a href="mailto:${sig.email}" style="color:#1f4e3a;text-decoration:none">${sig.email}</a></p>` : '', // drift-ok: email signature HTML
+      sig.company_tagline ? `<p style="margin:4px 0 0;font-size:12px;color:#999">${sig.company_tagline}</p>` : '<p style="margin:4px 0 0;font-size:12px;color:#999">Trade Risk Solutions</p>', // drift-ok: email signature HTML
     ].filter(Boolean).join('\n')
   }
 
@@ -367,15 +367,14 @@ export function EngagementComposePanel({
   // ── Sent state ─────────────────────────────────────────────────────────────
   if (sent) {
     return (
-      <div className="w-full max-w-[1040px] mx-auto flex items-center justify-between gap-3 px-6 lg:px-10 h-12" style={{ color: INK }}>
-        <span className="text-[14px] font-medium">Reply sent</span>
-        <button
-          type="button"
+      <div className="w-full max-w-[1040px] mx-auto flex items-center justify-between gap-3 px-6 lg:px-10 h-12 text-trs-ink">
+        <span className="text-body font-medium">Reply sent</span>
+        <Btn
+          level="tertiary"
           onClick={() => { setSent(false); setDraftHtml(''); setDraftId(null); setContextUsed([]) }}
-          className={BTN_TERTIARY}
         >
           Compose another
-        </button>
+        </Btn>
       </div>
     )
   }
@@ -395,13 +394,13 @@ export function EngagementComposePanel({
 
         {/* ── Top bar: Reply · save state · spacer · Minimise ── */}
         <div className="flex items-center gap-2.5 px-[var(--re-gutter)] h-12 flex-shrink-0">
-          <h3 className="m-0 text-[15px] font-medium" style={{ color: INK }}>Reply</h3>
+          <h3 className="m-0 text-heading font-medium text-trs-ink">Reply</h3>
           {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
           <span className="flex-1" />
           {onMinimise && (
-            <button type="button" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')}>
+            <Btn level="tertiary" size="xs" onClick={onMinimise} title="Minimise" aria-label="Minimise the reply" className="px-2.5">
               Minimise
-            </button>
+            </Btn>
           )}
         </div>
 
@@ -409,20 +408,20 @@ export function EngagementComposePanel({
         <FieldRow label="To" tall htmlFor="compose-to" right={
           <>
             {onToggleReplyAll && (
-              <button
-                type="button"
+              <Btn
+                level="tertiary"
+                size="xs"
                 onClick={onToggleReplyAll}
                 aria-pressed={replyAll}
                 title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
-                className={cn('h-[30px] px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
-                style={{ color: replyAll ? INK : FAINT }}
+                className={cn('px-2 rounded border-0 font-normal text-small hover:bg-trs-field', replyAll ? 'bg-trs-field font-medium text-trs-ink hover:text-trs-ink' : 'text-trs-subtle hover:text-trs-subtle')}
               >
                 Reply all
-              </button>
+              </Btn>
             )}
-            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
+            {!showCc && <Btn level="tertiary" size="xs" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-8 px-1.5 rounded border-0 font-normal text-small text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Cc</Btn>}
             {!showCc && !showBcc && <span aria-hidden>·</span>}
-            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
+            {!showBcc && <Btn level="tertiary" size="xs" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-8 px-1.5 rounded border-0 font-normal text-small text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Bcc</Btn>}
           </>
         }>
           {headerExpanded || !toAddress ? (
@@ -436,14 +435,14 @@ export function EngagementComposePanel({
         {/* ── Cc / Bcc — revealed from the To row ── */}
         {showCc && (
           <FieldRow label="Cc" tall right={
-            <button type="button" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+            <Btn level="tertiary" size="xs" onClick={() => { setShowCc(false); setCcList([]) }} aria-label="Remove Cc" title="Remove Cc" className="w-8 px-0 rounded border-0 text-trs-muted hover:bg-trs-field"><X size={13} /></Btn>
           }>
             <ChipInput chips={ccList} onChange={setCcList} placeholder="Add Cc…" />
           </FieldRow>
         )}
         {showBcc && (
           <FieldRow label="Bcc" tall right={
-            <button type="button" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[6px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+            <Btn level="tertiary" size="xs" onClick={() => { setShowBcc(false); setBccList([]) }} aria-label="Remove Bcc" title="Remove Bcc" className="w-8 px-0 rounded border-0 text-trs-muted hover:bg-trs-field"><X size={13} /></Btn>
           }>
             <ChipInput chips={bccList} onChange={setBccList} placeholder="Add Bcc…" />
           </FieldRow>
@@ -480,8 +479,7 @@ export function EngagementComposePanel({
             onChange={e => setCustomSubject(e.target.value)}
             aria-label="Email subject"
             placeholder="Subject"
-            className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
-            style={{ color: INK }}
+            className="w-full text-body text-trs-ink bg-transparent border-none outline-none py-1 placeholder:text-trs-subtle"
           />
         </FieldRow>
 
@@ -489,9 +487,9 @@ export function EngagementComposePanel({
             api/engagement/draft/route.ts) — so staff can verify rather than trust blindly. */}
         {hasDraft && contextUsed.length > 0 && (
           <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap items-center gap-1.5 flex-shrink-0">
-            <span className="text-[12.5px] mr-0.5" style={{ color: MUTED }}>Drafted from</span>
+            <span className="text-small mr-0.5 text-trs-muted">Drafted from</span>
             {contextUsed.map((c, i) => (
-              <span key={i} className="text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f2ee]" style={{ color: BODY }}>{c}</span>
+              <span key={i} className="text-small font-medium px-2 py-0.5 rounded bg-trs-field text-trs-ink-2">{c}</span>
             ))}
           </div>
         )}
@@ -563,33 +561,33 @@ export function EngagementComposePanel({
             }}
             className="h-2 cursor-row-resize flex items-center justify-center group focus-visible:outline-none flex-shrink-0"
           >
-            <div className="w-10 h-px bg-transparent group-hover:bg-[#8c958f] group-hover:h-0.5 group-focus-visible:bg-[#0f1412] group-focus-visible:h-0.5 transition-all" />
+            <div className="w-10 h-px bg-transparent group-hover:bg-trs-subtle group-hover:h-0.5 group-focus-visible:bg-trs-ink group-focus-visible:h-0.5 transition-all" />
           </div>
         )}
 
         {/* ── Knowledge sources (RAG) ── */}
         {ragSources.length > 0 && (
-          <div className="mx-[var(--re-gutter)] mb-2 rounded-[10px] border border-[#e6e8e4] overflow-hidden flex-shrink-0">
-            <button
-              type="button"
+          <div className="mx-[var(--re-gutter)] mb-2 rounded border border-trs-line overflow-hidden flex-shrink-0">
+            <Btn
+              level="tertiary"
               onClick={() => setShowSources(v => !v)}
               aria-expanded={showSources}
-              className="w-full flex items-center justify-between px-3.5 h-9 bg-white text-left border-0 cursor-pointer hover:bg-[#faf9f6]"
+              className="w-full justify-between px-3.5 h-9 rounded-none bg-white text-left border-0 font-normal hover:bg-trs-tint"
             >
-              <span className="text-[12.5px]" style={{ color: MUTED }}>
+              <span className="text-small text-trs-muted">
                 {ragSources.length} source{ragSources.length !== 1 ? 's' : ''} retrieved
               </span>
-              <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform', showSources && 'rotate-180')} style={{ color: '#8c958f' }} />
-            </button>
+              <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform text-trs-subtle', showSources && 'rotate-180')} />
+            </Btn>
             {showSources && (
-              <div className="divide-y divide-[#e6e8e4] border-t border-[#e6e8e4]">
+              <div className="divide-y divide-trs-line border-t border-trs-line">
                 {ragSources.map((s, i) => (
                   <div key={i} className="px-3.5 py-2.5">
                     <div className="flex items-center justify-between mb-1 gap-3">
-                      <span className="text-[13px] font-medium truncate" style={{ color: INK }}>{s.file_name}</span>
-                      <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{Math.round(s.similarity * 100)}%</span>
+                      <span className="text-body font-medium truncate text-trs-ink">{s.file_name}</span>
+                      <span className="text-small tabular-nums flex-shrink-0 text-trs-subtle">{Math.round(s.similarity * 100)}%</span>
                     </div>
-                    <p className="text-[12.5px] leading-relaxed line-clamp-2 m-0" style={{ color: MUTED }}>{s.content}</p>
+                    <p className="text-small leading-relaxed line-clamp-2 m-0 text-trs-muted">{s.content}</p>
                   </div>
                 ))}
               </div>
@@ -609,42 +607,41 @@ export function EngagementComposePanel({
         <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2 pb-4 flex-shrink-0">
           {error ? (
             <div className="relative min-w-0" ref={errorRef}>
-              <button
-                type="button"
+              <Btn
+                level="tertiary"
+                size="xs"
                 onClick={() => setErrorOpen(v => !v)}
                 title="Show the full error"
                 aria-expanded={errorOpen}
-                className="text-[12.5px] max-w-[360px] truncate cursor-pointer bg-transparent border-0 p-0 text-left underline decoration-dotted underline-offset-2"
-                style={{ color: BODY }}
+                className="block h-auto text-small font-normal max-w-[360px] truncate bg-transparent border-0 p-0 text-left text-trs-ink-2 underline decoration-dotted underline-offset-2 hover:bg-transparent hover:text-trs-ink-2"
               >
                 {error}
-              </button>
+              </Btn>
               {errorOpen && (
-                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-[260px] overflow-auto rounded-[10px] border border-[#e6e8e4] bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
+                <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-64 overflow-auto rounded border border-trs-line bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
                   <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="text-[12px]" style={{ color: MUTED }}>Error detail</span>
+                    <span className="text-small text-trs-muted">Error detail</span>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => navigator.clipboard?.writeText(error)} className="text-[12px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: INK }}>Copy</button>
-                      <button type="button" onClick={() => setErrorOpen(false)} aria-label="Close error detail" className="bg-transparent border-0 p-0 cursor-pointer" style={{ color: MUTED }}><X size={12} strokeWidth={2} /></button>
+                      <Btn level="tertiary" size="xs" onClick={() => navigator.clipboard?.writeText(error)} className="h-auto text-small bg-transparent border-0 p-0 text-trs-ink hover:bg-transparent hover:text-trs-ink hover:underline">Copy</Btn>
+                      <Btn level="tertiary" size="xs" onClick={() => setErrorOpen(false)} aria-label="Close error detail" className="h-auto bg-transparent border-0 p-0 text-trs-muted hover:bg-transparent"><X size={12} strokeWidth={2} /></Btn>
                     </div>
                   </div>
-                  <div className="whitespace-pre-wrap break-words text-[12.5px]" style={{ color: BODY }}>{error}</div>
+                  <div className="whitespace-pre-wrap break-words text-small text-trs-ink-2">{error}</div>
                 </div>
               )}
             </div>
           ) : (
-            <span className="text-[12.5px] truncate" style={{ color: FAINT }}>Signature and quoted message are added on send</span>
+            <span className="text-small truncate text-trs-subtle">Signature and quoted message are added on send</span>
           )}
           <span className="flex-1" />
           {/* Approve & Send — the one filled primary in the panel */}
-          <button
-            type="button"
+          <Btn
+            level="primary"
             onClick={handleSend}
             disabled={!!loading || !canSend}
-            className={BTN_PRIMARY}
           >
             {loading === 'send' ? 'Sending…' : 'Approve & Send'}
-          </button>
+          </Btn>
         </div>
       </div>
     </div>
@@ -673,8 +670,7 @@ function ToAutocompleteInput({
         aria-label="Recipient email address"
         autoComplete="off"
         autoFocus={autoFocus}
-        className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#6f7a74]"
-        style={{ color: INK }}
+        className="w-full text-body text-trs-ink bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-trs-subtle"
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
     </div>
@@ -721,8 +717,7 @@ function ChipInput({
         placeholder={chips.length === 0 ? placeholder : ''}
         aria-label={placeholder}
         autoComplete="off"
-        className="min-w-[120px] flex-1 text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
-        style={{ color: INK }}
+        className="min-w-[120px] flex-1 text-body text-trs-ink bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-trs-subtle"
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}
     </div>

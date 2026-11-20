@@ -39,11 +39,11 @@ export function FloatingChatBody({
         <ChatMessageItem key={m.id} message={m} confirming={m.id === confirmingId} onConfirm={onConfirm} onUndo={onUndo} onRegenerate={m.id === regenId ? onRegenerate : undefined} />
       ))}
       {sending && !hasStreaming && (
-        <div className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground/60">
+        <div className="flex items-center gap-1.5 text-small text-muted-foreground/60">
           <Loader2 size={12} className="animate-spin" /> {status ?? 'Thinking…'}
         </div>
       )}
-      {error && <p className="text-[11px] text-rose-600">{error}</p>}
+      {error && <p className="text-small text-rose-600">{error}</p>}
       <div ref={endRef} />
     </div>
   )

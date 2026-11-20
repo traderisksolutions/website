@@ -146,7 +146,7 @@ test('a proposal reopens as Edit quotation with its census and insurers; a sent 
 })
 
 test('the Quotation register searches by company and filters by status; Insurers carries Reload workbook (EB-058, EB-059)', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
+  await openClean(page, '/eb/quotations')
   const table = page.getByRole('table', { name: 'Quotation register' })
   await expect(table.getByRole('columnheader', { name: 'Insurers' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('radiogroup', { name: 'Status' })).toBeVisible()

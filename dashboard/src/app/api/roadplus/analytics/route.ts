@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
-
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
+import { withStaff } from '@/lib/auth/guard'
 
 type Quote = { journey_id: string | null; visitor_id: string | null; session_id: string | null; status: string | null; geo_area: string | null; policy_type: string | null }
 type Event = { journey_id: string | null; step: string | null; status: string | null }
@@ -14,9 +8,7 @@ type Event = { journey_id: string | null; step: string | null; status: string | 
 const FUNNEL_STEPS = ['quote_open', 'premium', 'finalize', 'payment_redirect', 'policy_issued']
 
 // GET /api/roadplus/analytics → no-login behaviour analytics from the roadplus DB.
-export async function GET() {
-  if (!(await requireUser()))
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async () => {
   if (!rpConfigured())
     return NextResponse.json({ configured: false })
 
@@ -98,4 +90,4 @@ export async function GET() {
   } catch (e) {
     return NextResponse.json({ configured: true, error: String(e) }, { status: 502 })
   }
-}
+}, { error: 'Not authenticated' })

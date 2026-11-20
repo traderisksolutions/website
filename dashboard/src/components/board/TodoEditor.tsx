@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import type { BoardTask } from '@/lib/crm/board'
 import type { StaffMember } from '@/lib/crm/staff'
 import type { BoardActions } from './actions'
@@ -14,28 +16,26 @@ import { daysUntil, isOpen, sortTasks } from './model'
  * remove. Every change writes through the board actions (optimistic, realtime).
  */
 
-const RULE = '#e6e8e4'
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 export function firstNameOf(email: string | null, staff: Map<string, StaffMember>): string | null {
   if (!email) return null
   const n = staff.get(email)?.name ?? email.split('@')[0]
   return n.split(/[\s._-]+/)[0] || n
 }
 
-/** One hue per person, chosen by hashing the address so it is stable everywhere. */
-const HUES = ['#a1242f', '#1f4e3a', '#188038', '#e37400', '#7b1fa2', '#00838f', '#ad1457', '#4a5550']
-export function personHue(email: string): string {
+/** One tone per person, chosen by hashing the address so it is stable everywhere. */
+const PERSON_TONES = [
+  'bg-trs-neg-bg text-trs-neg', 'bg-trs-soft text-trs-green', 'bg-trs-pos-bg text-trs-pos', 'bg-trs-warn-bg text-trs-warn',
+  'bg-trs-info-bg text-trs-info', 'bg-trs-mint text-trs-green-2', 'bg-trs-canvas text-trs-ink-2', 'bg-trs-field text-trs-muted',
+]
+function personTone(email: string): string {
   let h = 0
   for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0
-  return HUES[h % HUES.length]
+  return PERSON_TONES[h % PERSON_TONES.length]
 }
 export function PersonTag({ email, staff, size = 'sm' }: { email: string; staff: Map<string, StaffMember>; size?: 'sm' | 'md' }) {
-  const hue = personHue(email)
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-[6px] font-medium whitespace-nowrap', size === 'sm' ? 'h-[20px] px-1.5 text-[11px]' : 'h-[24px] px-2 text-[12.5px]')} style={{ background: hue + '1a', color: hue }} title={staff.get(email)?.name ?? email}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: hue }} aria-hidden />{firstNameOf(email, staff)}
+    <span className={cn('inline-flex items-center gap-1 rounded font-medium whitespace-nowrap text-small', size === 'sm' ? 'h-5 px-1.5' : 'h-6 px-2', personTone(email))} title={staff.get(email)?.name ?? email}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden />{firstNameOf(email, staff)}
     </span>
   )
 }
@@ -75,26 +75,26 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do and press Enter" aria-label="New to-do"
+        <Input value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do and press Enter" aria-label="New to-do"
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
-          className="h-9 flex-1 min-w-0 rounded-[7px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} />
-        <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-9 w-9 rounded-[10px] text-white border-0 cursor-pointer inline-flex items-center justify-center" style={{ background: '#132c1c' }}><Plus size={16} /></button>
+          className="h-9 flex-1 min-w-0 px-3.5" />
+        <Btn level="primary" onClick={() => void add()} aria-label="Add to-do" className="h-9 w-9 px-0"><Plus size={16} /></Btn>
       </div>
-      {err && <p className="m-0 text-[13px]" style={{ color: MUTED }}>{err}</p>}
+      {err && <p className="m-0 text-body text-trs-muted">{err}</p>}
 
-      {open.length === 0 && !err && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>No to-dos. Add one above.</p>}
+      {open.length === 0 && !err && <p className="m-0 text-body text-trs-muted">No to-dos. Add one above.</p>}
 
       <ul className="m-0 p-0 list-none flex flex-col">
         {open.map(t => <TodoRow key={t.id} t={t} today={today} staff={staff} staffList={staffList} actions={actions} />)}
       </ul>
 
       {done.length > 0 && (
-        <details className="text-[13px]" style={{ color: MUTED }}>
+        <details className="text-body text-trs-muted">
           <summary className="cursor-pointer">{done.length} completed</summary>
           <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1">
             {done.map(t => (
-              <li key={t.id} className="flex items-center gap-2 text-[13.5px] line-through" style={{ color: MUTED }}>
-                <button type="button" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-[16px] h-[16px] rounded-[3px] border-0 inline-flex items-center justify-center cursor-pointer text-white" style={{ background: '#4a5550' }}><Check size={11} strokeWidth={3} /></button>
+              <li key={t.id} className="flex items-center gap-2 text-body line-through text-trs-muted">
+                <Btn level="tertiary" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-4 h-4 p-0 rounded border-0 text-white bg-trs-muted hover:bg-trs-muted hover:text-white"><Check size={11} strokeWidth={3} /></Btn>
                 <span className="truncate">{t.title}</span>
               </li>
             ))}
@@ -117,29 +117,29 @@ function TodoRow({ t, today, staff, staffList, actions }: { t: BoardTask; today:
   }
   const late = t.due_on ? (daysUntil(t.due_on, today) ?? 0) < 0 : false
   return (
-    <li className="group flex items-start gap-2.5 py-3" style={{ borderBottom: `1px solid ${RULE}` }}>
-      <button type="button" onClick={() => actions.updateTask(t.id, { status: 'complete' })} aria-label={`Complete: ${t.title}`}
-        className="mt-[3px] w-[16px] h-[16px] rounded-[3px] border bg-white flex-shrink-0 inline-flex items-center justify-center cursor-pointer p-0 text-transparent hover:text-[#0f1412]" style={{ borderColor: '#8c958f' }}>
+    <li className="group flex items-start gap-2.5 py-3 border-b border-trs-line">
+      <Btn level="tertiary" onClick={() => actions.updateTask(t.id, { status: 'complete' })} aria-label={`Complete: ${t.title}`}
+        className="mt-[3px] w-4 h-4 p-0 rounded border border-trs-subtle bg-white flex-shrink-0 text-transparent hover:bg-white hover:text-trs-ink">
         <Check size={11} strokeWidth={3} />
-      </button>
+      </Btn>
       <div className="min-w-0 flex-1">
         {editing
-          ? <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(t.title); setEditing(false) } }}
-              aria-label="To-do text" className="w-full h-[30px] rounded-[6px] border px-2 text-[14px] outline-none" style={{ borderColor: '#0f1412', color: INK }} />
-          : <button type="button" onClick={() => setEditing(true)} title="Click to edit" className="w-full text-left bg-transparent border-0 p-0 cursor-text text-[14px] leading-snug" style={{ color: INK }}>{t.title}</button>}
-        <div className="mt-1.5 flex items-center gap-2 flex-wrap text-[12px]" style={{ color: MUTED }}>
+          ? <Input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(t.title); setEditing(false) } }}
+              aria-label="To-do text" className="h-8 px-2 py-0 border-trs-ink" />
+          : <Btn level="tertiary" onClick={() => setEditing(true)} title="Click to edit" className="w-full h-auto justify-start text-left p-0 border-0 font-normal whitespace-normal cursor-text text-body leading-snug text-trs-ink hover:bg-transparent hover:text-trs-ink">{t.title}</Btn>}
+        <div className="mt-1.5 flex items-center gap-2 flex-wrap text-small text-trs-muted">
           <label className="inline-flex items-center gap-1 cursor-pointer">
-            <span className={cn(late && 'font-medium')} style={{ color: late ? INK : MUTED }}>{t.due_on ? dueLabel(t.due_on, today) : 'No date'}</span>
-            <input type="date" value={t.due_on ?? ''} onChange={e => actions.updateTask(t.id, { dueOn: e.target.value || null })} aria-label="Due date" className="h-[20px] w-[112px] rounded-[4px] border bg-white px-1 text-[11.5px] cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity" style={{ borderColor: RULE, color: MUTED }} />
+            <span className={cn(late ? 'font-medium text-trs-ink' : 'text-trs-muted')}>{t.due_on ? dueLabel(t.due_on, today) : 'No date'}</span>
+            <Input type="date" value={t.due_on ?? ''} onChange={e => actions.updateTask(t.id, { dueOn: e.target.value || null })} aria-label="Due date" className="h-5 w-[112px] rounded px-1 py-0 text-small cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity border-trs-line text-trs-muted" />
           </label>
-          <select value={t.primary_assignee ?? ''} onChange={e => actions.updateTask(t.id, { primaryAssignee: e.target.value || null })} aria-label="Person" className="h-[20px] max-w-[130px] rounded-[4px] border bg-white px-1 text-[11.5px] cursor-pointer" style={{ borderColor: RULE, color: MUTED }}>
+          <select value={t.primary_assignee ?? ''} onChange={e => actions.updateTask(t.id, { primaryAssignee: e.target.value || null })} aria-label="Person" className="h-5 max-w-[130px] rounded border border-trs-line bg-white px-1 text-small cursor-pointer text-trs-muted">
             <option value="">No one</option>
             {staffList.map(s => <option key={s.email} value={s.email}>{s.name.split(/\s+/)[0]}</option>)}
           </select>
           {t.primary_assignee && <PersonTag email={t.primary_assignee} staff={staff} />}
         </div>
       </div>
-      <button type="button" onClick={() => actions.deleteTask(t.id)} aria-label={`Remove: ${t.title}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+      <Btn level="tertiary" size="xs" onClick={() => actions.deleteTask(t.id)} aria-label={`Remove: ${t.title}`} className="opacity-0 group-hover:opacity-100 focus:opacity-100 w-6 h-6 px-0 rounded-full border-0 hover:bg-trs-field"><X size={13} /></Btn>
     </li>
   )
 }

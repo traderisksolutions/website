@@ -3,33 +3,28 @@
  * POST /api/claims/register {title, company_id?, insurer_name?, policy_number?} → opens a claim by hand.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { listClaims } from '@/lib/admin/b/register'
 import { sb } from '@/lib/crm/db'
 import { todaySGT } from '@/lib/sgt-time'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     return NextResponse.json({ claims: await listClaims(todaySGT()) })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
 
 const UUID = /^[0-9a-f-]{36}$/i
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, _ctx, { user }) => {
   try {
     const b = await req.json().catch(() => ({})) as Record<string, unknown>
     const title = typeof b.title === 'string' ? b.title.trim().slice(0, 140) : ''
     if (title.length < 3) return NextResponse.json({ error: 'A claim needs a title.' }, { status: 400 })
     const companyId = typeof b.company_id === 'string' && UUID.test(b.company_id) ? b.company_id : null
-    const actor = (await currentUserEmail())?.toLowerCase() ?? 'staff'
+    const actor = ((user?.email.toLowerCase() ?? null))?.toLowerCase() ?? 'staff'
     const str = (v: unknown) => typeof v === 'string' && v.trim() ? v.trim().slice(0, 120) : null
     const [item] = await sb<Record<string, any>[]>('work_items', {
       method: 'POST', headers: { Prefer: 'return=representation' },
@@ -41,4 +36,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

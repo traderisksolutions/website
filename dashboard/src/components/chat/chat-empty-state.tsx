@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { Sparkles, ScanSearch } from 'lucide-react'
+import { Btn } from '@/components/crm/primitives'
 
 // Proactive gap review — Opus uses its read-tools to scan the whole case.
 export const GAP_REVIEW_PROMPT =
@@ -27,23 +28,22 @@ export function ChatEmptyState({ onPick }: { caseAware?: boolean; onPick: (promp
         <Sparkles size={18} className="text-primary" />
       </div>
       <div>
-        <p className="text-[13px] font-semibold text-foreground">Your case consultant</p>
-        <p className="text-[11.5px] text-muted-foreground/70 mt-0.5 leading-[1.5]">
+        <p className="text-body font-semibold text-trs-ink">Your case consultant</p>
+        <p className="text-small text-trs-muted mt-0.5 leading-[1.5]">
           Ask about this case, or tell me what to change — a next step, a deadline, the blocking issue, an email. I propose the exact change; you confirm it.
         </p>
       </div>
       <div className="flex flex-col gap-1.5 w-full mt-1">
         {/* Prominent proactive action */}
-        <button onClick={() => onPick(GAP_REVIEW_PROMPT)}
-          className="flex items-center gap-2 text-left text-[11.5px] font-semibold rounded-lg border border-primary/30 bg-primary/[0.07] px-3 py-2 text-primary hover:bg-primary/[0.12] transition-colors">
+        <Btn onClick={() => onPick(GAP_REVIEW_PROMPT)} size="xs" className="justify-start text-left">
           <ScanSearch size={13} strokeWidth={2} className="flex-shrink-0" />
           Review this case for gaps
-        </button>
+        </Btn>
         {prompts.map((p, i) => (
-          <button key={i} onClick={() => onPick(p)}
-            className="text-left text-[11.5px] rounded-lg border border-[--border-subtle] bg-card px-3 py-2 text-foreground/80 hover:border-primary/40 hover:bg-primary/5 transition-colors">
+          <Btn key={i} onClick={() => onPick(p)} level="tertiary"
+            className="h-auto justify-start whitespace-normal text-left text-small font-normal border-trs-line bg-white px-3 py-2 text-trs-ink-2 hover:border-trs-green">
             {p}
-          </button>
+          </Btn>
         ))}
       </div>
     </div>

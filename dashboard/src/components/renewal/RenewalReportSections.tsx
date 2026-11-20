@@ -54,7 +54,7 @@ export function RenewalReportSections({ m }: { m: ReportModel }) {
           </tbody>
         </Register>
       )}
-      <p className="m-0 text-[12px] text-trs-muted max-w-[90ch]">{m.footnote}</p>
+      <p className="m-0 text-small text-trs-muted max-w-[90ch]">{m.footnote}</p>
     </>
   )
 }

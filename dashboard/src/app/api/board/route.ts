@@ -1,16 +1,13 @@
 /** GET /api/board → every client company with its pressing items, the staff list, recent activity. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
-import { currentUserEmail }          from '@/lib/crm/auth'
 import { listBoard }                 from '@/lib/crm/board'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, _ctx, { user }) => {
   try {
-    const [board, me] = await Promise.all([listBoard(), currentUserEmail()])
+    const [board, me] = await Promise.all([listBoard(), user?.email.toLowerCase() ?? null])
     return NextResponse.json({ ...board, me })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

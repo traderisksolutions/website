@@ -2,39 +2,40 @@
 
 // Compose kit — the presentational atoms shared by the reply panel (engagement-compose-panel.tsx),
 // the "New email" pane (engagement/NewEmailCompose.tsx) and the editor toolbar
-// (components/RichEditor.tsx). Tokens only: ink #0f1412, body #2a332f, muted #4a5550, faint #6f7a74,
-// hairline #e6e8e4, control #d5d9d4, field #f1f2ee, hover #faf9f6. No business logic here.
+// (components/RichEditor.tsx). Tokens only (--trs-ink, -ink-2, -muted, -subtle, -line, -line-2,
+// -field, -tint) and the shared button ladder. No business logic here.
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { ChevronDown, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn, btnClass } from '@/components/crm/primitives'
 
-export const INK      = '#0f1412'
-export const BODY     = '#2a332f'
-export const MUTED    = '#4a5550'
-export const FAINT    = '#6f7a74'
-export const HAIRLINE = '#e6e8e4'
-export const CONTROL  = '#d5d9d4'
-export const FIELD    = '#f1f2ee'
-export const HOVER    = '#faf9f6'
+export const INK      = 'var(--trs-ink)'
+export const BODY     = 'var(--trs-ink-2)'
+export const MUTED    = 'var(--trs-muted)'
+export const FAINT    = 'var(--trs-subtle)'
+export const HAIRLINE = 'var(--trs-line)'
+export const CONTROL  = 'var(--trs-line-2)'
+export const FIELD    = 'var(--trs-field)'
+export const HOVER    = 'var(--trs-tint)'
 
-/** The three-level button ladder at the composer's 36px size. One filled ink primary per view. */
-export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] bg-[#132c1c] text-white text-[14px] font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
-export const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border border-[#d5d9d4] hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-export const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-transparent text-[#0f1412] text-[13.5px] font-medium whitespace-nowrap border-0 hover:bg-[#f1f2ee] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+/** The shared button ladder (btnClass), kept under the composer's names. One primary per view. */
+export const BTN_PRIMARY   = btnClass('primary', 'sm')
+export const BTN_SECONDARY = btnClass('secondary', 'sm')
+export const BTN_TERTIARY  = btnClass('tertiary', 'sm')
 
 // ─── Toolbar ───────────────────────────────────────────────────────────────────────────────────
 
 /** One group of toolbar buttons. Groups are separated by a hairline. */
 export function TbGroup({ children, className, label }: { children: ReactNode; className?: string; label?: string }) {
   return (
-    <div role="group" aria-label={label} className={cn('flex items-center gap-0.5 pr-2 mr-1.5 border-r border-[#e6e8e4] last:border-r-0 last:pr-0 last:mr-0', className)}>
+    <div role="group" aria-label={label} className={cn('flex items-center gap-0.5 pr-2 mr-1.5 border-r border-trs-line last:border-r-0 last:pr-0 last:mr-0', className)}>
       {children}
     </div>
   )
 }
 
-const TB_BASE = 'inline-flex items-center justify-center gap-1.5 h-8 min-w-8 px-1.5 rounded-[8px] text-[13px] leading-none border-0 bg-transparent cursor-pointer select-none whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 disabled:opacity-40 disabled:cursor-not-allowed'
+const TB_BASE = 'min-w-8 px-1.5 rounded text-body font-normal leading-none border-0 select-none'
 
 export interface TbButtonProps {
   /** Accessible name; also the tooltip. */
@@ -57,20 +58,21 @@ export interface TbButtonProps {
 
 export function TbButton({ label, shortcut, active, disabled, text, caret, className, onPress, children, ...aria }: TbButtonProps) {
   return (
-    <button
-      type="button"
+    <Btn
+      level="tertiary"
+      size="xs"
       title={shortcut ? `${label} (${shortcut})` : label}
       aria-label={label}
       aria-pressed={active === undefined ? undefined : active}
       disabled={disabled}
       onMouseDown={e => { e.preventDefault(); if (!disabled) onPress?.() }}
       onKeyDown={e => { if ((e.key === 'Enter' || e.key === ' ') && !disabled) { e.preventDefault(); onPress?.() } }}
-      className={cn(TB_BASE, text && 'px-2.5', active ? 'bg-[#132c1c] text-white hover:bg-[#1f4e3a]' : 'text-[#2a332f] hover:bg-[#f1f2ee]', className)}
+      className={cn(TB_BASE, text && 'px-2.5', active ? 'bg-trs-green text-white hover:bg-trs-green-2 hover:text-white' : 'text-trs-ink-2 hover:bg-trs-field', className)}
       {...aria}
     >
       {children}
-      {caret && <ChevronDown size={12} strokeWidth={2} className={active ? 'text-white/70' : 'text-[#8c958f]'} aria-hidden />}
-    </button>
+      {caret && <ChevronDown size={12} strokeWidth={2} className={active ? 'text-white/70' : 'text-trs-subtle'} aria-hidden />}
+    </Btn>
   )
 }
 
@@ -120,8 +122,8 @@ export function TbMenu({
       </TbButton>
       {open && (
         <div id={id} role="menu" aria-label={label}
-          className={cn('absolute top-full z-40 mt-1 rounded-[10px] border border-[#e6e8e4] bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]', align === 'right' ? 'right-0' : 'left-0')}
-          style={{ minWidth: width ?? 180 }}>
+          className={cn('absolute top-full z-40 mt-1 rounded border border-trs-line bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]', align === 'right' ? 'right-0' : 'left-0')}
+          style={{ minWidth: width ?? 180 }} /* drift-ok: menu width from the caller */>
           {children(() => setOpen(false))}
         </div>
       )}
@@ -139,24 +141,25 @@ export function TbMenuItem({ onSelect, active, disabled, shortcut, children, cla
   style?:     CSSProperties
 }) {
   return (
-    <button
-      type="button"
+    <Btn
+      level="tertiary"
+      size="xs"
       role={active === undefined ? 'menuitem' : 'menuitemradio'}
       aria-checked={active === undefined ? undefined : active}
       disabled={disabled}
       onMouseDown={e => e.preventDefault()}
       onClick={() => { if (!disabled) onSelect() }}
-      className={cn('flex w-full items-center gap-2.5 h-[30px] px-2.5 rounded-[6px] text-left text-[13.5px] text-[#0f1412] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed', active && 'bg-[#f1f2ee] font-medium', className)}
+      className={cn('flex w-full justify-start gap-2.5 px-2.5 rounded text-left text-body font-normal text-trs-ink border-0 hover:bg-trs-tint hover:text-trs-ink', active && 'bg-trs-field font-medium', className)}
       style={style}
     >
       <span className="flex-1 min-w-0 truncate">{children}</span>
-      {shortcut && <span className="text-[12px] text-[#8c958f]">{shortcut}</span>}
-    </button>
+      {shortcut && <span className="text-small text-trs-subtle">{shortcut}</span>}
+    </Btn>
   )
 }
 
 export function TbMenuLabel({ children }: { children: ReactNode }) {
-  return <p className="m-0 px-2.5 pt-2 pb-1 text-[12px] text-[#4a5550]">{children}</p>
+  return <p className="m-0 px-2.5 pt-2 pb-1 text-small text-trs-muted">{children}</p>
 }
 
 // ─── Fields ────────────────────────────────────────────────────────────────────────────────────
@@ -172,10 +175,10 @@ export function FieldRow({ label, htmlFor, children, right, className, tall }: {
   tall?:      boolean
 }) {
   return (
-    <div className={cn('flex items-center gap-3 px-[var(--re-gutter,40px)] border-b border-[#e6e8e4] text-[14px]', tall ? 'min-h-10 py-1' : 'h-10', className)}>
-      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-[13px]" style={{ color: MUTED }}>{label}</label>
+    <div className={cn('flex items-center gap-3 px-[var(--re-gutter,40px)] border-b border-trs-line text-body', tall ? 'min-h-10 py-1' : 'h-10', className)}>
+      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-body text-trs-muted">{label}</label>
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">{children}</div>
-      {right && <div className="ml-auto flex items-center gap-2 flex-shrink-0 text-[12.5px]" style={{ color: FAINT }}>{right}</div>}
+      {right && <div className="ml-auto flex items-center gap-2 flex-shrink-0 text-small text-trs-subtle">{right}</div>}
     </div>
   )
 }
@@ -191,18 +194,18 @@ export function RecipientChip({ name, email, onRemove, onClick, title }: {
   const initial = (name || email || '?').trim().charAt(0).toUpperCase()
   const Tag: 'button' | 'span' = onClick ? 'button' : 'span'
   return (
-    <span className="inline-flex items-center gap-1.5 h-6 rounded-full bg-[#f1f2ee] pl-1 pr-2 text-[13px] max-w-full" style={{ color: INK }} title={title ?? email ?? name}>
+    <span className="inline-flex items-center gap-1.5 h-6 rounded-full bg-trs-field pl-1 pr-2 text-body max-w-full text-trs-ink" title={title ?? email ?? name}>
       <Tag
         {...(onClick ? { type: 'button', onClick, className: 'inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer min-w-0 text-inherit' } : { className: 'inline-flex items-center gap-1.5 min-w-0' })}
       >
-        <span aria-hidden className="w-[18px] h-[18px] rounded-full bg-[#132c1c] text-white text-[10px] font-medium inline-flex items-center justify-center flex-shrink-0">{initial}</span>
+        <span aria-hidden className="w-5 h-5 rounded-full bg-trs-green text-white text-small font-medium inline-flex items-center justify-center flex-shrink-0">{initial}</span>
         <span className="truncate">{name || email}</span>
       </Tag>
       {onRemove && (
-        <button type="button" onClick={onRemove} aria-label={`Remove ${name || email}`} title="Remove"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4]" style={{ color: MUTED }}>
+        <Btn level="tertiary" size="xs" onClick={onRemove} aria-label={`Remove ${name || email}`} title="Remove"
+          className="w-4 h-4 rounded-full border-0 p-0 hover:bg-trs-line-2 text-trs-muted">
           <X size={11} strokeWidth={2} />
-        </button>
+        </Btn>
       )}
     </span>
   )
@@ -223,12 +226,11 @@ export function QuietSelect({ label, value, onChange, children, className }: {
         title={label}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-[12.5px] cursor-pointer outline-none rounded-[6px] hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 max-w-[220px] truncate"
-        style={{ color: FAINT }}
+        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-small cursor-pointer outline-none rounded hover:bg-trs-field focus-visible:ring-2 focus-visible:ring-trs-green/30 max-w-[220px] truncate text-trs-subtle"
       >
         {children}
       </select>
-      <ChevronDown size={11} strokeWidth={2} aria-hidden className="pointer-events-none absolute right-0.5" style={{ color: '#8c958f' }} />
+      <ChevronDown size={11} strokeWidth={2} aria-hidden className="pointer-events-none absolute right-0.5 text-trs-subtle" />
     </span>
   )
 }
@@ -236,14 +238,14 @@ export function QuietSelect({ label, value, onChange, children, className }: {
 /** Attachment chip in the tray under the editor. */
 export function AttachmentChip({ name, onRemove, meta }: { name: string; onRemove?: () => void; meta?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-7 rounded-[6px] bg-[#f1f2ee] pl-2.5 pr-1.5 text-[12.5px] max-w-full" style={{ color: BODY }}>
+    <span className="inline-flex items-center gap-1.5 h-7 rounded bg-trs-field pl-2.5 pr-1.5 text-small max-w-full text-trs-ink-2">
       <span className="truncate max-w-[220px]">{name}</span>
-      {meta && <span style={{ color: FAINT }}>{meta}</span>}
+      {meta && <span className="text-trs-subtle">{meta}</span>}
       {onRemove && (
-        <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} title="Remove"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4]" style={{ color: MUTED }}>
+        <Btn level="tertiary" size="xs" onClick={onRemove} aria-label={`Remove ${name}`} title="Remove"
+          className="w-4 h-4 rounded-full border-0 p-0 hover:bg-trs-line-2 text-trs-muted">
           <X size={11} strokeWidth={2} />
-        </button>
+        </Btn>
       )}
     </span>
   )

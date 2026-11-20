@@ -51,14 +51,14 @@ export function ThreadReferral({ threadId, kind }: {
         ) : suggestion && (
           <>
             <span>{suggestion.company ?? 'Referral'}</span>
-            <span className="text-[13px] [overflow-wrap:anywhere]" style={{ color: MUTED }}>{READ_BY[suggestion.by]}: {suggestion.cue}</span>
+            <span className="text-body [overflow-wrap:anywhere]" style={{ color: MUTED }}>{READ_BY[suggestion.by]}: {suggestion.cue}</span>
             <div className="flex items-center gap-2 flex-wrap">
               <button type="button" className={SECOND} onClick={() => void mark(true)} disabled={busy}>Tag as referral</button>
               <button type="button" className={SECOND} onClick={() => void mark(false)} disabled={busy}>Not a referral</button>
             </div>
           </>
         )}
-        {error && <span className="text-[13px]" role="alert" style={{ color: ERROR }}>{error}</span>}
+        {error && <span className="text-body" role="alert" style={{ color: ERROR }}>{error}</span>}
       </div>
     </InfoRow>
   )

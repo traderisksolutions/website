@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { threadVisibleTo, privateThread } from '@/lib/mail/visibility-server'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 // DELETE /api/engagement/thread?thread_id=X
 // Soft-deletes a thread and all dependent rows by setting deleted_at.
-export async function DELETE(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const DELETE = withStaffOrCron(async (req: NextRequest) => {
   const threadId = new URL(req.url).searchParams.get('thread_id')
   if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 
@@ -36,7 +33,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true })
-}
+})
 
 
 function sbHeaders() {
@@ -51,10 +48,7 @@ function sbHeaders() {
 
 // GET /api/engagement/thread?thread_id=X  (preferred — fetches a specific thread)
 // GET /api/engagement/thread?email=X      (fallback — fetches latest thread for an email)
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const params   = new URL(req.url).searchParams
     const threadId = params.get('thread_id')
@@ -181,4 +175,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

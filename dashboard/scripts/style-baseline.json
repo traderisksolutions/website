@@ -1,200 +1,64 @@
 {
- "src/app/analytics/ai-usage/page.tsx": {
-  "style": 36,
-  "hex": 15,
-  "font": 9,
-  "radius": 1,
-  "height": 0,
-  "control": 3
- },
- "src/app/analytics/error-log/page.tsx": {
-  "style": 19,
-  "hex": 6,
-  "font": 14,
-  "radius": 3,
-  "height": 2,
-  "control": 2
- },
  "src/app/calendar/page.tsx": {
-  "style": 24,
-  "hex": 6,
-  "font": 18,
-  "radius": 2,
+  "style": 5,
+  "hex": 4,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 2
  },
  "src/app/claims/page.tsx": {
-  "style": 43,
-  "hex": 3,
-  "font": 50,
-  "radius": 8,
-  "height": 0,
-  "control": 12
- },
- "src/app/claims/second-opinion/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 21,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 2
- },
- "src/app/claims/website-forms.tsx": {
-  "style": 28,
-  "hex": 13,
-  "font": 18,
-  "radius": 5,
-  "height": 1,
-  "control": 4
- },
- "src/app/companies/[id]/page.tsx": {
-  "style": 8,
-  "hex": 3,
-  "font": 7,
-  "radius": 4,
-  "height": 2,
   "control": 1
  },
- "src/app/companies/page.tsx": {
-  "style": 21,
-  "hex": 11,
-  "font": 13,
-  "radius": 6,
-  "height": 2,
-  "control": 8
- },
- "src/app/companies/portfolio/desk/page.tsx": {
-  "style": 0,
-  "hex": 1,
-  "font": 13,
-  "radius": 1,
-  "height": 0,
-  "control": 3
- },
- "src/app/companies/portfolio/page.tsx": {
-  "style": 0,
-  "hex": 1,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/companies/triage/page.tsx": {
-  "style": 10,
-  "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 5
- },
- "src/app/connect/[token]/bamboohr/page.tsx": {
-  "style": 2,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 3
- },
- "src/app/connect/[token]/deel/page.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/connect/[token]/done/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/app/connect/[token]/hibob/page.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 3
+  "control": 1
  },
  "src/app/connect/[token]/review/page.tsx": {
-  "style": 5,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 14
+  "control": 2
  },
  "src/app/connect/[token]/simplepay/page.tsx": {
-  "style": 2,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 3
+  "control": 1
  },
- "src/app/connect/[token]/talenox/page.tsx": {
-  "style": 2,
+ "src/app/debit-notes/new/page.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 0,
+  "height": 1,
   "control": 2
  },
- "src/app/connect/[token]/upload/page.tsx": {
-  "style": 1,
+ "src/app/debit-notes/page.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/connect/[token]/workday/page.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 5
- },
- "src/app/connect/gmail/page.tsx": {
-  "style": 9,
-  "hex": 9,
-  "font": 8,
-  "radius": 2,
-  "height": 0,
-  "control": 0
- },
- "src/app/contacts/page.tsx": {
-  "style": 6,
-  "hex": 0,
-  "font": 4,
   "radius": 0,
   "height": 0,
   "control": 4
  },
- "src/app/debit-notes/new/page.tsx": {
-  "style": 9,
-  "hex": 10,
-  "font": 27,
-  "radius": 10,
-  "height": 2,
-  "control": 22
- },
- "src/app/debit-notes/page.tsx": {
-  "style": 13,
+ "src/app/eb/hr-links/[id]/page.tsx": {
+  "style": 3,
   "hex": 6,
-  "font": 48,
-  "radius": 3,
-  "height": 2,
-  "control": 35
- },
- "src/app/eb/page.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -202,463 +66,239 @@
  "src/app/eb/proposal/[id]/email/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 11,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 5
  },
- "src/app/eb/proposal/[id]/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
+ "src/app/eb/quotations/page.tsx": {
+  "style": 1,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
+  "height": 1,
+  "control": 1
+ },
+ "src/app/eb/rates/[id]/page.tsx": {
+  "style": 2,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
+  "height": 4,
+  "control": 35
+ },
+ "src/app/eb/rates/[id]/schedule/page.tsx": {
+  "style": 6,
+  "hex": 6,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/app/finance/page.tsx": {
-  "style": 14,
-  "hex": 7,
-  "font": 10,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/inbound/email/page.tsx": {
-  "style": 22,
-  "hex": 11,
-  "font": 17,
-  "radius": 3,
-  "height": 0,
-  "control": 6
+  "control": 4
  },
  "src/app/insurers/[id]/page.tsx": {
-  "style": 9,
-  "hex": 0,
-  "font": 4,
-  "radius": 1,
-  "height": 1,
-  "control": 1
- },
- "src/app/layout.tsx": {
-  "style": 1,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/app/login/page.tsx": {
-  "style": 8,
-  "hex": 9,
-  "font": 6,
-  "radius": 3,
-  "height": 0,
   "control": 1
- },
- "src/app/marketing/analytics/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 1,
-  "control": 0
  },
  "src/app/marketing/articles/[id]/page.tsx": {
-  "style": 16,
-  "hex": 1,
-  "font": 7,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 3
  },
- "src/app/marketing/articles/page.tsx": {
-  "style": 6,
-  "hex": 2,
-  "font": 2,
+ "src/app/marketing/competitors/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/app/marketing/competitors/page.tsx": {
-  "style": 22,
-  "hex": 4,
-  "font": 15,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
  "src/app/marketing/generate/page.tsx": {
-  "style": 8,
-  "hex": 1,
-  "font": 4,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 3
  },
- "src/app/marketing/generate/runs/[id]/page.tsx": {
-  "style": 25,
-  "hex": 1,
-  "font": 15,
-  "radius": 2,
+ "src/app/marketing/knowledge/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 1,
+  "control": 1
+ },
+ "src/app/marketing/newsletter/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 2
  },
- "src/app/marketing/knowledge/entries/page.tsx": {
-  "style": 4,
+ "src/app/marketing/schedule/page.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/app/marketing/knowledge/page.tsx": {
-  "style": 10,
-  "hex": 4,
-  "font": 7,
-  "radius": 3,
-  "height": 1,
-  "control": 3
- },
- "src/app/marketing/newsletter/page.tsx": {
-  "style": 15,
-  "hex": 2,
-  "font": 18,
-  "radius": 3,
-  "height": 2,
-  "control": 5
- },
- "src/app/marketing/schedule/page.tsx": {
-  "style": 18,
-  "hex": 7,
-  "font": 12,
-  "radius": 1,
-  "height": 0,
-  "control": 4
+  "control": 2
  },
  "src/app/marketing/search-console/page.tsx": {
-  "style": 7,
-  "hex": 1,
-  "font": 3,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/app/marketing/sites/page.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 6,
-  "radius": 0,
-  "height": 0,
-  "control": 14
- },
- "src/app/movements/page.tsx": {
-  "style": 6,
+  "style": 0,
   "hex": 0,
-  "font": 6,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 7
  },
  "src/app/nexus/cases/page.tsx": {
-  "style": 283,
-  "hex": 23,
-  "font": 167,
-  "radius": 41,
-  "height": 16,
-  "control": 59
- },
- "src/app/policies/[id]/controls.tsx": {
   "style": 0,
-  "hex": 0,
-  "font": 3,
-  "radius": 2,
-  "height": 0,
-  "control": 0
- },
- "src/app/policies/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
+  "hex": 5,
+  "font": 0,
   "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/app/pricing-matrix/[id]/page.tsx": {
-  "style": 8,
-  "hex": 8,
-  "font": 42,
-  "radius": 2,
-  "height": 4,
-  "control": 35
- },
- "src/app/pricing-matrix/[id]/schedule/page.tsx": {
-  "style": 23,
-  "hex": 23,
-  "font": 19,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/app/pricing-matrix/hr-links/[id]/page.tsx": {
-  "style": 20,
-  "hex": 16,
-  "font": 20,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/app/pricing-matrix/page.tsx": {
-  "style": 6,
-  "hex": 7,
-  "font": 9,
-  "radius": 2,
-  "height": 1,
-  "control": 1
- },
- "src/app/rfq/page.tsx": {
-  "style": 9,
-  "hex": 0,
-  "font": 3,
-  "radius": 2,
-  "height": 1,
-  "control": 3
+  "height": 2,
+  "control": 9
  },
  "src/app/roadplus/page.tsx": {
-  "style": 49,
-  "hex": 20,
-  "font": 43,
-  "radius": 10,
-  "height": 1,
-  "control": 11
- },
- "src/app/sales/enquiries/page.tsx": {
-  "style": 9,
-  "hex": 4,
-  "font": 4,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/app/settings/page.tsx": {
-  "style": 19,
-  "hex": 9,
-  "font": 15,
-  "radius": 4,
+ "src/app/sales/enquiries/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/app/today/[id]/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 27,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 10
  },
  "src/app/today/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 6,
-  "radius": 1,
-  "height": 0,
-  "control": 1
- },
- "src/app/unsubscribed/page.tsx": {
-  "style": 7,
-  "hex": 3,
-  "font": 5,
-  "radius": 2,
-  "height": 0,
-  "control": 0
- },
- "src/app/websites/[key]/page.tsx": {
-  "style": 2,
-  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/app/work/ai/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/app/work/page.tsx": {
-  "style": 18,
-  "hex": 0,
-  "font": 16,
-  "radius": 2,
-  "height": 0,
-  "control": 5
- },
- "src/app/work/review.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 5,
-  "radius": 1,
-  "height": 1,
-  "control": 2
- },
- "src/components/ActivityFeed.tsx": {
-  "style": 10,
-  "hex": 6,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/AiCreditsAlert.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ConditionalShell.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/DebitNoteEmailTemplatePanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/RichEditor.tsx": {
-  "style": 3,
+  "style": 2,
   "hex": 20,
   "font": 0,
-  "radius": 1,
+  "radius": 0,
   "height": 0,
   "control": 2
- },
- "src/components/SignaturePanel.tsx": {
-  "style": 44,
-  "hex": 17,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 9
- },
- "src/components/app-shell.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/assistant/CaseEditor.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 7,
-  "radius": 2,
-  "height": 4,
-  "control": 14
- },
- "src/components/assistant/CompanyKnowledge.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 10,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 2
- },
- "src/components/assistant/shared.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 11,
-  "radius": 1,
-  "height": 0,
-  "control": 0
+  "control": 6
  },
  "src/components/board/TodoEditor.tsx": {
-  "style": 18,
-  "hex": 16,
-  "font": 12,
-  "radius": 8,
-  "height": 7,
-  "control": 9
- },
- "src/components/brochures/BrochureLibrary.tsx": {
   "style": 0,
-  "hex": 0,
-  "font": 14,
-  "radius": 1,
-  "height": 1,
-  "control": 7
- },
- "src/components/cases/CaseBrief.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/components/cases/CaseBriefTables.tsx": {
-  "style": 15,
-  "hex": 0,
-  "font": 13,
-  "radius": 0,
-  "height": 0,
-  "control": 7
- },
- "src/components/cases/CaseComparison.tsx": {
-  "style": 10,
-  "hex": 0,
-  "font": 10,
-  "radius": 3,
-  "height": 0,
-  "control": 13
- },
- "src/components/cases/CaseConversation.tsx": {
-  "style": 4,
-  "hex": 0,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/components/cases/CaseRounds.tsx": {
-  "style": 15,
-  "hex": 0,
-  "font": 7,
-  "radius": 0,
-  "height": 0,
-  "control": 7
- },
- "src/components/cases/CaseSourcesPanel.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 5
- },
- "src/components/cases/MoveThreadDialog.tsx": {
-  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/cases/ResumePoint.tsx": {
-  "style": 1,
+ "src/components/brochures/BrochureLibrary.tsx": {
+  "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
+ },
+ "src/components/cases/CaseBrief.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 3
+ },
+ "src/components/cases/CaseBriefTables.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 4
+ },
+ "src/components/cases/CaseComparison.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 9
+ },
+ "src/components/cases/CaseConversation.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
+ },
+ "src/components/cases/CaseRounds.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 4
+ },
+ "src/components/cases/CaseSourcesPanel.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -672,288 +312,144 @@
   "control": 1
  },
  "src/components/cases/WishListDialog.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 3,
-  "radius": 0,
-  "height": 0,
-  "control": 3
- },
- "src/components/cases/shared.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/chat/chat-empty-state.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
- },
- "src/components/chat/chat-message-item.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 14,
-  "radius": 2,
-  "height": 0,
-  "control": 3
- },
- "src/components/chat/chat-thread-list.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/components/chat/floating-chat-body.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/chat/floating-chat-composer.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
-  "radius": 0,
-  "height": 4,
-  "control": 6
- },
- "src/components/chat/floating-chat-dock.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/chat/floating-chat-header.tsx": {
+ "src/components/companies/CompaniesBoard.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
-  "height": 0,
-  "control": 6
- },
- "src/components/chat/minimized-chat-bar.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 1,
-  "radius": 1,
-  "height": 1,
-  "control": 2
- },
- "src/components/clients/AskClient.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 6,
-  "radius": 1,
   "height": 0,
   "control": 1
- },
- "src/components/clients/BusinessNumbers.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/companies/CompanyEb.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/companies/CompanyRail.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/components/companies/CompanyTable.tsx": {
-  "style": 23,
-  "hex": 8,
-  "font": 16,
-  "radius": 2,
-  "height": 2,
-  "control": 4
  },
  "src/components/companies/OwnerPicker.tsx": {
-  "style": 3,
-  "hex": 4,
-  "font": 2,
-  "radius": 2,
-  "height": 0,
-  "control": 3
- },
- "src/components/company-contact-picker/CompanyContactPicker.tsx": {
-  "style": 24,
-  "hex": 10,
-  "font": 11,
-  "radius": 8,
-  "height": 2,
-  "control": 10
- },
- "src/components/crm/AccountNotesPanel.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 2,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/crm/AlertsPanel.tsx": {
-  "style": 3,
-  "hex": 2,
-  "font": 2,
+ "src/components/crm/AccountNotesPanel.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/crm/CaseThreadPicker.tsx": {
-  "style": 9,
-  "hex": 5,
-  "font": 7,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 1
  },
  "src/components/crm/CompanyHeader.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 7,
-  "radius": 4,
-  "height": 0,
-  "control": 6
- },
- "src/components/crm/CompanyLog.tsx": {
-  "style": 5,
+  "style": 0,
   "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/components/crm/CompanyMail.tsx": {
-  "style": 10,
-  "hex": 4,
-  "font": 8,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
  },
+ "src/components/crm/CompanyLog.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
+ },
+ "src/components/crm/CompanyMail.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
+ },
  "src/components/crm/CompanyNexus.tsx": {
-  "style": 18,
-  "hex": 3,
-  "font": 12,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/crm/CompanyPayments.tsx": {
-  "style": 15,
-  "hex": 4,
-  "font": 6,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/crm/CompanySearchSelect.tsx": {
-  "style": 8,
-  "hex": 10,
-  "font": 5,
-  "radius": 4,
-  "height": 1,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
   "control": 3
  },
  "src/components/crm/CompanyThreadList.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/components/crm/NexusSummary.tsx": {
-  "style": 14,
-  "hex": 3,
-  "font": 8,
-  "radius": 0,
-  "height": 0,
-  "control": 1
- },
- "src/components/crm/PeoplePanel.tsx": {
-  "style": 7,
-  "hex": 4,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/crm/PoliciesPanel.tsx": {
-  "style": 13,
-  "hex": 4,
-  "font": 10,
-  "radius": 2,
-  "height": 0,
-  "control": 0
  },
  "src/components/crm/RecordPaymentDialog.tsx": {
-  "style": 5,
-  "hex": 3,
-  "font": 4,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 5
  },
  "src/components/crm/ReferralReview.tsx": {
-  "style": 8,
+  "style": 0,
   "hex": 0,
-  "font": 4,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/crm/dialogs.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 10
  },
- "src/components/crm/primitives.tsx": {
-  "style": 15,
-  "hex": 0,
-  "font": 16,
-  "radius": 5,
-  "height": 3,
-  "control": 0
- },
  "src/components/data-table/toolbar.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 3,
-  "radius": 2,
-  "height": 1,
-  "control": 2
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
  },
  "src/components/debit-notes/DebitNotePreviewPanel.tsx": {
-  "style": 1,
-  "hex": 1,
+  "style": 0,
+  "hex": 0,
   "font": 2,
   "radius": 0,
   "height": 0,
@@ -962,55 +458,31 @@
  "src/components/debit-notes/SendDocumentsModal.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/detail-section.tsx": {
-  "style": 3,
-  "hex": 3,
-  "font": 3,
+ "src/components/documents/DataRoom.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/components/documents/DataRoom.tsx": {
-  "style": 16,
-  "hex": 0,
-  "font": 9,
-  "radius": 1,
-  "height": 1,
   "control": 4
- },
- "src/components/eb/EbQuotation.tsx": {
-  "style": 38,
-  "hex": 12,
-  "font": 33,
-  "radius": 4,
-  "height": 1,
-  "control": 12
  },
  "src/components/eb/EbQuotationRegister.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/eb/ProposalSection.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
  "src/components/eb/ProposalTrack.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 8,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1018,151 +490,87 @@
  "src/components/eb/proposal-shared.tsx": {
   "style": 2,
   "hex": 1,
-  "font": 1,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/email/CommissionCheck.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/components/engagement-agent/ai-analysis-panel.tsx": {
-  "style": 12,
-  "hex": 6,
-  "font": 9,
-  "radius": 1,
-  "height": 0,
-  "control": 2
- },
- "src/components/engagement-agent/anti-pattern-panel.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 1,
-  "control": 1
- },
- "src/components/engagement-agent/approved-examples-panel.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 4,
-  "radius": 1,
-  "height": 1,
-  "control": 2
  },
  "src/components/engagement-agent/compose-toolbar.tsx": {
-  "style": 10,
-  "hex": 17,
-  "font": 14,
-  "radius": 8,
-  "height": 2,
-  "control": 5
- },
- "src/components/engagement-agent/draft-provenance-panel.tsx": {
-  "style": 5,
-  "hex": 5,
-  "font": 3,
-  "radius": 0,
-  "height": 0,
-  "control": 1
- },
- "src/components/engagement-agent/email-type-badge.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 3,
-  "radius": 1,
-  "height": 3,
-  "control": 0
- },
- "src/components/engagement-agent/engagement-compose-panel.tsx": {
-  "style": 23,
-  "hex": 9,
-  "font": 19,
-  "radius": 8,
-  "height": 7,
-  "control": 16
- },
- "src/components/engagement-agent/engagement-context-panel.tsx": {
-  "style": 59,
-  "hex": 18,
-  "font": 35,
-  "radius": 11,
-  "height": 2,
-  "control": 16
- },
- "src/components/engagement-agent/engagement-message-card.tsx": {
-  "style": 33,
-  "hex": 7,
-  "font": 19,
-  "radius": 4,
-  "height": 0,
-  "control": 3
- },
- "src/components/engagement-agent/evaluation-summary.tsx": {
-  "style": 3,
-  "hex": 3,
-  "font": 1,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/engagement-agent/retrieval-sources-panel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
+ "src/components/engagement-agent/engagement-compose-panel.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 4
+ },
+ "src/components/engagement-agent/engagement-context-panel.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
+ },
  "src/components/engagement/AddToCaseControl.tsx": {
-  "style": 7,
+  "style": 2,
   "hex": 3,
-  "font": 5,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ChiefBar.tsx": {
   "style": 41,
   "hex": 1,
-  "font": 32,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 27
  },
  "src/components/engagement/ContextRail.tsx": {
-  "style": 14,
-  "hex": 1,
-  "font": 8,
-  "radius": 1,
+  "style": 13,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 4
  },
  "src/components/engagement/ConversationList.tsx": {
-  "style": 19,
-  "hex": 6,
-  "font": 8,
-  "radius": 7,
+  "style": 3,
+  "hex": 5,
+  "font": 0,
+  "radius": 0,
   "height": 5,
   "control": 5
  },
  "src/components/engagement/EaLayout.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 1,
+  "style": 1,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/engagement/InlineProgress.tsx": {
-  "style": 5,
-  "hex": 6,
-  "font": 1,
+  "style": 2,
+  "hex": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1176,65 +584,57 @@
   "control": 4
  },
  "src/components/engagement/MessageBlock.tsx": {
-  "style": 45,
+  "style": 17,
   "hex": 8,
-  "font": 29,
-  "radius": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 9
  },
  "src/components/engagement/NewEmailCompose.tsx": {
-  "style": 9,
-  "hex": 1,
-  "font": 9,
-  "radius": 1,
+  "style": 8,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 7
  },
  "src/components/engagement/RecipientAutocomplete.tsx": {
-  "style": 4,
-  "hex": 6,
-  "font": 4,
-  "radius": 3,
+  "style": 0,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/engagement/ThreadAgentBar.tsx": {
-  "style": 22,
-  "hex": 8,
-  "font": 14,
-  "radius": 4,
+  "style": 6,
+  "hex": 7,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 5
  },
  "src/components/engagement/ThreadHeader.tsx": {
-  "style": 16,
-  "hex": 7,
-  "font": 6,
-  "radius": 4,
+  "style": 9,
+  "hex": 6,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 7
  },
  "src/components/engagement/ThreadListPane.tsx": {
-  "style": 25,
-  "hex": 9,
-  "font": 9,
-  "radius": 8,
+  "style": 13,
+  "hex": 7,
+  "font": 0,
+  "radius": 0,
   "height": 3,
   "control": 12
- },
- "src/components/engagement/ThreadModal.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/engagement/ThreadParty.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1242,55 +642,55 @@
  "src/components/engagement/ThreadReferral.tsx": {
   "style": 2,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
  },
  "src/components/engagement/ThreadRow.tsx": {
-  "style": 11,
+  "style": 3,
   "hex": 6,
-  "font": 8,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ThreadView.tsx": {
-  "style": 32,
-  "hex": 17,
-  "font": 19,
-  "radius": 10,
+  "style": 19,
+  "hex": 15,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 12
  },
  "src/components/engagement/rail-bits.tsx": {
-  "style": 15,
+  "style": 4,
   "hex": 8,
-  "font": 9,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/group-benefits/CompanyField.tsx": {
-  "style": 5,
-  "hex": 5,
-  "font": 3,
-  "radius": 3,
+  "style": 1,
+  "hex": 2,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 3
  },
  "src/components/group-benefits/InsurerContactsDialog.tsx": {
-  "style": 3,
-  "hex": 3,
-  "font": 2,
+  "style": 1,
+  "hex": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
  "src/components/group-benefits/InsurerEmailDialog.tsx": {
-  "style": 9,
-  "hex": 7,
-  "font": 10,
+  "style": 0,
+  "hex": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 8
@@ -1298,183 +698,127 @@
  "src/components/group-benefits/PlanRules.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 8
  },
  "src/components/group-benefits/SourceFilesTab.tsx": {
-  "style": 16,
-  "hex": 18,
-  "font": 15,
-  "radius": 3,
+  "style": 1,
+  "hex": 3,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/group-benefits/hr/HrLinksTab.tsx": {
-  "style": 10,
-  "hex": 11,
-  "font": 9,
+  "style": 2,
+  "hex": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/group-benefits/hr/HrModal.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 1,
-  "radius": 1,
+  "style": 1,
+  "hex": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/group-benefits/hr/SendLinkDialog.tsx": {
-  "style": 13,
-  "hex": 7,
-  "font": 7,
-  "radius": 2,
+  "style": 2,
+  "hex": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 6
  },
  "src/components/hr-connect/read-table.tsx": {
-  "style": 3,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
  },
- "src/components/inbound/channel-badge.tsx": {
-  "style": 0,
-  "hex": 2,
-  "font": 1,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
  "src/components/inbound/inline-reply-row.tsx": {
-  "style": 18,
-  "hex": 17,
-  "font": 11,
-  "radius": 3,
-  "height": 1,
-  "control": 7
- },
- "src/components/inbound/lead-detail-panel.tsx": {
-  "style": 12,
-  "hex": 8,
-  "font": 6,
-  "radius": 3,
-  "height": 2,
-  "control": 4
- },
- "src/components/inbound/status-dropdown.tsx": {
-  "style": 5,
-  "hex": 6,
-  "font": 2,
-  "radius": 2,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
   "control": 2
  },
- "src/components/insurers/DeclinesRegister.tsx": {
-  "style": 5,
+ "src/components/inbound/lead-detail-panel.tsx": {
+  "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/insurers/InsurersDirectory.tsx": {
-  "style": 21,
-  "hex": 7,
-  "font": 11,
-  "radius": 4,
-  "height": 1,
-  "control": 8
- },
- "src/components/insurers/ProductEditor.tsx": {
-  "style": 17,
-  "hex": 2,
-  "font": 5,
-  "radius": 1,
-  "height": 1,
-  "control": 11
- },
- "src/components/letters/AppointmentLetterDialog.tsx": {
-  "style": 12,
-  "hex": 0,
-  "font": 12,
-  "radius": 4,
-  "height": 3,
-  "control": 10
- },
- "src/components/letters/AppointmentLetterPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
-  "radius": 1,
-  "height": 0,
-  "control": 2
- },
- "src/components/marketing/EntryDrawer.tsx": {
-  "style": 8,
-  "hex": 3,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 10
+  "control": 7
+ },
+ "src/components/insurers/ProductEditor.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 9
+ },
+ "src/components/letters/AppointmentLetterDialog.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 1,
+  "control": 4
+ },
+ "src/components/marketing/EntryDrawer.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 7
  },
  "src/components/marketing/NewArticleDialog.tsx": {
-  "style": 3,
-  "hex": 2,
-  "font": 4,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
  },
  "src/components/marketing/PasteDialog.tsx": {
-  "style": 3,
-  "hex": 2,
-  "font": 5,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
- "src/components/marketing/chips.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/marketing/page-shell.tsx": {
-  "style": 7,
-  "hex": 3,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/marketing/prose.tsx": {
+ "src/components/marketing/site-switch.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/marketing/site-switch.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/nav/Breadcrumbs.tsx": {
-  "style": 8,
+  "style": 6,
   "hex": 3,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1490,162 +834,122 @@
  "src/components/nav/top-navbar.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 15,
-  "radius": 10,
-  "height": 6,
-  "control": 6
- },
- "src/components/nexus/FollowUpsLedger.tsx": {
-  "style": 10,
-  "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
-  "height": 0,
-  "control": 0
+  "height": 5,
+  "control": 5
  },
  "src/components/nexus/NexusPhasedAnalysisModal.tsx": {
-  "style": 20,
-  "hex": 7,
-  "font": 11,
-  "radius": 3,
-  "height": 2,
-  "control": 2
- },
- "src/components/page-header.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/placement/ComparisonGrid.tsx": {
-  "style": 14,
-  "hex": 2,
-  "font": 5,
-  "radius": 2,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 4
+  "control": 1
  },
  "src/components/placement/ContactPicker.tsx": {
-  "style": 6,
+  "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 3
+  "control": 2
  },
  "src/components/placement/CustomRatesDialog.tsx": {
-  "style": 14,
+  "style": 0,
   "hex": 0,
-  "font": 10,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 10
- },
- "src/components/placement/IssueDebitNoteDialog.tsx": {
-  "style": 8,
-  "hex": 0,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 8
+  "control": 2
  },
  "src/components/placement/LinesLibrary.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 18,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 1
  },
  "src/components/placement/NewPlacementDialog.tsx": {
-  "style": 11,
-  "hex": 1,
-  "font": 9,
-  "radius": 1,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 2
  },
  "src/components/placement/NewRoundDialog.tsx": {
-  "style": 8,
+  "style": 0,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/placement/PlacementPanel.tsx": {
-  "style": 9,
-  "hex": 1,
-  "font": 8,
-  "radius": 3,
-  "height": 2,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
   "control": 1
  },
  "src/components/placement/ReviewDraftsDrawer.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 19,
-  "radius": 2,
-  "height": 2,
-  "control": 6
- },
- "src/components/placement/shared.tsx": {
-  "style": 0,
-  "hex": 3,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
+ "src/components/placement/shared.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
+ },
  "src/components/policies/AddFromEmails.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 17,
-  "radius": 2,
-  "height": 3,
-  "control": 9
- },
- "src/components/policies/MembersPanel.tsx": {
-  "style": 21,
-  "hex": 1,
-  "font": 21,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 23
- },
- "src/components/policies/PoliciesRegister.tsx": {
-  "style": 16,
-  "hex": 4,
-  "font": 14,
-  "radius": 2,
-  "height": 1,
   "control": 4
  },
- "src/components/policies/PolicyWorking.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 44,
-  "radius": 10,
-  "height": 10,
-  "control": 15
- },
- "src/components/policies/WorkingOn.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 14,
-  "radius": 3,
-  "height": 2,
-  "control": 3
- },
- "src/components/renewal/RenewalReportSections.tsx": {
+ "src/components/policies/MembersPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 5
+ },
+ "src/components/policies/PolicyWorking.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 6
+ },
+ "src/components/policies/WorkingOn.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
  },
  "src/components/renewals/RenewalsFix.tsx": {
   "style": 0,
@@ -1656,65 +960,57 @@
   "control": 2
  },
  "src/components/sales/EnquiryDrawer.tsx": {
-  "style": 23,
-  "hex": 3,
-  "font": 17,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 8
+  "control": 2
  },
  "src/components/settings/ChecklistPanel.tsx": {
-  "style": 1,
+  "style": 0,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 8
+  "control": 7
  },
  "src/components/settings/ClientFormsPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 4
  },
  "src/components/settings/RenewalMethodPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 9,
-  "radius": 1,
-  "height": 1,
-  "control": 3
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
  },
  "src/components/settings/TeamTable.tsx": {
-  "style": 23,
-  "hex": 11,
-  "font": 19,
-  "radius": 9,
-  "height": 1,
-  "control": 9
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 3
  },
  "src/components/settings/VoicePanel.tsx": {
-  "style": 10,
-  "hex": 13,
-  "font": 10,
-  "radius": 5,
-  "height": 1,
-  "control": 5
- },
- "src/components/status-badge.tsx": {
-  "style": 1,
-  "hex": 66,
-  "font": 1,
-  "radius": 1,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/today/CombineDialog.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -1722,146 +1018,26 @@
  "src/components/today/desk/AddThreads.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 13,
-  "radius": 4,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 5
- },
- "src/components/today/desk/AttachmentRow.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/today/desk/ClientRow.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 24,
-  "radius": 1,
+  "font": 0,
+  "radius": 0,
   "height": 2,
   "control": 5
  },
  "src/components/today/desk/DraftCard.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 21,
-  "radius": 2,
+  "font": 0,
+  "radius": 0,
   "height": 1,
   "control": 7
- },
- "src/components/today/desk/InlineConfirm.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/Alert.tsx": {
-  "style": 10,
-  "hex": 10,
-  "font": 6,
-  "radius": 2,
-  "height": 1,
-  "control": 0
- },
- "src/components/ui/action-bar.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 2,
-  "height": 1,
-  "control": 0
- },
- "src/components/ui/button.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/card.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/confirm.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 2,
-  "radius": 1,
-  "height": 1,
-  "control": 0
- },
- "src/components/ui/dialog.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/field.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/input.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/popover.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/register.tsx": {
-  "style": 10,
-  "hex": 1,
-  "font": 12,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/sheet.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/url-filters.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 1,
-  "height": 1,
-  "control": 0
- },
- "src/components/ui/xl-grid.tsx": {
-  "style": 9,
-  "hex": 9,
-  "font": 5,
-  "radius": 2,
-  "height": 0,
-  "control": 0
  },
  "src/lib/cases/compare-summary-pdf.tsx": {
   "style": 4,

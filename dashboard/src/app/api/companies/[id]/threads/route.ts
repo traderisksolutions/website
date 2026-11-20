@@ -5,13 +5,11 @@
  * see (src/lib/mail/visibility.ts); the rest are a count, `hidden`.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { listVisibleCompanyThreads } from '@/lib/crm/threads'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     // A staff session always has an email here; null only on a cron call, which sees everything.
@@ -20,4 +18,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

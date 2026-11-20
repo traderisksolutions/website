@@ -4,7 +4,7 @@
  * rows are on the page, so Today never waits for it (substance-server.ts rowFacts).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { rowFacts } from '@/lib/today/substance-server'
 
 export const dynamic = 'force-dynamic'

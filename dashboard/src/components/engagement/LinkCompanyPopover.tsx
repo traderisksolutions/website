@@ -10,7 +10,7 @@ import { Btn, InlineSpinner, inputCls } from '@/components/crm/primitives'
 type CompanySuggestion = { id: string; name: string; domain: string | null }
 type Pick = { id: string | null; name: string }
 
-const ROW = 'w-full text-left px-2 py-1.5 rounded-lg text-sm text-trs-ink bg-transparent border-0 cursor-pointer hover:bg-trs-tint'
+const ROW = 'w-full text-left px-2 py-1.5 rounded text-body text-trs-ink bg-transparent border-0 cursor-pointer hover:bg-trs-tint'
 
 /**
  * Filing a thread by hand (the filing agent is off, 20 Nov 2026). "Link company" on an unfiled
@@ -130,7 +130,7 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
           {label}
         </span>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-2 rounded-xl border border-trs-line" onClick={e => e.stopPropagation()}>
+      <PopoverContent className="w-80 p-2 rounded border border-trs-line" onClick={e => e.stopPropagation()}>
         <input
           autoFocus
           value={query}
@@ -138,37 +138,37 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
           placeholder="Search companies"
           aria-label="Search companies"
           disabled={!!busy}
-          className={cn(inputCls, 'h-9 mb-1.5 text-sm')}
+          className={cn(inputCls, 'h-9 mb-1.5 text-body')}
         />
         {!change && domain?.domain && domain.unfiled > 0 && (
-          <label className="flex items-center gap-2 px-2 py-1.5 text-sm text-trs-ink cursor-pointer">
+          <label className="flex items-center gap-2 px-2 py-1.5 text-body text-trs-ink cursor-pointer">
             <input type="checkbox" checked={fileAll} onChange={e => setFileAll(e.target.checked)} disabled={!!busy} />
             File all from {domain.domain} <span className="tabular-nums text-trs-subtle">{domain.unfiled} more</span>
           </label>
         )}
         {(searching || busy) && <div className="px-2 py-2"><InlineSpinner label={busy ?? 'Searching…'} /></div>}
         {error && (
-          <div className="px-2 py-2 text-xs flex items-start justify-between gap-2" role="alert">
+          <div className="px-2 py-2 text-small flex items-start justify-between gap-2" role="alert">
             <span className="text-trs-neg">{error}</span>
             {retry && <Btn size="xs" onClick={() => retry()}>Retry</Btn>}
           </div>
         )}
         {!searching && !busy && results.length === 0 && !typed && (
-          <div className="px-2 py-2 text-xs text-trs-muted">Type to search companies.</div>
+          <div className="px-2 py-2 text-small text-trs-muted">Type to search companies.</div>
         )}
         {!searching && !busy && (
           <ul className="m-0 p-0 list-none max-h-64 overflow-y-auto" role="listbox" aria-label="Companies">
             {results.map(c => (
               <li key={c.id} role="option" aria-selected={false}>
                 <button type="button" onClick={() => void file({ id: c.id, name: c.name })} className={ROW}>
-                  {c.name}{c.domain && <span className="ml-1.5 text-xs text-trs-subtle">{c.domain}</span>}
+                  {c.name}{c.domain && <span className="ml-1.5 text-small text-trs-subtle">{c.domain}</span>}
                 </button>
               </li>
             ))}
             {typed && !exact && (
               <li>
                 <button type="button" onClick={() => void file({ id: null, name: typed })} className={cn(ROW, 'font-medium')}>
-                  + Add “{typed}” as a new company{domain?.domain ? <span className="ml-1.5 font-normal text-xs text-trs-subtle">{domain.domain}</span> : null}
+                  + Add “{typed}” as a new company{domain?.domain ? <span className="ml-1.5 font-normal text-small text-trs-subtle">{domain.domain}</span> : null}
                 </button>
               </li>
             )}

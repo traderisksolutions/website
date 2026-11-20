@@ -8,6 +8,9 @@ import { ArrowLeft, UploadCloud, Loader2, CheckCircle2, XCircle, AlertTriangle, 
 import { uploadToDrive } from '@/lib/upload-attachment'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
 import { useAutoMatchCompany } from '@/components/company-contact-picker/useAutoMatchCompany'
 import { SendDocumentsModal, type SendDocumentsTarget } from '@/components/debit-notes/SendDocumentsModal'
@@ -118,10 +121,10 @@ export default function NewDebitNotePage() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: '#0f1412' }}>
+    <div className="w-full min-w-0 max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20 text-trs-ink">
       <Breadcrumbs className="mb-4" current={{ label: 'New debit note', href: '/debit-notes/new' }} fallback={{ label: 'Debit notes', href: '/debit-notes' }} />
-      <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08] text-[#0f1412] mb-2">Generate a new debit note</h1>
-      <p className="m-0 text-[15px] text-[#4a5550] mb-6 max-w-[72ch]">
+      <h1 className="m-0 text-title font-medium leading-[1.08] text-trs-ink mb-2">Generate a new debit note</h1>
+      <p className="m-0 text-body text-trs-muted mb-6 max-w-[72ch]">
         A new renewal or new-business event is 2 files from the insurer: the tax invoice
         addressed to the client, and the commission statement addressed to TRS. Upload both — AI
         reads them, you confirm, and we generate the TRS-branded debit note.
@@ -129,7 +132,7 @@ export default function NewDebitNotePage() {
 
       <div className="flex items-center gap-3 mb-6">
         <label className="flex-1">
-          <input ref={fileInputRef} type="file" accept=".pdf,application/pdf,.zip,application/zip" multiple className="hidden"
+          <Input ref={fileInputRef} type="file" accept=".pdf,application/pdf,.zip,application/zip" multiple className="hidden"
             onChange={e => { onAddBundle(e.target.files); e.target.value = '' }} />
           <Button onClick={() => fileInputRef.current?.click()} className="w-full" disabled={!!progress}>
             <UploadCloud size={14} className="mr-1.5" /> + Upload the 2 insurer files (or one .zip)
@@ -138,36 +141,38 @@ export default function NewDebitNotePage() {
       </div>
 
       {progress && (
-        <div className="mb-6 flex items-center gap-2 text-[12.5px] text-muted-foreground">
+        <div className="mb-6 flex items-center gap-2 text-small text-muted-foreground">
           <Loader2 size={13} className="animate-spin" /> Uploading {progress.done}/{progress.total}…
         </div>
       )}
-      {error && <p className="mb-6 text-[11.5px] text-[#2a332f] whitespace-pre-wrap">{error}</p>}
+      {error && <p className="mb-6 text-small text-trs-neg whitespace-pre-wrap">{error}</p>}
       {inFlight.length > 0 && (
         <div className="mb-4 flex flex-col gap-1.5">
           {inFlight.map(b => (
-            <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border border-[--border-subtle] px-3 py-1.5 text-[11.5px] text-muted-foreground">
+            <div key={b.id} className="flex items-center justify-between gap-2 rounded border border-trs-line px-3 py-1.5 text-small text-trs-muted">
               <span className="flex items-center gap-1.5 truncate">
                 <Loader2 size={11} className="animate-spin flex-shrink-0" />
                 {b.pdf_import_items.map(it => it.original_filename).filter(Boolean).join(', ') || 'Extracting…'}
               </span>
-              <button
+              <Btn
+                level="tertiary"
+                size="xs"
                 onClick={() => cancelBundle(b.id)}
                 disabled={cancelling === b.id}
-                className="flex-shrink-0 text-[11px] text-[#2a332f] hover:underline disabled:opacity-50"
+                className="flex-shrink-0 h-auto px-0 border-0 text-small text-trs-ink-2 hover:bg-transparent hover:underline"
               >
                 {cancelling === b.id ? 'Cancelling…' : 'Cancel'}
-              </button>
+              </Btn>
             </div>
           ))}
         </div>
       )}
 
-      <h2 className="m-0 text-[22px] font-medium tracking-[-0.02em] mb-3">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
+      <h2 className="m-0 text-heading font-medium mb-3">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
       {loadingBundles ? (
-        <p className="text-[12.5px] text-muted-foreground">Loading…</p>
+        <p className="text-small text-trs-muted">Loading…</p>
       ) : needsReview.length === 0 ? (
-        <p className="text-[14px] text-[#4a5550] py-10 text-center rounded-[16px]" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
+        <p className="text-body text-trs-muted py-10 text-center rounded bg-trs-canvas">Nothing waiting on review.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {needsReview.map(b => <BundleReviewCard key={b.id} bundle={b} onResolved={loadBundles} />)}
@@ -178,7 +183,12 @@ export default function NewDebitNotePage() {
 }
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
-const inp = 'h-9 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
+const EVENT_OPTIONS: { value: EventType; label: string }[] = [
+  { value: 'new_business', label: 'New business' }, { value: 'renewal', label: 'Renewal' }, { value: 'endorsement', label: 'Mid-term endorsement' },
+]
+const CURRENCY_OPTIONS = ['SGD', 'USD', 'MYR', 'IDR'].map(c => ({ value: c, label: c }))
+/** The same label the shared Field draws, on a div: a label around a Segmented would click its first option. */
+const fieldLabelCls = 'text-body font-medium text-trs-ink'
 
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
@@ -455,10 +465,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
   if (approved) {
     return (
-      <div className="rounded-[16px] p-6 flex flex-col items-center gap-3 text-center" style={{ background: '#EAF6EC' }}>
-        <div className="w-10 h-10 rounded-full bg-[#f1f2ee] flex items-center justify-center"><CheckCircle2 size={20} className="text-[#0f1412]" /></div>
-        <p className="text-[14px] font-semibold">Debit Note {approved.debitNoteNo} generated</p>
-        <p className="text-[11.5px] text-[#0f1412] -mt-1.5">
+      <div className="rounded p-6 flex flex-col items-center gap-3 text-center bg-trs-pos-bg">
+        <div className="w-10 h-10 rounded-full bg-trs-field flex items-center justify-center"><CheckCircle2 size={20} className="text-trs-ink" /></div>
+        <p className="text-body font-semibold">Debit Note {approved.debitNoteNo} generated</p>
+        <p className="text-small text-trs-ink -mt-1.5">
           This debit note and its documents are now saved in your Debit Notes records
           {approved.driveFolderUrl ? (
             <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
@@ -469,38 +479,38 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
         </div>
-        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-[11.5px] text-[#0f1412] hover:underline">
+        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-small text-trs-ink hover:underline">
           View {approved.debitNoteNo} in Debit Notes →
         </Link>
-        <Link href="/debit-notes" className="text-[11px] text-muted-foreground hover:text-foreground">Done</Link>
+        <Link href="/debit-notes" className="text-small text-trs-muted hover:text-trs-ink">Done</Link>
         {sendTarget && <SendDocumentsModal target={sendTarget} onClose={() => setSendTarget(null)} />}
       </div>
     )
   }
 
   return (
-    <div className="rounded-[16px] p-5 flex flex-col gap-4" style={{ border: '1px solid #e6e8e4' }}>
+    <div className="rounded p-5 flex flex-col gap-4 border border-trs-line">
       <div className="flex flex-wrap items-center gap-2">
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
             title={it.error_message ?? undefined}
-            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#0f1412] hover:bg-[#e6e8e4]" style={{ background: '#f1f2ee' }}>
+            className="flex items-center gap-1.5 text-body px-3 h-9 rounded no-underline text-trs-ink hover:bg-trs-line bg-trs-field">
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
-            {it.doc_type && <span className="text-[12px] text-[#4a5550]">{DOC_TYPE_LABEL[it.doc_type]}</span>}
-            {it.status === 'error' && <AlertTriangle size={11} className="text-[#2a332f]" />}
+            {it.doc_type && <span className="text-small text-trs-muted">{DOC_TYPE_LABEL[it.doc_type]}</span>}
+            {it.status === 'error' && <AlertTriangle size={11} className="text-trs-ink-2" />}
           </a>
         ))}
         {bundle.match_confidence != null && (
-          <span className="text-[12.5px] text-[#4a5550] ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
+          <span className="text-small text-trs-muted ml-auto">match confidence {(bundle.match_confidence * 100).toFixed(0)}%</span>
         )}
       </div>
 
-      <div className="rounded-[10px] p-3 flex flex-col gap-1 font-mono text-[11.5px] text-[#4a5550]" style={{ background: '#F5F5F3' }}>
+      <div className="rounded p-3 flex flex-col gap-1 font-mono text-small text-trs-muted bg-trs-canvas">
         <span>bundle status: <b>{bundle.status}</b>{bundle.consistency_warning ? ` · warning: ${bundle.consistency_warning}` : ''}</span>
         {bundle.pdf_import_items.map(it => (
           <span key={it.id}>
-            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-[#2a332f]' : ''}>{it.error_message ?? 'null'}</b>
+            {it.original_filename ?? 'document.pdf'} — status: <b>{it.status}</b>, doc_type: <b>{it.doc_type ?? 'null'}</b>, error: <b className={it.error_message ? 'text-trs-ink-2' : ''}>{it.error_message ?? 'null'}</b>
           </span>
         ))}
       </div>
@@ -508,7 +518,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       {bundle.pdf_import_items.some(it => it.error_message) && (
         <div className="flex flex-col gap-1">
           {bundle.pdf_import_items.filter(it => it.error_message).map(it => (
-            <p key={it.id} className="text-[13px] text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#FFF0E7' }}>
+            <p key={it.id} className="text-body text-trs-ink-2 rounded px-3 py-2 bg-trs-neg-bg">
               <b>{it.original_filename ?? 'document.pdf'}</b>: {it.error_message}
             </p>
           ))}
@@ -522,29 +532,27 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       )}
 
       {bundle.consistency_warning && (
-        <div className="flex items-start gap-1.5 text-[13px] text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#fff4dc' }}>
+        <div className="flex items-start gap-1.5 text-body text-trs-ink-2 rounded px-3 py-2 bg-trs-warn-bg">
           <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" /> {bundle.consistency_warning}
         </div>
       )}
 
       <CompanyContactPicker value={recipient} onChange={setRecipient} initialQuery={!recipient ? (m?.client_name ?? undefined) : undefined} />
 
-      <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#fff4dc' : '#F5F5F3' }}>
+      <div className={cn('rounded p-4 flex flex-col gap-3', eventType === 'endorsement' ? 'bg-trs-warn-bg' : 'bg-trs-canvas')}>
         <div className="flex items-center gap-2">
-          <Field label="Debit note type" className="flex-1">
-            <select
+          <div className="flex flex-col gap-1 flex-1">
+            <span className={fieldLabelCls}>Debit note type</span>
+            <Segmented<EventType>
+              label="Debit note type"
               value={eventType}
-              onChange={e => { setEventType(e.target.value as EventType); setEventTypeTouched(true) }}
-              className={inp}
-            >
-              <option value="new_business">New business</option>
-              <option value="renewal">Renewal</option>
-              <option value="endorsement">Mid-term endorsement</option>
-            </select>
-          </Field>
+              onChange={v => { setEventType(v); setEventTypeTouched(true) }}
+              options={EVENT_OPTIONS}
+            />
+          </div>
           {eventType === 'endorsement' && (
             <Field label="Effective date (optional)" className="flex-1">
-              <input type="date" value={endorsementEffectiveDate} onChange={e => setEndorsementEffectiveDate(e.target.value)} className={inp} />
+              <Input type="date" value={endorsementEffectiveDate} onChange={e => setEndorsementEffectiveDate(e.target.value)} />
             </Field>
           )}
         </div>
@@ -553,7 +561,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
             <select
               value={masterPolicyId}
               onChange={e => { setMasterPolicyId(e.target.value); setMasterPolicyTouched(true) }}
-              className={inp}
+              className={inputCls}
             >
               <option value="">Not linked — creates its own policy from the fields below</option>
               {policyOptions.map(p => (
@@ -563,7 +571,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           </Field>
         )}
         {eventType === 'endorsement' && (
-          <p className="text-[13px] text-[#2a332f]">
+          <p className="text-body text-trs-ink-2">
             {masterPolicyId
               ? <>Billed as a mid-term change against that policy: it keeps the master&apos;s term and renewal date, so the cover isn&apos;t counted twice on Calendar and Companies. The PDF calls out the effective date separately from the period of insurance.</>
               : <>Left open-ended — approving creates a policy from the fields below, same as new business.{policyOptions.length > 0 ? <> Pick one above to attach it to an existing cover instead.</> : null}</>}
@@ -575,35 +583,34 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         {/* Row 1 — reference numbers */}
         <div className="grid grid-cols-3 gap-3">
           <Field label="Debit note no.">
-            <input
+            <Input
               value={debitNoteNo}
               onChange={e => { setDebitNoteNo(e.target.value); setDebitNoteNoTouched(true) }}
               placeholder="Suggesting…"
-              className={inp}
             />
           </Field>
-          <Field label="Policy number"><input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} className={inp} /></Field>
-          <Field label="Cover note no."><input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} className={inp} /></Field>
+          <Field label="Policy number"><Input value={policyNumber} onChange={e => setPolicyNumber(e.target.value)} /></Field>
+          <Field label="Cover note no."><Input value={coverNoteNo} onChange={e => setCoverNoteNo(e.target.value)} /></Field>
         </div>
 
         {/* Row 2 — insurer & class */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Insurer (required)"><input value={insurer} onChange={e => setInsurer(e.target.value)} className={inp} list={INSURER_OPTIONS_ID} autoComplete="off" /><InsurerOptions /></Field>
-          <Field label="Class of insurance"><input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} className={inp} /></Field>
+          <Field label="Insurer (required)"><Input value={insurer} onChange={e => setInsurer(e.target.value)} list={INSURER_OPTIONS_ID} autoComplete="off" /><InsurerOptions /></Field>
+          <Field label="Class of insurance"><Input value={classOfInsurance} onChange={e => setClassOfInsurance(e.target.value)} /></Field>
         </div>
 
         {/* Row 3 — dates */}
         <div className="grid grid-cols-4 gap-2">
-          <Field label="Period start"><input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} className={inp} /></Field>
-          <Field label="Period end (renewal date)"><input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} className={inp} /></Field>
-          <Field label="Issue date"><input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inp} /></Field>
-          <Field label="Payment due date"><input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} className={inp} /></Field>
+          <Field label="Period start"><Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} /></Field>
+          <Field label="Period end (renewal date)"><Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} /></Field>
+          <Field label="Issue date"><Input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></Field>
+          <Field label="Payment due date"><Input type="date" value={paymentDueDate} onChange={e => setPaymentDueDate(e.target.value)} /></Field>
         </div>
 
         {/* Row 4 — fee rebate toggle */}
         <Field label="Fee rebates" className="max-w-[220px]">
-          <label className="flex items-center gap-1.5 text-[12.5px] h-[30px]">
-            <input type="checkbox" checked={feeRebateEnabled}
+          <label className="flex items-center gap-1.5 text-small h-8">
+            <input type="checkbox" className="accent-trs-green" checked={feeRebateEnabled}
               onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setFeeRebate(0) }} />
             Apply fee rebate
           </label>
@@ -612,17 +619,17 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         {/* Row 5 — fee rebate amount (only when applied) — sits above the price row it nets against */}
         {feeRebateEnabled && (
           <Field label="Fee rebate amount" className="max-w-[220px]">
-            <input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} className={inp} />
+            <Input type="number" value={feeRebate} onChange={e => setFeeRebate(Number(e.target.value))} />
           </Field>
         )}
 
         {/* Row 6 — price, with the running total inline at the end of the row */}
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="Gross premium (required)" className="flex-1 min-w-[140px]"><input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} className={inp} /></Field>
-          <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
-          <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
+          <Field label="Gross premium (required)" className="flex-1 min-w-[140px]"><Input type="number" value={grossPremium} onChange={e => setGrossPremium(Number(e.target.value))} /></Field>
+          <Field label="GST" className="flex-1 min-w-[140px]"><Input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} /></Field>
+          <div className="flex flex-col gap-1 flex-1 min-w-[140px]"><span className={fieldLabelCls}>Currency</span><Segmented label="Currency" value={currency} onChange={setCurrency} options={CURRENCY_OPTIONS} className="flex-nowrap" /></div>
           <Field label="Premium Total" className="flex-1 min-w-[160px]">
-            <div className="h-9 text-[14px] text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-[#F5F5F3] font-medium flex items-center">
+            <div className="h-10 text-body text-trs-ink border border-trs-line-2 rounded px-3 bg-trs-canvas font-medium flex items-center">
               {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
             </div>
           </Field>
@@ -630,15 +637,15 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
         {/* Row 7 — commission (broker's own figure, kept apart from the client-facing premium total above) */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Commission rate (%)"><input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} className={inp} /></Field>
-          <Field label="Commission amount"><input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} className={inp} /></Field>
+          <Field label="Commission rate (%)"><Input type="number" value={commissionRate} onChange={e => setCommissionRate(Number(e.target.value))} /></Field>
+          <Field label="Commission amount"><Input type="number" value={commissionAmount} onChange={e => setCommissionAmount(Number(e.target.value))} /></Field>
         </div>
 
         {/* Row 8 — description */}
-        <Field label="Description"><input value={description} onChange={e => setDescription(e.target.value)} className={inp} /></Field>
+        <Field label="Description"><Input value={description} onChange={e => setDescription(e.target.value)} /></Field>
       </div>
 
-      <div className="text-[13px] flex justify-end">
+      <div className="text-body flex justify-end">
         <span>Premium Total: <b>{currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}</b></span>
       </div>
 
@@ -646,8 +653,8 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           data shape), so this never drifts from the real output. Updates on any field change,
           including currency (the bank/PayNow-vs-wire block at the bottom changes with it). */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[12px] font-medium tracking-[0.08em] text-[#4a5550]">Preview</span>
-        <div className="h-[600px] rounded-lg border border-[--border-subtle] overflow-hidden bg-muted/20">
+        <span className="text-small font-medium text-trs-muted">Preview</span>
+        <div className="h-[600px] rounded border border-trs-line overflow-hidden bg-trs-canvas">
           <DebitNotePreviewPanel
             data={previewData}
             logoSrc={assets.hasLogo ? '/debit-note/trs-logo.png' : null}
@@ -656,10 +663,10 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         </div>
       </div>
 
-      {err && <p className="text-[11.5px] text-[#2a332f]">{err}</p>}
+      {err && <p className="text-small text-trs-neg">{err}</p>}
 
       <div className="flex items-center justify-end gap-2">
-        {saved && <span className="text-[11.5px] text-[#0f1412] mr-auto">Draft saved</span>}
+        {saved && <span className="text-small text-trs-ink mr-auto">Draft saved</span>}
         <Button variant="ghost" size="sm" onClick={reject} disabled={busy || saving}><XCircle size={13} className="mr-1.5" /> Reject</Button>
         <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy || saving}>
           {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />} Save draft

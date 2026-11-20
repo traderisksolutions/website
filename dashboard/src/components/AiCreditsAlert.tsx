@@ -44,8 +44,8 @@ const names = (xs: string[]) =>
 
 const buyLink = (
   <a href={BILLING_URL} target="_blank" rel="noreferrer"
-     className="underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)]"
-     style={{ color: 'var(--trs-ink)' }}>
+     className="underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)] text-trs-ink"
+     >
     Buy credits in Google AI Studio
   </a>
 )

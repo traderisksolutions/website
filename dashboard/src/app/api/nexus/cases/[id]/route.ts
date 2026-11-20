@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
@@ -13,10 +13,8 @@ function sbHeaders(prefer = 'return=representation') {
 type Params = { params: Promise<{ id: string }> }
 
 // GET /api/nexus/cases/[id] — full case with linked threads, their messages, and latest analysis
-export async function GET(req: NextRequest, props: Params) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const caseId = params.id
@@ -132,13 +130,11 @@ export async function GET(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // PATCH /api/nexus/cases/[id] — update name / description / status
-export async function PATCH(req: NextRequest, props: Params) {
+export const PATCH = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const body = await req.json()
@@ -158,13 +154,11 @@ export async function PATCH(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // DELETE /api/nexus/cases/[id] — delete case (cascades to case_threads + case_analyses)
-export async function DELETE(req: NextRequest, props: Params) {
+export const DELETE = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const res = await fetch(`${SB_URL}/rest/v1/cases?id=eq.${params.id}`, {
@@ -176,4 +170,4 @@ export async function DELETE(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

@@ -4,13 +4,11 @@
  * link. POST because the first call creates the folder.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { getCompany } from '@/lib/crm/db'
 import { ensureCompanyFolder } from '@/lib/company-drive'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const company = await getCompany(id)
@@ -19,4 +17,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Drive folder failed' }, { status: 500 })
   }
-}
+})

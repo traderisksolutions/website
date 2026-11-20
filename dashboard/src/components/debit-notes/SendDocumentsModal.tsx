@@ -92,19 +92,19 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
           Cancel affordances remain the only intentional way to close. */}
       <DialogContent className="sm:max-w-[420px]" onInteractOutside={e => e.preventDefault()}>
         <DialogHeader><DialogTitle>Send documents</DialogTitle></DialogHeader>
-        <p className="text-[11.5px] text-muted-foreground -mt-2 mb-1">Nothing is pre-selected — choose exactly what {target.contactEmail} should receive.</p>
+        <p className="text-small text-trs-muted -mt-2 mb-1">Nothing is pre-selected — choose exactly what {target.contactEmail} should receive.</p>
         <div className="flex flex-col gap-1.5">
           {target.attachmentFiles.map(f => (
-            <label key={f.storage_url} className="flex items-center gap-2.5 rounded-md border border-[--border-subtle] px-2.5 py-2 cursor-pointer hover:bg-accent/40">
-              <input type="checkbox" checked={checked.has(f.storage_url)} onChange={() => toggle(f.storage_url)} className="accent-primary" />
+            <label key={f.storage_url} className="flex items-center gap-2.5 rounded border border-trs-line px-2.5 py-2 cursor-pointer hover:bg-accent/40">
+              <input type="checkbox" checked={checked.has(f.storage_url)} onChange={() => toggle(f.storage_url)} className="accent-trs-green" />
               <div className="flex flex-col min-w-0">
-                <span className="text-[12.5px] truncate">{f.filename}</span>
-                <span className="text-[10.5px] text-muted-foreground">{ATTACHMENT_SOURCE_LABEL[f.source]}</span>
+                <span className="text-small truncate">{f.filename}</span>
+                <span className="text-small text-trs-muted">{ATTACHMENT_SOURCE_LABEL[f.source]}</span>
               </div>
             </label>
           ))}
         </div>
-        {error && <p className="text-[11.5px] text-[#2a332f]">{error}</p>}
+        {error && <p className="text-small text-trs-ink-2">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" onClick={send} disabled={sending || checked.size === 0}>

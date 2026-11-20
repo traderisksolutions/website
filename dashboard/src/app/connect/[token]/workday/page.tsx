@@ -3,8 +3,9 @@
 // Workday: the client's administrator creates an integration user; HR enters it here. The server
 // reads Get_Workers once and discards the password.
 import { useState } from 'react'
-import Link from 'next/link'
 import type { HrRead } from '@/lib/hr/types'
+import { Btn, LinkBtn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink } from '@/components/hr-connect/link-context'
 import { PeopleFound } from '@/components/hr-connect/read-table'
@@ -55,27 +56,27 @@ export default function WorkdayPage() {
             <div className="hrc-fact"><b>Not read</b><span>Compensation, national id, addresses, contact details, documents, time off</span></div>
           </div>
 
-          <form onSubmit={fetchList}>
-            <div className="hrc-field" style={{ marginTop: 18 }}>
+          <form onSubmit={fetchList} className="mt-4">
+            <div className="hrc-field">
               <label htmlFor="wd-host">Tenant host</label>
-              <input id="wd-host" type="text" autoComplete="off" value={form.tenantHost} onChange={set('tenantHost')} placeholder="wd3.myworkday.com" />
+              <Input id="wd-host" type="text" autoComplete="off" value={form.tenantHost} onChange={set('tenantHost')} placeholder="wd3.myworkday.com" />
             </div>
             <div className="hrc-field">
               <label htmlFor="wd-tenant">Tenant id</label>
-              <input id="wd-tenant" type="text" autoComplete="off" value={form.tenant} onChange={set('tenant')} placeholder="yourcompany" />
+              <Input id="wd-tenant" type="text" autoComplete="off" value={form.tenant} onChange={set('tenant')} placeholder="yourcompany" />
             </div>
             <div className="hrc-field">
               <label htmlFor="wd-user">Integration user</label>
-              <input id="wd-user" type="text" autoComplete="off" value={form.username} onChange={set('username')} placeholder="ISU_TRS_Benefits" />
+              <Input id="wd-user" type="text" autoComplete="off" value={form.username} onChange={set('username')} placeholder="ISU_TRS_Benefits" />
             </div>
             <div className="hrc-field">
               <label htmlFor="wd-pass">Password</label>
-              <input id="wd-pass" type="password" autoComplete="off" value={form.password} onChange={set('password')} />
+              <Input id="wd-pass" type="password" autoComplete="off" value={form.password} onChange={set('password')} />
             </div>
             {error && <p className="hrc-err">{error}</p>}
-            <div className="hrc-row" style={{ marginTop: 10 }}>
-              <button type="submit" className="hrc-btn p" disabled={busy || !ready}>{busy ? 'Reading Workday.' : 'Fetch the worker list'}</button>
-              <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
+            <div className="hrc-row mt-2.5">
+              <Btn type="submit" level="primary" disabled={busy || !ready}>{busy ? 'Reading Workday.' : 'Fetch the worker list'}</Btn>
+              <LinkBtn href={`/connect/${token}/upload`}>Upload a file instead</LinkBtn>
             </div>
           </form>
 

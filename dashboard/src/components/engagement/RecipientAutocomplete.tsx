@@ -94,7 +94,7 @@ export function SuggestionList({
 }) {
   if (items.length === 0) return null
   return (
-    <div role="listbox" aria-label="Suggested recipients" className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded-[10px] border border-[#e6e8e4] bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
+    <div role="listbox" aria-label="Suggested recipients" className="absolute left-0 right-0 top-full z-30 mt-1 max-h-64 overflow-y-auto rounded border border-[#e6e8e4] bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
       {items.map((c, i) => (
         <button
           key={c.id}
@@ -103,20 +103,20 @@ export function SuggestionList({
           aria-selected={i === highlight}
           // onMouseDown (not onClick) so the pick fires before the input's blur.
           onMouseDown={e => { e.preventDefault(); onPick(c) }}
-          className={`flex w-full items-center justify-between gap-3 px-2.5 py-1.5 rounded-[6px] text-left border-0 cursor-pointer transition-colors ${
+          className={`flex w-full items-center justify-between gap-3 px-2.5 py-1.5 rounded text-left border-0 cursor-pointer transition-colors ${
             i === highlight ? 'bg-[#f1f2ee]' : 'bg-transparent hover:bg-[#faf9f6]'
           }`}
         >
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5">
-              <span className="truncate text-[14px] font-medium" style={{ color: '#0f1412' }}>{c.name}</span>
+              <span className="truncate text-body font-medium text-trs-ink" >{c.name}</span>
               {c.is_employee && (
-                <span className="flex-shrink-0 rounded-[6px] bg-[#f1f2ee] px-1.5 py-px text-[11.5px] font-medium" style={{ color: '#2a332f' }}>Team</span>
+                <span className="flex-shrink-0 rounded bg-[#f1f2ee] px-1.5 py-px text-small font-medium text-trs-ink-2" >Team</span>
               )}
             </span>
-            <span className="block truncate text-[12.5px]" style={{ color: '#4a5550' }}>{c.email}</span>
+            <span className="block truncate text-small text-trs-muted" >{c.email}</span>
           </span>
-          {c.company && <span className="flex-shrink-0 truncate text-[12.5px] max-w-[140px]" style={{ color: '#6f7a74' }}>{c.company}</span>}
+          {c.company && <span className="flex-shrink-0 truncate text-small max-w-[140px] text-trs-subtle" >{c.company}</span>}
         </button>
       ))}
     </div>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty, inputCls } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
+import { Input } from '@/components/ui/input'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { useConfirm } from '@/components/ui/confirm'
 import { CompanySearchSelect } from '@/components/crm/CompanySearchSelect'
@@ -162,8 +163,8 @@ export default function TriagePage() {
           ]} />
         </PageHeader>
 
-        {notice && <p className="mt-4 mb-0 text-[14px]" role="status" style={{ color: MUTED }}>{notice}</p>}
-        {error && <p className="mt-4 mb-0 text-[14px] text-trs-neg" role="alert">{error}</p>}
+        {notice && <p className="mt-4 mb-0 text-body text-trs-muted" role="status" >{notice}</p>}
+        {error && <p className="mt-4 mb-0 text-body text-trs-neg" role="alert">{error}</p>}
 
         {tab === 'domains' && (
           <div className="mt-6">
@@ -283,22 +284,22 @@ function DomainRowView({ row, companies, busy, onDecide }: {
         <RegisterCell first primary={row.domain} secondary={flow} />
         <RegisterCell>
           {row.previews.length > 0
-            ? <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 tabular-nums text-trs-ink">{row.threads}</button>
+            ? <Btn level="tertiary" onClick={() => setOpen(v => !v)} aria-expanded={open} className="h-auto border-0 p-0 font-normal underline underline-offset-4 tabular-nums text-trs-ink hover:bg-transparent">{row.threads}</Btn>
             : <span className="tabular-nums">{row.threads}</span>}
         </RegisterCell>
-        <RegisterCell align="left" title={row.people.join(', ')}>{row.people.slice(0, 2).join(' · ') || <span style={{ color: MUTED }}>Nobody named</span>}</RegisterCell>
-        <RegisterCell align="left" title={row.counterparties.join(', ')}>{row.counterparties.slice(0, 2).join(' · ') || <span style={{ color: MUTED }}>None</span>}</RegisterCell>
+        <RegisterCell align="left" title={row.people.join(', ')}>{row.people.slice(0, 2).join(' · ') || <span className="text-trs-muted">Nobody named</span>}</RegisterCell>
+        <RegisterCell align="left" title={row.counterparties.join(', ')}>{row.counterparties.slice(0, 2).join(' · ') || <span className="text-trs-muted">None</span>}</RegisterCell>
         <RegisterCell align="left" nowrap={false}>
           {s ? (
             <span className="block max-w-[280px]">
-              <span className="flex items-center gap-1.5 flex-wrap"><span className="font-medium">{s.name}</span><Chip>{s.kind}</Chip><span style={{ color: MUTED }}>{Math.round(s.confidence * 100)}%</span></span>
-              {s.evidence && <span className="block text-[12px]" style={{ color: MUTED }}>On the strength of: {s.evidence}</span>}
-              {s.alternative && <span className="block text-[12px]" style={{ color: MUTED }}>Could also be a {s.alternative.kind}: {s.alternative.why}</span>}
+              <span className="flex items-center gap-1.5 flex-wrap"><span className="font-medium">{s.name}</span><Chip>{s.kind}</Chip><span className="text-trs-muted">{Math.round(s.confidence * 100)}%</span></span>
+              {s.evidence && <span className="block text-small text-trs-muted">On the strength of: {s.evidence}</span>}
+              {s.alternative && <span className="block text-small text-trs-muted">Could also be a {s.alternative.kind}: {s.alternative.why}</span>}
             </span>
-          ) : <span style={{ color: MUTED }}>Not read</span>}
+          ) : <span className="text-trs-muted">Not read</span>}
         </RegisterCell>
         <RegisterCell align="left" nowrap={false}>
-          {row.nearest.length === 0 ? <span style={{ color: MUTED }}>None</span> : (
+          {row.nearest.length === 0 ? <span className="text-trs-muted">None</span> : (
             <span className="flex flex-col items-start gap-1">
               {row.nearest.map(n => (
                 <Btn key={n.companyId} size="xs" disabled={busy} onClick={() => onDecide({ decision: 'assign', companyId: n.companyId })} title={`Assign to ${n.name}`}>{n.name} · {Math.round(n.score * 100)}%</Btn>
@@ -313,7 +314,7 @@ function DomainRowView({ row, companies, busy, onDecide }: {
               <Btn size="xs" disabled={!pick || busy} loading={busy} onClick={() => onDecide({ decision: 'assign', companyId: pick })}>Assign</Btn>
             </span>
             <span className="flex gap-2">
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="New company name" aria-label="New company name" className={`${inputCls} flex-1 min-w-0`} />
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="New company name" aria-label="New company name" className="flex-1 min-w-0" />
               <select value={kind} onChange={e => setKind(e.target.value as CompanyKind)} className={`${inputCls} w-auto`} aria-label="Kind">
                 {COMPANY_KINDS.filter(k => k !== 'other').map(k => <option key={k} value={k}>{k}</option>)}
               </select>
@@ -359,7 +360,7 @@ function MisfiledRowView({ group, companies, onDone, onError }: { group: Misfile
     <>
       <RegisterRow>
         <RegisterCell first primary={group.looksLike} secondary={group.match ? `On file: ${group.match.name}` : 'Not on file'} />
-        <RegisterCell><button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 tabular-nums text-trs-ink">{n}</button></RegisterCell>
+        <RegisterCell><Btn level="tertiary" onClick={() => setOpen(v => !v)} aria-expanded={open} className="h-auto border-0 p-0 font-normal underline underline-offset-4 tabular-nums text-trs-ink hover:bg-transparent">{n}</Btn></RegisterCell>
         <RegisterCell align="left">{insurers.join(', ')}</RegisterCell>
         <RegisterCell>{fmtRelative(group.threads[0].lastMessageAt)}</RegisterCell>
         <RegisterCell last nowrap={false}>
@@ -369,7 +370,7 @@ function MisfiledRowView({ group, companies, onDone, onError }: { group: Misfile
               <Btn size="xs" disabled={!pick || busy} loading={busy && !!pick} onClick={() => decideAll({ decision: 'link', companyId: pick })}>Move {n === 1 ? 'it' : `all ${n}`}</Btn>
             </span>
             <span className="flex gap-2">
-              <input value={name} onChange={e => setName(e.target.value)} className={`${inputCls} flex-1 min-w-0`} aria-label="New company name" placeholder="New company name" />
+              <Input value={name} onChange={e => setName(e.target.value)} className="flex-1 min-w-0" aria-label="New company name" placeholder="New company name" />
               <Btn size="xs" disabled={!name.trim() || busy} onClick={() => decideAll({ decision: 'create', name: name.trim() })}>Create and move</Btn>
             </span>
             <Btn size="xs" level="tertiary" className="self-start" disabled={busy} onClick={() => decideAll({ decision: 'not_client' })}>Keep under the insurer</Btn>
@@ -409,11 +410,11 @@ function ThreadRowView({ row, companies, onDone, onError }: { row: ThreadRow; co
       <RegisterCell first identityWidth={320} primary={<Link href={`/engagement?lead=${row.id}`} className="text-trs-ink no-underline hover:underline" title={row.subject ?? undefined}>{row.subject ?? 'No subject'}</Link>}
         secondary={[contactName, row.contacts?.company].filter(Boolean).join(' · ') || 'No contact'} />
       <RegisterCell>{fmtRelative(row.last_message_at)}</RegisterCell>
-      <RegisterCell>{row.category ? <Chip className="capitalize">{row.category}</Chip> : <span style={{ color: MUTED }}>None</span>}</RegisterCell>
+      <RegisterCell>{row.category ? <Chip className="capitalize">{row.category}</Chip> : <span className="text-trs-muted">None</span>}</RegisterCell>
       <RegisterCell>
         {suggested
           ? <span className="inline-flex items-center gap-2"><span className="truncate max-w-[180px]" title={s?.rationale ?? undefined}>{suggested}</span><Btn size="xs" disabled={busy} onClick={() => decide({ decision: 'accept' })}>Accept</Btn></span>
-          : <span style={{ color: MUTED }}>None</span>}
+          : <span className="text-trs-muted">None</span>}
       </RegisterCell>
       <RegisterCell last nowrap={false}>
         <span className="flex gap-2 items-center min-w-[380px]">

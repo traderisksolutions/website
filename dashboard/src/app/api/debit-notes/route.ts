@@ -9,7 +9,6 @@
  *                                         quote request line it finishes.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, storageKeySegment } from '@/lib/debit-note-storage'
 import { driveWebLink } from '@/lib/storage/attachment-bytes'
 import {
@@ -20,13 +19,10 @@ import { closeLineForDebitNote } from '@/lib/placement/workflow'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const sp = req.nextUrl.searchParams
     const filters: string[] = []
     if (sp.get('company_id')) filters.push(`company_id=eq.${sp.get('company_id')}`)
@@ -41,14 +37,10 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const body = await req.json() as {
       company: CompanyInput; contact: ContactInput; policy: PolicyInput; debitNote: DebitNoteInput
       /** Historical backfill: attach a PDF you already have instead of generating one from the
@@ -148,4 +140,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

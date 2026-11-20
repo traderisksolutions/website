@@ -109,22 +109,22 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
 
   const owner = q ? { label: `Proposal V${q.version}`, href: `/eb/proposal/${id}` } : { label: 'Employment Benefits', href: '/eb' }
   const warn = [...(view?.checks ?? []), ...extra].filter(c => c.kind === 'warn')
-  const field = 'grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 border-b border-trs-line py-2 text-[13px] text-trs-muted'
-  const bare = 'h-9 w-full min-w-0 border-0 bg-transparent px-0 text-[14.5px] text-trs-ink outline-none focus-visible:ring-2 focus-visible:ring-[#1f4e3a] rounded-[4px]'
+  const field = 'grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 border-b border-trs-line py-2 text-body text-trs-muted'
+  const bare = 'h-9 w-full min-w-0 border-0 bg-transparent px-0 text-body text-trs-ink outline-none focus-visible:ring-2 focus-visible:ring-[#1f4e3a] rounded'
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-8 pt-8 pb-20 flex flex-col gap-5">
         <Breadcrumbs current={{ label: 'Email to client', href: `/eb/proposal/${id}/email` }} fallback={owner} />
-        {loadError && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{loadError}</p>}
+        {loadError && <p className="m-0 text-body text-trs-neg" role="alert">{loadError}</p>}
         {!view ? (loadError ? null : <Spinner label="Reading the quotation…" />) : q!.sent_at ? (
-          <p className="m-0 text-[14px]">Sent to {q!.sent_to}. <Link href={`/eb/proposal/${id}`} className="underline">Open the proposal</Link></p>
+          <p className="m-0 text-body">Sent to {q!.sent_to}. <Link href={`/eb/proposal/${id}`} className="underline">Open the proposal</Link></p>
         ) : unmarked ? (
           <MarkSent id={id} onDone={() => { setUnmarked(false); void reload(); router.push(q?.company_id ? `/companies/${q.company_id}?tab=working&sent=proposal` : `/eb/proposal/${id}`) }} />
         ) : <>
           <PageHeader title="Email to client" meta={`${q!.company_name} · Proposal V${q!.version} attached · ${draft?.threadId ? 'reply on the client’s thread' : 'new email'}`} />
           {needTo && (
             <div className="flex flex-wrap items-end gap-2 max-w-[560px]">
-              <label className="flex-1 min-w-[240px] flex flex-col gap-1 text-[13px] text-trs-muted">The quotation has no client thread. Client’s email address
+              <label className="flex-1 min-w-[240px] flex flex-col gap-1 text-body text-trs-muted">The quotation has no client thread. Client’s email address
                 <input className={inputCls} value={to} onChange={e => setTo(e.target.value)} type="email" />
               </label>
               <Btn level="primary" loading={busy === 'draft'} disabled={!EMAIL.test(to.trim())} onClick={() => void prepare(to.trim())}>Prepare email</Btn>
@@ -144,20 +144,20 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
                   <RichEditor initialHtml={draft.html} onChange={setHtml} minHeight={360} borderless />
                 </div>
                 <div className="flex items-center gap-3 border-b border-trs-line py-3">
-                  <span className="inline-flex h-10 w-8 items-end justify-center rounded-[4px] border border-trs-line-2 pb-1 text-[9px] font-medium text-trs-neg" aria-hidden>PDF</span>
-                  <span className="min-w-0"><span className="block text-[14px] font-medium break-words">{draft.attachment.filename}</span><span className="block text-[12.5px] text-trs-muted">PDF</span></span>
+                  <span className="inline-flex h-10 w-8 items-end justify-center rounded border border-trs-line-2 pb-1 text-small font-medium text-trs-neg" aria-hidden>PDF</span>
+                  <span className="min-w-0"><span className="block text-body font-medium break-words">{draft.attachment.filename}</span><span className="block text-small text-trs-muted">PDF</span></span>
                 </div>
               </div>
               <div className="lg:sticky lg:top-4 flex flex-col gap-2 min-w-0">
-                <span className="text-[12.5px] text-trs-muted">Attachment preview</span>
+                <span className="text-small text-trs-muted">Attachment preview</span>
                 <PdfPreview id={id} height={760} />
               </div>
             </div>
           )}
           {draft && <Checks checks={view.checks} extra={extra} />}
           {draft && <CommissionCheck attachments={attachments} onChange={setCommission} context={{ resource_type: 'eb_quotation', resource_id: id }} />}
-          {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-          {notice && <p className="m-0 text-[13.5px] text-trs-pos" role="status">{notice}</p>}
+          {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
+          {notice && <p className="m-0 text-body text-trs-pos" role="status">{notice}</p>}
           {draft && (
             <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
               <Btn loading={busy === 'save'} disabled={!!busy} onClick={() => void save()}>Save draft</Btn>

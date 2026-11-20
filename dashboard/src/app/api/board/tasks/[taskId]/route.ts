@@ -3,19 +3,16 @@
  * DELETE /api/board/tasks/[taskId]
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
-import { currentUserEmail }          from '@/lib/crm/auth'
 import { logActivity }               from '@/lib/log-activity'
 import { updateTask, removeTask, taskCompany, companyNameOf, staffName } from '@/lib/crm/board'
 import { listStaff }                 from '@/lib/crm/staff'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ taskId: string }> }, { user }) => {
   const { taskId } = await params
   try {
     const body = await req.json().catch(() => ({})) as Record<string, unknown>
-    const by = await currentUserEmail()
+    const by = user?.email.toLowerCase() ?? null
     const patch: Parameters<typeof updateTask>[1] = {}
     if (typeof body.title === 'string') patch.title = body.title
     if ('note' in body) patch.note = typeof body.note === 'string' ? body.note : null
@@ -36,11 +33,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ta
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const DELETE = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) => {
   const { taskId } = await params
   try {
     const info = await taskCompany(taskId)
@@ -50,4 +45,4 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ t
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { staffUser } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
@@ -23,8 +23,7 @@ const sbH = (prefer?: string) => {
 
 async function guard(table: string) {
   if (!ALLOWED.has(table)) return NextResponse.json({ error: 'table not permitted' }, { status: 403 })
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+  if (!(await staffUser())) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   return null
 }
 

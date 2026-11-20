@@ -15,11 +15,11 @@ const kindOf = (name: string) => (name.match(/\.([a-z0-9]+)$/i)?.[1] ?? 'file').
 
 export function FileRow({ name, meta, children }: { name: string; meta?: React.ReactNode; children?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 border-b border-trs-line py-2 text-sm">
-      <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded-md bg-trs-field text-xs font-bold text-trs-ink-2">{kindOf(name)}</span>
+    <div className="flex items-center gap-2.5 border-b border-trs-line py-2 text-body">
+      <span aria-hidden className="grid h-9 w-8 flex-none place-items-center rounded bg-trs-field text-small font-semibold text-trs-ink-2">{kindOf(name)}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate font-medium text-trs-ink">{name}</span>
-        {meta && <span className="block text-xs text-trs-muted">{meta}</span>}
+        {meta && <span className="block text-small text-trs-muted">{meta}</span>}
       </span>
       {children && <span className="flex flex-none items-center gap-1.5">{children}</span>}
     </div>
@@ -35,14 +35,14 @@ export function DocColumn({ id, title, add, added, found, company, onAddFound, i
 }) {
   return (
     <section className="flex min-w-0 flex-col" aria-labelledby={`${id}-h`}>
-      <h3 id={`${id}-h`} className="m-0 mb-2 text-center text-base font-semibold">{title}</h3>
+      <h3 id={`${id}-h`} className="m-0 mb-2 text-center text-body font-semibold">{title}</h3>
       <AddBox id={`${id}-add`} {...add} />
       <div className="mt-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-trs-muted">Added</div>
-        {added.length ? added : <div className="py-2 text-sm text-trs-muted">None yet</div>}
+        <div className="text-small font-semibold text-trs-muted">Added</div>
+        {added.length ? added : <div className="py-2 text-body text-trs-muted">None yet</div>}
       </div>
       <div className="mt-3.5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-trs-muted">{company ? `From ${company}’s email` : 'From the thread’s email'}</div>
+        <div className="text-small font-semibold text-trs-muted">{company ? `From ${company}’s email` : 'From the thread’s email'}</div>
         {found.length ? found.map(f => {
           const on = isAdded(f)
           return (
@@ -50,7 +50,7 @@ export function DocColumn({ id, title, add, added, found, company, onAddFound, i
               <Btn size="xs" aria-pressed={on} loading={busyId === f.attachment_id} disabled={on || busyId === f.attachment_id} onClick={() => onAddFound(f)}>{on ? 'Added' : 'Add'}</Btn>
             </FileRow>
           )
-        }) : <div className="py-2 text-sm text-trs-muted">None found in filed threads</div>}
+        }) : <div className="py-2 text-body text-trs-muted">None found in filed threads</div>}
       </div>
     </section>
   )

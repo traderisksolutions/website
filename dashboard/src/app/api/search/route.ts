@@ -8,7 +8,7 @@
  * &open=1 lists only threads the viewer may open.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { searchThreads } from '@/lib/search/thread-search-server'
 

@@ -27,7 +27,7 @@ const STATUS: Record<Row['status'], { label: string; color: string }> = {
   not_read: { label: 'Not read', color: '#4a5550' },
 }
 const KIND: Record<string, string> = { calculator: 'Calculator', brochure: 'Brochure', workbook: 'TRS workbook', other: 'Other' }
-const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
+const CHIP = 'inline-flex items-center rounded bg-[#f1f2ee] text-small font-medium px-2 py-0.5 whitespace-nowrap'
 
 const day = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 const size = (b: number | null) => b == null ? '—' : b > 1_048_576 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`
@@ -52,10 +52,10 @@ export function SourceFilesTab() {
     return c
   }, [d])
 
-  if (!d) return <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Reading the source folder…</p>
+  if (!d) return <p className="m-0 py-10 text-center text-body text-trs-muted" >Reading the source folder…</p>
   if (!d.configured) {
     return (
-      <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>
+      <p className="m-0 py-16 text-center text-body text-trs-muted" >
         The source folder is not connected. Add GOOGLE_TRS_DRIVE_SA_JSON and GOOGLE_TRS_DRIVE_FOLDER_ID to the deployment.
       </p>
     )
@@ -64,27 +64,27 @@ export function SourceFilesTab() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-[13.5px] tabular-nums" style={{ color: '#4a5550' }}>
+        <p className="m-0 text-body tabular-nums text-trs-muted" >
           {d.files.length} files · {counts.in_use} in use · {counts.changed} changed · {counts.not_read} not read
         </p>
         <div className="flex items-center gap-2">
           {d.folderId && (
             <a href={`https://drive.google.com/drive/folders/${d.folderId}`} target="_blank" rel="noopener noreferrer"
-               className="h-9 px-4 rounded-[7px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6]" style={{ color: '#0f1412' }}>
+               className="h-9 px-4 rounded bg-white text-body border border-[#d5d9d4] inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6] text-trs-ink" >
               <ExternalLink size={14} /> Open folder
             </a>
           )}
           <button type="button" onClick={load} disabled={busy}
-                  className="h-9 px-4 rounded-[7px] bg-white text-[14px] border border-[#d5d9d4] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50" style={{ color: '#0f1412' }}>
+                  className="h-9 px-4 rounded bg-white text-body border border-[#d5d9d4] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink" >
             {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
           </button>
         </div>
       </div>
 
-      {d.error && <p className="m-0 text-[13.5px]" style={{ color: '#a1242f' }}>{d.error}</p>}
+      {d.error && <p className="m-0 text-body text-trs-neg" >{d.error}</p>}
 
       {d.files.length === 0 ? (
-        <p className="m-0 py-16 text-center text-[15px]" style={{ color: '#4a5550' }}>
+        <p className="m-0 py-16 text-center text-body text-trs-muted" >
           The folder is empty. Add each insurer&rsquo;s calculator and brochure under insurer / plan year.
         </p>
       ) : (
@@ -102,19 +102,19 @@ export function SourceFilesTab() {
               <RegisterRow key={f.driveFileId}>
                 <RegisterCell first nowrap={false} identityWidth={300}>
                   {f.webViewLink
-                    ? <a href={f.webViewLink} target="_blank" rel="noopener noreferrer" className="block text-[14.5px] font-medium leading-tight no-underline hover:underline break-words" style={{ color: '#0f1412' }}>{f.filename}</a>
-                    : <span className="block text-[14.5px] font-medium leading-tight break-words" style={{ color: '#0f1412' }}>{f.filename}</span>}
-                  <span className="block text-[12.5px] mt-0.5" style={{ color: '#4a5550' }}>{KIND[f.kind] ?? f.kind} · {size(f.bytes)}</span>
+                    ? <a href={f.webViewLink} target="_blank" rel="noopener noreferrer" className="block text-body font-medium leading-tight no-underline hover:underline break-words text-trs-ink" >{f.filename}</a>
+                    : <span className="block text-body font-medium leading-tight break-words text-trs-ink" >{f.filename}</span>}
+                  <span className="block text-small mt-0.5 text-trs-muted" >{KIND[f.kind] ?? f.kind} · {size(f.bytes)}</span>
                 </RegisterCell>
-                <RegisterCell align="left"><span className="text-[14px]" style={{ color: '#2a332f' }}>{f.insurer}</span></RegisterCell>
-                <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: '#2a332f' }}>{f.planYear ?? '—'}</span></RegisterCell>
+                <RegisterCell align="left"><span className="text-body text-trs-ink-2" >{f.insurer}</span></RegisterCell>
+                <RegisterCell><span className="text-body tabular-nums text-trs-ink-2" >{f.planYear ?? '—'}</span></RegisterCell>
                 <RegisterCell><span className={CHIP} style={{ color: STATUS[f.status].color }}>{STATUS[f.status].label}</span></RegisterCell>
                 <RegisterCell align="left">
                   {f.rateTables.length
-                    ? f.rateTables.map(t => <a key={t.id} href={`/pricing-matrix/${t.id}`} className="block text-[13.5px] no-underline hover:underline" style={{ color: '#0f1412' }}>{t.insurerName ?? 'Rate table'}</a>)
-                    : <span style={{ color: '#8c958f' }}>—</span>}
+                    ? f.rateTables.map(t => <a key={t.id} href={`/eb/rates/${t.id}`} className="block text-body no-underline hover:underline text-trs-ink" >{t.insurerName ?? 'Rate table'}</a>)
+                    : <span className="text-trs-subtle">—</span>}
                 </RegisterCell>
-                <RegisterCell last align="right"><span className="text-[13.5px] tabular-nums" style={{ color: '#4a5550' }}>{day(f.modifiedAt)}</span></RegisterCell>
+                <RegisterCell last align="right"><span className="text-body tabular-nums text-trs-muted" >{day(f.modifiedAt)}</span></RegisterCell>
               </RegisterRow>
             ))}
           </tbody>

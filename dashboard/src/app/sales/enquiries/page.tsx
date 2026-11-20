@@ -11,9 +11,6 @@ import { EnquiryDrawer } from '@/components/sales/EnquiryDrawer'
 import { PRODUCT_LABEL, answerLabel } from '@/lib/intake/labels'
 import { bookingLabel, fmtWhen } from '@/lib/intake/format'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 type Site = { id: string; key: string; name: string; domain: string }
 type Row = {
   id: string; status: string; company_name: string | null; contact_name: string | null; email: string | null; phone: string | null
@@ -87,9 +84,9 @@ function Enquiries() {
   return (
     <AppSplitLayout className="bg-white">
       <AppMainPanel className="bg-white">
-        <div className="flex-shrink-0 px-6 sm:px-12 pt-10" style={{ color: INK }}>
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Enquiries</h1>
-          <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+        <div className="flex-shrink-0 px-6 sm:px-12 pt-10 text-trs-ink">
+          <h1 className="m-0 text-title font-medium leading-[1.08]">Enquiries</h1>
+          <p className="m-0 mt-2 text-body text-trs-muted">
             {!siteCounts ? 'Loading…' : <>{siteName} · {siteCounts.total} submission{siteCounts.total === 1 ? '' : 's'} · {siteCounts.open} new</>}
           </p>
 
@@ -98,10 +95,10 @@ function Enquiries() {
               options={(data?.sites ?? [{ key: 'corpcover', name: 'Corp Cover' } as Site]).map(s => ({ value: s.key, label: s.name, count: counts?.[s.key]?.total }))} />
           </div>
 
-          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
+          <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap border-b border-trs-line">
             <label className="inline-flex">
               <span className="sr-only">Status</span>
-              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', status !== 'all' && 'border-[#0f1412] font-medium')}>
+              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-body pr-8', status !== 'all' && 'border-trs-ink font-medium')}>
                 {STATUS_FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
@@ -109,8 +106,8 @@ function Enquiries() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16" style={{ color: INK }}>
-          {error && <p className="m-0 mb-4 text-[14px]" role="alert">{error}</p>}
+        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16 text-trs-ink">
+          {error && <p className="m-0 mb-4 text-body" role="alert">{error}</p>}
           <Register label={`${siteName} enquiries`} minWidth={1080} className={cn(loading && 'opacity-60')}>
             <RegisterHead>
               <RegisterTh first hint="Company and the person who filled the form">Company</RegisterTh>
@@ -132,15 +129,15 @@ function Enquiries() {
                 return (
                   <RegisterRow key={r.id} selected={on} onClick={() => go({ id: on ? null : r.id })}>
                     <RegisterCell first selected={on} identityWidth={240}
-                      primary={r.company_name ?? <span style={{ color: MUTED }}>No company yet</span>}
+                      primary={r.company_name ?? <span className="text-trs-muted">No company yet</span>}
                       secondary={r.contact_name ?? '–'} />
-                    <RegisterCell align="left" primary={r.email ?? <span style={{ color: MUTED }}>–</span>} secondary={r.phone ?? undefined} />
+                    <RegisterCell align="left" primary={r.email ?? <span className="text-trs-muted">–</span>} secondary={r.phone ?? undefined} />
                     <RegisterCell primary={r.industry ? answerLabel('industry', r.industry) : '–'} />
                     <RegisterCell align="left" primary={cover.length ? <span className="block max-w-[260px] truncate" title={cover.join(', ')}>{cover.join(', ')}</span> : '–'}
                       secondary={r.flags?.length ? `${r.flags.length} flag${r.flags.length === 1 ? '' : 's'} for the adviser` : undefined} />
                     <RegisterCell primary={bookingLabel(r.booking) ?? '–'} secondary={r.booking?.format ? (r.booking.format === 'whatsapp' ? 'WhatsApp call' : 'Google Meet') : undefined} />
                     <RegisterCell primary={STATUS_LABEL[r.status] ?? r.status} />
-                    <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{fmtWhen(r.submitted_at ?? r.updated_at)}</span></RegisterCell>
+                    <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{fmtWhen(r.submitted_at ?? r.updated_at)}</span></RegisterCell>
                   </RegisterRow>
                 )
               })}
@@ -159,10 +156,10 @@ function SkeletonRows() {
   return (
     <>
       {Array.from({ length: 6 }).map((_, i) => (
-        <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}>
+        <tr key={i} className="border-b border-trs-line">
           {[55, 50, 30, 50, 35, 20, 20].map((w, j) => (
             <td key={j} className={cn('px-3 h-14', j === 0 && 'pl-6', j === 6 && 'pr-5')}>
-              <div className="h-3.5 rounded bg-[#f1f2ee] animate-pulse" style={{ width: `${w}%` }} />
+              <div className="h-3.5 rounded bg-trs-field animate-pulse" style={{ width: `${w}%` /* drift-ok: placeholder width per column */ }} />
             </td>
           ))}
         </tr>

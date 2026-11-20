@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn, inputCls } from '@/components/crm/primitives'
 import type { TeamUser } from '@/app/api/users/route'
 import { PersonTag } from '@/components/board/TodoEditor'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
@@ -20,9 +21,6 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
  * track it when we do not.
  */
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const RULE = '#e6e8e4'
 const ROLE_LABEL: Record<TeamUser['role'], string> = { administrator: 'Administrator', staff: 'Staff' }
 const ACCESS_LABEL = (active: boolean) => (active ? 'Active' : 'No access')
 
@@ -74,21 +72,21 @@ export function TeamTable() {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <p className="m-0 text-[14px]" style={{ color: MUTED }}>{err ? '' : users ? `${users.length} ${users.length === 1 ? 'person' : 'people'} · ${users.filter(u => u.role === 'administrator').length} administrator${users.filter(u => u.role === 'administrator').length === 1 ? '' : 's'}` : 'Loading…'}</p>
-        {isAdmin && !adding && <button type="button" onClick={() => setAdding(true)} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer inline-flex items-center gap-1.5" style={{ background: '#132c1c' }}><Plus size={15} /> Add person</button>}
+        <p className="m-0 text-body text-trs-muted">{err ? '' : users ? `${users.length} ${users.length === 1 ? 'person' : 'people'} · ${users.filter(u => u.role === 'administrator').length} administrator${users.filter(u => u.role === 'administrator').length === 1 ? '' : 's'}` : 'Loading…'}</p>
+        {isAdmin && !adding && <Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add person</Btn>}
       </div>
 
       {adding && (
-        <div className="mb-4 rounded-[14px] p-4 flex items-end gap-3 flex-wrap" style={{ background: '#F5F5F3' }}>
-          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[200px]" style={{ color: MUTED }}>Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-9 rounded-[7px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
-          <label className="flex flex-col gap-1 text-[12.5px] flex-1 min-w-[160px]" style={{ color: MUTED }}>Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-9 rounded-[7px] border bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4', color: INK }} /></label>
-          <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-50" style={{ background: '#132c1c' }}>{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
-          <button type="button" onClick={() => setAdding(false)} className="h-9 px-3 rounded-[7px] text-[14px] bg-transparent border-0 cursor-pointer" style={{ color: MUTED }}>Cancel</button>
+        <div className="mb-4 rounded p-4 flex items-end gap-3 flex-wrap bg-trs-canvas">
+          <label className="flex flex-col gap-1 text-small flex-1 min-w-[200px] text-trs-muted">Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className={inputCls} onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
+          <label className="flex flex-col gap-1 text-small flex-1 min-w-[160px] text-trs-muted">Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className={inputCls} /></label>
+          <Btn level="primary" onClick={() => void add()} disabled={busy === 'add' || !email.trim()}>{busy === 'add' ? 'Adding…' : 'Add to roster'}</Btn>
+          <Btn level="tertiary" onClick={() => setAdding(false)}>Cancel</Btn>
         </div>
       )}
 
-      {notice && <p className="m-0 mb-3 text-[13.5px] inline-flex items-center gap-3" style={{ color: MUTED }} role="status">{notice} <button type="button" onClick={() => setNotice(null)} className="underline underline-offset-4 bg-transparent border-0 p-0 cursor-pointer" style={{ color: INK }}>Dismiss</button></p>}
-      {err && <p className="m-0 mb-3 text-[13.5px]" style={{ color: MUTED }}>{err}</p>}
+      {notice && <p className="m-0 mb-3 text-body inline-flex items-center gap-3 text-trs-muted" role="status">{notice} <Btn level="tertiary" onClick={() => setNotice(null)} className="h-auto p-0 border-0 font-normal underline underline-offset-4 text-trs-ink hover:bg-transparent">Dismiss</Btn></p>}
+      {err && <p className="m-0 mb-3 text-body text-trs-muted">{err}</p>}
 
       <Register label="Team" minWidth={720}>
         <RegisterHead>
@@ -107,27 +105,27 @@ export function TeamTable() {
                 <span className="flex items-center gap-3">
                   <PersonTag email={u.email} staff={staffMap} size="md" />
                   <span className="min-w-0">
-                    <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }}>{u.name}{u.isSelf && <span className="ml-1.5 text-[12px] font-normal" style={{ color: MUTED }}>(you)</span>}</span>
-                    <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{u.email}</span>
+                    <span className="block text-body font-medium leading-tight truncate text-trs-ink">{u.name}{u.isSelf && <span className="ml-1.5 text-small font-normal text-trs-muted">(you)</span>}</span>
+                    <span className="block text-small mt-0.5 truncate text-trs-muted">{u.email}</span>
                   </span>
                 </span>
               </RegisterCell>
               <RegisterCell>
                 {isAdmin && !u.isSelf
-                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded-[7px] border bg-white px-2.5 text-[13.5px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
+                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded border bg-white px-2.5 text-body cursor-pointer border-trs-line-2 text-trs-ink">
                       {(['administrator', 'staff'] as const).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                     </select>
-                  : <span className="text-[14px]" style={{ color: INK }} title={u.isSelf ? 'You cannot change your own role. Ask another administrator.' : undefined}>{ROLE_LABEL[u.role]}</span>}
+                  : <span className="text-body text-trs-ink" title={u.isSelf ? 'You cannot change your own role. Ask another administrator.' : undefined}>{ROLE_LABEL[u.role]}</span>}
               </RegisterCell>
-              <RegisterCell><span className="text-[14px]" style={{ color: u.active ? '#2a332f' : '#a1242f' }}>{ACCESS_LABEL(u.active)}</span></RegisterCell>
-              <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: INK }}>{when(u.joinedAt)}</span></RegisterCell>
+              <RegisterCell><span className={u.active ? 'text-body text-trs-ink-2' : 'text-body text-trs-neg'}>{ACCESS_LABEL(u.active)}</span></RegisterCell>
+              <RegisterCell align="right"><span className="text-body tabular-nums text-trs-ink">{when(u.joinedAt)}</span></RegisterCell>
               <RegisterCell last align="right">
                 {isAdmin && !u.isSelf && (
                   <span className="relative inline-block">
-                    <button type="button" onClick={() => setMenu(menu === u.id ? null : u.id)} aria-label={`Actions for ${u.name}`} aria-expanded={menu === u.id} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><MoreHorizontal size={16} /></button>
+                    <Btn level="tertiary" size="xs" onClick={() => setMenu(menu === u.id ? null : u.id)} aria-label={`Actions for ${u.name}`} aria-expanded={menu === u.id} className="w-8 h-8 p-0 rounded-full border-0 hover:bg-trs-field"><MoreHorizontal size={16} /></Btn>
                     {menu === u.id && (
-                      <span className="absolute right-0 top-full mt-1 w-44 rounded-[12px] bg-white p-1.5 z-10 text-left" style={{ border: `1px solid ${RULE}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
-                        <button type="button" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full text-left px-3 py-2 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]" style={{ color: INK }}>{u.active ? 'Remove access' : 'Restore access'}</button>
+                      <span className="absolute right-0 top-full mt-1 w-44 rounded bg-white p-1.5 z-10 text-left border border-trs-line shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+                        <Btn level="tertiary" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full h-auto justify-start text-left px-3 py-2 border-0 font-normal text-trs-ink hover:bg-trs-tint hover:text-trs-ink">{u.active ? 'Remove access' : 'Restore access'}</Btn>
                       </span>
                     )}
                   </span>
@@ -137,7 +135,7 @@ export function TeamTable() {
           ))}
         </tbody>
       </Register>
-      {!isAdmin && users && <p className="m-0 mt-3 text-[12.5px]" style={{ color: MUTED }}>Roles and the roster are managed by an administrator.</p>}
+      {!isAdmin && users && <p className="m-0 mt-3 text-small text-trs-muted">Roles and the roster are managed by an administrator.</p>}
     </div>
   )
 }

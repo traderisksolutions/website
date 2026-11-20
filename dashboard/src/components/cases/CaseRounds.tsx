@@ -18,7 +18,8 @@ import type { StageTone } from '@/lib/crm/types'
 import type { ChainState, RoundMove, Step, Writer } from '@/lib/cases/rounds'
 import type { CaseRoundsView } from '@/lib/cases/rounds-store'
 import type { StepDrafted, StepsRun } from '@/lib/cases/rounds-draft'
-import { count, headingCls, subjectBtn, tableFrame } from './shared'
+import { count, headingCls, subjectBtn } from './shared'
+import { Register } from '@/components/ui/register'
 
 const STATE_TONE: Record<ChainState, StageTone> = { to_ask: 'amber', asked: 'neutral', heard: 'neutral', replied: 'amber', sent: 'green', declined: 'red' }
 const OUTSIDE: Writer[] = ['client', 'insurer']
@@ -47,7 +48,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
     load().then(setView).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!view) return <Spinner label="Loading rounds…" />
 
   async function draft(s: Step) {
@@ -115,22 +116,20 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
           <Btn level="primary" disabled={busy !== null || toDraft === 0 || !!view.item.closed_at} loading={busy === 'run'} onClick={() => void run()}>{toDraft ? `Run · ${count(toDraft, 'draft')}` : 'Run'}</Btn>
         </div>
         {steps.length === 0 ? <Empty compact>Nothing is waiting to be passed on.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 680 }} aria-label="Next steps">
-              <colgroup><col /><col style={{ width: 120 }} /><col style={{ width: 132 }} /><col style={{ width: 124 }} /></colgroup>
+          <Register label="Next steps" minWidth={680} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col /><col className="w-[120px]" /><col className="w-[132px]" /><col className="w-[124px]" /></colgroup>
               <thead><tr><th>Step</th><th>Since</th><th>Drafted by</th><th><span className="sr-only">Action</span></th></tr></thead>
               <tbody>
                 {steps.map(s => (
                   <tr key={s.id} className="align-top">
-                    <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{s.text}{s.count > 1 ? ` · ${count(s.count, 'email')}` : ''}</td>
+                    <td className="cell-left px-3 py-2 text-body leading-[1.5] break-words">{s.text}{s.count > 1 ? ` · ${count(s.count, 'email')}` : ''}</td>
                     <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDay(s.since)}</td>
                     <td className="cell-left px-3 py-2 whitespace-nowrap">{s.agent ?? <span className="text-trs-muted">{DASH}</span>}</td>
                     <td className="px-2 py-1.5 whitespace-nowrap">{action(s)}</td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
       </div>
 
@@ -142,9 +141,8 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
             : rounds.length > 1 && <Segmented<string> value={String(shown.n)} onChange={v => setRound(Number(v))} label="Round" options={options} />}
         </div>
         {shown.chains.length > 0 && (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 680 }} aria-label={`Round ${shown.n} insurers`}>
-              <colgroup><col /><col style={{ width: 120 }} /><col style={{ width: 170 }} /><col style={{ width: 130 }} /><col style={{ width: 150 }} /></colgroup>
+          <Register label={`Round ${shown.n} insurers`} minWidth={680} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col /><col className="w-[120px]" /><col className="w-[170px]" /><col className="w-[130px]" /><col className="w-[150px]" /></colgroup>
               <thead><tr><th>Insurer</th><th>Asked</th><th>Replied</th><th>Sent to client</th><th>State</th></tr></thead>
               <tbody>
                 {shown.chains.map(c => (
@@ -157,13 +155,11 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
         {shown.moves.length === 0 ? <Empty compact>No emails in this round.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 900 }} aria-label={`Round ${shown.n} emails`}>
-              <colgroup><col style={{ width: 108 }} /><col style={{ width: 170 }} /><col style={{ width: 130 }} /><col style={{ width: 168 }} /><col /><col style={{ width: '15%' }} /></colgroup>
+          <Register label={`Round ${shown.n} emails`} minWidth={900} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col className="w-[108px]" /><col className="w-[170px]" /><col className="w-[130px]" /><col className="w-[168px]" /><col /><col className="w-[15%]" /></colgroup>
               <thead><tr><th>Date</th><th>From</th><th>Insurer</th><th>Type</th><th>Message</th><th>Files</th></tr></thead>
               <tbody>
                 {shown.moves.map(m => (
@@ -171,26 +167,25 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
                     <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDayTime(m.at)}</td>
                     <td className="cell-left px-3 py-2">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-[13px] text-trs-ink [overflow-wrap:anywhere]">{m.name}</span>
+                        <span className="text-body text-trs-ink [overflow-wrap:anywhere]">{m.name}</span>
                         {m.via && <Chip tone="blue">{m.via === 'referral' ? 'Referral' : `via ${m.via}`}</Chip>}
                       </span>
                     </td>
-                    <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{m.insurer ?? <span className="text-trs-muted">{DASH}</span>}</td>
+                    <td className="cell-left px-3 py-2 text-body [overflow-wrap:anywhere]">{m.insurer ?? <span className="text-trs-muted">{DASH}</span>}</td>
                     <td className="px-2 py-1.5">{type(m)}</td>
                     <td className="cell-left px-3 py-2">
-                      {m.private ? <span className="text-[13px] text-trs-muted">In a colleague&apos;s mailbox</span> : (
+                      {m.private ? <span className="text-body text-trs-muted">In a colleague&apos;s mailbox</span> : (
                         <button type="button" onClick={() => onOpenThread(m.thread_id)} title="Open the email thread"
-                          className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] leading-[1.5] text-trs-ink whitespace-pre-line break-words">
+                          className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-body leading-[1.5] text-trs-ink whitespace-pre-line break-words">
                           {dense(m.text) || <span className="text-trs-muted">No text</span>}
                         </button>
                       )}
                     </td>
-                    <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
+                    <td className="cell-left px-3 py-2 text-body leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
       </div>
     </section>

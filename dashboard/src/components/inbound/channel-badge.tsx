@@ -5,18 +5,17 @@ interface ChannelBadgeProps {
 }
 
 // A category chip, not a state: one neutral fill, the channel name carries the meaning.
-const CHIP = 'inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 whitespace-nowrap'
-const STYLE = { background: '#f1f2ee', color: '#2a332f' } as const
+const CHIP = 'inline-flex items-center rounded px-2 py-0.5 text-small font-medium leading-4 whitespace-nowrap bg-trs-field text-trs-ink-2'
 
 export function ChannelBadge({ source }: ChannelBadgeProps) {
   if (WA_SOURCES.has(source)) {
-    return <span aria-label="WhatsApp lead" className={CHIP} style={STYLE}>WhatsApp</span>
+    return <span aria-label="WhatsApp lead" className={CHIP}>WhatsApp</span>
   }
   if (source === 'website_form') {
-    return <span aria-label="Website form lead" className={CHIP} style={STYLE}>Website</span>
+    return <span aria-label="Website form lead" className={CHIP}>Website</span>
   }
   if (source === 'manual') {
-    return <span aria-label="Manually added lead" className={CHIP} style={STYLE}>Manual</span>
+    return <span aria-label="Manually added lead" className={CHIP}>Manual</span>
   }
-  return <span aria-label="Email lead" className={CHIP} style={STYLE}>Email</span>
+  return <span aria-label="Email lead" className={CHIP}>Email</span>
 }

@@ -47,7 +47,7 @@ export function TopNavbar() {
       <div className="flex h-full items-center gap-1 px-4 md:px-6 min-w-0">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
-            <button type="button" className="min-[980px]:hidden -ml-1 mr-1 inline-flex items-center justify-center w-9 h-9 rounded-[8px] bg-transparent border-0 cursor-pointer text-trs-ink hover:bg-trs-canvas" aria-label="Open navigation">
+            <button type="button" className="min-[980px]:hidden -ml-1 mr-1 inline-flex items-center justify-center w-9 h-9 rounded bg-transparent border-0 cursor-pointer text-trs-ink hover:bg-trs-canvas" aria-label="Open navigation">
               <Menu className="h-5 w-5" />
             </button>
           </SheetTrigger>
@@ -60,14 +60,14 @@ export function TopNavbar() {
                 return (
                   <div key={place.label} className="py-0.5">
                     <Link href={place.href} aria-current={on ? 'page' : undefined}
-                      className={cn('flex items-center gap-2.5 h-9 px-2.5 rounded-[8px] text-[14px] font-medium no-underline', on ? 'bg-trs-select-bg text-trs-select-fg' : 'text-trs-ink-2 hover:bg-trs-canvas')}>
+                      className={cn('flex items-center gap-2.5 h-9 px-2.5 rounded text-body font-medium no-underline', on ? 'bg-trs-select-bg text-trs-select-fg' : 'text-trs-ink-2 hover:bg-trs-canvas')}>
                       <Icon className="h-4 w-4" />{place.label}
                     </Link>
                     {on && place.tabs.length > 1 && (
                       <div className="pl-7 py-0.5">
                         {place.tabs.map(t => (
                           <Link key={t.href} href={t.href} aria-current={pathMatches(pathname, t.href) ? 'page' : undefined}
-                            className={cn('flex items-center h-[30px] px-2.5 rounded-[7px] text-[13px] no-underline', pathMatches(pathname, t.href) ? 'text-trs-ink font-medium bg-trs-field' : 'text-trs-muted hover:bg-trs-canvas')}>
+                            className={cn('flex items-center h-[30px] px-2.5 rounded text-body no-underline', pathMatches(pathname, t.href) ? 'text-trs-ink font-medium bg-trs-field' : 'text-trs-muted hover:bg-trs-canvas')}>
                             {t.title}
                           </Link>
                         ))}
@@ -78,16 +78,16 @@ export function TopNavbar() {
               })}
               <div className="mt-2 pt-2 border-t border-trs-line">
                 {ACCOUNT_LINKS.map(l => (
-                  <Link key={l.href} href={l.href} className="flex items-center gap-2.5 h-9 px-2.5 rounded-[8px] text-[13.5px] no-underline text-trs-muted hover:bg-trs-canvas">
+                  <Link key={l.href} href={l.href} className="flex items-center gap-2.5 h-9 px-2.5 rounded text-body no-underline text-trs-muted hover:bg-trs-canvas">
                     <l.icon className="h-4 w-4" />{l.title}
                   </Link>
                 ))}
               </div>
             </nav>
             <div className="flex items-center gap-2.5 px-4 py-3 border-t border-trs-line flex-shrink-0">
-              <span className="w-7 h-7 rounded-full bg-trs-green text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0">{userEmail ? userEmail[0].toUpperCase() : '?'}</span>
-              <span className="text-[12px] flex-1 truncate text-trs-muted">{userEmail ?? '—'}</span>
-              <button type="button" onClick={signOut} title="Sign out" aria-label="Sign out" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-[7px] border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink"><LogOut size={14} /></button>
+              <span className="w-7 h-7 rounded-full bg-trs-green text-white flex items-center justify-center text-small font-semibold flex-shrink-0">{userEmail ? userEmail[0].toUpperCase() : '?'}</span>
+              <span className="text-small flex-1 truncate text-trs-muted">{userEmail ?? '—'}</span>
+              <button type="button" onClick={signOut} title="Sign out" aria-label="Sign out" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink"><LogOut size={14} /></button>
             </div>
           </SheetContent>
         </Sheet>
@@ -106,10 +106,10 @@ export function TopNavbar() {
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0 pl-2">
           <button type="button" onClick={() => setJumpOpen(true)} aria-label="Go to a page or find an email"
-            className="inline-flex items-center gap-2 h-[30px] px-2.5 rounded-[7px] border border-trs-line-2 bg-white cursor-pointer text-[13px] text-trs-muted hover:border-trs-ink-2">
+            className="inline-flex items-center gap-2 h-[30px] px-2.5 rounded border border-trs-line-2 bg-white cursor-pointer text-body text-trs-muted hover:border-trs-ink-2">
             <Search className="h-3.5 w-3.5" />
             <span className="hidden min-[1180px]:inline">Go to</span>
-            <kbd className="hidden min-[1180px]:inline font-mono text-[11px] text-trs-subtle">⌘K</kbd>
+            <kbd className="hidden min-[1180px]:inline font-mono text-small text-trs-subtle">⌘K</kbd>
           </button>
           <AccountMenu email={userEmail} pathname={pathname} onSignOut={signOut} />
         </div>
@@ -174,23 +174,23 @@ function AccountMenu({ email, pathname, onSignOut }: { email: string | null; pat
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(v => !v)} aria-label="Account menu" aria-expanded={open}
         className={cn('flex items-center gap-2 rounded-full p-0.5 md:pr-2 border-0 cursor-pointer transition-colors hover:bg-trs-canvas', onAccountPage ? 'bg-trs-select-bg' : 'bg-transparent')}>
-        <span className="w-[30px] h-[30px] rounded-full inline-flex items-center justify-center text-[12px] font-bold text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
-        <span className="hidden md:block text-[13px] max-w-[160px] truncate text-trs-muted">{email ?? '—'}</span>
+        <span className="w-[30px] h-[30px] rounded-full inline-flex items-center justify-center text-small font-semibold text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
+        <span className="hidden md:block text-body max-w-[160px] truncate text-trs-muted">{email ?? '—'}</span>
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded-[12px] bg-white p-1.5 border border-trs-line shadow-[0_12px_40px_rgba(0,0,0,0.10)]" role="menu">
-          <div className="px-3 py-2 text-[12.5px] truncate text-trs-muted">{email ?? 'Account'}</div>
+        <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded bg-white p-1.5 border border-trs-line shadow-[0_12px_40px_rgba(0,0,0,0.10)]" role="menu">
+          <div className="px-3 py-2 text-small truncate text-trs-muted">{email ?? 'Account'}</div>
           {ACCOUNT_LINKS.map(l => {
             const on = pathMatches(pathname, l.href)
             return (
               <Link key={l.href} href={l.href} role="menuitem" aria-current={on ? 'page' : undefined}
-                className={cn('w-full flex items-center gap-2 h-9 px-3 rounded-[8px] text-[13.5px] no-underline text-trs-ink hover:bg-trs-canvas', on && 'bg-trs-select-bg')}>
+                className={cn('w-full flex items-center gap-2 h-9 px-3 rounded text-body no-underline text-trs-ink hover:bg-trs-canvas', on && 'bg-trs-select-bg')}>
                 <l.icon className="h-4 w-4 text-trs-muted" /> {l.title}
               </Link>
             )
           })}
           <div className="my-1 mx-2 border-t border-trs-line" />
-          <button type="button" role="menuitem" onClick={onSignOut} className="w-full flex items-center gap-2 h-9 px-3 rounded-[8px] text-[13.5px] bg-transparent border-0 cursor-pointer text-left text-trs-ink hover:bg-trs-canvas">
+          <button type="button" role="menuitem" onClick={onSignOut} className="w-full flex items-center gap-2 h-9 px-3 rounded text-body bg-transparent border-0 cursor-pointer text-left text-trs-ink hover:bg-trs-canvas">
             <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>

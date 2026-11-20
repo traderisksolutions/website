@@ -100,19 +100,19 @@ function TodayPage() {
     <div className="px-4 md:px-8 py-6 mx-auto w-full max-w-[1320px] min-w-0">
       <PageHeader className="mb-5" title="Today"
         meta={desk ? `${rows.length} client${rows.length === 1 ? '' : 's'} · ${toClient} to client · ${emails.length - toClient} to insurer` : undefined}
-        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads{suggestCount ? <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-trs-lime px-1.5 text-[11.5px] font-semibold text-trs-green" aria-label={`${suggestCount} suggested`}>{suggestCount}</span> : null}</Btn>}>
+        actions={<Btn level="primary" onClick={() => setAdding(true)}><Plus size={15} /> Add email threads{suggestCount ? <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-trs-lime px-1.5 text-small font-semibold text-trs-green" aria-label={`${suggestCount} suggested`}>{suggestCount}</span> : null}</Btn>}>
         <WhoMenu people={people} me={me} value={desk?.who ?? me} onChange={setWho} />
         <Segmented<View> variant="tabs" value={view} onChange={setView} label="View" options={[{ value: 'client', label: 'By client', count: rows.length }, { value: 'email', label: 'By email', count: emails.length }, { value: 'calendar', label: 'Calendar' }]} />
         {view === 'client' && rows.length > 0 && <Btn size="xs" level="secondary" onClick={() => setOpen(allOpen ? new Set() : new Set(rows.map(r => r.key)))}>{allOpen ? 'Fold all' : 'Unfurl all'}</Btn>}
       </PageHeader>
 
-      {error && desk && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
+      {error && desk && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
+      {notice && <p className="m-0 mb-3 text-body text-trs-ink" role="status">{notice}</p>}
       {view === 'client' && desk && <RenewalsDue who={desk.who || me} />}
 
       {view === 'calendar' ? <div className="mt-2"><CalendarEmbedded.Provider value><CalendarPage /></CalendarEmbedded.Provider></div>
         : !desk ? (error
-        ? <div role="alert" className="flex flex-col items-start gap-3 py-6"><p className="m-0 text-[13.5px] text-trs-neg">Today did not load. {error}</p><Btn onClick={retry}>Retry</Btn></div>
+        ? <div role="alert" className="flex flex-col items-start gap-3 py-6"><p className="m-0 text-body text-trs-neg">Today did not load. {error}</p><Btn onClick={retry}>Retry</Btn></div>
         : <Spinner label="Loading Today…" />)
         : rows.length === 0 ? <Empty>No clients on this list. Add email threads to start.</Empty>
           : view === 'client' ? (
@@ -141,8 +141,8 @@ function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onD
   }
   return (
     <>
-      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
-      <div className="overflow-x-auto rounded-[10px] border border-trs-line-2 bg-white">
+      {error && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
+      <div className="overflow-x-auto rounded border border-trs-line-2 bg-white">
         <table className="trs-table min-w-[980px]">
           <thead><tr><th className="sticky left-0 z-[1] bg-[#f0f2ee]">Client</th><th className="w-[110px]">Side</th><th className="w-[200px]">To</th><th>Subject</th><th className="w-[96px]">Drafted</th><th className="w-[150px]">Action</th></tr></thead>
           <tbody>
@@ -154,7 +154,7 @@ function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onD
                     <td><Chip>{d.side === 'insurer' ? 'To insurer' : 'To client'}</Chip></td>
                     <td className="!text-left truncate max-w-[200px]" title={d.to}>{d.person ?? d.to}</td>
                     <td className="!text-left truncate max-w-[420px]" title={d.subject}>{d.subject}</td>
-                    <td className="font-mono text-[12px] text-trs-muted">{timeAgo(d.createdAt)}</td>
+                    <td className="font-mono text-small text-trs-muted">{timeAgo(d.createdAt)}</td>
                     <td>
                       <span className="inline-flex gap-1.5">
                         <Btn size="xs" onClick={() => setEditing(e => (e === d.id ? null : d.id))} disabled={!!busy}>{editing === d.id ? 'Close' : 'Edit'}</Btn>

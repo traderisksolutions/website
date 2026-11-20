@@ -42,11 +42,11 @@ async function oldSearch(q: string, signal: AbortSignal): Promise<SearchAnswer> 
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <li className="pt-2">
-    <span className="block px-2.5 pb-1 text-xs font-semibold uppercase tracking-wide text-trs-muted">{title}</span>
+    <span className="block px-2.5 pb-1 text-small font-semibold text-trs-muted">{title}</span>
     <ul className="m-0 list-none p-0">{children}</ul>
   </li>
 )
-const rowCls = 'flex w-full min-w-0 flex-col items-start gap-0.5 rounded-lg px-2.5 py-1.5 text-left no-underline text-trs-ink hover:bg-trs-canvas'
+const rowCls = 'flex w-full min-w-0 flex-col items-start gap-0.5 rounded px-2.5 py-1.5 text-left no-underline text-trs-ink hover:bg-trs-canvas'
 
 export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpenChange: (v: boolean) => void; pages: PageLink[] }) {
   const router = useRouter()
@@ -102,12 +102,12 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
             className="border-0 px-1 shadow-none focus-visible:border-0" />
           {busy && <InlineSpinner />}
         </div>
-        {notice && <p role="status" className="m-0 px-4 pt-2 text-sm text-trs-ink">{notice}</p>}
-        {error && <p role="alert" className="m-0 px-4 pt-2 text-sm text-trs-neg">Search did not run. {error}</p>}
+        {notice && <p role="status" className="m-0 px-4 pt-2 text-body text-trs-ink">{notice}</p>}
+        {error && <p role="alert" className="m-0 px-4 pt-2 text-body text-trs-neg">Search did not run. {error}</p>}
         <ul className="m-0 max-h-[60vh] list-none overflow-y-auto p-1.5">
           {pageHits.length > 0 && (
             <Group title="Pages">
-              {pageHits.map(h => <li key={h.href}><Link href={h.href} onClick={() => onOpenChange(false)} className={rowCls}><span className="text-sm">{h.label}</span></Link></li>)}
+              {pageHits.map(h => <li key={h.href}><Link href={h.href} onClick={() => onOpenChange(false)} className={rowCls}><span className="text-body">{h.label}</span></Link></li>)}
             </Group>
           )}
           {found && found.threads.length > 0 && (
@@ -117,16 +117,16 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
                   <Btn level="tertiary" className={`${rowCls} !h-auto !justify-start !font-normal`} onClick={() => void openThread(t)} aria-label={`Open ${t.subject}`}>
                     <span className="flex w-full min-w-0 items-center gap-2">
                       {!t.canOpen && <Lock size={12} className="flex-none text-trs-muted" aria-label={`In ${t.owner}’s inbox`} />}
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-trs-ink">{t.subject}</span>
-                      <span className="flex-none font-mono text-xs text-trs-muted">{fmtDay(t.lastAt)}</span>
+                      <span className="min-w-0 flex-1 truncate text-body font-medium text-trs-ink">{t.subject}</span>
+                      <span className="flex-none font-mono text-small text-trs-muted">{fmtDay(t.lastAt)}</span>
                     </span>
                     {t.conversations && t.conversations.length > 1 && t.conversations.map(v => (
-                      <span key={v.subject} className="flex w-full min-w-0 gap-2 pl-3 text-xs text-trs-ink-2">
+                      <span key={v.subject} className="flex w-full min-w-0 gap-2 pl-3 text-small text-trs-ink-2">
                         <span className="min-w-0 flex-1 truncate">{v.subject}</span>
                         <span className="flex-none text-trs-muted">{[v.people[0], v.insurer].filter(Boolean).join(' · ')} · {v.count} email{v.count === 1 ? '' : 's'} · {v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
                       </span>
                     ))}
-                    <span className="w-full truncate text-xs text-trs-muted">
+                    <span className="w-full truncate text-small text-trs-muted">
                       {[t.companyName, t.people.slice(0, 3).map(p => p.name || p.email).join(', ') + (t.people.length > 3 ? ` +${t.people.length - 3}` : ''), t.canOpen ? t.inbox : `${t.owner}’s inbox`].filter(Boolean).join(' · ')}
                     </span>
                   </Btn>
@@ -139,8 +139,8 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
               {found.people.map(p => (
                 <li key={p.email}>
                   <Btn level="tertiary" className={`${rowCls} !h-auto !justify-start !font-normal`} onClick={() => setQ(p.email)} aria-label={`Threads with ${p.name ?? p.email}`}>
-                    <span className="text-sm text-trs-ink">{p.name ?? p.email}</span>
-                    <span className="text-xs text-trs-muted">{p.email} · {p.threads} thread{p.threads === 1 ? '' : 's'} · last {fmtDay(p.lastAt)}</span>
+                    <span className="text-body text-trs-ink">{p.name ?? p.email}</span>
+                    <span className="text-small text-trs-muted">{p.email} · {p.threads} thread{p.threads === 1 ? '' : 's'} · last {fmtDay(p.lastAt)}</span>
                   </Btn>
                 </li>
               ))}
@@ -148,7 +148,7 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
           )}
           {found && found.companies.length > 0 && (
             <Group title="Companies">
-              {found.companies.map(c => <li key={c.id}><Link href={`/companies/${c.id}`} onClick={() => onOpenChange(false)} className={rowCls}><span className="text-sm">{c.name}</span>{c.kind && c.kind !== 'client' && <span className="text-xs text-trs-muted">{c.kind.replace(/^\w/, x => x.toUpperCase())}</span>}</Link></li>)}
+              {found.companies.map(c => <li key={c.id}><Link href={`/companies/${c.id}`} onClick={() => onOpenChange(false)} className={rowCls}><span className="text-body">{c.name}</span>{c.kind && c.kind !== 'client' && <span className="text-small text-trs-muted">{c.kind.replace(/^\w/, x => x.toUpperCase())}</span>}</Link></li>)}
             </Group>
           )}
           {found && found.files.length > 0 && (
@@ -156,15 +156,15 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
               {found.files.map(f => (
                 <li key={`${f.threadId}|${f.filename}`}>
                   {f.canOpen && f.attachmentId
-                    ? <a href={`/api/engagement/attachments/${encodeURIComponent(f.attachmentId)}/download`} target="_blank" rel="noopener noreferrer" className={rowCls}><span className="text-sm">{f.filename}</span><span className="text-xs text-trs-muted">{f.subject} · {fmtDay(f.lastAt)}</span></a>
+                    ? <a href={`/api/engagement/attachments/${encodeURIComponent(f.attachmentId)}/download`} target="_blank" rel="noopener noreferrer" className={rowCls}><span className="text-body">{f.filename}</span><span className="text-small text-trs-muted">{f.subject} · {fmtDay(f.lastAt)}</span></a>
                     : <Btn level="tertiary" className={`${rowCls} !h-auto !justify-start !font-normal`} onClick={() => void openThread({ threadId: f.threadId, canOpen: f.canOpen, owner: f.owner })}>
-                        <span className="text-sm text-trs-ink">{f.filename}</span><span className="text-xs text-trs-muted">{f.subject} · {fmtDay(f.lastAt)}</span>
+                        <span className="text-body text-trs-ink">{f.filename}</span><span className="text-small text-trs-muted">{f.subject} · {fmtDay(f.lastAt)}</span>
                       </Btn>}
                 </li>
               ))}
             </Group>
           )}
-          {nothing && <li className="px-2.5 py-3 text-sm text-trs-muted">Nothing found for “{q.trim()}”.</li>}
+          {nothing && <li className="px-2.5 py-3 text-body text-trs-muted">Nothing found for “{q.trim()}”.</li>}
         </ul>
       </DialogContent>
     </Dialog>

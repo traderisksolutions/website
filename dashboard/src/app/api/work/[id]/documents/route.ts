@@ -4,15 +4,12 @@
  * Waiving needs a note: the binding gate opens on it, and the reason is kept on the case.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { setRegisterStatus } from '@/lib/admin/b/documents/store'
 import { DOC_LABEL, type DocKind } from '@/lib/admin/b/documents/gate'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to edit the register.' }, { status: 401 })
   const { id } = await params
   const body = await req.json().catch(() => null) as { kind?: string; status?: string; note?: string } | null
@@ -27,4 +24,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not update the register.' }, { status: 500 })
   }
-}
+})

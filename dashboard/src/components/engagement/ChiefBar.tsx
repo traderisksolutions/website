@@ -18,7 +18,7 @@ import { doneSummary } from '@/lib/chief/suggest-links'
 import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, SECOND, MAIN } from './rail-bits'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
-const FIELD = 'w-full rounded-[7px] bg-white px-2.5 py-1.5 text-[13px] outline-none focus:border-[#0f1412]'
+const FIELD = 'w-full rounded bg-white px-2.5 py-1.5 text-body outline-none focus:border-[#0f1412]'
 
 const dayLabel = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
@@ -102,8 +102,8 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   return (
     <>
       <Group label="Actions" ariaLabel="Next actions">
-        {error && !bar && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
-        {!bar && !error && <p className="m-0 text-[13px]" style={{ color: MUTED }}>Loading…</p>}
+        {error && !bar && <p className="m-0 text-body" style={{ color: ERROR }}>{error}</p>}
+        {!bar && !error && <p className="m-0 text-body" style={{ color: MUTED }}>Loading…</p>}
         {bar && st && (
           bar.hold?.noAction ? (
             <ActionItem eyebrow="Held" title="No action needed">
@@ -119,7 +119,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                   ? [st.sentAt ? `Sent ${dayLabel(st.sentAt)}` : null, st.side === 'insurer' ? 'Insurer' : 'Client', st.overdue ? `chaser due ${dayLabel(st.chaseDue)}` : `chaser ${dayLabel(st.chaseDue)} · ${st.workingDaysLeft} working day${st.workingDaysLeft === 1 ? '' : 's'}`].filter(Boolean).join(' · ')
                   : bar.autoReply ? `Auto-reply from ${bar.autoReply.from}` : null}
               alert={st.kind === 'waiting' && st.overdue}>
-              {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-[12.5px]" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
+              {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-small" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
               <Buttons>
                 {st.kind === 'waiting' && !chaseOpen && (
                   <button type="button" className={MAIN} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
@@ -134,12 +134,12 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                 {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`}>Open case</Link>}
                 {st.kind !== 'none' && <button type="button" className={SECOND} onClick={noAction} disabled={!!busy}>No action</button>}
               </Buttons>
-              {elsewhere && <p className="m-0 mt-2 text-[12.5px]" style={{ color: MUTED }}>The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px]" style={{ color: INK }}>Open that thread →</Link></p>}
-              {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
+              {elsewhere && <p className="m-0 mt-2 text-small" style={{ color: MUTED }}>The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px]" style={{ color: INK }}>Open that thread →</Link></p>}
+              {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
             </ActionItem>
           )
         )}
-        {error && bar && <p className="m-0 mb-3 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
+        {error && bar && <p className="m-0 mb-3 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
 
         {pending.map(s => (
           <ActionItem key={s.key} eyebrow="Suggested" title={s.title} meta={s.detail}>
@@ -164,7 +164,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
 
         {bar && bar.drafts.length > 0 && (
           <div className="mb-6">
-            <p className="m-0 mb-1.5 text-[11.5px] uppercase" style={{ color: '#8c958f', letterSpacing: '0.06em' }}>Drafts</p>
+            <p className="m-0 mb-1.5 text-small" style={{ color: '#8c958f', letterSpacing: '0.06em' }}>Drafts</p>
             <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
               {bar.drafts.map(d => (
                 <li key={d.id}>
@@ -204,20 +204,20 @@ function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
   const who = (s: ReadPlan['steps'][number]) => s.kind === 'email' ? `Email · ${s.to?.name ?? s.to?.email ?? ''}${s.party === 'insurer' && s.insurer ? ` · ${s.insurer}` : s.party === 'client' ? ' · client' : ''}` : 'Action'
   return (
     <div className="mt-2.5 pl-[19px]" aria-label="Next steps">
-      <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>Next steps</p>
-      {plan.summary && <p className="m-0 mt-1 text-[13px]" style={{ color: BODY }}>{plan.summary}</p>}
-      {plan.situation && <p className="m-0 mt-1 text-[12.5px] whitespace-pre-line" style={{ color: MUTED }}>{plan.situation}</p>}
+      <p className="m-0 text-body font-medium" style={{ color: INK }}>Next steps</p>
+      {plan.summary && <p className="m-0 mt-1 text-body" style={{ color: BODY }}>{plan.summary}</p>}
+      {plan.situation && <p className="m-0 mt-1 text-small whitespace-pre-line" style={{ color: MUTED }}>{plan.situation}</p>}
       <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
         {plan.steps.map(s => (
-          <li key={s.id} className="flex items-start gap-2 text-[13px]">
+          <li key={s.id} className="flex items-start gap-2 text-body">
             {s.status === 'proposed' && <input type="checkbox" className="mt-[3px]" checked={picked.has(s.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(s.id); else n.delete(s.id); return n })} aria-label={s.title} />}
             {s.status === 'todo' && <input type="checkbox" className="mt-[3px]" checked={false} onChange={() => onStep(s.id, 'done')} aria-label={`Done: ${s.title}`} disabled={!!busy} />}
             {s.status === 'done' && <input type="checkbox" className="mt-[3px]" checked readOnly onChange={() => onStep(s.id, 'todo')} aria-label={`Undo: ${s.title}`} disabled={!!busy} />}
-            {s.status === 'drafted' && <span className="mt-[3px] inline-block w-[13px] text-center text-[11px]" style={{ color: MUTED }} aria-hidden>✎</span>}
+            {s.status === 'drafted' && <span className="mt-[3px] inline-block w-[13px] text-center text-small" style={{ color: MUTED }} aria-hidden>✎</span>}
             <div className="min-w-0">
               <p className="m-0" style={{ color: INK, textDecoration: s.status === 'done' ? 'line-through' : undefined }}>{s.title}</p>
-              <p className="m-0 text-[12px]" style={{ color: MUTED }}>{who(s)}{s.detail ? ` — ${s.detail}` : ''}</p>
-              {s.status === 'drafted' && s.draftId && <button type="button" onClick={() => onOpenDraft(s.draftId!)} className="bg-transparent border-0 p-0 text-[12px] underline underline-offset-[3px] cursor-pointer" style={{ color: INK }}>Drafted · open</button>}
+              <p className="m-0 text-small" style={{ color: MUTED }}>{who(s)}{s.detail ? ` — ${s.detail}` : ''}</p>
+              {s.status === 'drafted' && s.draftId && <button type="button" onClick={() => onOpenDraft(s.draftId!)} className="bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: INK }}>Drafted · open</button>}
             </div>
           </li>
         ))}
@@ -227,7 +227,7 @@ function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
           <button type="button" className={MAIN} onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
             {busy === 'execute' ? 'Drafting…' : [emails ? `Draft ${emails} email${emails === 1 ? '' : 's'}` : null, actions ? `${actions} action${actions === 1 ? '' : 's'} to do` : null].filter(Boolean).join(' · ') || 'Nothing ticked'}
           </button>
-          <span className="text-[12px]" style={{ color: MUTED }}>Each email is its own draft, one address in To. Nothing sends.</span>
+          <span className="text-small" style={{ color: MUTED }}>Each email is its own draft, one address in To. Nothing sends.</span>
         </div>
       )}
     </div>
@@ -265,21 +265,21 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
   }
 
   return (
-    <div className="rounded-[10px] overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+    <div className="rounded overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
       <button type="button" onClick={onToggle} aria-expanded={open} className="w-full text-left bg-transparent border-0 px-3 py-2 cursor-pointer">
-        <span className="block text-[13px] font-medium" style={{ color: INK }}>{draft.label}</span>
-        <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>To {draft.person ?? draft.to}</span>
+        <span className="block text-body font-medium" style={{ color: INK }}>{draft.label}</span>
+        <span className="block text-small truncate" style={{ color: MUTED }}>To {draft.person ?? draft.to}</span>
       </button>
       {open && (
         <div className="px-3 pb-3 flex flex-col gap-1.5">
-          {draft.removed.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: ERROR }}>Removed from To: {draft.removed.join(', ')}. Each company gets its own email.</p>}
+          {draft.removed.length > 0 && <p className="m-0 text-small" style={{ color: ERROR }}>Removed from To: {draft.removed.join(', ')}. Each company gets its own email.</p>}
           <Labelled label="To"><input aria-label="To" value={to} onChange={e => setTo(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
-          {draft.person && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{draft.person}</p>}
+          {draft.person && <p className="m-0 text-small" style={{ color: MUTED }}>{draft.person}</p>}
           <Labelled label="Cc"><input aria-label="Cc" value={cc} onChange={e => setCc(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
           <Labelled label="Subject"><input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
           <textarea aria-label="Message" value={body} onChange={e => setBody(e.target.value)} rows={Math.min(18, Math.max(7, body.split('\n').length + 1))} className={`${FIELD} resize-y leading-[1.5]`} style={{ border: `1px solid ${HAIR}`, color: INK }} />
-          {draft.attachments.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Attached: {draft.attachments.map(a => a.filename).join(', ')}</p>}
-          {error && <p className="m-0 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
+          {draft.attachments.length > 0 && <p className="m-0 text-small" style={{ color: MUTED }}>Attached: {draft.attachments.map(a => a.filename).join(', ')}</p>}
+          {error && <p className="m-0 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
           <div className="flex gap-1.5">
             <button type="button" className={MAIN} onClick={send} disabled={!!busy}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
             <button type="button" className={SECOND} onClick={discard} disabled={!!busy}>Discard</button>
@@ -291,7 +291,7 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
 }
 
 const Labelled = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex items-center gap-2"><span className="w-[52px] flex-shrink-0 text-[12.5px]" style={{ color: MUTED }}>{label}</span><div className="flex-1 min-w-0">{children}</div></div>
+  <div className="flex items-center gap-2"><span className="w-[52px] flex-shrink-0 text-small" style={{ color: MUTED }}>{label}</span><div className="flex-1 min-w-0">{children}</div></div>
 )
 
 type RecipientPhase = 'queued' | 'sending' | 'sent' | 'error'
@@ -344,29 +344,29 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
   const ready = enquiry.requests.filter(r => r.recipients.length > 0)
   return (
     <div className="mt-3 pt-0">
-      <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>New policy enquiry</p>
-      <p className="m-0 mt-0.5 text-[13px] tabular-nums" style={{ color: BODY }}>
+      <p className="m-0 text-body font-medium" style={{ color: INK }}>New policy enquiry</p>
+      <p className="m-0 mt-0.5 text-body tabular-nums" style={{ color: BODY }}>
         {enquiry.policies} polic{enquiry.policies === 1 ? 'y' : 'ies'} · {enquiry.emails} email{enquiry.emails === 1 ? '' : 's'} to send{enquiry.sent ? ` · ${enquiry.sent} sent` : ''}
       </p>
-      {enquiry.awaitingDetails.length > 0 && <p className="m-0 mt-0.5 text-[12.5px]" style={{ color: MUTED }}>On hold for client details: {enquiry.awaitingDetails.join(', ')}</p>}
+      {enquiry.awaitingDetails.length > 0 && <p className="m-0 mt-0.5 text-small" style={{ color: MUTED }}>On hold for client details: {enquiry.awaitingDetails.join(', ')}</p>}
 
       <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
         {ready.map(r => {
           const key = `req:${r.draftId}`
           const t = textOf(r)
           return (
-            <li key={r.draftId} className="rounded-[10px] px-3 py-2" style={{ border: `1px solid ${HAIR}` }}>
-              <p className="m-0 text-[13px] font-medium" style={{ color: INK }}>{r.line}</p>
+            <li key={r.draftId} className="rounded px-3 py-2" style={{ border: `1px solid ${HAIR}` }}>
+              <p className="m-0 text-body font-medium" style={{ color: INK }}>{r.line}</p>
               <ul className="m-0 mt-1 p-0 list-none flex flex-col gap-1">
                 {r.recipients.map(p => (
                   <li key={p.dispatchId} className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 text-[12.5px]" style={{ color: BODY }}>
+                    <span className="min-w-0 text-small" style={{ color: BODY }}>
                       <span className="block truncate">{p.person ? `${p.person} · ` : ''}{p.insurer}</span>
                       <span className="block truncate" style={{ color: MUTED }}>{p.email || 'No address on file'}</span>
                     </span>
                     {phases[p.dispatchId]
-                      ? <span className="flex-shrink-0 text-[12.5px]" style={{ color: phases[p.dispatchId] === 'error' ? ERROR : MUTED }}>{{ queued: 'Queued', sending: 'Sending…', sent: 'Sent', error: 'Not sent' }[phases[p.dispatchId]]}</span>
-                      : <button type="button" onClick={() => removeInsurer(p.dispatchId)} disabled={sendingAll} className="flex-shrink-0 bg-transparent border-0 p-0 text-[12.5px] underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }} aria-label={`Remove ${p.insurer}`}>Remove</button>}
+                      ? <span className="flex-shrink-0 text-small" style={{ color: phases[p.dispatchId] === 'error' ? ERROR : MUTED }}>{{ queued: 'Queued', sending: 'Sending…', sent: 'Sent', error: 'Not sent' }[phases[p.dispatchId]]}</span>
+                      : <button type="button" onClick={() => removeInsurer(p.dispatchId)} disabled={sendingAll} className="flex-shrink-0 bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }} aria-label={`Remove ${p.insurer}`}>Remove</button>}
                   </li>
                 ))}
               </ul>
@@ -378,14 +378,14 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
                 <div className="mt-2 flex flex-col gap-1.5">
                   <Labelled label="Subject"><input aria-label="Subject" value={t.subject} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, subject: e.target.value } }))} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
                   <textarea aria-label="Message" value={t.body} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, body: e.target.value } }))} rows={Math.min(18, Math.max(7, t.body.split('\n').length + 1))} className={`${FIELD} resize-y leading-[1.5]`} style={{ border: `1px solid ${HAIR}`, color: INK }} />
-                  {r.attachments.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Attached: {r.attachments.map(a => a.filename).join(', ')}</p>}
+                  {r.attachments.length > 0 && <p className="m-0 text-small" style={{ color: MUTED }}>Attached: {r.attachments.map(a => a.filename).join(', ')}</p>}
                 </div>
               )}
             </li>
           )
         })}
       </ul>
-      {error && <p className="m-0 mt-2 text-[13px]" style={{ color: ERROR }} role="alert">{error}</p>}
+      {error && <p className="m-0 mt-2 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
       {ready.length > 1 && (
         <button type="button" className={`${MAIN} mt-2`} disabled={sendingAll} onClick={() => sendAll(ready)}>
           {sendingAll ? 'Sending…' : `Send all ${enquiry.emails} separately`}

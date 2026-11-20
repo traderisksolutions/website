@@ -13,8 +13,9 @@
  * whole mailbox, and what the newest message is — then sets that beside what we actually stored.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { isAutomated, isInternal, bareEmail } from '@/lib/crm/db'
+import { gmailToken } from '@/lib/google/auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
@@ -27,21 +28,7 @@ function sbHeaders() {
   return { apikey: k, Authorization: `Bearer ${k}` }
 }
 
-async function getAccessToken(): Promise<string> {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id:     process.env.GMAIL_CLIENT_ID ?? '',
-      client_secret: process.env.GMAIL_CLIENT_SECRET ?? '',
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN ?? '',
-      grant_type:    'refresh_token',
-    }),
-  })
-  const j = await res.json() as { access_token?: string; error_description?: string; error?: string }
-  if (!j.access_token) throw new Error(`Gmail token refresh failed: ${j.error_description ?? j.error ?? 'no token'}`)
-  return j.access_token
-}
+const getAccessToken = gmailToken
 
 async function gmail<T>(path: string, token: string): Promise<T> {
   const res = await fetch(`${GMAIL_API}${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
@@ -63,10 +50,7 @@ async function config(key: string): Promise<string | null> {
   return rows[0]?.value ?? null
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const token = await getAccessToken()
 
@@ -157,4 +141,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

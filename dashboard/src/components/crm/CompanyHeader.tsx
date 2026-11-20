@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { FolderOpen, ListChecks, Loader2, MoreHorizontal, Pencil, Pin } from 'lucide-react'
-import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
+import { Btn, Chip, Field, btnClass, inputCls, textareaCls } from './primitives'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/page-header'
 import { fmtDate, num } from '@/lib/format'
 import type { CompanyFacts } from '@/lib/companies/facts'
@@ -19,18 +21,20 @@ function withoutMoney(line: string): string {
   return line.split(' · ').filter(p => !/outstanding$/i.test(p.trim())).join(' · ')
 }
 
-const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#0f1412] focus:bg-[#faf9f6] data-[highlighted]:bg-[#faf9f6]'
+const MENU_ITEM = 'px-3 py-2 rounded text-body cursor-pointer text-trs-ink focus:bg-trs-tint data-[highlighted]:bg-trs-tint'
 
 /**
  * The Workbench header: name, one facts line (UEN, business, relationship, owner, policies, premium),
  * Edit, More and New request, the one primary. Drafts to approve and the appointment letter live in
  * the rail only (20 Nov 2026).
  */
-export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, onNewRequest }: {
+export function CompanyHeader({ company, statusLine, facts, team, onCompany, onStage, onNewRequest }: {
   /** Policies held, premium, client since; null while the policies load. */
   facts: CompanyFacts | null
   company: Company
   statusLine: string
+  /** The people who can own a company: the sign-in roster, read with the page. Empty when it failed; the picker then shows the current owner alone. */
+  team: { email: string; name: string }[]
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
   onNewRequest: () => void
@@ -69,16 +73,7 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
     } finally { setOpening(false) }
   }
   const [confirming, setConfirming] = useState(false)
-  const [team, setTeam] = useState<{ email: string; name: string }[]>([])
   const [savingOwner, setSavingOwner] = useState(false)
-  // The people who can own a company: the team roster. Loaded once; the picker degrades to the
-  // current owner alone if the roster is unavailable.
-  useEffect(() => {
-    fetch('/api/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
-      const list = Array.isArray(d) ? d : Array.isArray(d?.users) ? d.users : []
-      setTeam(list.filter((u: { email?: string; status?: string }) => u.email && u.status !== 'suspended').map((u: { email: string; name?: string }) => ({ email: u.email, name: u.name || u.email.split('@')[0] })))
-    }).catch(() => {})
-  }, [])
   async function setOwners(list: string[]) {
     setSavingOwner(true)
     try {
@@ -101,15 +96,15 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
   const fact = (label: string, value: React.ReactNode) => <span className="inline-flex items-center gap-1.5"><span className="text-trs-muted">{label}</span><span className="text-trs-ink">{value}</span></span>
 
   return (
-    <div className="mb-5">
+    <div>
       <Breadcrumbs current={{ label: company.name, href: `/companies/${company.id}` }} fallback={{ label: 'Companies', href: '/companies' }} />
       <PageHeader className="mt-3" title={<span className="block max-w-full truncate" title={company.name}>{company.name}</span>}
-        meta={<span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
+        meta={<span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-body">
           {company.uen && fact('UEN', company.uen)}
           {company.industry && fact('Business', company.industry)}
           {fact('Relationship', <select value={company.stage} disabled={changing} aria-label="Relationship" title="Relationship with the company, set by hand"
             onChange={async e => { setChanging(true); try { await onStage(e.target.value as Stage) } finally { setChanging(false) } }}
-            className="h-7 w-auto rounded-[6px] border border-trs-line-2 bg-white pl-2 pr-6 text-[13px] text-trs-ink cursor-pointer outline-none focus:border-trs-ink disabled:opacity-50">
+            className="h-7 w-auto rounded border border-trs-line-2 bg-white pl-2 pr-6 text-body text-trs-ink cursor-pointer outline-none focus:border-trs-ink disabled:opacity-50">
             {STAGES.map(s => <option key={s} value={s}>{STAGE_LABEL[s]}</option>)}
           </select>)}
           {fact('Owner', <OwnerPicker value={company.owner_emails} staff={team.map(m => ({ ...m, actions: 0 }))} onChange={list => void setOwners(list)} disabled={savingOwner} size="sm" />)}
@@ -120,7 +115,7 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
           {company.confirmed_at === null && (
             <span className="inline-flex items-center gap-2">
               <Chip title="Mail filing created this record from an email domain. Check the name, then confirm it.">Unconfirmed</Chip>
-              <button type="button" onClick={confirm} disabled={confirming} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13px] text-trs-ink disabled:opacity-50">{confirming ? 'Saving…' : 'Confirm name'}</button>
+              <Btn level="tertiary" size="xs" onClick={confirm} disabled={confirming} className="h-auto bg-transparent hover:bg-transparent border-0 p-0 font-normal underline underline-offset-4 text-body text-trs-ink hover:text-trs-ink disabled:opacity-50">{confirming ? 'Saving…' : 'Confirm name'}</Btn>
             </span>
           )}
         </span>}
@@ -129,10 +124,10 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
           <DropdownMenu modal={false}>
             {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
             <DropdownMenuTrigger type="button" aria-label="More actions" title="More actions" disabled={opening}
-              className="inline-flex items-center justify-center h-9 w-9 rounded-[8px] border border-trs-line-2 bg-white cursor-pointer hover:bg-trs-tint disabled:opacity-50 disabled:cursor-not-allowed text-trs-ink">
+              className={cn(btnClass('secondary', 'sm'), 'w-10 px-0')}>
               {opening ? <Loader2 size={16} className="animate-spin" /> : <MoreHorizontal size={18} />}
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+            <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded border-trs-line bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
               <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
               <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
               {pinsAvailable && <DropdownMenuItem className={MENU_ITEM} disabled={pinning} onSelect={() => void togglePin()}><Pin size={14} /> {pinned ? 'Unpin from Home' : 'Pin to Home'}</DropdownMenuItem>}
@@ -140,8 +135,8 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
           </DropdownMenu>
           <Btn level="primary" onClick={onNewRequest}>New request</Btn>
         </>} />
-      {status && <p className="m-0 mt-2 text-[13.5px] text-trs-muted">{status}</p>}
-      {driveError && <p className="m-0 mt-2 text-[13px] text-trs-neg">{driveError}</p>}
+      {status && <p className="m-0 mt-2 text-body text-trs-muted">{status}</p>}
+      {driveError && <p className="m-0 mt-2 text-body text-trs-neg">{driveError}</p>}
 
       <NewTodoDialog open={addingTodo} onClose={() => setAddingTodo(false)} companyId={company.id} staff={team} />
       <EditCompanyDialog open={editing} onClose={() => setEditing(false)} company={company} onSaved={onCompany} />
@@ -187,7 +182,7 @@ function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onC
           <DialogTitle>New to-do</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="flex flex-col gap-3">
-          <Field label="Title"><input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} autoFocus required /></Field>
+          <Field label="Title"><Input value={title} onChange={e => setTitle(e.target.value)} autoFocus required /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Owner">
               <select className={`${inputCls} appearance-none`} value={who} onChange={e => setWho(e.target.value)}>
@@ -195,10 +190,10 @@ function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onC
                 {staff.map(s => <option key={s.email} value={s.email}>{s.name}</option>)}
               </select>
             </Field>
-            <Field label="Due date"><input type="date" className={inputCls} value={due} onChange={e => setDue(e.target.value)} /></Field>
+            <Field label="Due date"><Input type="date" value={due} onChange={e => setDue(e.target.value)} /></Field>
           </div>
           <Field label="Internal note"><textarea className={textareaCls} rows={2} value={note} onChange={e => setNote(e.target.value)} /></Field>
-          {error && <p className="m-0 text-[12px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
+          {error && <p className="m-0 text-small text-trs-neg" role="alert">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Create to-do</Btn>

@@ -11,10 +11,8 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const RULE = '#e6e8e4'
+import { Btn, textareaCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 
 type Payload = { text: string; isDefault: boolean; updatedAt: string | null; defaultText: string; error?: string }
 
@@ -63,13 +61,13 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   }
 
   if (!d) {
-    return <p className="m-0 mt-4 text-[14px]" style={{ color: msg?.tone === 'error' ? '#a1242f' : MUTED }}>{msg?.text ?? 'Loading…'}</p>
+    return <p className={cn('m-0 mt-4 text-body', msg?.tone === 'error' ? 'text-trs-neg' : 'text-trs-muted')}>{msg?.text ?? 'Loading…'}</p>
   }
 
   return (
     <div className="mt-4 flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-[13px] tabular-nums" style={{ color: MUTED }}>
+        <p className="m-0 text-body tabular-nums text-trs-muted">
           {d.isDefault ? 'Default' : `Edited ${when(d.updatedAt) ?? ''}`} · {words.toLocaleString()} words · read by client drafts, Ask AI, group benefits and summaries
         </p>
         {isAdmin && (
@@ -77,30 +75,26 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
             {!d.isDefault && (
               confirmRestore ? (
                 <>
-                  <span className="text-[13px]" style={{ color: MUTED }}>Replace with the default?</span>
-                  <button type="button" onClick={() => setConfirmRestore(false)}
-                          className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>Cancel</button>
-                  <button type="button" onClick={() => void restore()} disabled={!!busy}
-                          className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: '#a1242f' }}>
+                  <span className="text-body text-trs-muted">Replace with the default?</span>
+                  <Btn onClick={() => setConfirmRestore(false)}>Cancel</Btn>
+                  <Btn level="danger" onClick={() => void restore()} disabled={!!busy}>
                     {busy === 'restore' ? 'Restoring…' : 'Restore default'}
-                  </button>
+                  </Btn>
                 </>
               ) : (
-                <button type="button" onClick={() => setConfirmRestore(true)} disabled={!!busy}
-                        className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>
+                <Btn onClick={() => setConfirmRestore(true)} disabled={!!busy}>
                   Restore default
-                </button>
+                </Btn>
               )
             )}
-            <button type="button" onClick={() => void save()} disabled={!dirty || !!busy}
-                    className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: '#132c1c' }}>
+            <Btn level="primary" onClick={() => void save()} disabled={!dirty || !!busy}>
               {busy === 'save' ? 'Saving…' : 'Save'}
-            </button>
+            </Btn>
           </div>
         )}
       </div>
 
-      {msg && <p className="m-0 text-[13px]" style={{ color: msg.tone === 'error' ? '#a1242f' : '#137333' }}>{msg.text}</p>}
+      {msg && <p className={cn('m-0 text-body', msg.tone === 'error' ? 'text-trs-neg' : 'text-trs-pos')}>{msg.text}</p>}
 
       <label htmlFor="voice-soul" className="sr-only">Tone of voice</label>
       <textarea
@@ -109,12 +103,11 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
         onChange={e => setText(e.target.value)}
         readOnly={!isAdmin}
         spellCheck
-        className="w-full min-h-[560px] rounded-[12px] px-4 py-3.5 text-[13.5px] leading-[1.6] resize-y focus:outline-none focus:ring-2 focus:ring-[#0f1412]/15"
-        style={{ border: `1px solid ${RULE}`, color: INK, background: isAdmin ? '#fff' : '#faf9f6',
-                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }}
+        rows={24}
+        className={cn(textareaCls, 'border-trs-line px-4 py-3.5 font-mono leading-[1.6]', isAdmin ? 'bg-white' : 'bg-trs-tint')}
       />
 
-      {!isAdmin && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Only an administrator can edit this.</p>}
+      {!isAdmin && <p className="m-0 text-small text-trs-muted">Only an administrator can edit this.</p>}
     </div>
   )
 }

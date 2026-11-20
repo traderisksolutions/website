@@ -25,7 +25,7 @@ const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
 const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
-const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13.5px] text-trs-ink'
+const selCls = 'h-9 rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink'
 
 /** Threads from the search index, shaped as the list reads them; null when the index is not there. */
 async function searchIndex(q: string, signal: AbortSignal): Promise<Conv[] | null> {
@@ -138,22 +138,22 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) { if (addedHere) onAdded(addedHere); else onClose() } }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(980px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-6 md:px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(980px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded bg-white px-6 md:px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
-          <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold tracking-[-0.02em] text-trs-ink">Add email threads</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">Add email threads</DialogPrimitive.Title>
           {suggested && suggested.length > 0 && (
             <section aria-label="Suggested" className="flex flex-col gap-1.5">
-              <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-[12px] font-semibold text-trs-green">Suggested · {suggested.length}</span>
-              <div className="max-h-[220px] overflow-auto rounded-[10px] border border-trs-line-2">
+              <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-small font-semibold text-trs-green">Suggested · {suggested.length}</span>
+              <div className="max-h-[220px] overflow-auto rounded border border-trs-line-2">
                 <table className="trs-table min-w-[760px]">
                   <thead><tr><th>Thread</th><th className="w-[160px]">Client</th><th className="w-[90px]">Side</th><th className="w-[240px]">Reason</th><th className="w-[150px]">Action</th></tr></thead>
                   <tbody>
                     {suggested.map(g => (
                       <tr key={g.threadId}>
-                        <td className="cell-left !text-left"><div className="font-medium text-trs-ink">{g.subject}</div><div className="text-[12px] text-trs-muted">{fmtDay(g.lastAt)}</div></td>
+                        <td className="cell-left !text-left"><div className="font-medium text-trs-ink">{g.subject}</div><div className="text-small text-trs-muted">{fmtDay(g.lastAt)}</div></td>
                         <td>{g.companyName ?? '—'}</td>
                         <td>{g.side === 'insurer' ? 'Insurer' : 'Client'}</td>
-                        <td className="!text-left text-[12.5px] text-trs-ink-2">{g.reason}</td>
+                        <td className="!text-left text-small text-trs-ink-2">{g.reason}</td>
                         <td>
                           <span className="inline-flex gap-1.5">
                             <Btn size="xs" level="tertiary" onClick={() => takeSuggestion(g, 'dismiss')} loading={acting === `dismiss:${g.threadId}`} disabled={!!acting}>Dismiss</Btn>
@@ -169,8 +169,8 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
           )}
           <input type="search" aria-label="Search threads" placeholder="Search subject, people, company or email text" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
           {searching && <InlineSpinner label="Searching every email…" />}
-          <div className="min-h-0 flex-1 overflow-auto rounded-[10px] border border-trs-line-2">
-            {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-[13.5px] text-trs-muted">No threads match.</p> : (
+          <div className="min-h-0 flex-1 overflow-auto rounded border border-trs-line-2">
+            {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-body text-trs-muted">No threads match.</p> : (
               <table className="trs-table min-w-[760px]">
                 <thead><tr><th className="w-10"><span className="sr-only">Add</span></th><th>Thread</th><th className="w-[92px]">Last</th><th className="w-[230px]">Client</th><th className="w-[130px]">Side</th></tr></thead>
                 <tbody>
@@ -181,10 +181,10 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td><input type="checkbox" aria-label={`Add ${subjectOf(c)}`} checked={!!p} onChange={() => toggle(c)} /></td>
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
-                          <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
-                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
-                          {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
-                          {c.private && <div className="text-xs font-medium text-trs-warn">In {c.private.owner ? `${c.private.owner.split(/\s+/)[0]}’s` : 'a colleague’s'} inbox</div>}
+                          <div className="text-small text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
+                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-small text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
+                          {c.match && q.trim() && <div className="text-small text-trs-subtle">Matched: {c.match}</div>}
+                          {c.private && <div className="text-small font-medium text-trs-warn">In {c.private.owner ? `${c.private.owner.split(/\s+/)[0]}’s` : 'a colleague’s'} inbox</div>}
                           {c.conversations && c.conversations.length > 1 && (
                             <ul aria-label="Conversations in this thread" className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
                               {c.conversations.map(v => {
@@ -194,7 +194,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                                   <li key={v.subject}>
                                     <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} className="w-full justify-start gap-2 text-left">
                                       <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium' : ''}`} title={v.subject}>{v.subject}</span>
-                                      <span className="shrink-0 text-xs font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
+                                      <span className="shrink-0 text-small font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
                                       <span className="w-14 shrink-0 text-right font-medium">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
                                     </Btn>
                                   </li>
@@ -203,8 +203,8 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                             </ul>
                           )}
                         </td>
-                        <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
-                        <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>
+                        <td className="font-mono text-small text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
+                        <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-small text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>
                         <td>{p ? (
                           <select aria-label="Side" value={p.side} onChange={e => set(c.thread_id, x => ({ ...x, side: e.target.value as DeskSide }))} className={selCls}>
                             <option value="client">Client</option>
@@ -218,9 +218,9 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
               </table>
             )}
           </div>
-          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-[13px] text-trs-muted">{picked.size} thread{picked.size === 1 ? '' : 's'} · {clients} client{clients === 1 ? '' : 's'}</span>
+            <span className="text-body text-trs-muted">{picked.size} thread{picked.size === 1 ? '' : 's'} · {clients} client{clients === 1 ? '' : 's'}</span>
             <div className="flex gap-2">
               <Btn onClick={() => (addedHere ? onAdded(addedHere) : onClose())} disabled={busy}>{addedHere ? 'Done' : 'Cancel'}</Btn>
               <Btn level="primary" onClick={add} loading={busy} disabled={busy || picked.size === 0}>Add to Today</Btn>

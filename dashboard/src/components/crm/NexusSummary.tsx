@@ -6,9 +6,6 @@ import { SectionCard, Btn, Empty } from './primitives'
 import { fmtDate } from '@/lib/format'
 import { STAGE_LABEL, type AiBrief, type Company, type Person, type Stage } from '@/lib/crm/types'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 /**
  * "Nexus summary" — one read across every thread with this company, plus who the stakeholders
  * are. Refreshed by hand only (Gemini Flash), with Opus behind an explicit Deep analysis.
@@ -51,24 +48,24 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
       title="Nexus summary"
       actions={actions}
     >
-      {error && <p className="text-[13px] mb-2 m-0" style={{ color: '#a1242f' }}>{error}</p>}
+      {error && <p className="text-body mb-2 m-0 text-trs-neg">{error}</p>}
       {!brief && !busy && <Empty compact>No summary yet. Generate one to read the whole relationship at once.</Empty>}
       {!brief && busy && <Empty compact>Reading the threads, payments and quotes…</Empty>}
 
       {brief && (
         <div className="flex flex-col gap-3">
-          <p className="text-[14px] leading-relaxed m-0" style={{ color: INK }}>{brief.summary}</p>
-          {brief.relationship && <p className="text-[13.5px] m-0" style={{ color: MUTED }}>{brief.relationship}</p>}
+          <p className="text-body leading-relaxed m-0 text-trs-ink">{brief.summary}</p>
+          {brief.relationship && <p className="text-body m-0 text-trs-muted">{brief.relationship}</p>}
 
           {stakeholders.length > 0 && (
-            <p className="text-[13.5px] m-0" style={{ color: INK }}>
-              <span style={{ color: MUTED }}>Stakeholders: </span>
+            <p className="text-body m-0 text-trs-ink">
+              <span className="text-trs-muted">Stakeholders: </span>
               {stakeholders.map((p, i) => (
                 <span key={p.email}>
-                  {i > 0 && <span style={{ color: MUTED }}> · </span>}
+                  {i > 0 && <span className="text-trs-muted"> · </span>}
                   <span title={`${p.email} · wrote ${p.sent}, addressed ${p.received}, copied ${p.cc}`}>
                     {p.name ?? p.email}
-                    {p.isPrimary && <span style={{ color: MUTED }}> (point person)</span>}
+                    {p.isPrimary && <span className="text-trs-muted"> (point person)</span>}
                   </span>
                 </span>
               ))}
@@ -76,18 +73,18 @@ export function NexusSummary({ company, stakeholders, stale, onBrief, onApplySta
           )}
 
           {brief.suggested_stage && brief.suggested_stage !== company.stage && (
-            <p className="text-[13.5px] m-0" style={{ color: INK }}>
-              <span style={{ color: MUTED }}>Suggested stage: </span>
+            <p className="text-body m-0 text-trs-ink">
+              <span className="text-trs-muted">Suggested stage: </span>
               <span className="font-medium">{STAGE_LABEL[brief.suggested_stage]}</span>
-              <button type="button" onClick={() => onApplyStage(brief.suggested_stage!)} className="ml-2 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Apply</button>
+              <Btn size="xs" level="tertiary" onClick={() => onApplyStage(brief.suggested_stage!)} className="ml-2">Apply</Btn>
             </p>
           )}
 
           {brief.risks.length > 0 && (
-            <p className="text-[13.5px] m-0" style={{ color: INK }}><span style={{ color: MUTED }}>Risks: </span>{brief.risks.join(' · ')}</p>
+            <p className="text-body m-0 text-trs-ink"><span className="text-trs-muted">Risks: </span>{brief.risks.join(' · ')}</p>
           )}
           {brief.upcoming.length > 0 && (
-            <p className="text-[13.5px] m-0" style={{ color: INK }}><span style={{ color: MUTED }}>Upcoming: </span>{brief.upcoming.map(u => `${u.what}${u.when ? ` (${fmtDate(u.when)})` : ''}`).join(' · ')}</p>
+            <p className="text-body m-0 text-trs-ink"><span className="text-trs-muted">Upcoming: </span>{brief.upcoming.map(u => `${u.what}${u.when ? ` (${fmtDate(u.when)})` : ''}`).join(' · ')}</p>
           )}
         </div>
       )}

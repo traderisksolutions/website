@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 export function IconBtn({ label, onClick, children, className }: { label: string; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
     <button type="button" aria-label={label} title={label} onClick={onClick}
-      className={cn('inline-grid h-7 w-7 cursor-pointer place-items-center rounded-lg border-0 bg-transparent text-trs-muted hover:bg-trs-mint hover:text-trs-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green', className)}>
+      className={cn('inline-grid h-7 w-7 cursor-pointer place-items-center rounded border-0 bg-transparent text-trs-muted hover:bg-trs-mint hover:text-trs-green focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green', className)}>
       {children}
     </button>
   )

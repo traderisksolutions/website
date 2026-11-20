@@ -100,20 +100,22 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
 /**
  * The company's threads as one person may see them: those filed under the company plus, with
  * `insurers`, the insurer threads that name it (marked `via`). A colleague's private thread is
- * counted in `hidden`, never returned.
+ * counted in `hidden`, never returned. `ownIds`: the visible thread ids filed under the company
+ * itself (no `via`), for reads that must apply the same rule (the overview, the people).
  */
-export async function listVisibleCompanyThreads(companyId: string, viewer: string | null, opts: { insurers?: boolean; threadIds?: string[] } = {}): Promise<{ threads: CompanyThread[]; hidden: number }> {
+export async function listVisibleCompanyThreads(companyId: string, viewer: string | null, opts: { insurers?: boolean; threadIds?: string[] } = {}): Promise<{ threads: CompanyThread[]; hidden: number; ownIds: string[] }> {
   const own = opts.threadIds ?? await getCompanyThreadIds(companyId)
   const via = opts.insurers ? await insurerThreadsFor(companyId, new Set(own)) : new Map<string, { id: string; name: string }>()
   const all = Array.from(new Set([...own, ...via.keys()]))
-  if (all.length === 0) return { threads: [], hidden: 0 }
+  if (all.length === 0) return { threads: [], hidden: 0, ownIds: [] }
   const visible = await visibleThreadIds(all, viewer)
   const ids = all.filter(id => visible.has(id))
   const hidden = all.length - ids.length
-  if (ids.length === 0) return { threads: [], hidden }
   const keepVia = new Map(Array.from(via.entries()).filter(([id]) => visible.has(id)))
-  const threads = await listCompanyThreads(companyId, ids.filter(id => !keepVia.has(id)), { via: keepVia })
-  return { threads, hidden }
+  const ownIds = ids.filter(id => !keepVia.has(id))
+  if (ids.length === 0) return { threads: [], hidden, ownIds }
+  const threads = await listCompanyThreads(companyId, ownIds, { via: keepVia })
+  return { threads, hidden, ownIds }
 }
 
 /** Who each thread waits on, read from its messages (oldest first). `viaInsurer` = filed under an insurer. */

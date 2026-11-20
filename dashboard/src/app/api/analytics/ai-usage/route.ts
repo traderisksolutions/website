@@ -9,8 +9,8 @@
  * short page comes back, so the total is the total.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { agentOfFeature, type AgentId } from '@/lib/ai-agents'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const PAGE = 1000
@@ -37,10 +37,7 @@ function add(b: Bucket, r: Row) {
   if (r.ok === false) b.failures += 1
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
 
@@ -136,4 +133,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

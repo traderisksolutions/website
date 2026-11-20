@@ -5,18 +5,16 @@
  * correspondent — in that order. Returns the draft; the client opens it in the composer.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { getCompany, sbTry, enc }    from '@/lib/crm/db'
 import { loadCompanyPayments, loadDebitNotesByIds } from '@/lib/crm/payments-server'
 import { rankPeople }                from '@/lib/crm/people'
 import { buildReminderDraft }        from '@/lib/crm/reminder'
 import { personName }                from '@/lib/format'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 type ContactRow = { id: string; email: string | null; first_name: string | null; last_name: string | null }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const company = await getCompany(id)
@@ -54,4 +52,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

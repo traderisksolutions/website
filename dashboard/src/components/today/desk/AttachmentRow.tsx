@@ -18,7 +18,7 @@ export function AttachmentRow({ file, onRemove, busy = false, flag }: {
 }) {
   const href = previewHref(file)
   return (
-    <li className="flex min-w-0 flex-wrap items-center gap-2 text-[13px]" data-attachment={file.filename}>
+    <li className="flex min-w-0 flex-wrap items-center gap-2 text-body" data-attachment={file.filename}>
       <FileText size={14} className="flex-none text-trs-muted" aria-hidden />
       {href
         ? <a href={href} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate font-medium text-trs-ink underline-offset-[3px] hover:underline" title={`Open ${file.filename}`}>{file.filename}</a>

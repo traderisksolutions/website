@@ -7,17 +7,9 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/agent-tasks/[id]/resolve/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/agent-tasks/approvals/route.ts": {
   "sb": 2,
   "fetch": 1
- },
- "src/app/api/agent-tasks/route.ts": {
-  "sb": 1,
-  "fetch": 0
  },
  "src/app/api/ai/status/route.ts": {
   "sb": 0,
@@ -229,7 +221,7 @@
  },
  "src/app/api/engagement/draft/route.ts": {
   "sb": 0,
-  "fetch": 25
+  "fetch": 19
  },
  "src/app/api/engagement/drafts/[id]/route.ts": {
   "sb": 0,
@@ -237,7 +229,7 @@
  },
  "src/app/api/engagement/drafts/route.ts": {
   "sb": 0,
-  "fetch": 5
+  "fetch": 3
  },
  "src/app/api/engagement/refresh-summary/route.ts": {
   "sb": 0,
@@ -413,7 +405,7 @@
  },
  "src/app/api/nexus/draft-create/route.ts": {
   "sb": 0,
-  "fetch": 4
+  "fetch": 2
  },
  "src/app/api/nexus/follow-ups/[id]/route.ts": {
   "sb": 1,
@@ -457,14 +449,6 @@
  },
  "src/app/api/placements/prefill/route.ts": {
   "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/register/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/unmatched/route.ts": {
-  "sb": 2,
   "fetch": 0
  },
  "src/app/api/placements/working/route.ts": {
@@ -543,7 +527,7 @@
   "sb": 4,
   "fetch": 0
  },
- "src/app/documents/page.tsx": {
+ "src/app/claims/documents/page.tsx": {
   "sb": 1,
   "fetch": 0
  },
@@ -808,7 +792,7 @@
   "fetch": 0
  },
  "src/lib/crm/board.ts": {
-  "sb": 14,
+  "sb": 13,
   "fetch": 0
  },
  "src/lib/crm/brief.ts": {
@@ -960,11 +944,7 @@
   "fetch": 7
  },
  "src/lib/gb/client-draft.ts": {
-  "sb": 4,
-  "fetch": 0
- },
- "src/lib/gb/compare-cover.ts": {
-  "sb": 3,
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/gb/compare-quotation.ts": {

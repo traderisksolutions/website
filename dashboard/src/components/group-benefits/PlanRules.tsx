@@ -12,7 +12,7 @@ import { allowedPlans, type PlanRule } from '@/lib/gb/plan-pairs'
 import { fmtDate } from '@/lib/format'
 
 type Data = { rules: PlanRule[]; updatedBy: string | null; updatedAt: string | null; plans: Record<string, Record<string, string[]>>; products: string[]; covers: string[] }
-const cell = 'h-9 w-full rounded-[7px] border border-trs-line bg-white px-2 text-[13px] text-trs-ink'
+const cell = 'h-9 w-full rounded border border-trs-line bg-white px-2 text-body text-trs-ink'
 
 export function PlanRules() {
   const [data, setData] = useState<Data | null>(null)
@@ -28,7 +28,7 @@ export function PlanRules() {
     }).catch(e => setMsg(e instanceof Error ? e.message : 'Plan rules could not load'))
   }, [])
 
-  if (!data) return <p className="mt-6 text-[13.5px] text-trs-muted">{msg ?? 'Loading…'}</p>
+  if (!data) return <p className="mt-6 text-body text-trs-muted">{msg ?? 'Loading…'}</p>
   const set = (i: number, patch: Partial<PlanRule>) => setRules(rs => rs.map((r, k) => k === i ? { ...r, ...patch } : r))
   const changed = JSON.stringify(rules) !== JSON.stringify(data.rules)
 
@@ -44,18 +44,18 @@ export function PlanRules() {
 
   return (
     <div className="mt-6 flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3 text-[13px] text-trs-muted">
+      <div className="flex flex-wrap items-center gap-3 text-body text-trs-muted">
         <span>{data.updatedAt ? `Last saved ${fmtDate(data.updatedAt)}${data.updatedBy ? ` by ${data.updatedBy.split('@')[0]}` : ''}` : 'Default rules'}</span>
         <span className="flex-1" />
         <Btn size="sm" level="secondary" onClick={() => setRules(rs => [...rs, { id: `r${Date.now()}`, product: data.products[0], cover: 'Major Medical', tiedTo: 'Hospital & Surgical', match: 'same_plan', required: true, premium: 'own', source: '' }])}>+ Add rule</Btn>
         <Btn size="sm" level="primary" loading={busy} disabled={!changed} onClick={() => void save()}>Save</Btn>
       </div>
-      {msg && <p className="m-0 text-[13.5px] text-trs-ink" role="status">{msg}</p>}
-      {rules.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">No rules. Every plan can be chosen on its own.</p> : (
+      {msg && <p className="m-0 text-body text-trs-ink" role="status">{msg}</p>}
+      {rules.length === 0 ? <p className="m-0 text-body text-trs-muted">No rules. Every plan can be chosen on its own.</p> : (
         <div className="overflow-x-auto">
-          <table className="trs-table w-full min-w-[900px] table-fixed text-[13px]">
+          <table className="trs-table w-full min-w-[900px] table-fixed text-body">
             <colgroup><col className="w-[19%]" /><col className="w-[17%]" /><col className="w-[17%]" /><col className="w-[14%]" /><col className="w-[14%]" /><col className="w-[13%]" /><col className="w-[6%]" /></colgroup>
-            <thead><tr className="text-[12px] text-trs-muted">
+            <thead><tr className="text-small text-trs-muted">
               <th className="py-2 px-2 font-normal">Insurer</th><th className="py-2 px-2 font-normal">Cover</th><th className="py-2 px-2 font-normal">Goes with</th>
               <th className="py-2 px-2 font-normal">Plan</th><th className="py-2 px-2 font-normal">Taken</th><th className="py-2 px-2 font-normal">Premium</th><th />
             </tr></thead>
@@ -75,7 +75,7 @@ export function PlanRules() {
                     <td className="py-2 px-2"><Btn size="xs" level="tertiary" onClick={() => setRules(rs => rs.filter((_, k) => k !== i))}>Remove</Btn></td>
                   </tr>
                   <tr>
-                    <td colSpan={4} className="pb-3 px-2 text-[12.5px] text-trs-muted align-top">
+                    <td colSpan={4} className="pb-3 px-2 text-small text-trs-muted align-top">
                       {!own.length ? `${r.product} sells no ${r.cover}.` : r.match === 'any_plan' ? `Any of ${own.length} ${r.cover} plans with any ${r.tiedTo} plan`
                         : partners.map(p => { const a = allowedPlans(r, p, own); return `${p.replace(/\s*\(.*$/, '')} → ${a.length ? a.join(', ') : 'none'}` }).join(' · ')}
                     </td>

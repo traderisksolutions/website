@@ -5,7 +5,6 @@
  *                              Stage changes are written to the audit log so the timeline shows them.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { logActivity }               from '@/lib/log-activity'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { getCompany, sb, sbTry, enc, getCompanyContactIds, PUBLIC_EMAIL_DOMAINS } from '@/lib/crm/db'
@@ -13,6 +12,7 @@ import { loadCompanyPayments }       from '@/lib/crm/payments-server'
 import { isStage }                   from '@/lib/crm/stage'
 import { COMPANY_KINDS }             from '@/lib/crm/types'
 import { personName }                from '@/lib/format'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
@@ -20,9 +20,7 @@ type ContactRow = { id: string; first_name: string | null; last_name: string | n
 type CustomerRow = { id: string; status: string | null; policies: PolicyRow[] | null }
 type PolicyRow = { id: string; policy_number: string | null; insurer: string | null; class_of_insurance: string | null; broker: string | null; currency: string | null; premium: number | null; start_date: string | null; end_date: string | null; status: string | null }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const company = await getCompany(id)
@@ -101,11 +99,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const body = await req.json() as Record<string, unknown>
@@ -162,4 +158,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

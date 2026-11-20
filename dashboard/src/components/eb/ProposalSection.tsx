@@ -81,8 +81,8 @@ export function ProposalSection({ model, cols, members, company, companyId, thre
   return (
     <section id="eb-proposal" className="flex flex-col gap-3" aria-labelledby="eb-proposal-h">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="eb-proposal-h" className="m-0 text-lg font-semibold">Proposal</h2>
-        <span className="text-xs text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
+        <h2 id="eb-proposal-h" className="m-0 text-heading font-semibold">Proposal</h2>
+        <span className="text-small text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
       </div>
       <Register label="Insurers in the proposal" minWidth={640}>
         <RegisterHead><RegisterTh first>Insurer</RegisterTh><RegisterTh>Include</RegisterTh><RegisterTh>Premium a year</RegisterTh><RegisterTh last>Checks</RegisterTh></RegisterHead>
@@ -96,15 +96,15 @@ export function ProposalSection({ model, cols, members, company, companyId, thre
                 <RegisterCell><Checkbox checked={ticked} onChange={() => toggle(c.label)} label={`Include ${c.label}`} /></RegisterCell>
                 <RegisterCell className={ticked && lowest === c.label ? 'cell-best' : undefined}><span className={ticked ? 'text-trs-ink' : 'text-trs-subtle'}>{fmtMoney0(c.total)}</span></RegisterCell>
                 <RegisterCell last align="left">
-                  {flags.length ? <span className="text-xs text-trs-warn">{flags.join(', ')}: priced at S$0 or not priced</span> : <span className="text-trs-muted">—</span>}
+                  {flags.length ? <span className="text-small text-trs-warn">{flags.join(', ')}: priced at S$0 or not priced</span> : <span className="text-trs-muted">—</span>}
                 </RegisterCell>
               </RegisterRow>
             )
           })}
         </tbody>
       </Register>
-      {census?.kind === 'warn' && <p className="m-0 text-xs text-trs-warn">{census.text}</p>}
-      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+      {census?.kind === 'warn' && <p className="m-0 text-small text-trs-warn">{census.text}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       <div className="flex flex-wrap justify-end gap-2">
         <Btn loading={busy === 'excel'} disabled={!!busy} onClick={() => void excel()}>Excel</Btn>
         <Btn loading={busy === 'save'} disabled={!!busy || !include.length} onClick={() => void keep('save')}>Save quotation</Btn>

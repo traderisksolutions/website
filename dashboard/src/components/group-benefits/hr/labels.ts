@@ -41,7 +41,7 @@ export const SOURCE_LABEL: Record<string, string> = { csv: 'Upload', talenox: 'T
 
 export const RELATIONSHIP_LABEL: Record<string, string> = { self: 'Employee', spouse: 'Spouse', child: 'Child' }
 
-export const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
+export const CHIP = 'inline-flex items-center rounded bg-[#f1f2ee] text-[#2a332f] text-small font-medium px-2 py-0.5 whitespace-nowrap'
 
 
 /** "20 Oct 10:42", Singapore time. */

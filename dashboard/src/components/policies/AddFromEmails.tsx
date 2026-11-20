@@ -7,6 +7,7 @@
  * request drafted to insurers (dispatch: false): nothing is sent from here.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { Btn, Segmented, Spinner, inputCls } from '@/components/crm/primitives'
@@ -24,7 +25,7 @@ const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
 const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
-const selCls = 'h-9 w-full rounded-[8px] border border-trs-line-2 bg-white px-2.5 text-[13.5px] text-trs-ink'
+const selCls = `${inputCls} appearance-none`
 
 export function AddFromEmails({ company, taken, onClose, onAdded }: {
   company?: { id: string; name: string }; taken: Set<string>; onClose: () => void
@@ -114,65 +115,65 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
-          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
-          <DialogPrimitive.Title className="m-0 pr-10 text-[24px] font-semibold tracking-[-0.02em] text-trs-ink">{step === 1 ? 'Add from emails' : 'Parties and policies'}</DialogPrimitive.Title>
-          <div className="text-[13.5px] text-trs-muted">{step === 1 ? 'Latest Inbox threads. Tick the ones to add.' : 'One block per thread. Add a row for each policy the thread is about.'}</div>
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-9 w-9 items-center justify-center rounded-full border-0 bg-trs-field text-trs-ink-2 cursor-pointer"><X size={16} /></DialogPrimitive.Close>
+          <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">{step === 1 ? 'Add from emails' : 'Parties and policies'}</DialogPrimitive.Title>
+          <div className="text-body text-trs-muted">{step === 1 ? 'Latest Inbox threads. Tick the ones to add.' : 'One block per thread. Add a row for each policy the thread is about.'}</div>
 
           {step === 1 && <>
-            <input className={inputCls} value={q} onChange={e => setQ(e.target.value)} placeholder="Search subject, sender, company or text" aria-label="Search emails" autoFocus />
-            <div className="min-h-[160px] overflow-auto -mx-2 px-2" role="list">
+            <Input className={inputCls} value={q} onChange={e => setQ(e.target.value)} placeholder="Search subject, sender, company or text" aria-label="Search emails" autoFocus />
+            <div className="min-h-40 overflow-auto -mx-2 px-2" role="list">
               {!convs && <Spinner label="Loading threads" />}
-              {convs && shown.length === 0 && <div className="py-8 text-center text-[14px] text-trs-muted">No thread matches.</div>}
+              {convs && shown.length === 0 && <div className="py-8 text-center text-body text-trs-muted">No thread matches.</div>}
               {shown.map(c => {
                 const on = taken.has(c.thread_id)
                 return (
                   <label key={c.thread_id} role="listitem" className={`grid grid-cols-[22px_minmax(0,1fr)_auto] items-center gap-3 border-b border-trs-line px-1.5 py-2.5 ${on ? 'opacity-55' : 'cursor-pointer'}`}>
-                    <input type="checkbox" disabled={on} checked={picked.includes(c.thread_id)} onChange={e => setPicked(p => e.target.checked ? [...p, c.thread_id] : p.filter(x => x !== c.thread_id))} className="h-4 w-4 accent-[var(--trs-green)]" />
-                    <span className="min-w-0"><span className="block text-[13.5px] font-medium text-trs-ink">{subjectOf(c)}</span><span className="block truncate text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</span>{c.match && q.trim() && <span className="block truncate text-[12px] text-trs-subtle">Matched: {c.match}</span>}</span>
-                    <span className="whitespace-nowrap text-[12px] text-trs-muted">{on ? 'On list' : fmtDay(c.created_at)}</span>
+                    <input type="checkbox" disabled={on} checked={picked.includes(c.thread_id)} onChange={e => setPicked(p => e.target.checked ? [...p, c.thread_id] : p.filter(x => x !== c.thread_id))} className="h-4 w-4 accent-trs-green" />
+                    <span className="min-w-0"><span className="block text-body font-medium text-trs-ink">{subjectOf(c)}</span><span className="block truncate text-small text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</span>{c.match && q.trim() && <span className="block truncate text-small text-trs-subtle">Matched: {c.match}</span>}</span>
+                    <span className="whitespace-nowrap text-small text-trs-muted">{on ? 'On list' : fmtDay(c.created_at)}</span>
                   </label>
                 )
               })}
             </div>
-            <div className="flex items-center justify-between pt-2"><span className="text-[13px] text-trs-muted">{picked.length} selected</span><Btn level="primary" disabled={!picked.length} onClick={next}>Next</Btn></div>
+            <div className="flex items-center justify-between pt-2"><span className="text-body text-trs-muted">{picked.length} selected</span><Btn level="primary" disabled={!picked.length} onClick={next}>Next</Btn></div>
           </>}
 
           {step === 2 && <>
             <div className="overflow-auto -mx-2 px-2">
               {blocks.map((b, i) => (
                 <div key={b.thread.thread_id} className="flex flex-col gap-2 border-b border-trs-line py-3.5">
-                  <div className="text-[13.5px] font-medium text-trs-ink">{subjectOf(b.thread)}</div>
-                  <div className="text-[12px] text-trs-muted">{senderOf(b.thread)}{b.thread.companyName ? ` · ${b.thread.companyName}` : ''}</div>
+                  <div className="text-body font-medium text-trs-ink">{subjectOf(b.thread)}</div>
+                  <div className="text-small text-trs-muted">{senderOf(b.thread)}{b.thread.companyName ? ` · ${b.thread.companyName}` : ''}</div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-[12.5px] text-trs-muted">Thread is with</span>
+                    <span className="text-small text-trs-muted">Thread is with</span>
                     <Segmented<'client' | 'insurer'> value={(b.side || 'client') as 'client' | 'insurer'} label="Thread is with" options={[{ value: 'client', label: 'Client' }, { value: 'insurer', label: 'Insurer' }]}
                       onChange={v => setBlock(i, x => ({ ...x, side: v, client: v === 'client' && x.thread.companyKind !== 'insurer' && x.thread.companyId ? { id: x.thread.companyId, name: x.thread.companyName ?? '' } : company ?? { id: null, name: '' } }))} />
                   </div>
                   <div className="max-w-[420px]"><CompanyField label="Client" value={b.client} listId={`client-${i}`} onChange={v => setBlock(i, x => ({ ...x, client: v }))} /></div>
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] border-collapse text-[13px]">
-                      <thead><tr className="text-left text-[12px] text-trs-muted"><th className="pb-1.5 pr-2 font-medium">Policy</th><th className="pb-1.5 pr-2 font-medium">Type</th><th className="pb-1.5 pr-2 font-medium">Existing</th><th className="pb-1.5 pr-2 font-medium">Renewal date</th><th className="pb-1.5 pr-2 font-medium">Previous premium S$</th><th /></tr></thead>
+                    <table className="trs-table w-full min-w-[720px]">
+                      <thead><tr><th>Policy</th><th>Type</th><th>Existing</th><th>Renewal date</th><th>Previous premium S$</th><th /></tr></thead>
                       <tbody>{b.rows.map((r, k) => (
-                        <tr key={k} className="align-top">
-                          <td className="py-1 pr-2"><select aria-label="Policy" className={selCls} value={r.product_line} onChange={e => { const v = e.target.value; setRow(i, k, x => ({ ...x, product_line: v, fromRegister: false })); void prefill(i, k, v, b.client.id) }}>
+                        <tr key={k}>
+                          <td><select aria-label="Policy" className={selCls} value={r.product_line} onChange={e => { const v = e.target.value; setRow(i, k, x => ({ ...x, product_line: v, fromRegister: false })); void prefill(i, k, v, b.client.id) }}>
                             <option value="">Choose</option>{PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}</select></td>
-                          <td className="py-1 pr-2"><select aria-label="Type" className={selCls} value={r.request_type} onChange={e => setRow(i, k, x => ({ ...x, request_type: e.target.value as RequestType }))}>
+                          <td><select aria-label="Type" className={selCls} value={r.request_type} onChange={e => setRow(i, k, x => ({ ...x, request_type: e.target.value as RequestType }))}>
                             <option value="">Choose</option>{REQUEST_TYPES.map(([v, w]) => <option key={v} value={v}>{w}</option>)}</select></td>
-                          <td className="py-1 pr-2 whitespace-nowrap"><Segmented<'yes' | 'no'> value={r.existing === false ? 'no' : 'yes'} label="Existing" options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
+                          <td className="whitespace-nowrap"><Segmented<'yes' | 'no'> value={r.existing === false ? 'no' : 'yes'} label="Existing" options={[{ value: 'yes', label: 'Yes' }, { value: 'no', label: 'No' }]}
                             onChange={v => setRow(i, k, x => ({ ...x, existing: v === 'yes', ...(v === 'no' ? { renewal_date: '', previous_premium: '', fromRegister: false } : {}) }))} />
-                            {r.fromRegister && <span className="block text-[11.5px] text-trs-pos">From register</span>}</td>
-                          <td className="py-1 pr-2">{r.existing ? <input type="date" aria-label="Renewal date" className={inputCls} value={r.renewal_date} onChange={e => setRow(i, k, x => ({ ...x, renewal_date: e.target.value, fromRegister: false }))} /> : <span className="text-trs-muted">—</span>}</td>
-                          <td className="py-1 pr-2">{r.existing ? <input inputMode="decimal" aria-label="Previous premium" className={inputCls} value={r.previous_premium} onChange={e => setRow(i, k, x => ({ ...x, previous_premium: e.target.value, fromRegister: false }))} /> : <span className="text-trs-muted">—</span>}</td>
-                          <td className="py-1">{b.rows.length > 1 && <button type="button" aria-label="Remove row" onClick={() => setBlock(i, x => ({ ...x, rows: x.rows.filter((_, j) => j !== k) }))} className="mt-1.5 h-[26px] w-[26px] rounded-full border-0 bg-transparent text-trs-subtle cursor-pointer hover:bg-trs-field">×</button>}</td>
+                            {r.fromRegister && <span className="block text-small text-trs-pos">From register</span>}</td>
+                          <td>{r.existing ? <Input type="date" aria-label="Renewal date" className={inputCls} value={r.renewal_date} onChange={e => setRow(i, k, x => ({ ...x, renewal_date: e.target.value, fromRegister: false }))} /> : <span className="text-trs-muted">—</span>}</td>
+                          <td>{r.existing ? <Input inputMode="decimal" aria-label="Previous premium" className={inputCls} value={r.previous_premium} onChange={e => setRow(i, k, x => ({ ...x, previous_premium: e.target.value, fromRegister: false }))} /> : <span className="text-trs-muted">—</span>}</td>
+                          <td>{b.rows.length > 1 && <Btn level="tertiary" size="xs" aria-label="Remove row" onClick={() => setBlock(i, x => ({ ...x, rows: x.rows.filter((_, j) => j !== k) }))}>×</Btn>}</td>
                         </tr>))}</tbody>
                     </table>
                   </div>
-                  <button type="button" onClick={() => setBlock(i, x => ({ ...x, rows: [...x.rows, emptyRow()] }))} className="self-start border-0 bg-transparent p-0 text-[12.5px] text-trs-muted underline cursor-pointer">+ Add policy</button>
+                  <Btn level="tertiary" size="xs" className="self-start" onClick={() => setBlock(i, x => ({ ...x, rows: [...x.rows, emptyRow()] }))}>+ Add policy</Btn>
                 </div>
               ))}
             </div>
-            {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+            {error && <div className="text-body text-trs-neg">{error}</div>}
             <div className="flex items-center justify-between pt-2"><Btn onClick={() => setStep(1)}>Back</Btn><Btn level="primary" loading={busy} disabled={!ready} onClick={() => void add()}>Add {count} to the list</Btn></div>
           </>}
         </DialogPrimitive.Content>

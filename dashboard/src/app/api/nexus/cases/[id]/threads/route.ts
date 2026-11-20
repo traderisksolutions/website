@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
@@ -13,10 +13,8 @@ function sbHeaders(prefer = 'return=representation') {
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/threads — link a thread to this case
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const { thread_id, party_type, party_label } =
@@ -63,13 +61,11 @@ export async function POST(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // PATCH /api/nexus/cases/[id]/threads — update party_type or party_label for a linked thread
-export async function PATCH(req: NextRequest, props: Params) {
+export const PATCH = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const { thread_id, party_type, party_label } =
@@ -90,13 +86,11 @@ export async function PATCH(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // DELETE /api/nexus/cases/[id]/threads?thread_id=X — unlink a thread from this case
-export async function DELETE(req: NextRequest, props: Params) {
+export const DELETE = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const threadId = new URL(req.url).searchParams.get('thread_id')
@@ -112,4 +106,4 @@ export async function DELETE(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

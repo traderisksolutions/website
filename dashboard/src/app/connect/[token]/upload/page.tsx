@@ -3,6 +3,8 @@
 // Upload: drop the Excel or CSV HR already has; see the columns matched and the people read.
 import { useRef, useState } from 'react'
 import type { HrRead } from '@/lib/hr/types'
+import { Btn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink } from '@/components/hr-connect/link-context'
 import { ColumnsFound, PeopleFound } from '@/components/hr-connect/read-table'
@@ -46,15 +48,15 @@ export default function UploadPage() {
           >
             <b>{busy ? 'Reading the file.' : 'Drop the file here, or choose it'}</b>
             Excel (.xlsx) or CSV · up to 2,000 people{filename ? ` · ${filename}${read ? ' read' : ''}` : ''}
-            <input ref={input} type="file" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void send(f); e.target.value = '' }} />
+            <Input ref={input} type="file" accept=".xlsx,.xlsm,.xls,.csv,.tsv,.txt" hidden className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) void send(f); e.target.value = '' }} />
           </div>
           {error && <p className="hrc-err">{error}</p>}
           {read && (
             <>
               <ColumnsFound meta={read.meta} />
               <PeopleFound read={read} token={token} source="file" />
-              <div className="hrc-row" style={{ marginTop: 10 }}>
-                <button type="button" className="hrc-btn" onClick={() => input.current?.click()}>Choose another file</button>
+              <div className="hrc-row mt-2.5">
+                <Btn onClick={() => input.current?.click()}>Choose another file</Btn>
               </div>
             </>
           )}

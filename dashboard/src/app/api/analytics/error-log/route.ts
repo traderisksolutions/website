@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders() {
@@ -14,10 +14,7 @@ function sbHeaders() {
 // Reads with the service key (bypasses RLS) and error-log.ts deliberately never truncates
 // message/metadata — this can carry internal identifiers or fragments of request/response
 // content, so (like /api/pipeline) it must never be reachable anonymously.
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const params      = req.nextUrl.searchParams
     const limit       = Math.min(parseInt(params.get('limit') ?? '500'), 1000)
@@ -43,4 +40,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

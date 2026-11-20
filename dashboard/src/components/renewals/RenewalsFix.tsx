@@ -18,7 +18,7 @@ import { fmtDate } from '@/lib/format'
 import { LINES, lineName, type LineCode } from '@/lib/renewals/lines'
 import type { EndDateFix, FixView, LineFix } from '@/lib/renewals/store'
 
-const h2 = 'm-0 text-base font-medium text-trs-ink'
+const h2 = 'm-0 text-body font-medium text-trs-ink'
 
 function ClientCell({ id, name }: { id: string | null; name: string | null }) {
   return <RegisterCell first primary={id ? <Link href={`/companies/${id}`} className="text-trs-ink no-underline hover:underline">{name ?? 'Client'}</Link> : (name ?? '—')} />
@@ -27,7 +27,7 @@ function ClientCell({ id, name }: { id: string | null; name: string | null }) {
 const Clip = ({ text, sub }: { text: string | null; sub?: string | null }) => (
   <RegisterCell title={[text, sub].filter(Boolean).join(' · ')}>
     <span className="block max-w-48 truncate text-trs-ink">{text ?? '—'}</span>
-    {sub && <span className="block max-w-48 truncate text-xs text-trs-muted">{sub}</span>}
+    {sub && <span className="block max-w-48 truncate text-small text-trs-muted">{sub}</span>}
   </RegisterCell>
 )
 const PolicyCell = ({ number, cls }: { number: string | null; cls: string | null }) => <Clip text={number ?? '—'} sub={cls} />
@@ -85,8 +85,8 @@ export function RenewalsFix() {
       <PageHeader className="mb-6" title="To fix"
         meta={view ? `${view.endDates.length} without an end date · ${view.lines.length} spellings to map · ${view.noNote.length} without a placing debit note` : undefined} />
 
-      {note && <p className="m-0 mb-3 text-sm text-trs-ink" role="status">{note}</p>}
-      {error && <p className="m-0 mb-3 text-sm text-trs-neg" role="alert">{error}</p>}
+      {note && <p className="m-0 mb-3 text-body text-trs-ink" role="status">{note}</p>}
+      {error && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
       {!view ? (error ? null : <Spinner label="Loading what needs fixing…" />) : (
         <div className="flex flex-col gap-10 min-w-0">
           <section className="flex flex-col gap-3 min-w-0" aria-labelledby="fix-dates">
@@ -137,7 +137,7 @@ export function RenewalsFix() {
               <h2 id="fix-lines" className={h2}>Lines to map · {view.lines.length}</h2>
               <Btn size="xs" disabled={!view.tables || !view.lines.length || !!busy} loading={busy === 'all-lines'} onClick={() => void confirmAllLines(view.lines)}>Confirm all suggested</Btn>
             </div>
-            {!view.tables && <p className="m-0 text-sm text-trs-muted">Lines can be confirmed once renewal records are set up.</p>}
+            {!view.tables && <p className="m-0 text-body text-trs-muted">Lines can be confirmed once renewal records are set up.</p>}
             <Register label="Lines to map" minWidth={760}>
               <RegisterHead>
                 <RegisterTh first>Spelling</RegisterTh>

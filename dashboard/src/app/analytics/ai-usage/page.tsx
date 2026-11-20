@@ -13,17 +13,22 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { RefreshCw } from 'lucide-react'
 import { Btn, Segmented, SectionCard, Empty, Spinner } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { AGENTS, agentLabel, agentOfFeature, type AgentId } from '@/lib/ai-agents'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const RULE = '#e6e8e4'
+// Chart values for the library; the page itself draws with token classes.
+const INK = 'var(--trs-ink)'
+const FAINT = 'var(--trs-subtle)'
+const RULE = 'var(--trs-line)'
+const LINE_2 = 'var(--trs-line-2)'
 
 // One ink ramp, in the order agents are listed. Categories are read from the row label, not a hue.
 const AGENT_ORDER: AgentId[] = ['placement', 'benefits_admin', 'crm', 'askai', 'group_benefit', 'pricingmatrix', 'housekeeping', 'admin', 'unattributed']
 const AGENT_INK: Record<AgentId, string> = {
-  placement: '#132c1c', benefits_admin: '#4a5550', crm: '#0f1412', askai: '#4a5550', group_benefit: '#2a332f', pricingmatrix: '#6f7a74', housekeeping: '#8c958f', admin: '#2a332f', unattributed: '#d5d9d4',
+  placement: 'var(--trs-green)', benefits_admin: 'var(--trs-muted)', crm: 'var(--trs-ink)', askai: 'var(--trs-muted)', group_benefit: 'var(--trs-ink-2)', pricingmatrix: 'var(--trs-subtle)', housekeeping: 'var(--trs-subtle)', admin: 'var(--trs-ink-2)', unattributed: 'var(--trs-line-2)',
+}
+const AGENT_DOT: Record<AgentId, string> = {
+  placement: 'bg-trs-green', benefits_admin: 'bg-trs-muted', crm: 'bg-trs-ink', askai: 'bg-trs-muted', group_benefit: 'bg-trs-ink-2', pricingmatrix: 'bg-trs-subtle', housekeeping: 'bg-trs-subtle', admin: 'bg-trs-ink-2', unattributed: 'bg-trs-line-2',
 }
 
 type Bucket = { key: string; calls: number; input: number; output: number; cost: number; failures: number }
@@ -61,9 +66,6 @@ const MODEL_RATE: Record<string, string> = {
   'unrecorded':             'model not written to the row',
 }
 
-const th = 'font-medium px-3 whitespace-nowrap'
-const td = 'px-3 text-[13px] align-middle'
-const num = 'px-3 text-[13px] text-center tabular-nums align-middle whitespace-nowrap'
 
 export default function AISpendPage() {
   const [d, setD] = useState<Payload | null>(null)
@@ -100,13 +102,13 @@ export default function AISpendPage() {
       <div className="mx-auto max-w-[1100px] px-4 sm:px-6 py-8 sm:py-10">
 
         {/* The figure lives in the page's own header line. */}
-        <header className="flex flex-wrap items-end justify-between gap-4 pb-5" style={{ borderBottom: `1px solid ${RULE}` }}>
+        <header className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-trs-line">
           <div>
-            <h1 className="text-[22px] font-medium tracking-[-0.01em]" style={{ color: INK }}>AI spend</h1>
-            <p className="mt-1.5 text-[14px]" style={{ color: MUTED }}>
+            <h1 className="text-heading font-medium text-trs-ink">AI spend</h1>
+            <p className="mt-1.5 text-body text-trs-muted">
               {loading && !d ? 'Reading the ledger…' : (
                 <>
-                  <span className="tabular-nums font-medium" style={{ color: INK }}>{usd(d?.total.cost ?? 0)}</span>
+                  <span className="tabular-nums font-medium text-trs-ink">{usd(d?.total.cost ?? 0)}</span>
                   <span className="mx-1.5">·</span>
                   <span className="tabular-nums">{sgd(d?.total.cost ?? 0)}</span>
                   <span className="mx-1.5">·</span>
@@ -132,13 +134,13 @@ export default function AISpendPage() {
         </header>
 
         {/* What the ledger actually covers. A zero month is usually an unrecorded one. */}
-        <p className="pt-3 text-[12px]" style={{ color: FAINT }}>
+        <p className="pt-3 text-small text-trs-subtle">
           Ledger runs {date(d?.ledgerFirst ?? null)} to {date(d?.ledgerLast ?? null)}.
           {d?.truncated ? ' Read stopped at 100,000 rows.' : ''}
         </p>
 
         {err && (
-          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-[13px]" style={{ border: `1px solid #d5d9d4`, color: INK }}>
+          <div className="mt-5 rounded px-3.5 py-3 text-body border border-trs-line-2 text-trs-ink">
             {err}
           </div>
         )}
@@ -148,11 +150,11 @@ export default function AISpendPage() {
         {d && !hasSpend && (
           <div className="mt-6">
             <SectionCard title="Nothing recorded in this window">
-              <div className="text-[13px] leading-relaxed" style={{ color: MUTED }}>
+              <div className="text-body leading-relaxed text-trs-muted">
                 <p>The ledger holds no rows for the last {d.days} days.</p>
                 <p className="mt-2">
                   Writes stopped between {date(d.ledgerFirst)} and {date(d.ledgerLast)} because every
-                  insert carrying a <code className="text-[12px]">metadata</code> field was rejected and the
+                  insert carrying a <code className="text-small">metadata</code> field was rejected and the
                   failure was never checked. Work done in that period is not recoverable — it was
                   never written.
                 </p>
@@ -165,7 +167,7 @@ export default function AISpendPage() {
           <div className="mt-6 space-y-6">
 
             <SectionCard title="Daily cost by agent">
-              <div style={{ height: 240 }}>
+              <div className="h-60">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chart} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
                     <CartesianGrid vertical={false} stroke={RULE} />
@@ -174,7 +176,7 @@ export default function AISpendPage() {
                     <YAxis tickFormatter={(v: number) => usd(v)} tick={{ fontSize: 11, fill: FAINT }}
                            axisLine={false} tickLine={false} width={78} />
                     <Tooltip
-                      contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid #d5d9d4`, boxShadow: 'none', color: INK }}
+                      contentStyle={{ fontSize: 12, borderRadius: 7, border: `1px solid ${LINE_2}`, boxShadow: 'none', color: INK }}
                       labelFormatter={(l) => (typeof l === 'string' ? day(l) : String(l ?? ''))}
                       formatter={(v, n) => [usd(Number(v) || 0), agentLabel(String(n) as AgentId)]}
                     />
@@ -187,101 +189,95 @@ export default function AISpendPage() {
             </SectionCard>
 
             <SectionCard title="By agent">
-              <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
-                <thead>
-                  <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-                    <th className={th}>Agent</th>
-                    <th className={th}>Model</th>
-                    <th className={th}>Calls</th>
-                    <th className={th}>Tokens</th>
-                    <th className={th}>Cost</th>
-                  </tr>
-                </thead>
+              <Register label="By agent" minWidth={560}>
+                <RegisterHead>
+                  <RegisterTh first>Agent</RegisterTh>
+                  <RegisterTh>Model</RegisterTh>
+                  <RegisterTh>Calls</RegisterTh>
+                  <RegisterTh>Tokens</RegisterTh>
+                  <RegisterTh last>Cost</RegisterTh>
+                </RegisterHead>
                 <tbody>
                   {agents.map(({ id, row }) => {
                     const spec = id === 'unattributed' ? null : AGENTS[id]
                     return (
-                      <tr key={id} style={{ borderBottom: `1px solid ${RULE}` }}>
-                        <td className={td}>
+                      <RegisterRow key={id}>
+                        <RegisterCell first nowrap={false}>
                           <span className="inline-flex items-center gap-2">
-                            <span className="inline-block h-2 w-2 rounded-full" style={{ background: AGENT_INK[id] }} />
-                            <span style={{ color: INK }}>{agentLabel(id)}</span>
+                            <span className={`inline-block h-2 w-2 rounded-full ${AGENT_DOT[id]}`} />
+                            <span className="text-trs-ink">{agentLabel(id)}</span>
                           </span>
-                          <div className="mt-0.5 text-[12px] pl-4" style={{ color: FAINT }}>
+                          <div className="mt-0.5 text-small pl-4 text-trs-subtle">
                             {spec ? spec.work : 'Logged under a feature no agent claims.'}
                           </div>
-                        </td>
-                        <td className={td} style={{ color: MUTED }}>{spec?.model ?? '—'}</td>
-                        <td className={num} style={{ color: MUTED }}>{(row?.calls ?? 0).toLocaleString()}</td>
-                        <td className={num} style={{ color: MUTED }}>{tok((row?.input ?? 0) + (row?.output ?? 0))}</td>
-                        <td className={num} style={{ color: INK }}>{usd(row?.cost ?? 0)}</td>
-                      </tr>
+                        </RegisterCell>
+                        <RegisterCell align="left" className="text-trs-muted">{spec?.model ?? '—'}</RegisterCell>
+                        <RegisterCell className="tabular-nums text-trs-muted">{(row?.calls ?? 0).toLocaleString()}</RegisterCell>
+                        <RegisterCell className="tabular-nums text-trs-muted">{tok((row?.input ?? 0) + (row?.output ?? 0))}</RegisterCell>
+                        <RegisterCell last className="tabular-nums text-trs-ink">{usd(row?.cost ?? 0)}</RegisterCell>
+                      </RegisterRow>
                     )
                   })}
                 </tbody>
                 <tfoot>
-                  <tr>
-                    <td className={`${td} font-medium`} style={{ color: INK }}>Total</td>
-                    <td className={td} />
-                    <td className={`${num} font-medium`} style={{ color: INK }}>{d.total.calls.toLocaleString()}</td>
-                    <td className={`${num} font-medium`} style={{ color: INK }}>{tok(d.total.input + d.total.output)}</td>
-                    <td className={`${num} font-medium`} style={{ color: INK }}>{usd(d.total.cost)} · {sgd(d.total.cost)}</td>
+                  <tr className="row-total">
+                    <RegisterCell first className="font-medium text-trs-ink">Total</RegisterCell>
+                    <RegisterCell />
+                    <RegisterCell className="tabular-nums font-medium text-trs-ink">{d.total.calls.toLocaleString()}</RegisterCell>
+                    <RegisterCell className="tabular-nums font-medium text-trs-ink">{tok(d.total.input + d.total.output)}</RegisterCell>
+                    <RegisterCell last className="tabular-nums font-medium text-trs-ink">{usd(d.total.cost)} · {sgd(d.total.cost)}</RegisterCell>
                   </tr>
                 </tfoot>
-              </table></div>
+              </Register>
             </SectionCard>
 
             <SectionCard title="By model">
-              <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
-                <thead>
-                  <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-                    <th className={th}>Model</th>
-                    <th className={th}>Rate</th>
-                    <th className={th}>Calls</th>
-                    <th className={th}>In</th>
-                    <th className={th}>Out</th>
-                    <th className={th}>Cost</th>
-                  </tr>
-                </thead>
+              <Register label="By model" minWidth={560}>
+                <RegisterHead>
+                  <RegisterTh first>Model</RegisterTh>
+                  <RegisterTh>Rate</RegisterTh>
+                  <RegisterTh>Calls</RegisterTh>
+                  <RegisterTh>In</RegisterTh>
+                  <RegisterTh>Out</RegisterTh>
+                  <RegisterTh last>Cost</RegisterTh>
+                </RegisterHead>
                 <tbody>
                   {d.models.map(m => (
-                    <tr key={m.key} style={{ borderBottom: `1px solid ${RULE}` }}>
-                      <td className={td} style={{ color: INK }}>{m.key}</td>
-                      <td className={td} style={{ color: FAINT }}>{MODEL_RATE[m.key] ?? '—'}</td>
-                      <td className={num} style={{ color: MUTED }}>{m.calls.toLocaleString()}</td>
-                      <td className={num} style={{ color: MUTED }}>{tok(m.input)}</td>
-                      <td className={num} style={{ color: MUTED }}>{tok(m.output)}</td>
-                      <td className={num} style={{ color: INK }}>{usd(m.cost)}</td>
-                    </tr>
+                    <RegisterRow key={m.key}>
+                      <RegisterCell first className="text-trs-ink">{m.key}</RegisterCell>
+                      <RegisterCell align="left" className="text-trs-subtle">{MODEL_RATE[m.key] ?? '—'}</RegisterCell>
+                      <RegisterCell className="tabular-nums text-trs-muted">{m.calls.toLocaleString()}</RegisterCell>
+                      <RegisterCell className="tabular-nums text-trs-muted">{tok(m.input)}</RegisterCell>
+                      <RegisterCell className="tabular-nums text-trs-muted">{tok(m.output)}</RegisterCell>
+                      <RegisterCell last className="tabular-nums text-trs-ink">{usd(m.cost)}</RegisterCell>
+                    </RegisterRow>
                   ))}
                 </tbody>
-              </table></div>
+              </Register>
             </SectionCard>
 
             <SectionCard title="By feature">
               {d.features.length === 0 ? <Empty compact>Nothing recorded.</Empty> : (
-                <div className="overflow-x-auto"><table className="trs-table w-full min-w-[560px]">
-                  <thead>
-                    <tr style={{ color: FAINT, borderBottom: `1px solid ${RULE}` }}>
-                      <th className={th}>Feature</th>
-                      <th className={th}>Agent</th>
-                      <th className={th}>Calls</th>
-                      <th className={th}>Cost</th>
-                      <th className={th}>Per call</th>
-                    </tr>
-                  </thead>
+                <Register label="By feature" minWidth={560}>
+                  <RegisterHead>
+                    <RegisterTh first>Feature</RegisterTh>
+                    <RegisterTh>Agent</RegisterTh>
+                    <RegisterTh>Calls</RegisterTh>
+                    <RegisterTh>Cost</RegisterTh>
+                    <RegisterTh last>Per call</RegisterTh>
+                  </RegisterHead>
                   <tbody>
                     {d.features.map(f => (
-                        <tr key={f.key} style={{ borderBottom: `1px solid ${RULE}` }}>
-                          <td className={td} style={{ color: INK }}>{f.key}</td>
-                          <td className={td} style={{ color: MUTED }}>{agentLabel(agentOfFeature(f.key))}</td>
-                          <td className={num} style={{ color: MUTED }}>{f.calls.toLocaleString()}</td>
-                          <td className={num} style={{ color: INK }}>{usd(f.cost)}</td>
-                          <td className={num} style={{ color: FAINT }}>{usd(f.calls ? f.cost / f.calls : 0)}</td>
-                        </tr>
+                        <RegisterRow key={f.key}>
+                          <RegisterCell first className="text-trs-ink">{f.key}</RegisterCell>
+                          <RegisterCell align="left" className="text-trs-muted">{agentLabel(agentOfFeature(f.key))}</RegisterCell>
+                          <RegisterCell className="tabular-nums text-trs-muted">{f.calls.toLocaleString()}</RegisterCell>
+                          <RegisterCell className="tabular-nums text-trs-ink">{usd(f.cost)}</RegisterCell>
+                          <RegisterCell last className="tabular-nums text-trs-subtle">{usd(f.calls ? f.cost / f.calls : 0)}</RegisterCell>
+                        </RegisterRow>
                     ))}
                   </tbody>
-                </table></div>
+                </Register>
               )}
             </SectionCard>
           </div>
