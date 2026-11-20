@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCompanyIndex, resolveThread } from '@/lib/crm/resolve'
 import { autofileThread } from '@/lib/crm/autofile'
+import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { ensureSignatureRead } from '@/lib/crm/signature'
 import { waitUntil }        from '@vercel/functions'
 import { extractHighlights }    from '@/lib/extract-highlights'
@@ -624,7 +625,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
     // Read their signature the first time they appear: position, and the organisation as they
     // write it, which is a far better match key than the domain alone. One model call per
     // person, ever. Awaited, because the company resolution just below wants the name.
-    if (contactId && !partyIsInternal && direction === 'inbound') {
+    if (housekeepingOn() && contactId && !partyIsInternal && direction === 'inbound') {
       try { await ensureSignatureRead(contactId, resolvedParty.email, bodyText) }
       catch (e) { console.warn('[ingest] signature read skipped:', e instanceof Error ? e.message : e) }
     }
@@ -645,7 +646,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   // the client name in the subject — the same deterministic rules the bulk sweep uses
   // (src/lib/crm/resolve.ts), so mail lands on its company the moment it arrives rather than
   // waiting in the triage queue. Never for internal-only threads, and never a guess.
-  if (!contactCompanyId && !partyIsInternal) {
+  if (housekeepingOn() && !contactCompanyId && !partyIsInternal) {
     try {
       const index = await getCompanyIndex()
       const hit = resolveThread(
@@ -801,7 +802,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   // 4b. Still unfiled? Give the thread a company from its domain, creating the organisation if
   // we have not met it before (src/lib/crm/autofile.ts). Runs after the participants are stored
   // so the resolver can see everyone on the thread, and never blocks ingest.
-  if (!contactCompanyId && !partyIsInternal) {
+  if (housekeepingOn() && !contactCompanyId && !partyIsInternal) {
     waitUntil(
       autofileThread(thread.id)
         .then(r => { if (r.companyId) console.log(`[ingest] filed thread ${thread.id} — ${r.via}`) })
@@ -817,7 +818,7 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
   waitUntil(
     enqueue({ agent: 'intake', kind: 'message', idem_key: `intake:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } })
       .then(() => enqueue({ agent: 'knowledge_depositor', kind: 'message', idem_key: `deposit:msg:${dbMsg.id}`, created_by_agent: 'system', message_id: dbMsg.id, thread_id: thread.id, payload: { message_id: dbMsg.id } }))
-      .then(() => drainAgents({ agents: ['intake', 'resolver', 'knowledge_depositor'], budgetMs: 60_000 }))
+      .then(() => drainAgents({ agents: housekeepingOn() ? ['intake', 'resolver', 'knowledge_depositor'] : ['intake', 'knowledge_depositor'], budgetMs: 60_000 }))
       // Graduated draft classes go out after the drain; the daily cron is the fallback (Hobby plan: daily crons only).
       .then(() => autoSendRun().catch(e => console.warn('[ingest] auto-send (non-fatal):', e instanceof Error ? e.message : e)))
       .catch(e => console.warn('[ingest] intake (non-fatal):', e instanceof Error ? e.message : e)),

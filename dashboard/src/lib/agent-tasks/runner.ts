@@ -4,6 +4,7 @@
  */
 import { claim, finish, fail, type AgentName, type AgentTask } from './queue'
 import { alertHeld, modelState, splitAgents } from './model-guard'
+import { housekeepingOn } from '@/lib/housekeeping-switch'
 
 export type Handler = (task: AgentTask) => Promise<Record<string, unknown> | void | 'handled'>
 
@@ -44,7 +45,9 @@ export async function drain(opts: { agents?: AgentName[]; budgetMs?: number; bat
   const until = Date.now() + (opts.budgetMs ?? 240_000)
   // The credit guard (model-guard.ts): with no model, the agents that read with it wait in the queue.
   const model = await modelState()
-  const { run, held } = splitAgents(opts.agents ?? Array.from(HANDLERS.keys()), model.ok)
+  // The resolver files threads to companies: it is the filing agent's, and waits while that is off.
+  const wanted = (opts.agents ?? Array.from(HANDLERS.keys())).filter(a => housekeepingOn() || a !== 'resolver')
+  const { run, held } = splitAgents(wanted, model.ok)
   if (held.length) await alertHeld(held, model.reason)
   const active = rotateAgents(run, Math.floor(Date.now() / DRAIN_EVERY_MS))
   const perAgent = Math.max(1, Math.min(opts.batch ?? 2, 5))
