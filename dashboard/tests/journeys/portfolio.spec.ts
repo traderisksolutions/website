@@ -34,7 +34,7 @@ test('Admin desk lists the top 20% and opens a business with its repeats, open r
   if (await page.getByRole('checkbox', { name: 'Select every open request' }).count()) {
     await expect(page.getByRole('button', { name: /^Mark done/ })).toBeDisabled()
     await expect(page.getByRole('button', { name: 'Done', exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Snooze', exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Snooze 7 days', exact: true }).first()).toBeVisible()
   }
 })
 
