@@ -6,6 +6,7 @@ import { Chip } from '@/components/crm/primitives'
 import { sbTry, enc } from '@/lib/crm/db'
 import { fmtDate } from '@/lib/format'
 import { docLabel } from '@/lib/documents/taxonomy'
+import { ClaimsTabs } from '@/components/claims/ClaimsTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,7 +40,8 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
 
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
-      <PageHeader title="Documents" meta={<>{rows.length}{rows.length === LIMIT ? '+' : ''} {rows.length === 1 ? 'document' : 'documents'}</>}>
+      <PageHeader title="Claims" meta={<>{rows.length}{rows.length === LIMIT ? '+' : ''} {rows.length === 1 ? 'document' : 'documents'}</>}>
+        <ClaimsTabs />
         <UrlFilters<View> param="view" value={view} options={VIEWS} query={q} placeholder="File, policy no. or insurer" />
       </PageHeader>
       <Register label="Documents" minWidth={900}>

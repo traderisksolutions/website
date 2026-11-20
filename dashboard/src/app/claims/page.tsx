@@ -8,7 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Btn, Chip, Field, LinkBtn, Segmented, Spinner, Empty, textareaCls } from '@/components/crm/primitives'
+import { Btn, Chip, Field, Segmented, Spinner, Empty, textareaCls } from '@/components/crm/primitives'
 import { Input } from '@/components/ui/input'
 import { Register, RegisterHead, RegisterTh, RegisterRow as RegRow, RegisterCell } from '@/components/ui/register'
 import { callApi, errText } from '@/components/placement/shared'
@@ -16,6 +16,7 @@ import type { ClaimDetail } from '@/lib/admin/b/register'
 import { bucketOf as bucket, type RegisterRow, type Bucket } from '@/lib/admin/b/register-view'
 import { WebsiteForms } from './website-forms'
 import { createClient } from '@/lib/supabase/client'
+import { ClaimsTabs } from '@/components/claims/ClaimsTabs'
 
 type View = Bucket | 'forms'
 type Who = 'mine' | 'all'
@@ -90,10 +91,10 @@ export default function ClaimsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h1 className="m-0 text-title font-medium">Claims</h1>
         <div className="flex flex-wrap gap-2">
-          <LinkBtn href="/claims/second-opinion" level="tertiary">Second opinion reports</LinkBtn>
           <Btn level="secondary" onClick={() => setNewOpen(o => !o)}>New claim</Btn>
         </div>
       </div>
+      <div className="mb-5"><ClaimsTabs /></div>
 
       {newOpen && <NewClaim onDone={(id) => { setNewOpen(false); setNotice('Claim opened.'); load(); select(id) }} onCancel={() => setNewOpen(false)} />}
 
