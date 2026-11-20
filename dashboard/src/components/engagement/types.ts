@@ -40,7 +40,7 @@ export type Lead = {
   } | null
 }
 
-export type MsgAttachment = {
+type MsgAttachment = {
   id:         string
   filename:   string
   mime_type:  string | null

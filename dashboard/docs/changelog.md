@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Inbox: server pages, filing by hand, Send by email fixed
+
+- The list pages from the server (`/api/engagement/conversations?paged=1`): 100 a page, newest first, More or scroll for the next, the true total in the header. Views, the Mailbox pill and the search narrow it on the server; counts follow the pill. The search covers every thread (subject, sender, participants, names, email text). One index per server, kept 60 seconds (`src/lib/mail/inbox-index.ts`); Refresh reads it fresh. The array answer without `paged=1` is unchanged for People, Today and Policies.
+- Views: Inbox, Needs reply, Awaiting client, Unlinked, Unassigned, Drafts. Prospects, Clients, Renewals and Claims removed; website-form leads stay in Inbox. The Inbound tab is off the bar; `/inbound` stays (the website page links it) without its tile row.
+- Mail rule line under the Mailbox pills. A failed list load shows the error with Retry.
+- Rail: Summary without box or disclaimer; Status and notes without border; the Threads list marks the open thread. From is three pills. Delete thread asks in the house confirm.
+- New email is the reading pane, not a modal (`NewEmailCompose.tsx`).
+- Filing by hand: Change company; Link company with search, + Add as a new company, File all from the domain (count first, then confirm, `POST /api/companies/domains`). `GET /api/engagement/thread/[id]/company` names the thread's outside domain and the unfiled threads on it. Unfiled threads offer Link company in From and New to-do.
+- Fix: drafts to a new address failed (contacts has no unique key on email; `on_conflict=email` returned 42P10). `/api/engagement/draft` (Reply, Compare cover's Send by email, the quotation drafts), `/api/engagement/drafts` (Save draft) and `/api/nexus/draft-create` (New email) look the contact up and insert only when none (`src/lib/crm/contact-for-email.ts`).
+- Behaviours INB-038 to INB-049.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

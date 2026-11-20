@@ -12,15 +12,14 @@ import { btnClass } from '@/components/crm/primitives'
 export const INK = '#0f1412'
 export const BODY = '#2a332f'
 export const MUTED = '#4a5550'
-export const SUBTLE = '#8c958f'
+const SUBTLE = '#8c958f'
 export const HAIR = '#e6e8e4'
 export const ERROR = '#a1242f'
-export const PRIMARY = '#1a2e26'
 /** Buttons in a rail are the house ladder at row height (30px): outlined secondary, one green primary. */
 export const SECOND = btnClass('secondary', 'xs')
 export const MAIN = btnClass('primary', 'xs')
 
-export function GroupPill({ children }: { children: React.ReactNode }) {
+function GroupPill({ children }: { children: React.ReactNode }) {
   return (
     <p className="m-0 mb-3 inline-block rounded-full px-3 py-1 text-[13.5px] font-medium" style={{ color: 'var(--trs-green, #1f6b3e)', background: 'var(--trs-soft, #eaf6ec)', border: '1px solid rgba(31,107,62,0.28)' }}>{children}</p>
   )

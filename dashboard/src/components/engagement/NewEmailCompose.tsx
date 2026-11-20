@@ -2,14 +2,13 @@
 
 import { toProblem } from '@/lib/email/recipients'
 import React, { useEffect, useRef, useState } from 'react'
-import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 import { useConfirm } from '@/components/ui/confirm'
 import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, externalDomain,
-  BTN_PRIMARY, BTN_SECONDARY, BTN_TERTIARY, INK, BODY, FAINT,
+  BTN_PRIMARY, BTN_SECONDARY, BTN_TERTIARY, INK, FAINT,
 } from '@/components/engagement-agent/compose-toolbar'
 
 /**
@@ -17,17 +16,17 @@ import {
  * Nexus next-step's "Draft in Engagement" always lands in Engagement (compose
  * only; the thread is created on send). Server appends the signature (signatureId).
  *
- * Presentation: the approved "New email" dialog — centred, 880 wide, To/Cc/Subject rows, the
- * same grouped toolbar and Quill editor as the reply panel, Save draft · Send in the footer.
- * Data flow unchanged: drafts are still stored as plain text (the drafts list previews `body`
- * as text), so the editor's HTML is flattened on save and re-expanded on reopen; the send
- * carries the editor's HTML as-is.
+ * Presentation (20 Nov 2026): the whole reading pane, not a modal — real work is a full page.
+ * To/Cc/Subject rows, the same grouped toolbar and Quill editor as the reply panel, Save draft ·
+ * Send in the footer. Data flow unchanged: drafts are still stored as plain text (the drafts list
+ * previews `body` as text), so the editor's HTML is flattened on save and re-expanded on reopen;
+ * the send carries the editor's HTML as-is.
  */
 
 type Sender    = { email: string; label: string; type: string }
 type SigOption = { id: string; name: string; title: string | null; phone: string | null; email: string | null }
 
-export type EmailAttachmentRef = { filename: string; mime_type?: string; storage_url: string }
+type EmailAttachmentRef = { filename: string; mime_type?: string; storage_url: string }
 export type NewEmailDraft = {
   toEmail: string; toName?: string; cc?: string; subject: string; body: string; attachment?: EmailAttachmentRef
   /** When set (e.g. sending a debit note), whatever address ends up in To/Cc at send time gets
@@ -52,7 +51,7 @@ function joinCc(chips: string[], current: string): string {
   return chips.length ? `${chips.join(', ')}, ${current}` : current
 }
 
-export function NewEmailComposeModal({ initial, onClose, onSent }: {
+export function NewEmailCompose({ initial, onClose, onSent }: {
   initial: NewEmailDraft
   onClose: () => void
   onSent?: (threadId: string | null) => void
@@ -73,7 +72,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const [error,    setError]    = useState<string | null>(null)
   const [showCc,   setShowCc]   = useState(!!(initial.cc ?? '').trim())
   const [fullscreen, setFullscreen] = useState(false)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLElement>(null)
 
   // Recipient typeahead — same source as the reply editor (contacts + employees).
   const toAc = useAutocomplete(to, c => setTo(c.email))
@@ -171,8 +170,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   )
   const confirmBox = useConfirm()
   async function requestClose() {
-    // A backdrop click never closes (an accidental click used to silently discard the whole
-    // email). Esc and Close do, behind one confirm when there are unsaved changes.
+    // Esc and Close leave the pane, behind one confirm when there are unsaved changes.
     if (dirty && !(await confirmBox({ title: 'Discard this email?', body: 'Unsaved changes will be lost.', action: 'Discard', danger: true }))) return
     onClose()
   }
@@ -182,37 +180,27 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
   const savedState = savingDraft ? 'Saving…' : draftSaved ? 'Draft saved' : null
 
   return (
-    <DialogPrimitive.Root open onOpenChange={o => { if (!o) requestClose() }}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[#0f1412]/40 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content
-          ref={contentRef}
-          aria-describedby={undefined}
-          onPointerDownOutside={e => e.preventDefault()}
-          onInteractOutside={e => e.preventDefault()}
-          // Radix's Esc listener runs before an open toolbar menu's own: when a menu is open,
-          // leave Esc to the menu (it closes itself) instead of closing the whole dialog.
-          onEscapeKeyDown={e => {
-            e.preventDefault()
-            if (contentRef.current?.querySelector('[role="menu"]')) return
-            if (fullscreen) setFullscreen(false); else requestClose()
-          }}
-          // Focus the To field when it is empty; otherwise the dialog itself, so typing starts
-          // where the user clicks rather than on the Close button Radix would pick.
-          onOpenAutoFocus={e => { e.preventDefault(); if (to.trim()) contentRef.current?.focus() }}
-          className={cn(
-            'fixed z-50 flex flex-col overflow-hidden bg-white border border-[#e6e8e4] shadow-[0_24px_60px_rgba(15,20,18,0.18)] focus:outline-none',
-            'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200',
-            fullscreen
-              ? 'inset-3 rounded-[16px]'
-              : 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100vw-32px)] max-w-[880px] max-h-[calc(100vh-48px)] rounded-[16px]',
-            '[--re-gutter:16px] sm:[--re-gutter:24px]',
-          )}
-          style={{ color: INK }}
-        >
+    <section
+      ref={contentRef}
+      aria-label="New email"
+      tabIndex={-1}
+      // Esc leaves the pane; an open toolbar menu closes itself first.
+      onKeyDown={e => {
+        if (e.key !== 'Escape') return
+        if (contentRef.current?.querySelector('[role="menu"]')) return
+        e.preventDefault()
+        if (fullscreen) setFullscreen(false); else void requestClose()
+      }}
+      className={cn(
+        'flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-white focus:outline-none',
+        fullscreen && 'fixed inset-0 z-50',
+        '[--re-gutter:20px] sm:[--re-gutter:40px]',
+      )}
+      style={{ color: INK }}
+    >
           {/* ── Bar: New email · Draft saved · Close ── */}
           <div className="flex items-center gap-2.5 px-[var(--re-gutter)] pt-4 pb-2.5 flex-shrink-0">
-            <DialogPrimitive.Title className="m-0 text-[18px] font-medium tracking-[-0.01em]" style={{ color: INK }}>New email</DialogPrimitive.Title>
+            <h1 className="m-0 text-[19px] font-semibold tracking-[-0.015em]" style={{ color: INK }}>New email</h1>
             <span className="flex-1" />
             {savedState && <span className="text-[12.5px] mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
             <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
@@ -336,7 +324,7 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
           {/* ── Footer: external note or error · Save draft · Send ── */}
           <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2.5 pb-4 flex-shrink-0 flex-wrap">
             {error ? (
-              <span className="text-[12.5px] min-w-0 truncate" role="alert" style={{ color: BODY }}>{error}</span>
+              <span className="text-[12.5px] min-w-0 truncate" role="alert" style={{ color: '#a1242f' }}>{error}</span>
             ) : external ? (
               <span className="text-[12.5px] min-w-0 truncate" style={{ color: FAINT }}>External recipient · {external}</span>
             ) : null}
@@ -348,8 +336,6 @@ export function NewEmailComposeModal({ initial, onClose, onSent }: {
               {sending ? 'Sending…' : 'Send'}
             </button>
           </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+    </section>
   )
 }

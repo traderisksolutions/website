@@ -50,7 +50,6 @@ export const PLACES: Place[] = [
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
     { title: 'Inbox', href: '/engagement' },
-    { title: 'Inbound', href: '/inbound' },
   ] },
   // Jarod, 19 Nov 2026: Quotes is off the bar. RoadPlus is its own place; Lines is a tab under
   // Others; Requests for quotes and Insurers left the bar and keep their addresses.

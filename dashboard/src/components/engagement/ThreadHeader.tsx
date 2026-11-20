@@ -8,6 +8,7 @@ import type { Lead } from './types'
 import { fullName } from './helpers'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { cleanSubject } from '@/lib/crm/subject'
+import { useConfirm } from '@/components/ui/confirm'
 
 /**
  * The reader header: subject, then who wrote, then one context line (company · type · state ·
@@ -48,17 +49,23 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
   onToggleContext: () => void
 }) {
   const [menu, setMenu] = useState(false)
-  const [confirm, setConfirm] = useState(false)
+  const confirm = useConfirm()
   const ref = useRef<HTMLDivElement>(null)
   const menuBtn = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!menu) return
-    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) { setMenu(false); setConfirm(false) } }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(false); setConfirm(false); menuBtn.current?.focus() } }
+    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setMenu(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setMenu(false); menuBtn.current?.focus() } }
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey) }
   }, [menu])
+
+  async function askDelete() {
+    setMenu(false)
+    const ok = await confirm({ title: 'Delete this thread?', body: 'It leaves the Inbox and the company page. The emails stay in Gmail.', action: 'Delete', danger: true })
+    if (ok) await onDelete()
+  }
 
   const contact = fullName(lead)
   const heading = displaySubject?.trim() || (subject?.trim() ? cleanSubject(subject) : null) || contact
@@ -103,13 +110,7 @@ export function ThreadHeader({ subject, displaySubject, lead, needsReply, lastDi
                   <button type="button" role="menuitem" onClick={() => { setMenu(false); onAddTask() }} className={MENU_ITEM} style={{ color: INK }}><Plus size={14} /> Add to-do</button>
                   {lead.companyId && <Link href={`/companies/${lead.companyId}`} role="menuitem" className={cn(MENU_ITEM, 'block')} style={{ color: INK }}>Open company page</Link>}
                   <div className="my-1" style={{ borderTop: `1px solid ${HAIR}` }} />
-                  {confirm
-                    ? <div className="px-3 py-2 flex items-center justify-between gap-2 text-[13px]"><span style={{ color: BODY }}>Delete this thread?</span>
-                        <span className="flex items-center gap-2.5">
-                          <button type="button" onClick={() => { void onDelete(); setMenu(false); setConfirm(false) }} disabled={deleting} className="text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50 underline underline-offset-[3px]" style={{ color: '#a1242f' }}>{deleting ? 'Deleting…' : 'Delete'}</button>
-                          <button type="button" onClick={() => setConfirm(false)} className="text-[13px] bg-transparent border-0 p-0 cursor-pointer" style={{ color: MUTED }}>Cancel</button>
-                        </span></div>
-                    : <button type="button" role="menuitem" onClick={() => setConfirm(true)} className={MENU_ITEM} style={{ color: BODY }}><Trash2 size={14} /> Delete thread</button>}
+                  <button type="button" role="menuitem" disabled={deleting} onClick={() => void askDelete()} className={MENU_ITEM} style={{ color: BODY }}><Trash2 size={14} /> {deleting ? 'Deleting…' : 'Delete thread'}</button>
                 </div>
               )}
             </div>

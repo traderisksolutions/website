@@ -43,7 +43,7 @@ const QUOTE_MARKERS = [
   /-----\s*Original Message\s*-----/i,
   /<blockquote[^>]*type="cite"/i,
 ]
-export function splitQuotedHtml(html: string): { main: string; quoted: string | null } {
+function splitQuotedHtml(html: string): { main: string; quoted: string | null } {
   let cut = -1
   for (const re of QUOTE_MARKERS) { const m = re.exec(html); if (m && m.index > 40 && (cut < 0 || m.index < cut)) cut = m.index }
   if (cut < 0) return { main: html, quoted: null }
@@ -162,7 +162,7 @@ function escapeHtml(s: string): string {
  *  hairline container with the "kept exactly as sent" caption. Layout tables are left alone. */
 /** Blocks that carry no words — `<p>&nbsp;</p>`, `<div><br></div>`, `<p><span></span></p>` — are how mail
  *  clients pad lines. Dropped before rendering so the body reads as prose, not a double-spaced sheet. */
-export function collapseBlankBlocks(html: string): string {
+function collapseBlankBlocks(html: string): string {
   const blank = /<(p|div)\b[^>]*>(?:\s|&nbsp;|\u00a0|<br\s*\/?>|<\/?(?:span|font|o:p|b|i|u|em|strong)\b[^>]*>)*<\/\1>/gi
   let out = html, prev = ''
   while (out !== prev) { prev = out; out = out.replace(blank, '') }
