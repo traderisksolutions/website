@@ -11,6 +11,8 @@ import { fmtDay, n } from '@/lib/marketing/labels'
 import { useConfirm } from '@/components/ui/confirm'
 import { Input } from '@/components/ui/input'
 import type { Competitor, GeoAnalysis, GeoPrompt, GeoPromptResult, SiteSummary } from '@/lib/marketing/types'
+import type { ActionResult } from '@/lib/action-result'
+import { addGeoPrompt, addSiteCompetitor, competitors, removeGeoPrompt, removeSiteCompetitor, runCompetitorAnalysis, selectGeoPrompt } from '../actions'
 
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const TONE_LABEL: Record<string, string> = { positive: 'Positive', neutral: 'Neutral', negative: 'Negative', not_mentioned: 'Not mentioned' }
@@ -48,11 +50,10 @@ function Competitors() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/competitors?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await competitors(siteKey)
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load competitors')
-      setData(j); setError(null)
+      if (!r.ok) throw new Error(r.error)
+      setData(r.data as unknown as Payload); setError(null)
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }
   }, [siteKey])
@@ -65,44 +66,43 @@ function Competitors() {
     return () => clearInterval(t)
   }, [running, load])
 
-  /** One call, one error line. Returns the JSON on success, null on failure. */
-  async function api<T = Record<string, unknown>>(path: string, init: RequestInit): Promise<T | null> {
+  /** One call, one error line. Returns the result on success, null on failure. */
+  async function act<T>(call: Promise<ActionResult<T>>): Promise<T | null> {
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/marketing/competitors${path}${path.includes('?') ? '&' : '?'}site=${siteKey}`, { ...init, headers: { 'content-type': 'application/json' } })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Request failed'); return null }
-      return j as T
-    } finally { setBusy(false) }
+      const r = await call
+      if (!r.ok) { setError(r.error); return null }
+      return r.data
+    } catch (e) { setError(e instanceof Error ? e.message : 'Request failed'); return null } finally { setBusy(false) }
   }
 
   async function addCompetitor(url: string) {
-    const r = await api('', { method: 'POST', body: JSON.stringify({ url }) })
+    const r = await act(addSiteCompetitor(siteKey, url))
     if (r) { setNote(null); await load() }
     return !!r
   }
   async function removeCompetitor(c: Competitor) {
     if (!(await confirmBox({ title: `Remove ${c.name}?`, body: `${c.domain} comes off the competitor list.`, action: 'Remove', danger: true }))) return
-    const r = await api('', { method: 'DELETE', body: JSON.stringify({ id: c.id }) })
+    const r = await act(removeSiteCompetitor(siteKey, c.id))
     if (r) await load()
   }
   async function runAnalysis() {
-    const r = await api<{ version: number; note: string | null }>('/analyse', { method: 'POST' })
+    const r = await act(runCompetitorAnalysis(siteKey))
     if (r) { setNote(`Analysis v${r.version} queued${r.note ? ` · ${r.note}` : ''}`); await load() }
   }
   async function addPrompt(prompt: string, search_query: string) {
-    const r = await api('/prompts', { method: 'POST', body: JSON.stringify({ prompt, search_query }) })
+    const r = await act(addGeoPrompt(siteKey, { prompt, search_query }))
     if (r) await load()
     return !!r
   }
   async function toggleSelected(p: GeoPrompt) {
     const next = !p.selected
     setData(d => d && { ...d, prompts: d.prompts.map(x => x.id === p.id ? { ...x, selected: next } : x) })
-    const r = await api('/prompts', { method: 'PATCH', body: JSON.stringify({ id: p.id, selected: next }) })
+    const r = await act(selectGeoPrompt(siteKey, p.id, next))
     if (!r) setData(d => d && { ...d, prompts: d.prompts.map(x => x.id === p.id ? { ...x, selected: p.selected } : x) })
   }
   async function removePrompt(p: GeoPrompt) {
-    const r = await api('/prompts', { method: 'DELETE', body: JSON.stringify({ id: p.id }) })
+    const r = await act(removeGeoPrompt(siteKey, p.id))
     if (r) await load()
   }
 

@@ -8,6 +8,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { timeAgo } from '@/lib/format'
 import type { WebsiteOverview } from '@/lib/marketing/website'
 import { MEASUREMENT_IDS } from '@/lib/marketing/ga4-types'
+import { websiteDetail } from '@/app/marketing/actions'
 
 export default function WebsitePage() {
   return <Suspense fallback={null}><Website /></Suspense>
@@ -26,8 +27,8 @@ function Website() {
   useEffect(() => {
     let alive = true
     setData(null); setError(null)
-    fetch(`/api/marketing/websites/${encodeURIComponent(key)}`, { cache: 'no-store' })
-      .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.error ?? 'Could not load this website'); if (alive) setData(j as WebsiteOverview) })
+    websiteDetail(key)
+      .then(r => { if (!r.ok) throw new Error(r.error); if (alive) setData(r.data as WebsiteOverview) })
       .catch(e => { if (alive) setError(e instanceof Error ? e.message : String(e)) })
     return () => { alive = false }
   }, [key])

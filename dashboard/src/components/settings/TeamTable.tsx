@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react'
 import { MoreHorizontal, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, inputCls } from '@/components/crm/primitives'
-import type { TeamUser } from '@/app/api/users/route'
 import { PersonTag } from '@/components/board/TodoEditor'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { unwrap } from '@/lib/action-result'
+import { addTeamMember, changeAccess, team, type TeamUser } from '@/app/settings/actions'
 
 /**
  * The staff roster: name and email, role, access, joined, and a quiet row menu. Roles change in
@@ -41,9 +42,9 @@ export function TeamTable() {
   const [notice, setNotice] = useState<string | null>(null)
 
   async function load() {
-    const r = await fetch('/api/users', { cache: 'no-store' })
-    const d = await r.json()
-    if (!r.ok) { setErr(d.error ?? 'Could not load the team.'); return }
+    const r = await team()
+    if (!r.ok) { setErr(r.error); return }
+    const d = r.data
     setUsers(d.users); setIsAdmin(!!d.me?.isAdmin); setErr(null)
   }
   useEffect(() => { void load() }, [])
@@ -51,18 +52,14 @@ export function TeamTable() {
   async function patch(userId: string, body: Record<string, unknown>, done: string) {
     setBusy(userId); setMenu(null)
     try {
-      const r = await fetch('/api/users', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, ...body }) })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error ?? 'Could not save')
+      unwrap(await changeAccess({ userId, ...body }))
       setNotice(done); await load()
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not save') } finally { setBusy(null) }
   }
   async function add() {
     setBusy('add')
     try {
-      const r = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, name }) })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error ?? 'Could not add')
+      unwrap(await addTeamMember(email, name))
       setNotice(`${email.trim()} can now sign in with Google.`); setEmail(''); setName(''); setAdding(false); await load()
     } catch (e) { setNotice(e instanceof Error ? e.message : 'Could not add') } finally { setBusy(null) }
   }

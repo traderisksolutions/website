@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/client'
 import { usePolledRefresh } from '@/hooks/usePolledRefresh'
 import { fmtDate, timeAgo } from '@/lib/format'
 import { companyDetail, searchCompanies } from '@/app/companies/actions'
+import { listSignatures } from '@/app/settings/actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -3059,7 +3060,7 @@ function NexusStepCompose({
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/signatures', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      listSignatures().then(r => r.ok ? r.data : []).catch(() => []),
       fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([sigs, sndrs]) => {
       const sigArr = Array.isArray(sigs) ? sigs : []
@@ -3234,7 +3235,7 @@ function NexusComposeWindow({
   const [showCc,     setShowCc]     = useState(!!state.cc)
 
   useEffect(() => {
-    fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((sigs: UserSignature[]) => {
+    listSignatures().then(r => r.ok ? r.data : []).then((sigs: UserSignature[]) => {
       setSignatures(sigs)
     }).catch(() => {})
   }, [])

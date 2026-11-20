@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Field, inputCls, textareaCls } from '@/components/crm/primitives'
+import { newArticle } from '@/app/marketing/actions'
 
 /** A hand-written article. Saved as a draft; publish from the editor. */
 export function NewArticleDialog({ open, onOpenChange, siteKey, topics, onCreated }: { open: boolean; onOpenChange: (v: boolean) => void; siteKey: string | null; topics: string[]; onCreated: (id: string) => void }) {
@@ -17,9 +18,9 @@ export function NewArticleDialog({ open, onOpenChange, siteKey, topics, onCreate
     if (!siteKey) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/marketing/articles?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ title, topic, markdown, status: 'draft' }) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not create the article'); return }
+      const r = await newArticle(siteKey, { title, topic, markdown, status: 'draft' })
+      if (!r.ok) { setError(r.error); return }
+      const j = r.data as { id: string }
       setTitle(''); setTopic(''); setMarkdown('')
       onCreated(j.id)
     } finally { setBusy(false) }

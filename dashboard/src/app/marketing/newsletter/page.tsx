@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { useConfirm } from '@/components/ui/confirm'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { unwrap, type ActionResult } from '@/lib/action-result'
+import { deleteNewsletterIssue, newsletter, newsletterAction, newsletterIssue, newsletterIssueAction, updateNewsletterIssue } from '../actions'
 
 // The iframe's own HTML document while the preview loads (an email body, not the app's styles).
 const PREVIEW_LOADING = '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>' // drift-ok: email preview HTML
@@ -43,20 +45,17 @@ function Newsletter() {
     if (!siteKey) return
     const id = ++req.current
     try {
-      const res = await fetch(`/api/marketing/newsletter?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await newsletter(siteKey)
       if (id !== req.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the newsletter')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
     } catch (e) { if (id === req.current) setError(e instanceof Error ? e.message : String(e)) }
   }, [siteKey])
   useEffect(() => { setData(null); setOpenId(null); void load() }, [load])
 
   const post = async (body: Record<string, unknown>) => {
-    const res = await fetch('/api/marketing/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ site: siteKey, ...body }) })
-    const j = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(j.error ?? 'Could not complete that')
-    return j
+    return unwrap(await newsletterAction({ site: siteKey, ...body })) as Record<string, unknown> & { issue: { id: string } }
   }
   const newIssue = async () => {
     setBusy(true)
@@ -180,16 +179,16 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const dirty = subject !== issue.subject || intro !== issue.intro || ids.join() !== issue.article_ids.join()
 
   const loadPreview = useCallback(async () => {
-    const res = await fetch(`/api/marketing/newsletter/issues/${issue.id}`, { cache: 'no-store' })
-    if (res.ok) setPreview((await res.json()).preview.html)
+    const r = await newsletterIssue(issue.id)
+    if (r.ok) setPreview(r.data.preview.html)
   }, [issue.id])
   useEffect(() => { void loadPreview() }, [loadPreview])
 
   const call = async (method: string, body?: Record<string, unknown>) => {
-    const res = await fetch(`/api/marketing/newsletter/issues/${issue.id}`, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
-    const j = await res.json().catch(() => ({}))
-    if (!res.ok) throw new Error(j.error ?? 'Could not complete that')
-    return j
+    const r = method === 'PATCH' ? await updateNewsletterIssue(issue.id, body ?? {})
+      : method === 'DELETE' ? await deleteNewsletterIssue(issue.id)
+      : await newsletterIssueAction(issue.id, String(body?.action ?? ''))
+    return unwrap(r as ActionResult<Record<string, unknown>>) as Record<string, unknown> & { to?: string }
   }
   const act = async (name: string, fn: () => Promise<void>) => {
     setBusy(name); setMsg(null)

@@ -24,6 +24,7 @@ import {
 } from '@/components/engagement-agent/compose-toolbar'
 import { Btn, Segmented } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
+import { listSignatures } from '@/app/settings/actions'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -170,7 +171,7 @@ export function EngagementComposePanel({
   useEffect(() => {
     if (sigsLoaded) return
     setSigsLoaded(true)
-    fetch('/api/signatures').then(r => r.ok ? r.json() : []).then((rows: SigOption[]) => {
+    listSignatures().then(r => r.ok ? r.data : []).then((rows: SigOption[]) => {
       setSignatures(Array.isArray(rows) ? rows : [])
     }).catch(() => {})
     fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {

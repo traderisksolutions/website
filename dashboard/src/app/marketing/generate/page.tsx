@@ -14,6 +14,7 @@ import { MARKETS, computeReadiness, marketLabel, type KnowledgeEntry } from '@/l
 import { fmtDuration } from '@/lib/marketing/engine'
 import { TRIGGER_LABEL, fmtDate } from '@/lib/marketing/labels'
 import type { MarketingStatus, RunListRow, SiteSummary } from '@/lib/marketing/types'
+import { runs, startRun } from '../actions'
 
 type Option = { id: string; label: string }
 type Payload = { site: SiteSummary; runs: RunListRow[]; options: { products: Option[]; caseStudies: Option[] }; entries: Pick<KnowledgeEntry, 'section' | 'status' | 'markets'>[]; status: MarketingStatus }
@@ -51,10 +52,10 @@ function Generate() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/runs?site=${siteKey}${probe ? '&probe=1' : ''}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await runs(siteKey, !!probe)
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load runs')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
       const s = j.site as SiteSummary
       setMarket(m => (s.markets.includes(m) ? m : s.markets[0] ?? 'SG'))
@@ -92,16 +93,13 @@ function Generate() {
     if (!siteKey) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/marketing/runs?site=${siteKey}`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
+      const r = await startRun(siteKey, {
           focus: { type: focusType, id: focusType === 'product' || focusType === 'case_study' ? focusId : '', label: focusLabel },
           market, language, topic: focusType === 'question' ? question : topic, reader_question: question, length, extra_instructions: instructions, topic_label: topicLabel,
           target_query: focusType === 'question' ? question.trim() : '', target_position: Number(search.get('position')) || 0,
-        }),
       })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok || !j.runId) { setError(j.error ?? 'Could not start the run'); return }
+      const j = (r.ok ? r.data : {}) as { runId?: string }
+      if (!r.ok || !j.runId) { setError(r.ok ? 'Could not start the run' : r.error); return }
       router.push(withSite(`/marketing/generate/runs/${j.runId}`, siteKey))
     } finally { setBusy(false) }
   }

@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Btn, Chip, Empty, Field, Spinner, inputCls } from '@/components/crm/primitives'
-import { callApi, errText } from '@/components/placement/shared'
+import { errText } from '@/components/placement/shared'
 import { selectCls } from '@/components/cases/shared'
 import { DASH, fmtDay } from '@/lib/format'
 import { actorName, type Staff } from '@/lib/cases/names'
@@ -17,6 +17,8 @@ import { FOUND_BY, FOUND_BY_NAME, LABEL_MAX, checklistLine, lineName, type Check
 import type { ChecklistList } from '@/lib/cases/brief-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import { Register } from '@/components/ui/register'
+import { unwrap } from '@/lib/action-result'
+import { changeChecklist, checklists, editChecklistItem } from '@/app/settings/actions'
 
 type Data = { lists: ChecklistList[]; staff: Staff[]; doc_types: { slug: string; label: string }[] }
 type Draft = { line: string; id: string | null; label: string; found_by: FoundBy; doc_types: string[]; words: string; required: boolean }
@@ -31,7 +33,7 @@ export function ChecklistPanel() {
   const [draftError, setDraftError] = useState<string | null>(null)
   const [newLine, setNewLine] = useState('')
 
-  const load = useCallback(() => callApi<Data>('/api/settings/checklists'), [])
+  const load = useCallback(async () => unwrap(await checklists()) as Data, [])
   useEffect(() => { load().then(setData).catch(e => setFailed(errText(e))) }, [load])
 
   if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
@@ -40,7 +42,8 @@ export function ChecklistPanel() {
   async function send(key: string, method: 'POST' | 'PATCH', body: Record<string, unknown>, onFail: (m: string) => void = setError): Promise<boolean> {
     setBusy(key); setError(null)
     try {
-      setData(await callApi<Data>('/api/settings/checklists', { method, body }))
+      const { id, ...patch } = body
+      setData(unwrap(await (method === 'POST' ? changeChecklist(body) : editChecklistItem(String(id ?? ''), patch))) as Data)
       return true
     } catch (e) { onFail(errText(e)); return false } finally { setBusy(null) }
   }

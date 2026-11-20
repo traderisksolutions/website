@@ -6,6 +6,8 @@ import { Btn, Field, Segmented, inputCls, textareaCls } from '@/components/crm/p
 import { KnowledgeStatusChip } from './chips'
 import { SECTIONS, SECTION_BY_KEY, marketLabel, type KnowledgeEntry, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
 import { fmtDate } from '@/lib/marketing/labels'
+import { archiveKnowledgeEntry, saveKnowledgeEntry } from '@/app/marketing/actions'
+import type { EntryInput } from '@/lib/marketing/knowledge'
 
 type Form = { section: KnowledgeSection; title: string; body: string; attributes: Record<string, string>; markets: string[]; status: 'draft' | 'verified'; priority: number; language: 'en' | 'id' }
 
@@ -48,9 +50,8 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
     if (!siteKey) return
     setBusy(status ?? 'save'); setError(null)
     try {
-      const res = await fetch(`/api/marketing/knowledge?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...form, status: status ?? form.status, id: existing?.id }) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not save'); return }
+      const r = await saveKnowledgeEntry(siteKey, { ...form, status: status ?? form.status, id: existing?.id } as EntryInput)
+      if (!r.ok) { setError(r.error); return }
       onChanged(existing ? 'Saved' : 'Entry added')
       if (!existing) onClose()
     } finally { setBusy(null) }
@@ -60,8 +61,8 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
     if (!siteKey || !existing) return
     setBusy('archive')
     try {
-      const res = await fetch(`/api/marketing/knowledge?site=${siteKey}`, { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: existing.id }) })
-      if (!res.ok) { setError('Could not archive'); return }
+      const r = await archiveKnowledgeEntry(siteKey, existing.id)
+      if (!r.ok) { setError(r.error); return }
       onChanged('Archived'); onClose()
     } finally { setBusy(null) }
   }

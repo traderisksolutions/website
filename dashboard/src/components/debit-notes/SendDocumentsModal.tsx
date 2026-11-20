@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { DEBIT_NOTE_TEMPLATE_KEY } from '@/components/DebitNoteEmailTemplatePanel'
+import { getSetting } from '@/app/settings/actions'
 
 export type SendableAttachment = {
   filename: string; storage_url: string
@@ -59,8 +60,8 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
       const att = await res.json()
       if (!res.ok) throw new Error(att.error ?? 'Could not prepare attachment')
 
-      const tplRes = await fetch(`/api/settings?key=${DEBIT_NOTE_TEMPLATE_KEY}`, { cache: 'no-store' })
-      const tplRow = tplRes.ok ? await tplRes.json() : null
+      const tplRes = await getSetting(DEBIT_NOTE_TEMPLATE_KEY)
+      const tplRow = tplRes.ok ? tplRes.data : null
       let tpl: Template = {
         subject: `Debit Note ${target.debitNoteNo} — ${target.companyName ?? ''}`,
         body: `Dear ${target.contactName || 'Sir/Madam'},\n\nPlease find attached the document(s) for Debit Note ${target.debitNoteNo}.\n\nThank you.`,

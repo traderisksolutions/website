@@ -11,6 +11,7 @@ import { useSiteKey, useSites, withSite } from '@/components/marketing/site-swit
 import { GscStatusChip } from '@/components/marketing/chips'
 import { ACTION_KIND_LABEL, fmtDate, n } from '@/lib/marketing/labels'
 import type { GscOverview, SiteSummary } from '@/lib/marketing/types'
+import { disconnectSearchConsole, searchConsole, selectSearchConsoleProperty, syncSearchConsole } from '../actions'
 
 type Payload = GscOverview & { site: SiteSummary; configured: boolean }
 
@@ -46,10 +47,10 @@ function SearchConsole() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/gsc?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await searchConsole(siteKey)
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load Search Console data')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }
@@ -60,9 +61,11 @@ function SearchConsole() {
     if (!siteKey) return
     setBusy(true); setNote(null); setError(null)
     try {
-      const res = await fetch(`/api/marketing/gsc/${path}?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) setError(j.error ?? 'Request failed')
+      const r = path === 'disconnect' ? await disconnectSearchConsole(siteKey)
+        : path === 'sync' ? await syncSearchConsole(siteKey)
+        : await selectSearchConsoleProperty(siteKey, String(body?.property ?? ''))
+      const j = (r.ok ? r.data : {}) as { queries?: number; pages: number; days: number }
+      if (!r.ok) setError(r.error)
       else setNote(label ?? (j.queries != null ? `Synced ${n(j.queries)} queries, ${n(j.pages)} pages, ${n(j.days)} days` : 'Done'))
       await load()
     } finally { setBusy(false) }

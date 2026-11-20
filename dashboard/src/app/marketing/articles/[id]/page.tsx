@@ -12,6 +12,8 @@ import { Prose } from '@/components/marketing/prose'
 import { renderMarkdown, wordCount } from '@/lib/marketing/markdown'
 import { fmtDate } from '@/lib/marketing/labels'
 import type { ArticleDetail, ArticleStatus, SiteSummary } from '@/lib/marketing/types'
+import { article, saveArticleEdit } from '../../actions'
+import type { ArticlePatch } from '@/lib/marketing/articles'
 
 type Payload = { site: SiteSummary; article: ArticleDetail }
 
@@ -35,10 +37,10 @@ function Article() {
   const load = useCallback(async () => {
     if (!siteKey) return
     try {
-      const res = await fetch(`/api/marketing/articles/${id}?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the article')
-      setData(j); setError(null)
+      const r = await article(siteKey, id)
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
+      setData(j as unknown as typeof data); setError(null)
       const a = j.article as ArticleDetail
       setForm({ title: a.title, slug: a.slug, excerpt: a.excerpt ?? '', topic: a.topic ?? '', meta: a.meta_description ?? '', markdown: a.markdown })
     } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
@@ -54,9 +56,8 @@ function Article() {
     if (!siteKey) return
     setBusy(label); setNote(null); setError(null)
     try {
-      const res = await fetch(`/api/marketing/articles/${id}?site=${siteKey}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not save'); return }
+      const r = await saveArticleEdit(siteKey, id, body as ArticlePatch)
+      if (!r.ok) { setError(r.error); return }
       setNote(label === 'Save' ? 'Saved' : `${label}: done`)
       await load()
     } finally { setBusy(null) }

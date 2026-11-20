@@ -9,6 +9,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 import type { RenewalMethod } from '@/lib/methods/method'
+import { unwrap } from '@/lib/action-result'
+import { methodVersions, saveMethod } from '@/app/settings/actions'
 
 type Meta = { version: number; created_by: string | null; created_at: string }
 type Data = { text: string; parsed: RenewalMethod; versions: Meta[]; current: (Meta & { text: string }) | null; isDefault: boolean; migrationPending?: boolean }
@@ -25,9 +27,9 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
   const [view, setView] = useState<number | null>(null)
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/methods/renewal${view ? `?version=${view}` : ''}`, { cache: 'no-store' })
-    const j = await r.json()
-    if (!r.ok) { setMsg(j.error ?? 'Could not load the renewal method'); return }
+    const r = await methodVersions('renewal', view ?? undefined)
+    if (!r.ok) { setMsg(r.error); return }
+    const j = r.data
     setData(j); setDraft(j.text)
   }, [view])
   useEffect(() => { void load() }, [load])
@@ -35,9 +37,7 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
   async function save(body: Record<string, unknown>) {
     setBusy(true); setMsg(null)
     try {
-      const r = await fetch('/api/methods/renewal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const j = await r.json()
-      if (!r.ok) throw new Error(j.error ?? 'Could not save')
+      const j = unwrap(await saveMethod('renewal', body))
       setMsg(`Saved as version ${j.version}. The agents use it from their next run.`); setEditing(false); setView(null); await load()
     } catch (e) { setMsg(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   }

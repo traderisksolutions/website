@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import { Btn, textareaCls } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
+import { getSetting, setSetting } from '@/app/settings/actions'
 
 // Source of truth for the "Send documents" email raised from the Debit Notes drawer and the
 // new-debit-note flow — SendDocumentsModal reads this instead of a hardcoded subject/body.
@@ -44,8 +45,8 @@ export default function DebitNoteEmailTemplatePanel() {
   const [saved,   setSaved]   = useState(false)
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/settings?key=${DEBIT_NOTE_TEMPLATE_KEY}`, { cache: 'no-store' })
-    const row = res.ok ? await res.json() : null
+    const res = await getSetting(DEBIT_NOTE_TEMPLATE_KEY)
+    const row = res.ok ? res.data : null
     setTpl(parseTemplate(row?.value ?? null))
   }, [])
 
@@ -55,11 +56,7 @@ export default function DebitNoteEmailTemplatePanel() {
     if (!tpl) return
     setSaving(true); setSaved(false)
     try {
-      const res = await fetch('/api/settings', {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ key: DEBIT_NOTE_TEMPLATE_KEY, value: JSON.stringify(tpl) }),
-      })
+      const res = await setSetting(DEBIT_NOTE_TEMPLATE_KEY, JSON.stringify(tpl))
       if (res.ok) { setSaved(true); setTimeout(() => setSaved(false), 2000) }
     } finally { setSaving(false) }
   }
