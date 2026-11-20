@@ -9,16 +9,16 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Btn, Empty, Field, Segmented, Spinner, textareaCls } from '@/components/crm/primitives'
+import { Btn, Empty, Field, Segmented, Spinner, inputCls, textareaCls } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
-import { selectCls } from '@/components/cases/shared'
 import { DASH, fmtDay } from '@/lib/format'
 import { actorName, senderName } from '@/lib/cases/names'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
 import type { CheckAction, CheckRow } from '@/lib/cases/brief-store'
 import type { CaseBriefAnswer } from '@/app/api/work/[id]/brief/route'
 import { BriefTable, CaseDocuments, CaseFiles } from './CaseBriefTables'
-import { subjectBtn, tableFrame } from './shared'
+import { Register } from '@/components/ui/register'
+import { subjectBtn } from './shared'
 
 type Tab = 'brief' | 'current' | 'aside'
 const CHECK_NOTICE: Record<CheckAction, string> = { confirm: 'Document confirmed.', not_needed: 'Document marked not needed.', reject: 'Finding turned down.', clear: 'Call undone.' }
@@ -116,8 +116,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
           <CaseFiles files={brief.files} onOpenThread={onOpenThread} />
         </div>
       ) : rows.length === 0 ? <Empty compact>{tab === 'current' ? 'No notes on the case.' : 'No notes set aside.'}</Empty> : (
-        <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 900 }}>
+        <Register label="Notes" minWidth={900} dense={false}>
             <thead><tr><th className="w-[150px]">Section</th><th>Note</th><th>Source</th><th className="w-[140px]">By</th><th className="w-[104px]"><span className="sr-only">Action</span></th></tr></thead>
             <tbody>
               {rows.map(n => (
@@ -134,8 +133,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Register>
       )}
 
       <Dialog open={adding} onOpenChange={o => { if (!o && busy !== 'add') setAdding(false) }}>
@@ -146,7 +144,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
           </DialogHeader>
           <div className="flex flex-col gap-3 min-w-0">
             <Field label="Section">
-              <select className={`${selectCls} w-full h-9`} value={section || memory.sections[0]?.section} onChange={e => setSection(e.target.value)}>
+              <select className={inputCls} value={section || memory.sections[0]?.section} onChange={e => setSection(e.target.value)}>
                 {memory.sections.map(s => <option key={s.section} value={s.section}>{s.name}</option>)}
               </select>
             </Field>

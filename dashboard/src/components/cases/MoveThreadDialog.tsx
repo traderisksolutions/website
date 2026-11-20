@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Btn } from '@/components/crm/primitives'
 import { DASH, fmtDay } from '@/lib/format'
 import { actorName, type Staff } from '@/lib/cases/names'
-import { tableFrame } from './shared'
+import { Register } from '@/components/ui/register'
 
 export type Conflict = {
   thread_id: string; subject: string | null
@@ -32,8 +32,7 @@ export function MoveThreadDialog({ conflicts, caseTitle, staff, busy, onCancel, 
           <DialogTitle>{conflicts.length === 1 ? 'Thread on another case' : 'Threads on other cases'}</DialogTitle>
           <DialogDescription className="sr-only">A thread sits on one case. Moving it takes it off the case that holds it now.</DialogDescription>
         </DialogHeader>
-        <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 640 }}>
+        <Register label={conflicts.length === 1 ? 'Thread on another case' : 'Threads on other cases'} minWidth={640} dense={false}>
             <thead><tr><th>Thread</th><th>Now on</th><th>Picked by</th><th>Move to</th></tr></thead>
             <tbody>
               {conflicts.map(c => (
@@ -45,8 +44,7 @@ export function MoveThreadDialog({ conflicts, caseTitle, staff, busy, onCancel, 
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Register>
         <DialogFooter className="gap-2 sm:space-x-0">
           <Btn disabled={busy} onClick={onCancel}>Cancel</Btn>
           <Btn level="primary" disabled={busy} loading={busy} onClick={onMove}>Move to this case</Btn>

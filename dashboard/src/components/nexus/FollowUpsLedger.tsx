@@ -3,13 +3,16 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/page-header'
-import { Btn, Chip, LinkBtn, Segmented, Spinner, TONE_STYLE } from '@/components/crm/primitives'
+import { Btn, Chip, LinkBtn, Segmented, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow, RegisterEmpty } from '@/components/ui/register'
-import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 import { fmtDate } from '@/lib/format'
 import { threadHref } from '@/lib/placement/position'
 import { dueTone, statusOf, SNOOZE_DAYS, type OwnerParty, type View } from '@/lib/nexus/rules'
 import type { LedgerRow } from '@/lib/nexus/ledger'
+
+/** The due date's colour: red overdue, amber within two days, ink otherwise. */
+const DUE_TONE = { overdue: 'text-trs-neg font-medium', soon: 'text-trs-warn font-medium', none: 'text-trs-ink' } as const
 
 type Ledger = { rows: LedgerRow[]; counts: Record<View, number>; chaseable: number; mine_count: number; actor: string }
 type ChaseReply = { drafted: number; results: { id: string; draft_id?: string; skipped?: string }[] }
@@ -172,7 +175,7 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
       <RegisterCell align="left" title={r.owner_party === 'trs' ? r.counterparty_email ?? undefined : r.owner_email ?? undefined} primary={clip(owedTo(r), 28)} />
       <RegisterCell primary={fmtDate(r.since_at)} />
       <RegisterCell>
-        <span className="tabular-nums" style={{ color: tone === 'overdue' ? TONE_STYLE.red.color : tone === 'soon' ? TONE_STYLE.amber.color : INK, fontWeight: tone ? 500 : undefined }}>
+        <span className={`tabular-nums ${DUE_TONE[tone ?? 'none']}`}>
           {view === 'done' ? `Done ${fmtDate(r.closed_at)}` : r.due_at ? fmtDate(r.due_at) : '—'}
         </span>
       </RegisterCell>

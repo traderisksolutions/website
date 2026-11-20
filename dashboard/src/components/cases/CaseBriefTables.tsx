@@ -14,7 +14,8 @@ import type { BriefRow } from '@/lib/cases/brief'
 import { ITEM_STATE_NAME, type ItemState } from '@/lib/cases/checklist'
 import type { CaseBriefView, CaseFileRow, CheckAction, CheckRow } from '@/lib/cases/brief-store'
 import { PRODUCT_LINES } from '@/lib/product-lines'
-import { headingCls, subjectBtn, tableFrame } from './shared'
+import { headingCls, subjectBtn } from './shared'
+import { Register } from '@/components/ui/register'
 
 const muted = <span className="text-trs-muted">{DASH}</span>
 const KIND_TONE: Record<NonNullable<BriefRow['kind']>, 'neutral' | 'blue' | 'amber' | 'green'> = { Risk: 'amber', 'Success factor': 'green', 'Must have': 'blue', 'Good to have': 'neutral' }
@@ -30,9 +31,8 @@ export function BriefTable({ view, staff, onOpenThread }: { view: Pick<CaseBrief
     return <button type="button" onClick={() => onOpenThread(r.source!.thread_id)} className={`${subjectBtn} whitespace-normal`} title="Open the email thread">{line}</button>
   }
   return (
-    <div className={tableFrame}>
-      <table className="trs-table table-fixed" style={{ minWidth: 860 }} aria-label="Brief">
-        <colgroup><col style={{ width: 168 }} /><col /><col style={{ width: 170 }} /><col style={{ width: 108 }} /><col style={{ width: '26%' }} /></colgroup>
+    <Register label="Brief" minWidth={860} dense={false} className="[&_table]:table-fixed">
+        <colgroup><col className="w-[168px]" /><col /><col className="w-[170px]" /><col className="w-[108px]" /><col className="w-[26%]" /></colgroup>
         <thead><tr><th>Part</th><th>Item</th><th>Who</th><th>Date</th><th>Source</th></tr></thead>
         <tbody>
           {parts.flatMap(({ part, name }) => {
@@ -57,8 +57,7 @@ export function BriefTable({ view, staff, onOpenThread }: { view: Pick<CaseBrief
             ))
           })}
         </tbody>
-      </table>
-    </div>
+      </Register>
   )
 }
 
@@ -94,9 +93,8 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
         </select>
       </div>
       {!checklist || checklist.rows.length === 0 ? <Empty compact>No document on the checklist. <Link href="/settings?section=checklists" className="text-trs-ink underline">Settings › Document checklists</Link></Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 940 }} aria-label="Documents">
-              <colgroup><col style={{ width: '22%' }} /><col style={{ width: 96 }} /><col style={{ width: 118 }} /><col /><col style={{ width: 150 }} /><col style={{ width: 252 }} /></colgroup>
+          <Register label="Documents" minWidth={940} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col className="w-[22%]" /><col className="w-[96px]" /><col className="w-[118px]" /><col /><col className="w-[150px]" /><col className="w-[252px]" /></colgroup>
               <thead><tr><th>Document</th><th>Need</th><th>Status</th><th>File</th><th>By</th><th><span className="sr-only">Action</span></th></tr></thead>
               <tbody>
                 {checklist.rows.map(r => (
@@ -118,8 +116,7 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
     </div>
   )
@@ -131,9 +128,8 @@ export function CaseFiles({ files, onOpenThread }: { files: readonly CaseFileRow
     <div className="flex flex-col gap-2 min-w-0">
       <h2 className={headingCls}>Files · {files.length}</h2>
       {files.length === 0 ? <Empty compact>No file on the case’s emails.</Empty> : (
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: 760 }} aria-label="Files">
-            <colgroup><col /><col style={{ width: 190 }} /><col style={{ width: 200 }} /><col style={{ width: 108 }} /></colgroup>
+        <Register label="Files" minWidth={760} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col /><col className="w-[190px]" /><col className="w-[200px]" /><col className="w-[108px]" /></colgroup>
             <thead><tr><th>File</th><th>Type</th><th>From</th><th>Date</th></tr></thead>
             <tbody>
               {files.map((f, i) => (
@@ -148,8 +144,7 @@ export function CaseFiles({ files, onOpenThread }: { files: readonly CaseFileRow
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Register>
       )}
     </div>
   )
