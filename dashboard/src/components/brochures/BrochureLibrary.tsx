@@ -13,6 +13,9 @@ import { PageHeader } from '@/components/page-header'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { Btn, Chip, Field, LinkBtn, Segmented, Spinner, btnClass, inputCls } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
+import { Input } from '@/components/ui/input'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { cn } from '@/lib/utils'
 import { fmtDate } from '@/lib/format'
 import { BROCHURE_LINES, STATUS_WORD, nextVersion, type LibraryRow } from '@/lib/brochures/library'
 
@@ -66,48 +69,46 @@ export function BrochureLibrary() {
 
       {data && (
         <section className="min-w-0">
-          <div className="overflow-x-auto">
-            <table className="trs-table w-full min-w-[960px] text-13" aria-label="Brochure versions">
-              <thead><tr>
-                <th className="sticky left-0 z-[1] bg-white px-4">Product</th>
-                <th className="px-3">Line</th>
-                <th className="w-[90px] px-3">Version</th>
-                <th className="w-[130px] px-3">In force from</th>
-                <th className="px-3">Files</th>
-                <th className="w-[110px] px-3">Status</th>
-                <th className="w-[180px] px-3">Actions</th>
-              </tr></thead>
-              <tbody>
-                {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-trs-muted">No brochures yet.</td></tr>}
-                {rows.map((r, i) => {
-                  const muted = r.status === 'superseded'
-                  return (
-                    <tr key={r.key} className={`align-middle ${firstOfProduct(i) ? 'border-t border-trs-line' : ''} ${muted ? 'text-trs-subtle' : 'text-trs-ink'}`}>
-                      <td className="sticky left-0 z-[1] min-w-[200px] bg-white px-4 py-2.5 font-medium">{firstOfProduct(i) ? r.product : ''}</td>
-                      <td className="cell-left whitespace-nowrap px-3 py-2.5">{firstOfProduct(i) || rows[i - 1].line !== r.line ? r.line : ''}</td>
-                      <td className="px-3 py-2.5 text-center whitespace-nowrap">{r.status === 'to_confirm' ? '—' : r.version}</td>
-                      <td className="px-3 py-2.5 text-center">{r.in_force_from ? fmtDate(r.in_force_from) : '—'}</td>
-                      <td className="cell-left px-3 py-2.5">
-                        {r.files.length === 0 ? <span className="text-trs-muted">No files</span> : (
-                          <span className="flex flex-col gap-0.5">{r.files.map(f => (
-                            <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" className={`block break-words no-underline hover:underline ${muted ? 'text-trs-subtle' : 'text-trs-ink'}`}>
-                              <span className="mr-1.5 text-11 text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
-                        {r.note && <span className="mt-1 block text-12 text-trs-muted">{r.note}</span>}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 text-center"><Chip>{STATUS_WORD[r.status]}</Chip></td>
-                      <td className="min-w-[180px] px-3 py-2 text-center whitespace-nowrap">
-                        <span className="inline-flex gap-1.5">
-                          {data.saving && r.status !== 'to_confirm' ? <LinkBtn size="xs" href={`/brochures/edit?key=${encodeURIComponent(r.key)}`}>Edit</LinkBtn>
-                            : <Btn size="xs" disabled title={!data.saving ? NO_TABLE : 'Move the file into a version folder in Drive'}>Edit</Btn>}
-                          <Btn size="xs" disabled={!r.id} title={r.id ? undefined : 'Only versions saved on this page can be removed'} onClick={() => void remove(r)}>Remove</Btn>
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Register label="Brochure versions" minWidth={960}>
+            <RegisterHead>
+              <RegisterTh first>Product</RegisterTh>
+              <RegisterTh>Line</RegisterTh>
+              <RegisterTh width={90}>Version</RegisterTh>
+              <RegisterTh width={130}>In force from</RegisterTh>
+              <RegisterTh>Files</RegisterTh>
+              <RegisterTh width={110}>Status</RegisterTh>
+              <RegisterTh width={180} last>Actions</RegisterTh>
+            </RegisterHead>
+            <tbody>
+              {rows.length === 0 && <RegisterEmpty colSpan={7}>No brochures yet.</RegisterEmpty>}
+              {rows.map((r, i) => {
+                const muted = r.status === 'superseded'
+                return (
+                  <RegisterRow key={r.key} className={cn(firstOfProduct(i) && 'border-t border-trs-line', muted ? 'text-trs-subtle' : 'text-trs-ink')}>
+                    <RegisterCell first className="font-medium">{firstOfProduct(i) ? r.product : ''}</RegisterCell>
+                    <RegisterCell align="left">{firstOfProduct(i) || rows[i - 1].line !== r.line ? r.line : ''}</RegisterCell>
+                    <RegisterCell>{r.status === 'to_confirm' ? '—' : r.version}</RegisterCell>
+                    <RegisterCell>{r.in_force_from ? fmtDate(r.in_force_from) : '—'}</RegisterCell>
+                    <RegisterCell align="left" nowrap={false}>
+                      {r.files.length === 0 ? <span className="text-trs-muted">No files</span> : (
+                        <span className="flex flex-col gap-0.5">{r.files.map(f => (
+                          <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" className={cn('block break-words no-underline hover:underline', muted ? 'text-trs-subtle' : 'text-trs-ink')}>
+                            <span className="mr-1.5 text-small text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
+                      {r.note && <span className="mt-1 block text-small text-trs-muted">{r.note}</span>}
+                    </RegisterCell>
+                    <RegisterCell><Chip>{STATUS_WORD[r.status]}</Chip></RegisterCell>
+                    <RegisterCell last>
+                      <span className="inline-flex gap-1.5">
+                        {data.saving && r.status !== 'to_confirm' ? <LinkBtn size="xs" href={`/brochures/edit?key=${encodeURIComponent(r.key)}`}>Edit</LinkBtn>
+                          : <Btn size="xs" disabled title={!data.saving ? NO_TABLE : 'Move the file into a version folder in Drive'}>Edit</Btn>}
+                        <Btn size="xs" disabled={!r.id} title={r.id ? undefined : 'Only versions saved on this page can be removed'} onClick={() => void remove(r)}>Remove</Btn>
+                      </span>
+                    </RegisterCell>
+                  </RegisterRow>
+                )
+              })}
+            </tbody>
+          </Register>
         </section>
       )}
     </div>
@@ -208,27 +209,27 @@ function VersionForm({ row, rows }: { row: LibraryRow | null; rows: LibraryRow[]
     <div className="flex flex-col gap-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {!row && <div className="sm:col-span-2"><Field label="Product">
-              <input className={inputCls} list="brochure-products" value={product} onChange={e => setProduct(e.target.value)} placeholder="Existing or new product" aria-label="Product" autoFocus />
+              <Input list="brochure-products" value={product} onChange={e => setProduct(e.target.value)} placeholder="Existing or new product" aria-label="Product" autoFocus />
               <datalist id="brochure-products">{products.map(p => <option key={p} value={p} />)}</datalist>
             </Field></div>}
             <Field label="Line">
               <select className={inputCls} value={lineV} onChange={e => setLineV(e.target.value)} aria-label="Line">{BROCHURE_LINES.map(l => <option key={l}>{l}</option>)}</select>
             </Field>
             <Field label="Version">
-              <input className={`${inputCls} ${row ? 'bg-trs-tint text-trs-muted' : ''}`} value={version} readOnly={!!row} onChange={e => { setTouched(true); setVersion(e.target.value) }} aria-label="Version" />
+              <Input className={cn(row && 'bg-trs-tint text-trs-muted')} value={version} readOnly={!!row} onChange={e => { setTouched(true); setVersion(e.target.value) }} aria-label="Version" />
             </Field>
             <Field label="In force from">
-              <input type="date" className={inputCls} value={date} onChange={e => setDate(e.target.value)} aria-label="In force from" />
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} aria-label="In force from" />
             </Field>
             <Field label="Note">
-              <input className={inputCls} value={noteV} onChange={e => setNoteV(e.target.value)} aria-label="Note" />
+              <Input value={noteV} onChange={e => setNoteV(e.target.value)} aria-label="Note" />
             </Field>
           </div>
 
           {canAddFiles && <div>
             <div className="mb-1.5 text-13 font-medium text-trs-ink">{row ? 'Add files' : 'Brochure and rate file'}</div>
             <label onDragOver={e => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files) }}
-              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-10 px-4 py-4 text-center text-13 ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
+              className={cn('flex min-h-20 cursor-pointer flex-col items-center justify-center gap-1 rounded px-4 py-4 text-center text-body', drag ? 'bg-trs-tint' : 'bg-trs-field')}>
               <span className="text-trs-ink">Drop files or choose</span>
               <span className="text-12 text-trs-muted">PDF · XLSX</span>
               <input type="file" multiple className="sr-only" aria-label="Files" onChange={e => { addFiles(e.target.files); e.target.value = '' }} />

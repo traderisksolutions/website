@@ -4,17 +4,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Spinner, Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { Spinner, Btn, Segmented } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
+import { Input } from '@/components/ui/input'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { RecordPaymentDialog } from '@/components/crm/RecordPaymentDialog'
 import { fmtMoney, fmtDate } from '@/lib/format'
 import { CHANNEL_LABEL, type Receipt } from '@/lib/crm/receipts'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const BODY = '#2a332f'
 const COLS = 6
 
 type Note = PaymentDerived & { companyName: string | null; receipts: Receipt[] }
@@ -116,8 +114,8 @@ export default function FinancePage() {
               />
               <label className="relative flex-1 min-w-[220px] max-w-[360px]">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
-                <input
-                  className={cn(inputCls, 'pl-9')}
+                <Input
+                  className="pl-9"
                   placeholder="Search client, debit note or insurer"
                   aria-label="Search debit notes"
                   value={query}
@@ -178,13 +176,13 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
   const client = note.companyName ?? 'Unnamed client'
   return (
     <>
-      <RegisterRow onClick={onToggle} className={cn(open && 'bg-[#faf9f6]')}>
+      <RegisterRow onClick={onToggle} className={cn(open && 'bg-trs-tint')}>
         <RegisterCell first title={client}
           primary={note.company_id
             ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="no-underline hover:underline text-trs-ink">{client}</Link>
             : client}
           secondary={<span className="tabular-nums">{note.debit_note_no}</span>}
-          className={cn(open && 'bg-[#faf9f6]')}
+          className={cn(open && 'bg-trs-tint')}
         />
         <RegisterCell align="left" primary={note.classOfInsurance ?? note.event_type ?? '—'} secondary={note.insurer ?? 'No insurer on file'} className="max-w-[230px]" nowrap={false} />
         <RegisterCell primary={fmtDate(note.payment_due_date)} />
@@ -220,16 +218,17 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
                       <span className="tabular-nums font-medium">{fmtMoney(Number(r.amount), note.currency)}</span>
                       <span className="text-trs-muted">{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
                       {r.reference && <span className="tabular-nums text-13 text-trs-muted">{r.reference}</span>}
-                      <button
-                        type="button"
+                      <Btn
+                        level="tertiary"
+                        size="xs"
                         onClick={() => onUndo(r.id)}
                         disabled={undoing === r.id}
-                        className="text-13 bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50 text-trs-neg"
+                        className="h-auto px-0 border-0 font-normal text-body underline underline-offset-4 text-trs-neg hover:bg-transparent hover:text-trs-neg"
                         
                         title="Undo this payment and put the balance back"
                       >
                         Undo
-                      </button>
+                      </Btn>
                     </li>
                   ))}
                 </ul>

@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Btn, Field, SectionCard, Segmented, inputCls, textareaCls } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
+import { Input } from '@/components/ui/input'
 import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
 import { GateChip, RunStatusChip } from '@/components/marketing/chips'
 import { MARKETS, computeReadiness, marketLabel, type KnowledgeEntry } from '@/lib/marketing/knowledge-schema'
@@ -14,7 +15,6 @@ import { fmtDuration } from '@/lib/marketing/engine'
 import { TRIGGER_LABEL, fmtDate } from '@/lib/marketing/labels'
 import type { MarketingStatus, RunListRow, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#0f1412'
 type Option = { id: string; label: string }
 type Payload = { site: SiteSummary; runs: RunListRow[]; options: { products: Option[]; caseStudies: Option[] }; entries: Pick<KnowledgeEntry, 'section' | 'status' | 'markets'>[]; status: MarketingStatus }
 type FocusType = 'product' | 'case_study' | 'market' | 'topic' | 'question'
@@ -134,10 +134,10 @@ function Generate() {
             )}
             {(focusType === 'product' || focusType === 'case_study') && options.length === 0 && <p className="m-0 text-13.5 text-trs-muted">No entries of this kind in the knowledge bank yet. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add one</Link></p>}
             {focusType === 'question'
-              ? <Field label="The search to rank for" hint="Written as the reader types it into Google"><input value={question} onChange={e => setQuestion(e.target.value)} className={inputCls} placeholder="work injury compensation insurance for contractors" /></Field>
+              ? <Field label="The search to rank for" hint="Written as the reader types it into Google"><Input value={question} onChange={e => setQuestion(e.target.value)} placeholder="work injury compensation insurance for contractors" /></Field>
               : <>
-                <Field label={focusType === 'topic' ? 'Topic' : 'Topic or angle (optional)'}><input value={topic} onChange={e => setTopic(e.target.value)} className={inputCls} placeholder="When a public liability policy excess is worth raising" /></Field>
-                <Field label="The question a reader would ask (optional)"><input value={question} onChange={e => setQuestion(e.target.value)} className={inputCls} placeholder="Does my contractor need work injury cover from me?" /></Field>
+                <Field label={focusType === 'topic' ? 'Topic' : 'Topic or angle (optional)'}><Input value={topic} onChange={e => setTopic(e.target.value)} placeholder="When a public liability policy excess is worth raising" /></Field>
+                <Field label="The question a reader would ask (optional)"><Input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Does my contractor need work injury cover from me?" /></Field>
               </>}
             {(site?.topics.length ?? 0) > 0 && (
               <Field label="Site topic" hint="The label the site files it under">

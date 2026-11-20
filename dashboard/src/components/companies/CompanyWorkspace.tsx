@@ -13,7 +13,7 @@ import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
 import { CompanyThreadList } from '@/components/crm/CompanyThreadList'
 import { CompanyLog } from '@/components/crm/CompanyLog'
-import { Segmented, Spinner } from '@/components/crm/primitives'
+import { Btn, Segmented, Spinner } from '@/components/crm/primitives'
 import { ChevronDown } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
@@ -222,15 +222,16 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
 
           <div className="w-full md:w-auto md:ml-auto flex flex-wrap items-center gap-1 min-w-0" role="tablist" aria-label="Company sections">
             {TABS.filter(t => t.key !== 'threads').map(t => (
-              <button
+              <Btn
                 key={t.key}
-                type="button"
+                level="tertiary"
+                size="xs"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-8 px-2.5 rounded-md border-0 bg-transparent cursor-pointer text-xs whitespace-nowrap flex-shrink-0 hover:bg-trs-field text-trs-muted"
+                className="px-2.5 border-0 font-normal text-small flex-shrink-0 hover:bg-trs-field"
               >
                 {t.label}
-              </button>
+              </Btn>
             ))}
           </div>
         </div>

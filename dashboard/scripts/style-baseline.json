@@ -1,20 +1,4 @@
 {
- "src/app/analytics/ai-usage/page.tsx": {
-  "style": 29,
-  "hex": 15,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 3
- },
- "src/app/analytics/error-log/page.tsx": {
-  "style": 4,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 2
- },
  "src/app/calendar/page.tsx": {
   "style": 24,
   "hex": 6,
@@ -24,102 +8,30 @@
   "control": 2
  },
  "src/app/claims/page.tsx": {
-  "style": 9,
-  "hex": 2,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 12
+  "control": 1
  },
- "src/app/claims/second-opinion/page.tsx": {
+ "src/app/companies/portfolio/desk/page.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
- },
- "src/app/claims/website-forms.tsx": {
-  "style": 6,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 4
- },
- "src/app/companies/portfolio/desk/page.tsx": {
-  "style": 0,
-  "hex": 1,
-  "font": 13,
-  "radius": 1,
-  "height": 0,
-  "control": 3
- },
- "src/app/companies/portfolio/page.tsx": {
-  "style": 0,
-  "hex": 1,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/app/companies/triage/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
-  "radius": 0,
-  "height": 0,
-  "control": 5
- },
- "src/app/connect/[token]/bamboohr/page.tsx": {
-  "style": 1,
-  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 3
- },
- "src/app/connect/[token]/deel/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/connect/[token]/hibob/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 3
+  "control": 1
  },
  "src/app/connect/[token]/review/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 14
- },
- "src/app/connect/[token]/simplepay/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 3
- },
- "src/app/connect/[token]/talenox/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/connect/[token]/upload/page.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
@@ -127,45 +39,29 @@
   "height": 0,
   "control": 2
  },
- "src/app/connect/[token]/workday/page.tsx": {
-  "style": 1,
+ "src/app/connect/[token]/simplepay/page.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 1
  },
- "src/app/connect/gmail/page.tsx": {
-  "style": 4,
-  "hex": 4,
+ "src/app/debit-notes/new/page.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 0,
-  "control": 0
+  "height": 1,
+  "control": 2
  },
- "src/app/contacts/page.tsx": {
+ "src/app/debit-notes/page.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
- },
- "src/app/debit-notes/new/page.tsx": {
-  "style": 8,
-  "hex": 9,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 22
- },
- "src/app/debit-notes/page.tsx": {
-  "style": 4,
-  "hex": 5,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 35
  },
  "src/app/eb/page.tsx": {
   "style": 1,
@@ -191,55 +87,23 @@
   "height": 0,
   "control": 0
  },
- "src/app/finance/page.tsx": {
-  "style": 0,
-  "hex": 3,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/inbound/email/page.tsx": {
-  "style": 7,
-  "hex": 8,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 6
- },
  "src/app/insurers/[id]/page.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 1
- },
- "src/app/login/page.tsx": {
-  "style": 3,
-  "hex": 8,
-  "font": 0,
-  "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/app/marketing/analytics/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 0
  },
  "src/app/marketing/articles/[id]/page.tsx": {
   "style": 0,
-  "hex": 1,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 3
  },
- "src/app/marketing/articles/page.tsx": {
+ "src/app/marketing/competitors/page.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
@@ -247,57 +111,41 @@
   "height": 0,
   "control": 1
  },
- "src/app/marketing/competitors/page.tsx": {
-  "style": 6,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
  "src/app/marketing/generate/page.tsx": {
   "style": 0,
-  "hex": 1,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 3
  },
- "src/app/marketing/generate/runs/[id]/page.tsx": {
-  "style": 3,
-  "hex": 1,
+ "src/app/marketing/knowledge/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 1,
+  "control": 1
+ },
+ "src/app/marketing/newsletter/page.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 1,
   "control": 2
  },
- "src/app/marketing/knowledge/page.tsx": {
-  "style": 3,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 3
- },
- "src/app/marketing/newsletter/page.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 5
- },
  "src/app/marketing/schedule/page.tsx": {
-  "style": 4,
-  "hex": 7,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 4
+  "control": 2
  },
  "src/app/marketing/search-console/page.tsx": {
   "style": 0,
-  "hex": 1,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
@@ -305,11 +153,11 @@
  },
  "src/app/marketing/sites/page.tsx": {
   "style": 0,
-  "hex": 1,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 14
+  "control": 7
  },
  "src/app/nexus/cases/page.tsx": {
   "style": 103,
@@ -356,32 +204,24 @@
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 3
+  "height": 0,
+  "control": 1
  },
  "src/app/roadplus/page.tsx": {
-  "style": 13,
-  "hex": 10,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 11
- },
- "src/app/sales/enquiries/page.tsx": {
-  "style": 3,
-  "hex": 4,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/app/settings/page.tsx": {
-  "style": 3,
-  "hex": 4,
+ "src/app/sales/enquiries/page.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/app/today/[id]/page.tsx": {
   "style": 0,
@@ -399,14 +239,6 @@
   "height": 0,
   "control": 1
  },
- "src/app/unsubscribed/page.tsx": {
-  "style": 2,
-  "hex": 3,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/work/ai/page.tsx": {
   "style": 0,
   "hex": 0,
@@ -416,36 +248,20 @@
   "control": 1
  },
  "src/app/work/page.tsx": {
-  "style": 3,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 1
  },
  "src/app/work/review.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 2
- },
- "src/components/ActivityFeed.tsx": {
-  "style": 2,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/components/ConditionalShell.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/DebitNoteEmailTemplatePanel.tsx": {
   "style": 0,
@@ -453,7 +269,7 @@
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/RichEditor.tsx": {
   "style": 3,
@@ -463,53 +279,29 @@
   "height": 0,
   "control": 2
  },
- "src/components/SignaturePanel.tsx": {
-  "style": 43,
-  "hex": 17,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 9
- },
- "src/components/app-shell.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/assistant/CaseEditor.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 4,
-  "control": 14
+  "height": 0,
+  "control": 6
  },
- "src/components/assistant/CompanyKnowledge.tsx": {
+ "src/components/board/TodoEditor.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
- },
- "src/components/board/TodoEditor.tsx": {
-  "style": 4,
-  "hex": 11,
-  "font": 0,
-  "radius": 0,
-  "height": 7,
-  "control": 9
+  "control": 1
  },
  "src/components/brochures/BrochureLibrary.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 7
+  "height": 0,
+  "control": 2
  },
  "src/components/cases/CaseBrief.tsx": {
   "style": 1,
@@ -591,63 +383,7 @@
   "height": 0,
   "control": 3
  },
- "src/components/chat/chat-empty-state.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/components/chat/chat-message-item.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 3
- },
- "src/components/chat/chat-thread-list.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
  "src/components/chat/floating-chat-composer.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 4,
-  "control": 6
- },
- "src/components/chat/floating-chat-dock.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 1
- },
- "src/components/chat/floating-chat-header.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 6
- },
- "src/components/chat/minimized-chat-bar.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 2
- },
- "src/components/clients/AskClient.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
@@ -658,98 +394,50 @@
  "src/components/companies/CompaniesBoard.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 13,
-  "radius": 6,
-  "height": 2,
-  "control": 8
- },
- "src/components/companies/CompanyEb.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/companies/CompanyRail.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
- "src/components/companies/CompanyTable.tsx": {
-  "style": 7,
-  "hex": 4,
-  "font": 16,
-  "radius": 2,
-  "height": 2,
-  "control": 4
- },
- "src/components/companies/CompanyWorkspace.tsx": {
-  "style": 0,
-  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/companies/OwnerPicker.tsx": {
-  "style": 2,
-  "hex": 3,
-  "font": 2,
-  "radius": 2,
-  "height": 0,
-  "control": 3
- },
- "src/components/company-contact-picker/CompanyContactPicker.tsx": {
-  "style": 7,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 10
- },
- "src/components/crm/AccountNotesPanel.tsx": {
   "style": 0,
-  "hex": 1,
-  "font": 2,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/crm/AlertsPanel.tsx": {
+ "src/components/crm/AccountNotesPanel.tsx": {
   "style": 0,
-  "hex": 2,
-  "font": 2,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/crm/CaseThreadPicker.tsx": {
   "style": 0,
-  "hex": 2,
-  "font": 7,
+  "hex": 0,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 5
+  "control": 1
  },
  "src/components/crm/CompanyHeader.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 7,
-  "radius": 4,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 6
+  "control": 3
  },
  "src/components/crm/CompanyLog.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/crm/CompanyMail.tsx": {
   "style": 2,

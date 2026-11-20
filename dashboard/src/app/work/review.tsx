@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MoreHorizontal } from 'lucide-react'
 import { Btn, Spinner, Empty, textareaCls } from '@/components/crm/primitives'
+import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { fmtDateTime } from '@/lib/format'
 import type { AgentTask } from '@/lib/agent-tasks/queue'
@@ -87,9 +88,9 @@ function ReviewRow({ task: t, onDone, onError }: { task: AgentTask; onDone: (m: 
           <Btn size="xs" disabled={busy} onClick={() => void resolve({ decision: 'approve' }, true, 'Approved. Sent back to the agent.')}>Approve</Btn>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="More actions" disabled={busy} className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-7 border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink">
+              <Button type="button" variant="ghost" size="icon-xs" aria-label="More actions" disabled={busy}>
                 <MoreHorizontal className="h-4 w-4" />
-              </button>
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onSelect={() => setNoting(true)}>Answer with a note</DropdownMenuItem>

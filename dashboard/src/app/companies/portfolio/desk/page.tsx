@@ -65,7 +65,7 @@ export default function AdminDeskPage() {
     <div className="bg-white text-trs-ink">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
         <PageHeader title="Admin desk" meta={data ? [`Top 20% · ${data.businesses.length} businesses · ${open} open requests${data.from ? ` since ${fmtDate(data.from)}` : ''}`, unfiledLine(data.unfiled, fmtDate)].filter(Boolean).join(' · ') : 'Loading…'} />
-        {error && <p className="mt-4 text-[14px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="mt-4 text-body text-trs-neg" role="alert">{error}</p>}
         {!data && !error && <div className="mt-8"><Spinner label="Reading every request…" /></div>}
         {data && (
           <div className="mt-6 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -76,11 +76,11 @@ export default function AdminDeskPage() {
                   const late = x.cycles.filter(c => c.next < t).length
                   return (
                     <li key={x.id}>
-                      <button type="button" onClick={() => { setPick(x.id); setPicked(new Set()); setNotice(null) }} aria-current={on ? 'true' : undefined}
-                        className="w-full text-left bg-transparent border-0 cursor-pointer px-3 py-2 rounded-[8px] hover:bg-trs-canvas" style={on ? { background: 'var(--trs-tint, #f3f7f4)' } : undefined}>
-                        <span className="block text-[13.5px] truncate">{x.name}</span>
-                        <span className="block text-[12px] text-trs-muted tabular-nums">#{x.rank} · {x.open.length} open · {x.open.filter(r => r.owner === 'trs').length} with TRS{x.cycles.length ? ` · ${x.cycles.length} repeat${x.cycles.length === 1 ? '' : 's'}${late ? `, ${late} due` : ''}` : ''}</span>
-                      </button>
+                      <Btn level="tertiary" onClick={() => { setPick(x.id); setPicked(new Set()); setNotice(null) }} aria-current={on ? 'true' : undefined}
+                        className={`h-auto w-full flex-col items-stretch justify-start gap-0 border-0 px-3 py-2 text-left font-normal whitespace-normal text-trs-ink hover:bg-trs-canvas hover:text-trs-ink ${on ? 'bg-trs-tint' : ''}`}>
+                        <span className="block text-body truncate">{x.name}</span>
+                        <span className="block text-small text-trs-muted tabular-nums">#{x.rank} · {x.open.length} open · {x.open.filter(r => r.owner === 'trs').length} with TRS{x.cycles.length ? ` · ${x.cycles.length} repeat${x.cycles.length === 1 ? '' : 's'}${late ? `, ${late} due` : ''}` : ''}</span>
+                      </Btn>
                     </li>
                   )
                 })}
@@ -90,19 +90,19 @@ export default function AdminDeskPage() {
             {b && (
               <section className="min-w-0 flex flex-col gap-8" aria-label={b.name}>
                 <div className="flex flex-wrap items-baseline justify-between gap-3">
-                  <h2 className="m-0 text-[22px] font-medium"><Link href={`/companies/${b.id}?tab=knowledge`} className="text-trs-ink no-underline hover:underline">{b.name}</Link></h2>
-                  <span className="text-[13px] text-trs-muted tabular-nums">#{b.rank} · {money(b.commission, { dp: 0 })} commission, 12 months{b.nextRenewal ? ` · renews ${fmtDate(b.nextRenewal)}` : ''}</span>
+                  <h2 className="m-0 text-title font-medium"><Link href={`/companies/${b.id}?tab=knowledge`} className="text-trs-ink no-underline hover:underline">{b.name}</Link></h2>
+                  <span className="text-body text-trs-muted tabular-nums">#{b.rank} · {money(b.commission, { dp: 0 })} commission, 12 months{b.nextRenewal ? ` · renews ${fmtDate(b.nextRenewal)}` : ''}</span>
                 </div>
 
                 <div>
-                  <h3 className="m-0 mb-2 text-[15px] font-medium">Repeats · {b.cycles.length}</h3>
-                  {b.cycles.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None found.</p> : (
+                  <h3 className="m-0 mb-2 text-body font-medium">Repeats · {b.cycles.length}</h3>
+                  {b.cycles.length === 0 ? <p className="m-0 text-body text-trs-muted">None found.</p> : (
                     <Register label="Repeats" minWidth={760} dense={false}>
                       <RegisterHead><RegisterTh first>Thread</RegisterTh><RegisterTh>Every</RegisterTh><RegisterTh>Times</RegisterTh><RegisterTh>Last</RegisterTh><RegisterTh last>Next expected</RegisterTh></RegisterHead>
                       <tbody>
                         {b.cycles.map(c => (
                           <RegisterRow key={c.thread_id}>
-                            <RegisterCell first nowrap={false} primary={<><Link href={`/engagement?lead=${c.thread_id}`} className="block whitespace-normal text-trs-ink no-underline hover:underline">{c.label}</Link><span className="block text-[12.5px] text-trs-muted">{c.type}</span></>} />
+                            <RegisterCell first nowrap={false} primary={<><Link href={`/engagement?lead=${c.thread_id}`} className="block whitespace-normal text-trs-ink no-underline hover:underline">{c.label}</Link><span className="block text-small text-trs-muted">{c.type}</span></>} />
                             <RegisterCell>{c.everyDays} days · {c.cadence}</RegisterCell>
                             <RegisterCell className="tabular-nums">{c.count}</RegisterCell>
                             <RegisterCell>{fmtDate(c.last)}</RegisterCell>
@@ -116,23 +116,23 @@ export default function AdminDeskPage() {
 
                 <div>
                   <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <h3 className="m-0 mr-auto text-[15px] font-medium">Open requests · {b.open.length}</h3>
-                    {notice && <span className="text-[13px] text-trs-muted" role="status">{notice}</span>}
+                    <h3 className="m-0 mr-auto text-body font-medium">Open requests · {b.open.length}</h3>
+                    {notice && <span className="text-body text-trs-muted" role="status">{notice}</span>}
                     {b.open.length > 0 && <>
                       <Btn size="sm" level="secondary" disabled={acting || !picked.size} loading={acting} onClick={() => void act([...picked], 'done')}>Mark done{picked.size ? ` · ${picked.size}` : ''}</Btn>
                       <Btn size="sm" level="secondary" disabled={acting || !picked.size} onClick={() => void act([...picked], 'snooze')}>Snooze {SNOOZE_DAYS} days</Btn>
                     </>}
                   </div>
-                  {b.open.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None open.</p> : (
+                  {b.open.length === 0 ? <p className="m-0 text-body text-trs-muted">None open.</p> : (
                     <Register label="Open requests" minWidth={760} dense={false}>
                       <RegisterHead>
-                        <RegisterTh first><input type="checkbox" aria-label="Select every open request" checked={picked.size > 0 && b.open.every(r => picked.has(r.id))} onChange={e => setPicked(e.target.checked ? new Set(b.open.map(r => r.id)) : new Set())} /></RegisterTh>
+                        <RegisterTh first><input type="checkbox" className="accent-trs-green" aria-label="Select every open request" checked={picked.size > 0 && b.open.every(r => picked.has(r.id))} onChange={e => setPicked(e.target.checked ? new Set(b.open.map(r => r.id)) : new Set())} /></RegisterTh>
                         <RegisterTh>Request</RegisterTh><RegisterTh>Type</RegisterTh><RegisterTh>Waiting on</RegisterTh><RegisterTh>Since</RegisterTh><RegisterTh>Due</RegisterTh><RegisterTh last />
                       </RegisterHead>
                       <tbody>
                         {b.open.map(r => (
                           <RegisterRow key={r.id}>
-                            <RegisterCell first><input type="checkbox" aria-label={`Select ${r.what}`} checked={picked.has(r.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n })} /></RegisterCell>
+                            <RegisterCell first><input type="checkbox" className="accent-trs-green" aria-label={`Select ${r.what}`} checked={picked.has(r.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n })} /></RegisterCell>
                             <RegisterCell align="left" nowrap={false} primary={<span className="block whitespace-normal">{r.thread_id ? <Link href={`/engagement?lead=${r.thread_id}`} className="text-trs-ink no-underline hover:underline">{r.what}</Link> : r.what}</span>} />
                             <RegisterCell>{r.type}</RegisterCell>
                             <RegisterCell>{OWES[r.owner] ?? r.owner}</RegisterCell>
@@ -152,8 +152,8 @@ export default function AdminDeskPage() {
                 </div>
 
                 <div>
-                  <h3 className="m-0 mb-2 text-[15px] font-medium">Member movements in progress · {myMoves.length}</h3>
-                  {myMoves.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">None in progress.</p> : (
+                  <h3 className="m-0 mb-2 text-body font-medium">Member movements in progress · {myMoves.length}</h3>
+                  {myMoves.length === 0 ? <p className="m-0 text-body text-trs-muted">None in progress.</p> : (
                     <Register label="Member movements" minWidth={700} dense={false}>
                       <RegisterHead><RegisterTh first>Policy</RegisterTh><RegisterTh>Stage</RegisterTh><RegisterTh>Joins</RegisterTh><RegisterTh>Leaves</RegisterTh><RegisterTh last>Days waiting</RegisterTh></RegisterHead>
                       <tbody>

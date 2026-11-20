@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { activityLabel, relTime } from '@/lib/activity-labels'
 import { Avatar } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 
 export type ActivityRow = {
   id: string
@@ -14,11 +15,6 @@ export type ActivityRow = {
   resource_id: string | null
   new_value: Record<string, unknown> | null
 }
-
-const INK   = '#0f1412'
-const BODY  = '#2a332f'
-const MUTED = '#4a5550'
-const HAIR  = '#e6e8e4'
 
 // Compact "Last handled by {name} · {when}" line for a case/thread header.
 export function LastHandledBy({ resourceId, className }: { resourceId: string; className?: string }) {
@@ -35,7 +31,7 @@ export function LastHandledBy({ resourceId, className }: { resourceId: string; c
   if (!row) return null
   const who = row.user_name || row.user_email?.split('@')[0] || 'Someone'
   return (
-    <span className={className ?? 'text-12.5'} style={{ color: MUTED }}>
+    <span className={cn(className ?? 'text-small', 'text-trs-muted')}>
       Last handled by <span className="font-medium text-trs-ink-2">{who}</span> · {activityLabel(row.action)} · {relTime(row.created_at)}
     </span>
   )
@@ -72,7 +68,7 @@ export function ActivityFeed({ resourceId, limit = 50, emptyText = 'No activity 
       {rows.map((r, i) => {
         const who = r.user_name || r.user_email?.split('@')[0] || 'Someone'
         return (
-          <li key={r.id} className="list-none flex items-start gap-3 py-2.5" style={{ borderBottom: i < rows.length - 1 ? `1px solid ${HAIR}` : 'none' }}>
+          <li key={r.id} className={cn('list-none flex items-start gap-3 py-2.5', i < rows.length - 1 && 'border-b border-trs-line')}>
             <Avatar name={who} className="w-7 h-7 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="m-0 text-14 leading-snug text-trs-ink-2">

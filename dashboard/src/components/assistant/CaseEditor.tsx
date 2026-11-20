@@ -8,6 +8,7 @@
  */
 import { useEffect, useState } from 'react'
 import { Btn, Chip, Field, inputCls, textareaCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPES, STATUSES, type ItemDetail, type ItemEdit } from '@/lib/today/data'
 import { LEVEL_LABEL, type PendingLevel } from '@/lib/today/pending'
@@ -55,16 +56,16 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
 
   return (
     <form className="flex flex-col gap-3 pt-2 border-t border-trs-line" onSubmit={e => { e.preventDefault(); void save() }} aria-label="Edit case">
-      <Field label="Title"><input className={inputCls} value={form.title ?? ''} onChange={e => set('title', e.target.value)} /></Field>
+      <Field label="Title"><Input value={form.title ?? ''} onChange={e => set('title', e.target.value)} /></Field>
       <Field label="Client" hint={client.id ? undefined : 'No client on this case'}>
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-1.5"><Chip tone={client.id ? 'neutral' : 'amber'}>{client.name}</Chip>{client.id !== item.company_id && <span className="text-12 text-trs-muted">changed</span>}</div>
-          <input className={inputCls} placeholder="Search clients to refile" value={query} onChange={e => setQuery(e.target.value)} aria-label="Search clients" />
+          <Input placeholder="Search clients to refile" value={query} onChange={e => setQuery(e.target.value)} aria-label="Search clients" />
           {opts.companies.length > 0 && (
-            <ul className="m-0 p-0 list-none rounded-7 border border-trs-line bg-white max-h-[180px] overflow-auto">
+            <ul className="m-0 p-0 list-none rounded border border-trs-line bg-white max-h-44 overflow-auto">
               {opts.companies.map(c => (
-                <li key={c.id}><button type="button" onClick={() => { setClient({ id: c.id, name: c.name }); set('company_id', c.id); set('policy_id', null); setQuery('') }}
-                  className="w-full text-left bg-transparent border-0 px-3 py-1.5 text-13.5 text-trs-ink cursor-pointer hover:bg-trs-canvas">{c.name}</button></li>
+                <li key={c.id}><Btn level="tertiary" onClick={() => { setClient({ id: c.id, name: c.name }); set('company_id', c.id); set('policy_id', null); setQuery('') }}
+                  className="w-full h-auto justify-start text-left rounded-none border-0 px-3 py-1.5 font-normal whitespace-normal text-body text-trs-ink hover:bg-trs-canvas hover:text-trs-ink">{c.name}</Btn></li>
               ))}
             </ul>
           )}
@@ -93,9 +94,9 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
             {opts.staff.map(s => <option key={s.email} value={s.email}>{s.name}</option>)}
           </select>
         </Field>
-        <Field label="Insurer"><input className={inputCls} value={form.insurer_name ?? ''} onChange={e => set('insurer_name', e.target.value)} /></Field>
-        <Field label="Deadline"><input type="date" className={inputCls} value={form.deadline ?? ''} onChange={e => set('deadline', e.target.value || null)} /></Field>
-        <Field label="Deadline basis"><input className={inputCls} placeholder="e.g. MOM 21-day rule" value={form.deadline_basis ?? ''} onChange={e => set('deadline_basis', e.target.value)} /></Field>
+        <Field label="Insurer"><Input value={form.insurer_name ?? ''} onChange={e => set('insurer_name', e.target.value)} /></Field>
+        <Field label="Deadline"><Input type="date" value={form.deadline ?? ''} onChange={e => set('deadline', e.target.value || null)} /></Field>
+        <Field label="Deadline basis"><Input placeholder="e.g. MOM 21-day rule" value={form.deadline_basis ?? ''} onChange={e => set('deadline_basis', e.target.value)} /></Field>
       </div>
       <Field label="Next action"><textarea className={textareaCls} rows={2} value={form.next_action ?? ''} onChange={e => set('next_action', e.target.value)} /></Field>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -105,7 +106,7 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
             {(Object.keys(LEVEL_LABEL) as PendingLevel[]).map(l => <option key={l} value={l}>{l} · {LEVEL_LABEL[l]}</option>)}
           </select>
         </Field>
-        {form.pending_override && <Field label="Reason"><input className={inputCls} value={form.pending_override_reason ?? ''} onChange={e => set('pending_override_reason', e.target.value)} /></Field>}
+        {form.pending_override && <Field label="Reason"><Input value={form.pending_override_reason ?? ''} onChange={e => set('pending_override_reason', e.target.value)} /></Field>}
       </div>
       <div className="flex justify-end gap-2">
         <Btn level="primary" size="sm" type="submit" loading={busy}>Save case</Btn>
@@ -133,15 +134,15 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
       <div className="flex flex-wrap items-center gap-1.5 text-12.5 text-trs-muted">
         {files.length ? 'Attached' : 'No attachments'}
         {files.map(f => (
-          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-[22px] text-12 text-trs-ink">
+          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-6 text-small text-trs-ink">
             <span className="max-w-[220px] truncate">{f}</span>
-            <button type="button" aria-label={`Remove ${f}`} disabled={busy} onClick={() => void apply(files.filter(x => x !== f), [])} className="w-[16px] h-[16px] rounded-full border-0 bg-transparent text-trs-muted cursor-pointer hover:text-trs-neg leading-none">×</button>
+            <Btn level="tertiary" aria-label={`Remove ${f}`} disabled={busy} onClick={() => void apply(files.filter(x => x !== f), [])} className="w-4 h-4 p-0 rounded-full border-0 text-small leading-none text-trs-muted hover:bg-transparent hover:text-trs-neg">×</Btn>
           </span>
         ))}
         <Btn size="xs" level="tertiary" onClick={() => setOpen(v => !v)} disabled={busy}>{open ? 'Close' : 'Add from data room'}</Btn>
       </div>
       {open && (
-        <ul className="m-0 p-0 list-none rounded-7 border border-trs-line bg-white max-h-[220px] overflow-auto">
+        <ul className="m-0 p-0 list-none rounded border border-trs-line bg-white max-h-56 overflow-auto">
           {addable.length === 0 && <li className="px-3 py-2 text-12.5 text-trs-muted">Nothing in the data room to add.</li>}
           {addable.map(d => (
             <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 border-b border-trs-line last:border-b-0">

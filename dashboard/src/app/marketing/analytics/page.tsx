@@ -76,7 +76,7 @@ function Analytics() {
           <section>
             <h2 className="m-0 mb-3 text-16 font-medium">Visits by day</h2>
             {ok.daily.length === 0 ? <Note>No visits in this period.</Note> : (
-              <div className="h-[280px] w-full" role="img" aria-label={`Visits and people by day, ${PERIOD_LABEL[period]}`}>
+              <div className="h-72 w-full" role="img" aria-label={`Visits and people by day, ${PERIOD_LABEL[period]}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={ok.daily} margin={{ top: 8, right: 16, bottom: 0, left: 0 }}>
                     <CartesianGrid vertical={false} stroke="var(--trs-line)" />

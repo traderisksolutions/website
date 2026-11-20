@@ -36,11 +36,11 @@ export default function PortfolioPage() {
         <PageHeader title="Portfolio"
           meta={s ? [`Top 20%: ${s.topCount} of ${s.businesses} businesses · ${pct(s.topShare)} of commission · ${pct(s.topSentShare)} of TRS emails · ${pct(s.topRequestShare)} of requests`, unfiledLine(data?.unfiled, fmtDate)].filter(Boolean).join(' · ') : 'Loading…'}
           actions={<Segmented size="sm" label="Period" value={window} onChange={setWindow} options={[{ value: '12m', label: 'Last 12 months' }, { value: 'all', label: 'All debit notes' }]} />} />
-        {error && <p className="mt-6 text-[14px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="mt-6 text-body text-trs-neg" role="alert">{error}</p>}
         {!data && !error && <div className="mt-10"><Spinner label="Reading every debit note, email and request…" /></div>}
         {data && s && (<>
           <section className="mt-8" aria-labelledby="pf-admin">
-            <h2 id="pf-admin" className="m-0 mb-3 text-[17px] font-medium">Admin for the top 20% · {topRequests} requests</h2>
+            <h2 id="pf-admin" className="m-0 mb-3 text-heading font-medium">Admin for the top 20% · {topRequests} requests</h2>
             <Register label="Top 20% requests by type" minWidth={560} dense={false}>
               <RegisterHead><RegisterTh first>Request type</RegisterTh><RegisterTh>Requests</RegisterTh><RegisterTh>Share</RegisterTh><RegisterTh last>Most from</RegisterTh></RegisterHead>
               <tbody>
@@ -60,7 +60,7 @@ export default function PortfolioPage() {
           </section>
 
           <section className="mt-10" aria-labelledby="pf-rank">
-            <h2 id="pf-rank" className="m-0 mb-3 text-[17px] font-medium">Businesses by commission · {data.rows.length}</h2>
+            <h2 id="pf-rank" className="m-0 mb-3 text-heading font-medium">Businesses by commission · {data.rows.length}</h2>
             <Register label="Businesses by commission" minWidth={1180} maxHeight="70vh">
               <RegisterHead>
                 <RegisterTh first>Business</RegisterTh><RegisterTh>Commission</RegisterTh><RegisterTh>Cumulative</RegisterTh>
@@ -73,7 +73,7 @@ export default function PortfolioPage() {
                   const largest = REQUEST_TYPES.filter(t => r.byType[t] > 0).sort((a, b) => r.byType[b] - r.byType[a])[0]
                   const edge = k > 0 && data.rows[k - 1].top && !r.top
                   return (
-                    <RegisterRow key={r.id} style={edge ? { borderTop: '2px solid var(--trs-ink, #0f1412)' } : undefined}>
+                    <RegisterRow key={r.id} className={edge ? 'border-t-2 border-t-trs-ink' : undefined}>
                       <RegisterCell first primary={<Link href={`/companies/${r.id}?tab=knowledge`} className="no-underline hover:underline text-trs-ink">{r.name}</Link>} secondary={r.top ? `#${r.rank} · top 20%` : `#${r.rank}`} />
                       <RegisterCell>{money(r.commission, { dp: 0 })}</RegisterCell>
                       <RegisterCell>{pct(r.cumulative)}</RegisterCell>
@@ -91,7 +91,7 @@ export default function PortfolioPage() {
               </tbody>
             </Register>
           </section>
-          <p className="m-0 mt-6 text-[12.5px] text-trs-subtle">
+          <p className="m-0 mt-6 text-small text-trs-subtle">
             Commission {money(s.commission, { dp: 0 })} from debit notes{data.from ? ` since ${fmtDate(data.from)}` : ''}, SGD only{s.usd.notes ? `; ${s.usd.notes} USD note${s.usd.notes === 1 ? '' : 's'} (US$${Math.round(s.usd.commission).toLocaleString('en-SG')}) apart` : ''}. Emails since {fmtDate(s.emailsFrom)}; requests since {fmtDate(s.requestsFrom)}.
           </p>
 

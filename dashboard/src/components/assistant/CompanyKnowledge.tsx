@@ -90,14 +90,14 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <Chip tone={e.kind === 'email_rebuilt' ? 'amber' : 'neutral'}>{KIND[e.kind] ?? e.kind}</Chip>
-                  <button type="button" onClick={() => setOpen(o => o === e.id ? null : e.id)} aria-expanded={open === e.id}
-                    className="bg-transparent border-0 p-0 text-left cursor-pointer text-13.5 text-trs-ink hover:underline min-w-0 break-words">{e.title}</button>
+                  <Btn level="tertiary" onClick={() => setOpen(o => o === e.id ? null : e.id)} aria-expanded={open === e.id}
+                    className="h-auto p-0 border-0 font-normal whitespace-normal justify-start text-left text-body text-trs-ink hover:bg-transparent hover:text-trs-ink hover:underline min-w-0 break-words">{e.title}</Btn>
                 </div>
                 {e.actor && <div className="text-12 text-trs-muted break-all">{e.actor}{e.party ? ` · ${e.party}` : ''}</div>}
                 {open === e.id && e.summary && <pre className="m-0 mt-1.5 whitespace-pre-wrap font-sans text-13 leading-relaxed text-trs-ink-2">{e.summary}</pre>}
                 {(e.thread_id || e.links.length > 0) && (
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-12.5">
-                    {e.thread_id && <button type="button" onClick={() => setThread(e.thread_id)} className="bg-transparent border-0 p-0 cursor-pointer text-trs-muted hover:text-trs-ink underline">Thread</button>}
+                    {e.thread_id && <Btn level="tertiary" onClick={() => setThread(e.thread_id)} className="h-auto p-0 border-0 font-normal text-small text-trs-muted hover:bg-transparent hover:text-trs-ink underline">Thread</Btn>}
                     {e.links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="text-trs-muted hover:text-trs-ink">{l.label}</a>)}
                   </div>
                 )}

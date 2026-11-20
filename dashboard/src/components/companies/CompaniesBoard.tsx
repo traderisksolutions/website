@@ -7,6 +7,7 @@ import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { PageHeader } from '@/components/page-header'
 import { Btn, Segmented } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { NewCompanyDialog } from '@/components/crm/dialogs'
 import { useBoardData, type Row } from '@/components/board/useBoardData'
 import type { BoardPayload } from '@/lib/crm/board'
@@ -92,12 +93,12 @@ export function CompaniesBoard({ initial }: { initial: BoardPayload | null }) {
           title="Companies"
           meta={data ? `${rows.filter(r => r.company.kind === kind).length} ${kind === 'client' ? 'clients' : 'insurers'}` : 'Loading…'}
           actions={kind === 'client' && <>
-            {sync !== 'idle' && <span role="status" className="text-[13px] text-trs-subtle">{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
+            {sync !== 'idle' && <span role="status" className="text-body text-trs-subtle">{sync === 'syncing' ? 'Saving…' : sync === 'saved' ? 'Saved' : 'Not saved'}</span>}
             <label className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
-              <input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-9 w-[220px] sm:w-[300px] rounded-[8px] border border-trs-line-2 bg-white pl-9 pr-9 text-[14px] outline-none focus:border-trs-ink transition-colors" />
-              {q ? <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer text-trs-muted hover:bg-trs-canvas"><X size={13} /></button>
-                 : <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] border border-trs-line-2 rounded px-1.5 leading-[18px] hidden sm:block text-trs-subtle">/</kbd>}
+              <Input ref={searchRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Search clients, domains, owners" aria-label="Search companies" className="h-9 w-[220px] sm:w-[300px] pl-9 pr-9" />
+              {q ? <Btn level="tertiary" size="xs" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 px-0 border-0"><X size={13} /></Btn>
+                 : <kbd className="absolute right-3 top-1/2 -translate-y-1/2 text-small border border-trs-line-2 rounded px-1.5 leading-[18px] hidden sm:block text-trs-subtle">/</kbd>}
             </label>
             <div className="relative">
               <Btn onClick={() => setFilterOpen(v => !v)} aria-expanded={filterOpen} aria-haspopup="dialog" className={activeCount ? 'border-trs-ink' : undefined}>
@@ -113,25 +114,25 @@ export function CompaniesBoard({ initial }: { initial: BoardPayload | null }) {
 
         {kind === 'insurer' && <InsurersDirectory embedded />}
 
-        {kind === 'client' && error && <p className="m-0 text-[14px] text-trs-muted">{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer text-trs-ink">Retry</button></p>}
+        {kind === 'client' && error && <p className="m-0 text-body text-trs-muted">{error} <Btn level="tertiary" size="xs" onClick={() => void reload()} className="h-auto p-0 border-0 underline bg-transparent hover:bg-transparent font-normal text-body text-trs-ink">Retry</Btn></p>}
 
         {kind === 'client' && !data && !error && (
-          <div className="rounded-[16px] overflow-hidden bg-white border border-trs-line" aria-busy="true">
+          <div className="rounded overflow-hidden bg-white border border-trs-line" aria-busy="true">
             <div className="h-11 border-b border-trs-line" />
-            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[66px] px-6 flex items-center gap-8 border-b border-trs-line"><span className="h-3.5 w-44 rounded bg-trs-field animate-pulse" /><span className="h-3.5 w-16 rounded bg-trs-field animate-pulse" /><span className="h-3.5 w-28 rounded bg-trs-field animate-pulse ml-auto" /></div>)}
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-16 px-6 flex items-center gap-8 border-b border-trs-line"><span className="h-3.5 w-44 rounded bg-trs-field animate-pulse" /><span className="h-3.5 w-16 rounded bg-trs-field animate-pulse" /><span className="h-3.5 w-28 rounded bg-trs-field animate-pulse ml-auto" /></div>)}
           </div>
         )}
 
         {kind === 'client' && data && (
           <>
             {anyFilter && (
-              <p className="m-0 text-[13.5px] flex items-center gap-3 flex-wrap text-trs-muted" aria-live="polite">
+              <p className="m-0 text-body flex items-center gap-3 flex-wrap text-trs-muted" aria-live="polite">
                 <span>{stateLine}</span>
-                <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear filters</button>
+                <Btn level="tertiary" size="xs" onClick={() => { setF(EMPTY); setQ('') }} className="h-auto p-0 border-0 bg-transparent hover:bg-transparent font-normal text-body underline underline-offset-4 text-trs-ink">Clear filters</Btn>
               </p>
             )}
             {visible.length === 0 ? (
-              <p className="py-16 text-center text-[16px] m-0 text-trs-muted">No companies match. <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="underline bg-transparent border-0 cursor-pointer text-trs-ink">Clear filters</button></p>
+              <p className="py-16 text-center text-heading m-0 text-trs-muted">No companies match. <Btn level="tertiary" size="xs" onClick={() => { setF(EMPTY); setQ('') }} className="h-auto p-0 border-0 underline bg-transparent hover:bg-transparent font-normal text-heading text-trs-ink">Clear filters</Btn></p>
             ) : (
               <CompanyTable rows={visible} today={today} staff={staff} workloads={workloads} selectedId={null} onSelect={select} sort={sort} onSort={onSort} highlight={q} />
             )}
@@ -144,7 +145,7 @@ export function CompaniesBoard({ initial }: { initial: BoardPayload | null }) {
   )
 }
 
-const sel = 'h-9 max-w-[180px] appearance-none rounded-[7px] bg-transparent pl-2.5 pr-7 text-[14px] text-right cursor-pointer border-0 outline-none hover:bg-trs-field focus-visible:ring-2 focus-visible:ring-trs-ink [direction:rtl]'
+const sel = 'h-9 max-w-[180px] appearance-none rounded bg-transparent pl-2.5 pr-7 text-body text-right cursor-pointer border-0 outline-none hover:bg-trs-field focus-visible:ring-2 focus-visible:ring-trs-ink [direction:rtl]'
 
 /** The Filter panel: a short settings list, one parameter per row, its value on the right. */
 function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
@@ -166,15 +167,15 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
     { label: 'Threads', value: f.threads, onChange: v => onChange({ threads: v as Filters['threads'] }), options: [{ value: '', label: 'Either' }, { value: 'open', label: 'Has open threads' }, { value: 'none', label: 'No open threads' }] },
   ]
   return (
-    <div ref={ref} role="dialog" aria-label="Filter companies" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[360px] rounded-[16px] bg-white overflow-hidden border border-trs-line shadow-[0_16px_48px_rgba(15,20,18,0.14)]">
+    <div ref={ref} role="dialog" aria-label="Filter companies" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[360px] rounded bg-white overflow-hidden border border-trs-line shadow-[0_16px_48px_rgba(15,20,18,0.14)]">
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <span className="text-[15px] font-medium text-trs-ink">Filters{active ? <span className="ml-1.5 text-[13px] font-normal text-trs-subtle">{active} on</span> : null}</span>
-        <button type="button" onClick={onClear} disabled={!active} className="text-[13px] bg-transparent border-0 cursor-pointer disabled:cursor-default disabled:opacity-40 hover:underline underline-offset-4 text-trs-ink">Reset</button>
+        <span className="text-body font-medium text-trs-ink">Filters{active ? <span className="ml-1.5 text-body font-normal text-trs-subtle">{active} on</span> : null}</span>
+        <Btn level="tertiary" size="xs" onClick={onClear} disabled={!active} className="h-auto p-0 border-0 bg-transparent hover:bg-transparent font-normal text-body hover:underline underline-offset-4 text-trs-ink">Reset</Btn>
       </div>
       <ul className="m-0 p-0 list-none">
         {rowsDef.map(row => (
           <li key={row.label} className="flex items-center justify-between gap-4 px-5 h-12 border-t border-trs-field">
-            <span className="text-[14px] text-trs-ink">{row.label}</span>
+            <span className="text-body text-trs-ink">{row.label}</span>
             <span className="relative">
               <select value={row.value} onChange={e => row.onChange(e.target.value)} aria-label={row.label} className={cn(sel, row.value ? 'font-medium text-trs-ink' : 'text-trs-muted')}>
                 {row.options.map(o => <option key={o.value} value={o.value} className="[direction:ltr]">{o.label}</option>)}
@@ -185,8 +186,8 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
         ))}
       </ul>
       <div className="px-5 py-3 flex items-center justify-between border-t border-trs-field">
-        <span className="text-[12px] text-trs-subtle">Renewal periods count from today.</span>
-        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer bg-trs-green">Done</button>
+        <span className="text-small text-trs-subtle">Renewal periods count from today.</span>
+        <Btn level="primary" size="xs" onClick={onClose}>Done</Btn>
       </div>
     </div>
   )

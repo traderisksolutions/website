@@ -3,8 +3,9 @@
 // SimplePay: paste an API key; the server reads the employee list once and discards the key.
 // A key with access to several companies asks HR which company to read.
 import { useState } from 'react'
-import Link from 'next/link'
 import type { HrRead } from '@/lib/hr/types'
+import { Btn, LinkBtn, inputCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink } from '@/components/hr-connect/link-context'
 import { PeopleFound } from '@/components/hr-connect/read-table'
@@ -63,15 +64,15 @@ export default function SimplePayPage() {
             <div className="hrc-fact"><b>Added by you</b><span>Spouse and children, on the next page. SimplePay does not keep dependants.</span></div>
           </div>
 
-          <form onSubmit={fetchList}>
-            <div className="hrc-field" style={{ marginTop: 18 }}>
+          <form onSubmit={fetchList} className="mt-4">
+            <div className="hrc-field">
               <label htmlFor="simplepay-key">SimplePay API key</label>
-              <input id="simplepay-key" type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste the key" />
+              <Input id="simplepay-key" type="password" autoComplete="off" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste the key" />
             </div>
             {companies && (
               <div className="hrc-field">
                 <label htmlFor="simplepay-company">Company</label>
-                <select id="simplepay-company" value={companyId} onChange={e => setCompanyId(e.target.value)}>
+                <select id="simplepay-company" className={inputCls} value={companyId} onChange={e => setCompanyId(e.target.value)}>
                   <option value="">Choose the company being quoted</option>
                   {companies.map(c => <option key={c.id} value={c.id}>{c.name || c.id}</option>)}
                 </select>
@@ -79,8 +80,8 @@ export default function SimplePayPage() {
             )}
             {error && <p className="hrc-err">{error}</p>}
             <div className="hrc-row mt-2.5">
-              <button type="submit" className="hrc-btn p" disabled={busy || apiKey.trim().length < 10 || (!!companies && !companyId)}>{busy ? 'Reading SimplePay.' : 'Fetch the employee list'}</button>
-              <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
+              <Btn type="submit" level="primary" disabled={busy || apiKey.trim().length < 10 || (!!companies && !companyId)}>{busy ? 'Reading SimplePay.' : 'Fetch the employee list'}</Btn>
+              <LinkBtn href={`/connect/${token}/upload`}>Upload a file instead</LinkBtn>
             </div>
           </form>
 

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { Btn, Segmented, Spinner } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
+import { Input } from '@/components/ui/input'
 import { XlGrid, XlHead, XlHeadRow, XlTh, XlRow, XlCell, XlNum, XlEmpty, XL_BTN, type XlFill } from '@/components/ui/xl-grid'
 import { fmtDate, fmtRelative } from '@/lib/format'
 import { threadHref } from '@/lib/placement/position'
@@ -78,9 +79,9 @@ export default function RfqRegisterPage() {
           actions={
             <label className="relative flex items-center">
               <Search size={14} className="absolute left-2.5 text-trs-muted" aria-hidden />
-              <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
-                className="h-9 w-[240px] sm:w-[280px] rounded-8 border border-trs-line-2 bg-white pl-8 pr-8 text-13.5 outline-none focus:border-trs-ink" />
-              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-7 bg-transparent border-0 cursor-pointer hover:bg-trs-canvas text-trs-muted"><X size={13} /></button>}
+              <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
+                className="h-9 w-[240px] sm:w-[280px] pl-8 pr-8" />
+              {q && <Btn level="tertiary" size="xs" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-8 px-0"><X size={13} /></Btn>}
             </label>
           }>
           <Segmented<Filter> value={filter} onChange={setFilter} label="Requests" options={chips.map(c => ({ value: c.key, label: c.label, count: c.n }))} />
@@ -199,7 +200,7 @@ function UnmatchedReplies({ replies, onChanged }: { replies: Unmatched[] | null;
                 <span className="flex flex-col gap-0.5 py-1">
                   {r.candidates.map(c => (
                     <label key={c.dispatch_id} className="inline-flex items-center gap-1.5 cursor-pointer">
-                      <input type="checkbox" checked={sel.includes(c.dispatch_id)} onChange={() => toggle(r.id, c.dispatch_id)} />
+                      <input type="checkbox" className="accent-trs-green" checked={sel.includes(c.dispatch_id)} onChange={() => toggle(r.id, c.dispatch_id)} />
                       <span><b className="font-medium">{c.ref ?? '—'}</b> · {c.company_name ?? ''} · {c.line_label ?? ''} · {c.insurer_name}</span>
                     </label>
                   ))}

@@ -10,16 +10,14 @@ import { AppSplitLayout, AppMainPanel, AppPageHeader, AppPageBody } from '@/comp
 import { DataTableToolbar, DataTableReset } from '@/components/data-table/toolbar'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Btn, Segmented } from '@/components/crm/primitives'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-notes/SendDocumentsModal'
 import { Register, RegisterHead, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
 import { fmtDate } from '@/lib/format'
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const BODY = '#2a332f'
 
 type Row = {
   id: string; debit_note_no: string; issue_date: string; payment_due_date: string | null
@@ -73,16 +71,16 @@ const HEADER_COLUMNS = COLUMNS.filter(c => c.key !== 'policyType')
 function FilterInput({ label, value, onChange, autoFocus }: { label: string; value?: string; onChange?: (v: string) => void; autoFocus?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
-      <input
+      <Input
         autoFocus={autoFocus}
         value={value ?? ''}
         onChange={e => onChange?.(e.target.value)}
         placeholder={`Filter ${label.toLowerCase()}`}
         aria-label={`Filter ${label.toLowerCase()}`}
-        className="flex-1 min-w-0 h-9 rounded-7 border bg-white px-2.5 text-13 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink"
+        className="flex-1 min-w-0 h-9"
       />
       {value && (
-        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0 text-trs-muted"><X size={12} /></button>
+        <Btn level="tertiary" size="xs" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-8 px-0 rounded-full flex-shrink-0"><X size={12} /></Btn>
       )}
     </div>
   )
@@ -117,28 +115,28 @@ function ColumnHeader({
 
   return (
     <th scope="col" aria-sort={isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
-      className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_#e6e8e4]' : 'px-4', last && 'pr-6')}>
+      className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-4', last && 'pr-6')}>
       <span className={cn('group inline-flex items-center gap-1 h-11', right && 'flex-row-reverse')}>
-        <button type="button" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
-          className={cn('inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-13 whitespace-nowrap', right && 'flex-row-reverse', isSorted && 'font-medium')} style={{ color: isSorted ? INK : MUTED }}>
+        <Btn level="tertiary" size="xs" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
+          className={cn('h-auto p-0 border-0 font-normal text-body hover:bg-transparent', right && 'flex-row-reverse', isSorted ? 'font-medium text-trs-ink' : 'text-trs-muted')}>
           {col.label}
           <SortIcon size={13} className={cn(isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
-        </button>
+        </Btn>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
-            <button type="button" title={`Filter ${col.label.toLowerCase()}`} aria-label={`Filter ${col.label.toLowerCase()}`}
-              className={cn('w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]', active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60 focus-visible:opacity-100')}
-              style={{ color: active ? INK : MUTED }}>
+            <Button variant="ghost" size="icon-xs" title={`Filter ${col.label.toLowerCase()}`} aria-label={`Filter ${col.label.toLowerCase()}`}
+              className={cn('w-6 h-6 rounded-full border-0', active ? 'opacity-100 text-trs-ink' : 'opacity-0 group-hover:opacity-60 focus-visible:opacity-100 text-trs-muted')}>
               <ListFilter size={13} />
-            </button>
+            </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2.5 rounded-12" align={right ? 'end' : 'start'} style={{ border: '1px solid #e6e8e4' }}>
+          <PopoverContent className="w-56 p-2.5 rounded border border-trs-line" align={right ? 'end' : 'start'}>
             {col.type === 'status' ? (
               <div className="flex flex-col gap-0.5">
                 {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-13.5 px-2 py-1.5 rounded-8 hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
+                  <label key={s} className="flex items-center gap-2 text-body px-2 py-1.5 rounded hover:bg-trs-tint cursor-pointer text-trs-ink">
                     <input
                       type="checkbox"
+                      className="accent-trs-green"
                       checked={statusFilter?.has(s) ?? false}
                       onChange={e => {
                         const next = new Set(statusFilter)
@@ -150,7 +148,7 @@ function ColumnHeader({
                   </label>
                 ))}
                 {(statusFilter?.size ?? 0) > 0 && (
-                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-13 mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear</button>
+                  <Btn level="tertiary" size="xs" onClick={() => onStatusFilterChange?.(new Set())} className="mt-1 h-auto justify-start px-2 py-1 border-0 font-normal text-body underline underline-offset-4 text-trs-ink">Clear</Btn>
                 )}
               </div>
             ) : (
@@ -274,7 +272,7 @@ function DebitNotesContent() {
               </RegisterHead>
               <tbody>
                 {loading && Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #e6e8e4' }}><td colSpan={HEADER_COLUMNS.length} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[70%] rounded bg-[#f1f2ee] animate-pulse" /></td></tr>
+                  <tr key={i} className="border-b border-trs-line"><td colSpan={HEADER_COLUMNS.length} className="pl-6 pr-6 h-14"><div className="h-3.5 w-[70%] rounded bg-trs-field animate-pulse" /></td></tr>
                 ))}
                 {!loading && sorted.length === 0 && (
                   <RegisterEmpty colSpan={HEADER_COLUMNS.length}>{rows.length === 0 ? 'No debit notes yet.' : 'No debit notes match these filters.'}</RegisterEmpty>
@@ -305,6 +303,10 @@ function DebitNotesContent() {
 type AttachmentFile = SendableAttachment
 type PayStatus = 'unpaid' | 'partially_paid' | 'paid'
 type EventType = 'new_business' | 'renewal' | 'endorsement'
+const EVENT_OPTIONS: { value: EventType; label: string }[] = [
+  { value: 'new_business', label: 'New business' }, { value: 'renewal', label: 'Renewal' }, { value: 'endorsement', label: 'Mid-term endorsement' },
+]
+const PAY_OPTIONS: { value: PayStatus; label: string }[] = STATUS_OPTIONS.map(s => ({ value: s, label: STATUS_LABEL[s] }))
 
 type DetailPolicy = {
   policy_number: string | null; class_of_insurance: string | null; cover_note_no: string | null
@@ -351,8 +353,6 @@ function toEditForm(d: Detail): EditForm {
     eventType: d.event_type ?? 'new_business', endorsementEffectiveDate: d.endorsement_effective_date ?? '',
   }
 }
-
-const inputCls = 'text-12.5 border border-border rounded-md px-2 py-1 w-full'
 
 function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => void; onSaved: () => void }) {
   const [detail, setDetail] = useState<Detail | null>(null)
@@ -448,8 +448,8 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           <div className="flex items-center justify-between pr-6">
             {editing && form ? (
               <DialogTitle asChild>
-                <input value={form.debitNoteNo} onChange={e => setForm(f => f && { ...f, debitNoteNo: e.target.value })}
-                  placeholder="Debit note no." className="text-16 font-semibold leading-none border border-border rounded-md px-2 py-1 w-[220px]" />
+                <Input value={form.debitNoteNo} onChange={e => setForm(f => f && { ...f, debitNoteNo: e.target.value })}
+                  placeholder="Debit note no." className="text-heading font-semibold leading-none w-[220px]" />
               </DialogTitle>
             ) : (
               <DialogTitle>{detail?.debit_note_no ?? 'Loading…'}</DialogTitle>
@@ -457,7 +457,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             {detail && !editing && (
               <div className="flex items-center gap-1.5">
                 <Button variant="outline" size="sm" onClick={startEditing}><Pencil size={12} className="mr-1.5" /> Edit</Button>
-                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="text-[#2a332f] hover:text-[#2a332f] border-[#e6e8e4] hover:bg-[#f1f2ee]">
+                <Button variant="outline" size="sm" onClick={() => setConfirmDelete(true)} className="text-trs-ink-2 hover:text-trs-ink-2 border-trs-line hover:bg-trs-field">
                   <Trash2 size={12} className="mr-1.5" /> Delete
                 </Button>
               </div>
@@ -470,10 +470,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           <div className="px-4 py-4">
             <p className="text-13 mb-1">Delete debit note {detail.debit_note_no}?</p>
             <p className="text-12 text-muted-foreground mb-4">This removes this debit note and its generated PDF. If no other debit notes are linked to its policy, the policy is removed too — the company and its contacts are never affected. This cannot be undone.</p>
-            {error && <p className="text-12 text-[#2a332f] mb-2">{error}</p>}
+            {error && <p className="text-small text-trs-neg mb-2">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</Button>
-              <Button size="sm" onClick={del} disabled={deleting} className="bg-white text-[#a1242f] border border-[#d5d9d4] hover:bg-[#faf9f6]">
+              <Button variant="destructive" size="sm" onClick={del} disabled={deleting}>
                 {deleting ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Trash2 size={13} className="mr-1.5" />} Delete
               </Button>
             </div>
@@ -483,65 +483,61 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             <DetailSection label="Client">
               <DetailField label="Company"><span className="">{detail.companies?.name ?? '—'}</span></DetailField>
               {!editing && detail.event_type === 'endorsement' && (
-                <div className="mb-3 rounded-md border border-[#e6e8e4] bg-[#f1f2ee]/60 px-2.5 py-1.5">
-                  <p className="text-12.5 font-medium text-[#2a332f]">Mid-term endorsement</p>
-                  <p className="text-12 text-[#2a332f]">Effective {fmtDate(detail.endorsement_effective_date)}</p>
+                <div className="mb-3 rounded border border-trs-line bg-trs-canvas px-2.5 py-1.5">
+                  <p className="text-small font-medium text-trs-ink-2">Mid-term endorsement</p>
+                  <p className="text-small text-trs-ink-2">Effective {fmtDate(detail.endorsement_effective_date)}</p>
                 </div>
               )}
               {editing && form ? (
                 <>
-                  <div className="rounded-md border border-[--border-subtle] p-2.5 mb-3 flex items-center gap-3">
-                    <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1">Debit note type
-                      <select value={form.eventType} onChange={e => setForm({ ...form, eventType: e.target.value as EventType })} className={inputCls}>
-                        <option value="new_business">New business</option>
-                        <option value="renewal">Renewal</option>
-                        <option value="endorsement">Mid-term endorsement</option>
-                      </select>
-                    </label>
+                  <div className="rounded border border-trs-line p-2.5 mb-3 flex items-center gap-3">
+                    <div className="flex flex-col gap-1 text-11 text-muted-foreground flex-1">Debit note type
+                      <Segmented<EventType> label="Debit note type" value={form.eventType} onChange={v => setForm({ ...form, eventType: v })} options={EVENT_OPTIONS} />
+                    </div>
                     {form.eventType === 'endorsement' && (
                       <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1">Effective date
-                        <input type="date" value={form.endorsementEffectiveDate} onChange={e => setForm({ ...form, endorsementEffectiveDate: e.target.value })} className={inputCls} />
+                        <Input type="date" value={form.endorsementEffectiveDate} onChange={e => setForm({ ...form, endorsementEffectiveDate: e.target.value })} />
                       </label>
                     )}
                   </div>
                   {/* Row 1 — reference numbers */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Policy number
-                      <input value={form.policyNumber} onChange={e => setForm({ ...form, policyNumber: e.target.value })} className={inputCls} />
+                      <Input value={form.policyNumber} onChange={e => setForm({ ...form, policyNumber: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Cover note no.
-                      <input value={form.coverNoteNo} onChange={e => setForm({ ...form, coverNoteNo: e.target.value })} className={inputCls} />
+                      <Input value={form.coverNoteNo} onChange={e => setForm({ ...form, coverNoteNo: e.target.value })} />
                     </label>
                   </div>
                   {/* Row 2 — insurer, class & broker */}
                   <div className="grid grid-cols-3 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Insurer
-                      <input value={form.insurer} onChange={e => setForm({ ...form, insurer: e.target.value })} className={inputCls} />
+                      <Input value={form.insurer} onChange={e => setForm({ ...form, insurer: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Class of insurance
-                      <input value={form.classOfInsurance} onChange={e => setForm({ ...form, classOfInsurance: e.target.value })} className={inputCls} />
+                      <Input value={form.classOfInsurance} onChange={e => setForm({ ...form, classOfInsurance: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Broker
-                      <input value={form.broker} onChange={e => setForm({ ...form, broker: e.target.value })} className={inputCls} />
+                      <Input value={form.broker} onChange={e => setForm({ ...form, broker: e.target.value })} />
                     </label>
                   </div>
                   {/* Row 3 — dates (period + billing) — wraps to 2×2 in this narrower dialog */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Period start
-                      <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className={inputCls} />
+                      <Input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Period end
-                      <input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} className={inputCls} />
+                      <Input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Issue date
-                      <input type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} className={inputCls} />
+                      <Input type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Payment due date
-                      <input type="date" value={form.paymentDueDate} onChange={e => setForm({ ...form, paymentDueDate: e.target.value })} className={inputCls} />
+                      <Input type="date" value={form.paymentDueDate} onChange={e => setForm({ ...form, paymentDueDate: e.target.value })} />
                     </label>
                   </div>
                   <label className="flex flex-col gap-1 text-11 text-muted-foreground">Description
-                    <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={inputCls} />
+                    <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
                   </label>
                 </>
               ) : (
@@ -564,37 +560,37 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                 <>
                   {form.lineItems.map((l, i) => (
                     <div key={i} className="flex items-center gap-2 mb-1.5">
-                      <input value={l.description} onChange={e => updateLineItem(i, { description: e.target.value })} placeholder="Description" className={`${inputCls} flex-1 min-w-0`} />
-                      <input type="number" value={l.amount} onChange={e => updateLineItem(i, { amount: Number(e.target.value) })} className={`${inputCls} w-28 flex-none`} />
-                      <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-[#2a332f] flex-none"><X size={14} /></button>
+                      <Input value={l.description} onChange={e => updateLineItem(i, { description: e.target.value })} placeholder="Description" className="flex-1 min-w-0" />
+                      <Input type="number" value={l.amount} onChange={e => updateLineItem(i, { amount: Number(e.target.value) })} className="w-28 flex-none" />
+                      <Btn level="tertiary" size="xs" onClick={() => removeLineItem(i)} className="w-8 px-0 flex-none"><X size={14} /></Btn>
                     </div>
                   ))}
-                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-12 text-[#0f1412] hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
+                  <Btn level="tertiary" size="xs" onClick={addLineItem} className="self-start px-0 border-0 text-small text-trs-ink hover:bg-transparent hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</Btn>
 
                   {/* Fee rebate toggle — sits above the price row it nets against */}
                   <label className="flex flex-col gap-1 text-11 text-muted-foreground mb-2 max-w-[220px]">
                     <span className="flex items-center gap-1.5">
-                      <input type="checkbox" checked={feeRebateEnabled}
+                      <input type="checkbox" className="accent-trs-green" checked={feeRebateEnabled}
                         onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setForm(f => f && { ...f, feeRebate: 0 }) }} />
                       Apply fee rebate
                     </span>
                   </label>
                   {feeRebateEnabled && (
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground mb-2 max-w-[220px]">Fee rebate amount
-                      <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
+                      <Input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} />
                     </label>
                   )}
 
                   {/* Price row — GST, currency, and the running total together */}
                   <div className="flex flex-wrap items-end gap-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[110px]">GST amount
-                      <input type="number" value={form.gstAmount} onChange={e => setForm({ ...form, gstAmount: Number(e.target.value) })} className={inputCls} />
+                      <Input type="number" value={form.gstAmount} onChange={e => setForm({ ...form, gstAmount: Number(e.target.value) })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[110px]">Currency
-                      <input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className={inputCls} />
+                      <Input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} />
                     </label>
                     <div className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[140px]">Premium Total
-                      <div className="text-12.5 border border-border rounded-md px-2 py-1 bg-muted/40 font-semibold flex items-center h-[30px]">
+                      <div className="text-body border border-trs-line-2 rounded px-3 bg-trs-canvas font-semibold flex items-center h-10 text-trs-ink">
                         {form.currency} {(form.lineItems.reduce((s, l) => s + l.amount, 0) + form.gstAmount - (feeRebateEnabled ? form.feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
@@ -616,10 +612,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                 {editing && form ? (
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Commission rate (%)
-                      <input type="number" value={form.commissionRate} onChange={e => setForm({ ...form, commissionRate: Number(e.target.value) })} className={inputCls} />
+                      <Input type="number" value={form.commissionRate} onChange={e => setForm({ ...form, commissionRate: Number(e.target.value) })} />
                     </label>
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Commission amount
-                      <input type="number" value={form.commission} onChange={e => setForm({ ...form, commission: Number(e.target.value) })} className={inputCls} />
+                      <Input type="number" value={form.commission} onChange={e => setForm({ ...form, commission: Number(e.target.value) })} />
                     </label>
                   </div>
                 ) : (
@@ -628,7 +624,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <DetailField label="Commission">{fmt(detail.commission, detail.currency)}{detail.commission_rate != null ? ` (${detail.commission_rate}%)` : ''}</DetailField>
                     )}
                     {detail.drive_folder_url && (
-                      <DetailField label="Documents"><a href={detail.drive_folder_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[#0f1412] hover:underline"><FolderOpen size={12} /> Open in Google Drive</a></DetailField>
+                      <DetailField label="Documents"><a href={detail.drive_folder_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-trs-ink hover:underline"><FolderOpen size={12} /> Open in Google Drive</a></DetailField>
                     )}
                   </>
                 )}
@@ -638,42 +634,38 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             <DetailSection label="Payment">
               <p className="text-11 text-muted-foreground mb-2.5">Not all of the premium always goes to the insurer directly — tag which channel(s) apply and track each independently for accounting.</p>
               <div className="flex flex-col gap-3">
-                <div className="rounded-md border border-[--border-subtle] p-2.5">
+                <div className="rounded border border-trs-line p-2.5">
                   <label className="flex items-center gap-2 text-12 font-medium mb-2 cursor-pointer">
-                    <input type="checkbox" checked={payDirectToInsurer} onChange={e => setPayDirectToInsurer(e.target.checked)} className="accent-primary" />
+                    <input type="checkbox" checked={payDirectToInsurer} onChange={e => setPayDirectToInsurer(e.target.checked)} className="accent-trs-green" />
                     (a) Direct to insurer
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Paid amount to insurer
-                      <input type="number" value={paidDirectAmount} onChange={e => setPaidDirectAmount(Number(e.target.value))} className={inputCls} />
+                      <Input type="number" value={paidDirectAmount} onChange={e => setPaidDirectAmount(Number(e.target.value))} />
                     </label>
-                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Status
-                      <select value={paidDirectStatus} onChange={e => setPaidDirectStatus(e.target.value as PayStatus)} className={inputCls}>
-                        <option value="unpaid">Unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option>
-                      </select>
-                    </label>
+                    <div className="flex flex-col gap-1 text-11 text-muted-foreground">Status
+                      <Segmented<PayStatus> label="Status" value={paidDirectStatus} onChange={setPaidDirectStatus} options={PAY_OPTIONS} />
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-md border border-[--border-subtle] p-2.5">
+                <div className="rounded border border-trs-line p-2.5">
                   <label className="flex items-center gap-2 text-12 font-medium mb-2 cursor-pointer">
-                    <input type="checkbox" checked={payToTrsOps} onChange={e => setPayToTrsOps(e.target.checked)} className="accent-primary" />
+                    <input type="checkbox" checked={payToTrsOps} onChange={e => setPayToTrsOps(e.target.checked)} className="accent-trs-green" />
                     (b) Pay to TRS
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="flex flex-col gap-1 text-11 text-muted-foreground">Paid to TRS Ops account
-                      <input type="number" value={paidAmount} onChange={e => setPaidAmount(Number(e.target.value))} className={inputCls} />
+                      <Input type="number" value={paidAmount} onChange={e => setPaidAmount(Number(e.target.value))} />
                     </label>
-                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Status
-                      <select value={status} onChange={e => setStatus(e.target.value as PayStatus)} className={inputCls}>
-                        <option value="unpaid">Unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option>
-                      </select>
-                    </label>
+                    <div className="flex flex-col gap-1 text-11 text-muted-foreground">Status
+                      <Segmented<PayStatus> label="Status" value={status} onChange={setStatus} options={PAY_OPTIONS} />
+                    </div>
                   </div>
                 </div>
               </div>
             </DetailSection>
 
-            {error && <p className="px-4 text-12 text-[#2a332f]">{error}</p>}
+            {error && <p className="px-4 text-small text-trs-neg">{error}</p>}
 
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <div className="flex items-center gap-2">

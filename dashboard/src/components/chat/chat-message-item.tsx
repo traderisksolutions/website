@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
 import { Sparkles, RefreshCw, Mail, PencilLine, Check, RotateCcw, Link as LinkIcon, FileText, Undo2, Loader2 } from 'lucide-react'
 import type { ChatMessage, ProposedAction, EditOp } from '@/lib/chat/chat-types'
 
@@ -65,9 +66,9 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
       )}>
         {streaming && !message.content ? (
           <span className="inline-flex gap-1 py-0.5" aria-label="Assistant is thinking">
-            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce [animation-delay:0ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce [animation-delay:150ms]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce [animation-delay:300ms]" />
           </span>
         ) : (
           <>
@@ -102,7 +103,7 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
           ) : (action.type === 'edit_analysis' && message.metadata_json?.action_undo && onUndo) ? (
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1 text-11 font-medium text-emerald-600"><Check size={11} /> Applied</span>
-              <button onClick={() => onUndo(message)} className="flex items-center gap-1 text-11 text-muted-foreground/60 hover:text-foreground transition-colors"><Undo2 size={10} /> Undo</button>
+              <Btn level="tertiary" size="xs" onClick={() => onUndo(message)} className="h-auto px-1 py-0 gap-1 text-small font-normal"><Undo2 size={10} /> Undo</Btn>
             </div>
           ) : (
             <span className="flex items-center gap-1 text-11 font-medium text-emerald-600"><Check size={11} /> Done</span>
@@ -119,14 +120,15 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
                 </ul>
               </div>
             )}
-            <button
+            <Btn
+              size="xs"
               onClick={() => !confirming && onConfirm(message)}
               disabled={confirming}
-              className="self-start flex items-center gap-1.5 text-11 font-semibold rounded-lg border border-primary/30 bg-primary/5 text-primary px-2.5 py-1.5 hover:bg-primary/10 transition-colors disabled:opacity-70"
+              className="self-start"
             >
               {confirming ? <Loader2 size={12} className="animate-spin" /> : actionLabel(action).icon}
               {confirming ? 'Working…' : actionLabel(action).label}
-            </button>
+            </Btn>
             {confirming && (action.type === 'reanalyze' || action.type === 'rescan_reanalyze') && (
               <span className="text-11 text-muted-foreground/60">Re-running the analysis — Mission Control will update. This can take a minute.</span>
             )}
@@ -135,10 +137,10 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
       )}
 
       {onRegenerate && (
-        <button onClick={onRegenerate}
-          className="flex items-center gap-1 text-11 text-muted-foreground/60 hover:text-foreground transition-colors">
+        <Btn level="tertiary" size="xs" onClick={onRegenerate}
+          className="h-auto px-1 py-0 gap-1 text-small font-normal">
           <RotateCcw size={10} /> Regenerate
-        </button>
+        </Btn>
       )}
     </div>
   )

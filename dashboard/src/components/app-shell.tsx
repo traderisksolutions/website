@@ -38,7 +38,7 @@ export function AppPageHeader({ title, actions, className }: AppPageHeaderProps)
       )}
     >
       <div className="min-w-0">
-        <h1 className="m-0 text-32 font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink">
+        <h1 className="m-0 text-title font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink">
           {title}
         </h1>
       </div>
@@ -64,7 +64,7 @@ interface AppScrollPageProps {
 export function AppScrollPage({ children, maxWidth = '1100px', className }: AppScrollPageProps) {
   return (
     <div className={cn('min-h-full bg-background', className)}>
-      <div className="mx-auto px-6 py-6" style={{ maxWidth }}>
+      <div className="mx-auto px-6 py-6" style={{ maxWidth /* drift-ok: width passed in by the caller */ }}>
         {children}
       </div>
     </div>

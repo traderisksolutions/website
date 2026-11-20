@@ -7,7 +7,8 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { PageHeader } from '@/components/page-header'
-import { Btn, Spinner } from '@/components/crm/primitives'
+import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate } from '@/lib/format'
 
@@ -60,7 +61,7 @@ export default function AiApprovalsPage() {
                     <RegisterCell>{r.oldest ? fmtDate(r.oldest) : '—'}</RegisterCell>
                     <RegisterCell align="right">
                       <select aria-label={`How many ${r.label} tasks to run`} value={count[r.agent] ?? 10} onChange={e => setCount(c => ({ ...c, [r.agent]: Number(e.target.value) }))} disabled={!r.waiting}
-                        className="h-8 rounded-7 border border-trs-line-2 bg-white px-2 text-13">
+                        className={cn(inputCls, 'h-8 w-auto px-2 text-body')}>
                         {[1, 5, 10, max].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v}</option>)}
                       </select>
                     </RegisterCell>

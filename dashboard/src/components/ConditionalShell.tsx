@@ -26,8 +26,8 @@ function MainContent({ children }: { children: React.ReactNode }) {
   const marginLeft = !showEngagementRail ? 0 : navCollapsed ? `${RAIL_COLLAPSED}px` : 'var(--engagement-rail-w, 380px)'
   return (
     <div
-      className="main-content min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col"
-      style={{ background: 'hsl(var(--background))', marginLeft }}
+      className="main-content min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col bg-background"
+      style={{ marginLeft /* drift-ok: rail width set at runtime */ }}
     >
       {/* A live AI fault under the nav. The "Since you were away" report was removed (Jarod, 20 Nov 2026). */}
       <VersionWatch />

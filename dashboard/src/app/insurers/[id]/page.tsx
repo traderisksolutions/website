@@ -8,7 +8,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { useParams } from 'next/navigation'
-import { Btn, Chip, Segmented, Spinner } from '@/components/crm/primitives'
+import { Btn, Chip, Segmented, Spinner, inputCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
 import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
 
@@ -25,7 +26,7 @@ const HOW: Record<string, string> = {
   'policy no. in subject': 'Policy no. in subject', 'only policy with this insurer': 'Only policy with this insurer',
   'cover named in subject': 'Cover named in subject', agent: 'Agent', broker: 'Broker',
 }
-const selCls = 'h-[30px] rounded-6 border border-[#d5d9d4] bg-white px-2 text-13 outline-none focus:border-[#132c1c] max-w-[340px]'
+const selCls = cn(inputCls, 'h-8 w-auto max-w-[340px] px-2 text-body')
 
 export default function InsurerThreadsPage() {
   const { id } = useParams<{ id: string }>()

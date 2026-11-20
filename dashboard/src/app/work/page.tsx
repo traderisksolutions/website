@@ -8,11 +8,13 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Btn, Chip, Segmented, Spinner, Empty, inputCls, textareaCls } from '@/components/crm/primitives'
+import { Btn, Chip, Segmented, Spinner, Empty, textareaCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PageHeader } from '@/components/page-header'
 import { ReviewList, useReview } from './review'
-import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 import type { WorkItem, Lane } from '@/lib/casework/queue'
 import { createClient } from '@/lib/supabase/client'
 
@@ -121,27 +123,27 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
 
   return (
     <article className="rounded-10 bg-white px-4 py-3.5 border border-trs-line">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer">
+      <Btn level="tertiary" onClick={() => setOpen(o => !o)} aria-expanded={open} className="block h-auto w-full p-0 border-0 text-left font-normal whitespace-normal hover:bg-transparent">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-12.5 truncate text-trs-muted">{client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}{i.policy_number ? ` · ${i.policy_number}` : ''}</div>
-            <div className="text-16 font-medium leading-snug text-trs-ink">{i.title}</div>
+            <div className="text-small truncate text-trs-muted">{client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}{i.policy_number ? ` · ${i.policy_number}` : ''}</div>
+            <div className="text-heading font-medium leading-snug text-trs-ink">{i.title}</div>
           </div>
-          {due && <span className="shrink-0 text-12.5 font-medium" style={{ color: late ? ERROR : MUTED }}>{due}</span>}
+          {due && <span className={cn('shrink-0 text-small font-medium', late ? 'text-trs-neg' : 'text-trs-muted')}>{due}</span>}
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 mt-2">
           <Chip tone={st.tone}>{st.label}</Chip>
           <Chip>{TYPE[i.case_type] ?? i.case_type}</Chip>
           {i.confidence === 'low' && <Chip tone="amber">Check facts</Chip>}
-          <span className="text-12.5" style={{ color: i.owner_left || !ownerName ? ERROR : MUTED }}>Owner: {i.owner_left ? 'left TRS' : ownerName ?? 'none'}</span>
+          <span className={cn('text-small', i.owner_left || !ownerName ? 'text-trs-neg' : 'text-trs-muted')}>Owner: {i.owner_left ? 'left TRS' : ownerName ?? 'none'}</span>
         </div>
-      </button>
+      </Btn>
 
       {open && (
         <div className="mt-3 flex flex-col gap-3 text-14 text-trs-ink">
           {i.summary && <p className="m-0 text-trs-muted">{i.summary}</p>}
           {i.needs_human && (
-            <div className="border-l-[3px] pl-3" style={{ borderColor: 'rgba(161,36,47,0.4)' }}>
+            <div className="border-l-[3px] border-trs-neg/40 pl-3">
               <div className="text-12 uppercase tracking-[0.04em] text-trs-neg">Decision needed</div>
               <div>{i.needs_human}</div>
             </div>
@@ -152,9 +154,9 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
             <div className="rounded-8 px-3 py-2.5 border border-trs-line">
               {editing ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-12.5 text-trs-muted">To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
-                  <label className="text-12.5 text-trs-muted">Cc<input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} /></label>
-                  <label className="text-12.5 text-trs-muted">Subject<input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} /></label>
+                  <label className="text-small text-trs-muted">To<Input value={to} onChange={e => setTo(e.target.value)} /></label>
+                  <label className="text-small text-trs-muted">Cc<Input value={cc} onChange={e => setCc(e.target.value)} /></label>
+                  <label className="text-small text-trs-muted">Subject<Input value={subject} onChange={e => setSubject(e.target.value)} /></label>
                   <textarea className={textareaCls} rows={10} value={body} onChange={e => setBody(e.target.value)} />
                 </div>
               ) : (

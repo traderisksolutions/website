@@ -2,8 +2,8 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Btn, LinkBtn } from '@/components/crm/primitives'
-import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
+import { Btn, LinkBtn, btnClass } from '@/components/crm/primitives'
+import { MarketingPage, Note } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
 import { fmtDate, fmtDay, n } from '@/lib/marketing/labels'
 import type { KnowledgeVersion, KnowledgeVersionMeta } from '@/lib/marketing/knowledge-file'
@@ -19,9 +19,11 @@ type Payload = {
 
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const PLACEHOLDER = '# Business\nOne fact per line. The writer states only what is written here.\n# Approved claims\n# Do not write'
-const MONO = '14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-const BOX = 'block w-full m-0 rounded-12 border px-5 py-[18px] min-h-[520px] text-[#2a332f]'
-const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-13.5 rounded-7 bg-white text-[#0f1412] border border-[#d5d9d4] hover:bg-[#faf9f6] no-underline'
+const BOX = 'block w-full m-0 rounded border px-5 py-[18px] min-h-[520px] font-mono text-body leading-[1.65] text-trs-ink-2'
+const SECONDARY_LINK = cn(btnClass('secondary', 'xs'), 'no-underline')
+
+/** A word that acts, inside a line of text: the tertiary button with no box. */
+const LINK_BTN = 'h-auto px-0 border-0 font-normal text-small text-trs-muted hover:bg-transparent hover:text-trs-muted hover:underline'
 
 const author = (email: string | null | undefined) => (email ? email.split('@')[0] : 'unknown')
 
@@ -143,8 +145,7 @@ function Knowledge() {
               <textarea
                 ref={textareaRef}
                 aria-label="Knowledge file"
-                className={cn(BOX, 'border-[#d5d9d4] bg-white resize-y outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]')}
-                style={{ font: MONO }}
+                className={cn(BOX, 'border-trs-line-2 bg-white resize-y outline-none focus:border-trs-ink placeholder:text-trs-subtle')}
                 value={draft}
                 placeholder={PLACEHOLDER}
                 onChange={e => setDraft(e.target.value)}
@@ -153,7 +154,7 @@ function Knowledge() {
                 spellCheck={false}
               />
             ) : (
-              <pre className={cn(BOX, 'whitespace-pre-wrap break-words')} style={{ font: MONO, background: '#faf9f6', borderColor: '#e6e8e4', color: text ? '#2a332f' : MUTED }}>
+              <pre className={cn(BOX, 'whitespace-pre-wrap break-words bg-trs-tint border-trs-line', text ? 'text-trs-ink-2' : 'text-trs-muted')}>
                 {text || (data && !current ? PLACEHOLDER : '')}
               </pre>
             )}
@@ -170,14 +171,14 @@ function Knowledge() {
                   const on = isCurrent ? cur : v.version === viewingVersion
                   const locked = busy || mode === 'edit'
                   return (
-                    <li key={v.version} className="flex items-center justify-between gap-2.5 px-2.5 py-[9px] rounded-8 text-13.5" style={{ background: on ? '#edf7e8' : undefined }}>
+                    <li key={v.version} className={cn('flex items-center justify-between gap-2.5 px-2.5 py-[9px] rounded text-body', on && 'bg-trs-soft')}>
                       <span className="min-w-0">
                         v{v.version}
                         {cur ? ' · current' : (
                           <span className="ml-2 text-12.5 text-trs-muted">
-                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50 text-trs-muted" disabled={locked} onClick={() => view(v.version)}>view</button>
+                            <Btn level="tertiary" size="xs" className={LINK_BTN} disabled={locked} onClick={() => view(v.version)}>view</Btn>
                             {' · '}
-                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50 text-trs-muted" disabled={locked} onClick={() => restore(v.version)}>restore</button>
+                            <Btn level="tertiary" size="xs" className={LINK_BTN} disabled={locked} onClick={() => restore(v.version)}>restore</Btn>
                           </span>
                         )}
                       </span>

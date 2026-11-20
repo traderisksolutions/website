@@ -2,13 +2,15 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Btn, inputCls, textareaCls } from '@/components/crm/primitives'
-import { MarketingPage, MUTED, RULE } from '@/components/marketing/page-shell'
+import { Btn, textareaCls } from '@/components/crm/primitives'
+import { MarketingPage, MUTED } from '@/components/marketing/page-shell'
+import { Input } from '@/components/ui/input'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { useConfirm } from '@/components/ui/confirm'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 
-const INK = '#0f1412'
+// The iframe's own HTML document while the preview loads (an email body, not the app's styles).
+const PREVIEW_LOADING = '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>' // drift-ok: email preview HTML
 
 type Sub = { id: string; email: string; status: 'pending' | 'confirmed' | 'unsubscribed'; source_url: string | null; confirm_sent_at: string | null; confirmed_at: string | null; created_at: string }
 type Issue = { id: string; subject: string; intro: string; article_ids: string[]; status: 'draft' | 'sending' | 'sent'; test_sent_at: string | null; approved_by: string | null; approved_at: string | null; sent_at: string | null; recipients: number; failures: number; created_at: string }
@@ -148,10 +150,10 @@ function Sender({ site, ready, pendingUnsent, post, onChanged }: { site: Payload
       <div className="grid gap-3 max-w-[640px]">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-12.5 text-trs-muted">Sender email
-            <input value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="news@corpcover.com" autoComplete="off" />
+            <Input value={email} onChange={e => setEmail(e.target.value)} placeholder="news@corpcover.com" autoComplete="off" />
           </label>
           <label className="grid gap-1 text-12.5 text-trs-muted">Sender name
-            <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder={site.name} />
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder={site.name} />
           </label>
         </div>
         <p className="m-0 text-13 text-trs-muted">Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
@@ -214,7 +216,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const toggle = (id: string) => setIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : cur.length >= 6 ? cur : [...cur, id])
 
   return (
-    <section className="grid gap-5 rounded-16 p-6" style={{ border: `1px solid ${RULE}` }} aria-label="Issue">
+    <section className="grid gap-5 rounded p-6 border border-trs-line" aria-label="Issue">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <h2 className="m-0 text-20 font-medium tracking-[-0.01em]">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
         <Btn level="tertiary" onClick={onClose}>Close</Btn>
@@ -222,7 +224,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-4 content-start">
           <label className="grid gap-1 text-12.5 text-trs-muted">Subject
-            <input value={subject} onChange={e => setSubject(e.target.value)} disabled={!draft} className={inputCls} maxLength={150} />
+            <Input value={subject} onChange={e => setSubject(e.target.value)} disabled={!draft} maxLength={150} />
           </label>
           <label className="grid gap-1 text-12.5 text-trs-muted">Opening note (optional)
             <textarea value={intro} onChange={e => setIntro(e.target.value)} disabled={!draft} rows={4} className={textareaCls} maxLength={2000} placeholder="Two or three lines above the articles" />
@@ -230,12 +232,12 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
           <fieldset className="grid gap-1.5 m-0 p-0 border-0" disabled={!draft}>
             <legend className="text-12.5 mb-1.5 text-trs-muted">Articles, in order; the first leads ({ids.length} of up to 6)</legend>
             {articles.length === 0 && <p className="m-0 text-14 text-trs-muted">No published articles on this site.</p>}
-            <div className="grid gap-1 max-h-[300px] overflow-auto pr-1">
+            <div className="grid gap-1 max-h-72 overflow-auto pr-1">
               {articles.map(a => {
                 const pos = ids.indexOf(a.id)
                 return (
-                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-10 px-3 py-2 text-14 cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
-                    <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1" />
+                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded px-3 py-2 text-body cursor-pointer', pos >= 0 ? 'bg-trs-soft' : 'hover:bg-trs-tint')}>
+                    <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1 accent-trs-green" />
                     <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-12.5 text-trs-muted">Published {day(a.published_at)}</span></span>
                   </label>
                 )
@@ -253,7 +255,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
         </div>
         <div className="grid gap-1.5 content-start">
           <span className="text-12.5 text-trs-muted">Preview{dirty ? ' (save to refresh)' : ''}</span>
-          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-12 bg-white" style={{ border: `1px solid ${RULE}` }} />
+          <iframe title="Email preview" sandbox="" srcDoc={preview ?? PREVIEW_LOADING} className="w-full h-[640px] rounded bg-white border border-trs-line" />
         </div>
       </div>
     </section>
