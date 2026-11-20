@@ -21,6 +21,7 @@ import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
 import type { CalendarEvent } from '@/app/api/calendar/events/route'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
+import { useCalendarEmbedded } from '@/components/calendar/embed'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -68,6 +69,7 @@ const LEGEND: { dot: string; label: string }[] = [
 type View = 'month' | 'eb'
 
 export default function CalendarPage() {
+  const embedded = useCalendarEmbedded()
   const [view, setView] = useState<View>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'eb' ? 'eb' : 'month'))
   const [eb, setEb] = useState<EbRenewalRow[] | null>(null)
   const [ebError, setEbError] = useState<string | null>(null)
@@ -129,6 +131,7 @@ export default function CalendarPage() {
 
   function pickView(v: View) {
     setView(v)
+    if (embedded) return
     const u = new URL(window.location.href)
     if (v === 'eb') u.searchParams.set('view', 'eb'); else u.searchParams.delete('view')
     window.history.replaceState(null, '', u.toString())
@@ -163,8 +166,9 @@ export default function CalendarPage() {
 
   return (
     <div className="bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
+      <div className={embedded ? 'min-w-0 pb-10' : 'mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0'}>
         <PageHeader
+          embedded={embedded}
           title={view === 'eb' ? 'Calendar' : <>{MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span></>}
           meta={view === 'eb'
             ? (eb ? `${eb.length} Employment Benefits renewal${eb.length === 1 ? '' : 's'} · 30 days ago to 120 days out` : 'Loading…')

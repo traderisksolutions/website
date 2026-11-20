@@ -1,18 +1,25 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Menu, LogOut, Search } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { PLACES, ACCOUNT_LINKS, locate, pathMatches } from './nav-sections'
+import { PLACES, ACCOUNT_LINKS, HOME_LINKS, locate, pathMatches } from './nav-sections'
+import { Spotlight } from './Spotlight'
+
+/** Every page by name for ⌘K: Today and Calendar (the logo's), each place's tabs, the avatar's. */
+const JUMP_PAGES = [
+  ...HOME_LINKS,
+  ...PLACES.flatMap(p => p.tabs.map(t => ({ label: t.title === p.label ? p.label : `${p.label} · ${t.title}`, href: t.href }))),
+  ...ACCOUNT_LINKS.map(l => ({ label: l.title, href: l.href })),
+]
 
 /**
- * The top bar: the TRS 保风 wordmark, nine flat places (no drop-downs), ⌘K to jump to any page,
- * the avatar menu. Below 980px the places fold into a menu button. The current place's own pages
+ * The top bar: the TRS 保风 wordmark (opens Today), the flat places (no drop-downs), ⌘K to go to
+ * any page or find any email (Spotlight), the avatar menu. Below 980px the places fold into a menu button. The current place's own pages
  * show as a tab row under the bar (PlaceTabs, rendered by the shell).
  */
 export function TopNavbar() {
@@ -85,7 +92,7 @@ export function TopNavbar() {
           </SheetContent>
         </Sheet>
 
-        <Link href="/today" className="flex items-baseline gap-2 flex-shrink-0 no-underline hover:opacity-80 transition-opacity mr-3" aria-label="Trade Risk Solutions home">
+        <Link href="/today" className="flex items-baseline gap-2 flex-shrink-0 no-underline hover:opacity-80 transition-opacity mr-3" aria-label="Today" title="Today">
           <span className="trs-mark-t">TRS</span><span className="trs-mark-c" lang="zh-Hans">保风</span>
         </Link>
 
@@ -98,7 +105,7 @@ export function TopNavbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0 pl-2">
-          <button type="button" onClick={() => setJumpOpen(true)} aria-label="Go to a page"
+          <button type="button" onClick={() => setJumpOpen(true)} aria-label="Go to a page or find an email"
             className="inline-flex items-center gap-2 h-[30px] px-2.5 rounded-[7px] border border-trs-line-2 bg-white cursor-pointer text-[13px] text-trs-muted hover:border-trs-ink-2">
             <Search className="h-3.5 w-3.5" />
             <span className="hidden min-[1180px]:inline">Go to</span>
@@ -107,7 +114,7 @@ export function TopNavbar() {
           <AccountMenu email={userEmail} pathname={pathname} onSignOut={signOut} />
         </div>
       </div>
-      <JumpDialog open={jumpOpen} onOpenChange={setJumpOpen} />
+      <Spotlight open={jumpOpen} onOpenChange={setJumpOpen} pages={JUMP_PAGES} />
     </header>
   )
 }
@@ -147,40 +154,6 @@ export function PlaceTabs() {
         <Link key={t.href} href={t.href} aria-current={tab?.href === t.href ? 'page' : undefined} className="trs-subtab">{t.title}</Link>
       ))}
     </nav>
-  )
-}
-
-/** ⌘K: every page by name, filtered as you type, Enter opens the first. */
-function JumpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
-  const router = useRouter()
-  const [q, setQ] = useState('')
-  const inputRef = useRef<HTMLInputElement>(null)
-  useEffect(() => { if (open) { setQ(''); setTimeout(() => inputRef.current?.focus(), 0) } }, [open])
-  const all = useMemo(() => [
-    ...PLACES.flatMap(p => p.tabs.map(t => ({ label: t.title === p.label ? p.label : `${p.label} · ${t.title}`, href: t.href }))),
-    ...ACCOUNT_LINKS.map(l => ({ label: l.title, href: l.href })),
-  ], [])
-  const hits = all.filter(h => h.label.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 12)
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-[520px] top-[18%] translate-y-0">
-        <DialogTitle className="sr-only">Go to a page</DialogTitle>
-        <div className="flex items-center gap-2 px-3 h-11 border-b border-trs-line">
-          <Search className="h-4 w-4 text-trs-muted" />
-          <input ref={inputRef} value={q} onChange={e => setQ(e.target.value)} placeholder="Page name"
-            onKeyDown={e => { if (e.key === 'Enter' && hits[0]) { router.push(hits[0].href); onOpenChange(false) } }}
-            className="flex-1 h-9 border-0 outline-none bg-transparent text-[14px] text-trs-ink placeholder:text-trs-subtle" />
-        </div>
-        <ul className="m-0 p-1.5 list-none max-h-[360px] overflow-y-auto">
-          {hits.map(h => (
-            <li key={h.href}>
-              <Link href={h.href} onClick={() => onOpenChange(false)} className="flex items-center h-9 px-2.5 rounded-[8px] text-[13.5px] no-underline text-trs-ink hover:bg-trs-canvas">{h.label}</Link>
-            </li>
-          ))}
-          {hits.length === 0 && <li className="px-2.5 py-3 text-[13px] text-trs-muted">No page by that name</li>}
-        </ul>
-      </DialogContent>
-    </Dialog>
   )
 }
 

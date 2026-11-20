@@ -14,6 +14,7 @@ import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
 import { participantsLine, type DeskSide, type Participant } from '@/lib/today/desk'
 import type { Suggestion } from '@/lib/today/learn-server'
+import type { SearchAnswer } from '@/lib/search/query'
 
 type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[] }
 type Pick = { side: DeskSide; client: CompanyPick }
@@ -23,6 +24,18 @@ const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
 const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13.5px] text-trs-ink'
+
+/** Threads from the search index, shaped as the list reads them; null when the index is not there. */
+async function searchIndex(q: string, signal: AbortSignal): Promise<Conv[] | null> {
+  const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&open=1&limit=200`, { cache: 'no-store', signal })
+  const j = await r.json().catch(() => null) as SearchAnswer | { index: false } | null
+  if (!r.ok || !j || !j.index) return null
+  return j.threads.map(t => ({
+    thread_id: t.threadId, subject: t.subject, display_subject: t.subject, snippet: null, match: t.via === 'text' ? 'Words in the email text' : t.via === 'file' ? 'A file name' : null,
+    first_name: t.people[0]?.name ?? null, last_name: null, email: t.people[0]?.email ?? null, companyId: t.companyId, companyName: t.companyName, companyKind: t.companyKind,
+    clientCompanyId: null, created_at: t.lastAt ?? '', last_message_at: t.lastAt, participants: t.people,
+  }))
+}
 
 export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; onClose: () => void; onAdded: (n: number) => void }) {
   const [convs, setConvs] = useState<Conv[] | null>(null)
@@ -62,8 +75,11 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const ctl = new AbortController()
     const timer = setTimeout(() => {
       setSearching(true)
-      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
-        .then(r => r.json()).then(j => { setFound(Array.isArray(j) ? j : []); setSearching(false) }).catch(() => {})
+      // The email search index (docs/search.md) first, the same search as ⌘K; threads in a
+      // colleague's private inbox are left out here. Before the index exists: the old search.
+      void searchIndex(t, ctl.signal).then(async hits => hits ?? await fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
+        .then(r => r.json()).then(j => (Array.isArray(j) ? j as Conv[] : [])))
+        .then(list => { setFound(list); setSearching(false) }).catch(() => {})
     }, 350)
     return () => { clearTimeout(timer); ctl.abort() }
   }, [q])

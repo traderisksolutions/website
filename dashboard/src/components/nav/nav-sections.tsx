@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  ListChecks, Building2, Inbox, Table2, LayoutGrid, Megaphone,
+  Building2, Inbox, Table2, LayoutGrid, Megaphone,
   Settings, AlertTriangle, Cpu, HeartPulse } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
@@ -22,17 +22,14 @@ export type Place = {
 }
 
 /**
- * The top bar (1 Nov 2026 revamp): nine flat places, no drop-downs. Every page that the old
+ * The top bar (1 Nov 2026 revamp): flat places, no drop-downs. Every page that the old
  * menus reached is a tab of one place, or sits under the avatar (ACCOUNT_LINKS). A path belongs
  * to the place holding the longest tab href that prefixes it, so /companies/portfolio/desk is Admin desk and
- * /companies/<id> is Clients. Today (2 Nov 2026) took Work's slot; the queue is its second tab.
+ * /companies/<id> is Clients. /today and /calendar belong to no place: the logo opens Today.
  */
 export const PLACES: Place[] = [
-  { label: 'Today', href: '/today', icon: ListChecks, tabs: [
-    { title: 'Today', href: '/today' },
-    // Jarod, 19 Nov 2026: Today and Calendar only. The other pages stay at their addresses.
-    { title: 'Calendar', href: '/calendar' },
-  ] },
+  // Jarod, 20 Nov 2026: Today is not a place on the bar. The TRS logo opens it; Calendar is a view
+  // on Today (/today?calendar=1) and keeps /calendar. Both are in HOME_LINKS for ⌘K.
   { label: 'Clients', href: '/companies', icon: Building2, tabs: [
     { title: 'Companies', href: '/companies' },
     { title: 'People', href: '/contacts' },
@@ -72,6 +69,12 @@ export const PLACES: Place[] = [
   // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its
   // articles, enquiries, newsletter and Search Console, which keep their ?site= pages.
   { label: 'Marketing', href: WEBSITES[0].href, icon: Megaphone, tabs: WEBSITES },
+]
+
+/** Today and its Calendar: opened by the logo, not a place on the bar; listed for ⌘K. */
+export const HOME_LINKS: { label: string; href: string }[] = [
+  { label: 'Today', href: '/today' },
+  { label: 'Calendar', href: '/today?calendar=1' },
 ]
 
 /** Under the avatar: settings and the admin views checked rarely. */

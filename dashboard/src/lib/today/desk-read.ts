@@ -17,6 +17,8 @@ import { routesOnFile, shapePlan, writeStepDraft, type ReadPlan, type ReadStep, 
 import { readKey, rowKey } from './desk'
 import { rewriteDraft } from './ask'
 import { rowThreads } from './desk-server'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { checkFacts, condenseKey, threadState, type Condensed } from './condense'
 
 type Row = Record<string, any>
 
@@ -25,6 +27,15 @@ const trim = (s: string | null | undefined, n: number) => String(s ?? '').replac
 const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()
 const bareName = (a: string | null | undefined) => (String(a ?? '').includes('<') ? String(a).split('<')[0].replace(/"/g, '').trim() : '') || null
 const domainOf = (a: string) => a.split('@')[1] ?? ''
+
+/** The labelled facts both the Read and Condense return (condense.ts checks every date and figure). */
+const FACTS_SPEC = `{
+    "client_asked": [{ "date": "YYYY-MM-DD the client asked", "what": "what they asked for, under 15 words" }],
+    "trs_promised": [{ "date": "YYYY-MM-DD TRS promised it, or null", "what": "what TRS said it would do, under 15 words" }],
+    "owed": [{ "party": "client, or the insurer by name, or TRS", "what": "what that party still owes, under 15 words", "since": "YYYY-MM-DD it was asked for, or null" }],
+    "next": [{ "what": "the next step, under 12 words", "by": "YYYY-MM-DD it is due, or null" }]
+  }`
+const FACTS_RULES = `Facts: no sentences of explanation, only the short phrase. Every date as YYYY-MM-DD and only a date written in the threads or records; every figure exactly as written there. Nothing guessed: leave a list empty rather than guess. At most four per list, newest first.`
 
 const SYSTEM = `You are the chief of staff of a Singapore insurance broker (Trade Risk Solutions, "TRS"). A broker put this client on their list for today. You read every email thread on the list for this client, with the client and with insurers, and the client's other recent threads, policies and open placements. Then you summarise where things stand, the way a good assistant would before the broker replies, and set out the next emails.
 
@@ -39,7 +50,8 @@ Return ONLY JSON:
     "product_line": string | null,
     "title": "imperative, under 12 words",
     "detail": "what the email must achieve or what the action is, one or two sentences, with the facts from the threads it must carry"
-  }]
+  }],
+  "facts": ${FACTS_SPEC}
 }
 
 Rules:
@@ -51,13 +63,22 @@ Rules:
 - "action" is work for TRS that is not an email.
 - Nothing already done. Nothing the other side still owes before TRS can move: say so in the points instead. At most six steps, most pressing first.
 - No step for a thank-you or an acknowledgement alone.
+- ${FACTS_RULES}
 - PENDING DRAFTS are emails written but not sent. Never propose a second email to a person who already has one: make it an "action" step "Update the pending email to <name>" that says what to add or change, or "Discard the pending email to <name>" when it is out of date.`
 
-type Ctx = { text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pending: PendingDraft[]; threadDomains: Set<string> }
+type Ctx = { state: string; text: string; client: ReadTo | null; clientThread: string | null; insurerThreads: { id: string; domains: Set<string> }[]; anchor: string; subjectOf: Map<string, string>; pending: PendingDraft[]; threadDomains: Set<string> }
 
-async function context(owner: string, companyId: string | null, threadIds: readonly string[]): Promise<Ctx> {
-  const listed = await rowThreads(owner, companyId, threadIds)
-  if (!listed.length) throw new Error('This client has no threads on your list.')
+/**
+ * Everything the model reads for a row: only threads the actor may open (the ring-fence: the
+ * server never hands a colleague's private mail to a model for someone else). `only` narrows the
+ * row to some threads (one project).
+ */
+async function context(owner: string, companyId: string | null, threadIds: readonly string[], actor: string | null, only?: ReadonlySet<string>): Promise<Ctx> {
+  const onList = (await rowThreads(owner, companyId, threadIds)).filter(r => !only || only.has(r.thread_id))
+  if (!onList.length) throw new Error('This client has no threads on your list.')
+  const open = await visibleThreadIds(onList.map(r => r.thread_id as string), actor)
+  const listed = onList.filter(r => open.has(r.thread_id))
+  if (!listed.length) throw new Error('These threads live in a colleague’s inbox. Ask them to read it.')
   const ids = listed.map(r => r.thread_id as string)
   const sideOf = new Map(listed.map(r => [r.thread_id as string, r.side as string]))
   const [threads, msgs, atts] = await Promise.all([
@@ -135,7 +156,8 @@ async function context(owner: string, companyId: string | null, threadIds: reado
     others.length ? `THE CLIENT'S OTHER RECENT THREADS (latest message only):\n${others.map(o => `- ${o.subject ?? ''} · ${String(o.last?.sent_at ?? o.last_message_at ?? '').slice(0, 10)} · ${o.last?.from_address ?? ''}: ${trim(ownWords(o.last?.body_text), 400)}`).join('\n')}` : '',
   ].filter(Boolean).join('\n\n')
   const pendingList: PendingDraft[] = pending.map(p => { const email = bare(String(p.to_email ?? '').split(/[,;]\s*/)[0]); return { id: p.id as string, email, name: nameBy.get(email) ?? null } }).filter(p => p.email)
-  return { text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pending: pendingList, threadDomains }
+  const state = threadState(threads.map(t => ({ threadId: t.id as string, lastAt: (t.last_message_at as string | null) ?? null })))
+  return { state, text, client, clientThread, insurerThreads, anchor: clientThread ?? ids[0], subjectOf, pending: pendingList, threadDomains }
 }
 
 const keyOf = (owner: string, companyId: string | null, threadIds: readonly string[]) => readKey(rowKey(owner, companyId, threadIds[0] ?? ''))
@@ -194,10 +216,10 @@ export function markSource(steps: ReadStep[], threadDomains: ReadonlySet<string>
 
 /** One model read of the row. The points ride in the plan's situation, one per line. */
 export async function readRow(owner: string, companyId: string | null, threadIds: readonly string[], actor: string): Promise<ReadPlan> {
-  const ctx = await context(owner, companyId, threadIds)
+  const ctx = await context(owner, companyId, threadIds, actor)
   const r = await callGemini({ agent: 'crm', feature: 'today_read', model: GEMINI_DEEP, system: SYSTEM, parts: [{ text: ctx.text }], json: true, maxOutputTokens: 6_000, thinkingShare: 0.3, temperature: 0.2, metadata: { company_id: companyId, by: actor, threads: threadIds.length } })
   if (!r.text) throw new Error(r.error ?? 'The model returned nothing.')
-  const raw = parseJsonLoose<{ summary?: string; points?: unknown; steps?: unknown[] }>(r.text)
+  const raw = parseJsonLoose<{ summary?: string; points?: unknown; steps?: unknown[]; facts?: unknown }>(r.text)
   if (!raw) {
     void logError({ source: 'gemini', feature: 'today_read', message: `Unreadable output (${r.text.length} chars): ${r.text.slice(0, 400)} … ${r.text.slice(-300)}` })
     throw new Error('The model’s answer was not readable. Press Read again.')
@@ -205,7 +227,50 @@ export async function readRow(owner: string, companyId: string | null, threadIds
   const plan = shapePlan({ summary: raw.summary, situation: normalisePoints(raw.points).join('\n'), steps: (raw.steps ?? []) as never }, await routesOnFile(), ctx.client, actor, GEMINI_DEEP)
   plan.steps = markSource(linkPending(oneEmailPerPerson(plan.steps, ctx.pending), ctx.pending), ctx.threadDomains).slice(0, 6)
   await save(keyOf(owner, companyId, threadIds), plan)
+  // The Read's facts are the client's condensed state too (checked like Condense's).
+  if (raw.facts) await saveCondensed(rowKey(owner, companyId, threadIds[0] ?? ''), null, { at: plan.at, by: actor, state: ctx.state, project: null, facts: checkFacts(raw.facts, ctx.text) }).catch(() => {})
   return plan
+}
+
+// ── Condense (20 Nov 2026) ───────────────────────────────────────────────────────────────────────
+
+const CONDENSE_SYSTEM = `You are the chief of staff of a Singapore insurance broker (Trade Risk Solutions, "TRS"). Read every email thread given for this client and set out where things stand as facts, never prose.
+
+Return ONLY JSON:
+${FACTS_SPEC}
+
+Rules:
+- ${FACTS_RULES}
+- Facts only from the threads, files and records given. Never invent a premium, date, name or count.`
+
+async function saveCondensed(rowK: string, project: string | null, c: Condensed): Promise<void> {
+  await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify({ key: condenseKey(rowK, project), value: JSON.stringify(c), updated_at: new Date().toISOString() }) })
+}
+
+/** A condensed result kept for a row (and project), or null. */
+export async function loadCondensed(rowK: string, project: string | null): Promise<Condensed | null> {
+  const [r] = await sbTry<Row[]>(`app_settings?key=eq.${enc(condenseKey(rowK, project))}&select=value&limit=1`, [])
+  if (!r?.value) return null
+  try { return JSON.parse(r.value) as Condensed } catch { return null }
+}
+
+/**
+ * Condense a client, or one project of it (`threadIds` = the project's threads), into labelled
+ * facts. One model call on a person's button; when the threads have not changed since the last
+ * one, the kept result comes back and no model is called.
+ */
+export async function condenseRow(owner: string, companyId: string | null, rowThreadIds: readonly string[], project: string | null, threadIds: readonly string[], actor: string): Promise<Condensed> {
+  const rowK = rowKey(owner, companyId, rowThreadIds[0] ?? '')
+  const ctx = await context(owner, companyId, rowThreadIds, actor, project ? new Set(threadIds) : undefined)
+  const kept = await loadCondensed(rowK, project)
+  if (kept && kept.state === ctx.state) return kept
+  const r = await callGemini({ agent: 'crm', feature: 'today_condense', model: GEMINI_DEEP, system: CONDENSE_SYSTEM, parts: [{ text: ctx.text }], json: true, maxOutputTokens: 3_000, thinkingShare: 0.3, temperature: 0.1, metadata: { company_id: companyId, by: actor, project, threads: threadIds.length } })
+  if (!r.text) throw new Error(r.error ?? 'The model returned nothing.')
+  const raw = parseJsonLoose<unknown>(r.text)
+  if (!raw) throw new Error('The model’s answer was not readable. Press Condense again.')
+  const out: Condensed = { at: new Date().toISOString(), by: actor, state: ctx.state, project, facts: checkFacts(raw, ctx.text) }
+  await saveCondensed(rowK, project, out)
+  return out
 }
 
 /** Writes each ticked email as a pending draft on the row: client replies on the client thread, insurer emails on that insurer's thread when there is one. */
@@ -213,7 +278,7 @@ export async function draftRow(owner: string, companyId: string | null, threadId
   const key = keyOf(owner, companyId, threadIds)
   const plan = await load(key)
   if (!plan) throw new Error('Read this client first.')
-  const ctx = await context(owner, companyId, threadIds)
+  const ctx = await context(owner, companyId, threadIds, actor)
   const picked = new Set(stepIds)
   for (const step of plan.steps) {
     if (!picked.has(step.id) || step.status !== 'proposed') continue

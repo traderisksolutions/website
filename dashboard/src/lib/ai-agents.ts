@@ -143,6 +143,7 @@ export const FEATURE_AGENT: Record<string, AgentId> = {
   thread_read_draft:        'crm',
   today_read:               'crm',
   today_read_draft:         'crm',
+  today_condense:           'crm',
   crm_chat:                 'crm',
   company_retrieval_query:  'crm',
   company_retrieval_embed:  'crm',

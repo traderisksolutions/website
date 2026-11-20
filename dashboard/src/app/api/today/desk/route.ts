@@ -8,6 +8,7 @@
  *   POST /api/today/desk { action: 'draft', owner, companyId, threadIds, stepIds }  → drafts the ticked emails
  *   POST /api/today/desk { action: 'step', owner, companyId, threadIds, stepId, act: 'discard'|'update'|'done' } → one Read action
  *   POST /api/today/desk { action: 'dismiss', threadId }  → a suggestion the person does not want (learning loop)
+ *   POST /api/today/desk { action: 'condense', owner, companyId, threadIds, project, projectThreadIds } → labelled facts (one model read; the kept result when the threads have not changed)
  * Read and Draft run only from a person's button (src/lib/ai-gate.ts). Nothing sends here.
  */
 import { NextRequest, NextResponse } from 'next/server'
@@ -15,7 +16,7 @@ import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { addItemsFrom, projectFrom } from '@/lib/today/desk'
 import { addThreads, loadDesk, removeThreads, setProject } from '@/lib/today/desk-server'
-import { actOnStep, draftRow, readRow } from '@/lib/today/desk-read'
+import { actOnStep, condenseRow, draftRow, readRow } from '@/lib/today/desk-read'
 import { dismissSuggestion } from '@/lib/today/learn-server'
 
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,12 @@ export async function POST(req: NextRequest) {
       if ('error' in parsed) return err(parsed.error)
       await setProject(owner, threadIds, parsed.project, parsed.note)
       return NextResponse.json({ ok: true })
+    }
+    if (b?.action === 'condense') {
+      const project = typeof b.project === 'string' && b.project.trim() ? b.project.trim().slice(0, 80) : null
+      const scoped = Array.isArray(b.projectThreadIds) ? (b.projectThreadIds as unknown[]).map(String).filter(id => UUID.test(id) && threadIds.includes(id)) : []
+      if (project && !scoped.length) return err('No threads in this project.')
+      return NextResponse.json({ condensed: await condenseRow(owner, companyId, threadIds, project, project ? scoped : threadIds, me) })
     }
     if (b?.action === 'read') return NextResponse.json({ read: await readRow(owner, companyId, threadIds, me) })
     if (b?.action === 'draft') {
