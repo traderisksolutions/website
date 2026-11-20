@@ -141,7 +141,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                         <RegisterCell title="Renewal figures: loss ratio and projection">
                           {renewsIn(p, today)
                             ? <Link href={`/policies/${p.id}?tab=renewal`} onClick={e => e.stopPropagation()} className="text-trs-ink no-underline hover:underline tabular-nums">{renewsIn(p, today)}</Link>
-                            : <span style={{ color: MUTED }}>—</span>}
+                            : <span className="text-trs-muted">—</span>}
                         </RegisterCell>
                         <RegisterCell primary={lifecycleWord(p.lifecycle)} />
                         <RegisterCell primary={docStatus?.[p.id] ? statusWord(docStatus[p.id]) : '—'}

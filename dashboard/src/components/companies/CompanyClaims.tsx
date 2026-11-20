@@ -31,7 +31,7 @@ export function CompanyClaims({ companyId, onCount }: { companyId: string; onCou
     return () => { live = false }
   }, [companyId, onCount])
 
-  if (error) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">Claims did not load: {error}</p>
+  if (error) return <p className="m-0 text-trs-neg" role="alert">Claims did not load: {error}</p>
   if (!rows) return <Spinner label="Loading claims…" />
   if (rows.length === 0) return <Empty action={<LinkBtn href={`/claims?company=${companyId}`}>Open the claims register</LinkBtn>}>No claims on file for this company.</Empty>
 

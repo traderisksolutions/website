@@ -54,6 +54,8 @@ export type PortfolioRow = {
 export type Portfolio = {
   window: '12m' | 'all'; from: string | null; to: string
   rows: PortfolioRow[]
+  /** Threads with no company since the emails start: their mail is in no business's counts. Set by the loader. */
+  unfiled?: UnfiledMail | null
   summary: {
     businesses: number; commission: number; topCount: number; topShare: number
     topSentShare: number | null; topRequestShare: number | null
@@ -145,4 +147,13 @@ export function buildPortfolio(i: PortfolioInput): Portfolio {
       emailsFrom: emailsFrom?.slice(0, 10) ?? null, requestsFrom: requestsFrom?.slice(0, 10) ?? null,
     },
   }
+}
+
+/** Unfiled threads against all threads over a window: how far the email and request counts run low. */
+export type UnfiledMail = { unfiled: number; total: number; from: string | null }
+
+/** "832 of 2,853 threads since 20 Nov 2025 unfiled (29%)" for a page's facts line; null when nothing to say. Pure. */
+export function unfiledLine(u: UnfiledMail | null | undefined, fmtDay: (iso: string) => string): string | null {
+  if (!u || !u.total || !u.unfiled) return null
+  return `${u.unfiled.toLocaleString('en-SG')} of ${u.total.toLocaleString('en-SG')} threads${u.from ? ` since ${fmtDay(u.from)}` : ''} unfiled (${Math.round(u.unfiled / u.total * 100)}%)`
 }
