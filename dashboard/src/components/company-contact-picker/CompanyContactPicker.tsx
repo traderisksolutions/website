@@ -9,6 +9,7 @@ import { Btn } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 import { unwrap } from '@/lib/action-result'
 import { addCompanyContact } from '@/app/companies/[id]/actions'
+import { companyDetail, createCompany as createCompanyAction, searchCompanies } from '@/app/companies/actions'
 
 /**
  * The company + recipient picker used by "Generate Debit Note", the PDF bulk-import review queue
@@ -67,8 +68,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     const q = query.trim()
     const t = setTimeout(() => {
       setSearching(true)
-      fetch(`/api/companies?search=${encodeURIComponent(q)}`, { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : [])
+      searchCompanies(q)
+        .then(r => r.ok ? r.data : [])
         .then((rows: CompanySuggestion[]) => setSuggestions(Array.isArray(rows) ? rows : []))
         .catch(() => setSuggestions([]))
         .finally(() => setSearching(false))
@@ -89,8 +90,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
   useEffect(() => {
     if (!value?.companyId || hideContact) { setContacts([]); return }
     setLoadingContacts(true)
-    fetch(`/api/companies/${value.companyId}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
+    companyDetail(value.companyId)
+      .then(r => r.ok ? r.data : null)
       .then(d => setContacts(d?.contacts?.map((cc: { contacts: CompanyContact }) => cc.contacts).filter(Boolean) ?? []))
       .catch(() => setContacts([]))
       .finally(() => setLoadingContacts(false))
@@ -106,9 +107,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     if (!name) return
     setCreating(true); setError(null); setNotice(null)
     try {
-      const res = await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not create company')
+      const data = unwrap(await createCompanyAction({ name }))
       setOpen(false); setQuery('')
       if (data.matchedExisting) setNotice(`Matched an existing company: "${data.name}". Not a duplicate.`)
       onChange({ companyId: data.id, companyName: data.name, contactId: null, contactEmail: null, contactName: null })

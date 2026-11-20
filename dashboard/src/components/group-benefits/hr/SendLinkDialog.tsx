@@ -14,7 +14,7 @@ import { CompanyField, type CompanyPick } from '../CompanyField'
 export type { CompanyPick }
 
 /**
- * Send HR a link. Company by typeahead on /api/companies?search=, the recipient, an optional copy,
+ * Send HR a link. Company by typeahead (searchCompanies), the recipient, an optional copy,
  * who asked for the quote, the policy start, and the three opening paragraphs, editable. The rest of
  * the email is fixed server-side. Preview shows the paragraphs as the email will carry them.
  */

@@ -63,14 +63,6 @@
   "sb": 2,
   "fetch": 0
  },
- "src/app/api/companies/[id]/route.ts": {
-  "sb": 4,
-  "fetch": 0
- },
- "src/app/api/companies/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/companies/threads/search/route.ts": {
   "sb": 1,
   "fetch": 0
@@ -753,6 +745,10 @@
  },
  "src/lib/crm/client-link.ts": {
   "sb": 8,
+  "fetch": 0
+ },
+ "src/lib/crm/company-record.ts": {
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/crm/contact-for-email.ts": {

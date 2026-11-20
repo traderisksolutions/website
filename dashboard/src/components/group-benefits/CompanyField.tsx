@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Company by typing: a match on /api/companies?search= sets the id; free text keeps the name with no
- * id; "Add as a new company" creates the record (POST /api/companies) so quotes, threads and the
+ * Company by typing: a match on searchCompanies sets the id; free text keeps the name with no
+ * id; "Add as a new company" creates the record (createCompany) so quotes, threads and the
  * company page meet on one name. Used by Send HR a link and Quick quote.
  */
 import { useEffect, useRef, useState } from 'react'
@@ -10,6 +10,7 @@ import { Plus, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Field } from '@/components/crm/primitives'
 import { Input } from '@/components/ui/input'
+import { createCompany, searchCompanies } from '@/app/companies/actions'
 
 export type CompanyPick = { id: string | null; name: string }
 type CompanyHit = { id: string; name: string; domain?: string | null }
@@ -36,8 +37,8 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
     if (!term) { setHits([]); return }
     timer.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/companies?search=${encodeURIComponent(term)}`, { cache: 'no-store' })
-        const rows = res.ok ? await res.json() as CompanyHit[] : []
+        const r = await searchCompanies(term)
+        const rows: CompanyHit[] = r.ok ? r.data : []
         setHits(Array.isArray(rows) ? rows.slice(0, 8) : [])
         setActive(0)
       } catch { setHits([]) }
@@ -51,10 +52,9 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
   async function create() {
     setCreating(true); setError(null)
     try {
-      const res = await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: value.name.trim() }) })
-      const d = await res.json().catch(() => ({})) as { id?: string; name?: string; error?: string }
-      if (!res.ok || !d.id) { setError(d.error ?? `Company not added (${res.status})`); return }
-      onChange({ id: d.id, name: d.name ?? value.name.trim() }); setOpen(false); setHits([])
+      const r = await createCompany({ name: value.name.trim() })
+      if (!r.ok) { setError(r.error); return }
+      onChange({ id: r.data.id, name: r.data.name }); setOpen(false); setHits([])
     } finally { setCreating(false) }
   }
 

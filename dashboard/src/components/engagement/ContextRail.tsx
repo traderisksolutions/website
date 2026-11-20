@@ -22,6 +22,7 @@ import { AiRow, Group, InfoRow, PlainLink, PropRow, SectionLabel, listValue } fr
 import type { Lead, RealMsg, StoredSummary, RagSource } from './types'
 import { fullName, timeAgo } from './helpers'
 import { companyThreads } from '@/app/companies/[id]/actions'
+import { companyDetail } from '@/app/companies/actions'
 
 /**
  * The context rail beside a thread, in three groups (11 Nov 2026):
@@ -90,7 +91,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   useEffect(() => {
     setDetail(null); setRelated(null)
     if (!companyId) return
-    fetch(`/api/companies/${companyId}`, { cache: 'no-store' }).then(r => r.json()).then(setDetail).catch(() => {})
+    companyDetail(companyId).then(r => { if (r.ok) setDetail(r.data) }).catch(() => {})
     companyThreads(companyId).then(r => setRelated(r.ok ? r.data.threads : [])).catch(() => setRelated([]))
   }, [companyId])
 

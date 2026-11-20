@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls, textareaCls } from './primitives'
 import { STAGES, STAGE_LABEL, STAGE_HELP, type Stage, type Company } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { createCompany, updateCompany } from '@/app/companies/actions'
 
 /** Create a client company by hand. Everything except the name is optional. */
 export function NewCompanyDialog({ open, onClose, onCreated, defaultName, defaultDomain, defaultStage = 'client' }: {
@@ -26,9 +28,7 @@ export function NewCompanyDialog({ open, onClose, onCreated, defaultName, defaul
     if (!name.trim()) return
     setSaving(true); setError(null)
     try {
-      const res = await fetch('/api/companies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), domain: domain.trim() || null, stage, industry: industry.trim() || null }) })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not create the company.')
+      const d = unwrap(await createCompany({ name: name.trim(), domain: domain.trim() || null, stage, industry: industry.trim() || null }))
       onClose()
       if (onCreated) onCreated(d.id); else router.push(`/companies/${d.id}`)
     } catch (err) { setError(err instanceof Error ? err.message : String(err)) }
@@ -86,12 +86,7 @@ export function EditCompanyDialog({ open, onClose, company, onSaved }: { open: b
     e.preventDefault()
     setSaving(true); setError(null)
     try {
-      const res = await fetch(`/api/companies/${company.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, domains: domains.split(/[,\s]+/).map(s => s.trim()).filter(Boolean), ...(owner.trim() !== (company.owner_email ?? '') ? { owner_email: owner.trim() || null } : {}), industry, address, notes }),
-      })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not save.')
+      const d = unwrap(await updateCompany(company.id, { name, domains: domains.split(/[,\s]+/).map(s => s.trim()).filter(Boolean), ...(owner.trim() !== (company.owner_email ?? '') ? { owner_email: owner.trim() || null } : {}), industry, address, notes }))
       onSaved(d.company)
       onClose()
     } catch (err) { setError(err instanceof Error ? err.message : String(err)) }

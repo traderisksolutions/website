@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import type { PickerValue } from './CompanyContactPicker'
+import { searchCompanies } from '@/app/companies/actions'
 
 /**
  * A debit note names its client; the form should not make a person type that name again.
@@ -16,8 +17,8 @@ export function useAutoMatchCompany(clientName: string | null | undefined, curre
     if (!name || current || tried.current === name) return
     tried.current = name
     let cancelled = false
-    fetch(`/api/companies?search=${encodeURIComponent(name)}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
+    searchCompanies(name)
+      .then(r => r.ok ? r.data : [])
       .then((rows: unknown) => {
         if (cancelled) return
         const list = (Array.isArray(rows) ? rows : (rows as { companies?: unknown[] })?.companies ?? []) as { id: string; name?: string; company_name?: string }[]

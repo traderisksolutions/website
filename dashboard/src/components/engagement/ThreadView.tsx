@@ -21,6 +21,8 @@ import { ThreadAgentBar, ThreadAgentButtons, ThreadAgentResults, hasAgentResults
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { plainToHtml } from '@/components/RichEditor'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
+import { addBoardTask, removeBoardTask } from '@/app/companies/actions'
+import { unwrap } from '@/lib/action-result'
 
 /**
  * The message workspace. Header (subject, who, state), the thread in order with the newest
@@ -312,7 +314,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   // ── Task from email ──────────────────────────────────────────────────────────────────────
   const [taskOpen, setTaskOpen] = useState(false)
   const [taskDone, setTaskDone] = useState<{ id: string; text: string } | null>(null)
-  async function undoTask() { if (!taskDone) return; await fetch(`/api/board/tasks/${taskDone.id}`, { method: 'DELETE' }).catch(() => {}); setTaskDone(null); setTaskRefresh(n => n + 1) }
+  async function undoTask() { if (!taskDone) return; await removeBoardTask(taskDone.id).catch(() => {}); setTaskDone(null); setTaskRefresh(n => n + 1) }
 
   // A sender who appears only once in this thread and is not the contact on file.
   const senderCounts = useMemo(() => { const m = new Map<string, number>(); for (const x of messages) if (x.direction === 'inbound') { const e = parseAddress(x.from_address).email; if (e) m.set(e, (m.get(e) ?? 0) + 1) } return m }, [messages])
@@ -474,11 +476,9 @@ function TaskFromEmail({ lead, team, subject, onClose, onCreated }: { lead: Lead
     if (!title.trim()) { setErr('Give the to-do a title.'); return }
     setBusy(true); setErr(null)
     try {
-      const r = await fetch('/api/board/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyId: lead.companyId, title: title.trim(), note: note || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }) })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error ?? 'Could not save')
+      const task = unwrap(await addBoardTask({ companyId: lead.companyId, title: title.trim(), note: note || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }))
       const whoName = team.staff.find(s => s.email === who)?.name ?? null
-      onCreated(d.task.id, ['To-do created', due ? `Due ${new Date(due).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : null, whoName ? `Assigned to ${whoName}` : null].filter(Boolean).join(' · '))
+      onCreated(task.id, ['To-do created', due ? `Due ${new Date(due).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : null, whoName ? `Assigned to ${whoName}` : null].filter(Boolean).join(' · '))
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save') } finally { setBusy(false) }
   }
   return (

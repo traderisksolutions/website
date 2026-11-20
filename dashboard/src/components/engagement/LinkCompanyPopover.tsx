@@ -7,6 +7,7 @@ import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { useConfirm } from '@/components/ui/confirm'
 import { Btn, InlineSpinner, inputCls } from '@/components/crm/primitives'
 import { decideDomainThreads } from '@/app/companies/triage/actions'
+import { createCompany, searchCompanies } from '@/app/companies/actions'
 
 type CompanySuggestion = { id: string; name: string; domain: string | null }
 type Pick = { id: string | null; name: string }
@@ -48,8 +49,8 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
     if (!open) return
     setSearching(true)
     const t = setTimeout(() => {
-      fetch(`/api/companies?search=${encodeURIComponent(query.trim())}`, { cache: 'no-store' })
-        .then(r => r.ok ? r.json() : [])
+      searchCompanies(query.trim())
+        .then(r => r.ok ? r.data : [])
         .then((rows: CompanySuggestion[]) => setResults(Array.isArray(rows) ? rows : []))
         .catch(() => setResults([]))
         .finally(() => setSearching(false))
@@ -83,13 +84,9 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
       let target = pick
       if (!target.id) {
         setBusy('Adding…')
-        const res = await fetch('/api/companies', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: target.name, domain: domain?.domain ?? null }),
-        })
-        const d = await res.json().catch(() => ({})) as { id?: string; name?: string; error?: string }
-        if (!res.ok || !d.id) throw new Error(d.error ? `Not added: ${d.error}` : `Not added (${res.status}).`)
-        target = { id: d.id, name: d.name ?? target.name }
+        const r = await createCompany({ name: target.name, domain: domain?.domain ?? null })
+        if (!r.ok) throw new Error(`Not added: ${r.error}`)
+        target = { id: r.data.id, name: r.data.name }
       }
       setBusy('Linking…')
       const r = await onLinkCompany?.(threadId, target.id, target.name)

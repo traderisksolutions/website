@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { dialogCls } from '@/components/placement/shared'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
+import { unwrap } from '@/lib/action-result'
+import { addBoardTask, updateCompany } from '@/app/companies/actions'
 
 /** Strip the money segment: the header names the relationship, the Finance tab carries the figures. */
 function withoutMoney(line: string): string {
@@ -52,9 +54,8 @@ export function CompanyHeader({ company, statusLine, facts, team, onCompany, onS
   async function togglePin() {
     setPinning(true)
     try {
-      const res = await fetch(`/api/companies/${company.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pinned: !pinned }) })
-      const d = await res.json()
-      if (res.ok && d.company) onCompany(d.company)
+      const r = await updateCompany(company.id, { pinned: !pinned })
+      if (r.ok) onCompany(r.data.company)
     } finally { setPinning(false) }
   }
 
@@ -77,18 +78,16 @@ export function CompanyHeader({ company, statusLine, facts, team, onCompany, onS
   async function setOwners(list: string[]) {
     setSavingOwner(true)
     try {
-      const res = await fetch(`/api/companies/${company.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ owner_emails: list }) })
-      const d = await res.json()
-      if (res.ok && d.company) onCompany(d.company)
+      const r = await updateCompany(company.id, { owner_emails: list })
+      if (r.ok) onCompany(r.data.company)
     } finally { setSavingOwner(false) }
   }
 
   async function confirm() {
     setConfirming(true)
     try {
-      const res = await fetch(`/api/companies/${company.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirmed: true }) })
-      const d = await res.json()
-      if (res.ok && d.company) onCompany(d.company)
+      const r = await updateCompany(company.id, { confirmed: true })
+      if (r.ok) onCompany(r.data.company)
     } finally { setConfirming(false) }
   }
 
@@ -163,12 +162,7 @@ function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onC
     if (!title.trim()) { setError('Give the to-do a title.'); return }
     setSaving(true); setError(null)
     try {
-      const res = await fetch('/api/board/tasks', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ companyId, title: title.trim(), note: note.trim() || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }),
-      })
-      const d = await res.json().catch(() => ({})) as { error?: string }
-      if (!res.ok) throw new Error(d.error ?? 'Could not save.')
+      unwrap(await addBoardTask({ companyId, title: title.trim(), note: note.trim() || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }))
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save.')
