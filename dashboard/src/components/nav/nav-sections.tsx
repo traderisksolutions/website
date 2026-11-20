@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   Building2, Inbox, Table2, LayoutGrid, Megaphone,
-  Settings, AlertTriangle, Cpu, HeartPulse } from 'lucide-react'
+  Settings, AlertTriangle, Cpu, HeartPulse, RefreshCw } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
 
@@ -30,21 +30,27 @@ export type Place = {
 export const PLACES: Place[] = [
   // Jarod, 20 Nov 2026: Today is not a place on the bar. The TRS logo opens it; Calendar is a view
   // on Today (/today?calendar=1) and keeps /calendar. Both are in HOME_LINKS for ⌘K.
+  // Jarod, 20 Nov 2026: Portfolio and Admin desk left the Clients tabs; they keep their addresses.
   { label: 'Clients', href: '/companies', icon: Building2, tabs: [
     { title: 'Companies', href: '/companies' },
     { title: 'People', href: '/contacts' },
     { title: 'Nexus', href: '/nexus' },
-    { title: 'Portfolio', href: '/companies/portfolio' },
-    { title: 'Admin desk', href: '/companies/portfolio/desk' },
     // Jarod, 20 Nov 2026: Unfiled threads (with the Referrals review) is a Clients tab.
     { title: 'Unfiled threads', href: '/companies/triage' },
   ] },
+  // Jarod, 20 Nov 2026: Renewals is its own place (docs/renewals.md). /renewals/<id> sits under Pipeline.
+  { label: 'Renewals', href: '/renewals', icon: RefreshCw, tabs: [
+    { title: 'Pipeline', href: '/renewals' },
+    { title: 'Forecast', href: '/renewals/forecast' },
+    { title: 'To fix', href: '/renewals/fix' },
+  ] },
   // Jarod, 19 Nov 2026: one home for Employment Benefits. The register of quotations moved here
   // from Quotes, which no longer carries it. 20 Nov 2026: New quotation · Quotation register
-  // (eb_quotations, at the old /pricing-matrix address) · Brochures.
+  // (eb_quotations, at the old /pricing-matrix address) · Brochures. 20 Nov 2026: the register's
+  // address is /eb/quotations (/pricing-matrix redirects there).
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'New quotation', href: '/eb' },
-    { title: 'Quotation register', href: '/pricing-matrix' },
+    { title: 'Quotation register', href: '/eb/quotations' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
@@ -55,15 +61,14 @@ export const PLACES: Place[] = [
   { label: 'RoadPlus', href: '/roadplus', icon: Table2, tabs: [
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
-  // Others (19 Nov 2026): Claims, Policies, Finance and Documents in one place.
+  // Others (19 Nov 2026): Claims, Policies, Finance and Documents in one place. 20 Nov 2026:
+  // Second opinion and Documents are tabs inside Claims, not here.
   { label: 'Others', href: '/claims', icon: LayoutGrid, tabs: [
     { title: 'Claims', href: '/claims' },
-    { title: 'Second opinion', href: '/claims/second-opinion' },
     { title: 'Policies', href: '/policies' },
     { title: 'Member movements', href: '/movements' },
     { title: 'Receipts', href: '/finance' },
     { title: 'Debit notes', href: '/debit-notes' },
-    { title: 'Documents', href: '/documents' },
     { title: 'Lines', href: '/lines' },
   ] },
   // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its

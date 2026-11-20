@@ -2,13 +2,13 @@
 import { test, expect } from '@playwright/test'
 import { companyId, dbRows, openClean } from './helpers'
 
-test('Employment Benefits tabs are New quotation, Quotation register and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
+test('NAV-002 Employment Benefits tabs are New quotation, Quotation register (/eb/quotations) and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
+  await openClean(page, '/eb')
   await expect(page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true })).toHaveAttribute('aria-current', 'page')
   const tabs = page.getByRole('navigation', { name: 'Employment Benefits' })
   await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Brochures'])
-  await expect(tabs.getByRole('link', { name: 'Quotation register', exact: true })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByRole('heading', { name: 'Quotation register', level: 1 })).toBeVisible()
+  await expect(tabs.getByRole('link', { name: 'New quotation', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(tabs.getByRole('link', { name: 'Quotation register', exact: true })).toHaveAttribute('href', '/eb/quotations')
   await expect(page.getByRole('navigation', { name: 'Quotes' })).toHaveCount(0)
   await expect(page.locator('header').getByRole('link', { name: 'Quotes', exact: true })).toHaveCount(0)
   await expect(page.locator('header').getByRole('link', { name: 'RoadPlus', exact: true }).first()).toBeVisible()
