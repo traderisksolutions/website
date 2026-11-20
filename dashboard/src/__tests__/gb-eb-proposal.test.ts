@@ -67,6 +67,7 @@ describe('proposalEmail', () => {
     expect(e.html.indexOf('Singlife MyBenefits Plus')).toBeLessThan(e.html.indexOf('RCC Enhanced III'))
     expect(e.html).toContain('S$7,635')
     expect(e.html).toContain('Dear Jamie,')
+    expect(e.html).not.toMatch(/A life|Per person/)
     expect(e.html).toContain('Example Staff<br>Trade Risk Solutions')
   })
 })

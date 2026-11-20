@@ -3,22 +3,20 @@
 /**
  * Employment Benefits › Brochures (Phase 4 of the Workbench revamp, 19 Nov 2026): every brochure and
  * rate file TRS prices from, one row per product version, newest first within a product. Add version
- * makes the version folder in Drive and uploads the files straight to it; Remove takes the row off
- * the library and never deletes the Drive files (src/app/api/brochures).
+ * (/brochures/new) and Edit (/brochures/edit?key=<row>) are full pages (20 Nov 2026): they make the
+ * version folder in Drive and upload the files straight to it; Remove takes the row off the library
+ * and never deletes the Drive files (src/app/api/brochures).
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import * as DialogPrimitive from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/page-header'
-import { Btn, Field, Segmented, Spinner, btnClass, inputCls } from '@/components/crm/primitives'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
+import { Btn, Chip, Field, LinkBtn, Segmented, Spinner, btnClass, inputCls } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
 import { fmtDate } from '@/lib/format'
-import { BROCHURE_LINES, STATUS_WORD, nextVersion, type LibraryRow, type Status } from '@/lib/brochures/library'
+import { BROCHURE_LINES, STATUS_WORD, nextVersion, type LibraryRow } from '@/lib/brochures/library'
 
 type Data = { rows: LibraryRow[]; drive_url: string | null; saving: boolean; drive: boolean; drive_read: boolean }
-type Editing = { mode: 'add' } | { mode: 'edit'; row: LibraryRow }
-
-const STATUS_CLS: Record<Status, string> = { in_force: 'text-trs-pos font-medium', scheduled: 'text-trs-ink', superseded: 'text-trs-subtle', to_confirm: 'text-trs-warn', not_dated: 'text-trs-muted' }
 const NO_TABLE = 'Saving starts once the brochure versions table is added'
 
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
@@ -33,7 +31,6 @@ export function BrochureLibrary() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [line, setLine] = useState('all')
-  const [editing, setEditing] = useState<Editing | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const load = useCallback(async (fresh = false) => {
     try { setData(await call<Data>(`/api/brochures${fresh ? '?fresh=1' : ''}`)); setError(null) } catch (e) { setError(e instanceof Error ? e.message : String(e)) }
@@ -56,7 +53,8 @@ export function BrochureLibrary() {
         meta={<span className="text-[13px] text-trs-muted">{data ? `${new Set(data.rows.map(r => r.product.toLowerCase())).size} products · ${data.rows.length} versions` : ' '}</span>}
         actions={<>
           {data?.drive_url && <a href={data.drive_url} target="_blank" rel="noreferrer" className={`${btnClass()} no-underline`}>Open Google Drive ↗</a>}
-          <Btn level="primary" disabled={!data?.saving || !data.drive} title={!data?.saving ? NO_TABLE : !data.drive ? 'Google Drive is not configured' : undefined} onClick={() => { setNote(null); setEditing({ mode: 'add' }) }}>Add version</Btn>
+          {data?.saving && data.drive ? <LinkBtn level="primary" href="/brochures/new">Add version</LinkBtn>
+            : <Btn level="primary" disabled title={!data?.saving ? NO_TABLE : 'Google Drive is not configured'}>Add version</Btn>}
         </>}>
         {lines.length > 1 && <Segmented<string> value={line} onChange={setLine} label="Line" options={[{ value: 'all', label: 'All', count: data?.rows.length }, ...lines.map(l => ({ value: l, label: l, count: data?.rows.filter(r => r.line === l).length }))]} />}
       </PageHeader>
@@ -69,15 +67,15 @@ export function BrochureLibrary() {
       {data && (
         <section className="min-w-0">
           <div className="overflow-x-auto">
-            <table className="trs-table w-full min-w-[960px] border-collapse text-[13px]" aria-label="Brochure versions">
-              <thead><tr className="border-b border-trs-line text-[12px] text-trs-muted">
-                <th className="sticky left-0 z-[1] bg-white px-4 py-2.5 text-left font-medium">Product</th>
-                <th className="px-3 py-2.5 text-left font-medium">Line</th>
-                <th className="w-[90px] px-3 py-2.5 text-center font-medium">Version</th>
-                <th className="w-[130px] px-3 py-2.5 text-center font-medium">In force from</th>
-                <th className="px-3 py-2.5 text-left font-medium">Files</th>
-                <th className="w-[110px] px-3 py-2.5 text-center font-medium">Status</th>
-                <th className="w-[180px] px-3 py-2.5 text-center font-medium">Actions</th>
+            <table className="trs-table w-full min-w-[960px] text-[13px]" aria-label="Brochure versions">
+              <thead><tr>
+                <th className="sticky left-0 z-[1] bg-white px-4">Product</th>
+                <th className="px-3">Line</th>
+                <th className="w-[90px] px-3">Version</th>
+                <th className="w-[130px] px-3">In force from</th>
+                <th className="px-3">Files</th>
+                <th className="w-[110px] px-3">Status</th>
+                <th className="w-[180px] px-3">Actions</th>
               </tr></thead>
               <tbody>
                 {rows.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-trs-muted">No brochures yet.</td></tr>}
@@ -96,11 +94,11 @@ export function BrochureLibrary() {
                               <span className="mr-1.5 text-[11px] text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
                         {r.note && <span className="mt-1 block text-[12px] text-trs-muted">{r.note}</span>}
                       </td>
-                      <td className={`whitespace-nowrap px-3 py-2.5 text-center ${STATUS_CLS[r.status]}`}>{STATUS_WORD[r.status]}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-center"><Chip>{STATUS_WORD[r.status]}</Chip></td>
                       <td className="min-w-[180px] px-3 py-2 text-center whitespace-nowrap">
                         <span className="inline-flex gap-1.5">
-                          <Btn size="xs" disabled={!data.saving || r.status === 'to_confirm'} title={!data.saving ? NO_TABLE : r.status === 'to_confirm' ? 'Move the file into a version folder in Drive' : undefined}
-                            onClick={() => { setNote(null); setEditing({ mode: 'edit', row: r }) }}>Edit</Btn>
+                          {data.saving && r.status !== 'to_confirm' ? <LinkBtn size="xs" href={`/brochures/edit?key=${encodeURIComponent(r.key)}`}>Edit</LinkBtn>
+                            : <Btn size="xs" disabled title={!data.saving ? NO_TABLE : 'Move the file into a version folder in Drive'}>Edit</Btn>}
                           <Btn size="xs" disabled={!r.id} title={r.id ? undefined : 'Only versions saved on this page can be removed'} onClick={() => void remove(r)}>Remove</Btn>
                         </span>
                       </td>
@@ -112,18 +110,35 @@ export function BrochureLibrary() {
           </div>
         </section>
       )}
-
-      {editing && data && <VersionModal editing={editing} rows={data.rows} onClose={() => setEditing(null)}
-        onSaved={async words => { setEditing(null); setNote(words); await load(true) }} />}
     </div>
   )
 }
 
 type Progress = { name: string; state: 'waiting' | 'uploading' | 'done' | 'failed'; error?: string }
 
-/** Add version, or Edit a row's line, date and note, with files added to its folder. */
-function VersionModal({ editing, rows, onClose, onSaved }: { editing: Editing; rows: LibraryRow[]; onClose: () => void; onSaved: (words: string) => Promise<void> }) {
-  const row = editing.mode === 'edit' ? editing.row : null
+/** Add version (/brochures/new) or Edit (/brochures/edit?key=<row key>): a full page. */
+export function VersionPage({ rowKey }: { rowKey: string | null }) {
+  const [data, setData] = useState<Data | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { call<Data>('/api/brochures').then(setData).catch(e => setError(e instanceof Error ? e.message : String(e))) }, [])
+  const row = rowKey ? data?.rows.find(r => r.key === rowKey) ?? null : null
+  const title = rowKey ? (row ? `${row.product} ${row.version}` : 'Edit version') : 'Add version'
+  return (
+    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[760px]">
+      <Breadcrumbs current={{ label: title, href: rowKey ? `/brochures/edit?key=${encodeURIComponent(rowKey)}` : '/brochures/new' }} fallback={{ label: 'Brochures', href: '/brochures' }} />
+      <PageHeader title={title} />
+      {error && <div className="text-[14px] text-trs-neg">{error}</div>}
+      {!data && !error && <Spinner label="Loading brochures" />}
+      {data && rowKey && !row && <div className="text-[14px] text-trs-neg">This version is not in the library.</div>}
+      {data && (!rowKey || row) && <VersionForm row={row} rows={data.rows} />}
+    </div>
+  )
+}
+
+function VersionForm({ row, rows }: { row: LibraryRow | null; rows: LibraryRow[] }) {
+  const router = useRouter()
+  const confirm = useConfirm()
+  const onClose = () => router.push('/brochures')
   const products = useMemo(() => [...new Set(rows.map(r => r.product))].sort(), [rows])
   const [product, setProduct] = useState(row?.product ?? '')
   const [lineV, setLineV] = useState(row?.line ?? BROCHURE_LINES[0])
@@ -180,19 +195,17 @@ function VersionModal({ editing, rows, onClose, onSaved }: { editing: Editing; r
       }
       const failed = id && files.length ? await upload(id) : 0
       if (failed) { setErr(`${failed} file${failed === 1 ? '' : 's'} not uploaded. The version is saved; add the files again from Edit.`); return }
-      await onSaved(`Saved ${row?.product ?? product} ${row?.version ?? version}${files.length ? ` · ${files.length} file${files.length === 1 ? '' : 's'} in Drive` : ''}`)
+      router.push('/brochures')
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   }
 
   const ready = (row || (product.trim() && version.trim())) && /^\d{4}-\d{2}-\d{2}$/.test(date)
+  async function removeFile(name: string) {
+    if (!(await confirm({ title: `Remove ${name}?`, body: 'It is not uploaded. Nothing in Google Drive changes.', action: 'Remove', danger: true }))) return
+    setFiles(x => x.filter(y => y.name !== name))
+  }
   return (
-    <DialogPrimitive.Root open onOpenChange={o => { if (!o && !busy) onClose() }}>
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(640px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
-          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
-          <DialogPrimitive.Title className="m-0 pr-10 text-[24px] font-semibold tracking-[-0.02em] text-trs-ink">{row ? `${row.product} ${row.version}` : 'Add version'}</DialogPrimitive.Title>
-
+    <div className="flex flex-col gap-5">
           <div className="grid gap-3 sm:grid-cols-2">
             {!row && <div className="sm:col-span-2"><Field label="Product">
               <input className={inputCls} list="brochure-products" value={product} onChange={e => setProduct(e.target.value)} placeholder="Existing or new product" aria-label="Product" autoFocus />
@@ -213,31 +226,29 @@ function VersionModal({ editing, rows, onClose, onSaved }: { editing: Editing; r
           </div>
 
           {canAddFiles && <div>
-            <div className="mb-1.5 text-[12.5px] text-trs-muted">{row ? 'Add files' : 'Brochure and rate file'}</div>
+            <div className="mb-1.5 text-[13px] font-medium text-trs-ink">{row ? 'Add files' : 'Brochure and rate file'}</div>
             <label onDragOver={e => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files) }}
-              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border border-dashed px-4 py-4 text-center text-[13px] ${drag ? 'border-trs-green bg-trs-tint' : 'border-trs-line-2'}`}>
+              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] px-4 py-4 text-center text-[13px] ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
               <span className="text-trs-ink">Drop files or choose</span>
-              <span className="text-[12px] text-trs-muted">PDF brochure, Excel rate file</span>
+              <span className="text-[12px] text-trs-muted">PDF · XLSX</span>
               <input type="file" multiple className="sr-only" aria-label="Files" onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
             </label>
             {files.length > 0 && <ul className="m-0 mt-2 list-none p-0">{files.map(f => {
               const p = progress.find(x => x.name === f.name)
               return (
-                <li key={f.name} className="flex items-center justify-between gap-3 border-b border-trs-line py-1.5 text-[13px] last:border-b-0">
+                <li key={f.name} className="flex items-center justify-between gap-3 py-1.5 text-[13px]">
                   <span className="min-w-0 truncate text-trs-ink">{f.name} <span className="text-trs-muted">· {(f.size / 1_048_576).toFixed(1)} MB</span></span>
-                  {p ? <span className={p.state === 'failed' ? 'text-trs-neg' : p.state === 'done' ? 'text-trs-pos' : 'text-trs-muted'} title={p.error}>{p.state === 'done' ? 'In Drive' : p.state === 'failed' ? 'Failed' : p.state === 'uploading' ? 'Uploading' : 'Waiting'}</span>
-                    : <Btn size="xs" onClick={() => setFiles(x => x.filter(y => y.name !== f.name))}>Remove</Btn>}
+                  {p ? <span className={p.state === 'failed' ? 'text-trs-neg' : 'text-trs-muted'} title={p.error}>{p.state === 'done' ? 'In Drive' : p.state === 'failed' ? 'Failed' : p.state === 'uploading' ? 'Uploading' : 'Waiting'}</span>
+                    : <Btn size="xs" level="tertiary" onClick={() => void removeFile(f.name)}>Remove</Btn>}
                 </li>)
             })}</ul>}
           </div>}
 
           <div className="flex items-center justify-end gap-2 pt-1">
-            {err && <span className="mr-auto text-[12.5px] text-trs-neg">{err}</span>}
+            {err && <span className="mr-auto text-[12.5px] text-trs-neg" role="alert">{err}</span>}
             <Btn onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" loading={busy} disabled={!ready} onClick={() => void save()}>{row ? 'Confirm' : 'Add version'}</Btn>
+            <Btn level="primary" loading={busy} disabled={!ready} onClick={() => void save()}>{row ? 'Save' : 'Add version'}</Btn>
           </div>
-        </DialogPrimitive.Content>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+    </div>
   )
 }

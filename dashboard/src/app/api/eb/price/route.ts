@@ -34,10 +34,10 @@ export async function POST(req: NextRequest) {
   const effectiveDate = body.effective_date && ISO.test(body.effective_date) ? body.effective_date : null
   if (!effectiveDate) return NextResponse.json({ error: 'Set the policy start date.' }, { status: 400 })
 
-  const { loadWorkbook, importWorkbook } = await import('@/lib/gb/workbook')
+  const { freshWorkbook } = await import('@/lib/gb/workbook')
   const { loadRules } = await import('@/lib/gb/plan-pairs')
-  const wb = await loadWorkbook() ?? await importWorkbook().catch(() => null)
-  if (!wb) return NextResponse.json({ error: 'The house workbook is not loaded. Import it from the Drive folder.' }, { status: 503 })
+  const wb = await freshWorkbook()
+  if (!wb) return NextResponse.json({ error: 'The house workbook is not loaded. Reload it on Quotation register › Insurers.' }, { status: 503 })
   const { rules } = await loadRules()
 
   const priced = priceDesign({

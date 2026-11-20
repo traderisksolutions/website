@@ -13,6 +13,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - Design system: the 14 Nov table rule (header band, zebra, outer box) is replaced by the 19 Nov ledger.
 - Behaviours TOD-042 to TOD-048; TOD-001 to TOD-004, TOD-009 to TOD-012, TOD-024 and TOD-025 marked removed or moved.
 
+## 2026-11-20 — Employment Benefits review: safety, reopen, wording
+
+- Email to client: when the send went but recording it failed, the page says "Sent, but not marked sent." with Try again; a proposal whose email has gone never offers Email to client again, checked on the server too (EB-056).
+- The old New quotation is retired: `/pricing-matrix/new` and `/pricing-matrix/company/<id>` redirect to `/eb` and the company's Employment Benefits tab; `/eb` takes `?hrLink` and `?quotation` (EB-055).
+- Edit quotation on a proposal reopens it on `/eb`; Save updates it in place until its proposal is sent, then keeps a new version; Save then Prepare keeps one version (EB-057).
+- House workbook: Reload workbook on Quotation register › Insurers, and an automatic re-import when the Drive file is newer than the saved copy (EB-058).
+- Wording: Current and Against current (plain signed figures, no colour), Per person on the page and PDF; the client email drops the per-person column. An unknown current insurer reads "Unknown: <name read>" (EB-059).
+- Shape: one primary per step, house tables with centred headers, no dashed boxes, neutral check dots, Not priced with a tooltip instead of note sentences, every Remove confirmed, Premiums freeze one column on a phone; proposal pages lose the Back button and inline send confirm (EB-059).
+- Quotation register: Insurers column, company search, Status filter. Insurers tab on primitives and the house dialog. Brochures: Add version and Edit are full pages; stale "Rate tables" instruction removed (EB-060).
+- Removed: `useCoverNames.ts` (unused), the exported `statusOf` and `basisWord`.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

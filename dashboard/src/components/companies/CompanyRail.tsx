@@ -64,7 +64,7 @@ export function CompanyRail({ company, facts, letter, contact, lastThread, draft
           <br /><button type="button" onClick={onLetter} className="mt-0.5 border-0 bg-transparent p-0 text-[13px] text-trs-green underline underline-offset-[3px] cursor-pointer">{letter?.state === 'signed' ? 'New letter' : 'Create letter'}</button>
         </InfoRow>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          <LinkBtn href={`/pricing-matrix/company/${company.id}`} size="xs">Employment Benefits</LinkBtn>
+          <LinkBtn href={`/companies/${company.id}?tab=eb`} size="xs">Employment Benefits</LinkBtn>
           <LinkBtn href={`/claims?company=${company.id}`} size="xs">Claims</LinkBtn>
         </div>
       </Group>

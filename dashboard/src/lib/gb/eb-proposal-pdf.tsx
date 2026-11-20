@@ -103,7 +103,7 @@ function ProposalDocument({ m, version, prepared, preparedBy }: { m: ProposalMod
           <Head first="Cover" cols={cols} />
           {m.byCover.map(r => <Row key={r.key} label={r.cover} values={r.values.map((v, i) => (r.included[i] && !v ? 'In hospital plan' : v ? n0(v) : '—'))} />)}
           <Row label="Total" values={m.totals.map(t => (t ? n0(t) : '—'))} style={s.totRow} best={m.lowest} />
-          <Row label="A life" values={m.perLife.map(v => (v ? n0(v) : '—'))} />
+          <Row label="Per person" values={m.perLife.map(v => (v ? n0(v) : '—'))} />
           <View style={s.legend}><View style={s.swatch} /><Text>Lowest total</Text></View>
 
           {m.categories.map(c => (

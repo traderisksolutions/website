@@ -262,7 +262,7 @@ export default function GbReviewPage() {
       {reading && current === 'documents' && (
         <section className="mb-8">
           {sources.length === 0 ? (
-            <p className="text-[13px]" style={{ color: '#4a5550' }}>No documents linked. Add the brochure or calculator to the insurer&apos;s folder in Drive, then link it under Rate tables.</p>
+            <p className="text-[13px]" style={{ color: '#4a5550' }}>No documents linked.</p>
           ) : (
             <div className="flex flex-col gap-4">
               <div className="rounded-lg border border-[#e6e8e4] divide-y divide-[#f1f2ee]">
@@ -295,7 +295,6 @@ export default function GbReviewPage() {
       {/* Extracted metadata — read from the PDF, editable in review or edit mode */}
       {editable && (
         <div className="rounded-lg border border-border bg-white p-4 mb-6">
-          <p className="text-[12.5px] text-muted-foreground/50 mb-3">Details read from the PDF — correct if needed</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
             <div className="col-span-2 md:col-span-1">
               <label className="text-[12.5px] text-muted-foreground/60">Insurer</label>
