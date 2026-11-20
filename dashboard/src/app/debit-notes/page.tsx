@@ -18,6 +18,8 @@ import { SendDocumentsModal, type SendableAttachment } from '@/components/debit-
 import { Register, RegisterHead, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
 import { fmtDate } from '@/lib/format'
+import { unwrap } from '@/lib/action-result'
+import { debitNote, debitNotes, editDebitNote, removeDebitNote } from './actions'
 
 type Row = {
   id: string; debit_note_no: string; issue_date: string; payment_due_date: string | null
@@ -187,9 +189,8 @@ function DebitNotesContent() {
 
   function load() {
     setLoading(true)
-    fetch(`/api/debit-notes${companyId ? `?company_id=${companyId}` : ''}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then((d: Row[]) => setRows(Array.isArray(d) ? d : []))
+    debitNotes({ companyId })
+      .then(r => setRows(r.ok ? r.data as unknown as Row[] : []))
       .finally(() => setLoading(false))
   }
   useEffect(load, [companyId])
@@ -374,7 +375,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
   const [sendPickerOpen, setSendPickerOpen] = useState(false)
 
   useEffect(() => {
-    fetch(`/api/debit-notes/${id}`, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then((d: Detail | null) => {
+    debitNote(id).then(r => r.ok ? r.data as unknown as Detail : null).then((d: Detail | null) => {
       if (!d) return
       setDetail(d)
       setPaidAmount(d.paid_amount ?? 0); setStatus(d.status)
@@ -421,12 +422,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           },
         })
       }
-      const res = await fetch(`/api/debit-notes/${id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not save')
+      unwrap(await editDebitNote(id, body))
       onSaved(); onClose()
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save') } finally { setSaving(false) }
   }
@@ -434,9 +430,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
   async function del() {
     setDeleting(true); setError(null)
     try {
-      const res = await fetch(`/api/debit-notes/${id}`, { method: 'DELETE' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not delete')
+      unwrap(await removeDebitNote(id))
       onSaved(); onClose()
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not delete'); setDeleting(false) }
   }

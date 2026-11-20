@@ -79,45 +79,9 @@
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/debit-notes/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 8
- },
- "src/app/api/debit-notes/[id]/zip-attachment/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/debit-notes/imports/bundles/[id]/approve/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
- "src/app/api/debit-notes/imports/bundles/[id]/reject/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/debit-notes/imports/bundles/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/debit-notes/imports/bundles/from-zip/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/debit-notes/imports/bundles/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/debit-notes/imports/items/[id]/pdf/route.ts": {
   "sb": 0,
   "fetch": 1
- },
- "src/app/api/debit-notes/preview-context/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/debit-notes/route.ts": {
-  "sb": 0,
-  "fetch": 5
  },
  "src/app/api/dev-logs/route.ts": {
   "sb": 0,
@@ -190,10 +154,6 @@
  "src/app/api/engagement/thread/route.ts": {
   "sb": 0,
   "fetch": 5
- },
- "src/app/api/finance/reconciliation/route.ts": {
-  "sb": 1,
-  "fetch": 0
  },
  "src/app/api/followups/route.ts": {
   "sb": 7,
@@ -382,10 +342,6 @@
  "src/app/api/policies/[id]/route.ts": {
   "sb": 0,
   "fetch": 1
- },
- "src/app/api/policies/lookup/route.ts": {
-  "sb": 0,
-  "fetch": 3
  },
  "src/app/api/policies/movements/route.ts": {
   "sb": 4,
@@ -798,6 +754,10 @@
  "src/lib/debit-notes/extract-bundle.ts": {
   "sb": 0,
   "fetch": 8
+ },
+ "src/lib/debit-notes/server.ts": {
+  "sb": 1,
+  "fetch": 24
  },
  "src/lib/documents/drive.ts": {
   "sb": 1,

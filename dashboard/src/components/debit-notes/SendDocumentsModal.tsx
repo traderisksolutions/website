@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { DEBIT_NOTE_TEMPLATE_KEY } from '@/components/DebitNoteEmailTemplatePanel'
 import { getSetting } from '@/app/settings/actions'
+import { unwrap } from '@/lib/action-result'
+import { zipDocuments } from '@/app/debit-notes/actions'
 
 export type SendableAttachment = {
   filename: string; storage_url: string
@@ -53,12 +55,7 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
     if (checked.size === 0) { setError('Select at least one document to send.'); return }
     setSending(true); setError(null)
     try {
-      const res = await fetch(`/api/debit-notes/${target.debitNoteId}/zip-attachment`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ storageUrls: Array.from(checked) }),
-      })
-      const att = await res.json()
-      if (!res.ok) throw new Error(att.error ?? 'Could not prepare attachment')
+      const att = unwrap(await zipDocuments(target.debitNoteId, Array.from(checked)))
 
       const tplRes = await getSetting(DEBIT_NOTE_TEMPLATE_KEY)
       const tplRow = tplRes.ok ? tplRes.data : null
