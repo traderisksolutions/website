@@ -59,12 +59,15 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
     if (cid && !threads.has(t.id)) threads.set(t.id, { ...t, companyId: cid })
   }
 
-  const threadIds = Array.from(threads.keys())
-  const messages = threadIds.length
-    ? await inChunks(threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,sent_at,from_address&order=sent_at.desc`, []))
+  // Only an active thread's last message decides "needs reply", so read that one message per
+  // active thread (an embed limited to 1), not every message of every thread (20 Nov 2026).
+  const activeIds = Array.from(threads.values()).filter(t => t.status === 'active').map(t => t.id)
+  type LastRow = { id: string; email_messages: Omit<MsgRow, 'thread_id'>[] | null }
+  const lasts = activeIds.length
+    ? await inChunks(activeIds, 100, c => sbTry<LastRow[]>(`email_threads?id=in.(${c.join(',')})&select=id,email_messages(direction,sent_at,from_address)&email_messages.deleted_at=is.null&email_messages.order=sent_at.desc&email_messages.limit=1`, []))
     : []
   const lastMsg = new Map<string, MsgRow>()
-  for (const m of messages) if (!lastMsg.has(m.thread_id)) lastMsg.set(m.thread_id, m)
+  for (const r of lasts) { const m = r.email_messages?.[0]; if (m) lastMsg.set(r.id, { ...m, thread_id: r.id }) }
 
   const freshCutoff = Date.now() - QUOTE_FRESH_DAYS * 86_400_000
 
