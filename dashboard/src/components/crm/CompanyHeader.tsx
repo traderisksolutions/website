@@ -26,11 +26,13 @@ const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#0
  * Edit, More and New request, the one primary. Drafts to approve and the appointment letter live in
  * the rail only (20 Nov 2026).
  */
-export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, onNewRequest }: {
+export function CompanyHeader({ company, statusLine, facts, team, onCompany, onStage, onNewRequest }: {
   /** Policies held, premium, client since; null while the policies load. */
   facts: CompanyFacts | null
   company: Company
   statusLine: string
+  /** The people who can own a company: the sign-in roster, read with the page. Empty when it failed; the picker then shows the current owner alone. */
+  team: { email: string; name: string }[]
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
   onNewRequest: () => void
@@ -69,16 +71,7 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
     } finally { setOpening(false) }
   }
   const [confirming, setConfirming] = useState(false)
-  const [team, setTeam] = useState<{ email: string; name: string }[]>([])
   const [savingOwner, setSavingOwner] = useState(false)
-  // The people who can own a company: the team roster. Loaded once; the picker degrades to the
-  // current owner alone if the roster is unavailable.
-  useEffect(() => {
-    fetch('/api/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(d => {
-      const list = Array.isArray(d) ? d : Array.isArray(d?.users) ? d.users : []
-      setTeam(list.filter((u: { email?: string; status?: string }) => u.email && u.status !== 'suspended').map((u: { email: string; name?: string }) => ({ email: u.email, name: u.name || u.email.split('@')[0] })))
-    }).catch(() => {})
-  }, [])
   async function setOwners(list: string[]) {
     setSavingOwner(true)
     try {
@@ -101,7 +94,7 @@ export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, 
   const fact = (label: string, value: React.ReactNode) => <span className="inline-flex items-center gap-1.5"><span className="text-trs-muted">{label}</span><span className="text-trs-ink">{value}</span></span>
 
   return (
-    <div className="mb-5">
+    <div>
       <Breadcrumbs current={{ label: company.name, href: `/companies/${company.id}` }} fallback={{ label: 'Companies', href: '/companies' }} />
       <PageHeader className="mt-3" title={<span className="block max-w-full truncate" title={company.name}>{company.name}</span>}
         meta={<span className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13.5px]">
