@@ -10,7 +10,7 @@
  * nothing else. The app's older GOOGLE_SERVICE_ACCOUNT_JSON belongs to a different organisation's
  * project, and client documents are not read through it.
  */
-import { createSign } from 'node:crypto'
+import { serviceAccountToken } from '@/lib/google/auth'
 
 const DRIVE = 'https://www.googleapis.com/drive/v3'
 const FOLDER_MIME = 'application/vnd.google-apps.folder'
@@ -31,35 +31,11 @@ export type SourceFile = {
   webViewLink: string | null
 }
 
-const b64url = (b: Buffer | string) =>
-  (Buffer.isBuffer(b) ? b : Buffer.from(b)).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-
-let cached: { token: string; exp: number } | null = null
-
 export function driveConfigured(): boolean {
   return !!process.env.GOOGLE_TRS_DRIVE_SA_JSON && !!process.env.GOOGLE_TRS_DRIVE_FOLDER_ID
 }
 
-async function token(): Promise<string> {
-  if (cached && cached.exp > Date.now() + 60_000) return cached.token
-  const raw = process.env.GOOGLE_TRS_DRIVE_SA_JSON
-  if (!raw) throw new Error('GOOGLE_TRS_DRIVE_SA_JSON is not set')
-  const creds = JSON.parse(raw) as { client_email: string; private_key: string }
-  const now = Math.floor(Date.now() / 1000)
-  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({
-    iss: creds.client_email, scope: 'https://www.googleapis.com/auth/drive.readonly',
-    aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
-  }))}`
-  const sig = createSign('RSA-SHA256').update(unsigned).sign(creds.private_key)
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${unsigned}.${b64url(sig)}` }),
-  })
-  const d = await res.json() as { access_token?: string; expires_in?: number; error_description?: string }
-  if (!d.access_token) throw new Error(`Drive sign-in failed: ${d.error_description ?? res.status}`)
-  cached = { token: d.access_token, exp: Date.now() + (d.expires_in ?? 3600) * 1000 }
-  return d.access_token
-}
+const token = () => serviceAccountToken('https://www.googleapis.com/auth/drive.readonly', 'trs')
 
 type DriveItem = { id: string; name: string; mimeType: string; size?: string; md5Checksum?: string; modifiedTime?: string; webViewLink?: string }
 

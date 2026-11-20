@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createSign, randomUUID }     from 'node:crypto'
+import { randomUUID }                 from 'node:crypto'
 import { waitUntil }                  from '@vercel/functions'
 import { createClient }               from '@/lib/supabase/server'
 import { buildRawEmail, htmlToText, type ThreadingHeaders } from '@/lib/email-mime'
 import { buildQuotedHistory }         from '@/lib/build-reply-thread'
 import { SB_URL } from '@/lib/sb'
+import { gmailToken, refreshToken, serviceAccountToken } from '@/lib/google/auth'
 
 const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const DEFAULT_FROM = 'operations@trade-risksol.com'
@@ -22,32 +23,6 @@ function sbHeaders(prefer = 'return=representation') {
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
 
-async function getTokenViaServiceAccount(fromEmail: string): Promise<string> {
-  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON not configured')
-  const sa: { client_email: string; private_key: string } = JSON.parse(raw)
-  const privateKey = sa.private_key.replace(/\\n/g, '\n')
-  const now    = Math.floor(Date.now() / 1000)
-  const header  = { alg: 'RS256', typ: 'JWT' }
-  const payload = {
-    iss: sa.client_email, sub: fromEmail,
-    scope: 'https://www.googleapis.com/auth/gmail.send',
-    aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600,
-  }
-  const enc   = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
-  const input = `${enc(header)}.${enc(payload)}`
-  const sign  = createSign('RSA-SHA256')
-  sign.update(input)
-  const jwt = `${input}.${sign.sign(privateKey, 'base64url')}`
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: jwt }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error(`Service account token failed: ${JSON.stringify(data)}`)
-  return data.access_token as string
-}
-
 // 1. Personal Gmail (employee refresh token) → 2. Service account → 3. Legacy refresh token
 async function getTokenForSender(fromEmail: string, userId: string | null): Promise<string> {
   if (userId) {
@@ -61,38 +36,15 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
         const profiles = profileRes.ok ? await profileRes.json() : []
         const profile  = Array.isArray(profiles) ? profiles[0] : null
         if (profile?.gmail_refresh_token && profile?.gmail_email === fromEmail) {
-          const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-              client_id:     process.env.GMAIL_CLIENT_ID!,
-              client_secret: process.env.GMAIL_CLIENT_SECRET!,
-              refresh_token: profile.gmail_refresh_token as string,
-              grant_type:    'refresh_token',
-            }),
-          })
-          const tokenData = await tokenRes.json()
-          if (tokenData.access_token) return tokenData.access_token as string
+          return await refreshToken(process.env.GMAIL_CLIENT_ID ?? '', process.env.GMAIL_CLIENT_SECRET ?? '', profile.gmail_refresh_token as string, undefined, fromEmail)
         }
       }
     } catch { /* fall through */ }
   }
   if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    return getTokenViaServiceAccount(fromEmail)
+    return serviceAccountToken('https://www.googleapis.com/auth/gmail.send', 'legacy', fromEmail)
   }
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id:     process.env.GMAIL_CLIENT_ID!,
-      client_secret: process.env.GMAIL_CLIENT_SECRET!,
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN!,
-      grant_type:    'refresh_token',
-    }),
-  })
-  const data = await res.json()
-  if (!data.access_token) throw new Error('Failed to get Gmail access token')
-  return data.access_token
+  return gmailToken()
 }
 
 // POST /api/inbound/reply

@@ -3,6 +3,7 @@
 // connecting authorises read-only Search Console access with their own Google account and the
 // dashboard holds the refresh token per site.
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { refreshToken } from '@/lib/google/auth'
 
 export const GSC_SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/webmasters.readonly'].join(' ')
 const AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -62,12 +63,8 @@ export async function exchangeCode(code: string, redirectUri: string): Promise<T
   return (await res.json()) as TokenResponse
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<string> {
-  const res = await fetch(TOKEN_ENDPOINT, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ refresh_token: refreshToken, client_id: clientId(), client_secret: clientSecret(), grant_type: 'refresh_token' }), signal: AbortSignal.timeout(15_000) })
-  if (!res.ok) throw new Error(`token refresh failed: ${res.status} ${(await res.text()).slice(0, 200)}`)
-  const json = (await res.json()) as { access_token?: string }
-  if (!json.access_token) throw new Error('no access_token in refresh response')
-  return json.access_token
+export function refreshAccessToken(token: string): Promise<string> {
+  return refreshToken(clientId(), clientSecret(), token, undefined, 'Search Console connection')
 }
 
 export function emailFromIdToken(idToken: string | undefined): string | null {

@@ -8,7 +8,7 @@
  * carry, through the Admin API; GA4_PROPERTY_<KEY> overrides that. Figures are cached per
  * instance for 30 minutes. GA4 settles a day behind, so every period ends yesterday.
  */
-import { createSign } from 'node:crypto'
+import { serviceAccountEmail, serviceAccountToken } from '@/lib/google/auth'
 import { MEASUREMENT_IDS, PERIOD_DAYS, type Period, type Range, type Row, type Totals, type Traffic } from './ga4-types'
 
 export { isPeriod } from './ga4-types'
@@ -42,34 +42,9 @@ export function rowsFrom(rows: ReportRow[] | undefined): Row[] {
   }))
 }
 
-function credentials(): { client_email: string; private_key: string } | null {
-  const raw = process.env.GOOGLE_TRS_DRIVE_SA_JSON
-  if (!raw) return null
-  try { const c = JSON.parse(raw); return c?.client_email && c?.private_key ? c : null } catch { return null }
-}
+export const analyticsAccount = () => serviceAccountEmail('trs')
 
-export const analyticsAccount = () => credentials()?.client_email ?? null
-
-const b64url = (x: string | Buffer) => Buffer.from(x).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
-
-let token: { value: string; until: number } | null = null
-async function accessToken(): Promise<string> {
-  if (token && token.until > Date.now() + 60_000) return token.value
-  const c = credentials()
-  if (!c) throw new Error('GOOGLE_TRS_DRIVE_SA_JSON is not set')
-  const now = Math.floor(Date.now() / 1000)
-  const unsigned = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify({ iss: c.client_email, scope: SCOPE, aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 }))}`
-  const signer = createSign('RSA-SHA256'); signer.update(unsigned)
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: `${unsigned}.${b64url(signer.sign(c.private_key))}` }),
-    signal: AbortSignal.timeout(15_000),
-  })
-  const j = await res.json().catch(() => ({}))
-  if (!j.access_token) throw new Error('Google sign-in for the service account failed')
-  token = { value: j.access_token, until: Date.now() + Number(j.expires_in ?? 3600) * 1000 }
-  return token.value
-}
+const accessToken = () => serviceAccountToken(SCOPE, 'trs')
 
 async function google<T>(url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
