@@ -215,14 +215,6 @@
   "height": 1,
   "control": 1
  },
- "src/app/layout.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/login/page.tsx": {
   "style": 3,
   "hex": 8,
@@ -1656,7 +1648,7 @@
   "control": 0
  },
  "src/components/ui/confirm.tsx": {
-  "style": 1,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,

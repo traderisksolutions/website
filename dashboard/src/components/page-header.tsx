@@ -11,7 +11,7 @@ interface PageHeaderProps {
   className?: string
 }
 
-/** Every page opens with this: the title (EB Garamond, a noun), an optional facts line, the
+/** Every page opens with this: the title (a noun), an optional facts line, the
  *  page's actions top right, then its filters. No grey description line, by standing rule. */
 export function PageHeader({ title, meta, actions, children, className }: PageHeaderProps) {
   return (
