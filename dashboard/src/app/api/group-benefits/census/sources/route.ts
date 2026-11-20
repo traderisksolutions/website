@@ -2,14 +2,18 @@
  * GET /api/group-benefits/census/sources?thread=<id>&company=<id>
  *   → the spreadsheets on that thread, or on the company's threads in the last 18 months, newest
  *     first, one per file; the PDFs and images that look like last year's policy (schedule,
- *     endorsement, debit note, invoice); and the current-cover schedule last confirmed for the
- *     company, so a renewal starts from what was set last year.
+ *     endorsement, debit note, invoice); PDFs named like a census or member listing among the census
+ *     files; `schedules`, the files that look like an insurer's quotation or pricing (Insurer pricing
+ *     on /eb); and the current-cover schedule last confirmed for the company, so a renewal starts
+ *     from what was set last year.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
 import { companyKey } from '@/lib/format'
 import type { Schedule } from '@/lib/gb/current'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { currentUserEmail } from '@/lib/crm/auth'
 
 type Att = { id: string; filename: string; size_bytes: number | null; created_at: string; message_id: string; thread_id: string }
 export type CensusSource = { attachment_id: string; filename: string; size: number | null; at: string; subject: string | null; thread_id: string }
@@ -34,6 +38,8 @@ export async function GET(req: NextRequest) {
     const filed = await sbTry<{ thread_id: string }[]>(`thread_insurers?client_company_id=eq.${enc(companyId)}&select=thread_id&limit=300`, [])
     threadIds = [...new Set([...threadIds, ...own.map(x => x.id), ...filed.map(x => x.thread_id)])]
   }
+  // Only threads the person may see (src/lib/mail/visibility.ts): never a colleague's private thread.
+  if (threadIds.length) { const ok = await visibleThreadIds(threadIds, (await currentUserEmail()) ?? ''); threadIds = threadIds.filter(id => ok.has(id)) }
   const atts: Att[] = [], docs: Att[] = []
   for (let i = 0; i < threadIds.length; i += 80) {
     const ids = threadIds.slice(i, i + 80).join(',')
@@ -46,6 +52,23 @@ export async function GET(req: NextRequest) {
   const sources: CensusSource[] = atts.sort((a, b) => b.created_at.localeCompare(a.created_at))
     .filter(a => { const k = `${a.filename.toLowerCase().replace(/\s*\(\d+\)(?=\.)/, '')}|${a.size_bytes ?? ''}`; if (seen.has(k)) return false; seen.add(k); return true })
     .slice(0, 30)
+    .map(a => ({ attachment_id: a.id, filename: a.filename, size: a.size_bytes, at: a.created_at, subject: subjects.get(a.thread_id) ?? null, thread_id: a.thread_id }))
+
+  // A census sent as a PDF (call note 19): named like a census or member listing.
+  const CENSUS_PDF = /census|member|listing|staff\s*list|employee\s*list|headcount|nominal\s*roll/i
+  const seenCensusPdf = new Set<string>()
+  const censusPdfs: CensusSource[] = docs.filter(a => /\.pdf$/i.test(a.filename) && CENSUS_PDF.test(a.filename)).sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .filter(a => { const k = `${a.filename.toLowerCase()}|${a.size_bytes ?? ''}`; if (seenCensusPdf.has(k)) return false; seenCensusPdf.add(k); return true })
+    .slice(0, 10)
+    .map(a => ({ attachment_id: a.id, filename: a.filename, size: a.size_bytes, at: a.created_at, subject: subjects.get(a.thread_id) ?? null, thread_id: a.thread_id }))
+
+  // Insurer pricing schedules: quotations and pricing from the insurers, as spreadsheets or PDFs.
+  const QUOTE_DOC = /quot|pricing|price|premium|proposal|renewal\s*terms|\bterms\b|indication|\boffer\b/i
+  const seenQuote = new Set<string>()
+  const schedules: CensusSource[] = [...atts, ...docs.filter(a => /\.pdf$/i.test(a.filename))].filter(a => QUOTE_DOC.test(a.filename) && !CENSUS_PDF.test(a.filename))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .filter(a => { const k = `${a.filename.toLowerCase()}|${a.size_bytes ?? ''}`; if (seenQuote.has(k)) return false; seenQuote.add(k); return true })
+    .slice(0, 20)
     .map(a => ({ attachment_id: a.id, filename: a.filename, size: a.size_bytes, at: a.created_at, subject: subjects.get(a.thread_id) ?? null, thread_id: a.thread_id }))
 
   // Last year's policy: documents named like a schedule, endorsement, debit note or invoice.
@@ -68,5 +91,5 @@ export async function GET(req: NextRequest) {
       currentInsurer = hit?.requirement?.current_insurer ?? null
     }
   }
-  return NextResponse.json({ sources, documents, companyId, companyName, schedule, currentInsurer })
+  return NextResponse.json({ sources: [...sources, ...censusPdfs].sort((a, b) => b.at.localeCompare(a.at)), documents, schedules, threads: threadIds.length, companyId, companyName, schedule, currentInsurer })
 }

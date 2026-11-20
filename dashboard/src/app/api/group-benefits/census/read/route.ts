@@ -4,6 +4,8 @@
  *   JSON: { attachment_id, password? }    a file on an email, fetched again from Gmail in full
  *
  * Every sheet read on its own (who, how many, which plan columns); the broker picks the sheets.
+ * A PDF is read by its text, its table rows through the same census code (census-pdf.ts); when no
+ * one is read it answers `readWithAi: true`, and a person's Read with AI (census/read-ai) reads it.
  * Never the stored text of an attachment, which was capped. A protected workbook answers
  * needsPassword (with the password the email states, when it states one) until it opens.
  */
@@ -13,6 +15,8 @@ import { enc, sbTry } from '@/lib/crm/db'
 import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import { passwordInText, workbookSheets, WorkbookPasswordError } from '@/lib/xlsx-text'
 import { workbookCensus, parseDelimited, censusFromRows } from '@/lib/gb/census-parse'
+import { censusFromPdfText } from '@/lib/gb/census-pdf'
+import { isPdf, pdfPages } from '@/lib/gb/pdf-text'
 
 export const maxDuration = 60
 const MAX_BYTES = 15 * 1024 * 1024
@@ -27,7 +31,7 @@ export async function POST(req: NextRequest) {
   if (type.includes('multipart/form-data')) {
     const form = await req.formData().catch(() => null)
     const file = form?.get('file')
-    if (!(file instanceof File)) return NextResponse.json({ error: 'Attach a .xlsx, .xls or .csv file' }, { status: 400 })
+    if (!(file instanceof File)) return NextResponse.json({ error: 'Attach a .xlsx, .xls, .csv or .pdf file' }, { status: 400 })
     if (file.size > MAX_BYTES) return NextResponse.json({ error: 'File is over 15 MB' }, { status: 400 })
     buf = Buffer.from(await file.arrayBuffer()); filename = file.name
     password = String(form?.get('password') ?? '') || null
@@ -50,6 +54,14 @@ export async function POST(req: NextRequest) {
     password = body.password || null
   }
 
+  if (isPdf(filename, buf!)) {
+    const pages = await pdfPages(buf!).catch(() => null)
+    if (!pages) return NextResponse.json({ filename, sheets: [], readWithAi: true, error: 'The PDF could not be opened by code. Use Read with AI.' })
+    const r = censusFromPdfText(pages)
+    const employees = r.members.filter(m => m.relationship === 'self').length
+    const sheets = [{ sheet: filename, members: r.members.map(m => ({ ...m, entity: null })), employees, dependants: r.members.length - employees, unread: r.unread, found: r.found, error: r.error, planCovers: [...new Set(r.members.flatMap(m => Object.keys(m.plans ?? {})))] }]
+    return NextResponse.json({ filename, sheets, pdf: true, readWithAi: !r.members.length })
+  }
   try {
     const isCsv = /\.(csv|txt)$/i.test(filename)
     const sheets = isCsv
