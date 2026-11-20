@@ -69,17 +69,23 @@ export function tiersFromPlan(plan: string | null | undefined): Partial<Design> 
   return { hs: beds === 1 ? 4 : beds === 2 ? 3 : 2 }
 }
 
+/** The category a person is priced in: the census column, "All employees" where it has none. */
+export function categoryName(m: Pick<Member, 'category'>): string {
+  const k = (m.category || '').trim()
+  return !k || k === 'Default' ? 'All employees' : k
+}
+
 /** The census in categories by its category column, employees counted apart from spouses and children. */
 export function censusCategories(members: Member[]): CensusCategory[] {
   const by = new Map<string, Member[]>()
-  for (const m of members) { const k = (m.category || 'Default').trim(); by.set(k, [...(by.get(k) ?? []), m]) }
+  for (const m of members) { const k = categoryName(m); by.set(k, [...(by.get(k) ?? []), m]) }
   return [...by.entries()].map(([name, ms]) => {
     const emp = ms.filter(m => m.relationship === 'self')
     const spouses = ms.filter(m => m.relationship !== 'self' && isSpouse(m.relationship)).length
     const counts = new Map<string, number>()
     for (const m of emp) { const v = m.plans?.GHS?.trim(); if (v) counts.set(v, (counts.get(v) ?? 0) + 1) }
     const plan = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
-    return { name: name === 'Default' ? 'All employees' : name, employees: emp.length, spouses, children: ms.length - emp.length - spouses, lives: ms.length, plan, today: tiersFromPlan(plan), members: ms }
+    return { name, employees: emp.length, spouses, children: ms.length - emp.length - spouses, lives: ms.length, plan, today: tiersFromPlan(plan), members: ms }
   }).sort((a, b) => seniority(a.name) - seniority(b.name) || b.employees - a.employees)
 }
 

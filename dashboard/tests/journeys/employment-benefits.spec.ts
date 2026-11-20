@@ -1,20 +1,39 @@
 /** Employment Benefits journeys: where it lives, how a quotation starts, the company tab. */
 import { test, expect } from '@playwright/test'
-import { companyId, openClean } from './helpers'
+import { companyId, dbRows, openClean } from './helpers'
 
-test('the register of quotations sits under Employment Benefits; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
+/** An older quotation (gb_quotations) with a census: reachable by its address since the register moved to eb_quotations (20 Nov 2026). */
+async function legacyCompare(): Promise<string | null> {
+  const [q] = await dbRows<{ id: string }>('gb_quotations?superseded_by=is.null&member_count=gt.0&select=id&order=created_at.desc&limit=1')
+  return q ? `/pricing-matrix/quote/${q.id}/compare` : null
+}
+
+test('Employment Benefits tabs are New quotation, Quotation register and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
   await openClean(page, '/pricing-matrix')
   await expect(page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByRole('navigation', { name: 'Employment Benefits' }).getByRole('link', { name: 'Quotations', exact: true })).toHaveAttribute('aria-current', 'page')
+  const tabs = page.getByRole('navigation', { name: 'Employment Benefits' })
+  await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Brochures'])
+  await expect(tabs.getByRole('link', { name: 'Quotation register', exact: true })).toHaveAttribute('aria-current', 'page')
+  await expect(page.getByRole('heading', { name: 'Quotation register', level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Quotes' })).toHaveCount(0)
   await expect(page.locator('header').getByRole('link', { name: 'Quotes', exact: true })).toHaveCount(0)
   await expect(page.locator('header').getByRole('link', { name: 'RoadPlus', exact: true }).first()).toBeVisible()
   await expect(page.getByText(/^EB$/)).toHaveCount(0)
 })
 
-test('+ New quotation on the register opens the quotation page: company, census and last year side by side', async ({ page }) => {
+test('EB-052 the Quotation register lists eb_quotations: Company, Effective date, Basis, Products, Version, Status, Updated; a row opens its proposal', async ({ page }) => {
   await openClean(page, '/pricing-matrix')
-  await page.getByRole('link', { name: /New quotation/ }).first().click()
+  const table = page.getByRole('table', { name: 'Quotation register' })
+  await expect(table.locator('thead th')).toHaveText(['Company', 'Effective date', 'Basis', 'Products', 'Version', 'Status', 'Updated'])
+  const [q] = await dbRows<{ id: string }>('eb_quotations?select=id&order=created_at.desc&limit=1')
+  test.skip(!q, 'no quotation kept from /eb')
+  await expect(table.locator(`a[href="/eb/proposal/${q.id}"]`)).toBeVisible({ timeout: 30_000 })
+  await expect(table.locator('tbody tr').first().locator('td').nth(5)).toHaveText(/^(Draft|Proposal sent \d{1,2} \w{3})$/)
+})
+
+test('New quotation on the register opens the quotation page: company, census and last year side by side', async ({ page }) => {
+  await openClean(page, '/pricing-matrix')
+  await page.getByRole('link', { name: 'New quotation', exact: true }).last().click()
   await expect(page).toHaveURL(/\/eb$/)
   await expect(page.getByRole('heading', { name: 'Employment Benefits', level: 1 })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Census' })).toBeVisible()
@@ -25,10 +44,15 @@ test('+ New quotation on the register opens the quotation page: company, census 
   await expect(page.getByText(/Add .*Zzq Journey Test Co.* as a new company/)).toBeVisible()
 })
 
-test('company page has an Employment Benefits tab with + New quotation', async ({ page }) => {
+test('company page has an Employment Benefits tab: its quotations and New quotation with the company filled', async ({ page }) => {
   const id = await companyId(page, 'OUE')
   await openClean(page, `/companies/${id}?tab=eb`)
-  await expect(page.getByRole('link', { name: /New quotation/ }).first()).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Quotation register' })).toBeVisible({ timeout: 30_000 })
+  const add = page.locator(`a[href="/eb?company=${id}"]`)
+  await expect(add).toHaveText('New quotation')
+  await add.click()
+  await expect(page).toHaveURL(new RegExp(`/eb\\?company=${id}`))
+  await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/, { timeout: 30_000 })
 })
 
 test('a link with the company opens New quotation with it filled, older links included', async ({ page }) => {
@@ -41,10 +65,8 @@ test('a link with the company opens New quotation with it filled, older links in
 })
 
 test('a quotation opens Compare cover: today and the five products, every cover, Back to the list', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
-  const row = page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first()
-  await expect(row).toBeVisible()
-  const href = await row.getAttribute('href')
+  const href = await legacyCompare()
+  test.skip(!href, 'no older quotation with a census')
   await openClean(page, href!)
   await expect(page.getByRole('heading', { name: 'Hospital & Surgical' })).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('main, body').getByText(/^Today/).first()).toBeVisible()
@@ -58,8 +80,8 @@ test('a quotation opens Compare cover: today and the five products, every cover,
 test('Compare cover: today from last year\'s policy, hospital by ward then limit, Income major medical follows its hospital plan', async ({ page }) => {
   // Read-only: the page saves choices with a PUT; the journey answers it without saving.
   await page.route('**/compare', r => r.request().method() === 'PUT' ? r.fulfill({ status: 200, body: '{}' }) : r.continue())
-  await openClean(page, '/pricing-matrix')
-  const href = await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href')
+  const href = await legacyCompare()
+  test.skip(!href, 'no older quotation with a census')
   await openClean(page, href!)
   await expect(page.getByRole('heading', { name: 'Major Medical' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('link', { name: /Add last year's policy|Census and policy/ })).toHaveAttribute('href', /\/pricing-matrix\/quote\/[^/]+\/edit$/)
@@ -85,8 +107,8 @@ test('Employment Benefits › Plan rules: the brochure rules for Income, RCC and
 })
 
 test('a quotation\'s Census and policy opens New quotation with its census on file, to reprice in place', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
-  const href = await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href')
+  const href = await legacyCompare()
+  test.skip(!href, 'no older quotation with a census')
   await openClean(page, href!.replace(/\/compare$/, '/edit'))
   await expect(page.getByRole('heading', { name: 'Census and policy' })).toBeVisible()
   await expect(page.getByText(/Census on file · \d+ lives/)).toBeVisible({ timeout: 30_000 })
@@ -99,8 +121,8 @@ test('an HR link\'s list opens New quotation, not the retired Quick quote', asyn
 })
 
 test('the older quotation and report pages open Compare cover; the client report PDF is Compare cover', async ({ page }) => {
-  await openClean(page, '/pricing-matrix')
-  const href = (await page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first().getAttribute('href'))!
+  const href = (await legacyCompare())!
+  test.skip(!href, 'no older quotation with a census')
   const id = href.split('/')[3]
   for (const old of [`/pricing-matrix/quote/${id}`, `/pricing-matrix/quote/${id}/report`]) { await page.goto(old); await expect(page).toHaveURL(new RegExp(`/pricing-matrix/quote/${id}/compare$`)) }
   const pdf = await page.request.get(`/api/group-benefits/quote/${id}/compare/report-pdf`, { headers: process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {} })

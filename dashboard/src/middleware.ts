@@ -82,9 +82,9 @@ export async function middleware(request: NextRequest) {
 
   // Already logged in → skip the login page.
   // If a `next` query param is present, honour it (e.g. deep-link after session expiry).
-  // Otherwise, send the user to `/` (the homepage).
+  // Otherwise, send the user to Today (the home page since 20 Nov 2026).
   if (user && pathname === '/login') {
-    const next = request.nextUrl.searchParams.get('next') ?? '/'
+    const next = request.nextUrl.searchParams.get('next') ?? '/today'
     return NextResponse.redirect(new URL(next, request.url))
   }
 

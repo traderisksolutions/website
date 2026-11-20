@@ -72,26 +72,10 @@ test('TOD-025 ticked threads open as one case to be: a client, a side per thread
   await expect(combine).toBeDisabled()
 })
 
-test('TOD-026 Home lists the newest active mail; ticked threads open the same form', async ({ page }) => {
+test('TOD-026 Home retired: the root address opens Today', async ({ page }) => {
+  // Jarod, 20 Nov 2026: Home retired; Today is the home page.
   await openClean(page, '/')
-  const mail = page.getByRole('region', { name: 'Mail' })
-  await expect(mail.locator('table.trs-table thead th')).toHaveText(['Pick', 'Company', 'Thread', 'Label', 'Source'], { timeout: 30_000 })
-  // A thread opens in the Inbox.
-  await expect(mail.locator('tbody tr').first().locator('td').nth(2).getByRole('link')).toHaveAttribute('href', /^\/engagement\?thread=/)
-  await expect(mail.getByRole('link', { name: 'All mail' })).toHaveAttribute('href', '/today?view=mail')
-  const next = mail.getByRole('button', { name: /^Next steps/ })
-  await expect(next).toBeDisabled()
-  const ticks = mail.getByRole('checkbox')
-  test.skip(await ticks.count() < 2, 'fewer than two threads listed')
-  await ticks.nth(0).check()
-  await ticks.nth(1).check()
-  await mail.getByRole('button', { name: 'Next steps for 2 threads' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Case from 2 threads' })
-  await expect(dialog.locator('tbody tr')).toHaveCount(2, { timeout: 30_000 })
-  await dialog.getByRole('button', { name: 'Cancel' }).click()
-  await expect(dialog).toHaveCount(0)
-  await mail.getByRole('button', { name: 'Clear' }).click()
-  await expect(next).toBeDisabled()
+  await expect(page).toHaveURL(/\/today$/, { timeout: 30_000 })
 })
 
 test('CLI-033 a company’s threads open as a list by relevance, with the reader one click away', async ({ page }) => {

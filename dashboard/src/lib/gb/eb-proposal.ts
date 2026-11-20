@@ -13,7 +13,7 @@
  * No model is called anywhere here: every figure is the pricing engine's.
  */
 import { longDate, sgd } from './report-model'
-import { TIERS, type CoverKey, type Priced } from './eb-quote'
+import { categoryName, TIERS, type CoverKey, type Priced } from './eb-quote'
 import type { Member } from '@/lib/gb-quote'
 
 export type CoverCell = { plan: string; words: string; premium: number | null; locked: boolean }
@@ -51,8 +51,9 @@ export function snapshotFrom(input: {
       return [p, { plan, words: plan ? opt?.words ?? plan : '', premium: plan ? opt?.premium ?? null : null, locked: !!pc?.locked }]
     }))])) as Record<CoverKey, Record<string, CoverCell>>,
   }))
-  const members = input.members.filter(m => input.categories.includes(m.category)).map(m => ({
-    name: m.name, category: m.category, relationship: m.relationship, dob: m.dob ?? null, occupation: m.occupation_class ?? null, age: m.age ?? null,
+  // By the category name the census was priced under ("All employees" where the column is blank).
+  const members = input.members.filter(m => input.categories.includes(categoryName(m))).map(m => ({
+    name: m.name, category: categoryName(m), relationship: m.relationship, dob: m.dob ?? null, occupation: m.occupation_class ?? null, age: m.age ?? null,
   }))
   return { company: input.company, effectiveDate: input.effectiveDate, basis: input.basis, products, categories, members, workbook: input.priced.workbook?.name ?? null }
 }

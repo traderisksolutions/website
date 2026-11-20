@@ -64,8 +64,9 @@ function Against({ v, today }: { v: number | null; today: number | null }) {
   return <span style={{ color: d < 0 ? UP : DOWN }}>S${f0(Math.abs(d))} {d < 0 ? 'less' : 'more'}</span>
 }
 
-export function EbQuotation({ threadId }: { threadId: string | null }) {
-  const [pick, setPick] = useState<CompanyPick>({ id: null, name: '' })
+export function EbQuotation({ threadId, companyId = null }: { threadId: string | null; companyId?: string | null }) {
+  // ?company=<id> (the company page's New quotation): the name and its files arrive with the sources.
+  const [pick, setPick] = useState<CompanyPick>({ id: companyId, name: '' })
   const [sources, setSources] = useState<Source[]>([])
   const [current, setCurrent] = useState('')
   const [file, setFile] = useState<{ name: string; upload?: File; attachmentId?: string } | null>(null)

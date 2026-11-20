@@ -12,7 +12,7 @@ import { connectMailbox } from '@/lib/gmail/connect'
  * be able to bounce a freshly signed-in user to another origin.
  */
 function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/engagement'
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/today'
   return raw
 }
 

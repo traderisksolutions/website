@@ -4,6 +4,15 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Today is the home page; Employment Benefits Quotation register
+
+- Home is retired (Jarod, 20 Nov 2026). `/` redirects to `/today`; the logo, sign-in and the login page's default all land on Today. The Home map, its To do list, mail list and canvas (`src/components/home/` except `Board.tsx`) and `/api/today/home` are deleted. `/today/queue` and `/board` stay.
+- Employment Benefits tabs are New quotation (`/eb`), Quotation register (`/pricing-matrix`) and Brochures.
+- The Quotation register reads `eb_quotations`: Company, Effective date, Basis, Products, Version, Status (Draft, or Proposal sent with the day), Updated. A row opens its proposal (`/eb/proposal/<id>`). New quotation is the one primary. `GET /api/eb/quotations` without `company` lists every quotation, newest first, up to 500.
+- The company page's Employment Benefits tab lists that company's `eb_quotations`; New quotation opens `/eb?company=<id>` with the company filled.
+- The older quotations (`gb_quotations`) keep their `/pricing-matrix/quote/<id>/…` addresses. `scripts/eb-reprice-legacy.ts` re-prices them through the /eb builder into `eb_quotations` (dry run by default; `--apply` needs `20261120_eb_quotations_legacy.sql`). Neither the migration nor `--apply` has run.
+- Fix: a census without a category column kept its lives out of the proposal's census (`snapshotFrom` filtered on "Default", the categories are named "All employees"). Both now use `categoryName`.
+
 ## 2026-11-19 — Add email threads searches every email in a thread
 
 - A search asks the server, which answers only matching threads from all of them: every word, in any order, in the thread's subject, title, snippet or company, or in any email inside it (subject, sender) or the address of anyone on it. Each result shows the email that matched (`match`), so "Jiaqing" or "Chubb Deluge" finds the thread titled "Awfa — travel insurance quotation".

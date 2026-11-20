@@ -37,13 +37,15 @@ test('thread rail › Employment Benefits opens the company Compare cover; Back 
   await expect(back(tab)).toHaveAttribute('href', new RegExp(`/engagement\\?lead=${t.id}`))
 })
 
-test('Employment Benefits › Quotations › a company returns to the list, not to a company visited before', async ({ page }) => {
+test('Employment Benefits › Quotation register › a proposal returns to the register, not to a company visited before', async ({ page }) => {
   const id = await companyId(page, 'OUE')
   await openClean(page, `/companies/${id}`)
   await page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true }).first().click()
-  await page.getByRole('navigation', { name: 'Employment Benefits' }).getByRole('link', { name: 'Quotations', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Employment Benefits' }).getByRole('link', { name: 'Quotation register', exact: true }).click()
   await expect(page).toHaveURL(/\/pricing-matrix$/)
-  const row = page.locator('a[href*="/pricing-matrix/quote/"][href$="/compare"]').first()
+  const [q] = await dbRows<{ id: string }>('eb_quotations?select=id&order=created_at.desc&limit=1')
+  test.skip(!q, 'no quotation kept from /eb')
+  const row = page.locator(`a[href="/eb/proposal/${q.id}"]`)
   await expect(row).toBeVisible({ timeout: 30_000 })
   const tab = await opensTab(page, () => row.click())
   await expect(back(tab)).toHaveAttribute('href', '/pricing-matrix')

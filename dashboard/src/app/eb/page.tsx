@@ -2,7 +2,8 @@
 
 /**
  * Employment Benefits quotation by category (src/components/eb/EbQuotation.tsx). Reached from the
- * navigation and from an Inbox thread's "Open census" (?thread=<id> lists that thread's files).
+ * navigation, from an Inbox thread's "Open census" (?thread=<id> lists that thread's files) and from
+ * the company page (?company=<id> fills the company).
  */
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -20,7 +21,7 @@ function Eb() {
       <div className="mx-auto max-w-[1500px] px-6 sm:px-12 pt-8 pb-20">
         <Breadcrumbs className="mb-4" current={{ label: 'Employment Benefits', href: '/eb' }} fallback={{ label: 'Inbox', href: '/engagement' }} />
         <h1 className="m-0 mb-6 text-[32px] font-medium tracking-[-0.03em] leading-[1.1]">Employment Benefits</h1>
-        <EbQuotation threadId={p.get('thread')} />
+        <EbQuotation threadId={p.get('thread')} companyId={/^[0-9a-f-]{36}$/i.test(p.get('company') ?? '') ? p.get('company') : null} />
       </div>
     </div>
   )
