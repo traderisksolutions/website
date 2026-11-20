@@ -25,4 +25,5 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx tsc --noEmit -p tsconfig.json
       - run: npx next lint --dir src
+      - run: node scripts/check-style-drift.mjs
       - run: npx vitest run
