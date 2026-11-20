@@ -10,7 +10,8 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronRight, MessageSquare, Sparkles } from 'lucide-react'
-import { Btn, Chip, inputCls } from '@/components/crm/primitives'
+import { Btn, Chip } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { callApi, errText } from '@/components/placement/shared'
 import { useConfirm } from '@/components/ui/confirm'
 import { fmtDay, timeAgo } from '@/lib/format'
@@ -169,9 +170,9 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   return (
     <section className="bg-white scroll-mt-20" data-company={row.companyId ?? undefined}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-1.5">
-        <button type="button" onClick={onToggle} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Open'} ${row.companyName}`} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded border-0 bg-transparent text-trs-ink cursor-pointer hover:bg-trs-field">
+        <Btn size="xs" level="tertiary" onClick={onToggle} aria-expanded={open} aria-label={`${open ? 'Fold' : 'Open'} ${row.companyName}`} className="w-8 px-0 border-0 text-trs-ink hover:bg-trs-field">
           <ChevronRight size={16} className={`transition-transform ${open ? 'rotate-90' : ''}`} />
-        </button>
+        </Btn>
         {row.companyId
           ? <Link href={`/companies/${row.companyId}`} className="text-body font-semibold text-trs-ink no-underline hover:underline">{row.companyName}</Link>
           : <span className="text-body font-semibold text-trs-ink">{row.companyName}</span>}
@@ -188,14 +189,14 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
       {error && <p className="m-0 md:pl-[42px] pt-1.5 text-body text-trs-neg" role="alert">{error}</p>}
 
       {!open && (
-        <button type="button" onClick={onToggle} className="grid w-full grid-cols-1 gap-x-8 md:grid-cols-2 border-0 bg-white p-0 text-left cursor-pointer">
+        <Btn level="tertiary" onClick={onToggle} className="grid h-auto w-full grid-cols-1 items-stretch justify-stretch gap-x-8 gap-y-0 md:grid-cols-2 border-0 bg-white p-0 text-left font-normal whitespace-normal text-trs-ink hover:bg-white hover:text-trs-ink">
           {(['client', 'insurer'] as const).map(s => (
             <span key={s} className="flex min-w-0 flex-col gap-1 py-1.5 md:pl-[42px] pr-4">
               <span className="self-start"><Chip>{SIDE_LABEL[s]}</Chip></span>
               {foldSummary({ ...row, read }, s).map((l, i) => <Line key={i} l={l} />)}
             </span>
           ))}
-        </button>
+        </Btn>
       )}
 
       {open && (
@@ -216,7 +217,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
                           ? <span className="mt-[2px] w-[13px] text-trs-pos" aria-hidden>✓</span>
                           : s.op && s.draftId
                             ? <span className="mt-[2px] w-[13px]" aria-hidden />
-                            : <input type="checkbox" aria-label={s.title} checked={ticked.has(s.id)} onChange={() => setTicked(t => { const n = new Set(t); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} className="mt-[3px]" />}
+                            : <input type="checkbox" aria-label={s.title} checked={ticked.has(s.id)} onChange={() => setTicked(t => { const n = new Set(t); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n })} className="mt-[3px] accent-trs-green" />}
                         <span className="min-w-0 flex-1">
                           <Chip className="mr-1.5">{s.kind === 'action' ? 'Action' : s.party === 'insurer' ? (s.insurer ?? 'Insurer') : 'Client'}</Chip>
                           <span className="font-medium text-trs-ink">{s.title}</span>
@@ -290,7 +291,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
 function Line({ l }: { l: FoldLine }) {
   return (
     <span className="flex min-w-0 items-center gap-2 text-body">
-      <span className="h-[7px] w-[7px] flex-none rounded-full bg-trs-line-2" aria-hidden />
+      <span className="h-1.5 w-1.5 flex-none rounded-full bg-trs-line-2" aria-hidden />
       <span className="font-medium text-trs-ink whitespace-nowrap">{l.party}</span>
       {l.project && <span className="whitespace-nowrap text-trs-ink-2">{l.project}</span>}
       <span className="truncate text-trs-muted">{l.todo}</span>
@@ -323,9 +324,9 @@ function ThreadLine({ t, mine, projectsOn, projects, busy, onRemove, onProject, 
       </span>
       {editing && (
         <span className="flex flex-wrap items-center gap-2 pl-1">
-          <input aria-label="Project" list={listId} placeholder="Project, e.g. Main project" value={project} onChange={e => setProject(e.target.value)} className={`${inputCls} !h-8 w-[220px] text-body`} />
+          <Input aria-label="Project" list={listId} placeholder="Project, e.g. Main project" value={project} onChange={e => setProject(e.target.value)} className="h-8 w-[220px]" />
           <datalist id={listId}>{projects.map(p => <option key={p} value={p} />)}</datalist>
-          <input aria-label="Project description" placeholder="Description" value={note} onChange={e => setNote(e.target.value)} maxLength={160} className={`${inputCls} !h-8 w-[260px] text-body`} />
+          <Input aria-label="Project description" placeholder="Description" value={note} onChange={e => setNote(e.target.value)} maxLength={160} className="h-8 w-[260px]" />
           <Btn size="xs" onClick={async () => { if (await onProject(project, note)) setEditing(false) }} loading={busy === `project:${t.threadId}`} disabled={!!busy}>Save</Btn>
           <Btn size="xs" level="tertiary" onClick={() => { setEditing(false); setProject(t.project ?? ''); setNote(t.projectNote ?? '') }} disabled={!!busy}>Cancel</Btn>
         </span>

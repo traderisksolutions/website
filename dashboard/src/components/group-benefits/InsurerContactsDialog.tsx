@@ -6,13 +6,13 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Btn, Field, inputCls } from '@/components/crm/primitives'
+import { Btn, Field } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { normInsurer } from '@/lib/insurers'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
 import { contactsFor, loadInsurerContacts, type InsurerContact, type InsurerOption } from './InsurerEmailDialog'
 
-const MUTED = '#4a5550'
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 type Draft = { name: string; email: string }
@@ -84,8 +84,8 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
           const d = drafts[p.contact_id] ?? { name: '', email: '' }
           return (
             <div key={p.contact_id} className="grid grid-cols-1 sm:grid-cols-[1fr_1.7fr_auto] gap-2 items-end">
-              <Field label="Name"><input className={inputCls} value={d.name} onChange={e => setDrafts(s => ({ ...s, [p.contact_id]: { ...d, name: e.target.value } }))} autoComplete="off" /></Field>
-              <Field label="Email"><input className={inputCls} type="email" value={d.email} onChange={e => setDrafts(s => ({ ...s, [p.contact_id]: { ...d, email: e.target.value } }))} autoComplete="off" /></Field>
+              <Field label="Name"><Input value={d.name} onChange={e => setDrafts(s => ({ ...s, [p.contact_id]: { ...d, name: e.target.value } }))} autoComplete="off" /></Field>
+              <Field label="Email"><Input type="email" value={d.email} onChange={e => setDrafts(s => ({ ...s, [p.contact_id]: { ...d, email: e.target.value } }))} autoComplete="off" /></Field>
               <div className="flex gap-2">
                 <Btn type="button" level="tertiary" loading={busy === `rm:${p.contact_id}`} onClick={() => void call('DELETE', { insurer, contact_id: p.contact_id }, `rm:${p.contact_id}`)}>Remove</Btn>
                 <Btn type="button" level="secondary" disabled={!changed(p)} loading={busy === p.contact_id} onClick={() => save(p)}>Save</Btn>
@@ -94,9 +94,9 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
           )
         })}
 
-        <div className="pt-3 grid grid-cols-1 sm:grid-cols-[1fr_1.7fr_auto] gap-2 items-end" style={{ borderTop: '1px solid #e6e8e4' }}>
-          <Field label="New contact"><input className={inputCls} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name" autoComplete="off" /></Field>
-          <Field label="Email"><input className={inputCls} type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="name@insurer.com" autoComplete="off" /></Field>
+        <div className="pt-3 grid grid-cols-1 sm:grid-cols-[1fr_1.7fr_auto] gap-2 items-end border-t border-trs-line">
+          <Field label="New contact"><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Name" autoComplete="off" /></Field>
+          <Field label="Email"><Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="name@insurer.com" autoComplete="off" /></Field>
           <Btn type="button" level="secondary" loading={busy === 'new'} disabled={!newEmail.trim()} onClick={() => void add()}>Add</Btn>
         </div>
 

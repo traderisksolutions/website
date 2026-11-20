@@ -7,6 +7,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Field, inputCls, textareaCls, Segmented, Spinner } from '@/components/crm/primitives'
 import { Input } from '@/components/ui/input'
+import { SelectBox } from '@/components/ui/select-box'
 import { Register } from '@/components/ui/register'
 import { RichEditor, plainToHtml } from '@/components/RichEditor'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
@@ -418,12 +419,12 @@ export default function NexusPage() {
                 {visible.map(c => {
                   const on = selectedId === c.id
                   return (
-                    <button
+                    <Btn
                       key={c.id}
-                      type="button"
+                      level="tertiary"
                       aria-current={on ? 'true' : undefined}
                       onClick={() => setSelectedId(c.id)}
-                      className={cn('w-full text-left px-4 py-3 flex flex-col gap-1 border-0 cursor-pointer transition-colors', on ? 'bg-trs-field' : 'bg-transparent hover:bg-trs-tint')}
+                      className={cn('w-full h-auto text-left px-4 py-3 flex flex-col items-stretch justify-start gap-1 border-0 rounded-none font-normal whitespace-normal text-trs-ink hover:text-trs-ink', on ? 'bg-trs-field hover:bg-trs-field' : 'bg-transparent hover:bg-trs-tint')}
                     >
                       <div className="flex items-center justify-between gap-2 min-w-0">
                         <span className="text-body font-medium truncate flex-1 text-trs-ink">{c.name}</span>
@@ -434,7 +435,7 @@ export default function NexusPage() {
                         {c.last_activity && <> · {timeAgo(c.last_activity)}</>}
                         {c.description && <> · {c.description}</>}
                       </div>
-                    </button>
+                    </Btn>
                   )
                 })}
               </div>
@@ -3071,11 +3072,11 @@ function NexusStepCompose({
 
   function buildSigHtml(sig: SigOption): string {
     return [
-      '<br><hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">',
-      `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`,
-      sig.title ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '',
-      sig.phone ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '',
-      sig.email ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.email}</p>` : '',
+      '<br><hr style="margin:16px 0;border:none;border-top:1px solid #e6e8e4">', // drift-ok: email signature HTML
+      `<p style="margin:0;font-size:13px;color:#1e3a5f;font-weight:600">${sig.name}</p>`, // drift-ok: email signature HTML
+      sig.title ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.title}</p>` : '', // drift-ok: email signature HTML
+      sig.phone ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.phone}</p>` : '', // drift-ok: email signature HTML
+      sig.email ? `<p style="margin:4px 0 0;font-size:12px;color:#666">${sig.email}</p>` : '', // drift-ok: email signature HTML
     ].filter(Boolean).join('')
   }
 
@@ -3142,9 +3143,8 @@ function NexusStepCompose({
         {senders.length > 1 && (
           <label className="flex items-center gap-2">
             <span className={rowLabel}>From</span>
-            <select value={fromEmail} onChange={e => setFromEmail(e.target.value)} className={rowInput}>
-              {senders.map(s => <option key={s.email} value={s.email}>{s.label || s.email}</option>)}
-            </select>
+            <SelectBox label="From" size="md" value={fromEmail} onChange={setFromEmail} className="flex-1 w-auto h-9"
+              options={senders.map(s => ({ value: s.email, label: s.label || s.email }))} />
           </label>
         )}
 
@@ -3170,10 +3170,8 @@ function NexusStepCompose({
         {signatures.length > 0 && (
           <label className="flex items-center gap-2">
             <span className={rowLabel}>Signature</span>
-            <select value={selectedSigId} onChange={e => setSelectedSigId(e.target.value)} className={rowInput}>
-              <option value="">No signature</option>
-              {signatures.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
+            <SelectBox label="Signature" size="md" value={selectedSigId} onChange={setSelectedSigId} className="flex-1 w-auto h-9"
+              options={[{ value: '', label: 'No signature' }, ...signatures.map(s => ({ value: s.id, label: s.name }))]} />
           </label>
         )}
       </div>
@@ -3364,17 +3362,13 @@ function NexusComposeWindow({
       <div className="flex items-center justify-between gap-3 px-4 py-3 bg-white flex-shrink-0 border-t border-trs-line">
         <div className="flex items-center gap-2 min-w-0">
           {signatures.length > 0 && (
-            <select
+            <SelectBox
+              label="Signature"
               value={sigId ?? ''}
-              onChange={e => setSigId(e.target.value || null)}
-              aria-label="Signature"
-              className="h-8 max-w-[200px] rounded px-2 text-body bg-transparent border-0 outline-none cursor-pointer hover:bg-trs-field text-trs-muted"
-            >
-              <option value="">No signature</option>
-              {signatures.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+              onChange={v => setSigId(v || null)}
+              className="w-auto max-w-[200px] px-2 text-body bg-transparent border-0 hover:bg-trs-field text-trs-muted"
+              options={[{ value: '', label: 'No signature' }, ...signatures.map(s => ({ value: s.id, label: s.name }))]}
+            />
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -3529,20 +3523,19 @@ function ThreadLinkerModal({
             <span className="text-body text-trs-muted">Already linked</span>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <select
+              <SelectBox
+                label="Party type"
                 value={pty}
-                onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
-                aria-label="Party type"
-                className={cn(inputCls, 'h-8 px-2 cursor-pointer')}
-              >
-                {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
-              </select>
+                onChange={v => setPartyTypes(prev => ({ ...prev, [thread.id]: v }))}
+                className="px-2 text-body"
+                options={PARTY_TYPES.map(t => ({ value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }))}
+              />
               <Input
                 value={labels[thread.id] ?? ''}
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 placeholder="Label, e.g. QBE Marine"
                 aria-label="Party label"
-                className={cn(inputCls, 'h-8 px-2')}
+                className="h-8 px-2"
               />
             </div>
           )}

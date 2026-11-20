@@ -10,13 +10,14 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { Btn, Field, inputCls } from '@/components/crm/primitives'
+import { Btn, Field } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
+import { SelectBox } from '@/components/ui/select-box'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { normInsurer } from '@/lib/insurers'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
 
-const MUTED = '#4a5550'
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 export type InsurerOption = { id: string; name: string }
@@ -161,13 +162,11 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
         {loadError && <p className="m-0 text-small text-trs-neg" >{loadError}</p>}
 
         <Field label="Insurer">
-          <select className={inputCls} value={insurerId} onChange={e => { setInsurerId(e.target.value); setAdding(false); setError(null) }}>
-            <option value="">Choose an insurer</option>
-            {sorted.map(i => {
+          <SelectBox label="Insurer" size="md" value={insurerId} onChange={v => { setInsurerId(v); setAdding(false); setError(null) }}
+            options={[{ value: '', label: 'Choose an insurer' }, ...sorted.map(i => {
               const n = contactsFor(i.name, contacts).length
-              return <option key={i.id} value={i.id}>{shortInsurer(i.name)}{n ? ` · ${n} contact${n === 1 ? '' : 's'}` : ''}</option>
-            })}
-          </select>
+              return { value: i.id, label: `${shortInsurer(i.name)}${n ? ` · ${n} contact${n === 1 ? '' : 's'}` : ''}` }
+            })]} />
         </Field>
 
         {insurer && (
@@ -178,7 +177,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
             )}
             {people.map(p => (
               <label key={p.email} className="flex items-center gap-2.5 text-body cursor-pointer">
-                <input type="checkbox" className="accent-[#0f1412]" checked={picked.has(p.email)}
+                <input type="checkbox" className="accent-trs-ink" checked={picked.has(p.email)}
                   onChange={() => setPicked(s => { const n = new Set(s); if (n.has(p.email)) n.delete(p.email); else n.add(p.email); return n })} />
                 <span>{p.name ?? p.email}</span>
                 {p.name && <span className="text-body text-trs-muted" >{p.email}</span>}
@@ -186,25 +185,25 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
             ))}
             {adding ? (
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end">
-                <Field label="Name"><input className={inputCls} value={newName} onChange={e => setNewName(e.target.value)} placeholder="Jaclyn Gan" autoComplete="off" /></Field>
-                <Field label="Email"><input className={inputCls} type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="name@insurer.com" autoComplete="off" /></Field>
+                <Field label="Name"><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Jaclyn Gan" autoComplete="off" /></Field>
+                <Field label="Email"><Input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="name@insurer.com" autoComplete="off" /></Field>
                 <div className="flex gap-2">
                   <Btn type="button" level="tertiary" onClick={() => setAdding(false)}>Cancel</Btn>
                   <Btn type="button" level="secondary" onClick={addContact} loading={saving}>Save</Btn>
                 </div>
               </div>
             ) : (
-              <button type="button" onClick={() => setAdding(true)} className="self-start text-body bg-transparent border-0 p-0 cursor-pointer hover:underline text-trs-ink" >
+              <Btn level="tertiary" onClick={() => setAdding(true)} className="self-start h-auto border-0 p-0 font-normal text-body text-trs-ink hover:bg-transparent hover:underline" >
                 + Add contact
-              </button>
+              </Btn>
             )}
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label="Company"><input className={inputCls} value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Pte Ltd" autoComplete="off" /></Field>
-          <Field label="Policy start"><input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
-          <Field label="Lives"><input className={inputCls} value={lives} onChange={e => setLives(e.target.value)} placeholder="6 employees, 9 dependants" autoComplete="off" /></Field>
+          <Field label="Company"><Input value={company} onChange={e => setCompany(e.target.value)} placeholder="Acme Pte Ltd" autoComplete="off" /></Field>
+          <Field label="Policy start"><Input type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
+          <Field label="Lives"><Input value={lives} onChange={e => setLives(e.target.value)} placeholder="6 employees, 9 dependants" autoComplete="off" /></Field>
         </div>
 
         {error && <p className="m-0 text-small text-trs-neg" >{error}</p>}

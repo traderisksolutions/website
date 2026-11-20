@@ -23,9 +23,9 @@ import type { CalendarEvent } from '@/app/api/calendar/events/route'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
 import { useCalendarEmbedded } from '@/components/calendar/embed'
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const FAINT = '#8c958f'
+// Dot fills as token classes.
+const INK = 'bg-trs-ink'
+const FAINT = 'bg-trs-subtle'
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -207,7 +207,7 @@ export default function CalendarPage() {
           <div key={monthKey} className="animate-fade-in mt-8">
             {/* Desktop / tablet month grid */}
             <div className="hidden sm:block">
-              <div className="grid grid-cols-7 border-b border-[#e6e8e4]">
+              <div className="grid grid-cols-7 border-b border-trs-line">
                 {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-small font-medium text-trs-muted" >{w}</div>)}
               </div>
               <div className="grid grid-cols-7">
@@ -217,22 +217,22 @@ export default function CalendarPage() {
                   const visible = dayEvents.slice(0, 3)
                   const overflow = dayEvents.length - visible.length
                   return (
-                    <button
+                    <Btn
                       key={i}
-                      type="button"
+                      level="tertiary"
                       disabled={!d}
                       onClick={() => d && setSelectedDate(d)}
-                      className={cn('flex flex-col items-stretch gap-1 py-2 px-1.5 text-left min-h-[96px] bg-transparent border-0 border-b border-[#e6e8e4]', d ? 'hover:bg-[#faf9f6] cursor-pointer' : '')}
+                      className={cn('flex h-auto flex-col items-stretch justify-start gap-1 py-2 px-1.5 text-left min-h-24 rounded-none bg-transparent border-0 border-b border-trs-line font-normal text-trs-ink hover:text-trs-ink disabled:opacity-100 disabled:cursor-default', d ? 'hover:bg-trs-tint' : 'hover:bg-transparent')}
                     >
                       {d && (
                         <>
-                          <span className={cn('w-7 h-7 flex items-center justify-center rounded-full text-body self-end tabular-nums', isToday ? 'font-medium text-white' : '')} style={{ background: isToday ? INK : 'transparent', color: isToday ? '#fff' : INK }}>
+                          <span className={cn('w-7 h-7 flex items-center justify-center rounded-full text-body self-end tabular-nums', isToday ? 'font-medium bg-trs-ink text-white' : 'bg-transparent text-trs-ink')}>
                             {d.getDate()}
                           </span>
                           <div className="flex flex-col gap-0.5">
                             {visible.map(e => (
                               <span key={e.id} className="flex items-center gap-1.5 rounded px-1.5 py-[3px] text-small font-medium leading-none bg-trs-field text-trs-ink-2" title={eventKind(e)}>
-                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: eventDot(e) }} aria-hidden />
+                                <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', eventDot(e))} aria-hidden />
                                 <span className="truncate">{e.companyName ?? eventKind(e)}</span>
                               </span>
                             ))}
@@ -242,7 +242,7 @@ export default function CalendarPage() {
                           </div>
                         </>
                       )}
-                    </button>
+                    </Btn>
                   )
                 })}
               </div>
@@ -255,13 +255,13 @@ export default function CalendarPage() {
                 const d = fromISODate(key)
                 const dayEvents = byDay.get(key)!
                 return (
-                  <button key={key} type="button" onClick={() => setSelectedDate(d)} className="flex items-center justify-between py-3 text-left bg-transparent border-0 border-b border-[#e6e8e4] cursor-pointer hover:bg-[#faf9f6]">
+                  <Btn key={key} level="tertiary" onClick={() => setSelectedDate(d)} className="h-auto justify-between py-3 px-0 text-left rounded-none bg-transparent border-0 border-b border-trs-line font-normal hover:bg-trs-tint">
                     <span className="text-body text-trs-ink" >{d.toLocaleDateString('en-SG', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                     <span className="flex items-center gap-1.5">
-                      {dayEvents.slice(0, 3).map(e => <span key={e.id} className="w-1.5 h-1.5 rounded-full" style={{ background: eventDot(e) }} aria-hidden />)}
+                      {dayEvents.slice(0, 3).map(e => <span key={e.id} className={cn('w-1.5 h-1.5 rounded-full', eventDot(e))} aria-hidden />)}
                       <span className="text-body ml-1 tabular-nums text-trs-muted" >{dayEvents.length}</span>
                     </span>
-                  </button>
+                  </Btn>
                 )
               })}
             </div>
@@ -274,7 +274,7 @@ export default function CalendarPage() {
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-8">
               {LEGEND.map(l => (
                 <div key={l.label} className="flex items-center gap-2 text-small text-trs-muted" >
-                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.dot }} aria-hidden /> {l.label}
+                  <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', l.dot)} aria-hidden /> {l.label}
                 </div>
               ))}
             </div>
@@ -361,9 +361,9 @@ function DayDetailModal({ date, events, onClose }: { date: Date; events: Calenda
 /** One event in the day panel: a title row with the kind as a neutral chip, facts, then actions. */
 function EventCard({ dot, title, kind, facts, children }: { dot: string; title: string; kind: string; facts: string[]; children?: React.ReactNode }) {
   return (
-    <div className="rounded border border-[#e6e8e4] bg-white p-4 flex flex-col gap-2">
+    <div className="rounded border border-trs-line bg-white p-4 flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap text-body font-medium text-trs-ink" >
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: dot }} aria-hidden />
+        <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', dot)} aria-hidden />
         <span className="truncate">{title}</span>
         <Chip className="ml-auto">{kind}</Chip>
       </div>

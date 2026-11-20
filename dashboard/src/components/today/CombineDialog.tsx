@@ -10,12 +10,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Btn, Field, Spinner, inputCls } from '@/components/crm/primitives'
+import { Btn, Field, Spinner } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
+import { SelectBox } from '@/components/ui/select-box'
+import { Register } from '@/components/ui/register'
 import { callApi, errText } from '@/components/placement/shared'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { CASE_TYPE } from '@/components/assistant/shared'
 import { SideSelect, type From } from '@/components/cases/SideSelect'
-import { count, selectCls, tableFrame } from '@/components/cases/shared'
+import { count, selectCls } from '@/components/cases/shared'
 import { DASH, fmtDate } from '@/lib/format'
 import type { CombinePreview } from '@/lib/cases/combine'
 
@@ -116,32 +119,29 @@ export function CombineDialog({ threadIds, onClose, presetCompany = null, preset
               {target === NEW && (
                 <>
                   <Field label="Kind">
-                    <select className={fieldSelect} value={caseType} disabled={busy} onChange={e => setCaseType(e.target.value)}>
-                      {Object.entries(CASE_TYPE).map(([value, name]) => <option key={value} value={value}>{name}</option>)}
-                    </select>
+                    <SelectBox label="Kind" size="md" className="h-9" value={caseType} disabled={busy} onChange={setCaseType}
+                      options={Object.entries(CASE_TYPE).map(([value, name]) => ({ value, label: name }))} />
                   </Field>
                   <Field label="Title">
-                    <input className={inputCls} value={title} maxLength={140} disabled={busy} onChange={e => setTitle(e.target.value)} />
+                    <Input value={title} maxLength={140} disabled={busy} onChange={e => setTitle(e.target.value)} />
                   </Field>
                 </>
               )}
             </div>
-            <div className={tableFrame}>
-              <table className="trs-table" style={{ minWidth: 720 }}>
+            <Register label="Threads" minWidth={720}>
                 <thead><tr><th>Thread</th><th>Side</th><th>Filed under</th><th>Last message</th><th>On case</th></tr></thead>
                 <tbody>
                   {threads.map(t => (
                     <tr key={t.id}>
-                      <td className="cell-left px-3 max-w-[260px]"><span className="block truncate" title={t.subject ?? undefined}>{t.subject || 'No subject'}</span></td>
-                      <td className="px-2"><SideSelect subject={t.subject} value={fromOf(t)} insurers={view.insurers} disabled={busy} onChange={f => setSides(v => ({ ...v, [t.id]: f }))} /></td>
-                      <td className="cell-left px-3 max-w-[180px]">{t.company ? <span className="block truncate" title={t.company.name ?? undefined}>{t.company.name ?? 'Company'}</span> : <span className="text-trs-muted">Unfiled</span>}</td>
-                      <td className="px-3 whitespace-nowrap tabular-nums">{fmtDate(t.last_message_at)}</td>
-                      <td className="cell-left px-3 max-w-[180px]">{t.held ? <span className="block truncate" title={t.held.title ?? undefined}>{t.held.title ?? 'Open case'}</span> : <span className="text-trs-muted">{DASH}</span>}</td>
+                      <td className="cell-left max-w-[260px]"><span className="block truncate" title={t.subject ?? undefined}>{t.subject || 'No subject'}</span></td>
+                      <td><SideSelect subject={t.subject} value={fromOf(t)} insurers={view.insurers} disabled={busy} onChange={f => setSides(v => ({ ...v, [t.id]: f }))} /></td>
+                      <td className="cell-left max-w-[180px]">{t.company ? <span className="block truncate" title={t.company.name ?? undefined}>{t.company.name ?? 'Company'}</span> : <span className="text-trs-muted">Unfiled</span>}</td>
+                      <td className="whitespace-nowrap tabular-nums">{fmtDate(t.last_message_at)}</td>
+                      <td className="cell-left max-w-[180px]">{t.held ? <span className="block truncate" title={t.held.title ?? undefined}>{t.held.title ?? 'Open case'}</span> : <span className="text-trs-muted">{DASH}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Register>
           </>
         )}
         <DialogFooter className="gap-2 sm:space-x-0">

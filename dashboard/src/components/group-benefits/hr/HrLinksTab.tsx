@@ -10,7 +10,6 @@ import { SendLinkDialog, type CompanyPick } from './SendLinkDialog'
 import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkDetailResponse, type HrLinkRow, type HrLinksListResponse } from './labels'
 import type { EbPolicyRow } from '@/app/api/eb/policies/route'
 
-const MUTED = '#4a5550'
 
 /**
  * The Employee lists tab (HR links) on the Employment Benefits page: every link sent to a client's HR, its status
@@ -105,8 +104,8 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
       {notice && (
         <p className="m-0 text-body text-trs-ink-2" >
           {notice.text}{' '}
-          <button onClick={() => router.push(`/eb/hr-links/${notice.linkId}`)} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Open</button>
-          {notice.url && <>{' · '}<button onClick={() => { void navigator.clipboard?.writeText(notice.url!).catch(() => {}) }} className="bg-transparent border-0 p-0 cursor-pointer underline text-trs-ink" >Copy link</button></>}
+          <Btn level="tertiary" onClick={() => router.push(`/eb/hr-links/${notice.linkId}`)} className="h-auto border-0 p-0 font-normal text-body underline text-trs-ink hover:bg-transparent" >Open</Btn>
+          {notice.url && <>{' · '}<Btn level="tertiary" onClick={() => { void navigator.clipboard?.writeText(notice.url!).catch(() => {}) }} className="h-auto border-0 p-0 font-normal text-body underline text-trs-ink hover:bg-transparent" >Copy link</Btn></>}
         </p>
       )}
       {error && <p className="m-0 text-body text-trs-neg" >{error}</p>}
@@ -143,8 +142,8 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
                   <RegisterCell align="left" primary={<span className="text-body font-normal">{r.recipient_name}</span>} secondary={r.recipient_email} />
                   <RegisterCell><span className={CHIP}>{linkStatusWord(r)}</span></RegisterCell>
                   <RegisterCell primary={fmtDate(r.sent_at)} secondary={`valid to ${fmtDate(r.expires_at)}`} />
-                  <RegisterCell><span className="text-body tabular-nums" style={{ color: r.submitted_at ? '#0f1412' : '#8c958f' }}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>
-                  <RegisterCell align="right"><span className="text-body tabular-nums" style={{ color: n != null ? '#0f1412' : '#8c958f' }}>{n ?? '—'}</span></RegisterCell>
+                  <RegisterCell><span className={`text-body tabular-nums ${r.submitted_at ? 'text-trs-ink' : 'text-trs-subtle'}`}>{r.submitted_at ? fmtDate(r.submitted_at) : '—'}</span></RegisterCell>
+                  <RegisterCell align="right"><span className={`text-body tabular-nums ${n != null ? 'text-trs-ink' : 'text-trs-subtle'}`}>{n ?? '—'}</span></RegisterCell>
                   <RegisterCell last align="right">
                     {r.submitted_at
                       ? (policy

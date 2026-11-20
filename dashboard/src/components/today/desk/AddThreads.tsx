@@ -8,7 +8,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { Btn, InlineSpinner, Spinner, inputCls } from '@/components/crm/primitives'
+import { Btn, InlineSpinner, Segmented, Spinner } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
+import { Register } from '@/components/ui/register'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
@@ -25,7 +27,6 @@ const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
 const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
-const selCls = 'h-9 rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink'
 
 /** Threads from the search index, shaped as the list reads them; null when the index is not there. */
 async function searchIndex(q: string, signal: AbortSignal): Promise<Conv[] | null> {
@@ -139,13 +140,12 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
         <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(980px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded bg-white px-6 md:px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
-          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
+          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-trs-field text-trs-ink-2 cursor-pointer"><X size={16} /></DialogPrimitive.Close>
           <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">Add email threads</DialogPrimitive.Title>
           {suggested && suggested.length > 0 && (
             <section aria-label="Suggested" className="flex flex-col gap-1.5">
               <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-small font-semibold text-trs-green">Suggested · {suggested.length}</span>
-              <div className="max-h-[220px] overflow-auto rounded border border-trs-line-2">
-                <table className="trs-table min-w-[760px]">
+              <Register label="Suggested threads" minWidth={760} maxHeight="220px">
                   <thead><tr><th>Thread</th><th className="w-[160px]">Client</th><th className="w-[90px]">Side</th><th className="w-[240px]">Reason</th><th className="w-[150px]">Action</th></tr></thead>
                   <tbody>
                     {suggested.map(g => (
@@ -163,22 +163,21 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                       </tr>
                     ))}
                   </tbody>
-                </table>
-              </div>
+              </Register>
             </section>
           )}
-          <input type="search" aria-label="Search threads" placeholder="Search subject, people, company or email text" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          <Input type="search" aria-label="Search threads" placeholder="Search subject, people, company or email text" value={q} onChange={e => setQ(e.target.value)} autoFocus />
           {searching && <InlineSpinner label="Searching every email…" />}
-          <div className="min-h-0 flex-1 overflow-auto rounded border border-trs-line-2">
+          <div className="min-h-0 flex-1 overflow-auto">
             {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-body text-trs-muted">No threads match.</p> : (
-              <table className="trs-table min-w-[760px]">
-                <thead><tr><th className="w-10"><span className="sr-only">Add</span></th><th>Thread</th><th className="w-[92px]">Last</th><th className="w-[230px]">Client</th><th className="w-[130px]">Side</th></tr></thead>
+              <Register label="Threads" minWidth={760}>
+                <thead><tr><th className="w-10"><span className="sr-only">Add</span></th><th>Thread</th><th className="w-[92px]">Last</th><th className="w-[230px]">Client</th><th className="w-[170px]">Side</th></tr></thead>
                 <tbody>
                   {shown.map(c => {
                     const p = picked.get(c.thread_id)
                     return (
                       <tr key={c.thread_id} aria-selected={!!p}>
-                        <td><input type="checkbox" aria-label={`Add ${subjectOf(c)}`} checked={!!p} onChange={() => toggle(c)} /></td>
+                        <td><input type="checkbox" className="accent-trs-green" aria-label={`Add ${subjectOf(c)}`} checked={!!p} onChange={() => toggle(c)} /></td>
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-small text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
@@ -206,16 +205,14 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="font-mono text-small text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
                         <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-small text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>
                         <td>{p ? (
-                          <select aria-label="Side" value={p.side} onChange={e => set(c.thread_id, x => ({ ...x, side: e.target.value as DeskSide }))} className={selCls}>
-                            <option value="client">Client</option>
-                            <option value="insurer">Insurer</option>
-                          </select>
+                          <Segmented<DeskSide> label="Side" value={p.side} onChange={v => set(c.thread_id, x => ({ ...x, side: v }))}
+                            options={[{ value: 'client', label: 'Client' }, { value: 'insurer', label: 'Insurer' }]} className="flex-nowrap" />
                         ) : null}</td>
                       </tr>
                     )
                   })}
                 </tbody>
-              </table>
+              </Register>
             )}
           </div>
           {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}

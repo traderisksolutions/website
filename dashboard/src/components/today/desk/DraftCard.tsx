@@ -8,7 +8,8 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Paperclip } from 'lucide-react'
-import { Btn, Chip, InlineSpinner, inputCls, textareaCls } from '@/components/crm/primitives'
+import { Btn, Chip, InlineSpinner, textareaCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { callApi, errText } from '@/components/placement/shared'
 import { useConfirm } from '@/components/ui/confirm'
 import { toProblem } from '@/lib/email/recipients'
@@ -156,9 +157,9 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
   if (editing) return (
     <Drop onFiles={fs => uploadFiles(fs, files, saveFiles, setError, setBusy)} className={`${frame} flex flex-col gap-2 p-3.5`}>
       <div className="flex flex-wrap items-center gap-2">{threadLink}<span className="flex-1" />{updated}</div>
-      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">To<input aria-label="To" value={to} onChange={e => setTo(e.target.value)} className={inputCls} /></label>
-      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">Cc<input aria-label="Cc" value={cc} onChange={e => setCc(e.target.value)} className={inputCls} /></label>
-      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">Subject<input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} className={inputCls} /></label>
+      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">To<Input aria-label="To" value={to} onChange={e => setTo(e.target.value)} /></label>
+      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">Cc<Input aria-label="Cc" value={cc} onChange={e => setCc(e.target.value)} /></label>
+      <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-small text-trs-muted">Subject<Input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} /></label>
       <textarea aria-label="Message" value={body} onChange={e => setBody(e.target.value)} rows={Math.min(22, Math.max(8, body.split('\n').length + 1))} className={`${textareaCls} leading-[1.5] resize-y`} />
       {filesBlock}
       {commission}
@@ -184,7 +185,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       <div className="text-body font-medium text-trs-ink">{d.subject || '(no subject)'}</div>
       <div className={`text-body leading-[1.5] text-trs-ink-2 whitespace-pre-line ${full ? '' : 'line-clamp-6'}`}>{d.body}</div>
       {d.body.split('\n').length > 6 || d.body.length > 480
-        ? <button type="button" onClick={() => setFull(f => !f)} aria-expanded={full} className="self-start border-0 bg-transparent p-0 text-small text-trs-green-2 underline underline-offset-[3px] cursor-pointer">{full ? 'Show less' : 'Show full email'}</button>
+        ? <Btn level="tertiary" onClick={() => setFull(f => !f)} aria-expanded={full} className="self-start h-auto border-0 bg-transparent p-0 font-normal text-small text-trs-green-2 underline underline-offset-[3px] hover:bg-transparent hover:text-trs-green-2">{full ? 'Show less' : 'Show full email'}</Btn>
         : null}
       {filesBlock}
       {commission}
@@ -194,7 +195,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       <div className="mt-1 flex flex-wrap items-center justify-end gap-2">
         <span className="mr-auto">
           <InlineConfirm label="Discard and redo" question="Discard and write again?" action="Redo" danger={false} onConfirm={redo} busy={busy === 'redo'} disabled={!!busy && busy !== 'redo'}>
-            <input aria-label="What to change" placeholder="What to change (optional)" value={note} onChange={e => setNote(e.target.value)} className={`${inputCls} !h-8 w-[220px] text-body`} />
+            <Input aria-label="What to change" placeholder="What to change (optional)" value={note} onChange={e => setNote(e.target.value)} className="h-8 w-[220px]" />
           </InlineConfirm>
         </span>
         <Btn size="xs" onClick={() => setEditing(true)} disabled={!!busy}>Edit</Btn>
@@ -261,7 +262,7 @@ function DraftFiles({ files, busy, disabled, ownThread, threads, onAdd, onRemove
         <Btn size="xs" level="tertiary" onClick={() => setPicking(p => !p)} aria-expanded={picking} disabled={disabled || busy}><Paperclip size={13} /> {picking ? 'Close files' : 'Add file'}</Btn>
         <span className="text-small text-trs-subtle">{files.length ? `${files.length} attached · ` : ''}drop files here</span>
         {busy && <InlineSpinner label="Saving files…" />}
-        <input ref={input} type="file" multiple hidden aria-label="Upload files" onChange={e => {
+        <Input ref={input} type="file" multiple hidden className="hidden" aria-label="Upload files" onChange={e => {
           const list = Array.from(e.target.files ?? [])
           e.target.value = ''
           if (!list.length) return
@@ -284,7 +285,7 @@ function DraftFiles({ files, busy, disabled, ownThread, threads, onAdd, onRemove
           {!found ? <InlineSpinner label="Reading the threads’ files…" />
             : offered.length === 0 ? <span className="text-small text-trs-muted">No other files on these threads.</span>
               : (
-                <ul className="m-0 flex max-h-[220px] list-none flex-col gap-1 overflow-auto p-0">
+                <ul className="m-0 flex max-h-56 list-none flex-col gap-1 overflow-auto p-0">
                   {offered.slice(0, 40).map(f => {
                     const href = previewHref(f)
                     return (

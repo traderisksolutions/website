@@ -8,11 +8,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Field, inputCls } from '@/components/crm/primitives'
+import { Btn, Field } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 
 export type CompanyPick = { id: string | null; name: string }
 type CompanyHit = { id: string; name: string; domain?: string | null }
-const MUTED = '#4a5550'
 
 export function CompanyField({ value, onChange, allowCreate = false, label = 'Company', listId = 'company-options' }: { value: CompanyPick; onChange: (v: CompanyPick) => void; allowCreate?: boolean; label?: string; listId?: string }) {
   const [hits, setHits] = useState<CompanyHit[]>([])
@@ -64,7 +64,7 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
       <Field label={label} hint={hint}>
         <span className="relative block">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-trs-subtle" />
-          <input
+          <Input
             value={value.name} role="combobox" aria-expanded={open} aria-controls={listId} aria-label={label} autoComplete="off"
             onFocus={() => { if (hits.length || canCreate) setOpen(true) }}
             onChange={e => { onChange({ id: null, name: e.target.value }); setOpen(true); search(e.target.value) }}
@@ -74,28 +74,27 @@ export function CompanyField({ value, onChange, allowCreate = false, label = 'Co
               else if (e.key === 'Enter' && open && hits[active]) { e.preventDefault(); pick(hits[active]) }
               else if (e.key === 'Escape') setOpen(false)
             }}
-            placeholder="Search companies or type a name" className={cn(inputCls, 'pl-9')} />
+            placeholder="Search companies or type a name" className="pl-9" />
         </span>
       </Field>
       {open && (hits.length > 0 || canCreate) && (
         <ul id={listId} role="listbox"
-          className="absolute left-0 top-full mt-1 z-30 w-full max-h-[260px] overflow-auto rounded bg-white p-1.5 m-0 list-none"
-          style={{ border: '1px solid #e6e8e4', boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+          className="absolute left-0 top-full mt-1 z-30 w-full max-h-64 overflow-auto rounded bg-white p-1.5 m-0 list-none border border-trs-line shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
           {hits.map((h, i) => (
             <li key={h.id} role="option" aria-selected={i === active}>
-              <button type="button" onMouseEnter={() => setActive(i)} onClick={() => pick(h)}
-                className={cn('w-full text-left px-3 py-2 rounded border-0 cursor-pointer', i === active ? 'bg-[#f1f2ee]' : 'bg-transparent')}>
+              <Btn level="tertiary" onMouseEnter={() => setActive(i)} onClick={() => pick(h)}
+                className={cn('h-auto w-full flex-col items-stretch justify-start gap-0 text-left px-3 py-2 border-0 font-normal whitespace-normal text-trs-ink hover:bg-trs-field', i === active ? 'bg-trs-field' : 'bg-transparent')}>
                 <span className="block text-body truncate text-trs-ink" >{h.name}</span>
                 {h.domain && <span className="block text-small truncate text-trs-muted" >{h.domain}</span>}
-              </button>
+              </Btn>
             </li>
           ))}
           {canCreate && (
             <li role="option" aria-selected={false}>
-              <button type="button" onClick={() => void create()} disabled={creating}
-                className="w-full text-left px-3 py-2 rounded border-0 cursor-pointer bg-transparent inline-flex items-center gap-2 text-body text-trs-ink" >
+              <Btn level="tertiary" onClick={() => void create()} disabled={creating}
+                className="h-auto w-full justify-start text-left px-3 py-2 border-0 bg-transparent gap-2 font-normal text-body text-trs-ink hover:bg-trs-field" >
                 <Plus size={14} /> {creating ? 'Adding…' : `Add "${value.name.trim()}" as a new company`}
-              </button>
+              </Btn>
             </li>
           )}
         </ul>

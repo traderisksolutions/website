@@ -13,7 +13,6 @@ import {
   eventSentence, fmtDate, fmtDateTime, fmtDob, linkIsOpen, linkStatusWord, type HrLinkDetailResponse,
 } from '@/components/group-benefits/hr/labels'
 
-const MUTED = '#4a5550'
 
 type ListRow = {
   key: string; name: string; relationship: 'self' | 'spouse' | 'child'; parent: string | null
@@ -160,12 +159,12 @@ export default function HrLinkPage() {
                   {rows.map(r => (
                     <RegisterRow key={r.key}>
                       <RegisterCell first identityWidth={240}
-                        primary={<span className={r.inactive ? 'font-normal' : undefined} style={r.inactive ? { color: MUTED } : undefined}>{r.name}</span>}
+                        primary={<span className={r.inactive ? 'font-normal text-trs-muted' : undefined}>{r.name}</span>}
                         secondary={r.parent ? `dependant of ${r.parent}` : r.inactive ? 'inactive' : r.issues.length ? r.issues.join(' · ') : undefined} />
                       <RegisterCell><span className="text-body text-trs-ink-2" >{RELATIONSHIP_LABEL[r.relationship] ?? r.relationship}</span></RegisterCell>
-                      <RegisterCell><span className="text-body" style={{ color: r.category ? '#2a332f' : '#8c958f' }}>{r.category ?? '—'}</span></RegisterCell>
-                      <RegisterCell><span className="text-body tabular-nums" style={{ color: r.dob ? '#2a332f' : MUTED }}>{fmtDob(r.dob)}</span></RegisterCell>
-                      <RegisterCell><span className="text-body" style={{ color: r.workPass ? '#2a332f' : '#8c958f' }}>{r.workPass ?? '—'}</span></RegisterCell>
+                      <RegisterCell><span className={`text-body ${r.category ? 'text-trs-ink-2' : 'text-trs-subtle'}`}>{r.category ?? '—'}</span></RegisterCell>
+                      <RegisterCell><span className={`text-body tabular-nums ${r.dob ? 'text-trs-ink-2' : 'text-trs-muted'}`}>{fmtDob(r.dob)}</span></RegisterCell>
+                      <RegisterCell><span className={`text-body ${r.workPass ? 'text-trs-ink-2' : 'text-trs-subtle'}`}>{r.workPass ?? '—'}</span></RegisterCell>
                       <RegisterCell last><span className="text-body text-trs-ink-2" >{r.relationship === 'self' ? (sourceWord ?? '—') : 'Entered by HR'}</span></RegisterCell>
                     </RegisterRow>
                   ))}

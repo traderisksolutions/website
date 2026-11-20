@@ -19,6 +19,7 @@ import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { uploadToDrive } from '@/lib/upload-attachment'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { Btn, Chip, LinkBtn, Segmented } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { PlanRules } from '@/components/group-benefits/PlanRules'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
@@ -187,7 +188,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
               {tables.map(t => (
                 <RegisterRow key={t.id} onClick={() => router.push(`/eb/rates/${t.id}`)}>
                   <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
-                  <RegisterCell><span className="text-body tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                  <RegisterCell><span className={`text-body tabular-nums ${t.plan_year ? 'text-trs-ink' : 'text-trs-subtle'}`}>{t.plan_year ?? '—'}</span></RegisterCell>
                   <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <Chip title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</Chip> })()}</RegisterCell>
                   <RegisterCell align="left" nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
                   <RegisterCell last>
@@ -270,12 +271,12 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
         <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
-          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
+          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-trs-field text-trs-ink-2 cursor-pointer"><X size={16} /></DialogPrimitive.Close>
           <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">Upload insurer rate PDF</DialogPrimitive.Title>
-          <label className="flex flex-col items-center justify-center gap-2 rounded py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
+          <label className="flex flex-col items-center justify-center gap-2 rounded py-10 cursor-pointer bg-trs-field hover:bg-trs-line">
             <UploadCloud size={24} className="text-trs-muted" />
             <span className="text-body font-medium">{file ? file.name : 'Choose a PDF'}</span>
-            <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+            <Input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
           </label>
           {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
           <div className="flex justify-end gap-2">

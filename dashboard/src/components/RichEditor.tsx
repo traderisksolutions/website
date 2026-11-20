@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 import { TbGroup, TbButton, TbMenu, TbMenuItem, TbMenuLabel } from '@/components/engagement-agent/compose-toolbar'
 import 'quill/dist/quill.snow.css'
 import 'quill-table-better/dist/quill-table-better.css'
@@ -55,8 +56,8 @@ interface RichEditorProps {
 
 const FONTS = ['Inter', 'Arial', 'Georgia', 'Times New Roman', 'Courier New', 'Verdana']
 const SIZES = ['10px', '12px', '14px', '16px', '18px', '24px', '32px']
-const TEXT_COLOURS = ['#202124', '#3c4043', '#5f6368', '#80868b', '#c5221f', '#1a73e8', '#188038', '#b06000']
-const HIGHLIGHTS   = ['#FFF6D8', '#EAF2FF', '#EAF6EC', '#F1EEFF', '#FFF0E7']
+const TEXT_COLOURS = ['#202124', '#3c4043', '#5f6368', '#80868b', '#c5221f', '#1a73e8', '#188038', '#b06000'] // drift-ok: written into email HTML
+const HIGHLIGHTS   = ['#FFF6D8', '#EAF2FF', '#EAF6EC', '#F1EEFF', '#FFF0E7'] // drift-ok: written into email HTML
 const HEADERS: { label: string; value: 1 | 2 | 3 | false }[] = [
   { label: 'Paragraph', value: false }, { label: 'Heading 1', value: 1 }, { label: 'Heading 2', value: 2 }, { label: 'Heading 3', value: 3 },
 ]
@@ -68,7 +69,7 @@ const MOD = IS_MAC ? '⌘' : 'Ctrl+'
 // with its own scrollbar; the wrapper below is the single scroller, so both go back to auto.
 const EDITOR_CSS = `
 .trs-re .ql-container.ql-snow{border:none!important;height:auto;font-family:inherit;font-size:inherit;margin:0}
-.trs-re .ql-editor{height:auto;overflow:visible;outline:none;color:#202124;font-family:inherit;white-space:pre-wrap;tab-size:4}
+.trs-re .ql-editor{height:auto;overflow:visible;outline:none;color:var(--trs-ink);font-family:inherit;white-space:pre-wrap;tab-size:4}
 .trs-re[data-variant="compact"] .ql-editor{font-size:14px;line-height:1.6;padding:12px 14px}
 .trs-re[data-variant="compact"][data-borderless="true"] .ql-editor{padding:14px 0 8px}
 .trs-re[data-variant="reading"] .ql-editor{font-size:16px;line-height:1.6;padding:16px var(--re-gutter,40px) 8px}
@@ -77,11 +78,11 @@ const EDITOR_CSS = `
 .trs-re .ql-editor h1{font-size:1.5em;font-weight:500;letter-spacing:-.02em;margin:0 0 12px}
 .trs-re .ql-editor h2{font-size:1.25em;font-weight:500;letter-spacing:-.01em;margin:0 0 10px}
 .trs-re .ql-editor h3{font-size:1.1em;font-weight:500;margin:0 0 8px}
-.trs-re .ql-editor blockquote{border-left:2px solid #e8eaed;margin:0 0 14px;padding-left:16px;color:#3c4043}
-.trs-re .ql-editor a{color:#202124;text-decoration:underline;text-decoration-color:#9aa0a6;text-underline-offset:3px}
-.trs-re .ql-editor hr{border:0;border-top:1px solid #e8eaed;margin:16px 0}
+.trs-re .ql-editor blockquote{border-left:2px solid var(--trs-line);margin:0 0 14px;padding-left:16px;color:var(--trs-ink-2)}
+.trs-re .ql-editor a{color:var(--trs-ink);text-decoration:underline;text-decoration-color:var(--trs-subtle);text-underline-offset:3px}
+.trs-re .ql-editor hr{border:0;border-top:1px solid var(--trs-line);margin:16px 0}
 .trs-re .ql-editor img{max-width:100%;height:auto;display:block;margin:8px 0;border-radius:4px}
-.trs-re .ql-editor.ql-blank::before{color:#80868b;font-style:normal;left:auto;right:auto}
+.trs-re .ql-editor.ql-blank::before{color:var(--trs-subtle);font-style:normal;left:auto;right:auto}
 .trs-re[data-variant="compact"] .ql-editor.ql-blank::before{left:14px}
 .trs-re[data-variant="compact"][data-borderless="true"] .ql-editor.ql-blank::before{left:0}
 .trs-re[data-variant="reading"] .ql-editor.ql-blank::before{left:var(--re-gutter,40px)}
@@ -338,9 +339,9 @@ export function RichEditor({
   const Swatch = ({ colour, on, label, onPick }: { colour: string | null; on: boolean; label: string; onPick: () => void }) => (
     <button type="button" role="menuitemradio" aria-checked={on} aria-label={label} title={label}
       onMouseDown={e => e.preventDefault()} onClick={onPick}
-      className={cn('w-6 h-6 rounded-full border cursor-pointer inline-flex items-center justify-center bg-white', on ? 'border-[#202124] ring-2 ring-[#202124]/20' : 'border-[#dadce0] hover:border-[#9aa0a6]')}
-      style={colour ? { background: colour } : undefined}>
-      {!colour && <Minus size={12} strokeWidth={2} className="text-[#5f6368]" aria-hidden />}
+      className={cn('w-6 h-6 rounded-full border cursor-pointer inline-flex items-center justify-center bg-white', on ? 'border-trs-ink ring-2 ring-[rgba(15,20,18,0.2)]' : 'border-trs-line-2 hover:border-trs-subtle')}
+      style={colour ? { background: colour } : undefined} /* drift-ok: swatch fill is the colour it writes into email HTML */>
+      {!colour && <Minus size={12} strokeWidth={2} className="text-trs-muted" aria-hidden />}
     </button>
   )
 
@@ -350,7 +351,7 @@ export function RichEditor({
       data-borderless={borderless ? 'true' : 'false'}
       className={cn(
         'trs-re flex flex-col min-w-0',
-        borderless ? '' : 'border border-[#dadce0] rounded bg-white overflow-hidden',
+        borderless ? '' : 'border border-trs-line-2 rounded bg-white overflow-hidden',
         className,
       )}
     >
@@ -358,7 +359,7 @@ export function RichEditor({
 
       {/* ── Toolbar — grouped, one calm row, wraps on narrow ── */}
       <div role="toolbar" aria-label="Formatting" className={cn(
-        'flex items-center gap-0.5 flex-wrap py-2 border-b border-[#e8eaed]',
+        'flex items-center gap-0.5 flex-wrap py-2 border-b border-trs-line',
         variant === 'reading' ? 'px-[var(--re-gutter,40px)]' : (borderless ? 'px-0' : 'px-2'),
       )}>
         <TbGroup label="Paragraph style">
@@ -395,7 +396,7 @@ export function RichEditor({
         <TbGroup label="Font">
           <TbMenu label="Font family" trigger={fontLabel} width={190}>
             {close => FONTS.map(f => (
-              <TbMenuItem key={f} active={(fmt.font ?? 'Inter') === f} onSelect={() => { apply('font', f === 'Inter' ? false : f); close() }} style={{ fontFamily: f === 'Inter' ? undefined : f }}>{f}</TbMenuItem>
+              <TbMenuItem key={f} active={(fmt.font ?? 'Inter') === f} onSelect={() => { apply('font', f === 'Inter' ? false : f); close() }} style={{ fontFamily: f === 'Inter' ? undefined : f }} /* drift-ok: font preview of a choice written into email HTML */>{f}</TbMenuItem>
             ))}
           </TbMenu>
           <TbMenu label="Font size" trigger={sizeLabel} width={110}>
@@ -467,7 +468,7 @@ export function RichEditor({
           )}
         </TbGroup>
 
-        <input
+        <Input
           ref={fileInputRef}
           type="file"
           accept="image/jpeg,image/png,image/gif,image/webp"
@@ -487,9 +488,8 @@ export function RichEditor({
             would double up with the hairline above, so it is stripped here only. */}
         {sigHtml && (
           <div
-            style={{ pointerEvents: 'none', userSelect: 'none', opacity: 0.7 }}
             className={cn(
-              'border-t border-[#e8eaed] pt-3 pb-3',
+              'pointer-events-none select-none opacity-70 border-t border-trs-line pt-3 pb-3',
               variant === 'reading' ? 'mx-[var(--re-gutter,40px)]' : (borderless ? 'mx-0' : 'mx-3.5'),
             )}
             dangerouslySetInnerHTML={{ __html: sigHtml.replace(/^\s*(<br\s*\/?>)?\s*<hr[^>]*>/i, '') }}

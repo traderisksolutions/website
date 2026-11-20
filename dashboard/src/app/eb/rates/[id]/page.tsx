@@ -11,6 +11,10 @@ import { PRODUCT_BY_CODE } from '@/lib/gb/canon'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { cn } from '@/lib/utils'
 import { useConfirm } from '@/components/ui/confirm'
+import { Btn, Segmented, btnClass, inputCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
+import { SelectBox } from '@/components/ui/select-box'
+import { Register } from '@/components/ui/register'
 import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
@@ -183,9 +187,8 @@ export default function GbReviewPage() {
   const sources = (((d.table.rules as { sources?: { driveFileId: string; filename: string; kind: string; insurer?: string; planYear?: string | null }[] } | null)?.sources) ?? [])
   const brochure = sources.find(x => x.kind === 'brochure') ?? sources.find(x => /\.pdf$/i.test(x.filename))
   const ver = verificationOf(d.table.rules)
-  const mi = 'w-full text-small border border-border rounded px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-primary/25'
-  const ci = 'w-full text-small px-1.5 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white'
-  const btn = 'flex items-center gap-1.5 text-small font-medium px-2.5 py-1.5 rounded text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50'
+  const ci = 'h-auto w-full text-small px-1.5 py-0.5 border-transparent hover:border-border focus-visible:border-trs-ink'
+  const btn = cn(btnClass('tertiary', 'xs'), 'px-2.5 no-underline')
   const insurerLabel = meta.insurer_name || t.insurer_name || 'Insurer'
   const editable = status === 'in_review' || editing   // cells + metadata are editable in review, or when explicitly editing an approved table
   const reading = !editable && status !== 'extracting'
@@ -206,38 +209,36 @@ export default function GbReviewPage() {
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {dirty && <span className="text-small font-medium text-[#2a332f] mr-2">Unsaved changes</span>}
-          {msg && !dirty && <span className={cn('text-small mr-2', /fail/i.test(msg) ? 'text-[#a1242f]' : 'text-[#2a332f]')}>{msg}</span>}
+          {dirty && <span className="text-small font-medium text-trs-ink-2 mr-2">Unsaved changes</span>}
+          {msg && !dirty && <span className={cn('text-small mr-2', /fail/i.test(msg) ? 'text-trs-neg' : 'text-trs-ink-2')}>{msg}</span>}
           {/* One document button and one menu. Status sits in the line under the name. */}
           {brochure
             ? <a href={`/api/group-benefits/sources/file/${brochure.driveFileId}`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> Brochure</a>
             : d.table.source_pdf_url ? <a href={`/api/group-benefits/rate-tables/${id}/pdf`} target="_blank" rel="noopener noreferrer" className={btn}><FileText size={13} /> PDF</a> : null}
-          {status === 'draft' && <button type="button" onClick={() => void reExtract()} className={btn}><RefreshCw size={13} /> Read rate table</button>}
+          {status === 'draft' && <Btn size="xs" level="tertiary" onClick={() => void reExtract()} className="px-2.5"><RefreshCw size={13} /> Read rate table</Btn>}
           {!editing && status !== 'extracting' && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className={btn} aria-label="More actions"><MoreHorizontal size={15} /></button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger className={btn} aria-label="More actions"><MoreHorizontal size={15} /></DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[200px]">
                 <DropdownMenuItem onSelect={() => router.push(`/eb/rates/${id}/schedule`)}><ListChecks size={13} className="mr-2" /> Review benefit schedule</DropdownMenuItem>
                 {status === 'approved' && <DropdownMenuItem onSelect={() => setEditing(true)}><Pencil size={13} className="mr-2" /> Edit rates</DropdownMenuItem>}
                 <DropdownMenuItem onSelect={() => reExtract()} disabled={!!saving}><RefreshCw size={13} className="mr-2" /> Re-run extraction</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => del()} className="text-[#a1242f]"><Trash2 size={13} className="mr-2" /> Delete</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => del()} className="text-trs-neg"><Trash2 size={13} className="mr-2" /> Delete</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
           {(status === 'in_review' || editing) && (
             <>
               <span className="w-px h-5 bg-border mx-1.5" />
-              {editing && <button onClick={cancelEdit} disabled={!!saving} className={btn}><X size={13} /> Cancel</button>}
-              <button onClick={() => save(false)} disabled={!!saving} className={btn}>
+              {editing && <Btn size="xs" level="tertiary" onClick={cancelEdit} disabled={!!saving} className="px-2.5"><X size={13} /> Cancel</Btn>}
+              <Btn size="xs" level="tertiary" onClick={() => save(false)} disabled={!!saving} className="px-2.5">
                 {saving === 'save' ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} {editing ? 'Save changes' : 'Save'}
-              </button>
+              </Btn>
               {status === 'in_review' && (
-                <button onClick={() => save(true)} disabled={!!saving} className="flex items-center gap-1.5 text-body font-medium h-9 px-4 rounded bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
+                <Btn size="xs" level="primary" onClick={() => save(true)} disabled={!!saving}>
                   {saving === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />} Approve
-                </button>
+                </Btn>
               )}
             </>
           )}
@@ -247,16 +248,11 @@ export default function GbReviewPage() {
       {/* One tab per cover the insurer prices, in the canon's order, then its benefits and its
           documents. Reading only: review and edit keep every section on one page. */}
       {reading && (
-        <div className="mb-6 flex items-center gap-6 overflow-x-auto" style={{ borderBottom: '1px solid #e6e8e4' }} role="tablist">
-          {[...productTabs, 'benefits', 'documents'].map(tab => (
-            <button key={tab} role="tab" aria-selected={current === tab} onClick={() => setView(tab)}
-              className={cn('relative pb-2.5 text-body bg-transparent border-0 p-0 cursor-pointer whitespace-nowrap flex-shrink-0', current === tab ? 'font-medium text-[#0f1412]' : 'text-[#4a5550] hover:text-[#0f1412]')}>
-              {tab === 'benefits' ? 'Benefits' : tab === 'documents' ? `Documents${sources.length ? ` · ${sources.length}` : ''}` : tab}
-              {tab !== 'benefits' && tab !== 'documents' && tabLabel(tab) && <span className="ml-1.5 text-small font-normal text-trs-subtle" >{tabLabel(tab)}</span>}
-              {current === tab && <span className="absolute left-0 right-0 -bottom-px h-[2px] rounded-full bg-[#0f1412]" aria-hidden />}
-            </button>
-          ))}
-        </div>
+        <Segmented variant="tabs" className="mb-6" label="Sections" value={current} onChange={setView}
+          options={[...productTabs, 'benefits', 'documents'].map(tab => ({
+            value: tab,
+            label: tab === 'benefits' ? 'Benefits' : tab === 'documents' ? `Documents${sources.length ? ` · ${sources.length}` : ''}` : tabLabel(tab) ? `${tab} ${tabLabel(tab)}` : tab,
+          }))} />
       )}
 
       {reading && current === 'documents' && (
@@ -265,7 +261,7 @@ export default function GbReviewPage() {
             <p className="text-body text-trs-muted" >No documents linked.</p>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="rounded border border-[#e6e8e4] divide-y divide-[#f1f2ee]">
+              <div className="rounded border border-trs-line divide-y divide-trs-field">
                 {sources.map(f => (
                   <div key={f.driveFileId} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0">
@@ -274,18 +270,18 @@ export default function GbReviewPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {/\.pdf$/i.test(f.filename) && (
-                        <button onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)} className="text-small px-3 py-1.5 rounded border border-[#d5d9d4] hover:bg-[#faf9f6]">
+                        <Btn size="xs" onClick={() => setPreviewId(previewId === f.driveFileId ? null : f.driveFileId)}>
                           {previewId === f.driveFileId ? 'Hide preview' : 'Preview'}
-                        </button>
+                        </Btn>
                       )}
-                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className="inline-flex items-center gap-1.5 text-small px-3 py-1.5 rounded border border-[#d5d9d4] hover:bg-[#faf9f6]"><Download size={13} /> Download</a>
+                      <a href={`/api/group-benefits/sources/file/${f.driveFileId}?download=1`} className={cn(btnClass('secondary', 'xs'), 'no-underline')}><Download size={13} /> Download</a>
                     </div>
                   </div>
                 ))}
               </div>
               {(previewId ?? (brochure && /\.pdf$/i.test(brochure.filename) ? brochure.driveFileId : null)) && (
                 <iframe title="Document preview" src={`/api/group-benefits/sources/file/${previewId ?? brochure!.driveFileId}`}
-                        className="w-full h-[78vh] min-h-[480px] rounded" style={{ border: '1px solid #e6e8e4' }} />
+                        className="w-full h-[78vh] min-h-[480px] rounded border border-trs-line" />
               )}
             </div>
           )}
@@ -300,7 +296,7 @@ export default function GbReviewPage() {
               <label className="text-small text-muted-foreground/60">Insurer</label>
               <select value={insurerCompanyId} aria-label="Insurer"
                 onChange={e => { const cid = e.target.value; setMeta(m => ({ ...m, insurer_company_id: cid, insurer_name: insurers.find(i => i.id === cid)?.name ?? m.insurer_name })) }}
-                className={`${mi} mt-1`}>
+                className={cn(inputCls, 'mt-1')}>
                 <option value="">{meta.insurer_name && !insurerCompanyId ? `${meta.insurer_name} — not in Companies` : 'Choose an insurer…'}</option>
                 {insurers.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
               </select>
@@ -310,18 +306,16 @@ export default function GbReviewPage() {
             </div>
             <div>
               <label className="text-small text-muted-foreground/60">Age basis</label>
-              <select value={meta.age_basis ?? 'next_birthday'} onChange={e => setMeta(m => ({ ...m, age_basis: e.target.value }))} className={`${mi} mt-1`}>
-                <option value="next_birthday">Next birthday</option>
-                <option value="last_birthday">Last birthday</option>
-              </select>
+              <Segmented label="Age basis" className="mt-1" value={meta.age_basis ?? 'next_birthday'} onChange={v => setMeta(m => ({ ...m, age_basis: v }))}
+                options={[{ value: 'next_birthday', label: 'Next birthday' }, { value: 'last_birthday', label: 'Last birthday' }]} />
             </div>
             <div>
               <label className="text-small text-muted-foreground/60">Plan year</label>
-              <input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className={`${mi} mt-1`} />
+              <Input value={meta.plan_year ?? ''} onChange={e => setMeta(m => ({ ...m, plan_year: e.target.value }))} placeholder="2026" className="mt-1" />
             </div>
             <div>
               <label className="text-small text-muted-foreground/60">Effective date</label>
-              <input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className={`${mi} mt-1`} />
+              <Input type="date" value={meta.effective_date ?? ''} onChange={e => setMeta(m => ({ ...m, effective_date: e.target.value }))} className="mt-1" />
             </div>
           </div>
         </div>
@@ -331,13 +325,13 @@ export default function GbReviewPage() {
         const stage = (d.table as { extract_stage?: string | null }).extract_stage ?? 'reading'
         const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
         return (
-          <div className="rounded border border-[#e6e8e4] bg-[#faf9f6] px-4 py-3.5">
-            <p className="text-small font-semibold text-[#2a332f] mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+          <div className="rounded border border-trs-line bg-trs-tint px-4 py-3.5">
+            <p className="text-small font-semibold text-trs-ink-2 mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
             <div className="flex flex-col gap-1.5">
               {STAGES.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2 text-small">
-                  {i < cur ? <CheckCircle2 size={14} className="text-[#2a332f] flex-shrink-0" />
-                    : i === cur ? <Loader2 size={14} className="animate-spin text-[#2a332f] flex-shrink-0" />
+                  {i < cur ? <CheckCircle2 size={14} className="text-trs-ink-2 flex-shrink-0" />
+                    : i === cur ? <Loader2 size={14} className="animate-spin text-trs-ink-2 flex-shrink-0" />
                     : <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 flex-shrink-0" />}
                   <span className={cn(i <= cur ? 'text-foreground/80 font-medium' : 'text-muted-foreground/50')}>{s.label}</span>
                 </div>
@@ -359,7 +353,7 @@ export default function GbReviewPage() {
                 if (!e) return null
                 return (
                   <span key={k} className={cn('px-2 py-0.5 rounded font-medium',
-                    e.error ? 'bg-[#f1f2ee] text-[#2a332f]' : 'bg-muted text-muted-foreground')}
+                    e.error ? 'bg-trs-field text-trs-ink-2' : 'bg-muted text-muted-foreground')}
                     title={e.error ?? ''}>
                     {({ opus: 'first read', gemini: 'second read', parser: 'text parser' } as const)[k]}: {e.error ? 'failed' : `${e.rates} cells`}
                   </span>
@@ -370,7 +364,7 @@ export default function GbReviewPage() {
 
           {/* Conflict summary — only when there is something to verify, or while reviewing */}
           {(d.conflicts.length > 0 || !reading) && <div className={cn('flex items-center gap-2 rounded px-4 py-2.5 mb-5 text-small',
-            d.conflicts.length ? 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]' : 'bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]')}>
+            'bg-trs-tint border border-trs-line text-trs-ink-2')}>
             {d.conflicts.length ? <AlertTriangle size={15} /> : <CheckCircle2 size={15} />}
             {d.confidence != null && <span className="font-semibold">{d.confidence}% agreement</span>}
             <span>· {d.conflicts.length} cell{d.conflicts.length === 1 ? '' : 's'} to verify (highlighted below){rates.length ? ` · ${rates.length} rates` : ''}</span>
@@ -379,11 +373,11 @@ export default function GbReviewPage() {
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
           {(d.wordingDiff?.length ?? 0) > 0 && (
-            <div className="rounded px-4 py-3 mb-5 text-small bg-[#faf9f6] border border-[#e6e8e4] text-[#2a332f]">
+            <div className="rounded px-4 py-3 mb-5 text-small bg-trs-tint border border-trs-line text-trs-ink-2">
               <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
               <ul className="flex flex-col gap-0.5">
                 {d.wordingDiff!.map((w, i) => (
-                  <li key={i} className="text-[#2a332f]">
+                  <li key={i} className="text-trs-ink-2">
                     <span className="font-medium">{w.path}</span>: {w.from == null ? <em>added</em> : w.to == null ? <em>removed</em> : <>&ldquo;{String(w.from)}&rdquo; → &ldquo;{String(w.to)}&rdquo;</>}
                   </li>
                 ))}
@@ -393,7 +387,7 @@ export default function GbReviewPage() {
 
           {rates.length === 0 && (
             <div className="text-center py-12 text-muted-foreground text-body">
-              No rates were extracted. Check the extractor statuses above (API keys / model access), then <button onClick={reExtract} className="text-[#0f1412] underline">re-run</button>.
+              No rates were extracted. Check the extractor statuses above (API keys / model access), then <Btn level="tertiary" onClick={reExtract} className="h-auto p-0 border-0 font-normal text-body text-trs-ink underline align-baseline hover:bg-transparent hover:text-trs-ink">re-run</Btn>.
             </div>
           )}
 
@@ -410,8 +404,8 @@ export default function GbReviewPage() {
                 for (const r of mtRates) cell.set(`${r.band_label}|${r.plan_code}`, r)
                 return (
                   <div key={mt} className="mb-5">
-                    {mtLabel(mt || null) && <p className="text-small text-[#4a5550] mb-2">{mtLabel(mt || null)}</p>}
-                    <div className="rounded border border-border overflow-x-auto">
+                    {mtLabel(mt || null) && <p className="text-small text-trs-muted mb-2">{mtLabel(mt || null)}</p>}
+                    <div className="overflow-x-auto">
                       <table className="trs-table data-table matrix-table w-full border-collapse text-small">
                         <thead className={gm(mt) === 'employee' ? 'mt-employee' : gm(mt) === 'dependant' ? 'mt-dependant' : ''}>
                           <tr>
@@ -420,14 +414,14 @@ export default function GbReviewPage() {
                               <th key={plan} className="text-right pr-2">
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-center">
-                                    <input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="w-24 text-center text-small font-medium px-2 py-1 rounded border border-transparent focus:border-[#0f1412] focus:outline-none bg-white !text-[#0f1412]" />
-                                    <button onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="text-[#8c958f] hover:text-[#a1242f]"><X size={12} /></button>
+                                    <Input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
+                                      className="h-auto w-24 text-center text-small font-medium px-2 py-1 border-transparent focus-visible:border-trs-ink !text-trs-ink" />
+                                    <Btn level="tertiary" onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-trs-subtle hover:text-trs-neg"><X size={12} /></Btn>
                                   </span>
                                 ) : plan}
                               </th>
                             ))}
-                            {editable && <th className="pr-2 text-right"><button onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="text-[#4a5550] hover:text-[#0f1412]"><Plus size={13} /></button></th>}
+                            {editable && <th className="pr-2 text-right"><Btn level="tertiary" onClick={() => addPlan(product, mt, bands, plans)} title="Add plan" className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-trs-muted hover:text-trs-ink"><Plus size={13} /></Btn></th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -435,32 +429,32 @@ export default function GbReviewPage() {
                             <tr key={band}>
                               <td className="pl-4 whitespace-nowrap">
                                 {editable
-                                  ? <input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
-                                      className="w-28 text-small font-medium px-2 py-0.5 rounded border border-transparent hover:border-border focus:border-[#0f1412] focus:outline-none bg-white" />
+                                  ? <Input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
+                                      className="h-auto w-28 text-small font-medium px-2 py-0.5 border-transparent hover:border-border focus-visible:border-trs-ink" />
                                   : <span className="font-medium text-foreground/70">{band}</span>}
                               </td>
                               {plans.map(plan => {
                                 const r = cell.get(`${band}|${plan}`)
                                 const conflict = r ? conflictMap.get(cKey(r)) : undefined
                                 if (!editable) return r
-                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-small', conflict ? 'rounded px-1.5 py-0.5 bg-[#f1f2ee] text-[#2a332f] font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
+                                  ? <td key={plan} className="text-right pr-4 py-1"><span title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''} className={cn('tabular-nums text-small', conflict ? 'rounded px-1.5 py-0.5 bg-trs-field text-trs-ink-2 font-medium' : 'text-foreground/80')}>{r.premium}</span></td>
                                   : <td key={plan} className="text-right pr-4 text-muted-foreground/25">—</td>
                                 return (
                                   <td key={plan} className="text-right pr-2 py-1">
-                                    <input type="number" step="0.01" value={r ? r.premium : ''} placeholder="—"
+                                    <Input type="number" step="0.01" value={r ? r.premium : ''} placeholder="—"
                                       onChange={e => setCell(product, mt, band, plan, e.target.value)}
                                       title={conflict ? `First read ${fmt(conflict.opus)} · second read ${fmt(conflict.gemini)}` : ''}
-                                      className={cn('w-24 text-center tabular-nums text-small px-2 py-1 rounded border bg-white focus:outline-none focus:ring-1 focus:ring-primary/30',
-                                        conflict ? 'border-[#d5d9d4] bg-[#faf9f6]' : 'border-transparent hover:border-border')} />
+                                      className={cn('h-auto w-24 text-center tabular-nums text-small px-2 py-1 focus-visible:ring-1 focus-visible:ring-primary/30',
+                                        conflict ? 'border-trs-line-2 bg-trs-tint' : 'border-transparent hover:border-border')} />
                                   </td>
                                 )
                               })}
-                              {editable && <td className="pr-2 text-right"><button onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>}
+                              {editable && <td className="pr-2 text-right"><Btn level="tertiary" onClick={() => deleteBand(product, mt, band)} title="Remove age band" className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-muted-foreground/30 hover:text-trs-neg"><Trash2 size={12} /></Btn></td>}
                             </tr>
                           ))}
                           {editable && (
                             <tr><td colSpan={plans.length + 2} className="pl-4">
-                              <button onClick={() => addBand(product, mt, plans, bands)} className="flex items-center gap-1 text-small text-[#0f1412] hover:opacity-80 py-1"><Plus size={12} /> Add age band</button>
+                              <Btn level="tertiary" onClick={() => addBand(product, mt, plans, bands)} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add age band</Btn>
                             </td></tr>
                           )}
                         </tbody>
@@ -473,27 +467,26 @@ export default function GbReviewPage() {
           ))}
 
           {editable && (
-            <button onClick={addProduct} className="flex items-center gap-1.5 text-small font-medium text-[#0f1412] hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</button>
+            <Btn level="tertiary" onClick={addProduct} className="h-auto px-0 py-0 border-0 gap-1.5 font-medium text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</Btn>
           )}
 
           {/* Coverage / sum assured */}
           {shows('benefits') && (coverage.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-body font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Coverage &amp; sum assured</h2>
-              <div className="rounded border border-border overflow-x-auto max-h-[400px] overflow-y-auto">
-                <table className="trs-table data-table w-full border-collapse text-small">
+              <Register label="Coverage and sum assured" minWidth={0} maxHeight="400px" className="text-small">
                   <thead><tr>
                     <th className="pl-4 text-left">Product</th><th className="text-left">Member</th><th className="text-left">Plan</th><th className="text-left">Item</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
                   <tbody>
                     {coverage.map((c, i) => editable ? (
                       <tr key={i}>
-                        <td className="pl-4"><input value={c.product_title ?? ''} onChange={e => updateCoverage(i, { product_title: e.target.value })} className={ci} /></td>
-                        <td><select value={c.member_type ?? ''} onChange={e => updateCoverage(i, { member_type: e.target.value || null })} className={ci}><option value="">—</option><option value="employee">Employee</option><option value="dependant">Dependant</option></select></td>
-                        <td><input value={c.plan_code ?? ''} onChange={e => updateCoverage(i, { plan_code: e.target.value || null })} className={ci} /></td>
-                        <td className="cell-left"><input value={c.item_label} onChange={e => updateCoverage(i, { item_label: e.target.value })} className={ci} /></td>
-                        <td className="text-right pr-2"><input value={c.value_numeric != null ? String(c.value_numeric) : (c.value_text ?? '')} onChange={e => { const n = parseFloat(e.target.value.replace(/,/g, '')); updateCoverage(i, isFinite(n) && /^[\d.,]+$/.test(e.target.value) ? { value_numeric: n, value_text: null } : { value_numeric: null, value_text: e.target.value }) }} className={cn(ci, 'text-center w-32')} /></td>
-                        <td className="pr-2 text-right"><button onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>
+                        <td className="pl-4"><Input value={c.product_title ?? ''} onChange={e => updateCoverage(i, { product_title: e.target.value })} className={ci} /></td>
+                        <td><SelectBox label="Member" value={c.member_type ?? ''} onChange={v => updateCoverage(i, { member_type: v || null })} options={[{ value: '', label: '—' }, { value: 'employee', label: 'Employee' }, { value: 'dependant', label: 'Dependant' }]} /></td>
+                        <td><Input value={c.plan_code ?? ''} onChange={e => updateCoverage(i, { plan_code: e.target.value || null })} className={ci} /></td>
+                        <td className="cell-left"><Input value={c.item_label} onChange={e => updateCoverage(i, { item_label: e.target.value })} className={ci} /></td>
+                        <td className="text-right pr-2"><Input value={c.value_numeric != null ? String(c.value_numeric) : (c.value_text ?? '')} onChange={e => { const n = parseFloat(e.target.value.replace(/,/g, '')); updateCoverage(i, isFinite(n) && /^[\d.,]+$/.test(e.target.value) ? { value_numeric: n, value_text: null } : { value_numeric: null, value_text: e.target.value }) }} className={cn(ci, 'text-center w-32')} /></td>
+                        <td className="pr-2 text-right"><Btn level="tertiary" onClick={() => setCoverage(prev => prev.filter((_, j) => j !== i))} className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-muted-foreground/30 hover:text-trs-neg"><Trash2 size={12} /></Btn></td>
                       </tr>
                     ) : (
                       <tr key={i}>
@@ -504,10 +497,9 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={6} className="pl-4"><button onClick={addCoverage} className="flex items-center gap-1 text-small text-[#0f1412] py-1"><Plus size={12} /> Add coverage row</button></td></tr>}
+                    {editable && <tr><td colSpan={6} className="pl-4"><Btn level="tertiary" onClick={addCoverage} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add coverage row</Btn></td></tr>}
                   </tbody>
-                </table>
-              </div>
+              </Register>
             </section>
           )}
 
@@ -515,8 +507,7 @@ export default function GbReviewPage() {
           {shows('benefits') && (benefits.length > 0 || editable) && (
             <section className="mb-8">
               <h2 className="text-body font-semibold text-foreground mb-3 pb-1.5 border-b border-border">Benefit schedule</h2>
-              <div className="rounded border border-border overflow-x-auto max-h-[420px] overflow-y-auto">
-                <table className="trs-table data-table w-full border-collapse text-small">
+              <Register label="Benefit schedule" minWidth={0} maxHeight="420px" className="text-small">
                   <thead><tr>
                     <th className="pl-4 text-left">Scope</th><th className="text-left">Benefit</th><th className="text-right pr-4">Value</th>{editable && <th />}
                   </tr></thead>
@@ -525,25 +516,24 @@ export default function GbReviewPage() {
                       <tr key={i}>
                         <td className="pl-4 whitespace-nowrap text-muted-foreground">
                           {editable
-                            ? <input value={b.product_code ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, product_code: e.target.value } : x))} placeholder="product" className={cn(ci, 'w-24')} />
+                            ? <Input value={b.product_code ?? ''} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, product_code: e.target.value } : x))} placeholder="product" className={cn(ci, 'w-24')} />
                             : <>{b.product_code}{b.plan_code ? ` · ${b.plan_code}` : ''}</>}
                         </td>
                         <td className="text-foreground/80 cell-left">
                           {editable
-                            ? <input value={b.benefit_name} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, benefit_name: e.target.value } : x))} className={ci} />
+                            ? <Input value={b.benefit_name} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, benefit_name: e.target.value } : x))} className={ci} />
                             : <>{b.category ? `${b.category} — ` : ''}{b.benefit_name}</>}
                         </td>
                         <td className="text-right pr-2 py-1">
-                          <input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
-                            className={cn('w-44 text-center text-small px-2 py-1 rounded border bg-white focus:outline-none', editable ? 'border-transparent hover:border-border focus:border-[#0f1412]' : 'border-transparent')} />
+                          <Input value={b.value_text ?? ''} disabled={!editable} onChange={e => setBenefits(prev => prev.map((x, j) => j === i ? { ...x, value_text: e.target.value } : x))}
+                            className={cn('h-auto w-44 text-center text-small px-2 py-1 disabled:cursor-default disabled:opacity-100', editable ? 'border-transparent hover:border-border focus-visible:border-trs-ink' : 'border-transparent')} />
                         </td>
-                        {editable && <td className="pr-2 text-right"><button onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="text-muted-foreground/30 hover:text-[#a1242f]"><Trash2 size={12} /></button></td>}
+                        {editable && <td className="pr-2 text-right"><Btn level="tertiary" onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-muted-foreground/30 hover:text-trs-neg"><Trash2 size={12} /></Btn></td>}
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={4} className="pl-4"><button onClick={addBenefit} className="flex items-center gap-1 text-small text-[#0f1412] py-1"><Plus size={12} /> Add benefit row</button></td></tr>}
+                    {editable && <tr><td colSpan={4} className="pl-4"><Btn level="tertiary" onClick={addBenefit} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add benefit row</Btn></td></tr>}
                   </tbody>
-                </table>
-              </div>
+              </Register>
             </section>
           )}
         </>

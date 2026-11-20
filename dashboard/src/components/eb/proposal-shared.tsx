@@ -46,8 +46,8 @@ export function Checks({ checks, extra = [] }: { checks: ProposalCheck[]; extra?
 
 export function PdfPreview({ id, height = 900, stamp }: { id: string; height?: number; stamp?: string }) {
   return (
-    <div className="rounded overflow-hidden min-w-0" style={{ background: '#efebe7' }}>
-      <iframe title="Proposal preview" src={`/api/eb/quotations/${id}/pdf${stamp ? `?v=${stamp}` : ''}#view=FitH`} className="block w-full border-0" style={{ height }} />
+    <div className="rounded overflow-hidden min-w-0 bg-trs-canvas">
+      <iframe title="Proposal preview" src={`/api/eb/quotations/${id}/pdf${stamp ? `?v=${stamp}` : ''}#view=FitH`} className="block w-full border-0" style={{ height }} /* drift-ok: preview height from the caller */ />
     </div>
   )
 }

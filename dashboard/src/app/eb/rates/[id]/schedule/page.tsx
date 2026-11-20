@@ -17,6 +17,8 @@ import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Loader2, RefreshCw, Check, X } from 'lucide-react'
+import { Btn } from '@/components/crm/primitives'
+import { Register } from '@/components/ui/register'
 
 type Candidate = {
   id: string; product_code: string; plan_code: string | null; canon_benefit: string
@@ -95,7 +97,7 @@ export default function SchedulePage() {
   if (!d && !error) return <div className="p-8"><Loader2 className="animate-spin text-trs-muted" /></div>
 
   const t = d?.table
-  const cell = 'px-3 py-2 text-body tabular-nums align-top'
+  const cell = 'text-body tabular-nums align-top'
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink" >
@@ -115,24 +117,19 @@ export default function SchedulePage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={scan} disabled={!!busy}
-                    className="flex items-center gap-1.5 text-small font-semibold px-3 py-1.5 rounded border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink"
-                    >
+            <Btn size="xs" onClick={scan} disabled={!!busy}>
               {busy === 'scan' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
               {busy === 'scan' ? 'Reading the brochure…' : t?.scannedAt ? 'Scan again' : 'Scan the brochure'}
-            </button>
+            </Btn>
             {!!d?.pending && (
               <>
-                <button onClick={() => decide('rejected')} disabled={!!busy}
-                        className="flex items-center gap-1.5 text-small font-semibold px-3 py-1.5 rounded border border-[#d5d9d4] bg-white hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink"
-                        >
+                <Btn size="xs" onClick={() => decide('rejected')} disabled={!!busy}>
                   <X size={13} /> Reject all {d.pending}
-                </button>
-                <button onClick={() => decide('accepted')} disabled={!!busy}
-                        className="flex items-center gap-1.5 text-small font-semibold px-4 py-1.5 rounded bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
+                </Btn>
+                <Btn size="xs" level="primary" onClick={() => decide('accepted')} disabled={!!busy}>
                   {busy === 'accepted' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                   Accept all {d.pending}
-                </button>
+                </Btn>
               </>
             )}
           </div>
@@ -141,7 +138,7 @@ export default function SchedulePage() {
         {error && <p className="text-small mb-4 text-trs-neg" >{error}</p>}
 
         {t?.notes && (
-          <p className="text-small mb-6 px-3 py-2.5 rounded border border-[#e6e8e4] bg-[#faf9f6] text-trs-ink-2" >
+          <p className="text-small mb-6 px-3 py-2.5 rounded border border-trs-line bg-trs-tint text-trs-ink-2" >
             {t.notes}
           </p>
         )}
@@ -157,15 +154,12 @@ export default function SchedulePage() {
             <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
               {g.product}
             </h2>
-            <div className="border border-[#e6e8e4] rounded overflow-x-auto">
-              <table className="trs-table w-full border-collapse" style={{ minWidth: 260 + g.plans.length * 150 }}>
+            <Register label={g.product} minWidth={260 + g.plans.length * 150}>
                 <thead>
                   <tr>
-                    <th className="px-3 py-2 font-semibold sticky left-0 z-10"
-                        style={{ color: '#4a5550', minWidth: 260 }}>Benefit</th>
+                    <th className="font-semibold sticky left-0 z-10 min-w-[260px] text-trs-muted">Benefit</th>
                     {g.plans.map(p => (
-                      <th key={p} className="px-3 py-2 font-semibold"
-                          style={{ color: '#0f1412', minWidth: 150 }}>
+                      <th key={p} className="font-semibold min-w-[150px] text-trs-ink">
                         {p === '\u0000all' ? 'All tiers' : p}
                       </th>
                     ))}
@@ -174,16 +168,16 @@ export default function SchedulePage() {
                 <tbody>
                   {g.lines.map(([code, line]) => (
                     <tr key={code}>
-                      <td className="px-3 py-2 text-body sticky left-0 bg-white z-10 text-trs-ink" >
+                      <td className="text-body sticky left-0 bg-white z-10 text-trs-ink" >
                         {line.name}
                         <span className="block text-small text-trs-subtle" >{code}</span>
                       </td>
                       {g.plans.map(p => {
                         const c = line.byPlan.get(p)
-                        if (!c) return <td key={p} className={cell} style={{ color: '#d5d9d4' }}>—</td>
+                        if (!c) return <td key={p} className={`${cell} text-trs-line-2`}>—</td>
                         const changed = c.current_text != null && c.current_text.trim() !== c.value_text.trim()
                         return (
-                          <td key={p} className={cell} style={{ color: '#0f1412' }}>
+                          <td key={p} className={`${cell} text-trs-ink`}>
                             {c.value_text}
                             {changed && (
                               <span className="block text-small line-through text-trs-subtle" >
@@ -194,7 +188,7 @@ export default function SchedulePage() {
                               <span className="block text-small text-trs-subtle" >{c.source}</span>
                             )}
                             {c.status !== 'pending' && (
-                              <span className="block text-small" style={{ color: c.status === 'accepted' ? '#137333' : '#a1242f' }}>
+                              <span className={`block text-small ${c.status === 'accepted' ? 'text-trs-pos' : 'text-trs-neg'}`}>
                                 {c.status}
                               </span>
                             )}
@@ -204,8 +198,7 @@ export default function SchedulePage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Register>
           </section>
         ))}
 
@@ -214,9 +207,9 @@ export default function SchedulePage() {
             <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
               Printed in the brochure, not in the canonical schedule
             </h2>
-            <div className="border border-[#e6e8e4] rounded overflow-hidden">
+            <div className="border border-trs-line rounded overflow-hidden">
               {Array.from(new Map(t.unmatched.map(u => [u.label, u])).values()).map(u => (
-                <div key={u.label} className="flex items-baseline justify-between gap-4 px-3 py-2 border-t border-[#f1f2ee] first:border-t-0">
+                <div key={u.label} className="flex items-baseline justify-between gap-4 px-3 py-2 border-t border-trs-field first:border-t-0">
                   <span className="text-body text-trs-ink" >{u.label}</span>
                   <span className="text-body tabular-nums text-right text-trs-muted" >{u.value}</span>
                 </div>

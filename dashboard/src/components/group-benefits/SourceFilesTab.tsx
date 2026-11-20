@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw, Loader2 } from 'lucide-react'
+import { Btn, btnClass } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 
 type Row = {
@@ -21,13 +22,13 @@ type Row = {
 }
 type Payload = { configured: boolean; folderId: string | null; files: Row[]; error?: string }
 
-const STATUS: Record<Row['status'], { label: string; color: string }> = {
-  in_use:   { label: 'In use',   color: '#137333' },
-  changed:  { label: 'Changed',  color: '#8a5a00' },
-  not_read: { label: 'Not read', color: '#4a5550' },
+const STATUS: Record<Row['status'], { label: string; tone: string }> = {
+  in_use:   { label: 'In use',   tone: 'text-trs-pos' },
+  changed:  { label: 'Changed',  tone: 'text-trs-warn' },
+  not_read: { label: 'Not read', tone: 'text-trs-muted' },
 }
 const KIND: Record<string, string> = { calculator: 'Calculator', brochure: 'Brochure', workbook: 'TRS workbook', other: 'Other' }
-const CHIP = 'inline-flex items-center rounded bg-[#f1f2ee] text-small font-medium px-2 py-0.5 whitespace-nowrap'
+const CHIP = 'inline-flex items-center rounded bg-trs-field text-small font-medium px-2 py-0.5 whitespace-nowrap'
 
 const day = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 const size = (b: number | null) => b == null ? '—' : b > 1_048_576 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`
@@ -70,14 +71,13 @@ export function SourceFilesTab() {
         <div className="flex items-center gap-2">
           {d.folderId && (
             <a href={`https://drive.google.com/drive/folders/${d.folderId}`} target="_blank" rel="noopener noreferrer"
-               className="h-9 px-4 rounded bg-white text-body border border-[#d5d9d4] inline-flex items-center gap-2 no-underline hover:bg-[#faf9f6] text-trs-ink" >
+               className={`${btnClass('secondary')} no-underline`} >
               <ExternalLink size={14} /> Open folder
             </a>
           )}
-          <button type="button" onClick={load} disabled={busy}
-                  className="h-9 px-4 rounded bg-white text-body border border-[#d5d9d4] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50 text-trs-ink" >
+          <Btn onClick={load} disabled={busy}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
-          </button>
+          </Btn>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ export function SourceFilesTab() {
                 </RegisterCell>
                 <RegisterCell align="left"><span className="text-body text-trs-ink-2" >{f.insurer}</span></RegisterCell>
                 <RegisterCell><span className="text-body tabular-nums text-trs-ink-2" >{f.planYear ?? '—'}</span></RegisterCell>
-                <RegisterCell><span className={CHIP} style={{ color: STATUS[f.status].color }}>{STATUS[f.status].label}</span></RegisterCell>
+                <RegisterCell><span className={`${CHIP} ${STATUS[f.status].tone}`}>{STATUS[f.status].label}</span></RegisterCell>
                 <RegisterCell align="left">
                   {f.rateTables.length
                     ? f.rateTables.map(t => <a key={t.id} href={`/eb/rates/${t.id}`} className="block text-body no-underline hover:underline text-trs-ink" >{t.insurerName ?? 'Rate table'}</a>)

@@ -8,7 +8,6 @@ import { useNarrowViewport } from '@/hooks/useNarrowViewport'
 import { useResizableRailWidth, RAIL_COLLAPSED } from '@/hooks/useResizableRailWidth'
 
 const ENGAGEMENT_ROUTE = '/engagement'
-const HAIRLINE = 'var(--trs-line)'
 
 function onEngagementRoute(pathname: string) {
   return pathname === ENGAGEMENT_ROUTE || pathname.startsWith(ENGAGEMENT_ROUTE + '/')
@@ -46,14 +45,14 @@ export function EngagementRail() {
 
   if (navCollapsed) {
     return (
-      <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 'var(--top-nav-h)', bottom: 0, width: RAIL_COLLAPSED, borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator, collapsed">
+      <aside className="fixed left-0 z-30 bg-white overflow-hidden top-[var(--top-nav-h)] bottom-0 border-r border-trs-line" style={{ width: RAIL_COLLAPSED }} /* drift-ok: width from the rail hook */ aria-label="Mail navigator, collapsed">
         <CollapsedNavRail />
       </aside>
     )
   }
 
   return (
-    <aside className="fixed left-0 z-30 bg-white overflow-hidden" style={{ top: 'var(--top-nav-h)', bottom: 0, width: 'var(--engagement-rail-w, 380px)', borderRight: `1px solid ${HAIRLINE}` }} aria-label="Mail navigator">
+    <aside className="fixed left-0 z-30 bg-white overflow-hidden top-[var(--top-nav-h)] bottom-0 w-[var(--engagement-rail-w,380px)] border-r border-trs-line" aria-label="Mail navigator">
       <div className="relative h-full">
         <ThreadListPane collapsible />
         <div role="separator" aria-orientation="vertical" aria-label="Resize navigator" aria-valuenow={width} aria-valuemin={min} aria-valuemax={max} tabIndex={0}
@@ -65,7 +64,7 @@ export function EngagementRail() {
             else if (e.key === 'End')        { e.preventDefault(); setAbsolute(max) }
           }}
           className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize z-10 flex items-center justify-center group focus-visible:outline-none">
-          <div className="w-px h-full bg-transparent group-hover:bg-[#1f4e3a]/30 group-focus-visible:bg-[#0f1412]/60 transition-colors" />
+          <div className="w-px h-full bg-transparent group-hover:bg-[rgba(31,78,58,0.3)] group-focus-visible:bg-[rgba(15,20,18,0.6)] transition-colors" />
         </div>
       </div>
     </aside>

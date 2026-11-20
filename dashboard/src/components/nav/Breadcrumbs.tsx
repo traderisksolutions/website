@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { readTrail, useTrail, withTrail, type Crumb } from '@/lib/nav/trail'
 
-const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f'
 const short = (s: string, n = 44) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
 export function Breadcrumbs({ current, fallback, className }: { current: Crumb | null; fallback: Crumb; className?: string }) {
@@ -18,18 +17,18 @@ export function Breadcrumbs({ current, fallback, className }: { current: Crumb |
   return (
     <nav aria-label="Breadcrumb" className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-body ${className ?? ''}`}>
       <Link href={back.href} className="inline-flex items-center gap-1.5 no-underline hover:underline text-trs-ink" ><ArrowLeft size={14} /> {short(back.label)}</Link>
-      <a href={back.href} target="_blank" rel="noopener" onClick={e => { e.preventDefault(); window.open(withTrail(back.href, readTrail().slice(0, -1)), '_blank', 'noopener') }} aria-label={`Open ${back.label} in a new tab`} title="Open in a new tab" className="inline-flex items-center no-underline" style={{ color: SUBTLE }}><ExternalLink size={12} /></a>
+      <a href={back.href} target="_blank" rel="noopener" onClick={e => { e.preventDefault(); window.open(withTrail(back.href, readTrail().slice(0, -1)), '_blank', 'noopener') }} aria-label={`Open ${back.label} in a new tab`} title="Open in a new tab" className="inline-flex items-center no-underline text-trs-subtle"><ExternalLink size={12} /></a>
       {trail.length > 1 && (
-        <span className="inline-flex items-center gap-1.5" style={{ color: MUTED }}>
-          <span style={{ color: SUBTLE }}>·</span>
+        <span className="inline-flex items-center gap-1.5 text-trs-muted">
+          <span className="text-trs-subtle">·</span>
           {trail.slice(0, -1).map(c => (
             <span key={c.href} className="inline-flex items-center gap-1.5">
-              <Link href={c.href} className="no-underline hover:underline" style={{ color: MUTED }}>{short(c.label, 32)}</Link>
-              <span style={{ color: SUBTLE }}>›</span>
+              <Link href={c.href} className="no-underline hover:underline text-trs-muted">{short(c.label, 32)}</Link>
+              <span className="text-trs-subtle">›</span>
             </span>
           ))}
           <span>{short(trail.at(-1)!.label, 32)}</span>
-          {current && <><span style={{ color: SUBTLE }}>›</span><span className="text-trs-ink">{short(current.label, 32)}</span></>}
+          {current && <><span className="text-trs-subtle">›</span><span className="text-trs-ink">{short(current.label, 32)}</span></>}
         </span>
       )}
     </nav>

@@ -9,7 +9,8 @@ import { uploadToDrive } from '@/lib/upload-attachment'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Btn, Segmented, inputCls } from '@/components/crm/primitives'
+import { SelectBox } from '@/components/ui/select-box'
+import { Btn, Segmented } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 import { CompanyContactPicker, type PickerValue } from '@/components/company-contact-picker/CompanyContactPicker'
 import { useAutoMatchCompany } from '@/components/company-contact-picker/useAutoMatchCompany'
@@ -558,16 +559,16 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         </div>
         {eventType === 'endorsement' && (
           <Field label="Tag to an existing policy (optional)">
-            <select
+            <SelectBox
+              label="Tag to an existing policy (optional)"
+              size="md"
               value={masterPolicyId}
-              onChange={e => { setMasterPolicyId(e.target.value); setMasterPolicyTouched(true) }}
-              className={inputCls}
-            >
-              <option value="">Not linked — creates its own policy from the fields below</option>
-              {policyOptions.map(p => (
-                <option key={p.id} value={p.id}>{policyOptionLabel(p)}</option>
-              ))}
-            </select>
+              onChange={v => { setMasterPolicyId(v); setMasterPolicyTouched(true) }}
+              options={[
+                { value: '', label: 'Not linked — creates its own policy from the fields below' },
+                ...policyOptions.map(p => ({ value: p.id, label: policyOptionLabel(p) })),
+              ]}
+            />
           </Field>
         )}
         {eventType === 'endorsement' && (

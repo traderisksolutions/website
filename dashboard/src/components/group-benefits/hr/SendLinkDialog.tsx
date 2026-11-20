@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import type { HrLink } from '@/lib/hr/types'
 import { HrModal } from './HrModal'
 import { defaultMessage, EMAIL_OK, fmtLongDate, type HrLinkCreateResponse } from './labels'
 
-const MUTED = '#4a5550'
 const FROM_LINE = 'Trade Risk Solutions Operations · operations@trade-risksol.com · reply-to the same'
 
 import { CompanyField, type CompanyPick } from '../CompanyField'
@@ -87,14 +87,14 @@ export function SendLinkDialog({ open, onClose, onSent, initialCompany, initialE
           <div className="sm:col-span-2">
             <CompanyField value={company} onChange={setCompany} />
           </div>
-          <Field label="Recipient name"><input className={inputCls} value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Soh Lay Yen" autoComplete="off" /></Field>
-          <Field label="Recipient email"><input className={inputCls} type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} placeholder="hr@company.sg" autoComplete="off" /></Field>
-          <Field label="Copy"><input className={inputCls} type="email" value={ccEmail} onChange={e => setCcEmail(e.target.value)} placeholder="Optional" autoComplete="off" /></Field>
-          <Field label="Requested by"><input className={inputCls} value={requestedBy} onChange={e => setRequestedBy(e.target.value)} placeholder="The person who asked for the quote" autoComplete="off" /></Field>
-          <Field label="Policy start"><input className={inputCls} type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} /></Field>
-          <Field label="Reference"><div className={cn(inputCls, 'flex items-center')} style={{ color: MUTED }}>Assigned on send · valid 7 days</div></Field>
+          <Field label="Recipient name"><Input value={recipientName} onChange={e => setRecipientName(e.target.value)} placeholder="Soh Lay Yen" autoComplete="off" /></Field>
+          <Field label="Recipient email"><Input type="email" value={recipientEmail} onChange={e => setRecipientEmail(e.target.value)} placeholder="hr@company.sg" autoComplete="off" /></Field>
+          <Field label="Copy"><Input type="email" value={ccEmail} onChange={e => setCcEmail(e.target.value)} placeholder="Optional" autoComplete="off" /></Field>
+          <Field label="Requested by"><Input value={requestedBy} onChange={e => setRequestedBy(e.target.value)} placeholder="The person who asked for the quote" autoComplete="off" /></Field>
+          <Field label="Policy start"><Input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} /></Field>
+          <Field label="Reference"><div className={cn(inputCls, 'flex items-center text-trs-muted')}>Assigned on send · valid 7 days</div></Field>
           <div className="sm:col-span-2">
-            <Field label="From"><div className={cn(inputCls, 'flex items-center truncate')} style={{ color: MUTED }}>{FROM_LINE}</div></Field>
+            <Field label="From"><div className={cn(inputCls, 'flex items-center truncate text-trs-muted')}>{FROM_LINE}</div></Field>
           </div>
         </div>
 
@@ -136,7 +136,7 @@ function EmailPreview({ company, recipientName, recipientEmail, cc, message, eff
   const expiresWord = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Singapore' }).format(expires)
   const shortCompany = company.trim().replace(/\s+(pte\.?\s+ltd\.?|ltd\.?|limited|llp|inc\.?)$/i, '') || '[company]'
   return (
-    <div className="rounded bg-[#faf9f6] px-5 py-4 text-body leading-[1.6] text-trs-ink-2" >
+    <div className="rounded bg-trs-tint px-5 py-4 text-body leading-[1.6] text-trs-ink-2" >
       <div className="text-small mb-3 text-trs-muted" >
         <div>From: Trade Risk Solutions Operations &lt;operations@trade-risksol.com&gt;</div>
         <div>To: {recipientName.trim() || '[recipient]'} &lt;{recipientEmail.trim() || '[email]'}&gt;</div>

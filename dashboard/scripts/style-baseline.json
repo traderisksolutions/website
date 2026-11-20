@@ -1,12 +1,4 @@
 {
- "src/app/calendar/page.tsx": {
-  "style": 5,
-  "hex": 4,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 2
- },
  "src/app/claims/page.tsx": {
   "style": 0,
   "hex": 0,
@@ -45,7 +37,7 @@
   "font": 0,
   "radius": 0,
   "height": 1,
-  "control": 2
+  "control": 1
  },
  "src/app/debit-notes/page.tsx": {
   "style": 0,
@@ -55,14 +47,6 @@
   "height": 0,
   "control": 4
  },
- "src/app/eb/hr-links/[id]/page.tsx": {
-  "style": 3,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/eb/proposal/[id]/email/page.tsx": {
   "style": 0,
   "hex": 0,
@@ -71,29 +55,13 @@
   "height": 0,
   "control": 5
  },
- "src/app/eb/quotations/page.tsx": {
-  "style": 1,
-  "hex": 2,
+ "src/app/eb/rates/[id]/page.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 1,
-  "control": 1
- },
- "src/app/eb/rates/[id]/page.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 4,
-  "control": 35
- },
- "src/app/eb/rates/[id]/schedule/page.tsx": {
-  "style": 6,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 4
+  "control": 2
  },
  "src/app/insurers/[id]/page.tsx": {
   "style": 0,
@@ -169,11 +137,11 @@
  },
  "src/app/nexus/cases/page.tsx": {
   "style": 0,
-  "hex": 5,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 2,
-  "control": 9
+  "control": 4
  },
  "src/app/roadplus/page.tsx": {
   "style": 0,
@@ -224,12 +192,12 @@
   "control": 1
  },
  "src/components/RichEditor.tsx": {
-  "style": 2,
-  "hex": 20,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/assistant/CaseEditor.tsx": {
   "style": 0,
@@ -471,22 +439,6 @@
   "height": 0,
   "control": 1
  },
- "src/components/eb/ProposalTrack.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 1
- },
- "src/components/eb/proposal-shared.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/email/CommissionCheck.tsx": {
   "style": 0,
   "hex": 0,
@@ -663,29 +615,13 @@
   "height": 0,
   "control": 2
  },
- "src/components/group-benefits/CompanyField.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 3
- },
- "src/components/group-benefits/InsurerContactsDialog.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 4
- },
  "src/components/group-benefits/InsurerEmailDialog.tsx": {
   "style": 0,
-  "hex": 1,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 8
+  "control": 1
  },
  "src/components/group-benefits/PlanRules.tsx": {
   "style": 0,
@@ -695,37 +631,13 @@
   "height": 0,
   "control": 8
  },
- "src/components/group-benefits/SourceFilesTab.tsx": {
-  "style": 1,
-  "hex": 3,
+ "src/components/group-benefits/hr/SendLinkDialog.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/components/group-benefits/hr/HrLinksTab.tsx": {
-  "style": 2,
-  "hex": 5,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/components/group-benefits/hr/HrModal.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/group-benefits/hr/SendLinkDialog.tsx": {
-  "style": 2,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 6
  },
  "src/components/hr-connect/read-table.tsx": {
   "style": 0,
@@ -807,29 +719,13 @@
   "height": 0,
   "control": 1
  },
- "src/components/nav/Breadcrumbs.tsx": {
-  "style": 6,
-  "hex": 3,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/nav/engagement-rail.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/nav/top-navbar.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 5,
-  "control": 5
+  "height": 1,
+  "control": 0
  },
  "src/components/nexus/NexusPhasedAnalysisModal.tsx": {
   "style": 0,
@@ -1000,35 +896,35 @@
   "control": 1
  },
  "src/components/today/CombineDialog.tsx": {
-  "style": 1,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 4
+  "control": 1
  },
  "src/components/today/desk/AddThreads.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 2,
-  "control": 5
+  "height": 0,
+  "control": 1
  },
  "src/components/today/desk/ClientRow.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 2,
-  "control": 5
+  "height": 0,
+  "control": 1
  },
  "src/components/today/desk/DraftCard.tsx": {
   "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 7
+  "height": 0,
+  "control": 1
  }
 }

@@ -7,6 +7,7 @@ import { Menu, LogOut, Search } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
+import { Btn, btnClass } from '@/components/crm/primitives'
 import { PLACES, ACCOUNT_LINKS, HOME_LINKS, locate, pathMatches } from './nav-sections'
 import { Spotlight } from './Spotlight'
 
@@ -46,10 +47,8 @@ export function TopNavbar() {
     <header className="w-full h-[54px] flex-shrink-0 bg-white">
       <div className="flex h-full items-center gap-1 px-4 md:px-6 min-w-0">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <button type="button" className="min-[980px]:hidden -ml-1 mr-1 inline-flex items-center justify-center w-9 h-9 rounded bg-transparent border-0 cursor-pointer text-trs-ink hover:bg-trs-canvas" aria-label="Open navigation">
-              <Menu className="h-5 w-5" />
-            </button>
+          <SheetTrigger className={cn(btnClass('tertiary', 'xs'), 'min-[980px]:hidden -ml-1 mr-1 w-9 h-9 px-0 border-0 text-trs-ink hover:bg-trs-canvas')} aria-label="Open navigation">
+            <Menu className="h-5 w-5" />
           </SheetTrigger>
           <SheetContent side="left" className="w-72 p-0 flex flex-col">
             <SheetHeader className="border-b border-trs-line pb-3"><SheetTitle>Trade Risk Solutions</SheetTitle></SheetHeader>
@@ -67,7 +66,7 @@ export function TopNavbar() {
                       <div className="pl-7 py-0.5">
                         {place.tabs.map(t => (
                           <Link key={t.href} href={t.href} aria-current={pathMatches(pathname, t.href) ? 'page' : undefined}
-                            className={cn('flex items-center h-[30px] px-2.5 rounded text-body no-underline', pathMatches(pathname, t.href) ? 'text-trs-ink font-medium bg-trs-field' : 'text-trs-muted hover:bg-trs-canvas')}>
+                            className={cn('flex items-center h-8 px-2.5 rounded text-body no-underline', pathMatches(pathname, t.href) ? 'text-trs-ink font-medium bg-trs-field' : 'text-trs-muted hover:bg-trs-canvas')}>
                             {t.title}
                           </Link>
                         ))}
@@ -87,7 +86,7 @@ export function TopNavbar() {
             <div className="flex items-center gap-2.5 px-4 py-3 border-t border-trs-line flex-shrink-0">
               <span className="w-7 h-7 rounded-full bg-trs-green text-white flex items-center justify-center text-small font-semibold flex-shrink-0">{userEmail ? userEmail[0].toUpperCase() : '?'}</span>
               <span className="text-small flex-1 truncate text-trs-muted">{userEmail ?? '—'}</span>
-              <button type="button" onClick={signOut} title="Sign out" aria-label="Sign out" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink"><LogOut size={14} /></button>
+              <Btn size="xs" level="tertiary" onClick={signOut} title="Sign out" aria-label="Sign out" className="w-8 px-0 border-0 hover:bg-trs-canvas"><LogOut size={14} /></Btn>
             </div>
           </SheetContent>
         </Sheet>
@@ -105,12 +104,12 @@ export function TopNavbar() {
         </nav>
 
         <div className="ml-auto flex items-center gap-2 flex-shrink-0 pl-2">
-          <button type="button" onClick={() => setJumpOpen(true)} aria-label="Go to a page or find an email"
-            className="inline-flex items-center gap-2 h-[30px] px-2.5 rounded border border-trs-line-2 bg-white cursor-pointer text-body text-trs-muted hover:border-trs-ink-2">
+          <Btn size="xs" level="tertiary" onClick={() => setJumpOpen(true)} aria-label="Go to a page or find an email"
+            className="gap-2 px-2.5 border border-trs-line-2 bg-white font-normal text-trs-muted hover:bg-white hover:border-trs-ink-2 hover:text-trs-muted">
             <Search className="h-3.5 w-3.5" />
             <span className="hidden min-[1180px]:inline">Go to</span>
             <kbd className="hidden min-[1180px]:inline font-mono text-small text-trs-subtle">⌘K</kbd>
-          </button>
+          </Btn>
           <AccountMenu email={userEmail} pathname={pathname} onSignOut={signOut} />
         </div>
       </div>
@@ -172,11 +171,11 @@ function AccountMenu({ email, pathname, onSignOut }: { email: string | null; pat
   }, [open])
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen(v => !v)} aria-label="Account menu" aria-expanded={open}
-        className={cn('flex items-center gap-2 rounded-full p-0.5 md:pr-2 border-0 cursor-pointer transition-colors hover:bg-trs-canvas', onAccountPage ? 'bg-trs-select-bg' : 'bg-transparent')}>
-        <span className="w-[30px] h-[30px] rounded-full inline-flex items-center justify-center text-small font-semibold text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
+      <Btn level="tertiary" onClick={() => setOpen(v => !v)} aria-label="Account menu" aria-expanded={open}
+        className={cn('h-auto gap-2 rounded-full p-0.5 md:pr-2 border-0 font-normal hover:bg-trs-canvas', onAccountPage ? 'bg-trs-select-bg' : 'bg-transparent')}>
+        <span className="w-8 h-8 rounded-full inline-flex items-center justify-center text-small font-semibold text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
         <span className="hidden md:block text-body max-w-[160px] truncate text-trs-muted">{email ?? '—'}</span>
-      </button>
+      </Btn>
       {open && (
         <div className="absolute right-0 top-[calc(100%+8px)] w-56 rounded bg-white p-1.5 border border-trs-line shadow-[0_12px_40px_rgba(0,0,0,0.10)]" role="menu">
           <div className="px-3 py-2 text-small truncate text-trs-muted">{email ?? 'Account'}</div>
@@ -190,9 +189,9 @@ function AccountMenu({ email, pathname, onSignOut }: { email: string | null; pat
             )
           })}
           <div className="my-1 mx-2 border-t border-trs-line" />
-          <button type="button" role="menuitem" onClick={onSignOut} className="w-full flex items-center gap-2 h-9 px-3 rounded text-body bg-transparent border-0 cursor-pointer text-left text-trs-ink hover:bg-trs-canvas">
+          <Btn level="tertiary" role="menuitem" onClick={onSignOut} className="w-full justify-start gap-2 h-9 px-3 border-0 font-normal text-left text-trs-ink hover:bg-trs-canvas hover:text-trs-ink">
             <LogOut className="h-4 w-4" /> Sign out
-          </button>
+          </Btn>
         </div>
       )}
     </div>
