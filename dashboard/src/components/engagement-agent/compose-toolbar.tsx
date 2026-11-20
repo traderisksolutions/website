@@ -19,9 +19,9 @@ export const FIELD    = '#f1f2ee'
 export const HOVER    = '#faf9f6'
 
 /** The three-level button ladder at the composer's 36px size. One filled ink primary per view. */
-export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[10px] bg-[#132c1c] text-white text-14 font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
-export const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white text-[#0f1412] text-13.5 font-medium whitespace-nowrap border border-[#d5d9d4] hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
-export const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-transparent text-[#0f1412] text-13.5 font-medium whitespace-nowrap border-0 hover:bg-[#f1f2ee] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+export const BTN_PRIMARY   = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-10 bg-[#132c1c] text-white text-14 font-medium whitespace-nowrap hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-0'
+export const BTN_SECONDARY = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-10 bg-white text-[#0f1412] text-13.5 font-medium whitespace-nowrap border border-[#d5d9d4] hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
+export const BTN_TERTIARY  = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-10 bg-transparent text-[#0f1412] text-13.5 font-medium whitespace-nowrap border-0 hover:bg-[#f1f2ee] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer'
 
 // ─── Toolbar ───────────────────────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ export function TbGroup({ children, className, label }: { children: ReactNode; c
   )
 }
 
-const TB_BASE = 'inline-flex items-center justify-center gap-1.5 h-8 min-w-8 px-1.5 rounded-[8px] text-13 leading-none border-0 bg-transparent cursor-pointer select-none whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 disabled:opacity-40 disabled:cursor-not-allowed'
+const TB_BASE = 'inline-flex items-center justify-center gap-1.5 h-8 min-w-8 px-1.5 rounded-8 text-13 leading-none border-0 bg-transparent cursor-pointer select-none whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 disabled:opacity-40 disabled:cursor-not-allowed'
 
 export interface TbButtonProps {
   /** Accessible name; also the tooltip. */
@@ -120,7 +120,7 @@ export function TbMenu({
       </TbButton>
       {open && (
         <div id={id} role="menu" aria-label={label}
-          className={cn('absolute top-full z-40 mt-1 rounded-[10px] border border-[#e6e8e4] bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]', align === 'right' ? 'right-0' : 'left-0')}
+          className={cn('absolute top-full z-40 mt-1 rounded-10 border border-[#e6e8e4] bg-white p-1 shadow-[0_8px_24px_rgba(15,20,18,0.12)]', align === 'right' ? 'right-0' : 'left-0')}
           style={{ minWidth: width ?? 180 }}>
           {children(() => setOpen(false))}
         </div>
@@ -146,7 +146,7 @@ export function TbMenuItem({ onSelect, active, disabled, shortcut, children, cla
       disabled={disabled}
       onMouseDown={e => e.preventDefault()}
       onClick={() => { if (!disabled) onSelect() }}
-      className={cn('flex w-full items-center gap-2.5 h-[30px] px-2.5 rounded-[6px] text-left text-13.5 text-[#0f1412] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed', active && 'bg-[#f1f2ee] font-medium', className)}
+      className={cn('flex w-full items-center gap-2.5 h-[30px] px-2.5 rounded-6 text-left text-13.5 text-[#0f1412] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-40 disabled:cursor-not-allowed', active && 'bg-[#f1f2ee] font-medium', className)}
       style={style}
     >
       <span className="flex-1 min-w-0 truncate">{children}</span>
@@ -223,7 +223,7 @@ export function QuietSelect({ label, value, onChange, children, className }: {
         title={label}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-12.5 cursor-pointer outline-none rounded-[6px] hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 max-w-[220px] truncate text-trs-subtle"
+        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-12.5 cursor-pointer outline-none rounded-6 hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 max-w-[220px] truncate text-trs-subtle"
         
       >
         {children}
@@ -236,7 +236,7 @@ export function QuietSelect({ label, value, onChange, children, className }: {
 /** Attachment chip in the tray under the editor. */
 export function AttachmentChip({ name, onRemove, meta }: { name: string; onRemove?: () => void; meta?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-7 rounded-[6px] bg-[#f1f2ee] pl-2.5 pr-1.5 text-12.5 max-w-full text-trs-ink-2">
+    <span className="inline-flex items-center gap-1.5 h-7 rounded-6 bg-[#f1f2ee] pl-2.5 pr-1.5 text-12.5 max-w-full text-trs-ink-2">
       <span className="truncate max-w-[220px]">{name}</span>
       {meta && <span className="text-trs-subtle">{meta}</span>}
       {onRemove && (

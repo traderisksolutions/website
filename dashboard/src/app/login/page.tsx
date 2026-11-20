@@ -30,10 +30,10 @@ function LoginCard() {
       className="flex items-center justify-center px-4 bg-white"
       style={{ minHeight: 'calc(100vh / var(--ui-zoom))', color: INK }}
     >
-      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10" style={{ border: '1px solid #e6e8e4' }}>
+      <div className="w-full max-w-[400px] bg-white rounded-16 px-9 py-10" style={{ border: '1px solid #e6e8e4' }}>
         {/* Wordmark */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center rounded-[12px] mb-4 w-12 h-12 bg-trs-ink">
+          <div className="inline-flex items-center justify-center rounded-12 mb-4 w-12 h-12 bg-trs-ink">
             <span className="text-white text-16 font-medium tracking-[-0.01em]">TRS</span>
           </div>
           <h1 className="m-0 text-24 font-medium tracking-[-0.02em] leading-tight text-trs-ink">
@@ -51,7 +51,7 @@ function LoginCard() {
         <button
           type="button"
           onClick={signInWithGoogle}
-          className="w-full h-9 inline-flex items-center justify-center gap-2.5 px-5 rounded-[7px] bg-white text-14 font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
+          className="w-full h-9 inline-flex items-center justify-center gap-2.5 px-5 rounded-7 bg-white text-14 font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
           style={{ border: '1px solid #d5d9d4', color: INK }}
         >
           {/* Google logo: the brand mark, not UI state colour */}

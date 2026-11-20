@@ -24,7 +24,7 @@ const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
 /** Every word of the search, in any order. */
 const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
-const selCls = 'h-9 w-full rounded-[8px] border border-trs-line-2 bg-white px-2.5 text-13.5 text-trs-ink'
+const selCls = 'h-9 w-full rounded-8 border border-trs-line-2 bg-white px-2.5 text-13.5 text-trs-ink'
 
 export function AddFromEmails({ company, taken, onClose, onAdded }: {
   company?: { id: string; name: string }; taken: Set<string>; onClose: () => void
@@ -114,7 +114,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-28 bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
           <DialogPrimitive.Title className="m-0 pr-10 text-24 font-semibold tracking-[-0.02em] text-trs-ink">{step === 1 ? 'Add from emails' : 'Parties and policies'}</DialogPrimitive.Title>
           <div className="text-13.5 text-trs-muted">{step === 1 ? 'Latest Inbox threads. Tick the ones to add.' : 'One block per thread. Add a row for each policy the thread is about.'}</div>

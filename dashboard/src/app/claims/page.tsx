@@ -117,7 +117,7 @@ export default function ClaimsPage() {
 
       {view === 'forms' ? <WebsiteForms onCount={setFormsNew} /> : !rows ? <Spinner label="Loading claims…" /> : shown.length === 0 ? <Empty>{scope.company || scope.policy ? 'No claims on file for this client.' : 'No claims here.'}</Empty> : (
         <>
-          <div className="hidden md:block overflow-x-auto rounded-[10px] bg-white" style={{ boxShadow: 'var(--card-shadow)' }}>
+          <div className="hidden md:block overflow-x-auto rounded-10 bg-white" style={{ boxShadow: 'var(--card-shadow)' }}>
             <table className="trs-table w-full text-13.5 border-collapse">
               <thead>
                 <tr className="text-12 text-trs-muted">
@@ -150,7 +150,7 @@ export default function ClaimsPage() {
             {shown.map(r => {
               const st = statusOf(r)
               return (
-                <button key={r.id} type="button" onClick={() => select(r.id)} className="text-left rounded-[10px] bg-white px-4 py-3 border-0 cursor-pointer min-w-0 w-full" style={{ boxShadow: selected === r.id ? 'inset 0 0 0 1.5px #132c1c' : 'var(--card-shadow)', color: INK }}>
+                <button key={r.id} type="button" onClick={() => select(r.id)} className="text-left rounded-10 bg-white px-4 py-3 border-0 cursor-pointer min-w-0 w-full" style={{ boxShadow: selected === r.id ? 'inset 0 0 0 1.5px #132c1c' : 'var(--card-shadow)', color: INK }}>
                   <div className="text-12.5 truncate text-trs-muted">{r.client ?? '—'} · {CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</div>
                   <div className="text-15 font-medium leading-snug">{r.title}</div>
                   <div className="flex flex-wrap gap-1.5 mt-2 items-center">
@@ -186,7 +186,7 @@ function NewClaim({ onDone, onCancel }: { onDone: (id: string) => void; onCancel
     catch (e) { setErr(errText(e)) } finally { setBusy(false) }
   }
   return (
-    <div className="rounded-[10px] bg-white p-4 mb-4 flex flex-col gap-3" style={{ boxShadow: 'var(--card-shadow)' }}>
+    <div className="rounded-10 bg-white p-4 mb-4 flex flex-col gap-3" style={{ boxShadow: 'var(--card-shadow)' }}>
       <h2 className="m-0 text-16 font-medium">New claim</h2>
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-12.5 min-w-0 text-trs-muted">Claim<input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Worker hand injury" /></label>
@@ -216,7 +216,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
   const got = d.documents.filter(x => x.received).length
 
   return (
-    <section className="rounded-[10px] bg-white p-4 md:p-5 flex flex-col gap-5" style={{ boxShadow: 'var(--card-shadow)' }} aria-label="Claim">
+    <section className="rounded-10 bg-white p-4 md:p-5 flex flex-col gap-5" style={{ boxShadow: 'var(--card-shadow)' }} aria-label="Claim">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex flex-col gap-2">
           <h2 className="m-0 text-20 font-medium tracking-[-0.01em] leading-tight">{r.title}</h2>
@@ -269,14 +269,14 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-[8px] p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
+        <div className="rounded-8 p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
           <div className="flex justify-between items-baseline"><h3 className="m-0 text-14 font-medium">Documents</h3><span className="text-12.5 tabular-nums text-trs-muted">{got} of {d.documents.length}</span></div>
           <ul className="m-0 p-0 list-none flex flex-col gap-1 text-13.5">
             {d.documents.map(x => <li key={x.item} className="flex gap-2"><span aria-hidden style={{ color: x.received ? '#132c1c' : ERROR }}>{x.received ? '✓' : '✕'}</span><span className="min-w-0">{x.item}{x.source && <span className="block text-12 truncate text-trs-muted">{x.source}</span>}</span></li>)}
           </ul>
           {d.files.length > 0 && <div className="text-12.5 pt-1 border-t border-[#e6e8e4] text-trs-muted">Files held: {d.files.length}</div>}
         </div>
-        <div className="rounded-[8px] p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
+        <div className="rounded-8 p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
           <div className="flex justify-between items-baseline"><h3 className="m-0 text-14 font-medium">Missing</h3><span className="text-12.5 tabular-nums text-trs-muted">{d.gaps.length}</span></div>
           {d.gaps.length === 0 ? <span className="text-13.5 text-trs-muted">Nothing missing.</span> : (
             <ul className="m-0 p-0 list-none flex flex-col gap-1 text-13.5">
@@ -328,7 +328,7 @@ function Outcome({ id, onDone }: { id: string; onDone: () => void }) {
     catch (e) { setErr(errText(e)) } finally { setBusy(false) }
   }
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-[8px] p-3 bg-trs-tint">
+    <div className="flex flex-wrap items-end gap-3 rounded-8 p-3 bg-trs-tint">
       <Segmented value={stage} onChange={setStage} options={[{ value: 'settled', label: 'Settled' }, { value: 'declined', label: 'Declined' }, { value: 'withdrawn', label: 'Withdrawn' }]} />
       {stage === 'settled' && <label className="text-12.5 w-[180px] text-trs-muted">Settled S$<input className={inputCls} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} /></label>}
       <Btn level="secondary" loading={busy} onClick={() => void save()}>Save outcome</Btn>
@@ -363,7 +363,7 @@ function Drafts({ id, drafts, onDone, onError }: { id: string; drafts: ClaimDeta
     <div>
       <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-14 font-medium">Drafts</h3><span className="text-12.5 tabular-nums text-trs-muted">{drafts.length}</span></div>
       {!current ? <Empty compact>No draft waiting.</Empty> : (
-        <div className="rounded-[8px] px-3 py-2.5 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
+        <div className="rounded-8 px-3 py-2.5 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
           {editing ? (
             <div className="flex flex-col gap-2">
               <label className="text-12.5 text-trs-muted">To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>

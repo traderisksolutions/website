@@ -214,7 +214,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   const toggle = (id: string) => setIds(cur => cur.includes(id) ? cur.filter(x => x !== id) : cur.length >= 6 ? cur : [...cur, id])
 
   return (
-    <section className="grid gap-5 rounded-[16px] p-6" style={{ border: `1px solid ${RULE}` }} aria-label="Issue">
+    <section className="grid gap-5 rounded-16 p-6" style={{ border: `1px solid ${RULE}` }} aria-label="Issue">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <h2 className="m-0 text-20 font-medium tracking-[-0.01em]">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
         <Btn level="tertiary" onClick={onClose}>Close</Btn>
@@ -234,7 +234,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
               {articles.map(a => {
                 const pos = ids.indexOf(a.id)
                 return (
-                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-[10px] px-3 py-2 text-14 cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
+                  <label key={a.id} className={cn('flex items-start gap-2.5 rounded-10 px-3 py-2 text-14 cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
                     <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1" />
                     <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-12.5 text-trs-muted">Published {day(a.published_at)}</span></span>
                   </label>
@@ -253,7 +253,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
         </div>
         <div className="grid gap-1.5 content-start">
           <span className="text-12.5 text-trs-muted">Preview{dirty ? ' (save to refresh)' : ''}</span>
-          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-[12px] bg-white" style={{ border: `1px solid ${RULE}` }} />
+          <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-12 bg-white" style={{ border: `1px solid ${RULE}` }} />
         </div>
       </div>
     </section>

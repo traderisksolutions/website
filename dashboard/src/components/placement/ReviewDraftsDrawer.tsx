@@ -530,7 +530,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         {!phone && (docked
           ? <Btn level="tertiary" size="xs" onClick={() => switchLayout('modal')}><Maximize2 size={13} /> Expand</Btn>
           : <Btn level="tertiary" size="xs" onClick={() => switchLayout('dock')}><PanelRight size={13} /> Dock to side</Btn>)}
-        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-[8px] border-0 bg-transparent cursor-pointer text-foreground hover:bg-muted">
+        <button type="button" onClick={onClose} aria-label="Close" title="Close (Esc)" className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-8 border-0 bg-transparent cursor-pointer text-foreground hover:bg-muted">
           <X size={16} />
         </button>
       </div>
@@ -575,7 +575,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         role="dialog"
         aria-modal="true"
         aria-label="Drafts to approve"
-        className="fixed z-50 inset-0 sm:inset-6 lg:inset-8 mx-auto max-w-[1400px] bg-background flex flex-col overflow-hidden sm:rounded-[16px] shadow-[var(--shadow-modal)] outline-none [--re-gutter:16px] sm:[--re-gutter:24px]"
+        className="fixed z-50 inset-0 sm:inset-6 lg:inset-8 mx-auto max-w-[1400px] bg-background flex flex-col overflow-hidden sm:rounded-16 shadow-[var(--shadow-modal)] outline-none [--re-gutter:16px] sm:[--re-gutter:24px]"
       >
         {header}
         {states}

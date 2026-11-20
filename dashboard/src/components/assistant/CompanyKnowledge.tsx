@@ -83,7 +83,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
       </div>
       {error && <p className="m-0 text-13.5 text-trs-neg">{error}</p>}
       {!entries ? <Spinner label="Loading the knowledge log…" /> : shown.length === 0 ? <Empty>Nothing recorded for this company yet.</Empty> : (
-        <ol className="m-0 p-0 list-none rounded-[10px] border border-trs-line bg-white overflow-hidden">
+        <ol className="m-0 p-0 list-none rounded-10 border border-trs-line bg-white overflow-hidden">
           {shown.map(e => (
             <li key={e.id} className="grid grid-cols-1 sm:grid-cols-[112px_minmax(0,1fr)] gap-1 sm:gap-3 px-4 py-2.5 border-b border-trs-line last:border-b-0">
               <span className="font-mono text-12 text-trs-muted pt-[3px]">{fmtWhen(e.occurred_at)}</span>

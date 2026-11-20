@@ -20,8 +20,8 @@ type Payload = {
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const PLACEHOLDER = '# Business\nOne fact per line. The writer states only what is written here.\n# Approved claims\n# Do not write'
 const MONO = '14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
-const BOX = 'block w-full m-0 rounded-[14px] border px-5 py-[18px] min-h-[520px] text-[#2a332f]'
-const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-13.5 rounded-[7px] bg-white text-[#0f1412] border border-[#d5d9d4] hover:bg-[#faf9f6] no-underline'
+const BOX = 'block w-full m-0 rounded-12 border px-5 py-[18px] min-h-[520px] text-[#2a332f]'
+const SECONDARY_LINK = 'inline-flex items-center gap-1.5 font-medium whitespace-nowrap h-9 px-3.5 text-13.5 rounded-7 bg-white text-[#0f1412] border border-[#d5d9d4] hover:bg-[#faf9f6] no-underline'
 
 const author = (email: string | null | undefined) => (email ? email.split('@')[0] : 'unknown')
 
@@ -170,7 +170,7 @@ function Knowledge() {
                   const on = isCurrent ? cur : v.version === viewingVersion
                   const locked = busy || mode === 'edit'
                   return (
-                    <li key={v.version} className="flex items-center justify-between gap-2.5 px-2.5 py-[9px] rounded-[9px] text-13.5" style={{ background: on ? '#edf7e8' : undefined }}>
+                    <li key={v.version} className="flex items-center justify-between gap-2.5 px-2.5 py-[9px] rounded-8 text-13.5" style={{ background: on ? '#edf7e8' : undefined }}>
                       <span className="min-w-0">
                         v{v.version}
                         {cur ? ' · current' : (

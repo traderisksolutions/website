@@ -120,7 +120,7 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
   })
 
   return (
-    <article className="rounded-[10px] bg-white px-4 py-3.5 border border-trs-line">
+    <article className="rounded-10 bg-white px-4 py-3.5 border border-trs-line">
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -149,7 +149,7 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
           {i.next_action && <div><span className="text-trs-muted">Next: </span>{i.next_action}{i.deadline_basis ? <span className="text-trs-muted"> · {i.deadline_basis}</span> : null}</div>}
 
           {i.draft && (
-            <div className="rounded-[8px] px-3 py-2.5 border border-trs-line">
+            <div className="rounded-8 px-3 py-2.5 border border-trs-line">
               {editing ? (
                 <div className="flex flex-col gap-2">
                   <label className="text-12.5 text-trs-muted">To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>

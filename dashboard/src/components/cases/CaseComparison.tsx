@@ -23,7 +23,7 @@ import { headingCls, selectCls, tableFrame } from './shared'
 /** What a person typed and has not saved, by case: it survives a look at another section. */
 const drafts = new Map<string, Comparison>()
 
-const cellCls = 'block w-full rounded-[6px] border border-transparent bg-transparent px-2 py-1.5 text-13 leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
+const cellCls = 'block w-full rounded-6 border border-transparent bg-transparent px-2 py-1.5 text-13 leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
 const fileKey = (f: { message_id: string; filename: string }) => `${f.message_id}|${f.filename}`
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}`
 
@@ -208,7 +208,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                     </td>
                   ))}
                   <td className="px-1 py-1.5 text-center">
-                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-[6px] border-0 bg-transparent text-16 leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
+                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-6 border-0 bg-transparent text-16 leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
                   </td>
                 </tr>
               ))}
@@ -287,7 +287,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
             <DialogTitle>Client summary</DialogTitle>
             <DialogDescription className="sr-only">The saved comparison as a PDF.</DialogDescription>
           </DialogHeader>
-          {pdf && <iframe title="Client summary PDF" src={pdf.url} className="w-full h-[68vh] rounded-[10px] border border-trs-line bg-white" />}
+          {pdf && <iframe title="Client summary PDF" src={pdf.url} className="w-full h-[68vh] rounded-10 border border-trs-line bg-white" />}
           <DialogFooter className="gap-2 sm:space-x-0">
             <Btn onClick={() => setPdf(null)}>Close</Btn>
             <Btn level="primary" onClick={download}>Download</Btn>

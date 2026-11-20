@@ -13,7 +13,7 @@ type Found = { id: string; filename: string; sent_at: string | null; subject: st
 const KIND: Record<string, string> = { proposal_form: 'Proposal form', template: 'Template', brochure: 'Brochure', product_summary: 'Product summary', claim_form: 'Claim form', letter: 'Letter' }
 const FLOW: Record<string, string> = { contract: 'Contract or tender', products: 'Products', event: 'Event', sme: 'SME annual', lawyers: 'Lawyers', technology: 'Technology' }
 const day = (s: string | null) => s ? new Date(s).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '–'
-const sel = 'h-8 rounded-[6px] border border-trs-line bg-white px-2 text-13'
+const sel = 'h-8 rounded-6 border border-trs-line bg-white px-2 text-13'
 
 export function ClientFormsPanel({ isAdmin }: { isAdmin: boolean }) {
   const [forms, setForms] = useState<Form[] | null>(null)

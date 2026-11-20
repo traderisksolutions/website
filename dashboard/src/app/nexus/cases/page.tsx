@@ -218,7 +218,7 @@ function DotRow({ children, className }: { children: React.ReactNode; className?
 /** A party chip: the category's soft field, ink text. Category, not state. */
 function PartyChip({ party, className }: { party: string; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded-[6px] px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4', className)} style={{ background: partyField(party), color: BODY }}>
+    <span className={cn('inline-flex items-center rounded-6 px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4', className)} style={{ background: partyField(party), color: BODY }}>
       {partyLabel(party)}
     </span>
   )
@@ -226,7 +226,7 @@ function PartyChip({ party, className }: { party: string; className?: string }) 
 
 /** A chip that sits on a grey field: white fill, ink text. */
 function WhiteChip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
+  return <span className="inline-flex items-center rounded-6 bg-white px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
 }
 
 /** A small muted label above a group of rows (13px, sentence case). */
@@ -382,7 +382,7 @@ export default function NexusPage() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 bg-trs-ink"
+          className="h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 bg-trs-ink"
           
         >
           New case
@@ -533,7 +533,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,20,18,0.4)' }} onClick={onClose}>
       <form
         onSubmit={submit}
-        className="bg-white rounded-[16px] w-full max-w-[440px] p-6 flex flex-col gap-4"
+        className="bg-white rounded-16 w-full max-w-[440px] p-6 flex flex-col gap-4"
         style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
       >
@@ -554,7 +554,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         </Field>
         <Field label="Company">
           {prefillCompany ? (
-            <div className="w-full h-10 rounded-[10px] px-3.5 text-14 flex items-center bg-trs-field text-trs-ink">
+            <div className="w-full h-10 rounded-10 px-3.5 text-14 flex items-center bg-trs-field text-trs-ink">
               {prefillCompany.name}
             </div>
           ) : (
@@ -568,7 +568,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                 className={inputCls}
               />
               {companyPickerOpen && (
-                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-12 max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
                   {companySearching && <div className="px-3.5 py-2.5 text-13 flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
                   {!companySearching && companyResults.length === 0 && (
                     <div className="px-3.5 py-2.5 text-13 text-trs-muted">
@@ -1274,14 +1274,14 @@ function PreAnalysisState({
       {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {!analyzing && (
-        <div className="rounded-[16px] px-6 py-8 flex flex-col items-center gap-4 text-center bg-trs-field">
+        <div className="rounded-16 px-6 py-8 flex flex-col items-center gap-4 text-center bg-trs-field">
           <p className="m-0 text-15 max-w-[420px] leading-[1.6] text-trs-ink-2">
             {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. The analysis produces a brief, stakeholder map, timeline, evidence ledger and draft emails.
           </p>
           <button
             type="button"
             onClick={onRunAnalysis}
-            className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer hover:opacity-90 bg-trs-ink"
+            className="h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer hover:opacity-90 bg-trs-ink"
             
           >
             Run analysis
@@ -1312,7 +1312,7 @@ function PreAnalysisState({
 function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
   const idx = progress?.stageIdx ?? 0
   return (
-    <div className="flex flex-col gap-3 px-5 py-4 rounded-[16px] bg-trs-field" role="status" aria-live="polite">
+    <div className="flex flex-col gap-3 px-5 py-4 rounded-16 bg-trs-field" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Loader2 size={14} className="animate-spin flex-shrink-0 text-trs-muted" />
@@ -1391,7 +1391,7 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
   const label = c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label
   // v1.1: cited facts resolve to a real message/attachment → link to the source thread.
   const href = c.thread_id ? `/engagement?lead=${c.thread_id}` : null
-  const cls = 'inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-11 font-medium align-middle no-underline whitespace-nowrap'
+  const cls = 'inline-flex items-center rounded-6 px-1.5 py-0.5 text-11 font-medium align-middle no-underline whitespace-nowrap'
   if (href) return (
     <a href={href} onClick={e => e.stopPropagation()} title={`${c.excerpt ?? c.label}. Opens the source.`} className={cn(cls, 'hover:underline')} style={{ background: FIELD, color: BODY }}>
       {label}
@@ -1426,7 +1426,7 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
   return (
     <div>
       <SectionLabel title="Executive brief" />
-      <div className="rounded-[16px] bg-white px-6 py-5 flex flex-col gap-5" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white px-6 py-5 flex flex-col gap-5" style={{ border: `1px solid ${HAIR}` }}>
         {(stage || coverage || claim || policy) && (
           <dl className="m-0 flex flex-wrap gap-x-8 gap-y-1.5">
             {stage    && <KFact label="Stage"    value={stage} />}
@@ -1452,7 +1452,7 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
             <GroupLabel className="mb-2">Pending from</GroupLabel>
             <div className="flex flex-wrap gap-3">
               {pendingRows.map(([party, item]) => (
-                <div key={party} className="flex flex-col gap-1 px-4 py-3 rounded-[12px] flex-1 min-w-[200px]" style={{ background: partyField(party) }}>
+                <div key={party} className="flex flex-col gap-1 px-4 py-3 rounded-12 flex-1 min-w-[200px]" style={{ background: partyField(party) }}>
                   <span className="text-12.5 font-medium text-trs-muted">{partyLabel(party)}</span>
                   <p className="m-0 text-14 leading-[1.5] text-trs-ink-2">{item as string}</p>
                 </div>
@@ -1587,7 +1587,7 @@ function StakeholderMapSection({
   return (
     <div>
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
-      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
           <table className="trs-table w-full text-left border-collapse text-14">
             <thead>
@@ -1742,7 +1742,7 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
           const ct = threads.find(t => (t.party_label ?? '') === g.label)
           const pt = ct?.party_type ?? 'other'
           return (
-            <div key={g.label} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+            <div key={g.label} className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
               <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
                 <PartyChip party={pt} className="flex-shrink-0" />
                 <span className="text-14 font-medium truncate text-trs-ink">{g.label}</span>
@@ -1784,7 +1784,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
   return (
     <div>
       <SectionLabel title="Scenarios" count={scenarios.length} />
-      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
           <table className="trs-table w-full border-collapse text-left min-w-[720px]">
             <thead>
@@ -1889,7 +1889,7 @@ function MissionTimelineSection({
           </button>
         )}
       </SectionLabel>
-      <div className="rounded-[16px] bg-white px-6 py-5" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white px-6 py-5" style={{ border: `1px solid ${HAIR}` }}>
         {shown.map((e, i) => (
           <div key={i} className="flex gap-4">
             <div className="flex flex-col items-center">
@@ -1940,7 +1940,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
       <SectionLabel title="Evidence" count={items.length}>
         <Segmented value={tab} onChange={setTab} options={TAB_META.map(t => ({ value: t.key, label: t.label, count: groups[t.key]?.length ?? 0 }))} />
       </SectionLabel>
-      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         {shown.length === 0 ? (
           <p className="m-0 text-14 text-center py-10 text-trs-muted">
             No {tab === 'email' ? 'email' : tab === 'attachment' ? 'attachment' : 'knowledge'} evidence in this analysis.
@@ -2115,7 +2115,7 @@ function NextStepsSection({
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {urgentMissing.length > 0 && (
-          <div className="px-5 py-4 rounded-[16px] bg-trs-field">
+          <div className="px-5 py-4 rounded-16 bg-trs-field">
             <GroupLabel className="mb-2">Prerequisites <span className="tabular-nums text-trs-subtle">{urgentMissing.length}</span></GroupLabel>
             <ul className="m-0 p-0 flex flex-col gap-1.5">
               {urgentMissing.map((m, i) => (
@@ -2136,7 +2136,7 @@ function NextStepsSection({
           const lastSent = lastSentForStep(step, toEmail)
 
           return (
-            <div key={i} className="flex gap-4 px-5 py-4 rounded-[16px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
+            <div key={i} className="flex gap-4 px-5 py-4 rounded-16 bg-white" style={{ border: `1px solid ${HAIR}` }}>
               <span className="text-14 font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px] text-trs-subtle">
                 {step.step}
               </span>
@@ -2356,7 +2356,7 @@ function RunComparisonBanner({
   }
 
   return (
-    <div className="rounded-[16px] bg-trs-field">
+    <div className="rounded-16 bg-trs-field">
       <button
         type="button"
         aria-expanded={open}
@@ -2391,7 +2391,7 @@ function RunComparisonBanner({
               <GroupLabel className="mb-2">Step changes</GroupLabel>
               <ul className="m-0 p-0 flex flex-col gap-2">
                 {stepDiff.map((d, i) => (
-                  <li key={i} className="list-none rounded-[12px] bg-white px-4 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
+                  <li key={i} className="list-none rounded-12 bg-white px-4 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
                     <p className="m-0 text-12.5 mb-0.5 text-trs-muted">{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
                     <p className="m-0 text-14 leading-[1.45] text-trs-ink">{d.action}</p>
                     {d.prevAction && <p className="m-0 mt-0.5 text-13 line-through leading-[1.4] text-trs-subtle">{d.prevAction}</p>}
@@ -2504,7 +2504,7 @@ function RunHistoryView({
         })()
 
         return (
-          <div key={run.id} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+          <div key={run.id} className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
             {/* Run header */}
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-3 mb-2.5 flex-wrap">
@@ -2570,7 +2570,7 @@ function RunHistoryView({
 
               {/* Error message for failed runs */}
               {run.run_status === 'failed' && run.error_message && (
-                <div className="mb-2.5 px-4 py-3 rounded-[12px] bg-trs-field">
+                <div className="mb-2.5 px-4 py-3 rounded-12 bg-trs-field">
                   <GroupLabel className="mb-1">Error</GroupLabel>
                   <p className="m-0 text-12.5 font-mono leading-[1.5] break-all text-trs-ink-2">{run.error_message}</p>
                 </div>
@@ -2631,7 +2631,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
   }
 
   return (
-    <div className="rounded-[16px] bg-trs-field">
+    <div className="rounded-16 bg-trs-field">
       <button
         type="button"
         aria-expanded={open}
@@ -2744,7 +2744,7 @@ function ThreadsOverviewCard({
         <Btn level="secondary" size="xs" onClick={onAddThread}>Link threads</Btn>
       </SectionLabel>
 
-      <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+      <div className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <button
           type="button"
           aria-expanded={expanded}
@@ -2755,7 +2755,7 @@ function ThreadsOverviewCard({
             {threads.slice(0, 5).map(ct => {
               const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
               return (
-                <span key={ct.id} className="inline-flex items-center rounded-[6px] px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4" style={{ background: partyField(ct.party_type), color: BODY }}>
+                <span key={ct.id} className="inline-flex items-center rounded-6 px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4" style={{ background: partyField(ct.party_type), color: BODY }}>
                   {name.length > 16 ? name.slice(0, 16) + '…' : name}
                 </span>
               )
@@ -2861,7 +2861,7 @@ function LinkedThreadCard({
   ].filter(Boolean).join(' · ')
 
   return (
-    <div className="flex items-start gap-3 px-4 py-3 rounded-[12px] bg-white flex-wrap" style={{ border: `1px solid ${HAIR}` }}>
+    <div className="flex items-start gap-3 px-4 py-3 rounded-12 bg-white flex-wrap" style={{ border: `1px solid ${HAIR}` }}>
       {/* Main content */}
       <div className="flex-1 min-w-0 basis-[240px]">
         <div className="flex items-center gap-2 mb-0.5 min-w-0">
@@ -2880,7 +2880,7 @@ function LinkedThreadCard({
           onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
           onClick={e => e.stopPropagation()}
           aria-label="Party type"
-          className="h-[30px] rounded-[6px] px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+          className="h-[30px] rounded-6 px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
           style={{ border: `1px solid ${CTRL}`, color: INK }}
         >
           {PARTY_TYPES.map(t => (
@@ -2932,7 +2932,7 @@ function AttachmentCoverageCard({
   const other = Math.max(0, ext - byType.pdf - byType.image - byType.docx - byType.xlsx)
 
   return (
-    <div className="rounded-[16px] px-5 py-4 bg-trs-field">
+    <div className="rounded-16 px-5 py-4 bg-trs-field">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
         <span className="text-14 font-medium text-trs-ink">Attachment coverage</span>
         {pendingThreads.length > 0 && (
@@ -2986,7 +2986,7 @@ function TimelineMessageCard({
 
   return (
     <div
-      className="rounded-[16px] bg-white cursor-pointer hover:bg-[#faf9f6]"
+      className="rounded-16 bg-white cursor-pointer hover:bg-[#faf9f6]"
       style={{ border: `1px solid ${HAIR}` }}
       onClick={() => setOpen(v => !v)}
       role="button"
@@ -3031,7 +3031,7 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
   const matchingThread = threads.find(ct => ct.party_type === step.party_type) ?? null
 
   return (
-    <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+    <div className="rounded-16 bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
       {/* Step header */}
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-start gap-3 justify-between mb-2 flex-wrap">
@@ -3181,7 +3181,7 @@ function NexusStepCompose({
   }
 
   const rowLabel = 'text-12.5 w-14 flex-shrink-0'
-  const rowInput = 'flex-1 min-w-0 h-9 rounded-[7px] px-3 text-14 bg-white outline-none focus:border-[#0f1412]'
+  const rowInput = 'flex-1 min-w-0 h-9 rounded-7 px-3 text-14 bg-white outline-none focus:border-[#0f1412]'
 
   return (
     <div style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -3246,7 +3246,7 @@ function NexusStepCompose({
             type="button"
             onClick={handleSend}
             disabled={sending || !toList.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-trs-green"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-7 text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-trs-green"
             
           >
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} strokeWidth={2} />}
@@ -3328,7 +3328,7 @@ function NexusComposeWindow({
   // Minimised tab bar
   if (minimized) {
     return (
-      <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 pl-4 pr-2 py-2 rounded-t-[12px] cursor-pointer select-none text-white" style={{ background: INK, boxShadow: 'var(--shadow-panel)' }}>
+      <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 pl-4 pr-2 py-2 rounded-t-12 cursor-pointer select-none text-white" style={{ background: INK, boxShadow: 'var(--shadow-panel)' }}>
         <span className="text-13.5 font-medium truncate max-w-[220px]" onClick={() => setMinimized(false)}>
           {subject || 'New message'}
         </span>
@@ -3344,7 +3344,7 @@ function NexusComposeWindow({
   const panelH = expanded ? 'h-[600px]' : 'h-[460px]'
 
   return (
-    <div className={cn('fixed bottom-0 right-6 z-50 flex flex-col bg-white rounded-t-[16px] overflow-hidden', panelW, panelH)} style={{ boxShadow: 'var(--shadow-modal)' }}>
+    <div className={cn('fixed bottom-0 right-6 z-50 flex flex-col bg-white rounded-t-16 overflow-hidden', panelW, panelH)} style={{ boxShadow: 'var(--shadow-modal)' }}>
       {/* Title bar */}
       <div className="flex items-center justify-between pl-4 pr-2 py-2 flex-shrink-0 select-none text-white bg-trs-ink" onDoubleClick={() => setMinimized(true)}>
         <span className="text-13.5 font-medium truncate flex-1 mr-3">{subject || 'New message'}</span>
@@ -3424,7 +3424,7 @@ function NexusComposeWindow({
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
               aria-label="Signature"
-              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-13 bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"
+              className="h-[30px] max-w-[200px] rounded-6 px-2 text-13 bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"
               
             >
               <option value="">No signature</option>
@@ -3441,7 +3441,7 @@ function NexusComposeWindow({
             type="button"
             onClick={handleSend}
             disabled={sending || sent || !to.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-7 text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
             style={{ background: sent ? INK : NAVY }}
           >
             {sent ? 'Sent' : sending ? <><Loader2 size={12} className="animate-spin" /> Sending…</> : <><Send size={12} /> Send</>}
@@ -3598,7 +3598,7 @@ function ThreadLinkerModal({
                 value={pty}
                 onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 aria-label="Party type"
-                className="h-[30px] w-full rounded-[6px] px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+                className="h-[30px] w-full rounded-6 px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               >
                 {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -3608,7 +3608,7 @@ function ThreadLinkerModal({
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 placeholder="Label, e.g. QBE Marine"
                 aria-label="Party label"
-                className="h-[30px] w-full rounded-[6px] px-2 text-13 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
+                className="h-[30px] w-full rounded-6 px-2 text-13 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               />
             </div>
@@ -3623,7 +3623,7 @@ function ThreadLinkerModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,20,18,0.4)' }} onClick={onClose}>
       <div
-        className="bg-white rounded-[16px] w-full max-w-[800px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
+        className="bg-white rounded-16 w-full max-w-[800px] flex flex-col overflow-hidden max-h-[calc(85vh/var(--ui-zoom))]"
         style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
         role="dialog"
@@ -3659,7 +3659,7 @@ function ThreadLinkerModal({
             type="button"
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap bg-trs-ink"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap bg-trs-ink"
             
           >
             {linking && <Loader2 size={13} className="animate-spin" />}

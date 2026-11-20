@@ -144,7 +144,7 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
               <Field label="Signatory name"><input className={inputCls} value={f.signatory_name} onChange={set('signatory_name')} placeholder="Leave blank for the client to fill in" /></Field>
               <Field label="Designation"><input className={inputCls} value={f.designation} onChange={set('designation')} placeholder="Leave blank for the client to fill in" /></Field>
               <Field label="Letter text">
-                <div className="rounded-[8px] border border-[#d5d9d4] bg-white min-w-0">
+                <div className="rounded-8 border border-[#d5d9d4] bg-white min-w-0">
                   <RichEditor key={editorKey} initialHtml={f.body_html ?? templateHtml({ programme: f.programme })} onChange={html => body('body_html', html)} minHeight={170} />
                 </div>
               </Field>
@@ -168,11 +168,11 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
             {pdfUrl ? (
               <div className="min-w-0 flex flex-col gap-2">
                 <div className="flex justify-between items-center text-12.5 text-trs-muted"><span>The PDF as it will be filed and sent</span><Btn size="xs" level="tertiary" onClick={() => setPdfUrl(null)}>Back to editing view</Btn></div>
-                <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded-[10px] border border-[#e6e8e4] bg-white" />
+                <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded-10 border border-[#e6e8e4] bg-white" />
               </div>
             ) : (
-            <div className="min-w-0 rounded-[10px] border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-13 leading-[1.6] text-trs-ink" aria-label="Letter preview">
-              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-[6px] border border-dashed border-[#d5d9d4] items-center justify-center text-12'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
+            <div className="min-w-0 rounded-10 border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-13 leading-[1.6] text-trs-ink" aria-label="Letter preview">
+              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-6 border border-dashed border-[#d5d9d4] items-center justify-center text-12'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
                 {parts.clientLogo || parts.clientAddress.length
                   ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-[60px] max-w-[180px] object-contain" /> : <span />}<div className="text-right text-11 leading-[1.45] text-trs-muted">{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
                   : 'Client letterhead (left blank)'}

@@ -60,7 +60,7 @@ export default function AiApprovalsPage() {
                     <RegisterCell>{r.oldest ? fmtDate(r.oldest) : '—'}</RegisterCell>
                     <RegisterCell align="right">
                       <select aria-label={`How many ${r.label} tasks to run`} value={count[r.agent] ?? 10} onChange={e => setCount(c => ({ ...c, [r.agent]: Number(e.target.value) }))} disabled={!r.waiting}
-                        className="h-8 rounded-[7px] border border-trs-line-2 bg-white px-2 text-13">
+                        className="h-8 rounded-7 border border-trs-line-2 bg-white px-2 text-13">
                         {[1, 5, 10, max].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v}</option>)}
                       </select>
                     </RegisterCell>

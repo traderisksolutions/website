@@ -79,7 +79,7 @@ function FilterInput({ label, value, onChange, autoFocus }: { label: string; val
         onChange={e => onChange?.(e.target.value)}
         placeholder={`Filter ${label.toLowerCase()}`}
         aria-label={`Filter ${label.toLowerCase()}`}
-        className="flex-1 min-w-0 h-9 rounded-[7px] border bg-white px-2.5 text-13 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink"
+        className="flex-1 min-w-0 h-9 rounded-7 border bg-white px-2.5 text-13 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink"
       />
       {value && (
         <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0 text-trs-muted"><X size={12} /></button>
@@ -132,11 +132,11 @@ function ColumnHeader({
               <ListFilter size={13} />
             </button>
           </PopoverTrigger>
-          <PopoverContent className="w-56 p-2.5 rounded-[12px]" align={right ? 'end' : 'start'} style={{ border: '1px solid #e6e8e4' }}>
+          <PopoverContent className="w-56 p-2.5 rounded-12" align={right ? 'end' : 'start'} style={{ border: '1px solid #e6e8e4' }}>
             {col.type === 'status' ? (
               <div className="flex flex-col gap-0.5">
                 {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-13.5 px-2 py-1.5 rounded-[8px] hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
+                  <label key={s} className="flex items-center gap-2 text-13.5 px-2 py-1.5 rounded-8 hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
                     <input
                       type="checkbox"
                       checked={statusFilter?.has(s) ?? false}

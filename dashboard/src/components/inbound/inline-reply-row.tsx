@@ -236,7 +236,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
           ) : (
             <>
               {/* Rich editor */}
-              <div className="overflow-hidden rounded-[10px] bg-white" style={{ border: '1px solid #d5d9d4' }}>
+              <div className="overflow-hidden rounded-10 bg-white" style={{ border: '1px solid #d5d9d4' }}>
                 <RichEditor
                   key={draftEditorKey}
                   initialHtml={draftHtml}
@@ -275,7 +275,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                           type="button"
                           onClick={() => setSelectedSigId('')}
                           aria-label="Remove signature"
-                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer p-0 text-trs-muted"
+                          className="w-6 h-6 inline-flex items-center justify-center rounded-6 hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer p-0 text-trs-muted"
                           
                         >
                           <X size={12} />
@@ -339,7 +339,7 @@ export function ReplyExpandButton({
       aria-expanded={isExpanded}
       aria-label={isExpanded ? 'Collapse reply panel' : 'Draft and send reply'}
       className={cn(
-        'inline-flex items-center justify-center w-[30px] h-[30px] rounded-[8px] cursor-pointer transition-colors',
+        'inline-flex items-center justify-center w-[30px] h-[30px] rounded-8 cursor-pointer transition-colors',
         isExpanded ? 'bg-[#f1f2ee] hover:bg-[#e6e8e4]' : 'bg-white hover:bg-[#faf9f6]',
       )}
       style={{ border: '1px solid #d5d9d4', color: INK }}

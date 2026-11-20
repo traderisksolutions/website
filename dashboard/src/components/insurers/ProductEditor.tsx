@@ -7,7 +7,7 @@ import { PRODUCT_LINES } from '@/lib/product-lines'
 import type { InsurerProduct } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 
-const cell = 'h-[30px] w-full rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
+const cell = 'h-[30px] w-full rounded-6 border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const label = 'text-12 font-medium'
 const splitList = (s: string) => s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean)
 

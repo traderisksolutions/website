@@ -138,7 +138,7 @@ export default function AISpendPage() {
         </p>
 
         {err && (
-          <div className="mt-5 rounded-[10px] px-3.5 py-3 text-13" style={{ border: `1px solid #d5d9d4`, color: INK }}>
+          <div className="mt-5 rounded-10 px-3.5 py-3 text-13" style={{ border: `1px solid #d5d9d4`, color: INK }}>
             {err}
           </div>
         )}

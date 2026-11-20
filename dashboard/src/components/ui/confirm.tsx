@@ -30,7 +30,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       <DialogPrimitive.Root open={!!opts} onOpenChange={o => { if (!o) close(false) }}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-          <DialogPrimitive.Content className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+          <DialogPrimitive.Content className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-28 bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
             <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
               <X size={16} />
             </DialogPrimitive.Close>

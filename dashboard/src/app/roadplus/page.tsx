@@ -36,7 +36,7 @@ const STEP_LABEL: Record<string, string> = {
 // Grey stat tile: label, then the number. The label carries the meaning; no state colour.
 function Tile({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-[16px] px-5 py-4 bg-trs-field">
+    <div className="rounded-16 px-5 py-4 bg-trs-field">
       <p className="m-0 text-12.5 text-trs-muted">{label}</p>
       <p className="m-0 mt-2 text-24 font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value}</p>
     </div>
@@ -56,7 +56,7 @@ function Split({ title, data }: { title: string; data: Record<string, number> })
           {entries.map(([k, v]) => (
             <div key={k} className="flex items-center gap-3">
               <div className="w-28 shrink-0 text-13 capitalize text-trs-ink-2">{k}</div>
-              <div className="h-5 flex-1 overflow-hidden rounded-[4px] bg-trs-field"><div className="h-full rounded-[4px]" style={{ width: `${(v / total) * 100}%`, background: '#6f7a74' }} /></div>
+              <div className="h-5 flex-1 overflow-hidden rounded-4 bg-trs-field"><div className="h-full rounded-4" style={{ width: `${(v / total) * 100}%`, background: '#6f7a74' }} /></div>
               <div className="w-20 text-right text-12.5 tabular-nums text-trs-muted">{v} ({((v / total) * 100).toFixed(0)}%)</div>
             </div>
           ))}
@@ -117,7 +117,7 @@ const RECON_LABEL: Record<Recon, string> = {
 }
 
 // One neutral chip, used only to mark a row that arrived since the last poll. State is words.
-const CHIP = 'inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-12 font-medium leading-4'
+const CHIP = 'inline-block whitespace-nowrap rounded-6 px-2 py-0.5 text-12 font-medium leading-4'
 const CHIP_STYLE = { background: '#f1f2ee', color: '#2a332f' } as const
 
 type JourneyEvent = {
@@ -204,10 +204,10 @@ function download(filename: string, body: string) {
 }
 
 // ── Shared control classes (tokens) ───────────────────────────────────────
-const inputCls = 'h-9 w-full sm:w-[340px] rounded-[7px] bg-white pl-10 pr-3.5 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
+const inputCls = 'h-9 w-full sm:w-[340px] rounded-7 bg-white pl-10 pr-3.5 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
 const inputStyle = { border: '1px solid #d5d9d4', color: INK } as const
-const primaryCls = 'h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-const secondaryCls = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] bg-white text-14 font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const primaryCls = 'h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryCls = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-7 bg-white text-14 font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 const secondaryStyle = { border: '1px solid #d5d9d4', color: INK } as const
 const tertiaryCls = 'text-14 bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
 const MONO = 'ui-monospace, monospace'
@@ -609,7 +609,7 @@ export default function RoadplusReconPage() {
 
             {aLoading && !analytics ? (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true">
-                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-[16px] bg-[#f1f2ee] animate-pulse" />)}
+                {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-16 bg-[#f1f2ee] animate-pulse" />)}
               </div>
             ) : !analytics || analytics.configured === false ? (
               <p className="m-0 py-16 text-center text-16 text-trs-muted">Not connected. Set the roadplus database env vars.</p>
@@ -647,9 +647,9 @@ export default function RoadplusReconPage() {
                         return (
                           <div key={f.step} className="flex items-center gap-3">
                             <div className="w-40 shrink-0 text-13 text-trs-ink-2">{STEP_LABEL[f.step] ?? f.step}</div>
-                            <div className="h-6 flex-1 overflow-hidden rounded-[4px] bg-trs-field">
+                            <div className="h-6 flex-1 overflow-hidden rounded-4 bg-trs-field">
                               <div
-                                className="flex h-full items-center rounded-[4px] px-2 text-12 font-medium text-white tabular-nums"
+                                className="flex h-full items-center rounded-4 px-2 text-12 font-medium text-white tabular-nums"
                                 style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%`, background: INK }}
                               >
                                 {f.journeys}

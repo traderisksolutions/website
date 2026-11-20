@@ -75,15 +75,15 @@ export function TeamTable() {
     <div>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
         <p className="m-0 text-14 text-trs-muted">{err ? '' : users ? `${users.length} ${users.length === 1 ? 'person' : 'people'} · ${users.filter(u => u.role === 'administrator').length} administrator${users.filter(u => u.role === 'administrator').length === 1 ? '' : 's'}` : 'Loading…'}</p>
-        {isAdmin && !adding && <button type="button" onClick={() => setAdding(true)} className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 bg-trs-green"><Plus size={15} /> Add person</button>}
+        {isAdmin && !adding && <button type="button" onClick={() => setAdding(true)} className="h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer inline-flex items-center gap-1.5 bg-trs-green"><Plus size={15} /> Add person</button>}
       </div>
 
       {adding && (
-        <div className="mb-4 rounded-[14px] p-4 flex items-end gap-3 flex-wrap" style={{ background: '#F5F5F3' }}>
-          <label className="flex flex-col gap-1 text-12.5 flex-1 min-w-[200px] text-trs-muted">Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-9 rounded-[7px] border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
-          <label className="flex flex-col gap-1 text-12.5 flex-1 min-w-[160px] text-trs-muted">Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-9 rounded-[7px] border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" /></label>
-          <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer disabled:opacity-50 bg-trs-green">{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
-          <button type="button" onClick={() => setAdding(false)} className="h-9 px-3 rounded-[7px] text-14 bg-transparent border-0 cursor-pointer text-trs-muted">Cancel</button>
+        <div className="mb-4 rounded-12 p-4 flex items-end gap-3 flex-wrap" style={{ background: '#F5F5F3' }}>
+          <label className="flex flex-col gap-1 text-12.5 flex-1 min-w-[200px] text-trs-muted">Work email<input autoFocus value={email} onChange={e => setEmail(e.target.value)} placeholder="name@trade-risksol.com" className="h-9 rounded-7 border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" onKeyDown={e => { if (e.key === 'Enter') void add() }} /></label>
+          <label className="flex flex-col gap-1 text-12.5 flex-1 min-w-[160px] text-trs-muted">Name<input value={name} onChange={e => setName(e.target.value)} placeholder="Optional" className="h-9 rounded-7 border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" /></label>
+          <button type="button" onClick={() => void add()} disabled={busy === 'add' || !email.trim()} className="h-9 px-4 rounded-7 text-white text-14 font-medium border-0 cursor-pointer disabled:opacity-50 bg-trs-green">{busy === 'add' ? 'Adding…' : 'Add to roster'}</button>
+          <button type="button" onClick={() => setAdding(false)} className="h-9 px-3 rounded-7 text-14 bg-transparent border-0 cursor-pointer text-trs-muted">Cancel</button>
         </div>
       )}
 
@@ -114,7 +114,7 @@ export function TeamTable() {
               </RegisterCell>
               <RegisterCell>
                 {isAdmin && !u.isSelf
-                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded-[7px] border bg-white px-2.5 text-13.5 cursor-pointer border-trs-line-2 text-trs-ink">
+                  ? <select value={u.role} onChange={e => void patch(u.id, { role: e.target.value }, `${u.name} is now ${ROLE_LABEL[e.target.value as TeamUser['role']].toLowerCase()}.`)} aria-label={`Role for ${u.name}`} className="h-9 rounded-7 border bg-white px-2.5 text-13.5 cursor-pointer border-trs-line-2 text-trs-ink">
                       {(['administrator', 'staff'] as const).map(r => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
                     </select>
                   : <span className="text-14 text-trs-ink" title={u.isSelf ? 'You cannot change your own role. Ask another administrator.' : undefined}>{ROLE_LABEL[u.role]}</span>}
@@ -126,8 +126,8 @@ export function TeamTable() {
                   <span className="relative inline-block">
                     <button type="button" onClick={() => setMenu(menu === u.id ? null : u.id)} aria-label={`Actions for ${u.name}`} aria-expanded={menu === u.id} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><MoreHorizontal size={16} /></button>
                     {menu === u.id && (
-                      <span className="absolute right-0 top-full mt-1 w-44 rounded-[12px] bg-white p-1.5 z-10 text-left" style={{ border: `1px solid ${RULE}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
-                        <button type="button" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full text-left px-3 py-2 rounded-[8px] text-13.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-trs-ink">{u.active ? 'Remove access' : 'Restore access'}</button>
+                      <span className="absolute right-0 top-full mt-1 w-44 rounded-12 bg-white p-1.5 z-10 text-left" style={{ border: `1px solid ${RULE}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+                        <button type="button" onClick={() => void patch(u.id, { active: !u.active }, u.active ? `${u.name} can no longer sign in.` : `${u.name} can sign in again.`)} className="w-full text-left px-3 py-2 rounded-8 text-13.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-trs-ink">{u.active ? 'Remove access' : 'Restore access'}</button>
                       </span>
                     )}
                   </span>

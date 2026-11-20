@@ -15,8 +15,8 @@ function UnsubscribedCard() {
       className="flex items-center justify-center px-4 bg-white"
       style={{ minHeight: 'calc(100vh / var(--ui-zoom))', color: INK }}
     >
-      <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10 text-center" style={{ border: '1px solid #e6e8e4' }}>
-        <div className="inline-flex items-center justify-center rounded-[12px] mb-5 w-12 h-12 bg-trs-ink">
+      <div className="w-full max-w-[400px] bg-white rounded-16 px-9 py-10 text-center" style={{ border: '1px solid #e6e8e4' }}>
+        <div className="inline-flex items-center justify-center rounded-12 mb-5 w-12 h-12 bg-trs-ink">
           <span className="text-white text-16 font-medium tracking-[-0.01em]">TRS</span>
         </div>
         {ok ? (

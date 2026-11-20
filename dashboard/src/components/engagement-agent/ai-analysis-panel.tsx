@@ -166,7 +166,7 @@ export function AiAnalysisPanel({
             {historyOpen && (
               <div className="mt-2 flex flex-col gap-2">
                 {older.map(s => (
-                  <div key={s.id} className="px-3 py-2.5 rounded-[10px] bg-trs-field">
+                  <div key={s.id} className="px-3 py-2.5 rounded-10 bg-trs-field">
                     <p className="text-12 m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
                     <p className="text-12.5 leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
                     {s.next_action && (

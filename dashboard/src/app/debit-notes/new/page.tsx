@@ -167,7 +167,7 @@ export default function NewDebitNotePage() {
       {loadingBundles ? (
         <p className="text-12.5 text-muted-foreground">Loading…</p>
       ) : needsReview.length === 0 ? (
-        <p className="text-14 text-[#4a5550] py-10 text-center rounded-[16px]" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
+        <p className="text-14 text-[#4a5550] py-10 text-center rounded-16" style={{ background: '#F5F5F3' }}>Nothing waiting on review.</p>
       ) : (
         <div className="flex flex-col gap-3">
           {needsReview.map(b => <BundleReviewCard key={b.id} bundle={b} onResolved={loadBundles} />)}
@@ -178,7 +178,7 @@ export default function NewDebitNotePage() {
 }
 
 // ── Bundle review card ──────────────────────────────────────────────────────────────────────
-const inp = 'h-9 text-14 text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
+const inp = 'h-9 text-14 text-[#0f1412] border border-[#d5d9d4] rounded-7 px-3 bg-white focus:outline-none focus:border-[#0f1412] w-full'
 
 type ApprovedResult = { debitNoteId: string; debitNoteNo: string; downloadUrl: string; driveFolderUrl: string | null }
 type EventType = 'new_business' | 'renewal' | 'endorsement'
@@ -455,7 +455,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
 
   if (approved) {
     return (
-      <div className="rounded-[16px] p-6 flex flex-col items-center gap-3 text-center" style={{ background: '#EAF6EC' }}>
+      <div className="rounded-16 p-6 flex flex-col items-center gap-3 text-center" style={{ background: '#EAF6EC' }}>
         <div className="w-10 h-10 rounded-full bg-[#f1f2ee] flex items-center justify-center"><CheckCircle2 size={20} className="text-[#0f1412]" /></div>
         <p className="text-14 font-semibold">Debit Note {approved.debitNoteNo} generated</p>
         <p className="text-12 text-[#0f1412] -mt-1.5">
@@ -479,12 +479,12 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
   }
 
   return (
-    <div className="rounded-[16px] p-5 flex flex-col gap-4" style={{ border: '1px solid #e6e8e4' }}>
+    <div className="rounded-16 p-5 flex flex-col gap-4" style={{ border: '1px solid #e6e8e4' }}>
       <div className="flex flex-wrap items-center gap-2">
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
             title={it.error_message ?? undefined}
-            className="flex items-center gap-1.5 text-13 px-3 h-9 rounded-[8px] no-underline text-[#0f1412] hover:bg-[#e6e8e4] bg-trs-field">
+            className="flex items-center gap-1.5 text-13 px-3 h-9 rounded-8 no-underline text-[#0f1412] hover:bg-[#e6e8e4] bg-trs-field">
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
             {it.doc_type && <span className="text-12 text-[#4a5550]">{DOC_TYPE_LABEL[it.doc_type]}</span>}
@@ -496,7 +496,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         )}
       </div>
 
-      <div className="rounded-[10px] p-3 flex flex-col gap-1 font-mono text-12 text-[#4a5550]" style={{ background: '#F5F5F3' }}>
+      <div className="rounded-10 p-3 flex flex-col gap-1 font-mono text-12 text-[#4a5550]" style={{ background: '#F5F5F3' }}>
         <span>bundle status: <b>{bundle.status}</b>{bundle.consistency_warning ? ` · warning: ${bundle.consistency_warning}` : ''}</span>
         {bundle.pdf_import_items.map(it => (
           <span key={it.id}>
@@ -508,7 +508,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       {bundle.pdf_import_items.some(it => it.error_message) && (
         <div className="flex flex-col gap-1">
           {bundle.pdf_import_items.filter(it => it.error_message).map(it => (
-            <p key={it.id} className="text-13 text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#FFF0E7' }}>
+            <p key={it.id} className="text-13 text-[#2a332f] rounded-10 px-3 py-2" style={{ background: '#FFF0E7' }}>
               <b>{it.original_filename ?? 'document.pdf'}</b>: {it.error_message}
             </p>
           ))}
@@ -522,14 +522,14 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       )}
 
       {bundle.consistency_warning && (
-        <div className="flex items-start gap-1.5 text-13 text-[#2a332f] rounded-[10px] px-3 py-2" style={{ background: '#fff4dc' }}>
+        <div className="flex items-start gap-1.5 text-13 text-[#2a332f] rounded-10 px-3 py-2" style={{ background: '#fff4dc' }}>
           <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" /> {bundle.consistency_warning}
         </div>
       )}
 
       <CompanyContactPicker value={recipient} onChange={setRecipient} initialQuery={!recipient ? (m?.client_name ?? undefined) : undefined} />
 
-      <div className="rounded-[12px] p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#fff4dc' : '#F5F5F3' }}>
+      <div className="rounded-12 p-4 flex flex-col gap-3" style={{ background: eventType === 'endorsement' ? '#fff4dc' : '#F5F5F3' }}>
         <div className="flex items-center gap-2">
           <Field label="Debit note type" className="flex-1">
             <select
@@ -622,7 +622,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <Field label="GST" className="flex-1 min-w-[140px]"><input type="number" value={gstAmount} onChange={e => setGstAmount(Number(e.target.value))} className={inp} /></Field>
           <Field label="Currency" className="flex-1 min-w-[140px]"><select value={currency} onChange={e => setCurrency(e.target.value)} className={inp}>{['SGD', 'USD', 'MYR', 'IDR'].map(c => <option key={c}>{c}</option>)}</select></Field>
           <Field label="Premium Total" className="flex-1 min-w-[160px]">
-            <div className="h-9 text-14 text-[#0f1412] border border-[#d5d9d4] rounded-[7px] px-3 bg-[#F5F5F3] font-medium flex items-center">
+            <div className="h-9 text-14 text-[#0f1412] border border-[#d5d9d4] rounded-7 px-3 bg-[#F5F5F3] font-medium flex items-center">
               {currency} {(grossPremium + gstAmount - (feeRebateEnabled ? feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
             </div>
           </Field>

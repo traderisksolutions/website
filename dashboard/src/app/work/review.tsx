@@ -87,7 +87,7 @@ function ReviewRow({ task: t, onDone, onError }: { task: AgentTask; onDone: (m: 
           <Btn size="xs" disabled={busy} onClick={() => void resolve({ decision: 'approve' }, true, 'Approved. Sent back to the agent.')}>Approve</Btn>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" aria-label="More actions" disabled={busy} className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-[7px] border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink">
+              <button type="button" aria-label="More actions" disabled={busy} className="inline-flex items-center justify-center w-[30px] h-[30px] rounded-7 border-0 bg-transparent cursor-pointer text-trs-muted hover:bg-trs-canvas hover:text-trs-ink">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>

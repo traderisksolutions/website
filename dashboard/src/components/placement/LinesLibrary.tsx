@@ -19,7 +19,7 @@ type Data = { parts: Record<Part, Current>; versions: Record<Part, Version[]>; s
 type Save = (part: Part, body: unknown) => Promise<string | null>
 
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
-  <section className="flex min-w-0 flex-col overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
+  <section className="flex min-w-0 flex-col overflow-hidden rounded-8 border border-trs-line-2 bg-white">
     <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-14 font-semibold">{title}</h3><span className="flex items-center gap-2 text-12 font-normal text-trs-muted">{meta}</span></header>
     {children}
   </section>
@@ -53,7 +53,7 @@ export function LinesLibrary() {
           {LINES.map(l => (
             <button key={l.key} type="button" onClick={() => router.replace(`/lines?line=${l.key}`, { scroll: false })}
               aria-current={l.key === key ? 'page' : undefined}
-              className={`shrink-0 cursor-pointer rounded-[6px] border-0 px-3 py-2 text-left text-13.5 ${l.key === key ? 'bg-trs-ink text-white font-medium' : 'bg-transparent text-trs-ink hover:bg-trs-tint'}`}>{l.short}</button>
+              className={`shrink-0 cursor-pointer rounded-6 border-0 px-3 py-2 text-left text-13.5 ${l.key === key ? 'bg-trs-ink text-white font-medium' : 'bg-transparent text-trs-ink hover:bg-trs-tint'}`}>{l.short}</button>
           ))}
         </nav>
         <div className="flex min-w-0 flex-col gap-5">

@@ -15,7 +15,7 @@ import { num } from '@/lib/format'
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
 const COLS = 13
-const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
+const cell = 'h-[30px] rounded-6 border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const dash = <span className="text-trs-subtle">—</span>
 const short = (xs: string[]) => xs.length === 0 ? dash : <span title={xs.join(', ')}>{xs.slice(0, 2).join(', ')}{xs.length > 2 ? ` +${xs.length - 2}` : ''}</span>
 
@@ -73,10 +73,10 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-trs-subtle" />
               <input id="insurers-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search insurers, products, people" aria-label="Search insurers"
-                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-14 outline-none focus:border-[#0f1412] border-trs-line-2"  />
+                className="h-9 w-[260px] sm:w-[320px] rounded-7 border bg-white pl-11 pr-9 text-14 outline-none focus:border-[#0f1412] border-trs-line-2"  />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><X size={13} /></button>}
             </label>
-            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-[7px] border bg-white px-3 text-14 cursor-pointer border-trs-line-2 text-trs-ink">
+            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-7 border bg-white px-3 text-14 cursor-pointer border-trs-line-2 text-trs-ink">
               <option value="">All lines</option>
               {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
             </select>
@@ -188,7 +188,7 @@ function AddBar({ mode, insurers, defaultLine, onClose, onInsurer, onProduct }: 
   }
   const ready = name.trim() && (mode === 'insurer' || insurerId)
   return (
-    <div className="mt-6 flex items-center gap-2 flex-wrap rounded-[10px] px-3 py-2" style={{ border: '1px solid #e6e8e4', background: '#fafafa' }}>
+    <div className="mt-6 flex items-center gap-2 flex-wrap rounded-10 px-3 py-2" style={{ border: '1px solid #e6e8e4', background: '#fafafa' }}>
       <span className="text-13 font-medium mr-1">{mode === 'insurer' ? 'New insurer' : 'New product'}</span>
       {mode === 'insurer' ? (
         <>

@@ -57,7 +57,7 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
       {msg && <p className="m-0 text-13.5 text-trs-ink">{msg}</p>}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <textarea value={draft} onChange={e => setDraft(e.target.value)} readOnly={!editing} spellCheck={false} aria-label="Renewal method"
-          className="w-full min-h-[560px] rounded-[10px] border border-trs-line bg-white p-4 font-mono text-13 leading-[1.6] text-trs-ink outline-none focus:border-trs-green" />
+          className="w-full min-h-[560px] rounded-10 border border-trs-line bg-white p-4 font-mono text-13 leading-[1.6] text-trs-ink outline-none focus:border-trs-green" />
         <aside className="flex flex-col gap-4 text-13 min-w-0">
           <div>
             <h3 className="m-0 mb-2 text-13 font-semibold text-trs-ink">What the rules read</h3>

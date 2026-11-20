@@ -20,7 +20,7 @@ export default async function ConnectGmail({ searchParams }: { searchParams: Pro
   const error = sp.error ? ERRORS[sp.error] ?? ERRORS.callback : null
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-[#fafaf7] text-trs-ink">
-      <div className="w-full max-w-[460px] bg-white rounded-[16px] border border-[#e6e8e4] p-8">
+      <div className="w-full max-w-[460px] bg-white rounded-16 border border-[#e6e8e4] p-8">
         <div className="text-13 tracking-[0.08em] uppercase mb-3 text-trs-muted">Trade Risk Solutions</div>
         <h1 className="m-0 text-24 font-medium tracking-[-0.02em]">Gmail access: read only</h1>
         {connected ? (
@@ -34,7 +34,7 @@ export default async function ConnectGmail({ searchParams }: { searchParams: Pro
             </ul>
             <p className="mt-4 mb-0 text-14 leading-[1.6] text-trs-ink-2">Google will ask you to allow <b>“View your email messages and settings”</b>. That is the only permission requested.</p>
             {error && <p className="text-14 mt-3 mb-0" style={{ color: '#a23b2c' }}>{error}</p>}
-            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-9 px-6 rounded-[8px] text-white text-15 font-medium no-underline bg-trs-green">Allow read-only access</a>
+            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-9 px-6 rounded-8 text-white text-15 font-medium no-underline bg-trs-green">Allow read-only access</a>
             <p className="mt-4 mb-0 text-13 text-trs-muted">Sign in with your @trade-risksol.com account. Remove access at any time: Google Account → Security → Third-party connections.</p>
           </>
         )}

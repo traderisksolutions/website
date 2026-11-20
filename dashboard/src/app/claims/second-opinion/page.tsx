@@ -112,7 +112,7 @@ export default function ClaimSecondOpinionPage() {
               </dl>
               {row.answers.what_happened ? <p className="mt-4 whitespace-pre-wrap text-13.5 text-[#2a332f]">{String(row.answers.what_happened)}</p> : null}
 
-              <div className="mt-6 rounded-[10px] border border-dashed border-[#d5d9d4] p-4">
+              <div className="mt-6 rounded-10 border border-dashed border-[#d5d9d4] p-4">
                 <label htmlFor="so-files" className="text-13.5 font-medium text-[#0f1412]">Documents from the client</label>
                 <p className="text-12.5 text-[#4a5550]">Policy schedule, wording and the insurer&apos;s letter. PDF, PNG or JPG; up to 8 files, 4.4 MB in total.</p>
                 <input id="so-files" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,text/plain"

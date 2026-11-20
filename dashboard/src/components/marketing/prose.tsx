@@ -10,7 +10,7 @@ const PROSE = [
   '[&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-[#0f1412] [&_blockquote]:pl-4 [&_blockquote]:text-[#4a5550]',
   '[&_a]:underline [&_a]:underline-offset-2 [&_strong]:font-medium',
   '[&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_th]:text-left [&_th]:font-medium [&_th]:border-b [&_th]:border-[#e6e8e4] [&_th]:py-1.5 [&_th]:pr-3 [&_td]:border-b [&_td]:border-[#e6e8e4] [&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top',
-  '[&_pre]:my-3 [&_pre]:rounded-[10px] [&_pre]:bg-[#f1f2ee] [&_pre]:p-3 [&_pre]:text-13 [&_code]:font-mono [&_code]:text-13',
+  '[&_pre]:my-3 [&_pre]:rounded-10 [&_pre]:bg-[#f1f2ee] [&_pre]:p-3 [&_pre]:text-13 [&_code]:font-mono [&_code]:text-13',
   '[&_hr]:my-6 [&_hr]:border-0 [&_hr]:border-t [&_hr]:border-[#e6e8e4]',
   '[&_.footnotes]:mt-8 [&_.footnotes]:pt-4 [&_.footnotes]:border-t [&_.footnotes]:border-[#e6e8e4] [&_.footnotes]:text-13 [&_.footnotes]:text-[#4a5550] [&_sup]:text-11',
 ].join(' ')

@@ -36,7 +36,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Lead status: ${st.label}. Click to change.`}
-        className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-12 font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors bg-trs-field text-trs-ink-2"
+        className="inline-flex items-center gap-1 rounded-6 px-2 py-0.5 text-12 font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors bg-trs-field text-trs-ink-2"
       >
         {st.label} <ChevronDown size={11} className="text-trs-muted" />
       </button>
@@ -45,7 +45,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         <div
           role="listbox"
           aria-label="Select status"
-          className="absolute top-[calc(100%+4px)] left-0 bg-white rounded-[12px] z-[100] py-1 min-w-[160px] overflow-hidden"
+          className="absolute top-[calc(100%+4px)] left-0 bg-white rounded-12 z-[100] py-1 min-w-[160px] overflow-hidden"
           style={{ border: '1px solid #e6e8e4', boxShadow: '0 8px 24px rgba(15,20,18,0.10)' }}
         >
           {ALL_STATUSES.map(s => {

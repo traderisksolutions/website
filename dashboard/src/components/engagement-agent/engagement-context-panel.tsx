@@ -21,7 +21,7 @@ const FAINT = '#6f7a74'
 const HAIR = '#e6e8e4'
 const FIELD = '#f1f2ee'
 const LINK = 'bg-transparent border-0 p-0 cursor-pointer underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]'
-const INPUT = 'w-full h-9 rounded-[7px] bg-white px-3 text-13 outline-none focus:border-[#0f1412]'
+const INPUT = 'w-full h-9 rounded-7 bg-white px-3 text-13 outline-none focus:border-[#0f1412]'
 
 interface EngagementContextPanelProps {
   lead:                 Lead
@@ -149,12 +149,12 @@ function ConversationsSection({
                 type="button"
                 onClick={() => onSelect?.(t.id)}
                 aria-current={active ? 'true' : undefined}
-                className="w-full text-left rounded-[10px] px-3 py-2 cursor-pointer hover:bg-[#faf9f6]"
+                className="w-full text-left rounded-10 px-3 py-2 cursor-pointer hover:bg-[#faf9f6]"
                 style={{ border: `1px solid ${active ? INK : HAIR}`, background: active ? FIELD : '#fff' }}
               >
                 <span className="flex items-center gap-1.5">
                   <span className="text-13 font-medium truncate text-trs-ink">{t.party.name}</span>
-                  {t.is_root && <span className="text-12 font-medium rounded-[6px] px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-ink-2">Client</span>}
+                  {t.is_root && <span className="text-12 font-medium rounded-6 px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-ink-2">Client</span>}
                   <span className="ml-auto text-12 flex-shrink-0 tabular-nums text-trs-subtle">{t.last_message_at ? timeAgo(t.last_message_at) : ''}</span>
                 </span>
                 {t.party.company && <span className="block text-12.5 truncate text-trs-muted">{t.party.company}</span>}
@@ -204,14 +204,14 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
             onClick={() => setDropdownOpen(v => !v)}
             aria-haspopup="listbox"
             aria-expanded={dropdownOpen}
-            className="w-full flex items-center justify-between px-3 h-9 rounded-[8px] text-13 cursor-pointer bg-white hover:bg-[#faf9f6]"
+            className="w-full flex items-center justify-between px-3 h-9 rounded-8 text-13 cursor-pointer bg-white hover:bg-[#faf9f6]"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             {st.label}
             <ChevronDown size={13} className={cn('transition-transform', dropdownOpen && 'rotate-180')} style={{ color: '#8c958f' }} />
           </button>
           {dropdownOpen && (
-            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-[12px] z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-12 z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
               {ALL_STATUSES.map(s => {
                 const sc = STATUS_MAP[s]
                 const on = lead.status === s
@@ -222,7 +222,7 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
                     role="option"
                     aria-selected={on}
                     onClick={() => { onStatus(lead.id, s); setDropdownOpen(false) }}
-                    className={cn('w-full text-left px-2.5 py-1.5 rounded-[8px] text-13 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'font-medium')}
+                    className={cn('w-full text-left px-2.5 py-1.5 rounded-8 text-13 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'font-medium')}
                     style={{ color: on ? INK : BODY, background: on ? FIELD : undefined }}
                   >
                     {sc.label}
@@ -287,10 +287,10 @@ function TransferSection({
             />
           </label>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-[7px] text-13 font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50 bg-trs-green">
+            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-7 text-13 font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50 bg-trs-green">
               {saving ? 'Moving…' : 'Confirm'}
             </button>
-            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-[7px] text-13 bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
+            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-7 text-13 bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
               Cancel
             </button>
           </div>
@@ -405,7 +405,7 @@ function NotesSection({ lead }: { lead: Lead }) {
           aria-label="Internal notes"
           placeholder="Internal notes. Saved when you leave the field."
           rows={4}
-          className="w-full text-13 leading-[1.6] resize-y rounded-[8px] px-3 py-2 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]"
+          className="w-full text-13 leading-[1.6] resize-y rounded-8 px-3 py-2 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]"
           style={{ border: '1px solid #d5d9d4', color: INK }}
         />
         <p className="m-0 mt-1 text-12 min-h-[16px] text-trs-muted" aria-live="polite">
@@ -470,7 +470,7 @@ function DraftHistorySection({
             const snippet   = item.body.replace(/\s+/g, ' ').slice(0, 90)
 
             return (
-              <div key={item.id} className="mx-3 mb-2 rounded-[10px] px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#faf9f6' }}>
+              <div key={item.id} className="mx-3 mb-2 rounded-10 px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#faf9f6' }}>
                 <p className="m-0 mb-1 flex items-center gap-2 text-12 text-trs-muted">
                   <span className="text-trs-ink">v{vNum}</span>
                   <span>{typeLabel}</span>
@@ -483,7 +483,7 @@ function DraftHistorySection({
                   <button type="button" onClick={() => onRestore(item.body, item.generated_by)} className={LINK} style={{ color: INK }}>{isCurrent ? 'Reload into composer' : 'Load into composer'}</button>
                 </p>
                 {expanded && (
-                  <div className="mt-2 p-2.5 rounded-[8px] max-h-[180px] overflow-y-auto bg-trs-field">
+                  <div className="mt-2 p-2.5 rounded-8 max-h-[180px] overflow-y-auto bg-trs-field">
                     <pre className="m-0 text-12.5 whitespace-pre-wrap leading-[1.6] font-[inherit] text-trs-ink-2">{item.body}</pre>
                   </div>
                 )}

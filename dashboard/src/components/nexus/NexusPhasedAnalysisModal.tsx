@@ -186,7 +186,7 @@ export function NexusPhasedAnalysisModal({
       onClick={anyRunning ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-[16px] w-full max-w-[600px] flex flex-col overflow-hidden max-h-[calc(90vh/var(--ui-zoom))]"
+        className="bg-white rounded-16 w-full max-w-[600px] flex flex-col overflow-hidden max-h-[calc(90vh/var(--ui-zoom))]"
         style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
         onClick={e => e.stopPropagation()}
         role="dialog"
@@ -209,7 +209,7 @@ export function NexusPhasedAnalysisModal({
               )}
 
               {phases.map(p => (
-                <div key={p.n} className="flex flex-col gap-2.5 rounded-[16px] p-4" style={{ border: `1px solid ${HAIR}` }}>
+                <div key={p.n} className="flex flex-col gap-2.5 rounded-16 p-4" style={{ border: `1px solid ${HAIR}` }}>
                   <div className="flex items-center gap-3 flex-wrap">
                     <PhaseIcon status={p.status} />
                     <span className="text-14 font-medium flex-1 min-w-[200px] text-trs-ink">Phase {p.n}. {p.label}</span>
@@ -259,7 +259,7 @@ export function NexusPhasedAnalysisModal({
               ))}
 
               {error && (
-                <p className="m-0 rounded-[12px] px-4 py-3 text-13.5 leading-[1.5] bg-trs-field text-trs-ink-2">{error}</p>
+                <p className="m-0 rounded-12 px-4 py-3 text-13.5 leading-[1.5] bg-trs-field text-trs-ink-2">{error}</p>
               )}
 
               {phase3Status === 'done' && (

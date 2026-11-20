@@ -7,9 +7,14 @@ import { extendTailwindMerge } from 'tailwind-merge'
  * treat text-13 as a colour and drop one of the two.
  */
 export const TYPE_SCALE = ['11', '12', '12.5', '13', '13.5', '14', '15', '16', '20', '24', '32'] as const
+/** The one radius scale (tailwind.config.ts borderRadius). */
+export const RADIUS_SCALE = ['4', '6', '7', '8', '10', '12', '16', '28'] as const
 
 const twMerge = extendTailwindMerge({
-  extend: { classGroups: { 'font-size': [{ text: [...TYPE_SCALE] }] } },
+  extend: {
+    classGroups: { 'font-size': [{ text: [...TYPE_SCALE] }] },
+    theme: { radius: [...RADIUS_SCALE] },
+  },
 })
 
 export function cn(...inputs: ClassValue[]) {

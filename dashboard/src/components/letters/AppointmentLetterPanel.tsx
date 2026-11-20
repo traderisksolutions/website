@@ -46,7 +46,7 @@ export function AppointmentLetterPanel({ companyId, companyName, placementId }: 
   if (!status && !error) return <Spinner label="Loading the appointment letter" />
   const [word, tone] = status ? WORD[status.state] : ['—', 'text-trs-muted']
   return (
-    <section className="flex min-w-0 flex-col overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
+    <section className="flex min-w-0 flex-col overflow-hidden rounded-8 border border-trs-line-2 bg-white">
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5">
         <h3 className="m-0 text-14 font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
         <span className="flex flex-wrap items-center gap-2">

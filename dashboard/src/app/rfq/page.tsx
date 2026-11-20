@@ -79,8 +79,8 @@ export default function RfqRegisterPage() {
             <label className="relative flex items-center">
               <Search size={14} className="absolute left-2.5 text-trs-muted" aria-hidden />
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
-                className="h-9 w-[240px] sm:w-[280px] rounded-[8px] border border-trs-line-2 bg-white pl-8 pr-8 text-13.5 outline-none focus:border-trs-ink" />
-              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-trs-canvas text-trs-muted"><X size={13} /></button>}
+                className="h-9 w-[240px] sm:w-[280px] rounded-8 border border-trs-line-2 bg-white pl-8 pr-8 text-13.5 outline-none focus:border-trs-ink" />
+              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-7 bg-transparent border-0 cursor-pointer hover:bg-trs-canvas text-trs-muted"><X size={13} /></button>}
             </label>
           }>
           <Segmented<Filter> value={filter} onChange={setFilter} label="Requests" options={chips.map(c => ({ value: c.key, label: c.label, count: c.n }))} />

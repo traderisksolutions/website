@@ -228,7 +228,7 @@ function VersionForm({ row, rows }: { row: LibraryRow | null; rows: LibraryRow[]
           {canAddFiles && <div>
             <div className="mb-1.5 text-13 font-medium text-trs-ink">{row ? 'Add files' : 'Brochure and rate file'}</div>
             <label onDragOver={e => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files) }}
-              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] px-4 py-4 text-center text-13 ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
+              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-10 px-4 py-4 text-center text-13 ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
               <span className="text-trs-ink">Drop files or choose</span>
               <span className="text-12 text-trs-muted">PDF · XLSX</span>
               <input type="file" multiple className="sr-only" aria-label="Files" onChange={e => { addFiles(e.target.files); e.target.value = '' }} />

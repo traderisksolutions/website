@@ -75,13 +75,13 @@ function RowDetail({ row }: { row: LogRow }) {
         </p>
       )}
       <p className="m-0 mb-1 text-12 text-trs-muted">Full message</p>
-      <pre className="m-0 px-3 py-2 rounded-[10px] text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[260px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
+      <pre className="m-0 px-3 py-2 rounded-10 text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[260px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
         {row.message}
       </pre>
       {row.metadata && Object.keys(row.metadata).length > 0 && (
         <>
           <p className="m-0 mt-3 mb-1 text-12 text-trs-muted">Metadata</p>
-          <pre className="m-0 px-3 py-2 rounded-[10px] text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
+          <pre className="m-0 px-3 py-2 rounded-10 text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
             {JSON.stringify(row.metadata, null, 2)}
           </pre>
         </>
@@ -175,7 +175,7 @@ export default function ErrorLogPage() {
         {/* ── Feed ───────────────────────────────────────────────────────────── */}
         {loading ? (
           <div className="flex flex-col gap-2">
-            {[0, 1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-[10px] animate-pulse bg-trs-field" />)}
+            {[0, 1, 2, 3, 4].map(i => <div key={i} className="h-12 rounded-10 animate-pulse bg-trs-field" />)}
           </div>
         ) : logs.length === 0 ? (
           <div className="py-16 text-center">

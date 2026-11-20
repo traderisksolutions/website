@@ -163,7 +163,7 @@ function Inspector({ node, sources, onClose }: { node: RunNode | null; sources: 
             <p className="m-0 mb-1.5 text-11 font-medium uppercase tracking-[0.06em] text-trs-muted">Sources</p>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {used.map(s => (
-                <li key={s.id} className="rounded-[10px] p-2.5" style={{ border: `1px solid ${RULE}` }}>
+                <li key={s.id} className="rounded-10 p-2.5" style={{ border: `1px solid ${RULE}` }}>
                   <p className="m-0 font-medium">{s.title}</p>
                   <p className="m-0 text-12.5 text-trs-muted">{s.used_in.length ? `Facts ${s.used_in.join(', ')}` : 'Loaded, not cited'}{s.score != null ? ` · match ${Math.round(s.score * 100)}%` : ''}</p>
                   {s.excerpt && <p className="m-0 mt-1 text-12.5">{s.excerpt.slice(0, 200)}{s.excerpt.length > 200 ? '…' : ''}</p>}
@@ -193,7 +193,7 @@ function Block({ title, text }: { title: string; text: string }) {
   return (
     <div>
       <p className="m-0 mb-1.5 text-11 font-medium uppercase tracking-[0.06em] text-trs-muted">{title}</p>
-      <pre className="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-[#faf9f6] p-2.5 font-mono text-12 leading-[1.5] text-trs-ink">{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
+      <pre className="m-0 whitespace-pre-wrap break-words rounded-10 bg-[#faf9f6] p-2.5 font-mono text-12 leading-[1.5] text-trs-ink">{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
       {long && <button type="button" onClick={() => setOpen(v => !v)} className="mt-1 bg-transparent border-0 p-0 cursor-pointer text-12.5 underline underline-offset-2 text-trs-ink">{open ? 'Show less' : 'Show all'}</button>}
     </div>
   )

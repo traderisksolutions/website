@@ -40,7 +40,7 @@ function Track({ at }: { at: number }) {
 function StageSelect<T extends string>({ value, list, label, onChange }: { value: T; list: readonly (readonly [T, string])[]; label: string; onChange: (v: T) => void }) {
   return (
     <select value={value} aria-label={label} onChange={e => onChange(e.target.value as T)}
-      className="h-[30px] rounded-[7px] border border-trs-line-2 bg-white px-2 text-13 text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
+      className="h-[30px] rounded-7 border border-trs-line-2 bg-white px-2 text-13 text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
       {list.map(([k, w]) => <option key={k} value={k}>{w}</option>)}
     </select>
   )
@@ -154,7 +154,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
         {note && <div className="text-13" role="status">{note}</div>}
         {error && <div className="text-13 text-trs-neg">{error}</div>}
         {!rows && !error && <Spinner label="Loading the policies being worked on" />}
-        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-[8px] border border-trs-line-2 px-4 py-8 text-center text-13 text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
+        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-8 border border-trs-line-2 px-4 py-8 text-center text-13 text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
         {addModal}
       </div>
     )

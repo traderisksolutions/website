@@ -32,7 +32,7 @@ export function AskClient({ companyId }: { companyId: string }) {
       <h2 className="m-0 mb-2 text-12 font-semibold uppercase tracking-[0.07em] text-trs-muted">Ask about this client</h2>
       <form className="flex gap-2 max-w-[760px]" onSubmit={e => { e.preventDefault(); void ask() }}>
         <input value={q} onChange={e => setQ(e.target.value)} maxLength={500} aria-label="Question about this client" placeholder="What did they pay for WICA last year, and what was claimed?"
-          className="h-9 flex-1 min-w-0 rounded-[8px] border border-trs-line-2 bg-white px-3 text-14 outline-none focus:border-trs-ink" />
+          className="h-9 flex-1 min-w-0 rounded-8 border border-trs-line-2 bg-white px-3 text-14 outline-none focus:border-trs-ink" />
         <Btn type="submit" level="secondary" loading={busy} disabled={busy || q.trim().length < 3}>Ask</Btn>
       </form>
       {error && <p className="m-0 mt-2 text-13 text-trs-neg" role="alert">{error}</p>}

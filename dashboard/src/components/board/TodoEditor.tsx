@@ -34,7 +34,7 @@ export function personHue(email: string): string {
 export function PersonTag({ email, staff, size = 'sm' }: { email: string; staff: Map<string, StaffMember>; size?: 'sm' | 'md' }) {
   const hue = personHue(email)
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-[6px] font-medium whitespace-nowrap', size === 'sm' ? 'h-[20px] px-1.5 text-11' : 'h-[24px] px-2 text-12.5')} style={{ background: hue + '1a', color: hue }} title={staff.get(email)?.name ?? email}>
+    <span className={cn('inline-flex items-center gap-1 rounded-6 font-medium whitespace-nowrap', size === 'sm' ? 'h-[20px] px-1.5 text-11' : 'h-[24px] px-2 text-12.5')} style={{ background: hue + '1a', color: hue }} title={staff.get(email)?.name ?? email}>
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: hue }} aria-hidden />{firstNameOf(email, staff)}
     </span>
   )
@@ -77,8 +77,8 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
       <div className="flex items-center gap-2">
         <input value={text} onChange={e => setText(e.target.value)} placeholder="Add a to-do and press Enter" aria-label="New to-do"
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void add() } }}
-          className="h-9 flex-1 min-w-0 rounded-[7px] border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" />
-        <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-9 w-9 rounded-[10px] text-white border-0 cursor-pointer inline-flex items-center justify-center bg-trs-green"><Plus size={16} /></button>
+          className="h-9 flex-1 min-w-0 rounded-7 border bg-white px-3.5 text-14 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink" />
+        <button type="button" onClick={() => void add()} aria-label="Add to-do" className="h-9 w-9 rounded-10 text-white border-0 cursor-pointer inline-flex items-center justify-center bg-trs-green"><Plus size={16} /></button>
       </div>
       {err && <p className="m-0 text-13 text-trs-muted">{err}</p>}
 
@@ -94,7 +94,7 @@ export function TodoEditor({ companyId, tasks, today, staff, staffList, me, acti
           <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1">
             {done.map(t => (
               <li key={t.id} className="flex items-center gap-2 text-13.5 line-through text-trs-muted">
-                <button type="button" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-[16px] h-[16px] rounded-[3px] border-0 inline-flex items-center justify-center cursor-pointer text-white bg-trs-muted"><Check size={11} strokeWidth={3} /></button>
+                <button type="button" onClick={() => actions.updateTask(t.id, { status: 'open' })} title="Reopen" className="w-[16px] h-[16px] rounded-4 border-0 inline-flex items-center justify-center cursor-pointer text-white bg-trs-muted"><Check size={11} strokeWidth={3} /></button>
                 <span className="truncate">{t.title}</span>
               </li>
             ))}
@@ -119,20 +119,20 @@ function TodoRow({ t, today, staff, staffList, actions }: { t: BoardTask; today:
   return (
     <li className="group flex items-start gap-2.5 py-3" style={{ borderBottom: `1px solid ${RULE}` }}>
       <button type="button" onClick={() => actions.updateTask(t.id, { status: 'complete' })} aria-label={`Complete: ${t.title}`}
-        className="mt-[3px] w-[16px] h-[16px] rounded-[3px] border bg-white flex-shrink-0 inline-flex items-center justify-center cursor-pointer p-0 text-transparent hover:text-[#0f1412] border-trs-subtle">
+        className="mt-[3px] w-[16px] h-[16px] rounded-4 border bg-white flex-shrink-0 inline-flex items-center justify-center cursor-pointer p-0 text-transparent hover:text-[#0f1412] border-trs-subtle">
         <Check size={11} strokeWidth={3} />
       </button>
       <div className="min-w-0 flex-1">
         {editing
           ? <input ref={ref} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit} onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { setDraft(t.title); setEditing(false) } }}
-              aria-label="To-do text" className="w-full h-[30px] rounded-[6px] border px-2 text-14 outline-none border-trs-ink text-trs-ink" />
+              aria-label="To-do text" className="w-full h-[30px] rounded-6 border px-2 text-14 outline-none border-trs-ink text-trs-ink" />
           : <button type="button" onClick={() => setEditing(true)} title="Click to edit" className="w-full text-left bg-transparent border-0 p-0 cursor-text text-14 leading-snug text-trs-ink">{t.title}</button>}
         <div className="mt-1.5 flex items-center gap-2 flex-wrap text-12 text-trs-muted">
           <label className="inline-flex items-center gap-1 cursor-pointer">
             <span className={cn(late && 'font-medium')} style={{ color: late ? INK : MUTED }}>{t.due_on ? dueLabel(t.due_on, today) : 'No date'}</span>
-            <input type="date" value={t.due_on ?? ''} onChange={e => actions.updateTask(t.id, { dueOn: e.target.value || null })} aria-label="Due date" className="h-[20px] w-[112px] rounded-[4px] border bg-white px-1 text-12 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity border-trs-line text-trs-muted" />
+            <input type="date" value={t.due_on ?? ''} onChange={e => actions.updateTask(t.id, { dueOn: e.target.value || null })} aria-label="Due date" className="h-[20px] w-[112px] rounded-4 border bg-white px-1 text-12 cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity border-trs-line text-trs-muted" />
           </label>
-          <select value={t.primary_assignee ?? ''} onChange={e => actions.updateTask(t.id, { primaryAssignee: e.target.value || null })} aria-label="Person" className="h-[20px] max-w-[130px] rounded-[4px] border bg-white px-1 text-12 cursor-pointer border-trs-line text-trs-muted">
+          <select value={t.primary_assignee ?? ''} onChange={e => actions.updateTask(t.id, { primaryAssignee: e.target.value || null })} aria-label="Person" className="h-[20px] max-w-[130px] rounded-4 border bg-white px-1 text-12 cursor-pointer border-trs-line text-trs-muted">
             <option value="">No one</option>
             {staffList.map(s => <option key={s.email} value={s.email}>{s.name.split(/\s+/)[0]}</option>)}
           </select>

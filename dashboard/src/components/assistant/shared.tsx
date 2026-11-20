@@ -76,7 +76,7 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
           {error && <p className="m-0 text-13.5 text-trs-neg">{error}</p>}
           {!thread && !error && <Spinner label="Loading the thread…" />}
           {thread?.messages.map((m, i) => (
-            <article key={i} className={`rounded-[8px] border px-3.5 py-3 text-13.5 ${m.rebuilt ? 'border-dashed border-trs-line-2 bg-trs-canvas' : 'border-trs-line bg-white'}`}>
+            <article key={i} className={`rounded-8 border px-3.5 py-3 text-13.5 ${m.rebuilt ? 'border-dashed border-trs-line-2 bg-trs-canvas' : 'border-trs-line bg-white'}`}>
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-medium text-trs-ink break-all">{m.from ?? 'Unknown sender'}</span>
                 <span className="font-mono text-12 text-trs-muted">{fmtWhen(m.at)}</span>

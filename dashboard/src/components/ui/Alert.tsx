@@ -102,7 +102,7 @@ export function Alert({
     <div
       role={t.role}
       aria-live={t.live}
-      className="flex overflow-hidden rounded-[10px] bg-white"
+      className="flex overflow-hidden rounded-10 bg-white"
       style={{ border: '1px solid var(--trs-line-2)', borderLeft: `3px solid ${t.accent}` }}
       {...(dataAttr ? { [dataAttr]: '' } : {})}
     >
@@ -123,7 +123,7 @@ export function Alert({
           {onDismiss && (
             <button
               type="button" onClick={onDismiss} aria-label="Dismiss this alert"
-              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-15 leading-none transition-colors hover:bg-[var(--trs-field)] text-trs-subtle"
+              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-6 text-15 leading-none transition-colors hover:bg-[var(--trs-field)] text-trs-subtle"
               
             >
               ×

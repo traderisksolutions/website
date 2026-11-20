@@ -62,7 +62,7 @@ export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: En
     <>
       {/* Highlights the sender marked in this email */}
       {msg.highlights && msg.highlights.length > 0 && (
-        <div className="mb-3 rounded-[10px] px-3 py-2.5 bg-trs-field">
+        <div className="mb-3 rounded-10 px-3 py-2.5 bg-trs-field">
           <p className="m-0 mb-1 text-12 text-trs-muted">Highlighted by sender</p>
           <ul className="m-0 p-0 list-none flex flex-col gap-1">
             {msg.highlights.map((h, i) => (
@@ -83,7 +83,7 @@ export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: En
       {!!msg.attachments?.length && <Attachments list={msg.attachments} />}
 
       {hasQuoted && !bodyHtml && (
-        <div className="mt-4 flex items-center gap-2.5 flex-wrap rounded-[10px] px-3 py-2.5 text-13 bg-trs-field text-trs-muted">
+        <div className="mt-4 flex items-center gap-2.5 flex-wrap rounded-10 px-3 py-2.5 text-13 bg-trs-field text-trs-muted">
           <span>The quoted history is collapsed.</span>
           <span className="flex-1" />
           <button type="button" onClick={() => setShowFull(v => !v)} aria-expanded={showFull} className={cn(LINK, 'text-13')} style={{ color: INK }}>
@@ -174,8 +174,8 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
         {list.map(a => {
           const href = `/api/engagement/attachments/${a.id}/download`
           return (
-            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded-[12px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
-              <span className="w-10 h-11 rounded-[8px] flex-shrink-0 inline-flex items-center justify-center text-11 font-semibold tracking-[0.02em] bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
+            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded-12 bg-white" style={{ border: `1px solid ${HAIR}` }}>
+              <span className="w-10 h-11 rounded-8 flex-shrink-0 inline-flex items-center justify-center text-11 font-semibold tracking-[0.02em] bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
               <span className="min-w-0">
                 <a href={href} target="_blank" rel="noreferrer" className="block text-14 font-medium truncate no-underline hover:underline text-trs-ink">{a.filename}</a>
                 <span className="block mt-0.5 text-12.5 text-trs-subtle">

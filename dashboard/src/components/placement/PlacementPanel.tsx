@@ -21,7 +21,7 @@ import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
 /** A button inside the dense grid or the placement line: 22px tall so the row stays 34px. */
-const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-[6px]'
+const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-6'
 type RoundTarget = { placementId: string; line: PlacementLine; currentSpec: Spec; currentContactIds: string[]; prefill?: { spec: Spec; source_log_id: string } }
 
 /** The insurer contacts asked in the line's current round. */
@@ -151,7 +151,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   {letter && letter.state === 'sent' && (
                     <label className="inline-flex">
                       <input type="file" className="hidden" onChange={e => void uploadSigned(p.id, e.target.files)} />
-                      <span className="inline-flex items-center h-[30px] px-3 rounded-[6px] text-13 font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
+                      <span className="inline-flex items-center h-[30px] px-3 rounded-6 text-13 font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
                     </label>
                   )}
                   {letter && letter.state !== 'signed' && (
@@ -227,7 +227,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
     <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-12.5" style={{ color: MUTED }}>
       <span className="font-medium shrink-0" style={{ color: INK }}>{label}</span>
       <span className="shrink-0">· {summary}</span>
-      {bind && <span className="shrink-0 px-1.5 rounded-[5px]" style={{ background: '#dcefd2', color: INK }}>{bind}</span>}
+      {bind && <span className="shrink-0 px-1.5 rounded-6" style={{ background: '#dcefd2', color: INK }}>{bind}</span>}
       {pos.line.next_step && <span className="truncate min-w-0" title={pos.line.next_step}>· {pos.line.next_step}</span>}
       <span className="ml-auto flex items-center gap-1 shrink-0">
         {pos.pendingChange && (

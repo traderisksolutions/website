@@ -71,6 +71,8 @@ const config: Config = {
         },
       },
       borderRadius: {
+        // The one radius scale (design system, 20 Nov 2026). Pages use these, never rounded-[Npx].
+        '4': '4px', '6': '6px', '7': '7px', '8': '8px', '10': '10px', '12': '12px', '16': '16px', '28': '28px',
         lg:   'var(--radius)',
         md:   'calc(var(--radius) - 2px)',
         sm:   'calc(var(--radius) - 4px)',

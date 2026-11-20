@@ -24,7 +24,7 @@ const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
 const COLS = 12
 /** A button inside the dense grid: 22px tall so the row stays 34px. */
-const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-[6px]'
+const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-6'
 const PLAN_MAX = 36
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 
@@ -172,7 +172,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                             {sections.map(x => (
                               <button key={x.key} type="button" role="tab" aria-selected={sec === x.key}
                                 onClick={e => { e.stopPropagation(); setSection(o => ({ ...o, [p.id]: x.key })) }}
-                                className="h-6 px-2 rounded-[6px] border-0 cursor-pointer text-12.5"
+                                className="h-6 px-2 rounded-6 border-0 cursor-pointer text-12.5"
                                 style={{ background: sec === x.key ? '#e6e8e4' : 'transparent', color: sec === x.key ? INK : MUTED, fontWeight: sec === x.key ? 500 : 400 }}>
                                 {x.label}
                               </button>

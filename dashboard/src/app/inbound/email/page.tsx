@@ -135,7 +135,7 @@ function InboundLeadsPage() {
             type="button"
             onClick={() => load(true)}
             aria-label="Refresh leads"
-            className="h-9 px-5 rounded-[7px] bg-white text-14 inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
+            className="h-9 px-5 rounded-7 bg-white text-14 inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
@@ -167,7 +167,7 @@ function InboundLeadsPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, email, phone, topic"
               aria-label="Search leads"
-              className="h-9 w-full rounded-[7px] bg-white pl-10 pr-9 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
+              className="h-9 w-full rounded-7 bg-white pl-10 pr-9 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
               style={{ border: '1px solid #d5d9d4', color: INK }}
             />
             {search && (
@@ -325,7 +325,7 @@ function InboundLeadsPage() {
 
         {/* ── Detail panel ───────────────────────────────────────────────────── */}
         {selectedLead && (
-          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-white rounded-[16px] overflow-y-auto" style={{ border: '1px solid #e6e8e4' }}>
+          <div className="w-full sm:w-80 sm:flex-shrink-0 bg-white rounded-16 overflow-y-auto" style={{ border: '1px solid #e6e8e4' }}>
             <button
               type="button"
               onClick={() => setSelectedId(null)}

@@ -45,7 +45,7 @@ function Track({ list, at }: { list: readonly (readonly [string, string])[]; at:
   return <span className="inline-flex gap-[3px] w-[70px] align-middle mr-1.5" aria-hidden>{list.map((_, j) => <i key={j} className="flex-1 h-1 rounded-[2px]" style={{ background: j < i ? 'var(--trs-green)' : j === i ? 'var(--trs-ink)' : 'var(--trs-line-2)' }} />)}</span>
 }
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
-  <section className="flex min-w-0 flex-col overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
+  <section className="flex min-w-0 flex-col overflow-hidden rounded-8 border border-trs-line-2 bg-white">
     <header className="flex h-11 items-center justify-between border-b border-trs-line px-4 text-14 font-semibold text-trs-ink">{title}<span className="text-12 font-normal text-trs-muted">{meta}</span></header>
     {children}
   </section>
@@ -82,7 +82,7 @@ export function PolicyWorking({ lineId }: { lineId: string }) {
           <span><span className="text-trs-muted">Insurer side </span><Track list={INSURER_STAGES} at={ctx.stages.insurer} />{word(INSURER_STAGES, ctx.stages.insurer)}</span>
         </span>}
         actions={<>
-          {ctx.thread && <Link href={`/engagement?lead=${ctx.thread.id}`} className="inline-flex h-9 items-center rounded-[8px] border border-trs-line-2 bg-white px-3.5 text-14 font-medium text-trs-ink no-underline">Open thread ↗</Link>}
+          {ctx.thread && <Link href={`/engagement?lead=${ctx.thread.id}`} className="inline-flex h-9 items-center rounded-8 border border-trs-line-2 bg-white px-3.5 text-14 font-medium text-trs-ink no-underline">Open thread ↗</Link>}
           {current.length > 0 ? <ClientDraftButton placementId={ctx.placement.id} onDrafted={id => setDrawer(id)} /> : <Btn level="primary" onClick={() => setTab('request')}>Request to insurers</Btn>}
         </>}>
         <Segmented<Tab> variant="tabs" value={tab} onChange={setTab} label="Policy sections" options={[
@@ -145,7 +145,7 @@ function Overview({ ctx, onTab }: { ctx: Ctx; onTab: (t: Tab) => void }) {
         <Card title={`Documents · ${ctx.files.length}`} meta="From the client thread">
           <div className="flex flex-wrap gap-2 px-4 py-3">
             {ctx.files.length === 0 && <span className="text-13 text-trs-muted">No files on the thread.</span>}
-            {ctx.files.map(f => <a key={f.storage_url} href={f.storage_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded-[6px] border border-trs-line-2 bg-trs-tint px-2 text-12.5 text-trs-ink no-underline"><FileTag name={f.filename} />{f.filename}</a>)}
+            {ctx.files.map(f => <a key={f.storage_url} href={f.storage_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded-6 border border-trs-line-2 bg-trs-tint px-2 text-12.5 text-trs-ink no-underline"><FileTag name={f.filename} />{f.filename}</a>)}
           </div>
         </Card>
       </div>
@@ -153,7 +153,7 @@ function Overview({ ctx, onTab }: { ctx: Ctx; onTab: (t: Tab) => void }) {
   )
 }
 
-const FileTag = ({ name }: { name: string }) => <span className="rounded-[3px] bg-trs-neg px-1 py-[2px] text-11 font-bold text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
+const FileTag = ({ name }: { name: string }) => <span className="rounded-4 bg-trs-neg px-1 py-[2px] text-11 font-bold text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
 
 function RequestTab({ ctx, onDone, onReview }: { ctx: Ctx; onDone: () => Promise<void>; onReview: (id: string | null) => void }) {
   const [items, setItems] = useState<RequestItem[]>(ctx.items)
@@ -213,7 +213,7 @@ function RequestTab({ ctx, onDone, onReview }: { ctx: Ctx; onDone: () => Promise
             <input value={subject} onChange={e => setSubject(e.target.value)} aria-label="Subject" className="min-w-0 flex-1 border-0 bg-transparent py-2 text-13.5 font-medium text-trs-ink outline-none" /></div>
           <textarea value={body} onChange={e => { setEdited(true); setBody(e.target.value) }} aria-label="Message" className="min-h-[360px] flex-1 resize-none border-0 px-4 py-3.5 text-13 leading-relaxed text-trs-ink outline-none" />
           <div className="flex flex-wrap items-center gap-2 border-t border-trs-line px-4 py-2.5">
-            {files.map(f => <span key={f.storage_url} className="inline-flex h-8 items-center gap-2 rounded-[6px] border border-trs-line-2 bg-trs-tint pl-1.5 pr-1 text-12.5"><FileTag name={f.filename} />{f.filename}
+            {files.map(f => <span key={f.storage_url} className="inline-flex h-8 items-center gap-2 rounded-6 border border-trs-line-2 bg-trs-tint pl-1.5 pr-1 text-12.5"><FileTag name={f.filename} />{f.filename}
               <button type="button" aria-label={`Remove ${f.filename}`} className="h-5 w-5 rounded-full border-0 bg-transparent text-trs-subtle cursor-pointer" onClick={async () => { if (await confirm({ title: `Remove ${f.filename}?`, body: 'It will not be attached. The file stays on the thread.', action: 'Remove', danger: true })) setAtt(a => a.filter(x => x !== f.storage_url)) }}>×</button></span>)}
             {ctx.files.some(f => !att.includes(f.storage_url)) && <select aria-label="Attach a file from the thread" value="" onChange={e => e.target.value && setAtt(a => [...a, e.target.value])} className="h-[26px] rounded-full border border-dashed border-trs-line-2 bg-white px-2 text-12.5 text-trs-green">
               <option value="">+ Attach from the thread</option>{ctx.files.filter(f => !att.includes(f.storage_url)).map(f => <option key={f.storage_url} value={f.storage_url}>{f.filename}</option>)}</select>}
@@ -258,8 +258,8 @@ function QuotesTab({ ctx, onChanged, onReview }: { ctx: Ctx; onChanged: () => Pr
         <span className="flex gap-2"><Btn disabled title="Pending AI build">AI read replies</Btn><Btn disabled={!insurers.length} onClick={() => setRec(true)}>Record reply</Btn><Btn onClick={() => onReview(null)}>Review drafts</Btn></span>
       </div>
       {note && <div className="text-13" role="status">{note}</div>}
-      {insurers.length === 0 ? <div className="rounded-[10px] border border-trs-line px-4 py-8 text-center text-14 text-trs-muted">No insurer asked yet. Write the request first.</div> : (
-        <div className="overflow-x-auto rounded-[10px] border border-[#dcdfd9]">
+      {insurers.length === 0 ? <div className="rounded-10 border border-trs-line px-4 py-8 text-center text-14 text-trs-muted">No insurer asked yet. Write the request first.</div> : (
+        <div className="overflow-x-auto rounded-10 border border-[#dcdfd9]">
           <table className="trs-table q4" aria-label="Quotes by insurer" style={{ minWidth: 200 + insurers.length * 170 }}>
             <thead><tr><th className="sticky left-0 z-10 bg-[#f0f2ee] text-left">  </th>{insurers.map(x => <th key={x.d.id}>{x.d.insurer}</th>)}</tr></thead>
             <tbody>
@@ -291,7 +291,7 @@ function RecordReply({ dispatches, onClose, onSaved }: { dispatches: Dispatch[];
     <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
-        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(560px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-28 bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
           <DialogPrimitive.Title className="m-0 pr-10 text-20 font-semibold text-trs-ink">Record reply</DialogPrimitive.Title>
           <div className="text-13.5 text-trs-muted">Enter what the insurer&apos;s email quoted. The earlier price stays in the history.</div>
@@ -313,7 +313,7 @@ function RecordReply({ dispatches, onClose, onSaved }: { dispatches: Dispatch[];
 
 function LogTable({ rows }: { rows: LogRow[] }) {
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-[#dcdfd9]">
+    <div className="overflow-x-auto rounded-10 border border-[#dcdfd9]">
       <table className="trs-table" aria-label="Activity" style={{ minWidth: 720 }}>
         <thead><tr><th>Date</th><th>Round</th><th>Who</th><th>Event</th></tr></thead>
         <tbody>

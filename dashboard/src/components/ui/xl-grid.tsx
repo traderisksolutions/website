@@ -33,7 +33,7 @@ export function XlGrid({ children, label, minWidth, maxHeight, className }: {
   children: React.ReactNode; label: string; minWidth?: number; maxHeight?: string; className?: string
 }) {
   return (
-    <div className={cn('rounded-[10px] bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
+    <div className={cn('rounded-10 bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
       <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
         <table className="xl-grid w-full border-collapse text-13 tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
       </div>
@@ -121,4 +121,4 @@ export function XlEmpty({ children, colSpan }: { children: React.ReactNode; colS
 }
 
 /** A 20px button that fits inside a 24px grid row. */
-export const XL_BTN = 'h-5 px-1.5 text-12 rounded-[5px] leading-none'
+export const XL_BTN = 'h-5 px-1.5 text-12 rounded-6 leading-none'

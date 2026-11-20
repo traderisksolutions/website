@@ -73,10 +73,10 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
     return () => document.removeEventListener('mousedown', h)
   }, [statusMenu])
 
-  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[7px] border bg-white text-13.5 font-medium no-underline hover:bg-[#faf9f6]'
+  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-7 border bg-white text-13.5 font-medium no-underline hover:bg-[#faf9f6]'
 
   return (
-    <div className="rounded-[16px] border border-[#e6e8e4] bg-white">
+    <div className="rounded-16 border border-[#e6e8e4] bg-white">
       <div
         className="px-5 py-4 flex items-start gap-4 cursor-pointer select-none"
         onClick={() => setOpen(o => !o)}
@@ -102,12 +102,12 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               onClick={e => { e.stopPropagation(); setStatusMenu(m => !m) }}
               aria-haspopup="menu"
               aria-expanded={statusMenu}
-              className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-12 font-medium border-0 cursor-pointer bg-trs-field text-trs-ink-2"
+              className="inline-flex items-center gap-1 rounded-6 px-2 py-0.5 text-12 font-medium border-0 cursor-pointer bg-trs-field text-trs-ink-2"
             >
               {STATUS_LABEL[lead.status] ?? STATUS_LABEL.new} <ChevronDown size={11} />
             </button>
             {statusMenu && (
-              <div role="menu" className="absolute right-0 top-[calc(100%+4px)] bg-white rounded-[12px] min-w-[150px] z-50 py-1" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
+              <div role="menu" className="absolute right-0 top-[calc(100%+4px)] bg-white rounded-12 min-w-[150px] z-50 py-1" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
                 {ALL_STATUSES.map(s => (
                   <button key={s} type="button" role="menuitem" onClick={e => { e.stopPropagation(); onStatus(lead.id, s); setStatusMenu(false) }}
                     className={cn('w-full text-left px-3 py-2 text-13.5 bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]', lead.status === s && 'font-medium')}
@@ -238,7 +238,7 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
       <div className="mt-4">
         {loading ? (
           <div className="flex flex-col gap-3" aria-busy="true">
-            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse bg-trs-field" />)}
+            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-16 animate-pulse bg-trs-field" />)}
           </div>
         ) : error ? (
           <p className="py-16 text-center text-16 m-0 text-trs-neg">{error}</p>

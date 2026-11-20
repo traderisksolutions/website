@@ -61,7 +61,7 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
           <div className="flex flex-wrap items-center gap-1.5"><Chip tone={client.id ? 'neutral' : 'amber'}>{client.name}</Chip>{client.id !== item.company_id && <span className="text-12 text-trs-muted">changed</span>}</div>
           <input className={inputCls} placeholder="Search clients to refile" value={query} onChange={e => setQuery(e.target.value)} aria-label="Search clients" />
           {opts.companies.length > 0 && (
-            <ul className="m-0 p-0 list-none rounded-[7px] border border-trs-line bg-white max-h-[180px] overflow-auto">
+            <ul className="m-0 p-0 list-none rounded-7 border border-trs-line bg-white max-h-[180px] overflow-auto">
               {opts.companies.map(c => (
                 <li key={c.id}><button type="button" onClick={() => { setClient({ id: c.id, name: c.name }); set('company_id', c.id); set('policy_id', null); setQuery('') }}
                   className="w-full text-left bg-transparent border-0 px-3 py-1.5 text-13.5 text-trs-ink cursor-pointer hover:bg-trs-canvas">{c.name}</button></li>
@@ -141,7 +141,7 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
         <Btn size="xs" level="tertiary" onClick={() => setOpen(v => !v)} disabled={busy}>{open ? 'Close' : 'Add from data room'}</Btn>
       </div>
       {open && (
-        <ul className="m-0 p-0 list-none rounded-[7px] border border-trs-line bg-white max-h-[220px] overflow-auto">
+        <ul className="m-0 p-0 list-none rounded-7 border border-trs-line bg-white max-h-[220px] overflow-auto">
           {addable.length === 0 && <li className="px-3 py-2 text-12.5 text-trs-muted">Nothing in the data room to add.</li>}
           {addable.map(d => (
             <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 border-b border-trs-line last:border-b-0">
