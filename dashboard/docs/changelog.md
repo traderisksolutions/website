@@ -4,6 +4,12 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Employment Benefits: the scheme file, census checks, files by type
+
+- **Scheme file** (`eb_schemes`, `20261121_v2_eb_schemes.sql`): the census and last year's policy as read per client per plan year, with who read them and when. /eb opens the newest plan year filled in; Generate prices keeps what was read (EB-072).
+- **Census checks** (`gb/scheme.ts`): duplicates, missing ages, children 19 to 25 and over 25, employees under 16 and 70 or over, unknown relationship; changes since the previous plan year: joined, left, changed category (EB-071).
+- **Files by type**: the census, policy and insurer columns also offer the data room's typed documents; billing and claims files on record are listed.
+
 ## 2026-11-21 — Filing: one Drive tree, the File button, the record
 
 - **Drive tree** (`src/lib/filing/tree.ts`): `<Group>/<Line>/<Plan year · Insurer>/Census|Policy|Billing|Quotes|Claims|Other`, `To sort`, `Letters`. Data-room filing (`documents/drive.ts`, the endorsement debit-note filer) writes it; one folder per insurer however spelled. Company Drive and the Employment Benefits folder open at the group.

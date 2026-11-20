@@ -275,6 +275,17 @@ Copy: say what something is and what it waits on. Name the person or insurer, gi
 
 Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry in `docs/changelog.md`, deploy only on Jarod's "ok deploy".
 
+### P2 and P4 status (21 Nov 2026, branch eb-scheme-2026-11-21, EB-071, EB-072)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G1 Files by type | **Done** | The census, policy and insurer columns offer the data room's typed documents for the client as well as name matches. |
+| G10 Scheme file | **Done** | `eb_schemes`, one row per client per plan year (20261121_v2_eb_schemes.sql); /eb opens the newest plan year filled in. |
+| G18 Last year re-read | **Done** | Last year's policy read is kept in the scheme file and reopened, not read again. |
+| G19 Census checks and changes | **Done** | Seven checks by code; joined, left, changed category against the previous plan year. |
+| G11, G21 | Not done | EB policies on the register; renewal notices read into the flow. |
+| Optional column | **Listed** | Billing and claims files on record are listed with links; bill checks wait for P6. |
+
 ### P5 status (20 Nov 2026, branch eb2-2026-11-20, EB-063 to EB-070)
 
 | Gap | Status | What exists |

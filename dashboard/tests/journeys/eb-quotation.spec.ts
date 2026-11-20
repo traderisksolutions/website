@@ -32,7 +32,7 @@ test('EB 2.0: two pricing cards, census, Same and Lower tier, Compare with plan 
   await expect(insurer).toHaveAttribute('aria-pressed', 'false')
   await expect(page.getByRole('heading', { name: 'Insurer pricing schedules' })).toHaveCount(0)
   await page.locator('#eb-census-add').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
-  const census = page.getByRole('table', { name: 'Census' })
+  const census = page.getByRole('table', { name: 'Census', exact: true })
   await expect(census).toBeVisible({ timeout: 30_000 })
   const rows = census.locator('tbody tr')
   await expect(rows.nth(0)).toContainText('Directors')
@@ -92,7 +92,7 @@ test('Insurer pricing adds the third column; a schedule read by code becomes a C
   await page.locator('#eb-schedules-add').setInputFiles({ name: 'journey-aia-quote.csv', mimeType: 'text/csv', buffer: Buffer.from(SCHEDULE) })
   await expect(page.getByRole('region', { name: 'Insurer pricing schedules' }).getByText(/2 figures read/)).toBeVisible({ timeout: 30_000 })
   await page.locator('#eb-census-add').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
-  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toBeVisible({ timeout: 30_000 })
   await page.getByRole('button', { name: 'Generate prices' }).click()
   const compare = page.getByRole('table', { name: 'Compare' })
   await expect(compare).toBeVisible({ timeout: 60_000 })
@@ -103,16 +103,16 @@ test('Insurer pricing adds the third column; a schedule read by code becomes a C
 test('a census read can be removed, and nothing from it stays', async ({ page }) => {
   await openClean(page, '/eb')
   await page.locator('#eb-census-add').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
-  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toBeVisible({ timeout: 30_000 })
   await page.getByRole('region', { name: 'Census' }).getByRole('button', { name: 'Remove' }).click()
   // Every Remove asks first (EB-059): Cancel keeps it, Remove takes it.
   const ask = page.getByRole('dialog')
   await expect(ask).toContainText('Remove journey-census.csv?')
   await ask.getByRole('button', { name: 'Cancel' }).click()
-  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toBeVisible()
   await page.getByRole('region', { name: 'Census' }).getByRole('button', { name: 'Remove' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click()
-  await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Options for the client' })).toHaveCount(0)
 })
 
@@ -121,9 +121,9 @@ test('changing the company clears the census read for the last one', async ({ pa
   const company = page.getByRole('combobox', { name: 'Company' })
   await company.fill('Zzq Journey First Co')
   await page.locator('#eb-census-add').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
-  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toBeVisible({ timeout: 30_000 })
   await company.fill('Zzq Journey Second Co')
-  await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toHaveCount(0)
 })
 
 test('a proposal reopens as Edit quotation with its census and insurers; a sent one never offers Email to client (EB-055, EB-056)', async ({ page }) => {
@@ -141,7 +141,7 @@ test('a proposal reopens as Edit quotation with its census and insurers; a sent 
   await page.getByRole('link', { name: 'Edit quotation' }).click()
   await expect(page).toHaveURL(new RegExp(`/eb\\?quotation=${id}`))
   await expect(page.getByRole('heading', { name: 'Edit quotation', level: 1 })).toBeVisible()
-  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('table', { name: 'Census', exact: true })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('table', { name: 'Insurers in the proposal' })).toBeVisible({ timeout: 60_000 })
 })
 
@@ -154,4 +154,33 @@ test('the Quotation register searches by company and filters by status; Insurers
   await expect(table.getByText('No quotation matches.')).toBeVisible()
   await page.getByRole('radiogroup', { name: 'Section' }).getByRole('radio', { name: 'Insurers' }).click()
   await expect(page.getByRole('button', { name: 'Reload workbook' })).toBeVisible()
+})
+
+test('EB-071 a census read on /eb shows its checks by code: duplicates, ages, relationship', async ({ page }) => {
+  await openClean(page, '/eb')
+  const census = [
+    'Name,Date of birth,Relationship,Category,GHS Plan',
+    'Journey Check One,12/03/1970,Employee,Staff,Plan 3',
+    'Journey Check One,12/03/1970,Employee,Staff,Plan 3',
+    'Journey Old Child,01/01/1990,Child,Staff,',
+    'Journey No Date,,Employee,Staff,Plan 3',
+  ].join('\n')
+  await page.locator('#eb-census-add').setInputFiles({ name: 'journey-checks.csv', mimeType: 'text/csv', buffer: Buffer.from(census) })
+  const checks = page.getByRole('table', { name: 'Census checks' })
+  await expect(checks).toBeVisible({ timeout: 30_000 })
+  for (const row of ['Same person twice', 'Child over 25', 'No date of birth or age']) await expect(checks.getByRole('row', { name: new RegExp(row) })).toBeVisible()
+})
+
+test('EB-072 the census column offers the data room\'s typed member lists for the client; the scheme file answers', async ({ page }) => {
+  const [d] = await dbRows<{ company_id: string; email_attachment_id: string }>('policy_documents?doc_type=eq.member_list&email_attachment_id=not.is.null&company_id=not.is.null&status=neq.ignored&select=company_id,email_attachment_id&order=received_at.desc.nullslast&limit=1')
+  test.skip(!d, 'no member list in the data room')
+  const res = await page.request.get(`/api/group-benefits/census/sources?company=${d.company_id}`)
+  expect(res.status()).toBe(200)
+  const s = await res.json() as { sources: { attachment_id: string }[]; optional: unknown[] }
+  expect(Array.isArray(s.optional)).toBe(true)
+  // Offered unless the thread is a colleague's private one, or a same-named file is already listed.
+  expect(s.sources.length).toBeGreaterThan(0)
+  const scheme = await page.request.get(`/api/eb/scheme?company=${d.company_id}`)
+  expect(scheme.status()).toBe(200)
+  expect(typeof (await scheme.json()).tables).toBe('boolean')
 })
