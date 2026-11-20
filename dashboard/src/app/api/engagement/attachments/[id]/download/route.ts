@@ -4,11 +4,9 @@
  * route: the Drive copy when the document is filed, else the bytes fetched again from Gmail.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   return NextResponse.redirect(new URL(`/api/documents/${encodeURIComponent(id)}/file`, req.url))
-}
+})

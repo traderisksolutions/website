@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders() {
@@ -22,10 +22,7 @@ export interface DevLogEntry {
 // ── GET /api/dev-logs ─────────────────────────────────────────────────────────
 // Returns all log entries ordered by session_date DESC, created_at DESC
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async () => {
   try {
     const res = await fetch(
       `${SB_URL}/rest/v1/dev_logs?select=*&order=session_date.desc,created_at.desc`,
@@ -40,7 +37,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // ── POST /api/dev-logs ────────────────────────────────────────────────────────
 // Inserts a new log entry.

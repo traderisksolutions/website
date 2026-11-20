@@ -4,17 +4,14 @@
  * draft id; the person sends it through /api/email/send.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { askOnItem } from '@/lib/today/ask'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to ask on a to-do.' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => ({})) as { instruction?: string }
@@ -24,4 +21,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

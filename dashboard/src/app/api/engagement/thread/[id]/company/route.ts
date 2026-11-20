@@ -8,16 +8,13 @@
  * Answers { companyId } for a filing, { clientCompanyId, created } for a client.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { setClientForThread }        from '@/lib/crm/client-link'
 import { enc, sbTry }                from '@/lib/crm/db'
 import { createClient }              from '@/lib/supabase/server'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const { companyId, name } = await req.json() as { companyId?: string | null; name?: string | null }
@@ -42,4 +39,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

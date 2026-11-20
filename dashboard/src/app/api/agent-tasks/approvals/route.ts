@@ -5,20 +5,14 @@
  *      agent's held tasks now, as the person who pressed Run; { done, failed, other }.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sb, sbTry } from '@/lib/crm/db'
 import { AI_AGENTS, MAX_PER_RUN } from '@/lib/agent-tasks/approvals'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
-async function staff() {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  return user
-}
-
-export async function GET() {
-  if (!await staff()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async () => {
   const U = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', K = process.env.SUPABASE_SERVICE_KEY ?? ''
   const agents = await Promise.all(AI_AGENTS.map(async a => {
     const f = `agent_tasks?status=eq.queued&agent=eq.${enc(a.agent)}${a.kind ? `&kind=eq.${enc(a.kind)}` : ''}`
@@ -28,11 +22,9 @@ export async function GET() {
     return { ...a, waiting, oldest: first?.created_at ?? null }
   }))
   return NextResponse.json({ agents, max: MAX_PER_RUN })
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
-  const user = await staff()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   const b = await req.json().catch(() => ({})) as { agent?: string; count?: number }
   const a = AI_AGENTS.find(x => x.agent === b.agent)
   if (!a) return NextResponse.json({ error: 'Not an AI agent.' }, { status: 400 })
@@ -58,4 +50,4 @@ export async function POST(req: NextRequest) {
   }
   void logActivity({ action: 'ai.approved_run', resource_type: 'agent_tasks', resource_id: a.agent, new_value: { count, ...counts }, metadata: { by: user.email ?? null } })
   return NextResponse.json(counts)
-}
+}, { error: 'Not authenticated' })

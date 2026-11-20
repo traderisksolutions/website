@@ -5,21 +5,18 @@
  *   thread is the quotation's own when none is given. Nothing sends.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { composeClientDraft } from '@/lib/gb/client-draft'
 import { threadOfQuotation } from '@/lib/gb/scenario-run'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Quotation id is not valid.' }, { status: 400 })
   const b = await req.json().catch(() => ({})) as { thread_id?: string }
@@ -46,4 +43,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

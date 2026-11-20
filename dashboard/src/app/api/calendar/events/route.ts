@@ -16,9 +16,9 @@
  */
 import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { todaySGT }                  from '@/lib/format'
+import { withStaff } from '@/lib/auth/guard'
 
 /** Days-before-end_date for each renewal warning, plus 0 for the end date itself ("D-Day"). Order
  *  matters only for readability — events are independently date-filtered below. Not exported: a
@@ -90,12 +90,8 @@ function addDays(isoDate: string, days: number): string {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const from = req.nextUrl.searchParams.get('from')
     const to   = req.nextUrl.searchParams.get('to')
     if (!from || !to) return NextResponse.json({ error: 'from and to required' }, { status: 400 })
@@ -226,4 +222,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

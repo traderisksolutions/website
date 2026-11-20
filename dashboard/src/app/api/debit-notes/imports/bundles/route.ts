@@ -6,15 +6,11 @@
  *      one renewal/new-business event. Extraction is triggered separately per bundle.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const status = req.nextUrl.searchParams.get('status')
     const filter = status ? `&status=eq.${status}` : ''
     const select = '*,companies:suggested_company_id(id,name:company_name),pdf_import_items(id,storage_url,original_filename,doc_type,status,error_message)'
@@ -24,14 +20,10 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { files } = await req.json() as { files?: { storage_url: string; original_filename?: string }[] }
     if (!files?.length) return NextResponse.json({ error: 'files required' }, { status: 400 })
 
@@ -51,4 +43,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

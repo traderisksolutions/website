@@ -6,18 +6,14 @@
  * right away, no extra round trip.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { resolveContact, linkCompanyContact } from '@/lib/debit-note-commit'
 import { logActivity }               from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id: companyId } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const body = await req.json() as { email?: string; name?: string; phone?: string; role?: 'decision_maker' | 'cc' | 'stakeholder' | 'billing' }
     const email = body.email?.trim()
     if (!email) return NextResponse.json({ error: 'email required' }, { status: 400 })
@@ -34,4 +30,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

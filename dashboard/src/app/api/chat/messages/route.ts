@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { withStaff } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = () => {
@@ -13,10 +13,7 @@ const sbH = () => {
  * receive realtime inserts; neither is possible now, so it polls this instead. Server-side, so
  * the service key stays here and the session cookie is what authorises the caller.
  */
-export async function GET(req: NextRequest) {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const GET = withStaff(async (req: NextRequest) => {
   const threadId = req.nextUrl.searchParams.get('thread_id')
   if (!threadId) return NextResponse.json({ error: 'thread_id required' }, { status: 400 })
 
@@ -26,4 +23,4 @@ export async function GET(req: NextRequest) {
   )
   if (!res.ok) return NextResponse.json({ error: 'load failed' }, { status: 502 })
   return NextResponse.json(await res.json(), { headers: { 'Cache-Control': 'no-store' } })
-}
+}, { error: 'Not authenticated' })

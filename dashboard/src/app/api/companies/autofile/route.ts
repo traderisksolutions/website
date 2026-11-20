@@ -6,15 +6,13 @@
  * calls no matter how much mail is waiting. `dryRun` reports every decision without writing.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { autofile }                  from '@/lib/crm/autofile'
 import { logActivity }               from '@/lib/log-activity'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { dryRun, maxDomains } = await req.json().catch(() => ({})) as { dryRun?: boolean; maxDomains?: number }
     const r = await autofile({ dryRun, maxDomains })
@@ -41,4 +39,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

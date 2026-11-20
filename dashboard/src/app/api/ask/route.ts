@@ -7,15 +7,12 @@
  * Read-only: it answers, it never writes to a thread and never sends anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { ask } from '@/lib/agents/ask-ai'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 120
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => ({})) as {
       question?: string; companyId?: string | null; threadIds?: string[] | null
@@ -60,4 +57,4 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

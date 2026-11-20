@@ -5,17 +5,14 @@
  * existing one reprices it in place (POST /api/group-benefits/analysis with quotation_id).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
 import { loadAnalysis } from '@/lib/gb/analysis'
 import type { LastYear } from '@/lib/gb/last-year'
 import type { Schedule } from '@/lib/gb/current'
 import type { Member } from '@/lib/gb-quote'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const [q] = await sbTry<{ id: string; company_name: string | null; census: Member[] | null; effective_date: string | null; basis: string | null; requirement: { current_schedule?: Schedule | null; current_insurer?: string | null; last_year?: LastYear | null } | null }[]>(
     `gb_quotations?id=eq.${enc(id)}&select=id,company_name,census,effective_date,basis,requirement&limit=1`, [])
@@ -30,4 +27,4 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     lastYear: q.requirement?.last_year ?? pack?.lastYear ?? null,
     excluded: pack?.excluded ?? [],
   })
-}
+}, { error: 'Not authenticated' })

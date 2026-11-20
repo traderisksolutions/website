@@ -4,10 +4,10 @@
  * figures and the state of its renewal report draft (none, drafted, sent).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { sbTry, enc } from '@/lib/crm/db'
 import { getCompanyRenewals, type CompanyRenewalRow } from '@/lib/policies/ledger'
 import { RENEWAL_ADVICE } from '@/lib/policies/ledger/report-model'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 const UUID = /^[0-9a-f-]{36}$/i
@@ -31,9 +31,7 @@ async function reportStates(policyIds: string[]): Promise<Map<string, ReportStat
   return out
 }
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Company id is not valid' }, { status: 400 })
   try {
@@ -45,4 +43,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

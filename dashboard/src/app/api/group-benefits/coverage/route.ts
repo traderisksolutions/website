@@ -6,13 +6,13 @@
  * Read from the current approved rate table per insurer — the same set a quote prices against.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { logActivity } from '@/lib/log-activity'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { PRODUCTS, BENEFITS } from '@/lib/gb/canon'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { verificationOf } from '@/lib/gb/verification'
 import { COVER_NAMES_KEY, cleanNames, type CoverNames } from '@/lib/gb/cover-names'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 function sbH(prefer = 'return=minimal') {
@@ -29,9 +29,7 @@ async function names(): Promise<CoverNames> {
   try { return JSON.parse(rows[0]?.value ?? '{}') as CoverNames } catch { return {} }
 }
 
-export async function GET(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     if (req.nextUrl.searchParams.get('names') === '1') return NextResponse.json({ names: await names() })
 
@@ -81,11 +79,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})
 
-export async function PUT(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const PUT = withStaffOrCron(async (req: NextRequest) => {
   try {
     const body = await req.json().catch(() => ({})) as { names?: unknown }
     const known = new Set([...PRODUCTS.map(p => p.code), ...BENEFITS.map(b => b.code)])
@@ -102,4 +98,4 @@ export async function PUT(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

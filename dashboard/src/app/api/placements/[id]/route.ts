@@ -6,13 +6,13 @@
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import * as store from '@/lib/placement/store'
 import { sbTry } from '@/lib/crm/db'
 import { derivePositions } from '@/lib/placement/position'
 import { reviewQueue } from '@/lib/placement/workflow'
 import type { Placement, PlacementStatus } from '@/lib/placement/types'
 import { errorResponse, fail, gate, isDate, isUuid, readBody } from '@/lib/placement/api'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,9 +21,7 @@ const isStatus = (v: unknown): v is PlacementStatus => typeof v === 'string' && 
 
 type Ctx = { params: Promise<{ id: string }> }
 
-export async function GET(req: NextRequest, { params }: Ctx) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: Ctx) => {
   const { id } = await params
   if (!isUuid(id)) return fail('Placement id is not valid')
   try {
@@ -34,7 +32,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   } catch (e) {
     return errorResponse(e)
   }
-}
+})
 
 type Body = { status?: unknown; inception_date?: unknown; title?: unknown; client_thread_id?: unknown; notes?: unknown }
 

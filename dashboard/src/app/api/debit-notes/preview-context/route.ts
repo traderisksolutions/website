@@ -12,15 +12,12 @@
  * Read-only, never mutates anything.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { getBankProfileForCurrency } from '@/lib/debit-note-bank-profile'
 import { debitNoteAssetsPresent }    from '@/lib/debit-note-pdf-server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { searchParams } = req.nextUrl
     const currency  = searchParams.get('currency')
@@ -40,4 +37,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

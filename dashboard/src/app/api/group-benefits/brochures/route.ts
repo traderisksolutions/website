@@ -5,16 +5,14 @@
  *   Steadfast MCare+, Singlife MyBenefits Plus, AIA Flexi Vital Care Plus). From the Pricing Matrix
  *   Drive folder (insurer / plan year / file); a new file dropped there appears here.
  */
-import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { NextResponse } from 'next/server'
 import { driveConfigured, listSourceFiles, type SourceFile } from '@/lib/gb/drive'
 import { brochureRows, type BrochureRow } from '@/lib/gb/brochures'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 let cache: { at: number; rows: BrochureRow[] } | null = null
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   if (!driveConfigured()) return NextResponse.json({ rows: [], configured: false })
   if (cache && Date.now() - cache.at < 10 * 60_000) return NextResponse.json({ rows: cache.rows, configured: true })
   try {
@@ -24,4 +22,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ rows: [], error: e instanceof Error ? e.message : 'Drive could not be read' }, { status: 502 })
   }
-}
+})

@@ -8,9 +8,9 @@
  * confirm-to-act `rescan_reanalyze` action.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { runNexusAnalysis }          from '@/lib/run-nexus-analysis'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
@@ -23,13 +23,9 @@ function sbH() {
 
 type Params = { params: Promise<{ id: string }> }
 
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaff(async (req: NextRequest, props: Params, { user }) => {
   const params = await props.params;
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const caseId = params.id
     const { filename, all_pending, instructions } = await req.json() as { filename?: string; all_pending?: boolean; instructions?: string }
 
@@ -64,4 +60,4 @@ export async function POST(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

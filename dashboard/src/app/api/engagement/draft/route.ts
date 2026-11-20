@@ -4,7 +4,6 @@ import { logError }                 from '@/lib/error-log'
 import { fetchKnowledgeDocs }       from '@/lib/gdrive-knowledge'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
-import { requireStaffOrCron }       from '@/lib/api-auth'
 import { getCustomerProfile }       from '@/lib/customer-profile'
 import { geminiUrl, GEMINI_FLASH, GEMINI_LITE } from '@/lib/gemini-models'
 import { searchCompany, renderContext }   from '@/lib/agents/company-retrieval'
@@ -13,6 +12,7 @@ import { routeModel }                     from '@/lib/agents/router'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const GEMINI_URL = geminiUrl(GEMINI_FLASH)
 // Small calls below (first-name extraction, email-type classification) emit one word each.
@@ -39,10 +39,7 @@ interface MsgSnippet {
 
 // GET /api/engagement/draft?thread_id=X or ?contactId=X
 // Returns the latest pending/approved draft for a thread or contact.
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const sp       = new URL(req.url).searchParams
     const threadId = sp.get('thread_id')
@@ -67,13 +64,10 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})
 
 // POST /api/engagement/draft  → generate AI draft, upsert contact, save to ai_drafts
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { leadId, contactName, contactEmail, company, topic, threadId, messages, manualContent } =
       await req.json() as {
@@ -751,13 +745,10 @@ Write only the email body starting with "${salutation}". End after the last para
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})
 
 // PATCH /api/engagement/draft  → approve or reject
-export async function PATCH(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const PATCH = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { draftId, status, content, rejection_note } =
       await req.json() as {
@@ -804,4 +795,4 @@ export async function PATCH(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

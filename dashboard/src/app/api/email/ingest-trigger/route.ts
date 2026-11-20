@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { waitUntil }                 from '@vercel/functions'
-import { requireStaffOrCron }        from '@/lib/api-auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 // Called by the Refresh button and the 3-minute background sync.
 // middleware.ts's matcher explicitly excludes /api/* — this is NOT protected by the app-wide
@@ -12,10 +12,7 @@ import { requireStaffOrCron }        from '@/lib/api-auth'
 
 export const maxDuration = 60
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   const cronSecret = process.env.CRON_SECRET
   if (!cronSecret) return NextResponse.json({ error: 'CRON_SECRET not set' }, { status: 500 })
 
@@ -44,4 +41,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

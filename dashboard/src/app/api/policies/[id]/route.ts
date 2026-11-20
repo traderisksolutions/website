@@ -6,22 +6,18 @@
  *       is set as given; the fields alone patch the row.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { markPolicyLive, setLifecycle } from '@/lib/policies/spine'
 import { isPolicyLifecycle, POLICY_LIFECYCLES } from '@/lib/policies/types'
 import { errorResponse, fail, gate, isDate, isUuid, readBody } from '@/lib/placement/api'
 import * as store from '@/lib/placement/store'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const res = await fetch(`${SB_URL}/rest/v1/policies?id=eq.${id}&select=*,customers(company_id,companies(id,name:company_name))&limit=1`, { headers: sbH(), cache: 'no-store' })
     const row = res.ok ? (await res.json())[0] : null
     if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -34,7 +30,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 type PatchBody = { lifecycle?: unknown; policy_number?: unknown; start_date?: unknown; end_date?: unknown; label?: unknown; insurer?: unknown }
 

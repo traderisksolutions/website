@@ -5,7 +5,6 @@
  *   suggested: moves the suggested rung (the broker's call); the rest of the pack is kept.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { sbTry, enc } from '@/lib/crm/db'
 import { loadAnalysis, runCurrent, runCustom, runSplit, saveAnalysis } from '@/lib/gb/analysis'
 import type { Schedule } from '@/lib/gb/current'
@@ -13,20 +12,14 @@ import { sb } from '@/lib/crm/db'
 import { packageByKey, type PackageKey } from '@/lib/gb/packages'
 import type { CustomSpec } from '@/lib/gb/custom'
 import type { Member } from '@/lib/gb-quote'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
 type Q = { id: string; company_name: string | null; effective_date: string | null; basis: string | null; member_count: number; census: Member[] | null; requirement: { current_insurer?: string | null; current_schedule?: Schedule | null } | null }
 const Q_COLS = 'id,company_name,effective_date,basis,member_count,census,requirement'
 
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
-
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
   if (!q) return NextResponse.json({ error: 'Quotation not found' }, { status: 404 })
@@ -35,11 +28,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   for (const m of q.census ?? []) if (!/spouse|child|dependa/i.test(m.relationship)) counts.set(m.category || 'Default', (counts.get(m.category || 'Default') ?? 0) + 1)
   const categories = [...counts].map(([name, members]) => ({ name, members })).sort((a, b) => b.members - a.members)
   return NextResponse.json({ quotation: { id: q.id, company_name: q.company_name, effective_date: q.effective_date, basis: q.basis, member_count: q.member_count }, categories, pack })
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   const body = await req.json().catch(() => ({})) as { run?: boolean; schedule?: Schedule; suggested?: string; custom?: CustomSpec; split?: Record<string, string>; current_insurer?: string | null; excluded?: string[] }
   const [q] = await sbTry<Q[]>(`gb_quotations?id=eq.${enc(id)}&select=${Q_COLS}&limit=1`, [])
@@ -91,4 +82,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

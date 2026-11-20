@@ -15,18 +15,14 @@
  * the master of another amendment.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { findMasterPolicy, hasEndorsementSuffix, looksLikeEndorsement, type PolicyLike } from '@/lib/policies/endorsement'
+import { withStaff } from '@/lib/auth/guard'
 
 type Row = PolicyLike & { id: string; start_date: string | null; end_date: string | null; policy_number: string | null; class_of_insurance: string | null }
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const q = req.nextUrl.searchParams
     const policyNumber = q.get('policy_number')?.trim() || null
     const companyId = q.get('company_id')?.trim() || null
@@ -71,4 +67,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

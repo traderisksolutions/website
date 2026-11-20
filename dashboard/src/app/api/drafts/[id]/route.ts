@@ -7,19 +7,16 @@
  *   POST  /api/drafts/:id { action: 'redo', note? }  → Discard and redo: a new draft from the thread, the old one rejected (one model call, a person's button).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { editDraft, prepareDraft } from '@/lib/today/data'
 import { redoDraft } from '@/lib/today/ask'
 import { attachmentsFrom } from '@/lib/today/desk'
 import { setDraftFiles } from '@/lib/today/desk-server'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 type Edit = { to?: string; cc?: string | null; subject?: string; body?: string; attachments?: unknown }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const b = await req.json().catch(() => null) as Edit | null
   if (!UUID.test(id)) return NextResponse.json({ error: 'A draft id is not valid.' }, { status: 400 })
@@ -36,12 +33,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to send.' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => null) as { action?: string; note?: unknown } | null
@@ -56,4 +51,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

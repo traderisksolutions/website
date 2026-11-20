@@ -8,7 +8,7 @@
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { autoPlaceFromThread } from '@/lib/placement/auto'
 import { errorResponse, fail, isUuid, readBody } from '@/lib/placement/api'
 import { sbTry, enc } from '@/lib/crm/db'

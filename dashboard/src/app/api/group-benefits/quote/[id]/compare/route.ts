@@ -7,20 +7,17 @@
  * are saved in app_settings `gb_compare:<id>` and read by the email draft.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { loadCompare, savePicks, type Picks } from '@/lib/gb/compare-cover'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const d = await loadCompare(id)
   if ('error' in d) return NextResponse.json({ error: d.error }, { status: d.status })
   return NextResponse.json(d)
-}
+}, { error: 'Not authenticated' })
 
 /** Bounded: product → category → cover → plan, strings only. */
 function cleanPicks(picks: unknown): Record<string, Picks> | null {
@@ -36,14 +33,11 @@ function cleanPicks(picks: unknown): Record<string, Picks> | null {
   return clean
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const PUT = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   const body = await req.json().catch(() => null) as { picks?: unknown } | null
   const clean = cleanPicks(body?.picks)
   if (!clean) return NextResponse.json({ error: 'picks required' }, { status: 400 })
   await savePicks(id, clean)
   return NextResponse.json({ ok: true })
-}
+}, { error: 'Not authenticated' })

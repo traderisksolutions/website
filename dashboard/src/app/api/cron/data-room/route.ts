@@ -5,14 +5,12 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { catchUp } from '@/lib/documents/ingest'
+import { withCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET ?? ''
-  const bearer = secret !== '' && req.headers.get('authorization') === `Bearer ${secret}`
-  if (!bearer) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export const GET = withCron(async (req: NextRequest) => {
   try {
     // ?all=1&batch=N runs the backfill over every attachment on file, N at a time (call it again
     // until ingested is 0). The daily run looks at the last 3 days.
@@ -28,4 +26,4 @@ export async function GET(req: NextRequest) {
     console.error('[data-room] failed:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+}, { error: 'Unauthorized' })

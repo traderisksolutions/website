@@ -10,12 +10,12 @@
  * what a client is quoted the moment a model finished reading a PDF.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
 import { extractSchedule } from '@/lib/gb/ingest'
 import { resolveProduct } from '@/lib/gb/resolve'
 import { BENEFIT_BY_CODE } from '@/lib/gb/canon'
 import { documentBytes } from '@/lib/gb/documents'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
@@ -39,11 +39,6 @@ type Candidate = {
   current_text: string | null; status: string
 }
 
-async function me() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
 async function loadTable(id: string): Promise<Table | null> {
   const res = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}` +
     `&select=id,insurer_name,product_code,product_name,plan_year,source_pdf_url,source_pdf_name,` +
@@ -52,9 +47,8 @@ async function loadTable(id: string): Promise<Table | null> {
   return res.ok ? (await res.json() as Table[])[0] ?? null : null
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  if (!await me()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   try {
     const table = await loadTable(id)
     if (!table) return NextResponse.json({ error: 'Rate table not found' }, { status: 404 })
@@ -75,12 +69,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
-  const user = await me()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   try {
     const table = await loadTable(id)
     if (!table) return NextResponse.json({ error: 'Rate table not found' }, { status: 404 })
@@ -154,13 +146,11 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 /** Accept or reject candidates. Accepted rows are copied into gb_benefits and go live. */
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
-  const user = await me()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
   try {
     const { decision, candidateIds } = await req.json() as
       { decision?: 'accepted' | 'rejected'; candidateIds?: string[] }
@@ -228,4 +218,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

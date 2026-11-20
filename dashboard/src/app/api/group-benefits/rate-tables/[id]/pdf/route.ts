@@ -4,19 +4,15 @@
  * employee so the reviewer can check the extracted numbers against the original while reviewing.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { documentBytes }             from '@/lib/gb/documents'
 import { NEVER_STORED }              from '@/lib/storage/attachment-bytes'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const k = process.env.SUPABASE_SERVICE_KEY
     if (!k) return NextResponse.json({ error: 'server misconfigured' }, { status: 500 })
     const h = { apikey: k, Authorization: `Bearer ${k}` }
@@ -37,4 +33,4 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

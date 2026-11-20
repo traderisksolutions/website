@@ -6,7 +6,6 @@
  * POST /api/companies                     → { name, domain?, stage?, owner_email?, industry?, address? }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { logActivity }               from '@/lib/log-activity'
 import { listCompanySummaries, summariseAll } from '@/lib/crm/aggregates'
@@ -14,10 +13,9 @@ import { createClientCompany }       from '@/lib/crm/triage'
 import { isStage }                   from '@/lib/crm/stage'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { emailDomain }               from '@/lib/crm/db'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const p = req.nextUrl.searchParams
     if (p.get('view') === 'summary') {
@@ -36,11 +34,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const body = await req.json() as { name?: string; domain?: string | null; stage?: string; owner_email?: string | null; industry?: string | null; address?: string | null; type?: string | null }
     const name = body.name?.trim()
@@ -62,4 +58,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

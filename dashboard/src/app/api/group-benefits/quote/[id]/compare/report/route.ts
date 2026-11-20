@@ -11,7 +11,6 @@
  *              approved and sent from the Inbox like any draft. Nothing sends from here.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sb, sbTry } from '@/lib/crm/db'
 import { loadCompare, savePicks, type Picks } from '@/lib/gb/compare-cover'
 import { buildCompareReport, reportEmail } from '@/lib/gb/compare-report'
@@ -22,14 +21,12 @@ import { threadOfQuotation } from '@/lib/gb/scenario-run'
 import { storeUpload } from '@/lib/storage/drive-upload'
 import { driveIdOf } from '@/lib/storage/attachment-bytes'
 import { logActivity } from '@/lib/log-activity'
+import { withStaff } from '@/lib/auth/guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   const b = await req.json().catch(() => ({})) as { action?: string; picks?: Record<string, Picks> }
   if (b.action !== 'whatsapp' && b.action !== 'email') return NextResponse.json({ error: 'action must be whatsapp or email' }, { status: 400 })
@@ -70,4 +67,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

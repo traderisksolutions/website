@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const TRS_DOMAIN = 'trade-risksol.com'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -64,10 +64,7 @@ async function readStatus(
   }
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     // 1. Fetch all threads ordered by last activity
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
@@ -333,4 +330,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

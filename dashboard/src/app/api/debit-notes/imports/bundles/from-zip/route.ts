@@ -7,18 +7,14 @@
  * path.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, storeImportFile, downloadObject, deleteObject } from '@/lib/debit-note-storage'
 import AdmZip                        from 'adm-zip'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { storage_url: storageUrl } = await req.json() as { storage_url?: string; original_filename?: string }
     if (!storageUrl) return NextResponse.json({ error: 'storage_url required' }, { status: 400 })
 
@@ -49,4 +45,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

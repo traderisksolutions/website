@@ -30,9 +30,9 @@ export async function middleware(request: NextRequest) {
   // ── /api/** ─────────────────────────────────────────────────────────
   // Two credentials before any handler runs: an x-api-key naming the
   // calling application, and an actor — a signed-in TRS user or the
-  // CRON_SECRET bearer the cron routes already use. requireStaffOrCron()
-  // stays in the handlers; this is a gate in front of it, not a
-  // replacement for it.
+  // CRON_SECRET bearer the cron routes already use. The handler wrappers
+  // in src/lib/auth/guard.ts stay; this is a gate in front of them, not a
+  // replacement for them.
   //
   // Checked after getUser() so the session is already resolved, and
   // before the redirect below because an API caller needs a status code,

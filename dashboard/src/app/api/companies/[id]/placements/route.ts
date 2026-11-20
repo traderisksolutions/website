@@ -1,15 +1,13 @@
 /** GET /api/companies/[id]/placements → { bundle: PlacementBundle, positions: LinePosition[] } */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { loadBundle } from '@/lib/placement/store'
 import { derivePositions } from '@/lib/placement/position'
 import { errorResponse, fail, isUuid } from '@/lib/placement/api'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!isUuid(id)) return fail('Company id is not valid')
   try {
@@ -18,4 +16,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return errorResponse(e)
   }
-}
+})

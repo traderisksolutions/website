@@ -4,16 +4,14 @@
  * the document. Nothing is saved.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
 import type { DebitNotePdfData } from '@/lib/debit-note-pdf'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
 
-export async function POST(req: NextRequest) {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest) => {
   const b = await req.json().catch(() => null) as { data?: DebitNotePdfData } | null
   const d = b?.data
   if (!d || typeof d !== 'object' || !Array.isArray(d.lineItems)) return NextResponse.json({ error: 'Debit note data is missing' }, { status: 400 })
@@ -24,4 +22,4 @@ export async function POST(req: NextRequest) {
     console.error('[debit-notes/preview]', e)
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Preview failed' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

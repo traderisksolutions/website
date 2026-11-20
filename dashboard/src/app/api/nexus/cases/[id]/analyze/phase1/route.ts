@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysisPhase1, recordFailedNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { createNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
 import { logActivity } from '@/lib/log-activity'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 300 // Vercel maximum; large cases (hundreds of attachments) need it
 
@@ -12,10 +12,8 @@ type Params = { params: Promise<{ id: string }> }
 // Body: { triggered_by?, instructions?, thread_ids? }
 // Phase 1 of 3: gather every linked thread/attachment/knowledge doc, then Gemini evidence
 // synthesis. Creates the run row; phase2/phase3 continue it via run_id.
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   const caseId = params.id
   let runId: string | null = null
@@ -48,4 +46,4 @@ export async function POST(req: NextRequest, props: Params) {
     }
     return NextResponse.json({ error: msg, run_id: runId }, { status: 500 })
   }
-}
+})

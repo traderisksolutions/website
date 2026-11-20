@@ -4,9 +4,9 @@
  * runs on it) and whether an analysis already exists. The renewals queue on Today.
  */
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { sbTry, enc } from '@/lib/crm/db'
 import { normCompany } from '@/lib/gb/intake'
+import { withStaff } from '@/lib/auth/guard'
 
 type Policy = { id: string; company_id: string | null; insurer: string | null; class_of_insurance: string | null; label: string | null; policy_number: string | null; end_date: string | null; is_eb: boolean | null }
 type Quotation = { id: string; company_name: string | null; member_count: number; created_at: string }
@@ -18,10 +18,7 @@ export type EbRenewalRow = {
 
 const EB = /benefit|medical|hospital|\bghs\b|\bgtl\b|dental|\beb\b|group life|critical illness/i
 
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async () => {
   const today = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10)
   const from = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10)
   const to = new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10)
@@ -44,4 +41,4 @@ export async function GET() {
     }
   })
   return NextResponse.json({ rows, today })
-}
+}, { error: 'Not authenticated' })

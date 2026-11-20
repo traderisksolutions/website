@@ -6,11 +6,11 @@
  * in. `?settled=1` includes notes that are already cleared, so a mistake can be found.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { sbTry }                     from '@/lib/crm/db'
 import { derivePayment, summarizePayments } from '@/lib/crm/payments'
 import { listReceipts, ledgerAvailable }    from '@/lib/crm/receipts'
 import type { DebitNoteRow }         from '@/lib/crm/types'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 type Row = DebitNoteRow & {
   companies: { company_name: string | null } | null
@@ -24,9 +24,7 @@ const SELECT = [
   'companies(company_name),policies(policy_number,class_of_insurance)',
 ].join(',')
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const includeSettled = req.nextUrl.searchParams.get('settled') === '1'
 
@@ -75,4 +73,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

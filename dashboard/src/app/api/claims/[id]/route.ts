@@ -6,18 +6,15 @@
  * Drafts are approved through /api/work/:id, the same as on /work.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { claimDetail } from '@/lib/admin/b/register'
 import { sb, enc } from '@/lib/crm/db'
 import { enqueue } from '@/lib/agent-tasks/queue'
 import { todaySGT } from '@/lib/sgt-time'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const OUTCOMES = new Set(['settled', 'declined', 'withdrawn'])
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const d = await claimDetail(id, todaySGT())
@@ -25,12 +22,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = (await currentUserEmail())?.toLowerCase()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = ((user?.email.toLowerCase() ?? null))?.toLowerCase()
   if (!actor) return NextResponse.json({ error: 'Sign in to act on claims.' }, { status: 401 })
   const { id } = await params
   const b = await req.json().catch(() => ({})) as Record<string, unknown>
@@ -53,4 +48,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

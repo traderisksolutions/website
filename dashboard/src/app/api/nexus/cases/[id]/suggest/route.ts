@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders() {
@@ -14,10 +14,8 @@ type Params = { params: Promise<{ id: string }> }
 // GET /api/nexus/cases/[id]/suggest — suggest unlinked threads that might belong to this case
 // ?all=1 → return all recent threads (for the thread linker modal browse view)
 // Strategy: match by shared contacts, similar subject keywords, or date proximity
-export async function GET(req: NextRequest, props: Params) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   const isAll = new URL(req.url).searchParams.get('all') === '1'
   if (isAll) {
@@ -185,4 +183,4 @@ export async function GET(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSign, randomUUID }     from 'node:crypto'
 import { waitUntil }                  from '@vercel/functions'
-import { createClient }               from '@/lib/supabase/server'
 import { buildRawEmail, htmlToText, type ThreadingHeaders } from '@/lib/email-mime'
 import { buildQuotedHistory }         from '@/lib/build-reply-thread'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 const GMAIL_API    = 'https://gmail.googleapis.com/gmail/v1/users/me'
 const DEFAULT_FROM = 'operations@trade-risksol.com'
@@ -99,13 +99,10 @@ async function getTokenForSender(fromEmail: string, userId: string | null): Prom
 // Body: { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail?, draftId? }
 // Sends reply via Gmail, creates contact + thread, updates lead status to 'contacted'.
 // If draftId is provided, updates ai_drafts and triggers an eval so the system learns from edits.
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   try {
     // Was optional (userId fell through to null and the send still went out as ops@) — meaning
     // an unauthenticated caller could trigger a real Gmail send. Now hard-gated.
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const userId = user.id
 
     const { leadId, name, email, company, topic, originalMessage, htmlBody, fromEmail: requestedFrom, draftId } =
@@ -339,4 +336,4 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

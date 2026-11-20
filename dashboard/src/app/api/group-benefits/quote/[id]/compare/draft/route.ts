@@ -5,20 +5,17 @@
  * without a thread the text comes back to copy. Nothing sends.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { composeCompareDraft } from '@/lib/gb/compare-draft'
 import { clientOnThread } from '@/lib/gb/client-draft'
 import { threadOfQuotation } from '@/lib/gb/scenario-run'
 import { logActivity } from '@/lib/log-activity'
 import type { Picks } from '@/lib/gb/compare-cover'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 120
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   const b = await req.json().catch(() => ({})) as { product?: string; picks?: Record<string, Picks> }
   if (!b.product) return NextResponse.json({ error: 'product required' }, { status: 400 })
@@ -42,4 +39,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

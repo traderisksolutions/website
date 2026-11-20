@@ -11,18 +11,16 @@
  * so a contact added here is the contact Tier C emails. The old insurer_contacts list is no longer read.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL, sbH } from '@/lib/debit-note-storage'
 import { listInsurerCompanies, normInsurer } from '@/lib/insurers'
 import { addProductContact, createProduct, listProducts, removeProductContact } from '@/lib/insurer-products'
 import { logActivity } from '@/lib/log-activity'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const EB_LINES = ['employee_benefits', 'group_health']
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     const [insurers, products] = await Promise.all([listInsurerCompanies(), listProducts({ productLines: EB_LINES })])
     const seen = new Set<string>()
@@ -38,11 +36,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const b = await req.json().catch(() => ({})) as { insurer_company_id?: string; name?: string; email?: string }
     const email = (b.email ?? '').trim().toLowerCase()
@@ -59,11 +55,9 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})
 
-export async function PATCH(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const PATCH = withStaffOrCron(async (req: NextRequest) => {
   try {
     const b = await req.json().catch(() => ({})) as { contact_id?: string; name?: string; email?: string }
     if (!b.contact_id) return NextResponse.json({ error: 'Contact is required' }, { status: 400 })
@@ -91,11 +85,9 @@ export async function PATCH(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})
 
-export async function DELETE(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const DELETE = withStaffOrCron(async (req: NextRequest) => {
   try {
     const b = await req.json().catch(() => ({})) as { insurer?: string; contact_id?: string }
     if (!b.insurer || !b.contact_id) return NextResponse.json({ error: 'Insurer and contact are required' }, { status: 400 })
@@ -108,4 +100,4 @@ export async function DELETE(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

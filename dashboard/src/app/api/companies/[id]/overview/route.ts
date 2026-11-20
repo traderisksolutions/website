@@ -1,12 +1,10 @@
 /** GET /api/companies/[id]/overview → alerts, where we left off, to-do, last threads, stakeholders, status line. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { getCompany }                from '@/lib/crm/db'
 import { buildOverview }             from '@/lib/crm/overview'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const company = await getCompany(id)
@@ -16,4 +14,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

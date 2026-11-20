@@ -13,8 +13,8 @@
  * whole mailbox, and what the newest message is — then sets that beside what we actually stored.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { isAutomated, isInternal, bareEmail } from '@/lib/crm/db'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
@@ -63,10 +63,7 @@ async function config(key: string): Promise<string | null> {
   return rows[0]?.value ?? null
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const token = await getAccessToken()
 
@@ -157,4 +154,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

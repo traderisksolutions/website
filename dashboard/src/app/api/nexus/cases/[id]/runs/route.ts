@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer?: string) {
@@ -84,10 +84,8 @@ type Params = { params: Promise<{ id: string }> }
 
 // ── GET — run list ────────────────────────────────────────────────────────────
 
-export async function GET(req: NextRequest, props: Params) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const res = await fetch(
@@ -138,14 +136,12 @@ export async function GET(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // ── PATCH — pin/unpin a run ───────────────────────────────────────────────────
 
-export async function PATCH(req: NextRequest, props: Params) {
+export const PATCH = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const { runId, pinned } = await req.json()
@@ -164,14 +160,12 @@ export async function PATCH(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
 // ── DELETE — prune unpinned runs beyond keep-last-N ───────────────────────────
 
-export async function DELETE(req: NextRequest, props: Params) {
+export const DELETE = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     const keep = Math.max(1, parseInt(req.nextUrl.searchParams.get('keep') ?? '15', 10) || 15)
@@ -198,4 +192,4 @@ export async function DELETE(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

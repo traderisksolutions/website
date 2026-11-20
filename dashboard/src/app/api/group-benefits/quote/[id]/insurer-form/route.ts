@@ -3,18 +3,16 @@
  * file for this quotation (Income BIX upload rows; RCC enrolment listing), as an .xlsx download.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { incomeUploadXlsx, rccEnrolmentXlsx, type FormLine, type FormMember } from '@/lib/gb/insurer-forms'
 import { insurerKey } from '@/lib/gb/ladder'
+import { withStaff } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = () => ({ apikey: process.env.SUPABASE_SERVICE_KEY ?? '', Authorization: `Bearer ${process.env.SUPABASE_SERVICE_KEY ?? ''}` })
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { data: { user } } = await (await createClient()).auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Quotation id is not valid' }, { status: 400 })
   const which = req.nextUrl.searchParams.get('insurer')
@@ -31,4 +29,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const buf = which === 'income' ? await incomeUploadXlsx(members, lines) : await rccEnrolmentXlsx(members, lines, q.effective_date, company)
   const stem = `${company.replace(/[^A-Za-z0-9]+/g, ' ').trim()} ${which === 'income' ? 'Income FlexCare upload' : 'RCC enrolment listing'}`
   return new NextResponse(new Uint8Array(buf), { headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="${stem}.xlsx"` } })
-}
+}, { error: 'Not authenticated' })

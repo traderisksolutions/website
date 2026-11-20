@@ -7,20 +7,16 @@
  * shape the compose modal and the send route read. Refuses if any checked file cannot be read.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH as debitSbH, downloadObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { storeUpload }               from '@/lib/storage/drive-upload'
 import AdmZip                        from 'adm-zip'
+import { withStaff } from '@/lib/auth/guard'
 
 type AttachmentFile = { filename?: string | null; storage_url: string }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { storageUrls } = await req.json() as { storageUrls?: string[] }
     if (!storageUrls?.length) return NextResponse.json({ error: 'storageUrls required' }, { status: 400 })
 
@@ -48,7 +44,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 /** Two checked files with one name would overwrite each other in the zip. */
 function uniqueIn(used: Set<string>, name: string): string {

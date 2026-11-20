@@ -4,14 +4,12 @@
  * at ~4.5 MB, so larger files must go through upload-url. folder defaults to email-uploads.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { isUploadFolder, storeUpload } from '@/lib/storage/drive-upload'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const form = await req.formData().catch(() => null)
     const file = form?.get('file')
@@ -23,4 +21,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

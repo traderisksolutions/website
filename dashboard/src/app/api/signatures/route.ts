@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 const MAX_SHARED_ALIASES = 10
 
@@ -27,12 +27,8 @@ async function getProfile(userId: string): Promise<{ is_admin: boolean }> {
 
 // GET /api/signatures
 // Admin sees all; non-admin sees only their own (owner_user_id = their id) + shared (owner_user_id is null).
-export async function GET() {
+export const GET = withStaff(async (_req, _ctx, { user }) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { is_admin } = await getProfile(user.id)
 
     // Admin: all non-deleted. Non-admin: own + shared.
@@ -49,18 +45,14 @@ export async function GET() {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 // POST /api/signatures — create a signature for a specific sending address.
 // - sending_email required
 // - For a shared alias (not the user's own Gmail): admin only
 // - Shared aliases capped at MAX_SHARED_ALIASES org-wide
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { is_admin } = await getProfile(user.id)
 
     const { name, title, phone, email, company_tagline, sending_email } =
@@ -135,4 +127,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

@@ -6,12 +6,10 @@
  * are created without a company_id.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { sbTry, enc }                from '@/lib/crm/db'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const rows = await sbTry<{ company_id: string | null; companies: { company_name: string | null } | null }[]>(
@@ -36,4 +34,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

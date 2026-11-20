@@ -6,12 +6,10 @@
  * Used for every browser upload (src/lib/upload-attachment.ts); folder must be in UPLOAD_FOLDERS.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { isUploadFolder, openDriveUpload } from '@/lib/storage/drive-upload'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { filename, mime_type, size, folder } = await req.json().catch(() => ({})) as { filename?: string; mime_type?: string; size?: number; folder?: string }
     if (folder !== undefined && !isUploadFolder(folder)) return NextResponse.json({ error: `Unknown upload folder: ${folder}` }, { status: 400 })
@@ -21,4 +19,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 502 })
   }
-}
+})

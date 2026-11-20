@@ -8,20 +8,16 @@
  * needsPassword (with the password the email states, when it states one) until it opens.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
 import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import { passwordInText, workbookSheets, WorkbookPasswordError } from '@/lib/xlsx-text'
 import { workbookCensus, parseDelimited, censusFromRows } from '@/lib/gb/census-parse'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 const MAX_BYTES = 15 * 1024 * 1024
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const POST = withStaff(async (req: NextRequest) => {
   let buf: Buffer | null = null, filename = '', password: string | null = null, hint: string | null = null
   const type = req.headers.get('content-type') ?? ''
   if (type.includes('multipart/form-data')) {
@@ -60,4 +56,4 @@ export async function POST(req: NextRequest) {
     if (e instanceof WorkbookPasswordError) return NextResponse.json({ filename, needsPassword: true, wrongPassword: e.reason === 'wrong', passwordHint: hint }, { status: 200 })
     return NextResponse.json({ error: `The file could not be read: ${e instanceof Error ? e.message : String(e)}` }, { status: 422 })
   }
-}
+}, { error: 'Not authenticated' })

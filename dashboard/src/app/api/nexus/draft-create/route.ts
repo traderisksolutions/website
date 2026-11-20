@@ -12,8 +12,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
@@ -22,10 +22,7 @@ function sbHeaders(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { thread_id, body, email_type, to_email, nexus_case_id, nexus_step_index } = await req.json() as {
       thread_id?:       string | null
@@ -111,4 +108,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

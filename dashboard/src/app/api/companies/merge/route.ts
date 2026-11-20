@@ -3,16 +3,14 @@
  * POST /api/companies/merge  → { loserId, winnerId } folds one into the other and deletes it.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { findDuplicates, mergeCompanies } from '@/lib/crm/domains'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { logActivity }               from '@/lib/log-activity'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 120
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     const pairs = await findDuplicates()
     return NextResponse.json({
@@ -25,11 +23,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { loserId, winnerId } = await req.json() as { loserId?: string; winnerId?: string }
     if (!loserId || !winnerId) return NextResponse.json({ error: 'loserId and winnerId required' }, { status: 400 })
@@ -40,4 +36,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

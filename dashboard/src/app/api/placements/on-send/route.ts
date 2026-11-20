@@ -5,7 +5,7 @@
  * Internal: x-internal-secret = CRON_SECRET, or staff.
  */
 import { NextResponse, type NextRequest } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { placeOnSend } from '@/lib/placement/auto'
 import { errorResponse, fail, isUuid, readBody } from '@/lib/placement/api'
 

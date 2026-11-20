@@ -1,15 +1,11 @@
 import { NextResponse }  from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 // GET /api/auth/profile
 // Returns the current user's profile including admin status.
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const GET = withStaff(async (_req, _ctx, { user }) => {
   const k = process.env.SUPABASE_SERVICE_KEY!
   const profileRes = await fetch(
     `${SB_URL}/rest/v1/employee_profiles?user_id=eq.${user.id}&select=is_admin,gmail_email&limit=1`,
@@ -24,4 +20,4 @@ export async function GET() {
     is_admin:   profile?.is_admin  ?? false,
     gmail_email: profile?.gmail_email ?? null,
   })
-}
+}, { error: 'Not authenticated' })

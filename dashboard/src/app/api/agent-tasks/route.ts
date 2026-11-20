@@ -7,15 +7,13 @@
  * POST /api/agent-tasks/:id/resolve.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { sb, enc } from '@/lib/crm/db'
 import { AGENT_NAMES } from '@/lib/agent-tasks/queue'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const STATUSES = new Set(['queued', 'running', 'done', 'failed', 'needs_human', 'skipped', 'all'])
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   const q = req.nextUrl.searchParams
   const status = q.get('status') ?? 'needs_human'
   const agent = q.get('agent')
@@ -29,4 +27,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
