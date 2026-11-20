@@ -36,6 +36,8 @@ const nextConfig = {
       { source: '/insurers', destination: '/companies?kind=insurer', permanent: false },
       { source: '/marketing', destination: '/websites/traderisksolutions', permanent: false },
       { source: '/sales', destination: '/sales/enquiries', permanent: false },
+      { source: '/companies/portfolio', destination: '/companies', permanent: false },
+      { source: '/companies/portfolio/desk', destination: '/companies', permanent: false },
     ]
   },
 };

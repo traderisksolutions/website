@@ -5,7 +5,6 @@
  * rank by commission, what it earns, the admin it takes by request type, claims and renewal.
  */
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { fmtDate, money } from '@/lib/format'
 import { REQUEST_TYPES, type Portfolio } from '@/lib/clients/portfolio'
 
@@ -19,7 +18,7 @@ export function BusinessNumbers({ companyId }: { companyId: string }) {
   if (!p || !r) return null
   const types = REQUEST_TYPES.filter(t => r.byType[t] > 0).sort((a, b) => r.byType[b] - r.byType[a])
   const items: [string, React.ReactNode][] = [
-    ['Rank by commission', <><Link href="/companies/portfolio" className="text-trs-ink">#{r.rank}</Link> of {p.summary.businesses}{r.top ? ' · top 20%' : ''}</>],
+    ['Rank by commission', <>#{r.rank} of {p.summary.businesses}{r.top ? ' · top 20%' : ''}</>],
     ['Commission, 12 months', `${money(r.commission, { dp: 0 })} · ${(r.share * 100).toFixed(1)}%`],
     ['Premium billed', money(r.premium, { dp: 0 })],
     ['Emails sent a month', `${r.perMonth.sent}${r.commissionPerEmail != null ? ` · ${money(r.commissionPerEmail, { dp: 0 })} commission each` : ''}`],
