@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Employment Benefits › Products: the workbook beside the rate tables
+
+- **Products** (`/eb/products`, a new Employment Benefits tab): the five house products as the workbook holds them, each rate table of the same insurer compared rate by rate (same, with GST, different, only on one side), the largest differences per table, and the brochure folder's read queue (EB-073). Read on the server; no model; no writes.
+
 ## 2026-11-21 — Employment Benefits: the scheme file, census checks, files by type
 
 - **Scheme file** (`eb_schemes`, `20261121_v2_eb_schemes.sql`): the census and last year's policy as read per client per plan year, with who read them and when. /eb opens the newest plan year filled in; Generate prices keeps what was read (EB-072).
