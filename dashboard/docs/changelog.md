@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Renewals release 2: Pipeline, Forecast, a renewal's page
+
+- **Top bar:** Renewals after Clients, tabs Pipeline · Forecast · To fix. Clients loses Portfolio and Admin desk; Others loses Second opinion and Documents; the Quotation register tab points to `/eb/quotations` (NAV-002).
+- **Pipeline** (`/renewals`): pills by days to expiry with Lost and Renewed behind their own pills; Owner, Line, Stage and At risk filters; next task per row; header N open · next 120 days · S$ gross (REN-011, REN-014).
+- **A renewal** (`/renewals/<id>`): facts, stage, tasks with Mark done, Close as Renewed (the client's new policy, same client only) or Lost (reason), Lines held and not held, links to client, policy, threads and New quotation (REN-012, REN-013, REN-015, REN-018).
+- **Forecast** (`/renewals/forecast`): 12 months of due, won, open and lost with gross retention, a bar chart of commission expiring by month (REN-016).
+- **Today:** Renewals due when tasks are due (REN-017).
+- **Daily admin sweep** opens renewal records due (`openDueRenewals`, code only, idempotent) (REN-002).
+- **Removed:** Renewal Season (`/renewal-season`, its API, `season-store.ts`, `SeasonTable.tsx`, `ThreadPicker.tsx`); TOD-027 to TOD-032 marked removed.
+- Database types regenerated: `renewals`, `renewal_tasks`, `policy_lines`, `policy_line_aliases`, `policies.line_code`.
+
 ## 2026-11-20 — Employment Benefits 2.0: pricing, tiers, compare
 
 Built from Jarod's approved design on /eb (New quotation). No model prices anything; a model reads documents only on a person's button.

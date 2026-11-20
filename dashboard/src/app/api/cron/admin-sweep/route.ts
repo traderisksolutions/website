@@ -1,6 +1,6 @@
 /**
- * GET /api/cron/admin-sweep — daily (vercel.json "10 1 * * *", 09:10 SGT). Queues the day's
- * renewals, chases and claims sync, trims old agent_tasks and error_logs, then drains the Phase B agents for up to 4 minutes. Every
+ * GET /api/cron/admin-sweep — daily (vercel.json "10 1 * * *", 09:10 SGT). Opens the renewal records due
+ * (openDueRenewals), queues the day's renewals, chases and claims sync, trims old agent_tasks and error_logs, then drains the Phase B agents for up to 4 minutes. Every
  * draft waits on /work for a person. ?today=YYYY-MM-DD replays a day.
  * Bearer CRON_SECRET, like the other crons.
  */
@@ -17,6 +17,7 @@ import { clientLinkRulesOn, housekeepingOn } from '@/lib/housekeeping-switch'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
 import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
 import { trimLogs } from '@/lib/maintenance/log-trim'
+import { openDueRenewals } from '@/lib/renewals/store'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -28,6 +29,9 @@ export async function GET(req: NextRequest) {
     const q = new URL(req.url).searchParams.get('today')
     const today = q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : todaySGT()
     const mail = await checkMailboxes().catch(() => [] as string[])
+    // Renewal records whose day has come (docs/renewals.md): code only, idempotent. Before the
+    // expiry roll, so a policy that ended in the last 30 days still gets its record.
+    const renewals = await openDueRenewals(today).catch(() => null)
     const expired = await expirePolicies(today).catch(() => ({ expired: -1 }))
     // The client of an insurer thread, by the subject rules (client-link.ts): code only, so it runs
     // with mail filing off (Jarod, 20 Nov 2026). The model read of the rest waits for HOUSEKEEPING=on.
@@ -41,7 +45,7 @@ export async function GET(req: NextRequest) {
     await enqueue(dailySweepTasks(today))
     const r = await drain({ agents: [...PHASE_B_AGENTS], budgetMs: 240_000 })
     console.log('[admin-sweep]', today, JSON.stringify(r))
-    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, client_links: clients, claim_notices: notices, enrolment, logs, ...r })
+    return NextResponse.json({ ok: true, today, mail, policies_expired: expired.expired, renewals, client_links: clients, claim_notices: notices, enrolment, logs, ...r })
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }

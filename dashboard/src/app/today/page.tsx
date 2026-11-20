@@ -8,6 +8,7 @@
  * retired case list (?view=, ?bridge=, ?level=, ?side=) land on Today itself.
  * Calendar is the third view (?calendar=1): the /calendar page drawn here. Each client's facts
  * (renewal, insurer, premium, stage) load after the rows; an open client's detail loads on open.
+ * Renewals due (renewal tasks due today or before) sits above By client when any are due.
  */
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -24,6 +25,7 @@ import { emailList, type DeskRow } from '@/lib/today/desk'
 import type { RowFacts } from '@/lib/today/substance'
 import { CalendarEmbedded } from '@/components/calendar/embed'
 import CalendarPage from '@/app/calendar/page'
+import { RenewalsDue } from '@/components/renewals/RenewalsDue'
 
 type View = 'client' | 'email' | 'calendar'
 type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string; projects?: boolean }
@@ -106,6 +108,7 @@ function TodayPage() {
 
       {error && desk && <p className="m-0 mb-3 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink" role="status">{notice}</p>}
+      {view === 'client' && desk && <RenewalsDue who={desk.who || me} />}
 
       {view === 'calendar' ? <div className="mt-2"><CalendarEmbedded.Provider value><CalendarPage /></CalendarEmbedded.Provider></div>
         : !desk ? (error

@@ -3,8 +3,8 @@
  *
  *   listRenewals(filters)          the open renewal records with client, line, premium and days to expiry
  *   changeRenewal(id, change)      a person moves the stage, sets the owner or closes the record
- *   openDueRenewals(actor)         opens a record (and its four tasks) for every policy whose day has come; idempotent.
- *                                  A person's button calls it now; the daily admin sweep may call it later.
+ *   openDueRenewals(today)         opens a record (and its four tasks) for every policy whose day has come; idempotent.
+ *                                  A person's button and the daily admin sweep call it.
  *   loadFix()                      the To fix lists: end dates, lines to map, policies with no placing debit note
  *   confirmEndDates / confirmLines a person's confirmations; the only writes to policies here
  *
@@ -15,7 +15,7 @@ import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
 import { dueToOpen, renewable, type OpenPolicy } from './open'
 import { isLineCode, lineName, lineOfPolicy, spellingKey, spellingOf, type LineCode } from './lines'
 import {
-  bucketOf, checkChange, daysBetween, expiringFrom, isBucket, isOpenStage, opensOn, suggestEndDate, tasksFor,
+  bucketOf, checkChange, checkRenewedPolicy, daysBetween, expiringFrom, isBucket, isOpenStage, opensOn, suggestEndDate, tasksFor,
   type Bucket, type Change, type NoteLike, type Stage,
 } from './rules'
 
@@ -99,13 +99,14 @@ export async function listRenewals(f: RenewalFilters = {}, today = renewalsToday
 // ── Change ───────────────────────────────────────────────────────────────────────────────────────
 
 export async function changeRenewal(id: string, change: Change): Promise<{ id: string; stage: Stage }> {
-  const [r] = await sb<Row[]>(`renewals?id=eq.${enc(id)}&select=id,policy_id,stage,outcome&limit=1`)
+  const [r] = await sb<Row[]>(`renewals?id=eq.${enc(id)}&select=id,policy_id,company_id,stage,outcome&limit=1`)
   if (!r) throw new RenewalError('This renewal is no longer on the list.', 404)
   const checked = checkChange(r as { policy_id: string; stage: string; outcome: string | null }, change)
   if ('error' in checked) throw new RenewalError(checked.error, checked.error === 'This renewal is closed.' ? 409 : 400)
   if (checked.patch.renewed_policy_id) {
-    const [n] = await sb<Row[]>(`policies?id=eq.${enc(checked.patch.renewed_policy_id)}&select=id&limit=1`)
-    if (!n) throw new RenewalError('The new policy is not on the register.', 404)
+    const [n] = await sb<Row[]>(`policies?id=eq.${enc(checked.patch.renewed_policy_id)}&select=id,company_id&limit=1`)
+    const wrong = checkRenewedPolicy(r as { policy_id: string; company_id: string | null }, (n as { id: string; company_id: string | null } | undefined) ?? null)
+    if (wrong) throw new RenewalError(wrong, n ? 400 : 404)
   }
   const [saved] = await sb<Row[]>(`renewals?id=eq.${enc(id)}&outcome=is.null`, { method: 'PATCH', headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ ...checked.patch, updated_at: new Date().toISOString() }) })

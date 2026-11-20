@@ -7,6 +7,7 @@
  *   suggestEndDate(p, notes) a policy's suggested end date: start + 1 year − 1 day, else the last placing note's issue + 1 year − 1 day
  *   bucketOf(days)           0-30, 31-60, 61-90, 91-120, 121+ (overdue counts as 0-30)
  *   checkChange(r, change)   whether a stage, owner or outcome change may be written, and what to write
+ *   checkRenewedPolicy(r, p) whether a policy may close a record as Renewed (same client, not the expiring one)
  */
 import { isEbLine, type LinePolicy } from './lines'
 
@@ -148,3 +149,15 @@ export function checkChange(r: RenewalState, c: Change): { patch: Patch } | { er
   if (!Object.keys(patch).length) return { error: 'Nothing to change.' }
   return { patch }
 }
+
+/**
+ * Whether a policy may close a record as Renewed: it is on the register, filed under the same
+ * client, and is not the expiring policy. Pure; checkChange has already checked the id's shape.
+ */
+export function checkRenewedPolicy(r: { policy_id: string; company_id: string | null }, p: { id: string; company_id: string | null } | null): string | null {
+  if (!p) return 'The new policy is not on the register.'
+  if (p.id === r.policy_id) return 'Link the new term, not the expiring policy.'
+  if (r.company_id && p.company_id !== r.company_id) return 'Link a policy of the same client.'
+  return null
+}
+
