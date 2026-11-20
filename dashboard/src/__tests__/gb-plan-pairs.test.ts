@@ -44,7 +44,9 @@ describe('plan rules', () => {
   it('the brochure rules: Income and AIA included, RCC and Singlife optional riders, RCC specialist needs GP', () => {
     expect(DEFAULT_RULES.map(r => [r.product, r.cover, r.required, r.premium])).toEqual([
       ['Income FlexCare', MM, true, 'included'], ['RCC Enhanced III', MM, false, 'own'], ['RCC Enhanced III', 'Outpatient Specialist', false, 'own'], ['Singlife MyBenefits Plus', MM, false, 'own'],
-      ['AIA Flexi Vital Care Plus', MM, true, 'included'],
+      ['AIA Flexi Vital Care Plus', MM, true, 'included'], ['Steadfast MCare+', MM, true, 'included'], ['Steadfast MCare+', 'EAP (add-on)', false, 'own'],
+      ['Singlife MyBenefits Plus', 'Outpatient GP', false, 'own'], ['AIA Flexi Vital Care Plus', 'Outpatient GP', false, 'own'],
+      ['RCC Enhanced III', 'Critical Illness', false, 'own'], ['Income FlexCare', 'Critical Illness', false, 'own'], ['Singlife MyBenefits Plus', 'Critical Illness', false, 'own'], ['AIA Flexi Vital Care Plus', 'Critical Illness', false, 'own'],
     ])
     expect(applyRules(DEFAULT_RULES, 'RCC Enhanced III', { 'Outpatient GP': '', 'Outpatient Specialist': 'Plan 2' }, { 'Outpatient Specialist': ['Plan 1', 'Plan 2'] })['Outpatient Specialist']).toBe('')
   })

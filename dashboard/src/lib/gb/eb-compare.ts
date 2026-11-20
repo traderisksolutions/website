@@ -20,11 +20,11 @@ export type EbColumn =
   | { id: string; kind: 'brochure' | 'copy'; product: string; copyOf: string | null; picks: ColumnPicks }
   | { id: string; kind: 'schedule'; schedule: InsurerSchedule }
 
-export type CategoryCell = { category: string; plan: string; words: string; premium: number | null; options: PlanOption[]; locked: boolean; reason: MatchReason | 'changed' | null }
+export type CategoryCell = { category: string; plan: string; words: string; premium: number | null; unpriced: number; options: PlanOption[]; locked: boolean; reason: MatchReason | 'changed' | null }
 export type PlanCell = { kind: 'plans'; perCategory: CategoryCell[]; premium: number | null; flag: boolean }
 export type ScheduleCell = { kind: 'schedule'; premium: number | null; status: ScheduleStatus | null; sources: string[] }
 export type Cell = PlanCell | ScheduleCell
-export type ModelColumn = { id: string; kind: EbColumn['kind']; label: string; product: string | null; source: 'Brochure' | 'Insurer schedule'; total: number; perEmployee: number | null; vsOriginal: number | null; flags: number }
+export type ModelColumn = { id: string; kind: EbColumn['kind']; label: string; product: string | null; source: 'Brochure' | 'Insurer schedule'; total: number; perEmployee: number | null; vsOriginal: number | null; flags: number; warnings: string[] }
 export type CompareModel = { columns: ModelColumn[]; rows: { key: CoverKey; label: string; current: number | null; cells: Cell[] }[]; current: { total: number | null; perEmployee: number | null }; employees: number; categories: string[] }
 
 const round2 = (n: number) => Math.round(n * 100) / 100
@@ -41,7 +41,7 @@ export function choosePlan(priced: Priced, col: Extract<EbColumn, { kind: 'broch
   const cur = col.picks[category] ?? ({} as Record<CoverKey, string>)
   const byCover = Object.fromEntries(TIERS.map(t => [t.cover, t.key === key ? plan : cur[t.key] ?? '']))
   const options = Object.fromEntries(TIERS.map(t => [t.cover, cat.products[col.product]?.[t.key]?.options.map(o => o.plan) ?? []]))
-  const ruled = applyRules(priced.rules, col.product, byCover, options)
+  const ruled = applyRules(priced.rules, col.product, byCover, options, TIERS.find(t => t.key === key)?.cover)
   return { ...col, picks: { ...col.picks, [category]: Object.fromEntries(TIERS.map(t => [t.key, ruled[t.cover] ?? ''])) as Record<CoverKey, string> } }
 }
 
@@ -70,7 +70,7 @@ export function compareModel(priced: Priced, cols: EbColumn[], current: CurrentP
         const opt = pc?.options.find(o => o.plan === plan)
         const tierPick = pc?.[tier]
         return {
-          category: c.name, plan, words: plan ? opt?.words ?? plan : 'None', premium: plan ? opt?.premium ?? null : 0, options: pc?.options ?? [], locked: !!pc?.locked,
+          category: c.name, plan, words: plan ? opt?.words ?? plan : 'None', premium: plan ? opt?.premium ?? null : 0, unpriced: plan ? opt?.unpriced ?? 0 : 0, options: pc?.options ?? [], locked: !!pc?.locked,
           reason: !tierPick ? null : plan === tierPick.plan ? tierPick.reason : 'changed',
         } satisfies CategoryCell
       })
@@ -87,6 +87,7 @@ export function compareModel(priced: Priced, cols: EbColumn[], current: CurrentP
       id: col.id, kind: col.kind, label: labels[i], product: col.kind === 'schedule' ? null : col.product,
       source: col.kind === 'schedule' ? 'Insurer schedule' : 'Brochure', total, perEmployee: employees ? round2(total / employees) : null, vsOriginal: null,
       flags: rows.filter(r => r.cells[i].kind === 'plans' && (r.cells[i] as PlanCell).flag).length,
+      warnings: col.kind === 'schedule' ? [] : [...(priced.warnings?.[col.product] ?? []), ...headcountWarnings(priced, col.product, col.picks)],
     }
   })
   cols.forEach((col, i) => {
@@ -98,6 +99,24 @@ export function compareModel(priced: Priced, cols: EbColumn[], current: CurrentP
     columns, rows, employees, categories: priced.categories.map(c => c.name),
     current: { total: current.total, perEmployee: current.total != null && employees ? round2(current.total / employees) : null },
   }
+}
+
+/**
+ * Headcount the insurers require (eb-rules.md section 4; brochures): Income 2 employees per plan
+ * type (p.12), Singlife 2 employees (Summary!B34), AIA 5 to 50 lives (p.18). Warned beside the
+ * column, never blocking. Pure.
+ */
+export function headcountWarnings(priced: Priced, product: string, picks: ColumnPicks): string[] {
+  const employees = priced.categories.reduce((a, c) => a + c.employees, 0)
+  const lives = priced.categories.reduce((a, c) => a + c.lives, 0)
+  if (product === 'Singlife MyBenefits Plus' && employees < 2) return [`Singlife needs 2 employees; this census has ${employees}`]
+  if (product === 'AIA Flexi Vital Care Plus' && (lives < 5 || lives > 50)) return [`AIA takes 5 to 50 lives; this census has ${lives}`]
+  if (product === 'Income FlexCare') {
+    const byPlan = new Map<string, number>()
+    for (const c of priced.categories) { const p = picks[c.name]?.hs; if (p) byPlan.set(p, (byPlan.get(p) ?? 0) + c.employees) }
+    return [...byPlan].filter(([, n]) => n < 2).map(([p, n]) => `Income needs 2 employees per plan; ${p.replace(/\s*\(.*$/, '')} has ${n}`)
+  }
+  return []
 }
 
 /** The compare table as rows of cells, for the Excel export: covers down, Current then each column, plans and premiums. Pure. */

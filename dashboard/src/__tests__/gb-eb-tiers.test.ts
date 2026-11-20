@@ -94,11 +94,12 @@ describe('Same tier: ward and beds, then the same limit and basis, else the next
   it('never offers a foreign-worker plan', () => {
     expect(sameHospital(benefitsOf(INC), lists[INC][H], { hospital: 'government', beds: 4, limit: null, basis: null, coins: 0 }, INC).plan).toBe('Plan 5 (Restructured 4-bed)')
   })
-  it('other covers: the same amount, else the next lower; GP by co-pay', () => {
+  it('other covers: the same amount, else the next lower, else the nearest higher flagged; GP by co-pay', () => {
     expect(sameAmount(benefitsOf(QBE), lists[QBE][D], D, 500)).toEqual({ plan: 'Plan 2 · Non-Panel', reason: 'same' })
     expect(sameAmount(benefitsOf(QBE), lists[QBE][D], D, 800)).toEqual({ plan: 'Plan 2 · Non-Panel', reason: 'no same plan' })
     expect(sameAmount(benefitsOf(QBE), lists[QBE][GP], GP, 10)).toEqual({ plan: 'Plan 2 ($10 co-pay)', reason: 'same' })
-    expect(sameAmount(benefitsOf(AIA), lists[AIA][GP], GP, 10)).toEqual({ plan: '', reason: 'no same plan' })
+    // AIA's co-pays are all lower than S$10: nothing lower in cover, so the nearest (S$5), flagged, never left unpriced.
+    expect(sameAmount(benefitsOf(AIA), lists[AIA][GP], GP, 10)).toEqual({ plan: 'Plan 2 ($5 co-pay)', reason: 'no same plan' })
     expect(sameAmount(benefitsOf(AIA), lists[AIA][D], D, 500)).toEqual({ plan: 'Plan 1', reason: 'no same plan' })
     expect(sameAmount(benefitsOf(QBE), lists[QBE][D], D, null)).toEqual({ plan: '', reason: 'none' })
   })

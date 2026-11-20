@@ -54,8 +54,9 @@ describe('(2) AIA personal accident: the EE and Dep rates of the Life column (Ra
     expect(price('AIA Flexi Vital Care Plus', 'Personal Accident', 'Plan 1 ($50k)', [ee])).toBe(25)
     expect(price('AIA Flexi Vital Care Plus', 'Personal Accident', 'Plan 1 ($50k)', [{ ...ee, occupation_class: '2' }])).toBe(35.18)
   })
-  it('a spouse holds no accident plan here, so the Dep rate (row 1529, S$14.82) is not added', () => {
+  it('a spouse takes the Dep rate of the class (row 1529, S$14.82); with no class on the census, the spouse is left unpriced', () => {
     expect(row('AIA Flexi Vital Care Plus', 'Personal Accident', 'Plan 1 ($50k)', 38, 'Dep', 'Class 1').net).toBe(14.82)
+    expect(price('AIA Flexi Vital Care Plus', 'Personal Accident', 'Plan 1 ($50k)', [ee, { ...sp, occupation_class: '1' }])).toBe(39.82)
     expect(price('AIA Flexi Vital Care Plus', 'Personal Accident', 'Plan 1 ($50k)', [ee, sp])).toBe(25)
   })
   it('all six plans are priced', () => {
@@ -65,15 +66,17 @@ describe('(2) AIA personal accident: the EE and Dep rates of the Life column (Ra
 })
 
 describe('(3) term life at the five products, per category, sum assured per plan', () => {
-  it('employees on the age-banded rows; dependants hold no term life plan', () => {
+  it('employees on the age-banded rows; dependants at Income, Singlife (employee rate) and AIA (dependant table), never at RCC (V1.5 rules)', () => {
     expect(row('RCC Enhanced III', 'Term Life', 'Plan 5 ($50k)', 41).row).toBe(221)
     expect(price('RCC Enhanced III', 'Term Life', 'Plan 5 ($50k)', [ee, sp])).toBe(82.8)          // RCC's group factor is for medical lines only
     expect(row('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', 40).row).toBe(404)
-    expect(price('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', [ee, sp])).toBe(48)
+    expect(price('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', [ee])).toBe(48)
+    expect(price('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', [ee, sp])).toBe(48 + row('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', 38).net)
     expect(row('Singlife MyBenefits Plus', 'Term Life', 'Plan 1 ($50k)', 40).row).toBe(874)
     expect(price('Singlife MyBenefits Plus', 'Term Life', 'Plan 1 ($50k)', [ee])).toBe(47.5)
     expect(row('AIA Flexi Vital Care Plus', 'Term Life', 'Plan 1 ($50k)', 40, 'EE').row).toBe(1179)
-    expect(price('AIA Flexi Vital Care Plus', 'Term Life', 'Plan 1 ($50k)', [ee, sp])).toBe(94.5)
+    expect(price('AIA Flexi Vital Care Plus', 'Term Life', 'Plan 1 ($50k)', [ee])).toBe(94.5)
+    expect(price('AIA Flexi Vital Care Plus', 'Term Life', 'Plan 1 ($50k)', [ee, sp])).toBeCloseTo(94.5 + row('AIA Flexi Vital Care Plus', 'Term Life', 'Plan 1 ($50k)', 38, 'Dep').net, 2)
   })
   it('QBE MCare+ sells no term life: no plan, no rate (Lists "N/A")', () => {
     expect(fx.lists['Steadfast MCare+']['Term Life']).toEqual([])
@@ -85,7 +88,7 @@ describe('(3) term life at the five products, per category, sum assured per plan
     expect(inc.options.map(o => o.words)).toEqual(['S$500,000', 'S$300,000', 'S$200,000', 'S$100,000', 'S$50,000'])
     expect(inc.same).toEqual({ plan: 'Plan 4 ($100k)', reason: 'same' })
     expect(inc.lower).toEqual({ plan: 'Plan 5 ($50k)', reason: 'lower' })
-    expect(inc.options.find(o => o.plan === 'Plan 5 ($50k)')!.premium).toBe(48)
+    expect(inc.options.find(o => o.plan === 'Plan 5 ($50k)')!.premium).toBe(48 + row('Income FlexCare', 'Term Life', 'Plan 5 ($50k)', 38).net)
     expect(p.categories[0].products['Steadfast MCare+'].tl.options).toEqual([])
     const none = priceDesign({ wb, rules: DEFAULT_RULES, effectiveDate: DATE, basis: 'new_business', currentInsurer: null, categories: [{ name: 'Staff', members: [ee], today: {} }] })
     expect(none.categories[0].products['Income FlexCare'].tl.same).toEqual({ plan: '', reason: 'none' })

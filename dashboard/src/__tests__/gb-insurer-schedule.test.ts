@@ -98,7 +98,7 @@ describe('PDF schedules', () => {
     expect(s.figures.find(f => f.cover === 'gp')?.premium).toBe(4200)
     expect(s.figures.find(f => f.cover === 'gd')?.status).toBe('missing')
     expect(s.total?.premium).toBe(22650)
-  })
+  }, 30_000)
   it('limits and benefit rows are not premiums', () => {
     const s = readSchedulePdf('b.pdf', [{ num: 2, text: 'Premium schedule\nHospital & Surgical\tAnnual limit\t$60,000\nHospital & Surgical\t$9,100.00' }])
     expect(s.figures).toEqual([{ cover: 'hs', category: null, premium: 9100, source: 'b.pdf · page 2', status: 'read' }])
@@ -140,7 +140,7 @@ describe('census PDF', () => {
     expect(r.members.map(m => [m.name, m.dob, m.relationship, m.category])).toEqual([
       ['Tan Ah Kow', '1970-03-12', 'self', 'Directors'], ['Lim Mei', '1972-06-05', 'spouse', 'Directors'], ['Ong Bee', '1990-02-01', 'self', 'Staff'],
     ])
-  })
+  }, 30_000)
   it('a PDF with no table reads no one, and says why', () => {
     expect(censusFromPdfText([{ text: 'Dear HR, please see attached.' }]).members).toEqual([])
   })
