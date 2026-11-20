@@ -31,46 +31,7 @@ async function openCase(page: Page, offers = false): Promise<string | null> {
 }
 const names = async (group: import('@playwright/test').Locator) => (await group.getByRole('radio').allTextContents()).map(t => t.replace(/[\d,]+\s*$/, '').trim())
 
-test('TOD-024 Today › Mail lists labelled threads in one table', async ({ page }) => {
-  await openClean(page, '/today?view=mail')
-  const mail = page.getByRole('region', { name: 'Mail' })
-  await expect(mail).toBeVisible({ timeout: 30_000 })
-  expect(await names(mail.getByRole('radiogroup', { name: 'Relevance' }))).toEqual(['All', 'Active', 'Back burner', 'Member movements'])
-  await expect(mail.getByRole('combobox', { name: 'Label', exact: true })).toBeVisible()
-  await expect(mail.locator('table.trs-table thead th')).toHaveText(['Pick', 'Thread', 'Company', 'Label', 'Set by', 'Last message', 'Case'])
-  // Every row carries a label a person can change.
-  await expect(mail.locator('tbody tr').first().getByRole('combobox')).toBeVisible()
-})
-
-test('TOD-025 ticked threads open as one case to be: a client, a side per thread, nothing made until Start case', async ({ page }) => {
-  await openClean(page, '/today?view=mail')
-  const mail = page.getByRole('region', { name: 'Mail' })
-  await expect(mail).toBeVisible({ timeout: 30_000 })
-  const combine = mail.getByRole('button', { name: /^Combine( \d+)? threads?$/ })
-  await expect(combine).toBeDisabled()
-  const ticks = mail.getByRole('checkbox')
-  test.skip(await ticks.count() < 2, 'fewer than two threads listed')
-  await ticks.nth(0).check()
-  await ticks.nth(1).check()
-  await expect(mail.getByRole('button', { name: 'Combine 2 threads' })).toBeEnabled()
-  await mail.getByRole('button', { name: 'Combine 2 threads' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Case from 2 threads' })
-  await expect(dialog).toBeVisible()
-  await expect(dialog.locator('thead th')).toHaveText(['Thread', 'Side', 'Filed under', 'Last message', 'On case'], { timeout: 30_000 })
-  await expect(dialog.locator('tbody tr')).toHaveCount(2)
-  // Each thread is marked as the client's or as an insurer on file, by name.
-  const side = dialog.locator('tbody tr').first().getByRole('combobox')
-  await expect(side.locator('> option')).toHaveText(['Client', 'Internal', 'Other'])
-  expect(await side.locator('optgroup[label="Insurer"] option').count()).toBeGreaterThan(1)
-  // A thread's own subject may hold the word, so the name is matched from its start.
-  await expect(dialog.getByRole('combobox', { name: /^Case/ })).toHaveValue('new')
-  await expect(dialog.getByRole('button', { name: /^(Start case|Add to case)/ })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Cancel' }).click()
-  await expect(dialog).toHaveCount(0)
-  // The ticks stand until the person clears them.
-  await mail.getByRole('button', { name: 'Clear' }).click()
-  await expect(combine).toBeDisabled()
-})
+// TOD-024 and TOD-025 (Today › Mail, Combine threads there) removed 20 Nov 2026 with the case list.
 
 test('TOD-026 Home retired: the root address opens Today', async ({ page }) => {
   // Jarod, 20 Nov 2026: Home retired; Today is the home page.

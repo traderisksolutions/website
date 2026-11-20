@@ -7,7 +7,7 @@
  */
 import Link from 'next/link'
 import { Btn, Chip, Empty } from '@/components/crm/primitives'
-import { selectCls } from '@/components/today/MailView'
+import { selectCls } from '@/components/cases/shared'
 import { DASH, fmtDay } from '@/lib/format'
 import { actorName, senderName, type Staff } from '@/lib/cases/names'
 import type { BriefRow } from '@/lib/cases/brief'

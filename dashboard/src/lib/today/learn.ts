@@ -11,11 +11,11 @@ export type ThreadFacts = { onList: boolean; knownClient: boolean; senderKind: '
 export type Stat = { yes: number; no: number }
 export type Best = { signal: string; rate: number; yes: number; n: number; seeded: boolean }
 
-export const MIN_CASES = 5
-export const SUGGEST_AT = 0.6
+const MIN_CASES = 5
+const SUGGEST_AT = 0.6
 /** Priors used until a signal has MIN_CASES of its own. */
-export const SEED: Readonly<Record<string, number>> = { on_list: 0.8 }
-export const QUICK_REMOVE_DAYS = 7
+const SEED: Readonly<Record<string, number>> = { on_list: 0.8 }
+const QUICK_REMOVE_DAYS = 7
 
 export function signalsOf(f: ThreadFacts): string[] {
   const out: string[] = []
@@ -26,7 +26,7 @@ export function signalsOf(f: ThreadFacts): string[] {
   return out
 }
 
-export function signalLabel(s: string): string {
+function signalLabel(s: string): string {
   if (s === 'on_list') return 'Client on your list'
   if (s === 'known_client') return 'Client you added before'
   if (s === 'from:insurer') return 'From an insurer'

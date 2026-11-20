@@ -6,13 +6,18 @@
 import { test, expect } from '@playwright/test'
 import { openClean } from './helpers'
 
-test('Today opens with By client and By email, an employee picker and Add email threads', async ({ page }) => {
+test('Today opens with By client and By email, a person menu and Add email threads', async ({ page }) => {
   await openClean(page, '/today')
   await expect(page.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible()
   const view = page.getByRole('radiogroup', { name: 'View' })
   await expect(view.getByRole('radio', { name: /^By client/ })).toBeChecked()
   await expect(view.getByRole('radio', { name: /^By email/ })).toBeVisible()
-  await expect(page.getByRole('combobox', { name: 'Whose Today' })).toBeVisible()
+  // TOD-042: whose Today is a menu button, not a select.
+  const who = page.getByRole('button', { name: /^Whose Today: / })
+  await expect(who).toBeVisible()
+  await who.click()
+  await expect(page.getByRole('menuitemradio', { name: 'Everyone' })).toBeVisible()
+  await page.keyboard.press('Escape')
   await view.getByRole('radio', { name: /^By email/ }).click()
   await expect(view.getByRole('radio', { name: /^By email/ })).toBeChecked()
 })
@@ -28,10 +33,31 @@ test('Add email threads lists Inbox threads to tick and closes without adding', 
   await expect(dialog).toBeHidden()
 })
 
-test('the earlier case list lives at /today/queue and its old links lead there', async ({ page }) => {
+test('TOD-043 links from the retired case list land on Today; /today/queue is gone', async ({ page }) => {
   await openClean(page, '/today?view=coming')
-  await expect(page).toHaveURL(/\/today\/queue\?view=coming/)
-  await expect(page.getByRole('heading', { name: 'To do', level: 1 })).toBeVisible()
+  await expect(page).toHaveURL(/\/today$/)
+  await expect(page.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible()
+  const res = await page.goto('/today/queue')
+  expect(res?.status()).toBe(404)
+})
+
+test('TOD-044 Today that fails to load says so and offers Retry', async ({ page }) => {
+  await page.route('**/api/today/desk?*', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
+  await page.route('**/api/today/desk', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
+  await openClean(page, '/today')
+  await expect(page.getByRole('alert').getByText(/Today did not load/)).toBeVisible()
+  await page.unroute('**/api/today/desk?*'); await page.unroute('**/api/today/desk')
+  await page.getByRole('button', { name: 'Retry' }).click()
+  await expect(page.getByRole('radiogroup', { name: 'View' })).toBeVisible({ timeout: 30_000 })
+})
+
+test('TOD-045 ?client= opens that client on Today', async ({ page }) => {
+  await openClean(page, '/today')
+  const first = page.locator('section[data-company]').first()
+  test.skip(!(await first.count()), 'No client with a company on this Today.')
+  const id = await first.getAttribute('data-company')
+  await openClean(page, `/today?client=${id}`)
+  await expect(page.locator(`section[data-company="${id}"]`).getByRole('button', { name: /^Fold / })).toBeVisible()
 })
 
 // 20 Nov 2026 (TOD-033 to TOD-040). Read-only: each control is opened and cancelled; nothing is

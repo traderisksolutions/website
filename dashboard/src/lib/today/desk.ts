@@ -77,7 +77,7 @@ export function groupRows(
 }
 
 /** Most drafts to send first; then the client who wrote last waits longest; then latest activity. */
-export function sortRows(rows: DeskRow[]): DeskRow[] {
+function sortRows(rows: DeskRow[]): DeskRow[] {
   const waiting = (r: DeskRow) => r.threads.some(t => t.lastInbound)
   return [...rows].sort((a, b) =>
     b.drafts.length - a.drafts.length

@@ -35,4 +35,3 @@ export function todoSections(items: readonly TodayItem[], who: 'mine' | 'all', m
   return { send: pick('send'), act: pick('act'), decide: pick('decide'), read: pick('read') }
 }
 
-export const todoCount = (s: Record<TodoSection, TodayItem[]>) => s.send.length + s.act.length + s.decide.length + s.read.length

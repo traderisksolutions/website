@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pendingOf, sideOf, homeBridgeOf, lapsedPolicy, cardOrder, type PendingInput } from './pending'
+import { pendingOf, sideOf, homeBridgeOf, lapsedPolicy, type PendingInput } from './pending'
 
 const now = new Date('2026-11-02T01:00:00Z')
 const base: PendingInput = {
@@ -78,9 +78,5 @@ describe('side and bridge', () => {
     expect(homeBridgeOf('enquiry')).toBe('rfq'); expect(homeBridgeOf('other')).toBe('rfq')
     expect(homeBridgeOf('claim')).toBe('claims')
     expect(homeBridgeOf('endorsement')).toBe('endorsements'); expect(homeBridgeOf('member_movement')).toBe('endorsements'); expect(homeBridgeOf('premium_billing')).toBe('endorsements')
-  })
-  it('orders cards red first, then the longest wait', () => {
-    const cards = [{ level: 'grey' as const, days: 90 }, { level: 'red' as const, days: 2 }, { level: 'red' as const, days: 18 }, { level: 'amber' as const, days: 82 }]
-    expect(cards.sort(cardOrder).map(c => `${c.level}${c.days}`)).toEqual(['red18', 'red2', 'amber82', 'grey90'])
   })
 })

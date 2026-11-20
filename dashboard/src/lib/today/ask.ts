@@ -87,7 +87,7 @@ export async function askOnItem(id: string, instruction: string | null, actor: s
 const REDO_COPY = ['contact_id', 'thread_id', 'channel', 'subject', 'body', 'generated_by', 'email_type', 'inbound_lead_id', 'knowledge_docs', 'nexus_case_id', 'nexus_step_index', 'attachments', 'cc', 'to_email', 'context_used', 'work_item_id', 'pair_id', 'party', 'draft_class', 'relay_intent'] as const
 
 /** Pure. A redo may drop a money figure but never bring one the old draft did not carry. */
-export function redoKeepsFigures(redone: string, old: string): boolean {
+function redoKeepsFigures(redone: string, old: string): boolean {
   const before = figuresOf(old)
   for (const f of figuresOf(redone)) if (!before.has(f)) return false
   return true

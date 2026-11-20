@@ -160,7 +160,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
         : null}
       {filesBlock}
       {commission}
-      {d.removed.length > 0 && <p className="m-0 text-[12.5px] text-trs-warn">Removed from To: {d.removed.join(', ')}. Each company gets its own email.</p>}
+      {d.removed.length > 0 && <p className="m-0 text-[12.5px] text-trs-warn">Removed from To: {d.removed.join(', ')}</p>}
       {busy === 'redo' && <InlineSpinner label="Writing the email again…" />}
       {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
       <div className="mt-1 flex flex-wrap items-center justify-end gap-2">

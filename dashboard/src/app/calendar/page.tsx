@@ -1,5 +1,10 @@
 'use client'
 
+/**
+ * Calendar: the month's renewals, payments and case steps (Month), and every Employment Benefits
+ * policy ending between 30 days ago and 120 days out (?view=eb), each with Open census
+ * (/eb?company=<id>). Read from /api/calendar/events and /api/today/eb-renewals.
+ */
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/page-header'
 import { useEffect, useMemo, useState } from 'react'
@@ -7,6 +12,10 @@ import Link from 'next/link'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Btn, LinkBtn, Chip, Segmented, Spinner } from '@/components/crm/primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import { fmtDate } from '@/lib/format'
+import { shortInsurer } from '@/lib/gb/insurer-names'
+import type { EbRenewalRow } from '@/app/api/today/eb-renewals/route'
 import { cn } from '@/lib/utils'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
@@ -56,7 +65,15 @@ const LEGEND: { dot: string; label: string }[] = [
   { dot: FAINT, label: 'Policy ended · Payment due · Payment past due · Case step' },
 ]
 
+type View = 'month' | 'eb'
+
 export default function CalendarPage() {
+  const [view, setView] = useState<View>(() => (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'eb' ? 'eb' : 'month'))
+  const [eb, setEb] = useState<EbRenewalRow[] | null>(null)
+  const [ebError, setEbError] = useState<string | null>(null)
+  const [ebTry, setEbTry] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const [viewDate, setViewDate] = useState(() => {
     // /calendar?date=YYYY-MM-DD lands on that month — how a company page or the Companies
     // drawer hands off to the calendar.
@@ -87,12 +104,35 @@ export default function CalendarPage() {
   useEffect(() => {
     const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
     const monthEnd   = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0)
-    setLoading(true)
+    setLoading(true); setError(null)
     fetch(`/api/calendar/events?from=${toISODate(monthStart)}&to=${toISODate(monthEnd)}`, { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : [])
-      .then((rows: CalendarEvent[]) => setAllEvents(Array.isArray(rows) ? rows : []))
+      .then(async r => {
+        if (!r.ok) { const d = await r.json().catch(() => ({})) as { error?: string }; throw new Error(d.error ?? `Error ${r.status}`) }
+        return r.json() as Promise<CalendarEvent[]>
+      })
+      .then(rows => setAllEvents(Array.isArray(rows) ? rows : []))
+      .catch(e => { setAllEvents([]); setError(e instanceof Error ? e.message : String(e)) })
       .finally(() => setLoading(false))
-  }, [viewDate])
+  }, [viewDate, attempt])
+
+  // Employment Benefits renewals: read once, on the first visit to the tab or to count it.
+  useEffect(() => {
+    setEbError(null)
+    fetch('/api/today/eb-renewals', { cache: 'no-store' })
+      .then(async r => {
+        const d = await r.json().catch(() => ({})) as { rows?: EbRenewalRow[]; error?: string }
+        if (!r.ok || !Array.isArray(d.rows)) throw new Error(d.error ?? `Error ${r.status}`)
+        setEb(d.rows)
+      })
+      .catch(e => { setEb([]); setEbError(e instanceof Error ? e.message : String(e)) })
+  }, [ebTry])
+
+  function pickView(v: View) {
+    setView(v)
+    const u = new URL(window.location.href)
+    if (v === 'eb') u.searchParams.set('view', 'eb'); else u.searchParams.delete('view')
+    window.history.replaceState(null, '', u.toString())
+  }
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarEvent[]>()
@@ -125,14 +165,22 @@ export default function CalendarPage() {
     <div className="bg-white" style={{ color: INK }}>
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
         <PageHeader
-          title={<>{MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span></>}
-          meta={loading ? 'Loading…' : `${events.length} item${events.length === 1 ? '' : 's'} this month`}
-          actions={<>
+          title={view === 'eb' ? 'Calendar' : <>{MONTHS[viewDate.getMonth()]} <span className="font-normal" style={{ color: MUTED }}>{viewDate.getFullYear()}</span></>}
+          meta={view === 'eb'
+            ? (eb ? `${eb.length} Employment Benefits renewal${eb.length === 1 ? '' : 's'} · 30 days ago to 120 days out` : 'Loading…')
+            : loading ? 'Loading…' : error ? undefined : `${events.length} item${events.length === 1 ? '' : 's'} this month`}
+          actions={view === 'month' ? <>
             <Button variant="outline" size="icon" onClick={() => goto(-1)} aria-label="Previous month"><ChevronLeft /></Button>
             <Button variant="outline" size="icon" onClick={() => goto(1)} aria-label="Next month"><ChevronRight /></Button>
             <Btn level="secondary" onClick={gotoToday}>Today</Btn>
-          </>} />
+          </> : undefined}>
+          <Segmented<View> variant="tabs" label="Calendar view" value={view} onChange={pickView}
+            options={[{ value: 'month', label: 'Month' }, { value: 'eb', label: 'Employment Benefits renewals', count: eb?.length }]} />
+        </PageHeader>
 
+        {view === 'eb' && <EbRenewals rows={eb} error={ebError} onRetry={() => { setEb(null); setEbTry(n => n + 1) }} />}
+
+        {view === 'month' && <>
         <div className="mt-6 flex items-center gap-4 flex-wrap">
           <Segmented
             value={renewalWin}
@@ -144,7 +192,14 @@ export default function CalendarPage() {
 
         {loading && <Spinner />}
 
-        {!loading && (
+        {!loading && error && (
+          <div role="alert" className="mt-8 flex flex-col items-start gap-3">
+            <p className="m-0 text-[13.5px] text-trs-neg">The calendar did not load. {error}</p>
+            <Btn onClick={() => setAttempt(n => n + 1)}>Retry</Btn>
+          </div>
+        )}
+
+        {!loading && !error && (
           <div key={monthKey} className="animate-fade-in mt-8">
             {/* Desktop / tablet month grid */}
             <div className="hidden sm:block">
@@ -212,7 +267,7 @@ export default function CalendarPage() {
             )}
 
             {/* Legend: two dots, kinds in words. */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-6 pt-4 border-t border-[#e6e8e4]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-8">
               {LEGEND.map(l => (
                 <div key={l.label} className="flex items-center gap-2 text-[12.5px]" style={{ color: MUTED }}>
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.dot }} aria-hidden /> {l.label}
@@ -222,6 +277,8 @@ export default function CalendarPage() {
           </div>
         )}
 
+        </>}
+
         {selectedDate && (
           <DayDetailModal
             date={selectedDate}
@@ -230,6 +287,47 @@ export default function CalendarPage() {
           />
         )}
       </div>
+    </div>
+  )
+}
+
+/** The insurer as the house writes it, or its first two words. */
+const insurerWord = (name: string) => { const s = shortInsurer(name); return s !== name ? s : name.split(/\s+/).slice(0, 2).join(' ') }
+
+/** Employment Benefits policies ending from 30 days ago to 120 days out, soonest first, each with Open census. */
+function EbRenewals({ rows, error, onRetry }: { rows: EbRenewalRow[] | null; error: string | null; onRetry: () => void }) {
+  if (!rows) return <div className="mt-6"><Spinner label="Loading Employment Benefits renewals…" /></div>
+  if (error) return (
+    <div role="alert" className="mt-8 flex flex-col items-start gap-3">
+      <p className="m-0 text-[13.5px] text-trs-neg">Employment Benefits renewals did not load. {error}</p>
+      <Btn onClick={onRetry}>Retry</Btn>
+    </div>
+  )
+  return (
+    <div className="mt-6">
+      <Register label="Employment Benefits renewals" minWidth={760}>
+        <RegisterHead>
+          <RegisterTh first>Client</RegisterTh>
+          <RegisterTh>Policy</RegisterTh>
+          <RegisterTh>Insurer</RegisterTh>
+          <RegisterTh>Ends</RegisterTh>
+          <RegisterTh>Days</RegisterTh>
+          <RegisterTh>Census</RegisterTh>
+          <RegisterTh last>Action</RegisterTh>
+        </RegisterHead>
+        {rows.length === 0 && <RegisterEmpty colSpan={7}>No Employment Benefits policy ends in the next 120 days.</RegisterEmpty>}
+        {rows.map(r => (
+          <RegisterRow key={r.policy_id}>
+            <RegisterCell first align="left" title={r.company}>{r.company_id ? <Link href={`/companies/${r.company_id}?tab=eb`} className="no-underline hover:underline" style={{ color: INK }}>{r.company}</Link> : r.company}</RegisterCell>
+            <RegisterCell align="left" title={`${r.policy}${r.policy_number ? ` · ${r.policy_number}` : ''}`}><Link href={`/policies/${r.policy_id}`} className="no-underline hover:underline" style={{ color: INK }}>{r.policy}</Link></RegisterCell>
+            <RegisterCell align="left">{r.insurer ? insurerWord(r.insurer) : '—'}</RegisterCell>
+            <RegisterCell>{fmtDate(r.end_date)}</RegisterCell>
+            <RegisterCell className="tabular-nums"><span className={r.days < 0 ? 'text-trs-neg' : undefined}>{r.days < 0 ? `${-r.days} ago` : r.days}</span></RegisterCell>
+            <RegisterCell className="tabular-nums">{r.members ?? '—'}</RegisterCell>
+            <RegisterCell last><LinkBtn size="xs" level="secondary" href={r.company_id ? `/eb?company=${r.company_id}` : '/eb'}>Open census</LinkBtn></RegisterCell>
+          </RegisterRow>
+        ))}
+      </Register>
     </div>
   )
 }
@@ -296,7 +394,7 @@ function RenewalCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal' }> }) 
     ]}>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <Btn size="xs" level="secondary" onClick={generateRenewalEmail} disabled={sending}>Draft renewal email</Btn>
-        <LinkBtn size="xs" level="secondary" href="/debit-notes/new">New debit note</LinkBtn>
+        <LinkBtn size="xs" level="secondary" href={e.companyId ? `/debit-notes/new?company_id=${e.companyId}` : '/debit-notes/new'}>New debit note</LinkBtn>
         {e.companyId && (
           <Link href={`/companies/${e.companyId}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Open company →</Link>
         )}
@@ -313,7 +411,6 @@ function RenewalOverdueCard({ e }: { e: Extract<CalendarEvent, { type: 'renewal_
       `Class: ${e.classOfInsurance || '—'}`,
       `Ended: ${e.endDate}`,
     ]}>
-      <p className="text-[13px] m-0" style={{ color: MUTED }}>Still marked active. Either the renewal was placed and not recorded, or it lapsed.</p>
       <div className="flex items-center gap-2 mt-1 flex-wrap">
         <LinkBtn size="xs" level="secondary" href={e.companyId ? `/companies/${e.companyId}` : '/companies'}>Open company</LinkBtn>
         <Link href={`/debit-notes?company_id=${e.companyId ?? ''}`} className="text-[13px] no-underline hover:underline ml-auto" style={{ color: MUTED }}>Debit notes →</Link>
