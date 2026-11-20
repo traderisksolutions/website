@@ -9,6 +9,7 @@ import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
 import { fmtDate, n } from '@/lib/marketing/labels'
 import type { Cadence, NightGroup, SiteSummary, TonightPlan } from '@/lib/marketing/types'
+import { runScheduleNow, saveCadence as saveCadenceAction, schedule } from '../actions'
 
 const MIGRATION_LINE = 'Migration 20261019_marketing_v2 is not applied yet.'
 const HOUR = 3_600_000
@@ -51,10 +52,10 @@ function Schedule() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/schedule?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await schedule(siteKey)
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the schedule')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }
@@ -74,9 +75,8 @@ function Schedule() {
     setData(d => d && { ...d, cadence: { ...d.cadence, ...patch } })
     setBusy(true); setError(null); setNote(null)
     try {
-      const res = await fetch(`/api/marketing/schedule?site=${siteKey}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not save'); setData(d => d && { ...d, cadence: before }); return }
+      const r = await saveCadenceAction(siteKey, patch)
+      if (!r.ok) { setError(r.error); setData(d => d && { ...d, cadence: before }); return }
       setNote('Saved')
       await load()
     } finally { setBusy(false) }
@@ -85,9 +85,9 @@ function Schedule() {
   async function runNow() {
     setBusy(true); setError(null); setNote(null)
     try {
-      const res = await fetch(`/api/marketing/schedule/run?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' } })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not start the batch'); return }
+      const r = await runScheduleNow(siteKey)
+      if (!r.ok) { setError(r.error); return }
+      const j = r.data
       const count = Number(j.count ?? 0)
       setNote(count === 0 ? 'Nothing to write: no prompt left to tackle and no Search Console target.' : `${count} ${count === 1 ? 'run' : 'runs'} started. Follow them on Generate.`)
       await load()

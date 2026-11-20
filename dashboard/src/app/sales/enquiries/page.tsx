@@ -10,6 +10,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
 import { EnquiryDrawer } from '@/components/sales/EnquiryDrawer'
 import { PRODUCT_LABEL, answerLabel } from '@/lib/intake/labels'
 import { bookingLabel, fmtWhen } from '@/lib/intake/format'
+import { enquiries } from '../actions'
 
 type Site = { id: string; key: string; name: string; domain: string }
 type Row = {
@@ -54,13 +55,10 @@ function Enquiries() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const p = new URLSearchParams({ site })
-      if (status !== 'all') p.set('status', status)
-      const qq = search.get('q'); if (qq) p.set('q', qq)
-      const res = await fetch(`/api/sales/enquiries?${p}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await enquiries(site, { status: status !== 'all' ? status : undefined, q: search.get('q') ?? undefined })
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load enquiries')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }

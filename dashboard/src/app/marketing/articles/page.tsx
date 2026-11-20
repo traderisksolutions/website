@@ -13,6 +13,7 @@ import { ArticleStatusChip, CategoryChip } from '@/components/marketing/chips'
 import { NewArticleDialog } from '@/components/marketing/NewArticleDialog'
 import { fmtDay, n } from '@/lib/marketing/labels'
 import type { ArticleListRow, ArticleStatus, SiteSummary } from '@/lib/marketing/types'
+import { articles } from '../actions'
 
 type Payload = { site: SiteSummary; rows: ArticleListRow[]; total: number; counts: Record<ArticleStatus, number> }
 type Filter = 'all' | ArticleStatus
@@ -41,14 +42,10 @@ function Articles() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const p = new URLSearchParams({ site: siteKey })
-      if (filter !== 'all') p.set('status', filter)
-      if (query) p.set('q', query)
-      const res = await fetch(`/api/marketing/articles?${p}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await articles(siteKey, { status: filter !== 'all' ? filter : undefined, q: query || undefined })
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load articles')
-      setData(j); setError(null)
+      if (!r.ok) throw new Error(r.error)
+      setData(r.data as unknown as typeof data); setError(null)
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }
     finally { if (id === reqId.current) setLoading(false) }
   }, [siteKey, filter, query])

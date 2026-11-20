@@ -7,6 +7,7 @@ import { Register } from '@/components/ui/register'
 import { DetailSection, DetailField } from '@/components/detail-section'
 import { FIND_QUESTIONS, FLAG_LABEL, FORM_TITLE, PRODUCT_LABEL, SOURCE_COLUMNS, answerLabel } from '@/lib/intake/labels'
 import { bookingLabel, fmtWhen, whatsappHref } from '@/lib/intake/format'
+import { enquiry, updateEnquiry } from '@/app/sales/actions'
 
 const STATUSES: [string, string][] = [['submitted', 'New'], ['contacted', 'Contacted'], ['met', 'Met'], ['quoted', 'Quoted'], ['won', 'Won'], ['lost', 'Lost']]
 
@@ -31,15 +32,15 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
 
   useEffect(() => {
     if (!id) return
-    const ctrl = new AbortController()
-    fetch(`/api/sales/enquiries/${id}`, { signal: ctrl.signal, cache: 'no-store' })
-      .then(async res => {
-        if (res.status === 404) return setLoaded({ id, status: 'missing' })
-        if (!res.ok) return setLoaded({ id, status: 'error' })
-        setLoaded({ id, status: 'ready', intake: (await res.json()).intake })
+    let alive = true
+    enquiry(id)
+      .then(r => {
+        if (!alive) return
+        if (!r.ok) return setLoaded({ id, status: r.error === 'Not found' ? 'missing' : 'error' })
+        setLoaded({ id, status: 'ready', intake: r.data.intake })
       })
-      .catch(e => { if (e?.name !== 'AbortError') setLoaded({ id, status: 'error' }) })
-    return () => ctrl.abort()
+      .catch(() => { if (alive) setLoaded({ id, status: 'error' }) })
+    return () => { alive = false }
   }, [id, reloadKey])
 
   useEffect(() => {
@@ -102,8 +103,8 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
     try {
       const body: Record<string, unknown> = { note: note.trim() || null }
       if (status !== it.status) body.status = status
-      const res = await fetch(`/api/sales/enquiries/${it.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? 'Could not save')
+      const r = await updateEnquiry(it.id, body)
+      if (!r.ok) throw new Error(r.error)
       onChanged()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }

@@ -15,6 +15,7 @@ import { PasteDialog } from '@/components/marketing/PasteDialog'
 import { SECTIONS, computeReadiness, marketLabel, type KnowledgeEntry, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
 import { fmtDay, n } from '@/lib/marketing/labels'
 import type { SiteSummary } from '@/lib/marketing/types'
+import { knowledge } from '../../actions'
 
 type Payload = { site: SiteSummary; entries: KnowledgeEntry[] }
 
@@ -43,10 +44,10 @@ function Knowledge() {
     const id = ++reqId.current
     setLoading(true)
     try {
-      const res = await fetch(`/api/marketing/knowledge?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
+      const r = await knowledge(siteKey)
       if (id !== reqId.current) return
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the knowledge bank')
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
       setData(j); setError(null)
       setMarket(m => ((j.site as SiteSummary).markets.includes(m) ? m : (j.site as SiteSummary).markets[0] ?? 'SG'))
     } catch (e) { if (id === reqId.current) setError(e instanceof Error ? e.message : String(e)) }

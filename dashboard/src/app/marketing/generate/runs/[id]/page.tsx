@@ -13,6 +13,7 @@ import { ENGINE_NODE_DEFS, fmtDuration } from '@/lib/marketing/engine'
 import { renderMarkdown } from '@/lib/marketing/markdown'
 import { fmtDate } from '@/lib/marketing/labels'
 import type { RunDetail, RunNode } from '@/lib/marketing/types'
+import { cancelSiteRun, retrySiteRun, run as loadRun } from '../../../actions'
 
 const ACTIVE = new Set(['queued', 'running'])
 
@@ -36,10 +37,10 @@ function Run() {
   const load = useCallback(async () => {
     if (!siteKey) return false
     try {
-      const res = await fetch(`/api/marketing/runs/${id}?site=${siteKey}`, { cache: 'no-store' })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error ?? 'Could not load the run')
-      setData(j); setError(null)
+      const r = await loadRun(siteKey, id)
+      if (!r.ok) throw new Error(r.error)
+      const j = r.data
+      setData(j as unknown as typeof data); setError(null)
       return ACTIVE.has((j as RunDetail).run.status)
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); return false }
   }, [id, siteKey])
@@ -69,9 +70,9 @@ function Run() {
     if (!siteKey) return
     setBusy(true); setNote(null)
     try {
-      const res = await fetch(`/api/marketing/runs/${id}/${path}?site=${siteKey}`, { method: 'POST' })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) setError(j.error ?? 'Request failed'); else setNote(j.note ?? (path === 'cancel' ? 'Cancelling at the next stage' : 'Resuming from the last completed stage'))
+      const r = path === 'cancel' ? await cancelSiteRun(siteKey, id) : await retrySiteRun(siteKey, id)
+      const j = (r.ok ? r.data : {}) as { note?: string | null }
+      if (!r.ok) setError(r.error); else setNote(j.note ?? (path === 'cancel' ? 'Cancelling at the next stage' : 'Resuming from the last completed stage'))
       await load()
     } finally { setBusy(false) }
   }

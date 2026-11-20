@@ -7,6 +7,7 @@ import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
 import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { marketLabel } from '@/lib/marketing/knowledge-schema'
 import type { Site } from '@/lib/marketing/types'
+import { updateMarketingSite } from '../actions'
 
 const ALL_MARKETS = ['SG', 'HK', 'MY', 'ID']
 
@@ -52,9 +53,8 @@ function SiteForm({ site, onSaved }: { site: Site; onSaved: () => void }) {
         ...f, topics: parseLines(f.topics), brand_terms: parseLines(f.brand_terms), topic_terms: parseLines(f.topic_terms), banned_terms: parseLines(f.banned_terms),
         pillar_pages: f.pillar_pages.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const [url, ...rest] = l.split('|'); return { url: url.trim(), title: rest.join('|').trim() } }),
       }
-      const res = await fetch(`/api/marketing/sites/${site.id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Could not save'); return }
+      const r = await updateMarketingSite(site.id, body)
+      if (!r.ok) { setError(r.error); return }
       setNote('Saved'); onSaved()
     } finally { setBusy(false) }
   }

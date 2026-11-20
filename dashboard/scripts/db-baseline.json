@@ -271,14 +271,6 @@
   "sb": 1,
   "fetch": 0
  },
- "src/app/api/marketing/gsc/disconnect/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/marketing/gsc/select-property/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/nexus/attachments/extract/route.ts": {
   "sb": 0,
   "fetch": 2

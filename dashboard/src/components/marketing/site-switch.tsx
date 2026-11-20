@@ -7,6 +7,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { inputCls } from '@/components/crm/primitives'
 import type { MarketingStatus, Site } from '@/lib/marketing/types'
+import { marketingSites } from '@/app/marketing/actions'
 
 const STORAGE_KEY = 'trs_site'
 type SitesPayload = { sites: Site[]; status: MarketingStatus }
@@ -17,7 +18,7 @@ export function useSites(): { sites: Site[]; status: MarketingStatus | null; err
   const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
   useEffect(() => {
-    if (!cached) cached = fetch('/api/marketing/sites', { cache: 'no-store' }).then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.error ?? 'Could not load sites'); return j as SitesPayload })
+    if (!cached) cached = marketingSites().then(r => { if (!r.ok) throw new Error(r.error); return r.data as SitesPayload })
     let alive = true
     cached.then(j => { if (alive) setData(j) }).catch(e => { cached = null; if (alive) setError(e instanceof Error ? e.message : String(e)) })
     return () => { alive = false }

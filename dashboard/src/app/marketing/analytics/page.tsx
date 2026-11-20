@@ -9,6 +9,7 @@ import { useSiteKey, useSites } from '@/components/marketing/site-switch'
 import { fmtDate, n } from '@/lib/marketing/labels'
 import { PERIOD_LABEL, PERIODS, type Period, type Row, type Traffic } from '@/lib/marketing/ga4-types'
 import type { SiteSummary } from '@/lib/marketing/types'
+import { siteAnalytics } from '../actions'
 
 type Payload = { site: SiteSummary; traffic: Traffic }
 
@@ -32,10 +33,9 @@ function Analytics() {
     if (!siteKey) return
     setLoading(true); setError(null)
     try {
-      const r = await fetch(`/api/marketing/analytics?site=${siteKey}&period=${period}${fresh ? '&fresh=1' : ''}`, { cache: 'no-store' })
-      const j = await r.json().catch(() => ({}))
-      if (!r.ok) throw new Error(j.error ?? `Request failed (${r.status})`)
-      setData(j)
+      const r = await siteAnalytics(siteKey, period, !!fresh)
+      if (!r.ok) throw new Error(r.error)
+      setData(r.data as typeof data)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load Google Analytics') }
     finally { setLoading(false) }
   }, [siteKey, period])

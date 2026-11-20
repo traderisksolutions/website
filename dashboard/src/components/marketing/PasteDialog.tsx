@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Field, inputCls, textareaCls } from '@/components/crm/primitives'
 import { SECTIONS, marketLabel, type KnowledgeSection } from '@/lib/marketing/knowledge-schema'
+import { importKnowledge } from '@/app/marketing/actions'
 
 /** Paste markdown or plain text. Each "# Heading" becomes its own entry; none means one entry. All land as drafts. */
 export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, markets, onDone }: { open: boolean; onOpenChange: (v: boolean) => void; siteKey: string | null; defaultSection: KnowledgeSection; markets: string[]; onDone: (inserted: number) => void }) {
@@ -19,9 +20,9 @@ export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, marke
     if (!siteKey) return
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/marketing/knowledge/import?site=${siteKey}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ markdown, section, markets: picked, title }) })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok) { setError(j.error ?? 'Import failed'); return }
+      const r = await importKnowledge(siteKey, { markdown, section, markets: picked, title })
+      if (!r.ok) { setError(r.error); return }
+      const j = r.data
       setMarkdown(''); setTitle('')
       onDone(j.inserted ?? 0)
     } finally { setBusy(false) }
