@@ -27,8 +27,11 @@ test('DAT-020 a thread with inline images shows them from the signed link', asyn
   test.skip(!id, 'no recent thread with a linked inline image (none ingested since the deploy)')
   await openClean(page, `/engagement?lead=${id}`)
   await expect(page.getByRole('button', { name: /^(Collapse|Expand) message from/ }).first()).toBeVisible(OPENS)
-  for (const b of await page.getByRole('button', { name: /^Expand message from/ }).all()) await b.click()
-  for (const b of await page.getByRole('button', { name: /^Show quoted history/ }).all()) await b.click()
+  // Each click renames its button, so take the first remaining one each time, never a stale index.
+  for (const name of [/^Expand message from/, /^Show quoted history/]) {
+    const left = page.getByRole('button', { name })
+    for (let n = await left.count(); n > 0; n--) await left.first().click()
+  }
   const img = page.locator('img[src*="/api/public/email-image/"]').first()
   await expect(img).toBeVisible(OPENS)
   await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0), OPENS).toBe(true)
