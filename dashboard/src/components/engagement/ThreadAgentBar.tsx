@@ -16,11 +16,8 @@
 
 import { useState } from 'react'
 import { Sparkles, Search, Paperclip, ExternalLink, X } from 'lucide-react'
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const HAIR = '#e6e8e4'
+import { cn } from '@/lib/utils'
+import { Btn, inputCls } from '@/components/crm/primitives'
 
 type Citation = { n: number; source: 'message' | 'attachment'; fileName: string | null; sentAt: string | null }
 type NextReply = {
@@ -34,8 +31,6 @@ type Answer = {
   answer: string; sources: { n: number; title: string; uri: string }[]
   queries: string[]; grounded: boolean; warning: string | null; error?: string
 }
-
-const btn = 'inline-flex items-center gap-1.5 rounded border px-2.5 py-1.5 text-body transition-colors hover:border-[#0f1412] disabled:opacity-50'
 
 export function ThreadAgentBar({
   threadId, onDraft,
@@ -88,17 +83,16 @@ export function ThreadAgentBar({
   }
 
   return (
-    <div className="px-5 sm:px-10 py-2.5" style={{ borderTop: `1px solid ${HAIR}` }}>
+    <div className="px-5 sm:px-10 py-2.5 border-t border-trs-line">
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" onClick={generate} disabled={!!busy} className={btn} style={{ borderColor: '#d5d9d4', color: INK }}>
+        <Btn level="secondary" size="xs" onClick={generate} disabled={!!busy}>
           <Sparkles size={13} className={busy === 'gen' ? 'animate-pulse' : ''} />
           {busy === 'gen' ? 'Reading the client’s file…' : 'Generate response'}
-        </button>
+        </Btn>
 
-        <button type="button" onClick={() => { setAsking(a => !a); setErr(null) }} disabled={!!busy} className={btn}
-          style={{ borderColor: asking ? INK : '#d5d9d4', color: INK }}>
+        <Btn level="secondary" size="xs" onClick={() => { setAsking(a => !a); setErr(null) }} disabled={!!busy} className={cn(asking && 'bg-trs-mint')}>
           <Search size={13} /> Ask AI
-        </button>
+        </Btn>
 
         {reply && (
           <span className="text-small tabular-nums text-trs-subtle" >
@@ -120,16 +114,15 @@ export function ThreadAgentBar({
             id="thread-ask" value={question} onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void ask() } }}
             placeholder="Ask about this thread or its attachments…"
-            className="h-9 flex-1 min-w-0 rounded border px-3 text-body border-trs-line-2 text-trs-ink"
+            className={cn(inputCls, 'h-8 w-auto flex-1 min-w-0')}
           />
-          <button type="button" onClick={ask} disabled={!!busy || !question.trim()} className={btn}
-            style={{ borderColor: '#d5d9d4', color: INK }}>
+          <Btn level="secondary" size="xs" onClick={ask} disabled={!!busy || !question.trim()}>
             {busy === 'ask' ? 'Reading…' : 'Ask'}
-          </button>
-          <button type="button" onClick={() => { setAsking(false); setAnswer(null); setQuestion('') }}
-            className="p-1.5 text-trs-subtle"  aria-label="Close">
+          </Btn>
+          <Btn level="tertiary" size="xs" onClick={() => { setAsking(false); setAnswer(null); setQuestion('') }}
+            className="w-8 px-0 text-trs-subtle" aria-label="Close">
             <X size={14} />
-          </button>
+          </Btn>
         </div>
       )}
 
@@ -139,7 +132,7 @@ export function ThreadAgentBar({
         <div className="mt-3 space-y-2.5 pb-1">
           {reply.situation && <p className="text-body leading-[1.6] text-trs-muted" >{reply.situation}</p>}
           {reply.nextAction && (
-            <div className="rounded px-3 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
+            <div className="rounded px-3 py-2.5 border border-trs-line">
               <div className="text-small text-trs-subtle" >Next</div>
               <p className="mt-1 text-body leading-[1.6] text-trs-ink" >{reply.nextAction}</p>
             </div>
@@ -168,7 +161,7 @@ export function ThreadAgentBar({
       {answer && (
         <div className="mt-3 space-y-2.5 pb-1">
           {answer.warning && (
-            <p className="rounded px-3 py-2 text-small leading-[1.6]" style={{ border: `1px solid ${INK}`, color: INK }}>
+            <p className="rounded px-3 py-2 text-small leading-[1.6] border border-trs-ink text-trs-ink">
               {answer.warning}
             </p>
           )}
@@ -179,7 +172,7 @@ export function ThreadAgentBar({
                 <li key={s.n} className="flex gap-2 text-small">
                   <span className="tabular-nums shrink-0 text-trs-subtle" >[{s.n}]</span>
                   <a href={s.uri} target="_blank" rel="noreferrer"
-                     className="inline-flex items-center gap-1 underline decoration-[#d5d9d4] hover:decoration-[#0f1412] text-trs-ink"
+                     className="inline-flex items-center gap-1 underline decoration-trs-line-2 hover:decoration-trs-ink text-trs-ink"
                      >
                     {s.title || s.uri}<ExternalLink size={11} className="text-trs-subtle" />
                   </a>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-// Thin progress bar with an optional step label + percentage: an ink bar on a #e6e8e4 track.
+// Thin progress bar with an optional step label + percentage: an ink bar on a line-coloured track.
 // Used under the AI-Analysis "Generate" and the reply panel's Assist menu (#3).
 //
 // Pass `value` (0–100) for a determinate, filling bar with a "· 42%" readout — the
@@ -22,11 +22,11 @@ export function InlineProgress({ label, value, className = '' }: { label?: strin
       <div className="relative h-1 w-full overflow-hidden rounded-full bg-trs-line" >
         {determinate ? (
           <span
-            className="absolute left-0 top-0 h-full rounded-full transition-[width] duration-300 ease-out"
-            style={{ width: `${pct}%`, background: '#0f1412' }}
+            className="absolute left-0 top-0 h-full rounded-full bg-trs-ink transition-[width] duration-300 ease-out"
+            style={{ width: `${pct}%` }} /* drift-ok: width is the live percentage */
           />
         ) : (
-          <span className="absolute top-0 h-full rounded-full animate-trs-indeterminate" style={{ background: '#0f1412', opacity: 0.7 }} />
+          <span className="absolute top-0 h-full rounded-full bg-trs-ink opacity-70 animate-trs-indeterminate" />
         )}
       </div>
     </div>

@@ -9,7 +9,9 @@ import { fullName, extractEmail, parseAddress } from './helpers'
 import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
 import { ThreadHeader } from './ThreadHeader'
 import { MessageBlock } from './MessageBlock'
-import { ContextRail, loadBoard } from './ContextRail'
+import { ContextRail } from './ContextRail'
+import { useCompanyCard, useInboxTeam, type InboxTeam } from './company-card'
+import { firstPaintKey, takeFirstPaint } from './first-paint'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { pushCrumb } from '@/lib/nav/trail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
@@ -18,7 +20,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ThreadAgentBar } from '@/components/engagement/ThreadAgentBar'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { plainToHtml } from '@/components/RichEditor'
-import type { BoardPayload } from '@/lib/crm/board'
+import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
 
 /**
  * The message workspace. Header (subject, who, state), the thread in order with the newest
@@ -38,11 +40,6 @@ interface ThreadViewProps {
 }
 
 const KEY_CONTEXT = 'engagement_context_rail'
-const INK = '#0f1412'
-const BODY = '#2a332f'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const HAIR = '#e6e8e4'
 
 // Reply-All recipients = the To+CC of the message being replied to (the latest one). We KEEP
 // internal @trade-risksol.com colleagues and only drop: whoever's already in the To field,
@@ -163,15 +160,15 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   const latestMessageId = messages.at(-1)?.id ?? null
   const log             = useAuditLog()
 
-  // Owner name for the header, from the same board the context rail reads.
-  const [board, setBoard] = useState<BoardPayload | null>(null)
+  // Owner name for the header, from the same company card the context rail reads.
+  const team = useInboxTeam()
   const [taskRefresh, setTaskRefresh] = useState(0)
-  useEffect(() => { loadBoard().then(setBoard).catch(() => {}) }, [taskRefresh])
+  const card = useCompanyCard(lead.companyId ?? null, taskRefresh)
   const ownerName = useMemo(() => {
-    const c = board?.companies.find(x => x.id === lead.companyId)
-    if (!c?.owner_email) return null
-    return board?.staff.find(s => s.email === c.owner_email)?.name ?? c.owner_email.split('@')[0]
-  }, [board, lead.companyId])
+    const owner = card?.company?.owner_email
+    if (!owner) return null
+    return team.staff.find(s => s.email === owner)?.name ?? owner.split('@')[0]
+  }, [card, team])
 
   useEffect(() => {
     if (!isOverriding) { setOverrideState(null); return }
@@ -263,9 +260,14 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
   useEffect(() => {
     setSummaries([])
     if (!threadId) return
-    setSummariesLoading(true)
-    fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
-      .then(r => r.json()).then(data => setSummaries(Array.isArray(data) ? data : [])).catch(() => setSummaries([])).finally(() => setSummariesLoading(false))
+    // The open thread's summaries come with the page on first paint (first-paint.ts).
+    const kept = takeFirstPaint<StoredSummary[]>(firstPaintKey.summaries(threadId))
+    if (kept) setSummaries(kept)
+    else {
+      setSummariesLoading(true)
+      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+        .then(r => r.json()).then(data => setSummaries(Array.isArray(data) ? data : [])).catch(() => setSummaries([])).finally(() => setSummariesLoading(false))
+    }
     log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
   }, [threadId, lead.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -335,16 +337,16 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
           onDelete={handleDelete} deleting={deleting} contextOpen={contextOpen} onToggleContext={toggleContext} />
 
         {taskDone && (
-          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-body" style={{ background: '#f1f2ee', borderBottom: `1px solid ${HAIR}`, color: BODY }} role="status">
+          <div className="flex-shrink-0 px-5 sm:px-10 py-2.5 text-body bg-trs-field border-b border-trs-line text-trs-ink-2" role="status">
             <div className={cn(measure, 'flex items-center justify-between gap-3')}>
               <span>{taskDone.text}</span>
-              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-[#8c958f] bg-transparent border-0 p-0 cursor-pointer text-trs-ink" >Undo</button><button type="button" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-white text-trs-muted" ><X size={13} /></button></span>
+              <span className="flex items-center gap-3"><button type="button" onClick={() => void undoTask()} className="underline underline-offset-[3px] decoration-trs-subtle bg-transparent border-0 p-0 cursor-pointer text-trs-ink" >Undo</button><Btn level="tertiary" size="xs" onClick={() => setTaskDone(null)} aria-label="Dismiss" title="Dismiss" className="w-8 px-0 hover:bg-white"><X size={13} /></Btn></span>
             </div>
           </div>
         )}
 
         {lead.campaign_context && (
-          <div className="flex-shrink-0 px-5 sm:px-10 py-2 text-small" style={{ borderBottom: `1px solid ${HAIR}`, color: MUTED }}>
+          <div className="flex-shrink-0 px-5 sm:px-10 py-2 text-small border-b border-trs-line text-trs-muted">
             <div className={cn(measure, 'flex flex-col gap-1')}>
               <p className="m-0">Outreach campaign · {lead.campaign_context.campaign_name} · {lead.campaign_context.product_type}{lead.campaign_context.step_replied_to ? ` · replied at step ${lead.campaign_context.step_replied_to}` : ''}</p>
             </div>
@@ -378,7 +380,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                     </div>
                   )}
                   {!loading && earlier.length > 0 && (
-                    <section className="mt-7" style={{ borderTop: `1px solid ${HAIR}` }} aria-label="Earlier messages">
+                    <section className="mt-7 border-t border-trs-line" aria-label="Earlier messages">
                       {earlier.map(msg => <MessageBlock key={msg.id} msg={msg} defaultOpen={false} newSender={isNewSender(msg)} senderName={nameFor(msg)} />)}
                     </section>
                   )}
@@ -401,7 +403,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
               {/* Composer: one line until asked, the full panel once open. Same layer as the thread. */}
               {!loading && (
-                <div ref={composerRef} data-composer className="flex-shrink-0 bg-white" style={{ borderTop: `1px solid ${HAIR}` }}>
+                <div ref={composerRef} data-composer className="flex-shrink-0 bg-white border-t border-trs-line">
                   {composerOpen ? (
                     <EngagementComposePanel lead={lead} thread={thread} messages={messages} toAddress={toAddress} ccList={ccList} bccList={bccList} customSubject={customSubject}
                       setToAddress={setToAddress} setCcList={setCcList} setBccList={setBccList} setCustomSubject={setCustomSubject} replyAll={replyAll} onToggleReplyAll={toggleReplyAll}
@@ -410,9 +412,9 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
                       onHeightChange={syncScrollAffordances} />
                   ) : (
                     <div className="px-5 sm:px-10 py-3.5">
-                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded flex items-center text-left text-body bg-white cursor-text hover:border-[#8c958f] focus-visible:outline-none focus-visible:border-[#0f1412]')} style={{ border: '1px solid #d5d9d4', color: FAINT }}>
+                      <button type="button" onClick={() => openComposer()} aria-label={replyLabel} className={cn(measure, 'w-full h-9 px-3.5 rounded flex items-center text-left text-body bg-white cursor-text border border-trs-line-2 text-trs-subtle hover:border-trs-subtle focus-visible:outline-none focus-visible:border-trs-ink')}>
                         <span className="truncate">{replyLabel}</span>
-                        <kbd className="ml-auto flex-shrink-0 text-small font-[inherit] rounded px-1.5 py-px" style={{ border: '1px solid #d5d9d4', color: '#8c958f' }} aria-hidden>r</kbd>
+                        <kbd className="ml-auto flex-shrink-0 text-small font-[inherit] rounded px-1.5 py-px border border-trs-line-2 text-trs-subtle" aria-hidden>r</kbd>
                       </button>
                     </div>
                   )}
@@ -423,11 +425,11 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
           {/* One affordance back down: the draft while it is open, the newest message otherwise. */}
           {!loading && composerOpen && composerOffscreen ? (
-            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
+            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer border border-trs-line-2 text-trs-ink">
               <ArrowDown size={13} /> Draft
             </button>
           ) : !composerOpen && showScrollToLatest ? (
-            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer" style={{ border: '1px solid #d5d9d4', color: INK }}>
+            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer border border-trs-line-2 text-trs-ink">
               <ArrowDown size={13} /> Latest message
             </button>
           ) : null}
@@ -436,7 +438,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
       </EaWorkspaceColumn>
 
       {/* Context rail: a column from 1024px up, a sheet below */}
-      {wide ? (contextOpen && <div className="flex-shrink-0 h-full" style={{ width: draftOpen ? 480 : 340, transition: 'width 160ms ease' }}>{rail}</div>) : (
+      {wide ? (contextOpen && <div className={cn('flex-shrink-0 h-full transition-[width] duration-150 ease-in-out', draftOpen ? 'w-[480px]' : 'w-[340px]')}>{rail}</div>) : (
         <Sheet open={contextOpen} onOpenChange={o => { if (!o) toggleContext() }}>
           <SheetContent side="right" className="w-full sm:max-w-[380px] p-0 flex flex-col" showCloseButton={false}>
             <SheetHeader className="sr-only"><SheetTitle>Context</SheetTitle></SheetHeader>
@@ -446,7 +448,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
       )}
 
       {taskOpen && (
-        <TaskFromEmail lead={lead} board={board} subject={thread?.subject ?? lead.subject ?? null} onClose={() => setTaskOpen(false)}
+        <TaskFromEmail lead={lead} team={team} subject={thread?.subject ?? lead.subject ?? null} onClose={() => setTaskOpen(false)}
           onCreated={(id, text) => { setTaskOpen(false); setTaskDone({ id, text }); setTaskRefresh(n => n + 1) }} />
       )}
     </div>
@@ -454,17 +456,15 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 }
 
 /** To-do from email: title prefilled from the subject, owner, due date, note. */
-function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lead; board: BoardPayload | null; subject: string | null; onClose: () => void; onCreated: (id: string, text: string) => void }) {
+function TaskFromEmail({ lead, team, subject, onClose, onCreated }: { lead: Lead; team: InboxTeam; subject: string | null; onClose: () => void; onCreated: (id: string, text: string) => void }) {
   const [title, setTitle] = useState(subject ? `Follow up: ${subject.replace(/^(re|fwd?):\s*/i, '')}` : '')
-  const [who, setWho] = useState(board?.me ?? '')
+  const [who, setWho] = useState(team.me ?? '')
   const [due, setDue] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
   const threadId = lead.thread_id ?? (lead.source === 'thread' ? lead.id : null)
-  const inp = 'h-9 w-full rounded bg-white px-3.5 text-body outline-none focus:border-[#0f1412]'
-  const lbl = 'flex flex-col gap-1 text-small'
   async function go() {
     if (!lead.companyId) return
     if (!title.trim()) { setErr('Give the to-do a title.'); return }
@@ -473,29 +473,29 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
       const r = await fetch('/api/board/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ companyId: lead.companyId, title: title.trim(), note: note || null, dueOn: due || null, primaryAssignee: who || null, status: 'open', priority: 'medium' }) })
       const d = await r.json()
       if (!r.ok) throw new Error(d.error ?? 'Could not save')
-      const whoName = board?.staff.find(s => s.email === who)?.name ?? null
+      const whoName = team.staff.find(s => s.email === who)?.name ?? null
       onCreated(d.task.id, ['To-do created', due ? `Due ${new Date(due).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}` : null, whoName ? `Assigned to ${whoName}` : null].filter(Boolean).join(' · '))
     } catch (e) { setErr(e instanceof Error ? e.message : 'Could not save') } finally { setBusy(false) }
   }
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(15,20,18,0.4)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
+    <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh] bg-[rgba(15,20,18,0.4)]" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded bg-white p-6 border border-trs-line shadow-[0_16px_40px_rgba(15,20,18,0.14)] text-trs-ink">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div><h2 id="task-from-email" className="m-0 text-heading font-medium">New to-do</h2><p className="m-0 mt-0.5 text-body text-trs-muted" >{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
-          <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted" ><X size={16} /></button>
+          <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" title="Close" className="w-8 px-0"><X size={16} /></Btn>
         </div>
         <div className="flex flex-col gap-3">
-          <label className={lbl} style={{ color: MUTED }}>Title<input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></label>
+          <Field label="Title"><input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={inputCls} onKeyDown={e => { if (e.key === 'Enter') void go() }} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className={lbl} style={{ color: MUTED }}>Owner<select value={who} onChange={e => setWho(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }}><option value="">No one yet</option>{(board?.staff ?? []).map(s => <option key={s.email} value={s.email}>{s.name}</option>)}</select></label>
-            <label className={lbl} style={{ color: MUTED }}>Due date<input type="date" value={due} onChange={e => setDue(e.target.value)} className={inp} style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
+            <Field label="Owner"><select value={who} onChange={e => setWho(e.target.value)} className={inputCls}><option value="">No one yet</option>{team.staff.map(s => <option key={s.email} value={s.email}>{s.name}</option>)}</select></Field>
+            <Field label="Due date"><input type="date" value={due} onChange={e => setDue(e.target.value)} className={inputCls} /></Field>
           </div>
-          <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded bg-white px-3.5 py-2 text-body outline-none focus:border-[#0f1412] resize-y" style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
+          <Field label="Internal note"><textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className={textareaCls} /></Field>
         </div>
         {err && <p className="m-0 mt-3 text-body text-trs-neg" role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-9 px-4 rounded text-body bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink" >Cancel</button>
-          <button type="button" onClick={() => void go()} disabled={busy || !lead.companyId} title={lead.companyId ? undefined : 'Link a company to save the to-do'} className="h-9 px-4 rounded text-white text-body font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50 bg-trs-green" >{busy ? 'Saving…' : 'Create to-do'}</button>
+          <Btn level="tertiary" onClick={onClose}>Cancel</Btn>
+          <Btn level="primary" onClick={() => void go()} disabled={busy || !lead.companyId} title={lead.companyId ? undefined : 'Link a company to save the to-do'}>{busy ? 'Saving…' : 'Create to-do'}</Btn>
         </div>
       </div>
     </div>

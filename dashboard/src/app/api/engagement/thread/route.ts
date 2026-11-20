@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { threadVisibleTo, privateThread } from '@/lib/mail/visibility-server'
+import { readThread } from '@/lib/mail/thread-read'
 import { SB_URL } from '@/lib/sb'
 import { withStaffOrCron } from '@/lib/auth/guard'
 
@@ -36,141 +36,15 @@ export const DELETE = withStaffOrCron(async (req: NextRequest) => {
 })
 
 
-function sbHeaders() {
-  const k = process.env.SUPABASE_SERVICE_KEY
-  if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
-  return {
-    apikey:        k,
-    Authorization: `Bearer ${k}`,
-    'Content-Type': 'application/json',
-  }
-}
-
 // GET /api/engagement/thread?thread_id=X  (preferred — fetches a specific thread)
 // GET /api/engagement/thread?email=X      (fallback — fetches latest thread for an email)
+// The reads are in src/lib/mail/thread-read.ts (the Inbox page reads its open thread with it too).
 export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
-    const params   = new URL(req.url).searchParams
-    const threadId = params.get('thread_id')
-    const email    = params.get('email')
-    if (!threadId && !email) return NextResponse.json({ thread: null, messages: [] })
-
-    let thread = null
-
-    if (threadId) {
-      // Direct lookup by thread UUID
-      const threadRes = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${encodeURIComponent(threadId)}&deleted_at=is.null&select=*&limit=1`,
-        { headers: sbHeaders() }
-      )
-      const rows = threadRes.ok ? await threadRes.json() : []
-      thread = Array.isArray(rows) && rows.length > 0 ? rows[0] : null
-    } else {
-      // Email-based lookup: prefer thread linked via the contact record (inbound lead flow),
-      // then fall back to most recent thread from email_participants.
-      const contactRes = await fetch(
-        `${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(email!)}&select=id,inbound_lead_id&limit=1`,
-        { headers: sbHeaders() }
-      )
-      const contacts: { id: string; inbound_lead_id: string | null }[] =
-        contactRes.ok ? await contactRes.json() : []
-      const contact = Array.isArray(contacts) ? contacts[0] : null
-
-      // If this contact came from an inbound lead, prefer the thread linked to them directly
-      if (contact?.inbound_lead_id && contact.id) {
-        const ctRes = await fetch(
-          `${SB_URL}/rest/v1/email_threads?contact_id=eq.${contact.id}&deleted_at=is.null&order=created_at.asc&limit=1&select=*`,
-          { headers: sbHeaders() }
-        )
-        const ctThreads = ctRes.ok ? await ctRes.json() : []
-        if (Array.isArray(ctThreads) && ctThreads.length > 0) thread = ctThreads[0]
-      }
-
-      // Fallback: find most recent thread this address appears in as participant
-      if (!thread) {
-        const partRes = await fetch(
-          `${SB_URL}/rest/v1/email_participants?email=eq.${encodeURIComponent(email!)}&select=thread_id`,
-          { headers: sbHeaders() }
-        )
-        const parts: { thread_id: string }[] = partRes.ok ? await partRes.json() : []
-        if (Array.isArray(parts) && parts.length > 0) {
-          const threadIds = Array.from(new Set(parts.map(p => p.thread_id)))
-          const threadRes = await fetch(
-            `${SB_URL}/rest/v1/email_threads?id=in.(${threadIds.join(',')})&deleted_at=is.null&order=last_message_at.desc&limit=1&select=*`,
-            { headers: sbHeaders() }
-          )
-          const threads = threadRes.ok ? await threadRes.json() : []
-          thread = Array.isArray(threads) && threads.length > 0 ? threads[0] : null
-        }
-      }
-    }
-
-    if (!thread) return NextResponse.json({ thread: null, messages: [] })
-    if (!(await threadVisibleTo(thread.id, await currentUserEmail()))) return NextResponse.json(await privateThread(thread.id), { status: 403 })
-
-    // 3. Fetch all messages for this thread
-    const msgRes = await fetch(
-      `${SB_URL}/rest/v1/email_messages?thread_id=eq.${thread.id}&deleted_at=is.null&order=sent_at.asc&select=*`,
-      { headers: sbHeaders() }
-    )
-    const rawMsgs = msgRes.ok ? await msgRes.json() : []
-    // One email reaching several mailboxes is one message: only the first copy shows.
-    const seenRfc = new Set<string>()
-    const msgs: Record<string, unknown>[] = (Array.isArray(rawMsgs) ? rawMsgs : []).filter((m: Record<string, unknown>) => {
-      const key = typeof m.rfc822_message_id === 'string' ? m.rfc822_message_id : null
-      if (!key) return true
-      if (seenRfc.has(key)) return false
-      seenRfc.add(key); return true
-    })
-
-    // 4. Fetch to/cc participants for this thread
-    const recipRes = await fetch(
-      `${SB_URL}/rest/v1/email_participants?thread_id=eq.${thread.id}&role=in.(to,cc)&select=message_id,email,name,role`,
-      { headers: sbHeaders() }
-    )
-    const recips: { message_id: string; email: string; name: string | null; role: string }[] =
-      recipRes.ok ? await recipRes.json() : []
-
-    // 5. Join recipients onto messages
-    const recipMap: Record<string, { to: string[]; cc: string[] }> = {}
-    for (const r of (Array.isArray(recips) ? recips : [])) {
-      if (!recipMap[r.message_id]) recipMap[r.message_id] = { to: [], cc: [] }
-      if (r.role === 'to') recipMap[r.message_id].to.push(r.email)
-      if (r.role === 'cc') recipMap[r.message_id].cc.push(r.email)
-    }
-
-    // 6. Fetch attachments for this thread's messages (email-attachments bucket; only rows with
-    // a storage_url are actually downloadable — ingest sometimes records a row before the file
-    // upload completes).
-    const attRes = await fetch(
-      `${SB_URL}/rest/v1/email_attachments?thread_id=eq.${thread.id}&storage_url=not.is.null&select=id,message_id,filename,mime_type,size_bytes`,
-      { headers: sbHeaders() }
-    )
-    const atts: { id: string; message_id: string; filename: string; mime_type: string | null; size_bytes: number | null }[] =
-      attRes.ok ? await attRes.json() : []
-
-    // 7. Join attachments onto messages
-    const attMap: Record<string, { id: string; filename: string; mime_type: string | null; size_bytes: number | null }[]> = {}
-    for (const a of (Array.isArray(atts) ? atts : [])) {
-      if (!attMap[a.message_id]) attMap[a.message_id] = []
-      attMap[a.message_id].push({ id: a.id, filename: a.filename, mime_type: a.mime_type, size_bytes: a.size_bytes })
-    }
-
-    const messages = msgs.map(m => ({
-      id:           m.id,
-      direction:    m.direction,
-      from_address: m.from_address,
-      subject:      m.subject,
-      body_text:    m.body_text,
-      body_html:    m.body_html ?? null,
-      highlights:   m.highlights ?? null,
-      sent_at:      m.sent_at,
-      to:           recipMap[m.id as string]?.to ?? [],
-      cc:           recipMap[m.id as string]?.cc ?? [],
-      attachments:  attMap[m.id as string] ?? [],
-    }))
-
-    return NextResponse.json({ thread, messages })
+    const params = new URL(req.url).searchParams
+    const read = await readThread(params.get('thread_id'), params.get('email'), await currentUserEmail())
+    if (read.private) return NextResponse.json(read.private, { status: 403 })
+    return NextResponse.json(read)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

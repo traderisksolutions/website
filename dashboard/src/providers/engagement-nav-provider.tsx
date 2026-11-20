@@ -18,6 +18,12 @@ import { createContext, useContext, useEffect, useState, type Dispatch, type Set
 import type { Lead, ThreadState } from '@/components/engagement/types'
 import type { NewEmailDraft } from '@/components/engagement/NewEmailCompose'
 import type { InboxView } from '@/lib/mail/inbox-list'
+import type { DraftRow } from '@/components/engagement/ConversationList'
+
+/** What the Inbox page read on the server for the navigator: the saved drafts (taken once, then read
+ *  from the API) and the staff names for the Mailbox pill (null when the list had no personal
+ *  mailbox). Undefined until the page has mounted; the navigator waits for it rather than fetching. */
+export type InboxSeed = { drafts: DraftRow[] | null; staffNames: Record<string, string> | null }
 
 export type EngagementTab = InboxView | 'drafts'
 export type EngagementNavCounts = Record<EngagementTab, number>
@@ -87,6 +93,8 @@ interface EngagementNavContextValue {
    *  EngagementRail renders the icon rail and ConditionalShell narrows its margin to match. */
   navCollapsed: boolean
   setNavCollapsed: Dispatch<SetStateAction<boolean>>
+  seed: InboxSeed | undefined
+  setSeed: Dispatch<SetStateAction<InboxSeed | undefined>>
 }
 
 type LinkFn = (threadId: string, companyId: string | null, companyName: string) => Promise<LinkResult>
@@ -121,6 +129,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [onSelect, setOnSelect] = useState<((id: string) => void) | null>(null)
   const [onOpenDraft, setOnOpenDraft] = useState<((draft: NewEmailDraft) => void) | null>(null)
   const [onLinkCompany, setOnLinkCompany] = useState<LinkFn | null>(null)
+  const [seed, setSeed] = useState<InboxSeed | undefined>(undefined)
 
   // Collapsed state: render expanded on first paint, correct from localStorage in a client-only
   // effect (same SSR-safe pattern as useResizableDimension), then persist every change.
@@ -143,7 +152,7 @@ export function EngagementNavProvider({ children }: { children: ReactNode }) {
       selectedId, setSelectedId, loading, setLoading, total, setTotal, hasMore, setHasMore, loadingMore, setLoadingMore,
       onMore, setOnMore, loadError, setLoadError, mailboxes, setMailboxes, onSelect, setOnSelect, onOpenDraft, setOnOpenDraft,
       onLinkCompany, setOnLinkCompany,
-      navCollapsed, setNavCollapsed,
+      navCollapsed, setNavCollapsed, seed, setSeed,
     }}>
       {children}
     </EngagementNavContext.Provider>

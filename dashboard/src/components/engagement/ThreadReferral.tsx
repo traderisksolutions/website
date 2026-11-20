@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { callApi, errText } from '@/components/placement/shared'
 import type { ThreadReferral as Referral } from '@/lib/crm/thread-referral'
 import { ERROR, InfoRow, MUTED, SECOND } from './rail-bits'
+import { firstPaintKey, takeFirstPaint } from './first-paint'
 
 const READ_BY = { address: 'Address', signature: 'Signature', voice: 'Wording' } as const
 
@@ -26,7 +27,9 @@ export function ThreadReferral({ threadId, kind }: {
     let live = true
     setState(null); setError(null)
     // A thread with no reading shows no row, so a failed read stays quiet.
-    callApi<Referral>(`/api/engagement/thread/${threadId}/referral`).then(r => { if (live) setState(r) }).catch(() => {})
+    const kept = takeFirstPaint<Referral>(firstPaintKey.referral(threadId))
+    if (kept) setState(kept)
+    else callApi<Referral>(`/api/engagement/thread/${threadId}/referral`).then(r => { if (live) setState(r) }).catch(() => {})
     return () => { live = false }
   }, [threadId, kind])
 
