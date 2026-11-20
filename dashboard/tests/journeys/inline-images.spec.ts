@@ -19,14 +19,17 @@ async function threadWithLinkedImage(): Promise<string | null> {
   const ids = Array.from(new Set(msgs.filter(m => LINK.test(m.body_html ?? '')).map(m => m.thread_id)))
   if (!ids.length) return null
   const held = await dbRows<{ thread_id: string }>(`email_thread_aliases?select=thread_id&mailbox=in.(${encodeURIComponent(WHO)},operations@trade-risksol.com)&thread_id=in.(${ids.join(',')})`)
-  return held[0]?.thread_id ?? null
+  if (!held.length) return null
+  // A deleted thread does not open; the Inbox shows the newest thread instead.
+  const live = await dbRows<{ id: string }>(`email_threads?select=id&deleted_at=is.null&id=in.(${Array.from(new Set(held.map(h => h.thread_id))).join(',')})&limit=1`)
+  return live[0]?.id ?? null
 }
 
 test('DAT-020 a thread with inline images shows them from the signed link', async ({ page }) => {
   const id = await threadWithLinkedImage()
   test.skip(!id, 'no recent thread with a linked inline image (none ingested since the deploy)')
   await openClean(page, `/engagement?lead=${id}`)
-  await expect(page.getByRole('button', { name: /^(Collapse|Expand) message from/ }).first()).toBeVisible(OPENS)
+  await expect(page.getByRole('article', { name: /^Message from/ }).first()).toBeVisible(OPENS)
   // Each click renames its button, so take the first remaining one each time, never a stale index.
   for (const name of [/^Expand message from/, /^Show quoted history/]) {
     const left = page.getByRole('button', { name })

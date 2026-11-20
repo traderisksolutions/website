@@ -14,6 +14,7 @@ import { autoSendRun } from '@/lib/autonomy'
 import { OPERATIONS_MAILBOX, getMailbox, accessTokenFor, newMessageIds, listSince, patchMailbox } from '@/lib/gmail/mailboxes'
 import { captureAttachments, hasRealAttachments } from '@/lib/gmail/attachments'
 import { SB_URL } from '@/lib/sb'
+import { db } from '@/lib/db/client'
 import { linkForImageBytes, moveDataUris } from '@/lib/mail/inline-image-store'
 
 export const maxDuration = 300
@@ -775,6 +776,13 @@ async function ingestMessage(token: string, gmailMsgId: string, origin: string, 
       }
       return 'already stored'
     }
+  }
+
+  // A new email in a deleted thread brings the thread back, as Gmail does with a reply to a trashed
+  // conversation; the emails deleted with it stay deleted. Before 20 Nov 2026, 42 emails in 16 threads
+  // landed unseen this way. An older email read again does not restore it.
+  if (thread.deleted_at && sentAt > new Date(thread.deleted_at).toISOString()) {
+    await db().from('email_threads').update({ deleted_at: null }).eq('id', thread.id)
   }
 
   // 3b. Every real file gets its row now, from the MIME already in hand, whatever mailbox the
