@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { Btn, Segmented } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
+import { unwrap } from '@/lib/action-result'
+import { draftRenewal } from '../actions'
 
 type Tab = 'ledger' | 'renewal'
 
@@ -33,7 +35,7 @@ export function RenewalAdviceButton({ policyId }: { policyId: string }) {
       {error && <span className="text-small text-trs-neg">{error}</span>}
       <Btn level="primary" loading={busy} onClick={async () => {
         setBusy(true); setError(null)
-        try { setDone(await callApi<{ work_item_id: string; draft_id: string | null; to: string | null; reason?: string }>(`/api/policies/${policyId}/renewal`, { method: 'POST', body: { action: 'draft' } })) }
+        try { setDone(unwrap(await draftRenewal(policyId)) as { work_item_id: string; draft_id: string | null; to: string | null; reason?: string }) }
         catch (e) { setError(errText(e)) }
         finally { setBusy(false) }
       }}>Draft renewal advice</Btn>

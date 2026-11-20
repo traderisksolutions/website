@@ -16,6 +16,8 @@ import {
   fmtAmount, MOVEMENT_WORD, MOVEMENT_STATUS_WORD, RELATION_WORD,
   type MembersPayload, type MovementKind, type PolicyMovement, type PolicyTransaction, type PolicyView, type SpineQuote,
 } from './types'
+import { unwrap } from '@/lib/action-result'
+import { addMovement, addTransaction, billTransaction, requestEndorsement } from '@/app/policies/actions'
 
 const QUOTING = new Set(['quoting', 'presented'])
 
@@ -73,7 +75,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
   async function requestFromInsurer() {
     setBusy('request'); setError(null)
     try {
-      await callApi<{ draftId: string }>(`/api/policies/${policy.id}/movements/request`, { method: 'POST', body: {} })
+      unwrap(await requestEndorsement(policy.id))
       refresh()
       onOpenDrafts()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
@@ -98,7 +100,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
   async function raiseNote(transactionId: string) {
     setBusy(`bill:${transactionId}`); setError(null); setNotice(null)
     try {
-      await callApi<{ bundle_id: string }>(`/api/policies/transactions/${transactionId}/bill`, { method: 'POST', body: {} })
+      unwrap(await billTransaction(transactionId))
       setNotice('The insurer note is in Debit notes for review. Approving it there links the TRS note here.')
       refresh()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
@@ -503,9 +505,7 @@ function RecordMovementDialog({ open, policyId, onClose, onDone }: { open: boole
     if (!Number.isInteger(n) || n < 1) { setError('Pax must be a whole number of 1 or more.'); return }
     setBusy(true); setError(null)
     try {
-      await callApi<{ movement: PolicyMovement }>(`/api/policies/${policyId}/movements`, {
-        method: 'POST', body: { kind, member_name: name.trim(), relationship, effective_on: effective || undefined, pax: n, detail: detail.trim() ? { note: detail.trim() } : undefined },
-      })
+      unwrap(await addMovement(policyId, { kind, member_name: name.trim(), relationship, effective_on: effective || undefined, pax: n, detail: detail.trim() ? { note: detail.trim() } : undefined }))
       onDone(); onClose()
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }
@@ -576,14 +576,11 @@ function RecordNoteDialog({ open, policyId, currency: defaultCurrency, onClose, 
     if (paxN !== undefined && (!Number.isInteger(paxN) || paxN < 0)) { setError('Pax must be a whole number.'); return }
     setBusy(true); setError(null)
     try {
-      await callApi<{ transaction: PolicyTransaction }>(`/api/policies/${policyId}/transactions`, {
-        method: 'POST',
-        body: {
+      unwrap(await addTransaction(policyId, {
           kind, note_no: noteNo.trim() || undefined, issued_on: issued || undefined, pax: paxN, amount: amt, currency: currency.trim() || 'SGD',
           description: description.trim() || undefined, period_start: periodStart || undefined, period_end: periodEnd || undefined,
           member_names: names.split(',').map(s => s.trim()).filter(Boolean),
-        },
-      })
+        }))
       onDone(); onClose()
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }

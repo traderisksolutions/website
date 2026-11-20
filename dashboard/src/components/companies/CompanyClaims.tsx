@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * The company's Claims tab: the claims register (/api/claims/register) narrowed to this company,
+ * The company's Claims tab: the claims register (claimsRegister) narrowed to this company,
  * the same rows as /claims?company=<id>. A row opens the claim there.
  */
 import { useEffect, useState } from 'react'
@@ -11,6 +11,8 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDate, num } from '@/lib/format'
 import { bucketOf, type RegisterRow as ClaimRow } from '@/lib/admin/b/register-view'
+import { unwrap } from '@/lib/action-result'
+import { claimsRegister } from '@/app/claims/actions'
 
 const CLASS: Record<string, string> = { wica: 'WICA', ghs: 'GHS', gpa: 'GPA', motor: 'Motor', property: 'Property', liability: 'Liability', marine: 'Marine', travel: 'Travel', other: 'Other' }
 const WAITING: Record<string, string> = { trs: 'TRS', client: 'Client', insurer: 'Insurer', adjuster: 'Adjuster', third_party: 'Third party' }
@@ -25,7 +27,7 @@ export function CompanyClaims({ companyId, onCount }: { companyId: string; onCou
   useEffect(() => {
     let live = true
     setRows(null); setError(null)
-    callApi<{ claims: ClaimRow[] }>('/api/claims/register')
+    claimsRegister().then(unwrap).then(claims => ({ claims: claims as unknown as ClaimRow[] }))
       .then(d => { if (!live) return; const mine = d.claims.filter(r => r.company_id === companyId); setRows(mine); onCount?.(mine.filter(r => bucketOf(r) === 'open').length) })
       .catch(e => { if (live) setError(errText(e)) })
     return () => { live = false }

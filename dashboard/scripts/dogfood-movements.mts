@@ -14,7 +14,7 @@ import { createInsurer, createProduct, addProductContact, listProducts } from '.
 import { handleInbound } from '../src/lib/placement/workflow'
 import { markMovementsSent } from '../src/lib/policies/members'
 import { runMovementChases, bundleForTransaction } from '../src/lib/policies/movement-flow'
-import { GET as listBatches } from '../src/app/api/policies/movements/route'
+import { movementBatches } from '../src/lib/policies/movement-batches'
 import { getDriveWriteToken, rootFolderId } from '../src/lib/gdrive-write'
 
 const results: { step: string; ok: boolean; detail: string }[] = []
@@ -91,10 +91,9 @@ try {
   check('4 Insurer note queued for the TRS note', bundle?.source === 'policy_movement' && bundle?.suggested_company_id === client.id && bundle?.pdf_import_items?.[0]?.storage_url === `gmail:${att.id}`, bundle ? `${bundle.status}, ${bundle.pdf_import_items?.[0]?.original_filename}` : 'no bundle')
 
   // ── 5. The movements list ───────────────────────────────────────────────────────────────────
-  const res = await listBatches(new Request('http://local/api/policies/movements', { headers: { authorization: `Bearer ${process.env.CRON_SECRET ?? ''}` } }) as never)
-  const { batches } = await res.json() as { batches: any[] }
+  const { batches } = await movementBatches()
   const mine = (batches ?? []).filter(x => x.policy_number === POLICY_NO)
-  check('5 Member movements list', mine.some(x => x.stage === 'to_bill' && x.joins === 1) && mine.some(x => x.stage === 'insurer' && x.leaves === 1), mine.map(x => `${x.stage}: +${x.joins} −${x.leaves}, expected ${x.expected}, note ${x.note_amount}`).join('; ') || `status ${res.status}`)
+  check('5 Member movements list', mine.some(x => x.stage === 'to_bill' && x.joins === 1) && mine.some(x => x.stage === 'insurer' && x.leaves === 1), mine.map(x => `${x.stage}: +${x.joins} −${x.leaves}, expected ${x.expected}, note ${x.note_amount}`).join('; ') || 'no batch')
 } catch (e) {
   check('Run', false, e instanceof Error ? `${e.message}\n${e.stack?.split('\n').slice(1, 4).join('\n')}` : String(e))
 } finally {

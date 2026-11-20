@@ -11,6 +11,7 @@ import { callApi, dialogCls, errText } from './shared'
 import { unwrap } from '@/lib/action-result'
 import { issue as issueDebitNoteAction } from '@/app/debit-notes/actions'
 import type { IssueInput } from '@/lib/debit-notes/server'
+import { updatePolicy } from '@/app/policies/actions'
 
 const iso = (d: Date) => d.toISOString().slice(0, 10)
 const addDays = (ymd: string, n: number) => { const d = new Date(`${ymd}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return iso(d) }
@@ -77,9 +78,9 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
     try {
       if (policy) {
         // The number and term go on the policy first, so the note carries them.
-        await callApi(`/api/policies/${policy.id}`, { method: 'PATCH', body: number.trim()
+        unwrap(await updatePolicy(policy.id, number.trim()
           ? { lifecycle: 'live', policy_number: number.trim(), start_date: start, end_date: end, insurer: quote?.insurer_name }
-          : { start_date: start, end_date: end } })
+          : { start_date: start, end_date: end }))
       }
       const r = unwrap(await issueDebitNoteAction({
         company: { companyId: placement.company_id },
