@@ -467,6 +467,11 @@ Sources: CL <date> = docs/changelog.md entry; a bare name = Jarod's memory file 
 | DAT-017 | Money, dates and ages are formatted by src/lib/format.ts; copies inside PDFs, emails and CSV exports change only after snapshot tests exist. | CL 11 Nov (later); project_trs_refactor_plan | src/lib/format.ts | rule |
 | DAT-018 | Every /api route sits behind the API gate (x-api-key plus session or cron credential). | CL 30 Sep; project_trs_dashboard_crm | middleware | API-gate coverage check. |
 | DAT-019 | Migrations grant to service_role only (Cloud SQL has no auth schema); PostgREST schema is reloaded after a new table. | project_trs_client_structure (1 Nov); project_trs_marketing_v2 | supabase/migrations | rule |
+| DAT-020 | No image bytes in email_messages.body_html. Ingest stores each cid: inline image and each data:image URI in Drive (email-images/stored/<YYYY-MM>/<hash>.<ext>) and writes a signed link to /api/public/email-image; the editor uploads pasted images. Kept inline: under 1,000 characters, SVG, unreadable. | Jarod 20 Nov | src/lib/mail/inline-images.ts, inline-image-store.ts, ingest, RichEditor.tsx | inline-images.test.ts; journey inline-images DAT-020. |
+| DAT-021 | A stored email's image is served only with its HMAC (?s=, AUTH_SECRET); editor images by Drive id as before; anything else 404. | Jarod 20 Nov | /api/public/email-image/[id] | journey inline-images DAT-021; inline-images.test.ts. |
+| DAT-022 | Daily log trim in the admin sweep, code only: finished agent_tasks over 30 days deleted when the idem_key is dated, else slimmed and kept; error_logs over 90 days deleted; gemini_usage_log and audit_logs never touched. | Jarod 20 Nov | src/lib/maintenance/log-trim.ts, admin-sweep | log-trim.test.ts. |
+| DAT-023 | One-time database jobs read in small batches (25 rows by id cursor, 2 s apart), default to a dry run, log every write and write an undo file first. Never a whole-table aggregate on email_messages. | Jarod 20 Nov | scripts/move-inline-images.ts, scripts/trim-logs.ts | rule |
+| DAT-024 | The API role has a 30 s statement timeout (authenticator); longer work runs as postgres through apply-sql.sh or declares its own on the function. | Jarod 20 Nov | supabase/migrations/20261120_statement_timeout.sql, docs/database.md | rule |
 
 ## Growth
 

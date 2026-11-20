@@ -113,7 +113,8 @@ export const API_RULES: ApiRule[] = [
   {
     // Images inserted into outgoing emails, fetched by recipients' mail clients, which have no
     // login. The route serves only image/* files inside the Drive email-images folder, by their
-    // unguessable Drive id; anything else is 404.
+    // unguessable Drive id; a stored email's inline image (email-images/stored/) also needs the
+    // HMAC in ?s= (src/lib/mail/inline-images.ts); anything else is 404.
     prefix: '/api/public/email-image',
     requirement: 'open',
     reason: 'Images embedded in sent emails; recipients have no account, and only email-images files are served.',
