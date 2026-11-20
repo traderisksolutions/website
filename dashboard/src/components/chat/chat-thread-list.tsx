@@ -38,13 +38,13 @@ export function ChatThreadList({
     <div className="flex-1 overflow-y-auto flex flex-col">
       <button
         onClick={onNew}
-        className="flex items-center gap-2 m-2.5 mb-1.5 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-primary text-[12px] font-semibold hover:bg-primary/10 transition-colors"
+        className="flex items-center gap-2 m-2.5 mb-1.5 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-primary text-12 font-semibold hover:bg-primary/10 transition-colors"
       >
         <Plus size={14} /> New chat
       </button>
 
       {threads.length === 0 ? (
-        <p className="text-[11.5px] text-muted-foreground/60 text-center px-5 py-8">No previous chats yet.</p>
+        <p className="text-12 text-muted-foreground/60 text-center px-5 py-8">No previous chats yet.</p>
       ) : (
         <div className="flex flex-col px-1.5 pb-2">
           {threads.map(t => {
@@ -64,15 +64,15 @@ export function ChatThreadList({
                       onChange={(e) => setEditValue(e.target.value)}
                       onBlur={commitRename}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitRename() } else if (e.key === 'Escape') { setEditingId(null); setEditValue('') } }}
-                      className="w-full text-[12px] rounded border border-primary/40 bg-background px-1.5 py-0.5 outline-none"
+                      className="w-full text-12 rounded border border-primary/40 bg-background px-1.5 py-0.5 outline-none"
                       aria-label="Rename chat"
                     />
                   ) : (
                     <>
-                      <p className={cn('text-[12px] truncate', active ? 'font-semibold text-foreground' : 'text-foreground/85')}>
+                      <p className={cn('text-12 truncate', active ? 'font-semibold text-foreground' : 'text-foreground/85')}>
                         {t.title || 'New chat'}
                       </p>
-                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/55">
+                      <div className="flex items-center gap-1.5 text-11 text-muted-foreground/55">
                         <span>{timeAgo(t.last_message_at ?? t.updated_at)}</span>
                         {t.case_id && <span className="inline-flex items-center gap-0.5"><Briefcase size={9} /> case</span>}
                         {t.status === 'minimized' && <span>· minimised</span>}

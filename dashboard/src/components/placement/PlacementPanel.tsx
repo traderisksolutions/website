@@ -21,7 +21,7 @@ import { callApi, errText, INK, MUTED, ERROR } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
 /** A button inside the dense grid or the placement line: 22px tall so the row stays 34px. */
-const ROW_BTN = 'h-[22px] px-1.5 text-[12px] rounded-[6px]'
+const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-[6px]'
 type RoundTarget = { placementId: string; line: PlacementLine; currentSpec: Spec; currentContactIds: string[]; prefill?: { spec: Spec; source_log_id: string } }
 
 /** The insurer contacts asked in the line's current round. */
@@ -133,9 +133,9 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
           return (
             <div key={p.id} className="py-3 first:pt-0 border-b border-[#e6e8e4] last:border-b-0">
               {/* One 24px line: title · status · inception · client thread · origin, actions on the right. */}
-              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-[12.5px] whitespace-nowrap" style={{ color: MUTED }}>
-                <span className="text-[13px] font-medium tabular-nums" style={{ color: INK }}>{p.ref}</span>
-                <span className="text-[13px] font-medium truncate min-w-0" style={{ color: INK }} title={p.title}>· {p.title}</span>
+              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-12.5 whitespace-nowrap" style={{ color: MUTED }}>
+                <span className="text-13 font-medium tabular-nums" style={{ color: INK }}>{p.ref}</span>
+                <span className="text-13 font-medium truncate min-w-0" style={{ color: INK }} title={p.title}>· {p.title}</span>
                 <span>· Received {fmtDate(p.created_at)}</span>
                 <span>· {STATUS_WORD[p.status]}</span>
                 {p.inception_date && <span>· Inception {fmtDate(p.inception_date)}</span>}
@@ -151,7 +151,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   {letter && letter.state === 'sent' && (
                     <label className="inline-flex">
                       <input type="file" className="hidden" onChange={e => void uploadSigned(p.id, e.target.files)} />
-                      <span className="inline-flex items-center h-[30px] px-3 rounded-[6px] text-[13px] font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
+                      <span className="inline-flex items-center h-[30px] px-3 rounded-[6px] text-13 font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
                     </label>
                   )}
                   {letter && letter.state !== 'signed' && (
@@ -170,7 +170,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
                 </span>
               </div>
-              {errors[p.id] && <p className="text-[12.5px] m-0 mt-1" style={{ color: ERROR }}>{errors[p.id]}</p>}
+              {errors[p.id] && <p className="text-12.5 m-0 mt-1" style={{ color: ERROR }}>{errors[p.id]}</p>}
 
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : positions.map(pos => (
                 <div key={pos.line.id} className="mt-2.5">
@@ -224,7 +224,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
   const limit = pos.round?.spec?.limit ?? pos.line.spec?.limit
   const summary = [pos.roundNo > 0 ? `Round ${pos.roundNo}` : 'No round', limit ? `limit ${limit}` : null, `${pos.quotedCount} of ${asked} quoted`].filter(Boolean).join(' · ')
   return (
-    <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-[12.5px]" style={{ color: MUTED }}>
+    <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-12.5" style={{ color: MUTED }}>
       <span className="font-medium shrink-0" style={{ color: INK }}>{label}</span>
       <span className="shrink-0">· {summary}</span>
       {bind && <span className="shrink-0 px-1.5 rounded-[5px]" style={{ background: '#dcefd2', color: INK }}>{bind}</span>}
@@ -238,7 +238,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
             title={l.insurer_confirmed_at ? undefined : 'The insurer has not confirmed cover yet'}>Issue debit note</Btn>
         )}
         {!finished && l.status !== 'bound' && <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>}
-        {policyId && <Link href={`/policies/${policyId}`} className="text-[12.5px] underline underline-offset-[3px]" style={{ color: INK }}>Policy</Link>}
+        {policyId && <Link href={`/policies/${policyId}`} className="text-12.5 underline underline-offset-[3px]" style={{ color: INK }}>Policy</Link>}
       </span>
     </div>
   )

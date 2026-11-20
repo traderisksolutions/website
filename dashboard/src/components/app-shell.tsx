@@ -38,7 +38,7 @@ export function AppPageHeader({ title, actions, className }: AppPageHeaderProps)
       )}
     >
       <div className="min-w-0">
-        <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink">
+        <h1 className="m-0 text-32 font-medium tracking-[-0.02em] leading-[1.15] text-trs-ink">
           {title}
         </h1>
       </div>

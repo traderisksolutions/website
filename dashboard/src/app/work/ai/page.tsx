@@ -46,7 +46,7 @@ export default function AiApprovalsPage() {
     <div className="bg-white text-trs-ink">
       <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
         <PageHeader title="AI approvals" meta={rows ? `${total} tasks held` : 'Loading…'} />
-        {error && <p className="mt-4 text-[14px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="mt-4 text-14 text-trs-neg" role="alert">{error}</p>}
         {!rows && !error && <div className="mt-8"><Spinner label="Counting held work…" /></div>}
         {rows && (
           <div className="mt-6">
@@ -55,19 +55,19 @@ export default function AiApprovalsPage() {
               <tbody>
                 {rows.map(r => (
                   <RegisterRow key={r.agent}>
-                    <RegisterCell first nowrap={false} primary={<><span className="block">{r.label}</span><span className="block whitespace-normal text-[12.5px] text-trs-muted">{r.does}</span></>} />
+                    <RegisterCell first nowrap={false} primary={<><span className="block">{r.label}</span><span className="block whitespace-normal text-12.5 text-trs-muted">{r.does}</span></>} />
                     <RegisterCell align="right">{r.waiting}</RegisterCell>
                     <RegisterCell>{r.oldest ? fmtDate(r.oldest) : '—'}</RegisterCell>
                     <RegisterCell align="right">
                       <select aria-label={`How many ${r.label} tasks to run`} value={count[r.agent] ?? 10} onChange={e => setCount(c => ({ ...c, [r.agent]: Number(e.target.value) }))} disabled={!r.waiting}
-                        className="h-8 rounded-[7px] border border-trs-line-2 bg-white px-2 text-[13px]">
+                        className="h-8 rounded-[7px] border border-trs-line-2 bg-white px-2 text-13">
                         {[1, 5, 10, max].filter((v, i, a) => a.indexOf(v) === i).map(v => <option key={v} value={v}>{v}</option>)}
                       </select>
                     </RegisterCell>
                     <RegisterCell last>
                       <div className="flex justify-center items-center gap-3">
                         <Btn size="sm" level="secondary" loading={busy === r.agent} disabled={!!busy || !r.waiting} onClick={() => void run(r.agent)}>Run</Btn>
-                        {result[r.agent] && <span className="text-[12.5px] text-trs-muted" role="status">{result[r.agent]}</span>}
+                        {result[r.agent] && <span className="text-12.5 text-trs-muted" role="status">{result[r.agent]}</span>}
                       </div>
                     </RegisterCell>
                   </RegisterRow>

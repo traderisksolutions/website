@@ -41,7 +41,7 @@ export function PeopleFound({ read, token, source }: { read: HrRead; token: stri
   return (
     <>
       <h2>People found: {plural(read.employees.length, 'employee')}{read.dependants.length ? `, ${plural(read.dependants.length, 'dependant')}` : ''}</h2>
-      {inactive > 0 && <p className="hrc-sub" style={{ marginBottom: 12 }}>{plural(inactive, 'person is', 'people are')} not active and will be excluded from the quotation. They stay on the list so the rule is visible.</p>}
+      {inactive > 0 && <p className="hrc-sub mb-3">{plural(inactive, 'person is', 'people are')} not active and will be excluded from the quotation. They stay on the list so the rule is visible.</p>}
       <div className="hrc-scroll">
         <table className="trs-table">
           <thead><tr><th>Name</th><th>Date of birth</th><th>Gender</th><th>Category</th><th>Work pass</th><th>Status</th></tr></thead>
@@ -70,10 +70,10 @@ export function PeopleFound({ read, token, source }: { read: HrRead; token: stri
           </div>
         </>
       )}
-      <p className="hrc-sub" style={{ marginTop: 14 }}>
+      <p className="hrc-sub mt-3.5">
         {read.dependants.length ? 'Dependants were read from the same source. You can add or correct them on the next page.' : `Dependants are not in this ${source}. You can add them on the next page.`}
       </p>
-      <div className="hrc-row" style={{ marginTop: 0 }}>
+      <div className="hrc-row mt-0">
         <Link href={`/connect/${token}/review`} className="hrc-btn p">Continue to review</Link>
       </div>
     </>

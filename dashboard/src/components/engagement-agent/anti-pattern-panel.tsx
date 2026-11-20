@@ -18,7 +18,7 @@ export function AntiPatternPanel({ watchOuts }: AntiPatternPanelProps) {
       <button
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
-        className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-1.5 text-11 text-muted-foreground hover:text-foreground transition-colors"
       >
         <AlertTriangle size={9} strokeWidth={2} className="text-[--warning]" />
         <span>
@@ -32,7 +32,7 @@ export function AntiPatternPanel({ watchOuts }: AntiPatternPanelProps) {
           {watchOuts.map((w, i) => (
             <li key={i} className="flex items-start gap-1.5 px-2 py-1.5 bg-[--warning-bg]/60 rounded-lg">
               <span className="w-[4px] h-[4px] rounded-full bg-[--warning] flex-shrink-0 mt-[5px]" />
-              <p className="text-[9.5px] text-foreground/65 leading-[1.5] m-0">{w}</p>
+              <p className="text-11 text-foreground/65 leading-[1.5] m-0">{w}</p>
             </li>
           ))}
         </ul>

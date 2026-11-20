@@ -33,7 +33,7 @@ export function ChecklistPanel() {
   const load = useCallback(() => callApi<Data>('/api/settings/checklists'), [])
   useEffect(() => { load().then(setData).catch(e => setFailed(errText(e))) }, [load])
 
-  if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
   if (!data) return <Spinner label="Loading checklists…" />
 
   async function send(key: string, method: 'POST' | 'PATCH', body: Record<string, unknown>, onFail: (m: string) => void = setError): Promise<boolean> {
@@ -60,11 +60,11 @@ export function ChecklistPanel() {
 
   return (
     <div className="flex flex-col gap-6 min-w-0">
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-13.5 text-trs-neg" role="alert">{error}</p>}
       {data.lists.map(l => (
         <section key={l.line} aria-label={l.name} className="flex flex-col gap-2 min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-            <h3 className="m-0 flex flex-wrap items-center gap-2 text-[14px] font-semibold text-trs-ink">
+            <h3 className="m-0 flex flex-wrap items-center gap-2 text-14 font-semibold text-trs-ink">
               {l.name}
               {l.confirmed_by
                 ? <Chip tone="green">Confirmed · {actorName(l.confirmed_by, data.staff)}{l.confirmed_at ? ` · ${fmtDay(l.confirmed_at)}` : ''}</Chip>
@@ -77,7 +77,7 @@ export function ChecklistPanel() {
           </div>
           {l.items.length === 0 ? <Empty compact>No document on this list.</Empty> : (
             <div className="relative overflow-x-auto">
-              <table className="trs-table w-full text-[13px]" style={{ minWidth: 760 }} aria-label={`${l.name} documents`}>
+              <table className="trs-table w-full text-13" style={{ minWidth: 760 }} aria-label={`${l.name} documents`}>
                 <thead><tr><th>Document</th><th>Need</th><th>Found by</th><th>File name says</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>
                   {l.items.map(i => (
@@ -141,10 +141,10 @@ export function ChecklistPanel() {
               </Field>
               {draft.found_by === 'file' && <>
                 <fieldset className="m-0 p-0 border-0 min-w-0">
-                  <legend className="block text-[12.5px] mb-1.5 text-trs-muted">Document types</legend>
+                  <legend className="block text-12.5 mb-1.5 text-trs-muted">Document types</legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                     {data.doc_types.map(t => (
-                      <label key={t.slug} className="flex items-center gap-2 text-[13px] text-trs-ink min-w-0">
+                      <label key={t.slug} className="flex items-center gap-2 text-13 text-trs-ink min-w-0">
                         <input type="checkbox" checked={draft.doc_types.includes(t.slug)}
                           onChange={e => setDraft({ ...draft, doc_types: e.target.checked ? [...draft.doc_types, t.slug] : draft.doc_types.filter(s => s !== t.slug) })} />
                         <span className="truncate">{t.label}</span>
@@ -156,7 +156,7 @@ export function ChecklistPanel() {
                   <input className={inputCls} value={draft.words} onChange={e => setDraft({ ...draft, words: e.target.value })} />
                 </Field>
               </>}
-              {draftError && <p className="m-0 text-[13px] text-trs-neg" role="alert">{draftError}</p>}
+              {draftError && <p className="m-0 text-13 text-trs-neg" role="alert">{draftError}</p>}
             </div>
           )}
           <DialogFooter className="gap-2 sm:space-x-0">

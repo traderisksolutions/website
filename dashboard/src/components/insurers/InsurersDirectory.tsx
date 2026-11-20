@@ -15,7 +15,7 @@ import { num } from '@/lib/format'
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
 const COLS = 13
-const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
+const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
 const dash = <span className="text-trs-subtle">—</span>
 const short = (xs: string[]) => xs.length === 0 ? dash : <span title={xs.join(', ')}>{xs.slice(0, 2).join(', ')}{xs.length > 2 ? ` +${xs.length - 2}` : ''}</span>
 
@@ -64,8 +64,8 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
       <div className={embedded ? 'pt-6' : 'mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20'}>
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            {!embedded && <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Insurers</h1>}
-            <p className={embedded ? 'm-0 text-[14px]' : 'm-0 mt-2 text-[15px]'} style={{ color: MUTED }}>
+            {!embedded && <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]">Insurers</h1>}
+            <p className={embedded ? 'm-0 text-14' : 'm-0 mt-2 text-15'} style={{ color: MUTED }}>
               {rows ? `${new Set(rows.map(r => r.insurer_company_id)).size} insurers · ${total} products${noContact ? ` · ${noContact} with no one to ask` : ''}` : 'Loading…'}
             </p>
           </div>
@@ -73,10 +73,10 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
             <label className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-trs-subtle" />
               <input id="insurers-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search insurers, products, people" aria-label="Search insurers"
-                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412] border-trs-line-2"  />
+                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-14 outline-none focus:border-[#0f1412] border-trs-line-2"  />
               {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><X size={13} /></button>}
             </label>
-            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-[7px] border bg-white px-3 text-[14px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
+            <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-[7px] border bg-white px-3 text-14 cursor-pointer border-trs-line-2 text-trs-ink">
               <option value="">All lines</option>
               {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
             </select>
@@ -91,7 +91,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
             onProduct={p => { setRows(rs => [...(rs ?? []), { ...p, stats: { asked: 0, quoted: 0, declined: 0, won: 0, avg_days: null, last_asked: null, declined_industries: [] } }]); setOpen(p.id); setAdding(null) }} />
         )}
 
-        {error && <p className="mt-4 text-[13px] text-trs-neg">{error}</p>}
+        {error && <p className="mt-4 text-13 text-trs-neg">{error}</p>}
         <div className="mt-5"><Segmented<'products' | 'declines'> value={view} onChange={setView} options={[{ value: 'products', label: 'Products' }, { value: 'declines', label: 'Declines' }]} /></div>
         {view === 'declines' && <div className="mt-4"><DeclinesRegister q={q} line={line} /></div>}
         <div className="mt-6" hidden={view !== 'products'}>
@@ -153,8 +153,8 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
             </Register>
             {insurers.length > 0 && (
               <section className="mt-10">
-                <h2 className="m-0 mb-3 text-[16px] font-medium">Email threads by insurer</h2>
-                <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+                <h2 className="m-0 mb-3 text-16 font-medium">Email threads by insurer</h2>
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-14">
                   {insurers.map(i => <Link key={i.id} href={`/insurers/${i.id}`} className="no-underline hover:underline text-trs-ink">{i.name}</Link>)}
                 </div>
               </section>
@@ -189,7 +189,7 @@ function AddBar({ mode, insurers, defaultLine, onClose, onInsurer, onProduct }: 
   const ready = name.trim() && (mode === 'insurer' || insurerId)
   return (
     <div className="mt-6 flex items-center gap-2 flex-wrap rounded-[10px] px-3 py-2" style={{ border: '1px solid #e6e8e4', background: '#fafafa' }}>
-      <span className="text-[13px] font-medium mr-1">{mode === 'insurer' ? 'New insurer' : 'New product'}</span>
+      <span className="text-13 font-medium mr-1">{mode === 'insurer' ? 'New insurer' : 'New product'}</span>
       {mode === 'insurer' ? (
         <>
           <input id="add-insurer-name" className={cell} style={{ width: 240 }} placeholder="Insurer name" value={name} onChange={e => setName(e.target.value)} autoFocus />
@@ -209,7 +209,7 @@ function AddBar({ mode, insurers, defaultLine, onClose, onInsurer, onProduct }: 
       )}
       <Btn level="primary" size="xs" onClick={submit} loading={busy} disabled={!ready}>{mode === 'insurer' ? 'Add insurer' : 'Add product'}</Btn>
       <Btn size="xs" onClick={onClose} disabled={busy}>Cancel</Btn>
-      {error && <span className="text-[13px] text-trs-neg">{error}</span>}
+      {error && <span className="text-13 text-trs-neg">{error}</span>}
     </div>
   )
 }

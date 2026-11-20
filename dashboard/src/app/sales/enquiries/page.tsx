@@ -88,8 +88,8 @@ function Enquiries() {
     <AppSplitLayout className="bg-white">
       <AppMainPanel className="bg-white">
         <div className="flex-shrink-0 px-6 sm:px-12 pt-10 text-trs-ink">
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Enquiries</h1>
-          <p className="m-0 mt-2 text-[15px] text-trs-muted">
+          <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]">Enquiries</h1>
+          <p className="m-0 mt-2 text-15 text-trs-muted">
             {!siteCounts ? 'Loading…' : <>{siteName} · {siteCounts.total} submission{siteCounts.total === 1 ? '' : 's'} · {siteCounts.open} new</>}
           </p>
 
@@ -101,7 +101,7 @@ function Enquiries() {
           <div className="mt-4 pb-4 flex items-center justify-between gap-3 flex-wrap" style={{ borderBottom: '1px solid #e6e8e4' }}>
             <label className="inline-flex">
               <span className="sr-only">Status</span>
-              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-[13.5px] pr-8', status !== 'all' && 'border-[#0f1412] font-medium')}>
+              <select value={status} onChange={e => go({ status: e.target.value, id: null })} className={cn(inputCls, 'h-9 w-auto text-13.5 pr-8', status !== 'all' && 'border-[#0f1412] font-medium')}>
                 {STATUS_FILTERS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
@@ -110,7 +110,7 @@ function Enquiries() {
         </div>
 
         <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16 text-trs-ink">
-          {error && <p className="m-0 mb-4 text-[14px]" role="alert">{error}</p>}
+          {error && <p className="m-0 mb-4 text-14" role="alert">{error}</p>}
           <Register label={`${siteName} enquiries`} minWidth={1080} className={cn(loading && 'opacity-60')}>
             <RegisterHead>
               <RegisterTh first hint="Company and the person who filled the form">Company</RegisterTh>

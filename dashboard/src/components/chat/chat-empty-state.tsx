@@ -27,21 +27,21 @@ export function ChatEmptyState({ onPick }: { caseAware?: boolean; onPick: (promp
         <Sparkles size={18} className="text-primary" />
       </div>
       <div>
-        <p className="text-[13px] font-semibold text-foreground">Your case consultant</p>
-        <p className="text-[11.5px] text-muted-foreground/70 mt-0.5 leading-[1.5]">
+        <p className="text-13 font-semibold text-foreground">Your case consultant</p>
+        <p className="text-12 text-muted-foreground/70 mt-0.5 leading-[1.5]">
           Ask about this case, or tell me what to change — a next step, a deadline, the blocking issue, an email. I propose the exact change; you confirm it.
         </p>
       </div>
       <div className="flex flex-col gap-1.5 w-full mt-1">
         {/* Prominent proactive action */}
         <button onClick={() => onPick(GAP_REVIEW_PROMPT)}
-          className="flex items-center gap-2 text-left text-[11.5px] font-semibold rounded-lg border border-primary/30 bg-primary/[0.07] px-3 py-2 text-primary hover:bg-primary/[0.12] transition-colors">
+          className="flex items-center gap-2 text-left text-12 font-semibold rounded-lg border border-primary/30 bg-primary/[0.07] px-3 py-2 text-primary hover:bg-primary/[0.12] transition-colors">
           <ScanSearch size={13} strokeWidth={2} className="flex-shrink-0" />
           Review this case for gaps
         </button>
         {prompts.map((p, i) => (
           <button key={i} onClick={() => onPick(p)}
-            className="text-left text-[11.5px] rounded-lg border border-[--border-subtle] bg-card px-3 py-2 text-foreground/80 hover:border-primary/40 hover:bg-primary/5 transition-colors">
+            className="text-left text-12 rounded-lg border border-[--border-subtle] bg-card px-3 py-2 text-foreground/80 hover:border-primary/40 hover:bg-primary/5 transition-colors">
             {p}
           </button>
         ))}

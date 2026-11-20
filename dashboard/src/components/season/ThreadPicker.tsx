@@ -57,7 +57,7 @@ export function ThreadPicker({ target, today, onClose, onContinue }: {
           <DialogTitle>Select conversations</DialogTitle>
           <DialogDescription>{[target?.company, target?.title].filter(Boolean).join(' · ')}</DialogDescription>
         </DialogHeader>
-        {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="m-0 text-13.5 text-trs-neg" role="alert">{error}</p>}
         {!view ? (error ? null : <Spinner label="Loading the client’s threads…" />) : (
           <>
             <Segmented<Relevance> value={group} onChange={setGroup} label="Relevance" options={RELEVANCE.map(r => ({ value: r, label: RELEVANCE_NAME[r], count: groups[r].length }))} />
@@ -84,7 +84,7 @@ export function ThreadPicker({ target, today, onClose, onContinue }: {
                 </table>
               </div>
             )}
-            {view.hidden > 0 && <p className="m-0 text-[12.5px] tabular-nums text-trs-muted">{count(view.hidden, 'thread')} in a colleague’s mailbox not listed</p>}
+            {view.hidden > 0 && <p className="m-0 text-12.5 tabular-nums text-trs-muted">{count(view.hidden, 'thread')} in a colleague’s mailbox not listed</p>}
           </>
         )}
         <DialogFooter className="gap-2 sm:space-x-0">

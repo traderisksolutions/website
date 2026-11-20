@@ -79,8 +79,8 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
       <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[22px] font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{existing ? existing.title : 'New entry'}</h2>
-            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-[13.5px] text-trs-muted">
+            <h2 className="m-0 text-20 font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{existing ? existing.title : 'New entry'}</h2>
+            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-13.5 text-trs-muted">
               {existing && <KnowledgeStatusChip status={existing.status} />}
               <span>{meta.label}</span>
               {existing && <span>· updated {fmtDate(existing.updated_at)}{existing.updated_by ? ` by ${existing.updated_by}` : ''}</span>}
@@ -107,7 +107,7 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
           </Field>
         ))}
         <Field label="Applies to" hint="None selected = every market">
-          <div className="flex flex-wrap gap-3 text-[14px]">
+          <div className="flex flex-wrap gap-3 text-14">
             {markets.map(m => (
               <label key={m} className="inline-flex items-center gap-1.5 cursor-pointer">
                 <input type="checkbox" checked={form.markets.includes(m)} onChange={e => setForm(f => ({ ...f, markets: e.target.checked ? Array.from(new Set([...f.markets, m])) : f.markets.filter(x => x !== m) }))} />
@@ -120,7 +120,7 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
           <Field label="Language"><Segmented value={form.language} onChange={v => setForm(f => ({ ...f, language: v }))} options={[{ value: 'en', label: 'English' }, { value: 'id', label: 'Bahasa' }]} /></Field>
           <Field label="Priority (0 to 10)"><input type="number" min={0} max={10} value={form.priority} onChange={e => setForm(f => ({ ...f, priority: Number(e.target.value) }))} className={inputCls} /></Field>
         </div>
-        {error && <p className="m-0 text-[13px]" role="alert">{error}</p>}
+        {error && <p className="m-0 text-13" role="alert">{error}</p>}
       </div>
       <div className="flex-shrink-0 px-6 py-4 flex items-center gap-2 flex-wrap" style={{ borderTop: `1px solid ${RULE}` }}>
         <Btn level="primary" disabled={!!busy || !valid} onClick={() => save()}>{busy === 'save' ? 'Saving…' : existing ? 'Save' : 'Add entry'}</Btn>

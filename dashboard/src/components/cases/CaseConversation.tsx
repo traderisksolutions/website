@@ -39,7 +39,7 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
     load().then(setData).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
   if (!data) return <Spinner label="Loading conversation…" />
 
   const { sources, memory } = data
@@ -58,18 +58,18 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDayTime(m.at)}</td>
                   <td className="cell-left px-3 py-2">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[13px] text-trs-ink [overflow-wrap:anywhere]" title={m.from}>{m.by === 'trs' && m.name.includes('@') ? actorName(m.from, memory.staff) : m.name}</span>
+                      <span className="text-13 text-trs-ink [overflow-wrap:anywhere]" title={m.from}>{m.by === 'trs' && m.name.includes('@') ? actorName(m.from, memory.staff) : m.name}</span>
                       {m.by === 'trs' && <Chip>TRS</Chip>}
                       {fresh.has(m.message_id) && <Chip tone="amber">New</Chip>}
                     </span>
                   </td>
                   <td className="cell-left px-3 py-2">
                     <button type="button" onClick={() => onOpenThread(m.thread_id)} title="Open the email thread"
-                      className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] leading-[1.5] text-trs-ink whitespace-pre-line break-words">
+                      className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-13 leading-[1.5] text-trs-ink whitespace-pre-line break-words">
                       {dense(m.text) || <span className="text-trs-muted">No text</span>}
                     </button>
                   </td>
-                  <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
+                  <td className="cell-left px-3 py-2 text-13 leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
                 </tr>
               ))}
             </tbody>
@@ -82,7 +82,7 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
   return (
     <section aria-label="Conversation" className="flex flex-col gap-5 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <p className="m-0 text-[13px] text-trs-muted">{count(sources.picked.length, 'thread')} on the case</p>
+        <p className="m-0 text-13 text-trs-muted">{count(sources.picked.length, 'thread')} on the case</p>
         <ReadNewButton id={id} unread={memory.new_emails} level="primary" onError={onError}
           onDone={notice => { onNotice(notice); onChanged(); load().then(setData).catch(e => onError(errText(e))) }} />
       </div>

@@ -34,24 +34,24 @@ function LoginCard() {
         {/* Wordmark */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center rounded-[12px] mb-4 w-12 h-12 bg-trs-ink">
-            <span className="text-white text-[16px] font-medium tracking-[-0.01em]">TRS</span>
+            <span className="text-white text-16 font-medium tracking-[-0.01em]">TRS</span>
           </div>
-          <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight text-trs-ink">
+          <h1 className="m-0 text-24 font-medium tracking-[-0.02em] leading-tight text-trs-ink">
             Trade Risk Solutions
           </h1>
-          <p className="m-0 mt-1.5 text-[14px] text-trs-muted">Internal dashboard</p>
+          <p className="m-0 mt-1.5 text-14 text-trs-muted">Internal dashboard</p>
         </div>
 
         {/* Error */}
         {error && (
-          <p role="alert" className="m-0 mb-5 text-[13.5px] text-center leading-relaxed text-trs-ink-2">{error}</p>
+          <p role="alert" className="m-0 mb-5 text-13.5 text-center leading-relaxed text-trs-ink-2">{error}</p>
         )}
 
         {/* Sign in button */}
         <button
           type="button"
           onClick={signInWithGoogle}
-          className="w-full h-9 inline-flex items-center justify-center gap-2.5 px-5 rounded-[7px] bg-white text-[14px] font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
+          className="w-full h-9 inline-flex items-center justify-center gap-2.5 px-5 rounded-[7px] bg-white text-14 font-medium cursor-pointer hover:bg-[#faf9f6] transition-colors"
           style={{ border: '1px solid #d5d9d4', color: INK }}
         >
           {/* Google logo: the brand mark, not UI state colour */}
@@ -64,7 +64,7 @@ function LoginCard() {
           Sign in with Google
         </button>
 
-        <p className="m-0 mt-5 text-center text-[13px] leading-relaxed text-trs-muted">
+        <p className="m-0 mt-5 text-center text-13 leading-relaxed text-trs-muted">
           Only @trade-risksol.com accounts can sign in.
         </p>
       </div>

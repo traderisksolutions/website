@@ -68,14 +68,14 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
 
   if (error) {
     return (
-      <p className="m-0 text-[13px]" style={{ color: ERROR }}>
+      <p className="m-0 text-13" style={{ color: ERROR }}>
         {error}{' '}
-        <button type="button" className="bg-transparent border-0 p-0 underline cursor-pointer text-[13px]" style={{ color: INK }} onClick={() => setAttempt(a => a + 1)}>Retry</button>
+        <button type="button" className="bg-transparent border-0 p-0 underline cursor-pointer text-13" style={{ color: INK }} onClick={() => setAttempt(a => a + 1)}>Retry</button>
       </p>
     )
   }
   if (!routes || value === null) return <Spinner label="Loading insurer contacts…" />
-  if (routes.length === 0) return <p className="m-0 text-[14px]" style={{ color: MUTED }}>No insurer contact on file for this product line.</p>
+  if (routes.length === 0) return <p className="m-0 text-14" style={{ color: MUTED }}>No insurer contact on file for this product line.</p>
 
   const selected = routes.filter(r => value.has(r.contact_id)).length
   const toggle = (id: string, on: boolean) => { const n = new Set(value); if (on) n.add(id); else n.delete(id); onChange(n) }
@@ -83,7 +83,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-[13px]" style={{ color: INK }}>{selected} of {routes.length} contacts selected</p>
+      <p className="m-0 text-13" style={{ color: INK }}>{selected} of {routes.length} contacts selected</p>
       <Register label="Insurer contacts" minWidth={480}>
         <RegisterHead>
           <RegisterTh first width={64}>Ask</RegisterTh>
@@ -109,7 +109,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
                   <span className="font-normal" style={{ color: MUTED }}>{on} of {rs.length}</span>
                 </label>
                 {products.map(s => (
-                  <span key={s.product.id} className="ml-3 font-normal text-[12px]" style={{ color: s.excluded ? ERROR : MUTED }}>
+                  <span key={s.product.id} className="ml-3 font-normal text-12" style={{ color: s.excluded ? ERROR : MUTED }}>
                     {s.product.name}{s.reasons.length ? ` · ${s.reasons.join(' · ')}` : ''}
                   </span>
                 ))}

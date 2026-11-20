@@ -73,7 +73,7 @@ export default function WorkdayPage() {
               <input id="wd-pass" type="password" autoComplete="off" value={form.password} onChange={set('password')} />
             </div>
             {error && <p className="hrc-err">{error}</p>}
-            <div className="hrc-row" style={{ marginTop: 10 }}>
+            <div className="hrc-row mt-2.5">
               <button type="submit" className="hrc-btn p" disabled={busy || !ready}>{busy ? 'Reading Workday.' : 'Fetch the worker list'}</button>
               <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
             </div>

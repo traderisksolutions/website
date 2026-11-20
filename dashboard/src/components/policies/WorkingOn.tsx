@@ -40,7 +40,7 @@ function Track({ at }: { at: number }) {
 function StageSelect<T extends string>({ value, list, label, onChange }: { value: T; list: readonly (readonly [T, string])[]; label: string; onChange: (v: T) => void }) {
   return (
     <select value={value} aria-label={label} onChange={e => onChange(e.target.value as T)}
-      className="h-[30px] rounded-[7px] border border-trs-line-2 bg-white px-2 text-[13px] text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
+      className="h-[30px] rounded-[7px] border border-trs-line-2 bg-white px-2 text-13 text-trs-ink cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
       {list.map(([k, w]) => <option key={k} value={k}>{w}</option>)}
     </select>
   )
@@ -97,11 +97,11 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
                             <RegisterRow key={r.line_id}>
                               <RegisterCell first identityWidth={260} nowrap={false}>
                                 {r.thread_id
-                                  ? <Link href={`/engagement?lead=${r.thread_id}`} className="block text-[13.5px] font-medium text-trs-ink underline decoration-trs-line-2 underline-offset-[3px]" title="Open the email thread">{r.label} ↗</Link>
-                                  : <span className="block text-[13.5px] font-medium text-trs-ink">{r.label}</span>}
-                                <span className="block text-[12px] text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
-                                {r.thread_subject && <span className="block text-[12px] text-trs-muted truncate">Email · {r.thread_subject}</span>}
-                                <Link href={`/policies/working/${r.line_id}`} className="text-[12px] text-trs-green underline underline-offset-[3px]">Policy page</Link>
+                                  ? <Link href={`/engagement?lead=${r.thread_id}`} className="block text-13.5 font-medium text-trs-ink underline decoration-trs-line-2 underline-offset-[3px]" title="Open the email thread">{r.label} ↗</Link>
+                                  : <span className="block text-13.5 font-medium text-trs-ink">{r.label}</span>}
+                                <span className="block text-12 text-trs-muted">{typeWord(r.request_type) ?? 'Type not set'}</span>
+                                {r.thread_subject && <span className="block text-12 text-trs-muted truncate">Email · {r.thread_subject}</span>}
+                                <Link href={`/policies/working/${r.line_id}`} className="text-12 text-trs-green underline underline-offset-[3px]">Policy page</Link>
                               </RegisterCell>
                               <RegisterCell primary={r.existing == null ? '—' : r.existing ? 'Yes' : 'No'} />
                               <RegisterCell primary={r.renewal_date ? fmtDate(r.renewal_date) : '—'} secondary={days != null ? <span className={days <= 21 ? 'text-trs-neg' : ''}>{days} days</span> : undefined} />
@@ -114,7 +114,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
                                 <div className="flex flex-col items-center"><Track at={ii} />
                                   <StageSelect value={r.insurer_stage} list={INSURER_STAGES} label={`Insurer side, ${r.label}`} onChange={v => void patch(r, { insurer_stage: v }, `${r.label} insurer side ${INSURER_STAGES.find(([k]) => k === v)?.[1]}`)} />
                                   {(r.quoted.length > 0 || r.waiting.length > 0 || r.declined.length > 0) && (
-                                    <span className="mt-1.5 max-w-[260px] whitespace-normal text-[12px] text-trs-muted">
+                                    <span className="mt-1.5 max-w-[260px] whitespace-normal text-12 text-trs-muted">
                                       {[r.quoted.length ? <span key="q" className="text-trs-pos">{r.quoted.join(', ')} quoted</span> : null,
                                         r.waiting.length ? <span key="w">{r.waiting.join(', ')} waiting</span> : null,
                                         r.declined.length ? <span key="d" className="text-trs-neg">{r.declined.join(', ')} declined</span> : null]
@@ -148,13 +148,13 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
     return (
       <div className="flex flex-col gap-3 min-w-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[13px] text-trs-muted">{rows ? `${g.rows.length} ${g.rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}</span>
+          <span className="text-13 text-trs-muted">{rows ? `${g.rows.length} ${g.rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}</span>
           <Btn onClick={() => setAdding({ company })}>Add from emails</Btn>
         </div>
-        {note && <div className="text-[13px]" role="status">{note}</div>}
-        {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+        {note && <div className="text-13" role="status">{note}</div>}
+        {error && <div className="text-13 text-trs-neg">{error}</div>}
         {!rows && !error && <Spinner label="Loading the policies being worked on" />}
-        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-[8px] border border-trs-line-2 px-4 py-8 text-center text-[13px] text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
+        {rows && (g.rows.length ? policyTable(g) : <div className="rounded-[8px] border border-trs-line-2 px-4 py-8 text-center text-13 text-trs-muted">No policies being worked on. Add one from an email thread.</div>)}
         {addModal}
       </div>
     )
@@ -164,13 +164,13 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0">
       <PageHeader title="Policies" meta={rows ? `${groups.length} ${groups.length === 1 ? 'client' : 'clients'} · ${rows.length} ${rows.length === 1 ? 'policy' : 'policies'} working on` : 'Loading'}
         actions={<>
-          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-[11px] text-trs-muted">Pending AI build</span></span>
+          <span className="inline-flex flex-col items-center gap-0.5"><Btn disabled title="Pending AI build">AI read emails</Btn><span className="text-11 text-trs-muted">Pending AI build</span></span>
           <Btn level="primary" onClick={() => setAdding({})}>Add from emails</Btn>
         </>}>
         {filters}
       </PageHeader>
-      {note && <div className="text-[13px]" role="status">{note}</div>}
-      {error && <div className="text-[13px] text-trs-neg">{error}</div>}
+      {note && <div className="text-13" role="status">{note}</div>}
+      {error && <div className="text-13 text-trs-neg">{error}</div>}
       {!rows && !error && <Spinner label="Loading the policies being worked on" />}
       {rows && (
         <Register label="Clients with policies being worked on" minWidth={480}>

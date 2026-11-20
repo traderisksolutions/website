@@ -58,7 +58,7 @@ export default function TalenoxPage() {
               <input id="talenox-token" type="password" autoComplete="off" value={apiToken} onChange={e => setApiToken(e.target.value)} placeholder="Paste the token" />
             </div>
             {error && <p className="hrc-err">{error}</p>}
-            <div className="hrc-row" style={{ marginTop: 10 }}>
+            <div className="hrc-row mt-2.5">
               <button type="submit" className="hrc-btn p" disabled={busy || apiToken.trim().length < 10}>{busy ? 'Reading Talenox.' : 'Fetch the employee list'}</button>
               <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
             </div>

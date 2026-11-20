@@ -72,8 +72,8 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
       <div className="flex-shrink-0 px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${RULE}` }}>
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[22px] font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{it ? it.company_name ?? 'No company yet' : 'Enquiry'}</h2>
-            {it && <p className="m-0 mt-2 text-[13.5px] text-trs-muted">
+            <h2 className="m-0 text-20 font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{it ? it.company_name ?? 'No company yet' : 'Enquiry'}</h2>
+            {it && <p className="m-0 mt-2 text-13.5 text-trs-muted">
               {it.status === 'partial' ? `Unfinished · last saved ${fmtWhen(it.updated_at)}` : `Submitted ${fmtWhen(it.submitted_at)}`}
             </p>}
           </div>
@@ -85,9 +85,9 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-10">
-        {state.status === 'loading' && <p className="m-0 px-4 py-6 text-[14px] text-trs-muted">Loading…</p>}
-        {state.status === 'missing' && <p className="m-0 px-4 py-6 text-[14px]" role="alert">This enquiry no longer exists.</p>}
-        {state.status === 'error' && <p className="m-0 px-4 py-6 text-[14px]" role="alert">This enquiry did not load. Close and try again.</p>}
+        {state.status === 'loading' && <p className="m-0 px-4 py-6 text-14 text-trs-muted">Loading…</p>}
+        {state.status === 'missing' && <p className="m-0 px-4 py-6 text-14" role="alert">This enquiry no longer exists.</p>}
+        {state.status === 'error' && <p className="m-0 px-4 py-6 text-14" role="alert">This enquiry did not load. Close and try again.</p>}
         {it && <Body key={it.id} it={it} onChanged={changed} />}
       </div>
     </aside>
@@ -144,19 +144,19 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
     <>
       <DetailSection label="Progress">
         <div className="grid gap-3">
-          {it.status === 'partial' ? <p className="m-0 text-[14px] text-trs-muted">The buyer has not finished the form.</p> : (
-            <label className="grid gap-1 text-[12px] text-trs-muted">Status
-              <select value={status} onChange={e => setStatus(e.target.value)} className={`${inputCls} h-9 text-[14px]`}>
+          {it.status === 'partial' ? <p className="m-0 text-14 text-trs-muted">The buyer has not finished the form.</p> : (
+            <label className="grid gap-1 text-12 text-trs-muted">Status
+              <select value={status} onChange={e => setStatus(e.target.value)} className={`${inputCls} h-9 text-14`}>
                 {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
           )}
-          <label className="grid gap-1 text-[12px] text-trs-muted">Note
-            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} className={`${textareaCls} text-[14px]`} placeholder="What was agreed on the call" />
+          <label className="grid gap-1 text-12 text-trs-muted">Note
+            <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} className={`${textareaCls} text-14`} placeholder="What was agreed on the call" />
           </label>
           <div className="flex items-center gap-3">
             <Btn level="primary" onClick={save} disabled={!dirty} loading={busy}>Save</Btn>
-            {err && <span className="text-[13px]" role="alert">{err}</span>}
+            {err && <span className="text-13" role="alert">{err}</span>}
           </div>
         </div>
       </DetailSection>
@@ -169,8 +169,8 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
       </DetailSection>
 
       <DetailSection label={`Cover requested · ${it.product_requests?.length ?? 0}`}>
-        {(it.product_requests ?? []).length === 0 ? <p className="m-0 text-[14px] text-trs-muted">None chosen yet.</p> : (
-          <table className="trs-table w-full border-collapse text-[13.5px]">
+        {(it.product_requests ?? []).length === 0 ? <p className="m-0 text-14 text-trs-muted">None chosen yet.</p> : (
+          <table className="trs-table w-full border-collapse text-13.5">
             <thead><tr className="text-trs-muted"><th className="font-normal py-1.5 px-3">Cover</th><th className="font-normal py-1.5 px-3">Chubb form</th><th className="font-normal py-1.5 px-3">Chubb table</th></tr></thead>
             <tbody>{it.product_requests.map(p => (
               <tr key={p.product} style={{ borderTop: `1px solid ${RULE}` }}>
@@ -185,7 +185,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
 
       {groups.map(g => (
         <DetailSection key={g.sec} label={g.sec}>
-          <table className="trs-table w-full border-collapse text-[13.5px]">
+          <table className="trs-table w-full border-collapse text-13.5">
             <tbody>{g.items.map(a => (
               <tr key={a.id} style={{ borderTop: `1px solid ${RULE}` }}>
                 <td className="py-2 px-3 align-top w-[55%] text-trs-muted">{a.title}</td>
@@ -198,7 +198,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
       {formKeys.length > 0 && (
         <DetailSection label="Proposal fields">
           <div className="overflow-x-auto">
-            <table className="trs-table w-full border-collapse text-[13px]">
+            <table className="trs-table w-full border-collapse text-13">
               <thead><tr className="text-trs-muted"><th className="font-normal py-1.5 px-3">Form</th>{SOURCE_COLUMNS.map(([, l]) => <th key={l} className="font-normal py-1.5 px-1.5">{l}</th>)}</tr></thead>
               <tbody>{formKeys.map(k => (
                 <tr key={k} style={{ borderTop: `1px solid ${RULE}` }}>
@@ -212,7 +212,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
 
       {it.documents?.length > 0 && (
         <DetailSection label="Documents">
-          {it.documents.map((d, i) => <p key={i} className="m-0 text-[14px]">{d.name ?? 'File'}{d.bytes ? ` · ${(d.bytes / 1048576).toFixed(1)} MB` : ''} <span className="text-trs-muted">(name only; ask the buyer to email it)</span></p>)}
+          {it.documents.map((d, i) => <p key={i} className="m-0 text-14">{d.name ?? 'File'}{d.bytes ? ` · ${(d.bytes / 1048576).toFixed(1)} MB` : ''} <span className="text-trs-muted">(name only; ask the buyer to email it)</span></p>)}
         </DetailSection>
       )}
 
@@ -220,7 +220,7 @@ function Body({ it, onChanged }: { it: Intake; onChanged: () => void }) {
         <DetailField label="PDPA consent">{it.consent_pdpa_at ? fmtWhen(it.consent_pdpa_at) : 'Not given'}</DetailField>
         <DetailField label="Page">{it.source_url ?? '–'}</DetailField>
         <DetailField label="Started">{fmtWhen(it.created_at)}</DetailField>
-        <DetailField label="Submission id"><span className="text-[12.5px] tabular-nums text-trs-muted">{it.id}</span></DetailField>
+        <DetailField label="Submission id"><span className="text-12.5 tabular-nums text-trs-muted">{it.id}</span></DetailField>
       </DetailSection>
     </>
   )

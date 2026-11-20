@@ -43,16 +43,16 @@ export function SeasonTable({ rows, starting, onStart, onPick, onWishes }: {
                   {r.policy
                     ? <Link href={`/policies/${r.policy.id}`} className={`block truncate ${link}`} title={r.policy.name}>{r.policy.name}</Link>
                     : <Link href={`/today/${c!.id}`} className={`block truncate ${link}`} title={c!.title ?? undefined}>{c!.title ?? 'Renewal case'}</Link>}
-                  {detail && <span className="block truncate text-[12px] text-trs-muted" title={detail}>{detail}</span>}
+                  {detail && <span className="block truncate text-12 text-trs-muted" title={detail}>{detail}</span>}
                 </td>
                 <td className="px-3 whitespace-nowrap tabular-nums">
-                  {r.end_date ? <>{fmtDate(r.end_date)}<span className={`block text-[12px] ${r.days! < 0 ? 'text-trs-neg' : 'text-trs-muted'}`}>{r.days! < 0 ? `${-r.days!} days ago` : r.days === 0 ? 'today' : `in ${r.days} days`}</span></> : none}
+                  {r.end_date ? <>{fmtDate(r.end_date)}<span className={`block text-12 ${r.days! < 0 ? 'text-trs-neg' : 'text-trs-muted'}`}>{r.days! < 0 ? `${-r.days!} days ago` : r.days === 0 ? 'today' : `in ${r.days} days`}</span></> : none}
                 </td>
                 <td className="px-3">{c ? (isStage(c.stage) ? STAGE_LABEL[c.stage] : none) : <span className="text-trs-muted">No case</span>}</td>
                 <td className="px-3 tabular-nums">
-                  {c && r.company_id ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-[13.5px] ${link}`} aria-label={`Select conversations for ${r.company}, ${c.threads} on the case`} onClick={() => onPick(r)}>{c.threads}</button> : c ? c.threads : none}
+                  {c && r.company_id ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-13.5 ${link}`} aria-label={`Select conversations for ${r.company}, ${c.threads} on the case`} onClick={() => onPick(r)}>{c.threads}</button> : c ? c.threads : none}
                 </td>
-                <td className="px-3 tabular-nums">{c ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-[13.5px] ${link}`} aria-label={`Wish list for ${r.company}, ${c.wishes} on the case`} onClick={() => onWishes(r)}>{c.wishes}</button> : none}</td>
+                <td className="px-3 tabular-nums">{c ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-13.5 ${link}`} aria-label={`Wish list for ${r.company}, ${c.wishes} on the case`} onClick={() => onWishes(r)}>{c.wishes}</button> : none}</td>
                 <td className="px-3 tabular-nums whitespace-nowrap">{c?.documents ? <Link href={brief!} className={link}>{c.documents.ticked} of {c.documents.required}</Link> : none}</td>
                 <td className="px-3 whitespace-nowrap">{r.compare ? <Link href={r.compare.href} className={link}>{COMPARE_NAME[r.compare.kind]}{r.compare.kind === 'comparison' && c && c.options > 0 ? ` · ${c.options}` : ''}</Link> : none}</td>
                 <td className="px-3">

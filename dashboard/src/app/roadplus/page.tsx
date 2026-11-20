@@ -37,8 +37,8 @@ const STEP_LABEL: Record<string, string> = {
 function Tile({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded-[16px] px-5 py-4 bg-trs-field">
-      <p className="m-0 text-[12.5px] text-trs-muted">{label}</p>
-      <p className="m-0 mt-2 text-[28px] font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value}</p>
+      <p className="m-0 text-12.5 text-trs-muted">{label}</p>
+      <p className="m-0 mt-2 text-24 font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value}</p>
     </div>
   )
 }
@@ -48,16 +48,16 @@ function Split({ title, data }: { title: string; data: Record<string, number> })
   const total = entries.reduce((s, [, v]) => s + v, 0) || 1
   return (
     <div>
-      <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] text-trs-ink">{title}</h3>
+      <h3 className="m-0 mb-3 text-16 font-medium tracking-[-0.01em] text-trs-ink">{title}</h3>
       {entries.length === 0 ? (
-        <p className="m-0 text-[14px] text-trs-muted">No data yet.</p>
+        <p className="m-0 text-14 text-trs-muted">No data yet.</p>
       ) : (
         <div className="space-y-2">
           {entries.map(([k, v]) => (
             <div key={k} className="flex items-center gap-3">
-              <div className="w-28 shrink-0 text-[13px] capitalize text-trs-ink-2">{k}</div>
+              <div className="w-28 shrink-0 text-13 capitalize text-trs-ink-2">{k}</div>
               <div className="h-5 flex-1 overflow-hidden rounded-[4px] bg-trs-field"><div className="h-full rounded-[4px]" style={{ width: `${(v / total) * 100}%`, background: '#6f7a74' }} /></div>
-              <div className="w-20 text-right text-[12.5px] tabular-nums text-trs-muted">{v} ({((v / total) * 100).toFixed(0)}%)</div>
+              <div className="w-20 text-right text-12.5 tabular-nums text-trs-muted">{v} ({((v / total) * 100).toFixed(0)}%)</div>
             </div>
           ))}
         </div>
@@ -117,7 +117,7 @@ const RECON_LABEL: Record<Recon, string> = {
 }
 
 // One neutral chip, used only to mark a row that arrived since the last poll. State is words.
-const CHIP = 'inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4'
+const CHIP = 'inline-block whitespace-nowrap rounded-[6px] px-2 py-0.5 text-12 font-medium leading-4'
 const CHIP_STYLE = { background: '#f1f2ee', color: '#2a332f' } as const
 
 type JourneyEvent = {
@@ -204,12 +204,12 @@ function download(filename: string, body: string) {
 }
 
 // ── Shared control classes (tokens) ───────────────────────────────────────
-const inputCls = 'h-9 w-full sm:w-[340px] rounded-[7px] bg-white pl-10 pr-3.5 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
+const inputCls = 'h-9 w-full sm:w-[340px] rounded-[7px] bg-white pl-10 pr-3.5 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]'
 const inputStyle = { border: '1px solid #d5d9d4', color: INK } as const
-const primaryCls = 'h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
-const secondaryCls = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] bg-white text-[14px] font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const primaryCls = 'h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+const secondaryCls = 'inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] bg-white text-14 font-medium cursor-pointer whitespace-nowrap hover:bg-[#faf9f6] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 const secondaryStyle = { border: '1px solid #d5d9d4', color: INK } as const
-const tertiaryCls = 'text-[14px] bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
+const tertiaryCls = 'text-14 bg-transparent border-0 cursor-pointer p-0 underline underline-offset-4'
 const MONO = 'ui-monospace, monospace'
 
 function LoadingRows() {
@@ -371,17 +371,17 @@ export default function RoadplusReconPage() {
         {/* Header */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">RoadPlus reconciliation</h1>
-            <p className="m-0 mt-2 text-[15px] text-trs-muted">
+            <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]">RoadPlus reconciliation</h1>
+            <p className="m-0 mt-2 text-15 text-trs-muted">
               Every purchase attempt, its payment and its journey trace, read live from the roadplus database. Read-only.
             </p>
           </div>
         </div>
 
         {!configured && (
-          <p className="m-0 mt-6 text-[14px] leading-relaxed text-trs-ink-2">
-            The roadplus database is not connected. Set <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_URL</code> and{' '}
-            <code className="font-mono text-[13px]">ROADPLUS_SUPABASE_SERVICE_KEY</code> on this dashboard&rsquo;s Vercel project
+          <p className="m-0 mt-6 text-14 leading-relaxed text-trs-ink-2">
+            The roadplus database is not connected. Set <code className="font-mono text-13">ROADPLUS_SUPABASE_URL</code> and{' '}
+            <code className="font-mono text-13">ROADPLUS_SUPABASE_SERVICE_KEY</code> on this dashboard&rsquo;s Vercel project
             (the roadplus project&rsquo;s URL and service-role key), then redeploy.
           </p>
         )}
@@ -416,13 +416,13 @@ export default function RoadplusReconPage() {
                 )}
               </form>
               <div className="flex items-center gap-3 flex-wrap">
-                {recon.msg && <span className="text-[13px] text-trs-muted">{recon.msg}</span>}
+                {recon.msg && <span className="text-13 text-trs-muted">{recon.msg}</span>}
                 <button
                   type="button"
                   onClick={() => setLive((v) => !v)}
                   aria-pressed={live}
                   title={live ? `Checks for new transactions every ${POLL_MS / 1000}s` : 'Live updates paused'}
-                  className="inline-flex items-center gap-2 h-9 px-2 text-[13px] bg-transparent border-0 cursor-pointer hover:underline underline-offset-4 text-trs-muted"
+                  className="inline-flex items-center gap-2 h-9 px-2 text-13 bg-transparent border-0 cursor-pointer hover:underline underline-offset-4 text-trs-muted"
                   
                 >
                   <span className="inline-block w-2 h-2 rounded-full" style={{ background: live ? '#8c958f' : '#d5d9d4' }} aria-hidden />
@@ -462,19 +462,19 @@ export default function RoadplusReconPage() {
                 <Tile label="Awaiting payment" value={pSummary.awaitingPayment} />
               </div>
             )}
-            {pError && <p className="m-0 mb-4 text-[14px] text-trs-muted">{pError}</p>}
+            {pError && <p className="m-0 mb-4 text-14 text-trs-muted">{pError}</p>}
 
             {pLoading ? (
               <LoadingRows />
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
-                  <label className="inline-flex items-center gap-2 text-[14px] cursor-pointer text-trs-ink">
+                  <label className="inline-flex items-center gap-2 text-14 cursor-pointer text-trs-ink">
                     <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} className="w-4 h-4 accent-[#0f1412]" />
                     To check only
                     <Tip text="Payments the reconcile could not settle. Run reconcile first. If a row stays, email ECICS with its policy id." />
                   </label>
-                  <span className="text-[12.5px] text-trs-muted">
+                  <span className="text-12.5 text-trs-muted">
                     {visible.length} row{visible.length === 1 ? '' : 's'}
                     {lastSync && ` · updated ${lastSync.toLocaleTimeString('en-SG', { hour12: false })}`}
                     {' · NRIC masked on screen, full value in the export'}
@@ -510,17 +510,17 @@ export default function RoadplusReconPage() {
                           <RegisterCell first className="min-w-[240px]"
                             primary={<>{newIds.indexOf(p.id) !== -1 && <span className={cn(CHIP, 'mr-2 align-middle')} style={CHIP_STYLE}>New</span>}{fmtDate(p.received_at)}</>}
                             secondary={RECON_LABEL[p.recon]} />
-                          <RegisterCell align="left"><span className="text-[14px] font-medium text-trs-ink">{p.insured_name ?? '—'}</span></RegisterCell>
+                          <RegisterCell align="left"><span className="text-14 font-medium text-trs-ink">{p.insured_name ?? '—'}</span></RegisterCell>
                           <RegisterCell align="right" primary={p.age ?? '—'} />
-                          <RegisterCell title="Full value is in the CSV export"><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{maskNric(p.nric)}</span></RegisterCell>
+                          <RegisterCell title="Full value is in the CSV export"><span className="text-12.5" style={{ fontFamily: MONO, color: MUTED }}>{maskNric(p.nric)}</span></RegisterCell>
                           <RegisterCell primary={p.coverage ?? '—'} secondary={p.max_rental_period ? `max ${p.max_rental_period}` : undefined} />
-                          <RegisterCell><span className="text-[14px] text-trs-ink-2">{p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}</span></RegisterCell>
+                          <RegisterCell><span className="text-14 text-trs-ink-2">{p.policy_start_date ? `${fmtDay(p.policy_start_date)} → ${fmtDay(p.policy_end_date)}` : '—'}</span></RegisterCell>
                           <RegisterCell align="right" primary={p.cover_days ?? '—'} />
-                          <RegisterCell align="right"><span className="text-[14px] tabular-nums text-trs-muted">{fmtMoney(p.quoted_premium, p.currency)}</span></RegisterCell>
-                          <RegisterCell align="right"><span className="text-[14px] tabular-nums font-medium text-trs-ink">{fmtMoney(p.amount, p.currency)}</span></RegisterCell>
-                          <RegisterCell><span className="text-[12.5px]" style={{ fontFamily: MONO, color: INK }}>{p.policy_no ?? '—'}</span></RegisterCell>
-                          <RegisterCell><span className="text-[12.5px]" style={{ fontFamily: MONO, color: MUTED }}>{p.policy_id ?? '—'}</span></RegisterCell>
-                          <RegisterCell last><span className="text-[14px] text-trs-muted">{p.source ?? '—'}</span></RegisterCell>
+                          <RegisterCell align="right"><span className="text-14 tabular-nums text-trs-muted">{fmtMoney(p.quoted_premium, p.currency)}</span></RegisterCell>
+                          <RegisterCell align="right"><span className="text-14 tabular-nums font-medium text-trs-ink">{fmtMoney(p.amount, p.currency)}</span></RegisterCell>
+                          <RegisterCell><span className="text-12.5" style={{ fontFamily: MONO, color: INK }}>{p.policy_no ?? '—'}</span></RegisterCell>
+                          <RegisterCell><span className="text-12.5" style={{ fontFamily: MONO, color: MUTED }}>{p.policy_id ?? '—'}</span></RegisterCell>
+                          <RegisterCell last><span className="text-14 text-trs-muted">{p.source ?? '—'}</span></RegisterCell>
                         </RegisterRow>
                       ))
                     )}
@@ -556,9 +556,9 @@ export default function RoadplusReconPage() {
             {jLoading ? (
               <LoadingRows />
             ) : !jSearched ? (
-              <p className="m-0 py-16 text-center text-[16px] text-trs-muted">Enter a reference from a customer&rsquo;s error message, or a policy id. Recent failures lists the latest failed steps.</p>
+              <p className="m-0 py-16 text-center text-16 text-trs-muted">Enter a reference from a customer&rsquo;s error message, or a policy id. Recent failures lists the latest failed steps.</p>
             ) : journey.length === 0 ? (
-              <p className="m-0 py-16 text-center text-[16px] text-trs-muted">No journey events found.</p>
+              <p className="m-0 py-16 text-center text-16 text-trs-muted">No journey events found.</p>
             ) : (
               <Register label="Journey events" minWidth={840}>
                 <RegisterHead>
@@ -573,13 +573,13 @@ export default function RoadplusReconPage() {
                     <RegisterRow key={e.id} className="hover:bg-[#faf9f6]">
                       <RegisterCell first primary={e.step} secondary={<span style={{ fontFamily: MONO }}>{e.journey_id}</span>} title={e.journey_id} />
                       <RegisterCell primary={fmtDate(e.created_at)} />
-                      <RegisterCell><span className="text-[14px] text-trs-ink">{STEP_STATUS_LABEL[e.status] ?? e.status}</span></RegisterCell>
+                      <RegisterCell><span className="text-14 text-trs-ink">{STEP_STATUS_LABEL[e.status] ?? e.status}</span></RegisterCell>
                       <RegisterCell align="left" nowrap={false}>
-                        <span className="block max-w-[420px] text-[14px] break-words text-trs-ink-2">
-                          {e.error ? e.error : e.meta ? <span className="text-[12px]" style={{ fontFamily: MONO, color: MUTED }}>{JSON.stringify(e.meta)}</span> : '—'}
+                        <span className="block max-w-[420px] text-14 break-words text-trs-ink-2">
+                          {e.error ? e.error : e.meta ? <span className="text-12" style={{ fontFamily: MONO, color: MUTED }}>{JSON.stringify(e.meta)}</span> : '—'}
                         </span>
                       </RegisterCell>
-                      <RegisterCell last><span className="text-[14px] text-trs-muted">{e.source ?? '—'}</span></RegisterCell>
+                      <RegisterCell last><span className="text-14 text-trs-muted">{e.source ?? '—'}</span></RegisterCell>
                     </RegisterRow>
                   ))}
                 </tbody>
@@ -592,7 +592,7 @@ export default function RoadplusReconPage() {
         {tab === 'analytics' && (
           <div className="mt-6">
             <div className="mb-5 flex items-center justify-between gap-3 flex-wrap">
-              <p className="m-0 text-[13px] text-trs-muted">
+              <p className="m-0 text-13 text-trs-muted">
                 Visitors, sessions and journeys without login. Most recent activity.
               </p>
               <button
@@ -612,9 +612,9 @@ export default function RoadplusReconPage() {
                 {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-[88px] rounded-[16px] bg-[#f1f2ee] animate-pulse" />)}
               </div>
             ) : !analytics || analytics.configured === false ? (
-              <p className="m-0 py-16 text-center text-[16px] text-trs-muted">Not connected. Set the roadplus database env vars.</p>
+              <p className="m-0 py-16 text-center text-16 text-trs-muted">Not connected. Set the roadplus database env vars.</p>
             ) : analytics.error ? (
-              <p className="m-0 py-16 text-center text-[16px] text-trs-muted">{analytics.error}</p>
+              <p className="m-0 py-16 text-center text-16 text-trs-muted">{analytics.error}</p>
             ) : (
               <div className="space-y-10">
                 {/* stat tiles */}
@@ -633,7 +633,7 @@ export default function RoadplusReconPage() {
 
                 {/* funnel */}
                 <div>
-                  <h3 className="m-0 mb-3 text-[16px] font-medium tracking-[-0.01em] flex items-center text-trs-ink">
+                  <h3 className="m-0 mb-3 text-16 font-medium tracking-[-0.01em] flex items-center text-trs-ink">
                     Conversion funnel
                     <Tip text="Unique journeys reaching each step. The right-hand figure is the drop from the previous step." />
                   </h3>
@@ -646,16 +646,16 @@ export default function RoadplusReconPage() {
                         const drop = prev > 0 ? 1 - f.journeys / prev : 0
                         return (
                           <div key={f.step} className="flex items-center gap-3">
-                            <div className="w-40 shrink-0 text-[13px] text-trs-ink-2">{STEP_LABEL[f.step] ?? f.step}</div>
+                            <div className="w-40 shrink-0 text-13 text-trs-ink-2">{STEP_LABEL[f.step] ?? f.step}</div>
                             <div className="h-6 flex-1 overflow-hidden rounded-[4px] bg-trs-field">
                               <div
-                                className="flex h-full items-center rounded-[4px] px-2 text-[11.5px] font-medium text-white tabular-nums"
+                                className="flex h-full items-center rounded-[4px] px-2 text-12 font-medium text-white tabular-nums"
                                 style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%`, background: INK }}
                               >
                                 {f.journeys}
                               </div>
                             </div>
-                            <div className="w-16 text-right text-[12.5px] tabular-nums text-trs-muted">
+                            <div className="w-16 text-right text-12.5 tabular-nums text-trs-muted">
                               {i > 0 && drop > 0 ? `−${(drop * 100).toFixed(0)}%` : ''}
                             </div>
                           </div>
@@ -675,7 +675,7 @@ export default function RoadplusReconPage() {
           </div>
         )}
 
-        <p className="m-0 mt-8 text-[12.5px] text-trs-muted">
+        <p className="m-0 mt-8 text-12.5 text-trs-muted">
           Read live from the roadplus Supabase project. This page never writes to it.
         </p>
       </div>

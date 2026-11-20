@@ -106,7 +106,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
     <div className="flex flex-col gap-1.5">
       {/* Employment benefits: the census prices every Tier A insurer here, no email needed. */}
       {eb && (
-        <div className="flex items-center gap-1.5 flex-wrap text-[12px]" style={{ color: MUTED }}>
+        <div className="flex items-center gap-1.5 flex-wrap text-12" style={{ color: MUTED }}>
           <span>Employee list</span>
           <span style={{ color: INK }}>{listIn ? `${pos.engineQuotes.length} insurer${pos.engineQuotes.length === 1 ? '' : 's'} priced from the list` : 'none yet'}</span>
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('upload')}>{listIn ? 'Replace census' : 'Upload census'}</Btn>
@@ -118,7 +118,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
         </div>
       )}
       {/* Options toolbar: what the client wants compared, and asking the insurers for the new ones. */}
-      <div className="flex items-center gap-1.5 flex-wrap text-[12px]" style={{ color: MUTED }}>
+      <div className="flex items-center gap-1.5 flex-wrap text-12" style={{ color: MUTED }}>
         <span>Options</span>
         {pos.tiers.length === 0 && <span>none yet · the line as asked</span>}
         {pos.tiers.map(t => (
@@ -131,7 +131,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
         ))}
         <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addOptions() }}
           placeholder="Add option: 1M, 2M, S$1,300/head" aria-label="Add options to compare"
-          className="h-5 w-[210px] rounded-[5px] border border-[#d5d9d4] bg-white px-1.5 text-[12px] outline-none focus:border-[#0f1412]" style={{ color: INK }} />
+          className="h-5 w-[210px] rounded-[5px] border border-[#d5d9d4] bg-white px-1.5 text-12 outline-none focus:border-[#0f1412]" style={{ color: INK }} />
         <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null || !draft.trim()} loading={busy === 'add'} onClick={addOptions}>Add</Btn>
         {proposed.length > 0 && (
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} loading={busy === 'ask'} onClick={ask}
@@ -140,10 +140,10 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
           </Btn>
         )}
       </div>
-      {error && <p className="m-0 text-[12px]" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="m-0 text-12" style={{ color: ERROR }}>{error}</p>}
 
       {grid.insurers.length === 0 ? (
-        <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>No insurer asked yet.</p>
+        <p className="m-0 text-12.5" style={{ color: MUTED }}>No insurer asked yet.</p>
       ) : (
         <XlGrid label={`${pos.line.label ?? pos.line.product_line} comparison`} minWidth={Math.min(1400, 150 + cols * 96)}>
           <XlHead>

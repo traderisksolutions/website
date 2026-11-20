@@ -48,7 +48,7 @@ export function AppointmentLetterPanel({ companyId, companyName, placementId }: 
   return (
     <section className="flex min-w-0 flex-col overflow-hidden rounded-[8px] border border-trs-line-2 bg-white">
       <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5">
-        <h3 className="m-0 text-[14px] font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
+        <h3 className="m-0 text-14 font-semibold text-trs-ink">Appointment letter · {companyName}</h3>
         <span className="flex flex-wrap items-center gap-2">
           {status?.url && <a href={status.url} target="_blank" rel="noreferrer" className={`${btnClass('secondary', 'xs')} no-underline`}>Open letter ↗</a>}
           {status?.state === 'sent' && (
@@ -67,7 +67,7 @@ export function AppointmentLetterPanel({ companyId, companyName, placementId }: 
           <td className="px-3">{status?.at ? fmtDate(status.at) : '—'}</td>
         </tr></tbody>
       </table>
-      {(note || error) && <div className={`border-t border-trs-line px-4 py-2 text-[12.5px] ${error ? 'text-trs-neg' : 'text-trs-pos'}`} role="status">{error ?? note}</div>}
+      {(note || error) && <div className={`border-t border-trs-line px-4 py-2 text-12.5 ${error ? 'text-trs-neg' : 'text-trs-pos'}`} role="status">{error ?? note}</div>}
       <AppointmentLetterDialog open={open} onClose={() => setOpen(false)} companyId={companyId} placementId={placementId ?? null}
         onDone={() => { setNote(`✓ Letter filed in Drive · ${fmtDateTime(new Date().toISOString())}`); void load() }} />
     </section>

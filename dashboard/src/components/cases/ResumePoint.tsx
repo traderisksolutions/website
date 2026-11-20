@@ -29,7 +29,7 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
     load().then(setMemory).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
   if (!memory) return <Spinner label="Loading resume point…" />
 
   const r = memory.resume
@@ -57,7 +57,7 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
               {rows.map(([item, detail]) => (
                 <tr key={item} className="align-top">
                   <td className="px-3 py-2 whitespace-nowrap">{item}</td>
-                  <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{detail}</td>
+                  <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{detail}</td>
                 </tr>
               ))}
             </tbody>

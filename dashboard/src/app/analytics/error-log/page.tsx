@@ -68,20 +68,20 @@ function RowDetail({ row }: { row: LogRow }) {
   return (
     <div className="pb-4 pt-1 sm:pl-[112px] min-w-0">
       {(row.resource_type || row.resource_id || row.thread_id) && (
-        <p className="m-0 mb-2 text-[12.5px] break-all text-trs-muted">
+        <p className="m-0 mb-2 text-12.5 break-all text-trs-muted">
           {row.resource_type && row.resource_id ? `${row.resource_type} · ` : ''}
-          {row.resource_id && <code className="text-[12px]" style={{ fontFamily: MONO }}>{row.resource_id}</code>}
-          {row.thread_id && <>{row.resource_id ? ' · ' : ''}thread <code className="text-[12px]" style={{ fontFamily: MONO }}>{row.thread_id}</code></>}
+          {row.resource_id && <code className="text-12" style={{ fontFamily: MONO }}>{row.resource_id}</code>}
+          {row.thread_id && <>{row.resource_id ? ' · ' : ''}thread <code className="text-12" style={{ fontFamily: MONO }}>{row.thread_id}</code></>}
         </p>
       )}
-      <p className="m-0 mb-1 text-[12px] text-trs-muted">Full message</p>
-      <pre className="m-0 px-3 py-2 rounded-[10px] text-[12px] leading-relaxed whitespace-pre-wrap break-all max-h-[260px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
+      <p className="m-0 mb-1 text-12 text-trs-muted">Full message</p>
+      <pre className="m-0 px-3 py-2 rounded-[10px] text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[260px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
         {row.message}
       </pre>
       {row.metadata && Object.keys(row.metadata).length > 0 && (
         <>
-          <p className="m-0 mt-3 mb-1 text-[12px] text-trs-muted">Metadata</p>
-          <pre className="m-0 px-3 py-2 rounded-[10px] text-[12px] leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
+          <p className="m-0 mt-3 mb-1 text-12 text-trs-muted">Metadata</p>
+          <pre className="m-0 px-3 py-2 rounded-[10px] text-12 leading-relaxed whitespace-pre-wrap break-all max-h-[200px] overflow-y-auto" style={{ background: FIELD, color: INK, fontFamily: MONO }}>
             {JSON.stringify(row.metadata, null, 2)}
           </pre>
         </>
@@ -139,8 +139,8 @@ export default function ErrorLogPage() {
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Error log</h1>
-            <p className="m-0 mt-2 text-[15px] text-trs-muted">
+            <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]">Error log</h1>
+            <p className="m-0 mt-2 text-15 text-trs-muted">
               {loading ? 'Loading…' : `${logs.length} error${logs.length !== 1 ? 's' : ''} · ${periodLabel} · refreshes every 30 seconds`}
             </p>
           </div>
@@ -179,13 +179,13 @@ export default function ErrorLogPage() {
           </div>
         ) : logs.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="m-0 text-[15px] text-trs-muted">No errors in this period.</p>
+            <p className="m-0 text-15 text-trs-muted">No errors in this period.</p>
             {days > 0 && <Btn level="tertiary" className="mt-3" onClick={() => setDays(0)}>Show all time</Btn>}
           </div>
         ) : (
           Object.entries(grouped).map(([day, rows]) => (
             <section key={day} className="mb-8">
-              <p className="m-0 mb-1 text-[12.5px] text-trs-muted">{day}</p>
+              <p className="m-0 mb-1 text-12.5 text-trs-muted">{day}</p>
 
               <div className="border-t border-trs-line">
                 {rows.map(row => {
@@ -209,16 +209,16 @@ export default function ErrorLogPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="sm:hidden"><Chip>{cfg.label}</Chip></span>
-                            <span className="text-[14px] text-trs-ink">{describeRow(row)}</span>
+                            <span className="text-14 text-trs-ink">{describeRow(row)}</span>
                           </div>
-                          <p className="m-0 mt-0.5 text-[13px] leading-snug truncate text-trs-muted">
+                          <p className="m-0 mt-0.5 text-13 leading-snug truncate text-trs-muted">
                             {row.message}
                           </p>
                         </div>
 
                         {/* Right side */}
                         <div className="flex-shrink-0 flex items-center gap-2 pt-0.5">
-                          <span className="text-[12.5px] tabular-nums whitespace-nowrap text-trs-muted" title={fmtFull(row.created_at)}>
+                          <span className="text-12.5 tabular-nums whitespace-nowrap text-trs-muted" title={fmtFull(row.created_at)}>
                             {timeAgo(row.created_at)}
                           </span>
                           {isExp

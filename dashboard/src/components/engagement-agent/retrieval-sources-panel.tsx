@@ -40,14 +40,14 @@ export function RetrievalSourcesPanel({ sources, gdocNames, generatedBy }: Retri
         <button
           onClick={() => setExpanded(v => !v)}
           aria-expanded={expanded}
-          className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          className="flex items-center gap-1.5 text-11 text-muted-foreground hover:text-foreground transition-colors"
         >
           <FileText size={9} strokeWidth={2} />
           <span>{label}</span>
           <ChevronDown size={9} className={cn('transition-transform ml-0.5', expanded && 'rotate-180')} />
         </button>
       ) : (
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-11 text-muted-foreground">
           <FileText size={9} strokeWidth={2} />
           <span>{label}</span>
         </div>
@@ -59,10 +59,10 @@ export function RetrievalSourcesPanel({ sources, gdocNames, generatedBy }: Retri
             <div key={s.file_name} className="flex items-start gap-1.5 px-2 py-1.5 bg-muted/50 rounded-lg">
               <FileText size={9} strokeWidth={2} className="text-muted-foreground/50 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-[9.5px] font-medium text-foreground/70 truncate m-0 leading-snug">
+                <p className="text-11 font-medium text-foreground/70 truncate m-0 leading-snug">
                   {s.file_name}
                 </p>
-                <p className="text-[9px] text-muted-foreground/50 m-0">
+                <p className="text-11 text-muted-foreground/50 m-0">
                   {Math.round(s.similarity * 100)}% match
                 </p>
               </div>
@@ -76,7 +76,7 @@ export function RetrievalSourcesPanel({ sources, gdocNames, generatedBy }: Retri
           {gdocNames.map((name, i) => (
             <div key={i} className="flex items-center gap-1.5 px-2 py-1.5 bg-muted/50 rounded-lg">
               <FileText size={9} strokeWidth={2} className="text-muted-foreground/50 flex-shrink-0" />
-              <p className="text-[9.5px] text-foreground/70 truncate m-0">{name}</p>
+              <p className="text-11 text-foreground/70 truncate m-0">{name}</p>
             </div>
           ))}
         </div>

@@ -126,8 +126,8 @@ function InboundLeadsPage() {
       <div className="flex-shrink-0 px-6 sm:px-12 pt-10">
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Inbound leads</h1>
-            <p className="m-0 mt-2 text-[15px] text-trs-muted">
+            <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]">Inbound leads</h1>
+            <p className="m-0 mt-2 text-15 text-trs-muted">
               {loading ? 'Loading…' : `${leads.length} lead${leads.length !== 1 ? 's' : ''} from website forms, email and WhatsApp · ${totalNew} new`}
             </p>
           </div>
@@ -135,7 +135,7 @@ function InboundLeadsPage() {
             type="button"
             onClick={() => load(true)}
             aria-label="Refresh leads"
-            className="h-9 px-5 rounded-[7px] bg-white text-[14px] inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
+            className="h-9 px-5 rounded-[7px] bg-white text-14 inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6] transition-colors"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             <RefreshCw size={15} className={refreshing ? 'animate-spin' : ''} />
@@ -155,7 +155,7 @@ function InboundLeadsPage() {
                 className={cn('filter-pill', filter === f.key && 'active')}
               >
                 {f.label}
-                <span className="text-[12px] tabular-nums opacity-70">{f.count}</span>
+                <span className="text-12 tabular-nums opacity-70">{f.count}</span>
               </button>
             ))}
           </div>
@@ -167,7 +167,7 @@ function InboundLeadsPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, email, phone, topic"
               aria-label="Search leads"
-              className="h-9 w-full rounded-[7px] bg-white pl-10 pr-9 text-[14px] outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
+              className="h-9 w-full rounded-[7px] bg-white pl-10 pr-9 text-14 outline-none focus:border-[#0f1412] transition-colors placeholder:text-[#6f7a74]"
               style={{ border: '1px solid #d5d9d4', color: INK }}
             />
             {search && (
@@ -206,11 +206,11 @@ function InboundLeadsPage() {
               ))}
             </div>
           ) : error ? (
-            <p className="py-16 text-center text-[16px] m-0 text-trs-muted">
-              {error} <button type="button" onClick={() => load(true)} className="underline bg-transparent border-0 cursor-pointer p-0 text-[16px] text-trs-ink">Retry</button>
+            <p className="py-16 text-center text-16 m-0 text-trs-muted">
+              {error} <button type="button" onClick={() => load(true)} className="underline bg-transparent border-0 cursor-pointer p-0 text-16 text-trs-ink">Retry</button>
             </p>
           ) : filtered.length === 0 ? (
-            <p className="py-16 text-center text-[16px] m-0 text-trs-muted">
+            <p className="py-16 text-center text-16 m-0 text-trs-muted">
               {search ? `No leads match “${search}”.` : 'No leads yet.'}
             </p>
           ) : (
@@ -249,10 +249,10 @@ function InboundLeadsPage() {
                             <RegisterCell first selected={isActive} title={lead.email ?? name} className={cn(!isActive && isExpanded && 'bg-[#faf9f6]')}
                               primary={<span className="inline-flex items-center gap-2 max-w-full"><span className="truncate min-w-0">{name}</span>{lead.ai_draft_id && <Chip title="AI draft ready">AI draft</Chip>}</span>}
                               secondary={lead.company || channelLabel(lead.source)} />
-                            <RegisterCell align="left" className="max-w-[200px]"><span className="block truncate text-[14px] text-trs-ink-2">{lead.topic || lead.department || '—'}</span></RegisterCell>
-                            <RegisterCell align="left" className="max-w-[320px]"><span className="block truncate text-[13.5px] text-trs-muted">{msg || '—'}</span></RegisterCell>
+                            <RegisterCell align="left" className="max-w-[200px]"><span className="block truncate text-14 text-trs-ink-2">{lead.topic || lead.department || '—'}</span></RegisterCell>
+                            <RegisterCell align="left" className="max-w-[320px]"><span className="block truncate text-13.5 text-trs-muted">{msg || '—'}</span></RegisterCell>
                             <RegisterCell><span onClick={e => e.stopPropagation()}><StatusDropdown lead={lead} onChange={handleStatus} /></span></RegisterCell>
-                            <RegisterCell align="right"><span className="text-[14px] tabular-nums text-trs-ink">{timeAgo(lead.created_at)}</span></RegisterCell>
+                            <RegisterCell align="right"><span className="text-14 tabular-nums text-trs-ink">{timeAgo(lead.created_at)}</span></RegisterCell>
                             <RegisterCell last align="right">
                               {isEmail && (
                                 <span onClick={e => e.stopPropagation()}>
@@ -293,19 +293,19 @@ function InboundLeadsPage() {
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <ChannelBadge source={lead.source} />
-                        <span className={cn('flex-1 text-[14px] truncate', lead.status === 'new' ? 'font-medium' : '')} style={{ color: INK }}>
+                        <span className={cn('flex-1 text-14 truncate', lead.status === 'new' ? 'font-medium' : '')} style={{ color: INK }}>
                           {[lead.first_name, lead.last_name].filter(Boolean).join(' ') || '—'}
                         </span>
-                        <span className="text-[12.5px] flex-shrink-0 tabular-nums text-trs-muted">
+                        <span className="text-12.5 flex-shrink-0 tabular-nums text-trs-muted">
                           {timeAgo(lead.created_at)}
                         </span>
                       </div>
                       {(lead.company || lead.topic || lead.department) && (
-                        <p className="text-[13px] truncate m-0 mb-1 text-trs-ink-2">
+                        <p className="text-13 truncate m-0 mb-1 text-trs-ink-2">
                           {[lead.company, lead.topic ?? lead.department].filter(Boolean).join(' · ')}
                         </p>
                       )}
-                      {msg && <p className="text-[13px] truncate m-0 mb-2 text-trs-muted">{msg}</p>}
+                      {msg && <p className="text-13 truncate m-0 mb-2 text-trs-muted">{msg}</p>}
                       <div onClick={e => e.stopPropagation()}>
                         <StatusDropdown lead={lead} onChange={handleStatus} />
                       </div>
@@ -317,7 +317,7 @@ function InboundLeadsPage() {
           )}
 
           {!loading && filtered.length > 0 && (
-            <p className="py-3 text-[12.5px] m-0 text-trs-muted">
+            <p className="py-3 text-12.5 m-0 text-trs-muted">
               {filtered.length} lead{filtered.length !== 1 ? 's' : ''} · {totalNew} new
             </p>
           )}
@@ -330,7 +330,7 @@ function InboundLeadsPage() {
               type="button"
               onClick={() => setSelectedId(null)}
               aria-label="Back to leads list"
-              className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-[14px] bg-transparent border-0 cursor-pointer text-trs-muted"
+              className="sm:hidden flex items-center gap-1.5 px-4 pt-3 pb-1 text-14 bg-transparent border-0 cursor-pointer text-trs-muted"
               
             >
               ← Back to list

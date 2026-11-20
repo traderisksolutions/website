@@ -53,7 +53,7 @@ export default function UploadPage() {
             <>
               <ColumnsFound meta={read.meta} />
               <PeopleFound read={read} token={token} source="file" />
-              <div className="hrc-row" style={{ marginTop: 10 }}>
+              <div className="hrc-row mt-2.5">
                 <button type="button" className="hrc-btn" onClick={() => input.current?.click()}>Choose another file</button>
               </div>
             </>

@@ -88,8 +88,8 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
 
         {created ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-[14px]" style={{ color: INK }}>Round opened.</p>
-            <p className="m-0 text-[14px]" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
+            <p className="m-0 text-14" style={{ color: INK }}>Round opened.</p>
+            <p className="m-0 text-14" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
             <div className="flex justify-end pt-2">
               <Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn>
             </div>
@@ -107,11 +107,11 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
             <SpecFields value={spec} onChange={setSpec} />
 
             <div>
-              <span className="block text-[12.5px] mb-1.5" style={{ color: MUTED }}>What changes</span>
+              <span className="block text-12.5 mb-1.5" style={{ color: MUTED }}>What changes</span>
               {changes.length === 0
-                ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>No field differs from the current round.</p>
+                ? <p className="m-0 text-14" style={{ color: MUTED }}>No field differs from the current round.</p>
                 : (
-                  <ul className="m-0 pl-4 text-[14px] flex flex-col gap-1" style={{ color: INK }}>
+                  <ul className="m-0 pl-4 text-14 flex flex-col gap-1" style={{ color: INK }}>
                     {changes.map(c => (
                       <li key={c.field}>
                         <span style={{ color: MUTED }}>{c.label}: </span>
@@ -132,11 +132,11 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
             </Field>
 
             <div className="flex flex-col gap-2">
-              <span className="text-[12.5px]" style={{ color: MUTED }}>Insurers to ask</span>
+              <span className="text-12.5" style={{ color: MUTED }}>Insurers to ask</span>
               <ContactPicker productLines={[line.product_line]} value={picks} onChange={setPicks} preferIds={currentContactIds} companyId={companyId} />
             </div>
 
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {error && <p className="text-13 m-0" style={{ color: ERROR }}>{error}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>

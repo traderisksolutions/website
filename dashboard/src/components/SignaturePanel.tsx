@@ -142,7 +142,7 @@ function InlineForm({
         </div>
       </div>
       {error && <p style={{ margin: '0 0 8px', fontSize: 11, color: '#ef4444' }}>{error}</p>}
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex gap-2">
         <button
           onClick={onSave} disabled={saving}
           style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 6, border: 'none', background: '#1d4ed8', color: '#fff', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}

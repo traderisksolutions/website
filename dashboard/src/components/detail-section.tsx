@@ -10,7 +10,7 @@ export function DetailSection({ label, children, className }: DetailSectionProps
   return (
     <div className={cn('px-4 pt-5 pb-3', className)}>
       {label && (
-        <p className="m-0 text-[12.5px] font-medium mb-2.5 text-trs-muted">
+        <p className="m-0 text-12.5 font-medium mb-2.5 text-trs-muted">
           {label}
         </p>
       )}
@@ -28,10 +28,10 @@ interface DetailFieldProps {
 export function DetailField({ label, children, className }: DetailFieldProps) {
   return (
     <div className={cn('mb-3 last:mb-0', className)}>
-      <p className="m-0 text-[12px] mb-0.5 text-trs-muted">
+      <p className="m-0 text-12 mb-0.5 text-trs-muted">
         {label}
       </p>
-      <div className="text-[14px] leading-[1.5] text-trs-ink">
+      <div className="text-14 leading-[1.5] text-trs-ink">
         {children}
       </div>
     </div>

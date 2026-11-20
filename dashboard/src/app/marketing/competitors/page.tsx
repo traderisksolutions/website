@@ -149,23 +149,23 @@ function Competitors() {
 function Ask({ question, hint, children, small }: { question: string; hint: string; children: React.ReactNode; small?: boolean }) {
   return (
     <div className="max-w-[760px]">
-      <p className={cn('m-0 font-medium tracking-[-0.02em] leading-[1.25]', small ? 'text-[20px] mb-3.5' : 'text-[26px] mb-[18px]')} style={{ textWrap: 'balance' }}>
+      <p className={cn('m-0 font-medium tracking-[-0.02em] leading-[1.25]', small ? 'text-20 mb-3.5' : 'text-24 mb-[18px]')} style={{ textWrap: 'balance' }}>
         {question}
-        <small className="block text-[14px] font-normal tracking-normal mt-1.5 text-trs-muted">{hint}</small>
+        <small className="block text-14 font-normal tracking-normal mt-1.5 text-trs-muted">{hint}</small>
       </p>
       {children}
     </div>
   )
 }
 
-const askField = (big: boolean) => cn('flex-1 min-w-0 border-0 bg-transparent px-0 pt-2 pb-2.5 outline-none placeholder:text-[#c4c7cb]', big ? 'text-[22px]' : 'text-[17px]')
+const askField = (big: boolean) => cn('flex-1 min-w-0 border-0 bg-transparent px-0 pt-2 pb-2.5 outline-none placeholder:text-[#c4c7cb]', big ? 'text-20' : 'text-16')
 const askFieldStyle = { color: INK, borderBottom: `2px solid ${INK}`, borderRadius: 0 } as const
 
 function RegisterFoot({ colSpan, left, right }: { colSpan: number; left: React.ReactNode; right?: React.ReactNode }) {
   return (
     <tfoot>
       <tr>
-        <td colSpan={colSpan} className="px-6 py-3 text-[13px] text-trs-muted">
+        <td colSpan={colSpan} className="px-6 py-3 text-13 text-trs-muted">
           <div className="flex items-center justify-between gap-3 flex-wrap"><span>{left}</span>{right && <span>{right}</span>}</div>
         </td>
       </tr>
@@ -190,7 +190,7 @@ function CompaniesTab({ data, busy, onAdd, onRemove }: { data: Payload; busy: bo
       <Ask question="Add a competitor" hint="Paste the company's website. The blog is found from the sitemap.">
         <form onSubmit={submit} className="flex items-end gap-4 flex-wrap">
           <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://" aria-label="Competitor website URL" autoComplete="off" spellCheck={false} className={askField(true)} style={{ ...askFieldStyle, flexBasis: 360 }} />
-          <Btn type="submit" level="primary" disabled={busy || !url.trim()} >Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
+          <Btn type="submit" level="primary" disabled={busy || !url.trim()} >Add <kbd className="text-12 opacity-70 font-[inherit]">↵</kbd></Btn>
         </form>
       </Ask>
 
@@ -215,8 +215,8 @@ function CompaniesTab({ data, busy, onAdd, onRemove }: { data: Payload; busy: bo
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at ? n(c.pages_count) : '–'}</span></RegisterCell>
                 <RegisterCell align="left" nowrap={false} className="min-w-[240px] max-w-[420px]">
                   {best ? <>
-                    <span className="block text-[13.5px] leading-[1.4] break-all text-trs-ink-2">{best}</span>
-                    {c.best_page_note && <span className="block text-[12.5px] mt-0.5 text-trs-muted">{c.best_page_note}</span>}
+                    <span className="block text-13.5 leading-[1.4] break-all text-trs-ink-2">{best}</span>
+                    {c.best_page_note && <span className="block text-12.5 mt-0.5 text-trs-muted">{c.best_page_note}</span>}
                   </> : <span className="text-trs-subtle">–</span>}
                 </RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at && checked ? `${c.cited_count} of ${checked}` : '–'}</span></RegisterCell>
@@ -252,7 +252,7 @@ function PromptsTab({ data, busy, onAdd, onToggle, onRemove }: { data: Payload; 
         <form onSubmit={submit} className="flex items-end gap-4 flex-wrap">
           <input value={prompt} onChange={e => setPrompt(e.target.value)} placeholder="Which insurance is compulsory for a small business in Singapore?" aria-label="Prompt" autoComplete="off" className={askField(false)} style={{ ...askFieldStyle, flexBasis: 320 }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="compulsory business insurance singapore" aria-label="Search query" autoComplete="off" className={askField(false)} style={{ ...askFieldStyle, flexBasis: 240 }} />
-          <Btn type="submit" level="primary" disabled={busy || prompt.trim().length < 8} className="h-9 px-4">Add <kbd className="text-[12px] opacity-70 font-[inherit]">↵</kbd></Btn>
+          <Btn type="submit" level="primary" disabled={busy || prompt.trim().length < 8} className="h-9 px-4">Add <kbd className="text-12 opacity-70 font-[inherit]">↵</kbd></Btn>
         </form>
       </Ask>
 
@@ -275,9 +275,9 @@ function PromptsTab({ data, busy, onAdd, onToggle, onRemove }: { data: Payload; 
                 <RegisterCell className="pl-5 pr-1">
                   <input type="checkbox" checked={p.selected} disabled={busy} onChange={() => onToggle(p)} aria-label={`Write for: ${p.prompt}`} className="block w-4 h-4 cursor-pointer" style={{ accentColor: INK }} />
                 </RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{p.prompt}</span></RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{p.search_query || <span className="text-trs-subtle">–</span>}</span></RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span className="text-trs-subtle">–</span>}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-13.5 leading-[1.4] text-trs-ink-2">{p.prompt}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-13.5 leading-[1.4] text-trs-ink-2">{p.search_query || <span className="text-trs-subtle">–</span>}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-13.5 leading-[1.4] text-trs-ink-2">{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span className="text-trs-subtle">–</span>}</span></RegisterCell>
                 <RegisterCell>{r ? <Chip>{TONE_LABEL[r.tone] ?? r.tone}</Chip> : <span className="text-trs-subtle">–</span>}</RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{p.impressions == null ? '–' : n(p.impressions)}</span></RegisterCell>
                 <RegisterCell last><Btn level="tertiary" size="xs" disabled={busy} onClick={() => onRemove(p)}>Remove</Btn></RegisterCell>
@@ -307,11 +307,11 @@ function HistoryTab({ analyses, siteName }: { analyses: GeoAnalysis[]; siteName:
             ? `${n(a.pages_read)} pages · ${n(a.prompts_checked)} prompts · ${siteName} cited ${a.cited_count} of ${a.prompts_checked}`
             : a.status === 'running' ? `started ${fmtWhen(a.started_at) ?? ''}` : 'waiting for the engine'
         return (
-          <li key={a.id} className="grid gap-4 items-baseline py-3.5 text-[14px] grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
+          <li key={a.id} className="grid gap-4 items-baseline py-3.5 text-14 grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
             <span className="tabular-nums text-trs-muted">{fmtWhen(a.completed_at ?? a.created_at)}</span>
             <span className="font-medium min-w-0">
               Analysis v{a.version}{status && <> <Chip className="ml-1.5 align-middle">{status}</Chip></>}
-              <small className="block font-normal text-[12.5px] mt-0.5 break-words text-trs-muted">{detail}</small>
+              <small className="block font-normal text-12.5 mt-0.5 break-words text-trs-muted">{detail}</small>
             </span>
             <span className="text-trs-muted">{modelLabel(a.model)}</span>
             <span className="tabular-nums sm:text-right text-trs-muted">{usd(a.cost_usd)}</span>

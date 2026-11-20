@@ -368,7 +368,7 @@ export function EngagementComposePanel({
   if (sent) {
     return (
       <div className="w-full max-w-[1040px] mx-auto flex items-center justify-between gap-3 px-6 lg:px-10 h-12" style={{ color: INK }}>
-        <span className="text-[14px] font-medium">Reply sent</span>
+        <span className="text-14 font-medium">Reply sent</span>
         <button
           type="button"
           onClick={() => { setSent(false); setDraftHtml(''); setDraftId(null); setContextUsed([]) }}
@@ -395,7 +395,7 @@ export function EngagementComposePanel({
 
         {/* ── Top bar: Reply · save state · spacer · Minimise ── */}
         <div className="flex items-center gap-2.5 px-[var(--re-gutter)] h-12 flex-shrink-0">
-          <h3 className="m-0 text-[15px] font-medium" style={{ color: INK }}>Reply</h3>
+          <h3 className="m-0 text-15 font-medium" style={{ color: INK }}>Reply</h3>
           {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
           <span className="flex-1" />
           {onMinimise && (
@@ -414,15 +414,15 @@ export function EngagementComposePanel({
                 onClick={onToggleReplyAll}
                 aria-pressed={replyAll}
                 title={replyAll ? 'Replying to everyone. Click to reply to the sender only' : 'Replying to the sender only. Click to reply to everyone'}
-                className={cn('h-[30px] px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
+                className={cn('h-[30px] px-2 rounded-[6px] bg-transparent border-0 cursor-pointer text-12.5 hover:bg-[#f1f2ee]', replyAll && 'bg-[#f1f2ee] font-medium')}
                 style={{ color: replyAll ? INK : FAINT }}
               >
                 Reply all
               </button>
             )}
-            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
+            {!showCc && <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-12.5 hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button>}
             {!showCc && !showBcc && <span aria-hidden>·</span>}
-            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
+            {!showBcc && <button type="button" onClick={() => setShowBcc(true)} aria-label="Add Bcc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-12.5 hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Bcc</button>}
           </>
         }>
           {headerExpanded || !toAddress ? (
@@ -480,7 +480,7 @@ export function EngagementComposePanel({
             onChange={e => setCustomSubject(e.target.value)}
             aria-label="Email subject"
             placeholder="Subject"
-            className="w-full text-[14px] bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
+            className="w-full text-14 bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
             style={{ color: INK }}
           />
         </FieldRow>
@@ -489,9 +489,9 @@ export function EngagementComposePanel({
             api/engagement/draft/route.ts) — so staff can verify rather than trust blindly. */}
         {hasDraft && contextUsed.length > 0 && (
           <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap items-center gap-1.5 flex-shrink-0">
-            <span className="text-[12.5px] mr-0.5" style={{ color: MUTED }}>Drafted from</span>
+            <span className="text-12.5 mr-0.5" style={{ color: MUTED }}>Drafted from</span>
             {contextUsed.map((c, i) => (
-              <span key={i} className="text-[11.5px] font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f2ee]" style={{ color: BODY }}>{c}</span>
+              <span key={i} className="text-12 font-medium px-2 py-0.5 rounded-[6px] bg-[#f1f2ee]" style={{ color: BODY }}>{c}</span>
             ))}
           </div>
         )}
@@ -576,7 +576,7 @@ export function EngagementComposePanel({
               aria-expanded={showSources}
               className="w-full flex items-center justify-between px-3.5 h-9 bg-white text-left border-0 cursor-pointer hover:bg-[#faf9f6]"
             >
-              <span className="text-[12.5px]" style={{ color: MUTED }}>
+              <span className="text-12.5" style={{ color: MUTED }}>
                 {ragSources.length} source{ragSources.length !== 1 ? 's' : ''} retrieved
               </span>
               <ChevronDown size={13} strokeWidth={2} className={cn('transition-transform', showSources && 'rotate-180')} style={{ color: '#8c958f' }} />
@@ -586,10 +586,10 @@ export function EngagementComposePanel({
                 {ragSources.map((s, i) => (
                   <div key={i} className="px-3.5 py-2.5">
                     <div className="flex items-center justify-between mb-1 gap-3">
-                      <span className="text-[13px] font-medium truncate" style={{ color: INK }}>{s.file_name}</span>
-                      <span className="text-[12px] tabular-nums flex-shrink-0" style={{ color: FAINT }}>{Math.round(s.similarity * 100)}%</span>
+                      <span className="text-13 font-medium truncate" style={{ color: INK }}>{s.file_name}</span>
+                      <span className="text-12 tabular-nums flex-shrink-0" style={{ color: FAINT }}>{Math.round(s.similarity * 100)}%</span>
                     </div>
-                    <p className="text-[12.5px] leading-relaxed line-clamp-2 m-0" style={{ color: MUTED }}>{s.content}</p>
+                    <p className="text-12.5 leading-relaxed line-clamp-2 m-0" style={{ color: MUTED }}>{s.content}</p>
                   </div>
                 ))}
               </div>
@@ -614,7 +614,7 @@ export function EngagementComposePanel({
                 onClick={() => setErrorOpen(v => !v)}
                 title="Show the full error"
                 aria-expanded={errorOpen}
-                className="text-[12.5px] max-w-[360px] truncate cursor-pointer bg-transparent border-0 p-0 text-left underline decoration-dotted underline-offset-2"
+                className="text-12.5 max-w-[360px] truncate cursor-pointer bg-transparent border-0 p-0 text-left underline decoration-dotted underline-offset-2"
                 style={{ color: BODY }}
               >
                 {error}
@@ -622,18 +622,18 @@ export function EngagementComposePanel({
               {errorOpen && (
                 <div className="absolute bottom-full left-0 z-50 mb-2 w-[380px] max-w-[80vw] max-h-[260px] overflow-auto rounded-[10px] border border-[#e6e8e4] bg-white p-3 shadow-[0_8px_24px_rgba(15,20,18,0.12)]">
                   <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <span className="text-[12px]" style={{ color: MUTED }}>Error detail</span>
+                    <span className="text-12" style={{ color: MUTED }}>Error detail</span>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => navigator.clipboard?.writeText(error)} className="text-[12px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: INK }}>Copy</button>
+                      <button type="button" onClick={() => navigator.clipboard?.writeText(error)} className="text-12 font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline" style={{ color: INK }}>Copy</button>
                       <button type="button" onClick={() => setErrorOpen(false)} aria-label="Close error detail" className="bg-transparent border-0 p-0 cursor-pointer" style={{ color: MUTED }}><X size={12} strokeWidth={2} /></button>
                     </div>
                   </div>
-                  <div className="whitespace-pre-wrap break-words text-[12.5px]" style={{ color: BODY }}>{error}</div>
+                  <div className="whitespace-pre-wrap break-words text-12.5" style={{ color: BODY }}>{error}</div>
                 </div>
               )}
             </div>
           ) : (
-            <span className="text-[12.5px] truncate" style={{ color: FAINT }}>Signature and quoted message are added on send</span>
+            <span className="text-12.5 truncate" style={{ color: FAINT }}>Signature and quoted message are added on send</span>
           )}
           <span className="flex-1" />
           {/* Approve & Send — the one filled primary in the panel */}
@@ -673,7 +673,7 @@ function ToAutocompleteInput({
         aria-label="Recipient email address"
         autoComplete="off"
         autoFocus={autoFocus}
-        className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#6f7a74]"
+        className="w-full text-14 bg-transparent border-none outline-none focus-visible:outline-none py-1 pr-4 placeholder:text-[#6f7a74]"
         style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => { onChange(c.email); ac.close() }} />}
@@ -721,7 +721,7 @@ function ChipInput({
         placeholder={chips.length === 0 ? placeholder : ''}
         aria-label={placeholder}
         autoComplete="off"
-        className="min-w-[120px] flex-1 text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
+        className="min-w-[120px] flex-1 text-14 bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
         style={{ color: INK }}
       />
       {ac.visible && <SuggestionList items={ac.items} highlight={ac.highlight} onPick={c => pick(c.email)} />}

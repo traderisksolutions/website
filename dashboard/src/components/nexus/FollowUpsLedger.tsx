@@ -108,8 +108,8 @@ export function FollowUpsLedger() {
           <Segmented value={view} onChange={setView} options={VIEW_OPTIONS.map(o => ({ ...o, count: data?.counts[o.value] }))} />
           <Btn size="xs" level={mine ? 'secondary' : 'tertiary'} aria-pressed={mine} onClick={() => setMine(m => !m)}>Mine</Btn>
         </div>
-        {error && <p role="alert" className="m-0 mb-3 text-[13px] text-trs-neg">{/does not exist|42P01/.test(error) ? 'Nexus needs its database update (follow_ups) before it can show follow-ups.' : error}</p>}
-        {note && <p role="status" className="m-0 mb-3 text-[13px] text-trs-muted">{note}</p>}
+        {error && <p role="alert" className="m-0 mb-3 text-13 text-trs-neg">{/does not exist|42P01/.test(error) ? 'Nexus needs its database update (follow_ups) before it can show follow-ups.' : error}</p>}
+        {note && <p role="status" className="m-0 mb-3 text-13 text-trs-muted">{note}</p>}
 
         {loading && !data ? <Spinner label="Loading follow-ups…" /> : (
           <Register label="Follow-ups" minWidth={1320} maxHeight="calc(100vh - 290px)">
@@ -165,7 +165,7 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
       <RegisterCell>
         <div className="flex justify-center items-center gap-2 min-w-0 max-w-[220px]">
           <Chip tone={chip.tone}>{chip.label}</Chip>
-          {debtor && <span className="truncate text-[12px] text-trs-muted" title={debtor}>{debtor}</span>}
+          {debtor && <span className="truncate text-12 text-trs-muted" title={debtor}>{debtor}</span>}
         </div>
       </RegisterCell>
       <RegisterCell align="left" title={r.what} primary={clip(r.what, 60)} />

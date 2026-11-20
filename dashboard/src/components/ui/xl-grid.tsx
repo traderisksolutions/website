@@ -35,7 +35,7 @@ export function XlGrid({ children, label, minWidth, maxHeight, className }: {
   return (
     <div className={cn('rounded-[10px] bg-white overflow-hidden', className)} style={{ border: `1px solid ${LINE}` }}>
       <div className="overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
-        <table className="xl-grid w-full border-collapse text-[13px] tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
+        <table className="xl-grid w-full border-collapse text-13 tabular-nums" style={{ minWidth, color: INK }} aria-label={label}>{children}</table>
       </div>
     </div>
   )
@@ -83,7 +83,7 @@ export function XlRow({ children, onClick, selected, group, className }: {
 
 /** The row number gutter, as in a spreadsheet. */
 export function XlNum({ n }: { n: number }) {
-  return <td className="h-6 w-8 px-1 text-center text-[11px] select-none" style={{ ...edge, background: HEAD, color: '#8c958f' }}>{n}</td>
+  return <td className="h-6 w-8 px-1 text-center text-11 select-none" style={{ ...edge, background: HEAD, color: '#8c958f' }}>{n}</td>
 }
 
 const isBlank = (v: React.ReactNode) => v === null || v === undefined || v === '' || v === false
@@ -111,14 +111,14 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-[12.5px]" style={{ ...edge, background: '#fafafa', color: 'var(--trs-ink-2)' }}>{children}</td>
+      <td colSpan={colSpan} className="h-8 px-2.5 text-left font-medium text-12.5" style={{ ...edge, background: '#fafafa', color: 'var(--trs-ink-2)' }}>{children}</td>
     </tr>
   )
 }
 
 export function XlEmpty({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
-  return <tr><td colSpan={colSpan} className="py-6 text-center text-[12.5px] text-trs-muted">{children}</td></tr>
+  return <tr><td colSpan={colSpan} className="py-6 text-center text-12.5 text-trs-muted">{children}</td></tr>
 }
 
 /** A 20px button that fits inside a 24px grid row. */
-export const XL_BTN = 'h-5 px-1.5 text-[11.5px] rounded-[5px] leading-none'
+export const XL_BTN = 'h-5 px-1.5 text-12 rounded-[5px] leading-none'

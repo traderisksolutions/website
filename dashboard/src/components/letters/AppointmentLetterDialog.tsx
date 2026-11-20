@@ -120,7 +120,7 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
           <DialogTitle>Appointment letter</DialogTitle>
           <DialogDescription className="sr-only">Letter of broker appointment, signed by the client on its letterhead</DialogDescription>
         </DialogHeader>
-        {!f && !error && <p className="m-0 text-[13.5px] text-trs-muted">Loading…</p>}
+        {!f && !error && <p className="m-0 text-13.5 text-trs-muted">Loading…</p>}
         {f && parts && (
           <div className="grid gap-6 md:grid-cols-[340px_minmax(0,1fr)] min-w-0">
             <div className="grid gap-3 content-start min-w-0">
@@ -131,7 +131,7 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
               <Field label="Client letterhead logo (optional)">
                 <div className="flex flex-wrap items-center gap-2">
                   {f.client_logo && <img src={f.client_logo} alt="Client logo" className="h-9 max-w-[140px] object-contain rounded border border-[#e6e8e4] bg-white p-1" />}
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-[13px] underline underline-offset-2 text-trs-ink">
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-13 underline underline-offset-2 text-trs-ink">
                     <ImagePlus size={14} /> {f.client_logo ? 'Replace logo' : 'Add logo'}
                     <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={pickLogo} />
                   </label>
@@ -156,10 +156,10 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
                 <Btn level="secondary" disabled={!!busy || problems.length > 0} loading={busy === 'docx'} onClick={() => void download('docx')}><FileText size={14} /> Download Word</Btn>
                 <Btn level="tertiary" disabled={!!busy || problems.length > 0} loading={busy === 'email'} onClick={() => void draft()}><Mail size={14} /> Draft email to client</Btn>
               </div>
-              {error && <p className="m-0 text-[13px] text-trs-neg">{error}</p>}
-              {notice && <p className="m-0 text-[13px] text-trs-ink">{notice}</p>}
+              {error && <p className="m-0 text-13 text-trs-neg">{error}</p>}
+              {notice && <p className="m-0 text-13 text-trs-ink">{notice}</p>}
               {saved && (
-                <p className="m-0 text-[12.5px] text-trs-muted">
+                <p className="m-0 text-12.5 text-trs-muted">
                   Filed in the data room under Letters ·{' '}
                   {saved.map(d => <a key={d.id} href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="underline underline-offset-2 mr-2 text-trs-ink">Open {d.format === 'pdf' ? 'PDF' : 'Word'}</a>)}
                 </p>
@@ -167,20 +167,20 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
             </div>
             {pdfUrl ? (
               <div className="min-w-0 flex flex-col gap-2">
-                <div className="flex justify-between items-center text-[12.5px] text-trs-muted"><span>The PDF as it will be filed and sent</span><Btn size="xs" level="tertiary" onClick={() => setPdfUrl(null)}>Back to editing view</Btn></div>
+                <div className="flex justify-between items-center text-12.5 text-trs-muted"><span>The PDF as it will be filed and sent</span><Btn size="xs" level="tertiary" onClick={() => setPdfUrl(null)}>Back to editing view</Btn></div>
                 <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded-[10px] border border-[#e6e8e4] bg-white" />
               </div>
             ) : (
-            <div className="min-w-0 rounded-[10px] border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-[13px] leading-[1.6] text-trs-ink" aria-label="Letter preview">
-              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-[6px] border border-dashed border-[#d5d9d4] items-center justify-center text-[11.5px]'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
+            <div className="min-w-0 rounded-[10px] border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-13 leading-[1.6] text-trs-ink" aria-label="Letter preview">
+              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-[6px] border border-dashed border-[#d5d9d4] items-center justify-center text-12'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
                 {parts.clientLogo || parts.clientAddress.length
-                  ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-[60px] max-w-[180px] object-contain" /> : <span />}<div className="text-right text-[11px] leading-[1.45] text-trs-muted">{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
+                  ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-[60px] max-w-[180px] object-contain" /> : <span />}<div className="text-right text-11 leading-[1.45] text-trs-muted">{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
                   : 'Client letterhead (left blank)'}
               </div>
-              <div className="flex justify-between items-start pb-3 mb-6 border-b border-[#e4e7e3]"><img src="/letters/trs-logo.png" alt="TRS" className="w-[120px]" /><div className="text-right text-[10.5px] leading-[1.45] text-trs-muted">Prepared by<br />Trade Risk Solutions Pte. Ltd.</div></div>
+              <div className="flex justify-between items-start pb-3 mb-6 border-b border-[#e4e7e3]"><img src="/letters/trs-logo.png" alt="TRS" className="w-[120px]" /><div className="text-right text-11 leading-[1.45] text-trs-muted">Prepared by<br />Trade Risk Solutions Pte. Ltd.</div></div>
               <div>{parts.addressee.map(a => <div key={a}>{a}</div>)}</div>
               <div className="mt-5">{parts.date}</div>
-              <div className="mt-6 font-semibold text-[14px]">{parts.title}</div>
+              <div className="mt-6 font-semibold text-14">{parts.title}</div>
               {parts.re && <div className="mt-1 font-semibold">Re: {parts.re}</div>}
               {parts.blocks.map((b, i) => (
                 <p key={i} className={b.kind === 'li' ? 'mt-1.5 mb-0 pl-5 -indent-4' : 'mt-3 mb-0'}>
@@ -197,7 +197,7 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
             )}
           </div>
         )}
-        {!f && error && <p className="m-0 text-[13px] text-trs-neg">{error}</p>}
+        {!f && error && <p className="m-0 text-13 text-trs-neg">{error}</p>}
       </DialogContent>
     </Dialog>
   )

@@ -73,7 +73,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
     return () => document.removeEventListener('mousedown', h)
   }, [statusMenu])
 
-  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[7px] border bg-white text-[13.5px] font-medium no-underline hover:bg-[#faf9f6]'
+  const secondaryLink = 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[7px] border bg-white text-13.5 font-medium no-underline hover:bg-[#faf9f6]'
 
   return (
     <div className="rounded-[16px] border border-[#e6e8e4] bg-white">
@@ -83,27 +83,26 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[14px] font-medium text-trs-ink">{fullName(lead)}</span>
-            {lead.company && <span className="text-[13.5px] text-trs-muted">· {lead.company}</span>}
-            {lead.topic   && <span className="text-[13.5px] text-trs-muted">— {lead.topic}</span>}
+            <span className="text-14 font-medium text-trs-ink">{fullName(lead)}</span>
+            {lead.company && <span className="text-13.5 text-trs-muted">· {lead.company}</span>}
+            {lead.topic   && <span className="text-13.5 text-trs-muted">— {lead.topic}</span>}
           </div>
           {body && (
-            <p className="m-0 mt-1 text-[13.5px] truncate text-trs-muted">
+            <p className="m-0 mt-1 text-13.5 truncate text-trs-muted">
               {body}
             </p>
           )}
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <span className="text-[12.5px] tabular-nums text-trs-subtle">{timeAgo(lead.created_at)}</span>
+          <span className="text-12.5 tabular-nums text-trs-subtle">{timeAgo(lead.created_at)}</span>
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={e => { e.stopPropagation(); setStatusMenu(m => !m) }}
               aria-haspopup="menu"
               aria-expanded={statusMenu}
-              className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium border-0 cursor-pointer"
-              style={{ background: '#f1f2ee', color: '#2a332f' }}
+              className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-12 font-medium border-0 cursor-pointer bg-trs-field text-trs-ink-2"
             >
               {STATUS_LABEL[lead.status] ?? STATUS_LABEL.new} <ChevronDown size={11} />
             </button>
@@ -111,7 +110,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               <div role="menu" className="absolute right-0 top-[calc(100%+4px)] bg-white rounded-[12px] min-w-[150px] z-50 py-1" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
                 {ALL_STATUSES.map(s => (
                   <button key={s} type="button" role="menuitem" onClick={e => { e.stopPropagation(); onStatus(lead.id, s); setStatusMenu(false) }}
-                    className={cn('w-full text-left px-3 py-2 text-[13.5px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]', lead.status === s && 'font-medium')}
+                    className={cn('w-full text-left px-3 py-2 text-13.5 bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]', lead.status === s && 'font-medium')}
                     style={{ color: INK }}>
                     {STATUS_LABEL[s]}
                   </button>
@@ -126,15 +125,15 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
         <div className="px-5 py-4 border-t border-[#e6e8e4]" onClick={e => e.stopPropagation()}>
           {body && (
             <div className="mb-4">
-              <p className="m-0 mb-1.5 text-[12.5px] text-trs-muted">Claim details</p>
-              <p className="m-0 text-[14px] leading-relaxed whitespace-pre-wrap text-trs-ink">{body}</p>
+              <p className="m-0 mb-1.5 text-12.5 text-trs-muted">Claim details</p>
+              <p className="m-0 text-14 leading-relaxed whitespace-pre-wrap text-trs-ink">{body}</p>
             </div>
           )}
           <div className="grid gap-x-6 gap-y-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
             {lead.email && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Email</p>
-                <button type="button" onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] text-trs-ink">
+                <p className="m-0 mb-1 text-12.5 text-trs-muted">Email</p>
+                <button type="button" onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-14 text-trs-ink">
                   <span className="max-w-[180px] truncate">{lead.email}</span>
                   {copied === 'email' ? <Check size={12} className="text-trs-muted" /> : <Copy size={12} className="text-trs-subtle" />}
                 </button>
@@ -142,8 +141,8 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
             )}
             {lead.phone && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Phone</p>
-                <button type="button" onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] tabular-nums text-trs-ink">
+                <p className="m-0 mb-1 text-12.5 text-trs-muted">Phone</p>
+                <button type="button" onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-14 tabular-nums text-trs-ink">
                   {lead.phone}
                   {copied === 'phone' ? <Check size={12} className="text-trs-muted" /> : <Copy size={12} className="text-trs-subtle" />}
                 </button>
@@ -151,8 +150,8 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
             )}
             {lead.contact_type && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Type</p>
-                <p className="m-0 text-[14px] text-trs-ink">{lead.contact_type}</p>
+                <p className="m-0 mb-1 text-12.5 text-trs-muted">Type</p>
+                <p className="m-0 text-14 text-trs-ink">{lead.contact_type}</p>
               </div>
             )}
           </div>
@@ -242,9 +241,9 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
             {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse bg-trs-field" />)}
           </div>
         ) : error ? (
-          <p className="py-16 text-center text-[16px] m-0 text-trs-neg">{error}</p>
+          <p className="py-16 text-center text-16 m-0 text-trs-neg">{error}</p>
         ) : filtered.length === 0 ? (
-          <p className="py-16 text-center text-[16px] m-0 text-trs-muted">{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
+          <p className="py-16 text-center text-16 m-0 text-trs-muted">{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
         ) : (
           <div className="flex flex-col gap-3">
             {filtered.map(lead => <LeadCard key={lead.id} lead={lead} onStatus={handleStatus} />)}

@@ -17,19 +17,19 @@ function UnsubscribedCard() {
     >
       <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10 text-center" style={{ border: '1px solid #e6e8e4' }}>
         <div className="inline-flex items-center justify-center rounded-[12px] mb-5 w-12 h-12 bg-trs-ink">
-          <span className="text-white text-[16px] font-medium tracking-[-0.01em]">TRS</span>
+          <span className="text-white text-16 font-medium tracking-[-0.01em]">TRS</span>
         </div>
         {ok ? (
           <>
-            <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight text-trs-ink">Unsubscribed</h1>
-            <p className="m-0 mt-2.5 text-[14px] leading-relaxed text-trs-muted">
+            <h1 className="m-0 text-24 font-medium tracking-[-0.02em] leading-tight text-trs-ink">Unsubscribed</h1>
+            <p className="m-0 mt-2.5 text-14 leading-relaxed text-trs-muted">
               No further emails will be sent to this address. If you contact us again, we will still reply.
             </p>
           </>
         ) : (
           <>
-            <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight text-trs-ink">Link no longer valid</h1>
-            <p className="m-0 mt-2.5 text-[14px] leading-relaxed text-trs-muted">
+            <h1 className="m-0 text-24 font-medium tracking-[-0.02em] leading-tight text-trs-ink">Link no longer valid</h1>
+            <p className="m-0 mt-2.5 text-14 leading-relaxed text-trs-muted">
               This unsubscribe link could not be verified. To stop receiving emails, please reply to any message from us and let us know.
             </p>
           </>

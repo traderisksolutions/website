@@ -66,7 +66,7 @@ export function RegisterTh({ children, first, last, active, dir, onSort, hint, c
 }) {
   const dense = useContext(DenseContext)
   const Icon = active ? (dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
-  const size = dense ? 'h-8 text-[12px]' : 'h-11 text-[13px]'
+  const size = dense ? 'h-8 text-12' : 'h-11 text-13'
   return (
     <th scope="col" aria-sort={onSort ? (active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none') : undefined} style={width ? { width } : undefined}
       className={cn('py-0 font-normal whitespace-nowrap text-center', first && 'z-30', cellPad(dense, first, last), className)}>
@@ -114,9 +114,9 @@ export function RegisterCell({ primary, secondary, children, align = 'center', f
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
       <div className={cn('min-w-0 max-w-full', !first && align !== 'left' && 'mx-auto')} style={first ? { width } : undefined}>
         {primary !== undefined && (
-          <span className={cn('block leading-tight', first ? cn(dense ? 'text-[13.5px]' : 'text-[15px]', 'font-medium truncate') : cn(dense ? 'text-[13.5px]' : 'text-[14px]', 'tabular-nums'))} style={{ color: INK }}>{primary}</span>
+          <span className={cn('block leading-tight', first ? cn(dense ? 'text-13.5' : 'text-15', 'font-medium truncate') : cn(dense ? 'text-13.5' : 'text-14', 'tabular-nums'))} style={{ color: INK }}>{primary}</span>
         )}
-        {secondary !== undefined && <span className={cn('block truncate', dense ? 'text-[12px]' : 'text-[12.5px] mt-0.5')} style={{ color: MUTED }}>{secondary}</span>}
+        {secondary !== undefined && <span className={cn('block truncate', dense ? 'text-12' : 'text-12.5 mt-0.5')} style={{ color: MUTED }}>{secondary}</span>}
         {children}
       </div>
     </td>
@@ -128,7 +128,7 @@ export function RegisterGroupRow({ children, colSpan, onClick, open }: { childre
   const dense = useContext(DenseContext)
   return (
     <tr onClick={onClick} aria-expanded={onClick ? open : undefined} className={cn('reg-group', onClick && 'cursor-pointer hover:bg-[var(--trs-tint)]')} style={{ borderBottom: `1px solid ${RULE}`, background: '#fafafa' }}>
-      <td colSpan={colSpan} className={cn('font-medium', dense ? 'pl-4 pr-[10px] py-1 text-[12.5px]' : 'pl-6 pr-4 py-2 text-[13px]')} style={{ color: 'var(--trs-ink-2)' }}>{children}</td>
+      <td colSpan={colSpan} className={cn('font-medium', dense ? 'pl-4 pr-[10px] py-1 text-12.5' : 'pl-6 pr-4 py-2 text-13')} style={{ color: 'var(--trs-ink-2)' }}>{children}</td>
     </tr>
   )
 }
@@ -136,7 +136,7 @@ export function RegisterGroupRow({ children, colSpan, onClick, open }: { childre
 export function RegisterEmpty({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   const dense = useContext(DenseContext)
   return (
-    <tr><td colSpan={colSpan} className={cn('cell-empty', dense ? 'py-8 text-[13px]' : 'py-16 text-[15px]')} style={{ color: MUTED }}>{children}</td></tr>
+    <tr><td colSpan={colSpan} className={cn('cell-empty', dense ? 'py-8 text-13' : 'py-16 text-15')} style={{ color: MUTED }}>{children}</td></tr>
   )
 }
 

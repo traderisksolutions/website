@@ -52,11 +52,11 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             <ChannelBadge source={lead.source} />
             <StatusBadge status={lead.status as AppStatus} />
           </div>
-          <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
+          <p className="text-16 font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
             {displayName(lead)}
           </p>
           {lead.company && (
-            <p className="text-[13px] mt-0.5 mb-0 text-trs-muted">{lead.company}</p>
+            <p className="text-13 mt-0.5 mb-0 text-trs-muted">{lead.company}</p>
           )}
         </div>
         <button
@@ -119,7 +119,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center h-[30px] px-3 rounded-[6px] text-[12.5px] font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
+            className="mt-1 inline-flex items-center h-[30px] px-3 rounded-[6px] text-12.5 font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
             style={{ border: '1px solid #d5d9d4', color: INK }}
           >
             Open in WhatsApp
@@ -134,13 +134,13 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
         {lead.contact_type && <DetailField label="Type">{lead.contact_type}</DetailField>}
         <DetailField label="Source">{lead.source.replace(/_/g, ' ')}</DetailField>
         <DetailField label="Received">{fmtDate(lead.created_at)}</DetailField>
-        {lead.page_url && <DetailField label="Page"><span className="text-[12.5px] break-all">{lead.page_url}</span></DetailField>}
+        {lead.page_url && <DetailField label="Page"><span className="text-12.5 break-all">{lead.page_url}</span></DetailField>}
       </DetailSection>
 
       {/* Message */}
       {msg && (
         <DetailSection label="Message">
-          <p className="text-[13.5px] whitespace-pre-wrap leading-[1.6] rounded-[12px] px-3.5 py-3 m-0" style={{ background: '#f1f2ee', color: '#2a332f' }}>
+          <p className="text-13.5 whitespace-pre-wrap leading-[1.6] rounded-[12px] px-3.5 py-3 m-0 bg-trs-field text-trs-ink-2">
             {msg}
           </p>
         </DetailSection>
@@ -157,7 +157,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           aria-label="Internal notes for this lead"
           className={textareaCls}
         />
-        <p className="m-0 mt-1.5 text-[12px] text-trs-subtle">Team only. Saved when the field loses focus.</p>
+        <p className="m-0 mt-1.5 text-12 text-trs-subtle">Team only. Saved when the field loses focus.</p>
       </DetailSection>
     </div>
   )

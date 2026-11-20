@@ -21,10 +21,10 @@ export const asCaseSection = (v: string | null): CaseSection => CASE_SECTIONS.fi
 
 export const count = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
 export const tableFrame = 'relative overflow-x-auto bg-white'
-export const selectCls = 'h-8 max-w-full rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13px] text-trs-ink outline-none focus:border-trs-ink'
-export const headingCls = 'm-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink'
+export const selectCls = 'h-8 max-w-full rounded-[8px] border border-trs-line-2 bg-white px-2 text-13 text-trs-ink outline-none focus:border-trs-ink'
+export const headingCls = 'm-0 text-16 font-medium tracking-[-0.01em] leading-tight text-trs-ink'
 /** A subject in a table cell that opens the thread over the page. */
-export const subjectBtn = 'block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline'
+export const subjectBtn = 'block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-13 text-trs-ink hover:underline'
 
 /** "Read 2 new emails": a person starts the case reader on the threads on this case. */
 export function ReadNewButton({ id, unread, level = 'secondary', onDone, onError }: {

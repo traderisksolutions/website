@@ -88,13 +88,13 @@ export default function DebitNoteEmailTemplatePanel() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] text-muted-foreground">Available placeholders (click to copy):</span>
+              <span className="text-11 text-muted-foreground">Available placeholders (click to copy):</span>
               <div className="flex flex-wrap gap-1.5">
                 {DEBIT_NOTE_PLACEHOLDERS.map(p => (
                   <button
                     key={p}
                     onClick={() => navigator.clipboard.writeText(p)}
-                    className="text-[11px] font-mono rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground hover:border-[#202124]/40 transition-colors"
+                    className="text-11 font-mono rounded-md border border-border bg-muted/40 px-2 py-1 text-muted-foreground hover:text-foreground hover:border-[#202124]/40 transition-colors"
                     title="Copy"
                   >
                     {p}

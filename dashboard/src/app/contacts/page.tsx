@@ -54,7 +54,7 @@ export default function PeoplePage() {
             <Btn level="primary" onClick={() => setAddOpen(true)}>Add contact</Btn>
           </>} />
 
-        {error && <p className="mt-4 mb-0 text-[14px] text-trs-neg" role="alert">{error}</p>}
+        {error && <p className="mt-4 mb-0 text-14 text-trs-neg" role="alert">{error}</p>}
 
         <div className="mt-6">
           {!people ? <Spinner label="Loading people…" />
@@ -124,7 +124,7 @@ function AddContactDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle className="text-[20px] font-medium tracking-[-0.01em]">Add contact</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="text-20 font-medium tracking-[-0.01em]">Add contact</DialogTitle></DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="First name"><input className={inputCls} value={form.first_name} onChange={e => set('first_name', e.target.value)} /></Field>
@@ -133,8 +133,8 @@ function AddContactDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
           <Field label="Email"><input className={inputCls} type="email" value={form.email} onChange={e => set('email', e.target.value)} /></Field>
           <Field label="Phone"><input className={inputCls} value={form.phone} onChange={e => set('phone', e.target.value)} /></Field>
           <CompanyField value={company} onChange={setCompany} allowCreate listId="people-company" />
-          {!canSave && <p className="m-0 text-[13px] text-trs-muted">Email or phone required.</p>}
-          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          {!canSave && <p className="m-0 text-13 text-trs-muted">Email or phone required.</p>}
+          {error && <p className="m-0 text-13 text-trs-neg" role="alert">{error}</p>}
         </div>
         <DialogFooter>
           <Btn onClick={() => onOpenChange(false)}>Cancel</Btn>

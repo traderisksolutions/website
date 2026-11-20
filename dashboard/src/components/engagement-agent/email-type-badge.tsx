@@ -21,9 +21,9 @@ export function EmailTypeBadge({ type, size = 'sm', className }: EmailTypeBadgeP
     <span
       className={cn(
         'inline-flex items-center font-medium rounded-[6px] whitespace-nowrap flex-shrink-0 leading-none',
-        size === 'xs' && 'text-[11.5px] px-2 h-[20px]',
-        size === 'sm' && 'text-[12px] px-2.5 h-[22px]',
-        size === 'md' && 'text-[13px] px-3 h-[26px]',
+        size === 'xs' && 'text-12 px-2 h-[20px]',
+        size === 'sm' && 'text-12 px-2.5 h-[22px]',
+        size === 'md' && 'text-13 px-3 h-[26px]',
         className,
       )}
       style={{ background: '#f1f2ee', color: '#2a332f' }}

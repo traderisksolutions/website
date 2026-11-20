@@ -30,12 +30,12 @@ export function FloatingChatComposer({
       {(attachments.length > 0 || attaching) && (
         <div className="flex flex-wrap gap-1.5 mb-1.5">
           {attachments.map((a, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-[10.5px] rounded-md border border-[--border-subtle] bg-muted/50 pl-1.5 pr-1 py-0.5 text-foreground/80">
+            <span key={i} className="inline-flex items-center gap-1 text-11 rounded-md border border-[--border-subtle] bg-muted/50 pl-1.5 pr-1 py-0.5 text-foreground/80">
               <FileText size={10} /> <span className="max-w-[120px] truncate">{a.filename}</span>
               <button onClick={() => onRemoveAttach(i)} aria-label="Remove attachment" className="text-muted-foreground/60 hover:text-foreground"><X size={11} /></button>
             </span>
           ))}
-          {attaching && <span className="inline-flex items-center gap-1 text-[10.5px] text-muted-foreground/70"><Loader2 size={11} className="animate-spin" /> Reading…</span>}
+          {attaching && <span className="inline-flex items-center gap-1 text-11 text-muted-foreground/70"><Loader2 size={11} className="animate-spin" /> Reading…</span>}
         </div>
       )}
 
@@ -54,7 +54,7 @@ export function FloatingChatComposer({
           rows={1}
           placeholder="Message the consultant…  (Enter to send, Shift+Enter for a new line)"
           aria-label="Message the consultant"
-          className="flex-1 resize-none bg-transparent text-[12.5px] leading-[1.5] outline-none placeholder:text-muted-foreground/50 max-h-[140px]"
+          className="flex-1 resize-none bg-transparent text-12.5 leading-[1.5] outline-none placeholder:text-muted-foreground/50 max-h-[140px]"
         />
         {sending ? (
           <button onClick={onStop} aria-label="Stop generating"

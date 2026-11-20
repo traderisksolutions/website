@@ -124,7 +124,7 @@ function Schedule() {
           <Tonight plan={data.tonight} cadence={data.cadence} site={data.site} when={next!.label} siteKey={siteKey} />
 
           <div className="h-12" />
-          <h2 className="m-0 mb-3.5 text-[17px] font-medium tracking-[-0.01em]">Nights</h2>
+          <h2 className="m-0 mb-3.5 text-16 font-medium tracking-[-0.01em]">Nights</h2>
           <Nights groups={data.nights} siteKey={siteKey} />
         </div>
       )}
@@ -143,7 +143,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
   const Term = ({ part, children, title }: { part: Part; children: React.ReactNode; title?: string }) => (
     <button type="button" className={partCls} style={{ color: INK, borderBottom: `2px solid ${INK}`, font: 'inherit', fontWeight: 500 }} title={title ?? 'Change'} disabled={busy} onClick={() => setEditing(part)}>{children}</button>
   )
-  const controlCls = 'inline-block align-baseline h-9 rounded-[7px] border border-[#0f1412] bg-white px-2.5 text-[20px] font-medium outline-none'
+  const controlCls = 'inline-block align-baseline h-9 rounded-[7px] border border-[#0f1412] bg-white px-2.5 text-20 font-medium outline-none'
 
   function commitCount() {
     const v = Math.max(0, Math.min(12, Math.floor(Number(count)) || 0))
@@ -169,12 +169,12 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
 
   return (
     <>
-      <p className="m-0 text-[22px] sm:text-[28px] font-normal tracking-[-0.02em] leading-[1.7] max-w-[920px]" style={{ color: INK2, textWrap: 'balance' }}>
+      <p className="m-0 text-20 sm:text-24 font-normal tracking-[-0.02em] leading-[1.7] max-w-[920px]" style={{ color: INK2, textWrap: 'balance' }}>
         {cadence.count === 0
           ? <>Nightly writing is off. Set {countControl} of articles to start.</>
           : <>Every night at {time}, write {countControl} {cadence.count === 1 ? 'article' : 'articles'} of about {lengthControl} on the prompts ticked in the latest analysis, then {postControl} to {site.domain}{site.blog_base_path}.</>}
       </p>
-      <p className="m-0 mt-3.5 text-[13.5px] text-trs-muted">Click an underlined part to change it.</p>
+      <p className="m-0 mt-3.5 text-13.5 text-trs-muted">Click an underlined part to change it.</p>
     </>
   )
 }
@@ -189,14 +189,14 @@ function Step({ done, title, children, last }: { done: boolean; title: React.Rea
         {!last && <span className="block flex-1 w-px mt-1.5 bg-trs-line" aria-hidden />}
       </span>
       <div className={cn('min-w-0 flex-1', last ? 'pb-0' : 'pb-[26px]')}>
-        <b className="block text-[15px] font-medium">{title}</b>
+        <b className="block text-15 font-medium">{title}</b>
         {children}
       </div>
     </li>
   )
 }
 
-const stepNote = (text: React.ReactNode) => <span className="block text-[13.5px] leading-[1.5] mt-0.5 max-w-[70ch] text-trs-muted">{text}</span>
+const stepNote = (text: React.ReactNode) => <span className="block text-13.5 leading-[1.5] mt-0.5 max-w-[70ch] text-trs-muted">{text}</span>
 
 function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; cadence: Cadence; site: SiteSummary; when: string; siteKey: string | null }) {
   const a = plan.analysis
@@ -204,8 +204,8 @@ function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; ca
   const inputs = a && k
   return (
     <div className="grid gap-x-7 gap-y-4 max-w-[980px] grid-cols-1 sm:grid-cols-[200px_minmax(0,1fr)]">
-      <div className="text-[15px] pt-[3px] text-trs-muted">
-        <b className="block text-[20px] font-medium tracking-[-0.02em] text-trs-ink">Tonight</b>
+      <div className="text-15 pt-[3px] text-trs-muted">
+        <b className="block text-20 font-medium tracking-[-0.02em] text-trs-ink">Tonight</b>
         {when}
       </div>
       <ol className="list-none m-0 p-0 flex flex-col">
@@ -221,7 +221,7 @@ function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; ca
             {stepNote('Ticked in Competitors, not yet covered by an article, highest impressions first.')}
             <ul className="list-none m-0 mt-2 p-0 flex flex-col gap-1.5">
               {plan.prompts.map(p => (
-                <li key={p.id} className="text-[13.5px] text-trs-ink-2">
+                <li key={p.id} className="text-13.5 text-trs-ink-2">
                   {p.prompt}
                   <em className="not-italic ml-2 text-trs-subtle">{p.impressions == null ? '–' : n(p.impressions)}{p.cited_domains.length ? ` · cited: ${p.cited_domains.join(', ')}` : ''}</em>
                 </li>
@@ -251,11 +251,11 @@ function Nights({ groups, siteKey }: { groups: NightGroup[]; siteKey: string | n
   return (
     <ul className="list-none m-0 p-0 max-w-[980px]">
       {groups.flatMap(g => g.rows.map((r, i) => (
-        <li key={r.run_id} className="grid gap-4 items-baseline py-3.5 text-[14px] grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
+        <li key={r.run_id} className="grid gap-4 items-baseline py-3.5 text-14 grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
           <span className="tabular-nums text-trs-muted">{i === 0 ? g.label : ''}</span>
           <span className="font-medium min-w-0">
             <Link href={withSite(r.article_id ? `/marketing/articles/${r.article_id}` : `/marketing/generate/runs/${r.run_id}`, siteKey)} className="no-underline hover:underline underline-offset-2 block truncate text-trs-ink">{r.title}</Link>
-            <small className="block font-normal text-[12.5px] mt-0.5 truncate text-trs-muted">{r.detail}</small>
+            <small className="block font-normal text-12.5 mt-0.5 truncate text-trs-muted">{r.detail}</small>
           </span>
           <span><Chip>{r.status}</Chip></span>
           <span className="tabular-nums sm:text-right text-trs-muted">{usd(r.cost_usd)}</span>

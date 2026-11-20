@@ -118,8 +118,8 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
 
         {created ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-[14px]" style={{ color: INK }}>Placement created.</p>
-            <p className="m-0 text-[14px]" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
+            <p className="m-0 text-14" style={{ color: INK }}>Placement created.</p>
+            <p className="m-0 text-14" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
             <div className="flex justify-end pt-2">
               <Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn>
             </div>
@@ -150,7 +150,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
             </div>
 
             {asks.length > 0 && (
-              <div className="text-[13px]" style={{ color: MUTED }}>
+              <div className="text-13" style={{ color: MUTED }}>
                 <span className="block mb-1" style={{ color: INK }}>Client asks</span>
                 <ul className="m-0 pl-4">{asks.map((a, i) => <li key={i}>{a}</li>)}</ul>
               </div>
@@ -158,7 +158,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-[14px] font-medium" style={{ color: INK }}>Lines</span>
+                <span className="text-14 font-medium" style={{ color: INK }}>Lines</span>
                 <Btn level="tertiary" size="xs" onClick={() => setRows(rs => [...rs, blankRow()])}><Plus size={12} /> Add line</Btn>
               </div>
               {rows.map((r, i) => (
@@ -175,29 +175,29 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
                     </Btn>
                   </div>
                   <SpecFields compact value={r.spec} onChange={spec => setRow(r.key, { spec })} />
-                  {EB_LINES.has(r.product_line) && <p className="m-0 text-[13px]" style={{ color: MUTED }}>Employee list and pricing follow on the Members tab</p>}
+                  {EB_LINES.has(r.product_line) && <p className="m-0 text-13" style={{ color: MUTED }}>Employee list and pricing follow on the Members tab</p>}
                 </div>
               ))}
             </div>
 
-            <label className="flex items-center gap-2 text-[14px] cursor-pointer" style={{ color: INK }}>
+            <label className="flex items-center gap-2 text-14 cursor-pointer" style={{ color: INK }}>
               <input type="checkbox" checked={dispatch} onChange={e => setDispatch(e.target.checked)} />
               Prepare the insurer emails now
             </label>
 
             {dispatch && validRows.length > 0 && (
               <div className="flex flex-col gap-3">
-                <span className="text-[14px] font-medium" style={{ color: INK }}>Insurers to ask</span>
+                <span className="text-14 font-medium" style={{ color: INK }}>Insurers to ask</span>
                 {validRows.map(r => (
                   <div key={r.key} className="flex flex-col gap-2">
-                    <span className="text-[12.5px]" style={{ color: MUTED }}>Line {rows.indexOf(r) + 1} · {r.label.trim() || productLineLabel(r.product_line)}</span>
+                    <span className="text-12.5" style={{ color: MUTED }}>Line {rows.indexOf(r) + 1} · {r.label.trim() || productLineLabel(r.product_line)}</span>
                     <ContactPicker productLines={[r.product_line]} companyId={companyId} value={picks[r.key] ?? null} onChange={next => setPick(r.key, next)} />
                   </div>
                 ))}
               </div>
             )}
 
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {error && <p className="text-13 m-0" style={{ color: ERROR }}>{error}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>

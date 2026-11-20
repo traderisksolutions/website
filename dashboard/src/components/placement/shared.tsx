@@ -45,7 +45,7 @@ export function ProductLineSelect({ value, onChange, className }: { value: strin
 
 /** The seven spec fields in a compact two-column grid. Scope and Notes take the full row. */
 export function SpecFields({ value, onChange, compact }: { value: Spec; onChange: (next: Spec) => void; compact?: boolean }) {
-  const cls = compact ? `${inputCls} h-9 text-[13px]` : inputCls
+  const cls = compact ? `${inputCls} h-9 text-13` : inputCls
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5">
       {SPEC_KEYS.map(k => (

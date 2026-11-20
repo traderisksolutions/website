@@ -2,7 +2,7 @@
  "src/app/analytics/ai-usage/page.tsx": {
   "style": 29,
   "hex": 15,
-  "font": 9,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 3
@@ -10,7 +10,7 @@
  "src/app/analytics/error-log/page.tsx": {
   "style": 4,
   "hex": 4,
-  "font": 14,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 2
@@ -26,7 +26,7 @@
  "src/app/claims/page.tsx": {
   "style": 9,
   "hex": 2,
-  "font": 50,
+  "font": 0,
   "radius": 8,
   "height": 0,
   "control": 12
@@ -34,15 +34,15 @@
  "src/app/claims/second-opinion/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 21,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 2
  },
  "src/app/claims/website-forms.tsx": {
-  "style": 7,
-  "hex": 8,
-  "font": 18,
+  "style": 6,
+  "hex": 6,
+  "font": 0,
   "radius": 5,
   "height": 1,
   "control": 4
@@ -88,7 +88,7 @@
   "control": 5
  },
  "src/app/connect/[token]/bamboohr/page.tsx": {
-  "style": 2,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -96,23 +96,15 @@
   "control": 3
  },
  "src/app/connect/[token]/deel/page.tsx": {
-  "style": 2,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
- "src/app/connect/[token]/done/page.tsx": {
-  "style": 1,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/connect/[token]/hibob/page.tsx": {
-  "style": 2,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -120,7 +112,7 @@
   "control": 3
  },
  "src/app/connect/[token]/review/page.tsx": {
-  "style": 5,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -128,7 +120,7 @@
   "control": 14
  },
  "src/app/connect/[token]/simplepay/page.tsx": {
-  "style": 2,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -136,14 +128,6 @@
   "control": 3
  },
  "src/app/connect/[token]/talenox/page.tsx": {
-  "style": 2,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/app/connect/[token]/upload/page.tsx": {
   "style": 1,
   "hex": 0,
   "font": 0,
@@ -151,8 +135,16 @@
   "height": 0,
   "control": 2
  },
+ "src/app/connect/[token]/upload/page.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
+ },
  "src/app/connect/[token]/workday/page.tsx": {
-  "style": 2,
+  "style": 1,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -162,7 +154,7 @@
  "src/app/connect/gmail/page.tsx": {
   "style": 4,
   "hex": 4,
-  "font": 8,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 0
@@ -170,7 +162,7 @@
  "src/app/contacts/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -178,15 +170,15 @@
  "src/app/debit-notes/new/page.tsx": {
   "style": 8,
   "hex": 9,
-  "font": 27,
+  "font": 0,
   "radius": 10,
   "height": 2,
   "control": 22
  },
  "src/app/debit-notes/page.tsx": {
-  "style": 5,
-  "hex": 6,
-  "font": 48,
+  "style": 4,
+  "hex": 5,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 35
@@ -218,7 +210,7 @@
  "src/app/finance/page.tsx": {
   "style": 0,
   "hex": 3,
-  "font": 10,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -226,7 +218,7 @@
  "src/app/inbound/email/page.tsx": {
   "style": 7,
   "hex": 8,
-  "font": 17,
+  "font": 0,
   "radius": 3,
   "height": 0,
   "control": 6
@@ -234,7 +226,7 @@
  "src/app/insurers/[id]/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 1
@@ -250,7 +242,7 @@
  "src/app/login/page.tsx": {
   "style": 3,
   "hex": 8,
-  "font": 6,
+  "font": 0,
   "radius": 3,
   "height": 0,
   "control": 1
@@ -258,7 +250,7 @@
  "src/app/marketing/analytics/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 1,
   "control": 0
@@ -266,7 +258,7 @@
  "src/app/marketing/articles/[id]/page.tsx": {
   "style": 0,
   "hex": 1,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 6
@@ -274,7 +266,7 @@
  "src/app/marketing/articles/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -282,7 +274,7 @@
  "src/app/marketing/competitors/page.tsx": {
   "style": 6,
   "hex": 4,
-  "font": 15,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -290,7 +282,7 @@
  "src/app/marketing/generate/page.tsx": {
   "style": 0,
   "hex": 1,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 6
@@ -298,7 +290,7 @@
  "src/app/marketing/generate/runs/[id]/page.tsx": {
   "style": 3,
   "hex": 1,
-  "font": 15,
+  "font": 0,
   "radius": 2,
   "height": 1,
   "control": 2
@@ -306,7 +298,7 @@
  "src/app/marketing/knowledge/page.tsx": {
   "style": 3,
   "hex": 4,
-  "font": 7,
+  "font": 0,
   "radius": 3,
   "height": 1,
   "control": 3
@@ -314,7 +306,7 @@
  "src/app/marketing/newsletter/page.tsx": {
   "style": 2,
   "hex": 2,
-  "font": 18,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 5
@@ -322,7 +314,7 @@
  "src/app/marketing/schedule/page.tsx": {
   "style": 4,
   "hex": 7,
-  "font": 12,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 4
@@ -330,7 +322,7 @@
  "src/app/marketing/search-console/page.tsx": {
   "style": 0,
   "hex": 1,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -338,23 +330,15 @@
  "src/app/marketing/sites/page.tsx": {
   "style": 0,
   "hex": 1,
-  "font": 6,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 14
  },
- "src/app/movements/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 6,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/nexus/cases/page.tsx": {
-  "style": 106,
+  "style": 103,
   "hex": 22,
-  "font": 167,
+  "font": 0,
   "radius": 41,
   "height": 16,
   "control": 59
@@ -362,16 +346,8 @@
  "src/app/policies/[id]/controls.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 2,
-  "height": 0,
-  "control": 0
- },
- "src/app/policies/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
   "height": 0,
   "control": 0
  },
@@ -407,18 +383,10 @@
   "height": 1,
   "control": 1
  },
- "src/app/renewal-season/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/app/rfq/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 2,
   "height": 1,
   "control": 3
@@ -426,7 +394,7 @@
  "src/app/roadplus/page.tsx": {
   "style": 13,
   "hex": 10,
-  "font": 43,
+  "font": 0,
   "radius": 10,
   "height": 1,
   "control": 11
@@ -434,15 +402,15 @@
  "src/app/sales/enquiries/page.tsx": {
   "style": 3,
   "hex": 4,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/app/settings/page.tsx": {
-  "style": 4,
-  "hex": 5,
-  "font": 15,
+  "style": 3,
+  "hex": 4,
+  "font": 0,
   "radius": 4,
   "height": 0,
   "control": 2
@@ -466,7 +434,7 @@
  "src/app/unsubscribed/page.tsx": {
   "style": 2,
   "hex": 3,
-  "font": 5,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 0
@@ -474,7 +442,7 @@
  "src/app/work/ai/page.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 1
@@ -482,7 +450,7 @@
  "src/app/work/page.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 16,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 5
@@ -490,7 +458,7 @@
  "src/app/work/review.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 2
@@ -498,7 +466,7 @@
  "src/components/ActivityFeed.tsx": {
   "style": 2,
   "hex": 4,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -514,7 +482,7 @@
  "src/components/DebitNoteEmailTemplatePanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -528,7 +496,7 @@
   "control": 2
  },
  "src/components/SignaturePanel.tsx": {
-  "style": 44,
+  "style": 43,
   "hex": 17,
   "font": 0,
   "radius": 0,
@@ -538,7 +506,7 @@
  "src/components/app-shell.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -546,7 +514,7 @@
  "src/components/assistant/CaseEditor.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 2,
   "height": 4,
   "control": 14
@@ -554,7 +522,7 @@
  "src/components/assistant/CompanyKnowledge.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 10,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 2
@@ -562,15 +530,15 @@
  "src/components/assistant/shared.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 11,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
  },
  "src/components/board/TodoEditor.tsx": {
-  "style": 8,
-  "hex": 13,
-  "font": 12,
+  "style": 4,
+  "hex": 11,
+  "font": 0,
   "radius": 8,
   "height": 7,
   "control": 9
@@ -578,7 +546,7 @@
  "src/components/brochures/BrochureLibrary.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 14,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 7
@@ -586,7 +554,7 @@
  "src/components/cases/CaseBrief.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -594,7 +562,7 @@
  "src/components/cases/CaseBriefTables.tsx": {
   "style": 15,
   "hex": 0,
-  "font": 13,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 7
@@ -602,7 +570,7 @@
  "src/components/cases/CaseComparison.tsx": {
   "style": 10,
   "hex": 0,
-  "font": 10,
+  "font": 0,
   "radius": 3,
   "height": 0,
   "control": 13
@@ -610,7 +578,7 @@
  "src/components/cases/CaseConversation.tsx": {
   "style": 4,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -618,7 +586,7 @@
  "src/components/cases/CaseRounds.tsx": {
   "style": 15,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 7
@@ -626,7 +594,7 @@
  "src/components/cases/CaseSourcesPanel.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 5
@@ -642,7 +610,7 @@
  "src/components/cases/ResumePoint.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -658,7 +626,7 @@
  "src/components/cases/WishListDialog.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
@@ -666,7 +634,7 @@
  "src/components/cases/shared.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -674,7 +642,7 @@
  "src/components/chat/chat-empty-state.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -682,7 +650,7 @@
  "src/components/chat/chat-message-item.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 14,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 3
@@ -690,23 +658,15 @@
  "src/components/chat/chat-thread-list.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
- "src/components/chat/floating-chat-body.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/chat/floating-chat-composer.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 4,
   "control": 6
@@ -714,7 +674,7 @@
  "src/components/chat/floating-chat-dock.tsx": {
   "style": 2,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -722,7 +682,7 @@
  "src/components/chat/floating-chat-header.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 6
@@ -730,7 +690,7 @@
  "src/components/chat/minimized-chat-bar.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 2
@@ -738,18 +698,10 @@
  "src/components/clients/AskClient.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 6,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 1
- },
- "src/components/clients/BusinessNumbers.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/companies/CompanyEb.tsx": {
   "style": 1,
@@ -786,7 +738,7 @@
  "src/components/company-contact-picker/CompanyContactPicker.tsx": {
   "style": 7,
   "hex": 4,
-  "font": 11,
+  "font": 0,
   "radius": 8,
   "height": 2,
   "control": 10
@@ -930,7 +882,7 @@
  "src/components/data-table/toolbar.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 2,
   "height": 1,
   "control": 2
@@ -946,23 +898,15 @@
  "src/components/debit-notes/SendDocumentsModal.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/detail-section.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 3,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/documents/DataRoom.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 9,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 4
@@ -1010,7 +954,7 @@
  "src/components/email/CommissionCheck.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1018,7 +962,7 @@
  "src/components/engagement-agent/ai-analysis-panel.tsx": {
   "style": 3,
   "hex": 6,
-  "font": 9,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 2
@@ -1026,7 +970,7 @@
  "src/components/engagement-agent/anti-pattern-panel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 1,
   "control": 1
@@ -1034,7 +978,7 @@
  "src/components/engagement-agent/approved-examples-panel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 4,
+  "font": 1,
   "radius": 1,
   "height": 1,
   "control": 2
@@ -1042,7 +986,7 @@
  "src/components/engagement-agent/compose-toolbar.tsx": {
   "style": 1,
   "hex": 16,
-  "font": 14,
+  "font": 0,
   "radius": 8,
   "height": 2,
   "control": 5
@@ -1050,7 +994,7 @@
  "src/components/engagement-agent/draft-provenance-panel.tsx": {
   "style": 2,
   "hex": 5,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1058,7 +1002,7 @@
  "src/components/engagement-agent/email-type-badge.tsx": {
   "style": 1,
   "hex": 2,
-  "font": 3,
+  "font": 0,
   "radius": 1,
   "height": 3,
   "control": 0
@@ -1066,23 +1010,23 @@
  "src/components/engagement-agent/engagement-compose-panel.tsx": {
   "style": 23,
   "hex": 9,
-  "font": 19,
+  "font": 0,
   "radius": 8,
   "height": 7,
   "control": 16
  },
  "src/components/engagement-agent/engagement-context-panel.tsx": {
-  "style": 23,
+  "style": 22,
   "hex": 15,
-  "font": 35,
+  "font": 0,
   "radius": 11,
   "height": 2,
   "control": 16
  },
  "src/components/engagement-agent/engagement-message-card.tsx": {
-  "style": 12,
+  "style": 9,
   "hex": 7,
-  "font": 19,
+  "font": 0,
   "radius": 4,
   "height": 0,
   "control": 3
@@ -1090,7 +1034,7 @@
  "src/components/engagement-agent/evaluation-summary.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1098,7 +1042,7 @@
  "src/components/engagement-agent/retrieval-sources-panel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1320,7 +1264,7 @@
   "control": 6
  },
  "src/components/hr-connect/read-table.tsx": {
-  "style": 3,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -1330,7 +1274,7 @@
  "src/components/inbound/channel-badge.tsx": {
   "style": 0,
   "hex": 2,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1338,23 +1282,23 @@
  "src/components/inbound/inline-reply-row.tsx": {
   "style": 4,
   "hex": 16,
-  "font": 11,
+  "font": 0,
   "radius": 3,
   "height": 1,
   "control": 7
  },
  "src/components/inbound/lead-detail-panel.tsx": {
-  "style": 3,
-  "hex": 6,
-  "font": 6,
+  "style": 2,
+  "hex": 4,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 4
  },
  "src/components/inbound/status-dropdown.tsx": {
-  "style": 3,
-  "hex": 6,
-  "font": 2,
+  "style": 2,
+  "hex": 4,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 2
@@ -1362,15 +1306,15 @@
  "src/components/insurers/DeclinesRegister.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
  "src/components/insurers/InsurersDirectory.tsx": {
-  "style": 11,
-  "hex": 4,
-  "font": 11,
+  "style": 10,
+  "hex": 3,
+  "font": 0,
   "radius": 4,
   "height": 1,
   "control": 8
@@ -1378,7 +1322,7 @@
  "src/components/insurers/ProductEditor.tsx": {
   "style": 13,
   "hex": 2,
-  "font": 5,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 11
@@ -1386,7 +1330,7 @@
  "src/components/letters/AppointmentLetterDialog.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 12,
+  "font": 0,
   "radius": 4,
   "height": 3,
   "control": 10
@@ -1394,7 +1338,7 @@
  "src/components/letters/AppointmentLetterPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 2
@@ -1402,7 +1346,7 @@
  "src/components/marketing/EntryDrawer.tsx": {
   "style": 4,
   "hex": 3,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 10
@@ -1410,7 +1354,7 @@
  "src/components/marketing/NewArticleDialog.tsx": {
   "style": 0,
   "hex": 2,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
@@ -1418,7 +1362,7 @@
  "src/components/marketing/PasteDialog.tsx": {
   "style": 0,
   "hex": 2,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
@@ -1426,7 +1370,7 @@
  "src/components/marketing/page-shell.tsx": {
   "style": 3,
   "hex": 3,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1434,7 +1378,7 @@
  "src/components/marketing/prose.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1442,7 +1386,7 @@
  "src/components/marketing/site-switch.tsx": {
   "style": 1,
   "hex": 1,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
@@ -1474,15 +1418,15 @@
  "src/components/nexus/FollowUpsLedger.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 3,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/nexus/NexusPhasedAnalysisModal.tsx": {
-  "style": 6,
+  "style": 5,
   "hex": 7,
-  "font": 11,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 2
@@ -1498,7 +1442,7 @@
  "src/components/placement/ComparisonGrid.tsx": {
   "style": 14,
   "hex": 2,
-  "font": 5,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 4
@@ -1506,7 +1450,7 @@
  "src/components/placement/ContactPicker.tsx": {
   "style": 6,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
@@ -1514,7 +1458,7 @@
  "src/components/placement/CustomRatesDialog.tsx": {
   "style": 14,
   "hex": 0,
-  "font": 10,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 10
@@ -1522,7 +1466,7 @@
  "src/components/placement/IssueDebitNoteDialog.tsx": {
   "style": 8,
   "hex": 0,
-  "font": 5,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 8
@@ -1530,7 +1474,7 @@
  "src/components/placement/LinesLibrary.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 18,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 6
@@ -1538,7 +1482,7 @@
  "src/components/placement/NewPlacementDialog.tsx": {
   "style": 11,
   "hex": 1,
-  "font": 9,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 5
@@ -1546,7 +1490,7 @@
  "src/components/placement/NewRoundDialog.tsx": {
   "style": 8,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -1554,7 +1498,7 @@
  "src/components/placement/PlacementPanel.tsx": {
   "style": 9,
   "hex": 1,
-  "font": 8,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 1
@@ -1562,7 +1506,7 @@
  "src/components/placement/ReviewDraftsDrawer.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 19,
+  "font": 0,
   "radius": 2,
   "height": 2,
   "control": 6
@@ -1570,7 +1514,7 @@
  "src/components/placement/shared.tsx": {
   "style": 0,
   "hex": 3,
-  "font": 1,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -1578,7 +1522,7 @@
  "src/components/policies/AddFromEmails.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 17,
+  "font": 0,
   "radius": 2,
   "height": 3,
   "control": 9
@@ -1586,7 +1530,7 @@
  "src/components/policies/MembersPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 21,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 23
@@ -1594,7 +1538,7 @@
  "src/components/policies/PoliciesRegister.tsx": {
   "style": 5,
   "hex": 3,
-  "font": 14,
+  "font": 0,
   "radius": 2,
   "height": 1,
   "control": 4
@@ -1602,7 +1546,7 @@
  "src/components/policies/PolicyWorking.tsx": {
   "style": 3,
   "hex": 0,
-  "font": 44,
+  "font": 0,
   "radius": 10,
   "height": 10,
   "control": 15
@@ -1610,23 +1554,15 @@
  "src/components/policies/WorkingOn.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 14,
+  "font": 0,
   "radius": 3,
   "height": 2,
   "control": 3
  },
- "src/components/renewal/RenewalReportSections.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/sales/EnquiryDrawer.tsx": {
   "style": 6,
   "hex": 3,
-  "font": 17,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 8
@@ -1634,7 +1570,7 @@
  "src/components/season/SeasonTable.tsx": {
   "style": 9,
   "hex": 0,
-  "font": 4,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 3
@@ -1642,7 +1578,7 @@
  "src/components/season/ThreadPicker.tsx": {
   "style": 5,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
@@ -1650,7 +1586,7 @@
  "src/components/settings/ChecklistPanel.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 7,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 8
@@ -1658,7 +1594,7 @@
  "src/components/settings/ClientFormsPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 8,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 5
@@ -1666,23 +1602,23 @@
  "src/components/settings/RenewalMethodPanel.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 9,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 3
  },
  "src/components/settings/TeamTable.tsx": {
-  "style": 6,
-  "hex": 9,
-  "font": 19,
+  "style": 3,
+  "hex": 6,
+  "font": 0,
   "radius": 9,
   "height": 1,
   "control": 9
  },
  "src/components/settings/VoicePanel.tsx": {
-  "style": 6,
-  "hex": 12,
-  "font": 10,
+  "style": 3,
+  "hex": 8,
+  "font": 0,
   "radius": 5,
   "height": 1,
   "control": 5
@@ -1690,7 +1626,7 @@
  "src/components/status-badge.tsx": {
   "style": 1,
   "hex": 66,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1746,7 +1682,7 @@
  "src/components/ui/Alert.tsx": {
   "style": 4,
   "hex": 10,
-  "font": 6,
+  "font": 0,
   "radius": 2,
   "height": 1,
   "control": 0
@@ -1754,23 +1690,15 @@
  "src/components/ui/action-bar.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 2,
   "height": 1,
-  "control": 0
- },
- "src/components/ui/button.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
   "control": 0
  },
  "src/components/ui/card.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1778,7 +1706,7 @@
  "src/components/ui/confirm.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 0
@@ -1786,23 +1714,15 @@
  "src/components/ui/dialog.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/field.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 1,
-  "radius": 0,
   "height": 0,
   "control": 0
  },
  "src/components/ui/input.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 0,
   "control": 0
@@ -1818,15 +1738,7 @@
  "src/components/ui/register.tsx": {
   "style": 9,
   "hex": 1,
-  "font": 12,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/ui/sheet.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
+  "font": 0,
   "radius": 0,
   "height": 0,
   "control": 0
@@ -1834,7 +1746,7 @@
  "src/components/ui/url-filters.tsx": {
   "style": 0,
   "hex": 0,
-  "font": 1,
+  "font": 0,
   "radius": 1,
   "height": 1,
   "control": 0
@@ -1842,7 +1754,7 @@
  "src/components/ui/xl-grid.tsx": {
   "style": 8,
   "hex": 9,
-  "font": 5,
+  "font": 0,
   "radius": 2,
   "height": 0,
   "control": 0

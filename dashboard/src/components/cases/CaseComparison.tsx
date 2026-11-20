@@ -23,7 +23,7 @@ import { headingCls, selectCls, tableFrame } from './shared'
 /** What a person typed and has not saved, by case: it survives a look at another section. */
 const drafts = new Map<string, Comparison>()
 
-const cellCls = 'block w-full rounded-[6px] border border-transparent bg-transparent px-2 py-1.5 text-[13px] leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
+const cellCls = 'block w-full rounded-[6px] border border-transparent bg-transparent px-2 py-1.5 text-13 leading-[1.45] text-trs-ink outline-none hover:border-trs-line-2 focus:border-trs-ink placeholder:text-trs-subtle'
 const fileKey = (f: { message_id: string; filename: string }) => `${f.message_id}|${f.filename}`
 const newId = (prefix: string) => `${prefix}${Date.now().toString(36)}`
 
@@ -136,7 +136,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
   return (
     <section aria-label="Comparison" className="flex flex-col gap-5 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2 min-w-0">
-        <p className="m-0 text-[13px] text-trs-muted">
+        <p className="m-0 text-13 text-trs-muted">
           {dirty ? 'Unsaved changes' : view.saved ? `Saved by ${actorName(view.saved.by, view.staff)} on ${fmtDay(view.saved.at)}` : 'Not saved'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
@@ -162,7 +162,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 return (
                   <tr key={o.id} className="align-middle">
                     <td className="px-1.5 py-1.5">
-                      {o.id === CURRENT ? <span className="block px-2 text-[13px] text-trs-ink">{o.name}</span>
+                      {o.id === CURRENT ? <span className="block px-2 text-13 text-trs-ink">{o.name}</span>
                         : <input className={cellCls} aria-label="Option name" maxLength={NAME_MAX} value={o.name} onChange={e => setOption(o.id, { name: e.target.value })} />}
                     </td>
                     <td className="px-1.5 py-1.5"><input className={cellCls} aria-label={`Insurer for ${o.name}`} placeholder="Insurer" maxLength={80} value={o.insurer ?? ''} onChange={e => setOption(o.id, { insurer: e.target.value || null })} /></td>
@@ -208,17 +208,17 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                     </td>
                   ))}
                   <td className="px-1 py-1.5 text-center">
-                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-[6px] border-0 bg-transparent text-[16px] leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
+                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-[6px] border-0 bg-transparent text-16 leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
                   </td>
                 </tr>
               ))}
               {premium && (
                 <tr className="align-top">
-                  <td className="px-1.5 py-1.5"><span className="block border border-transparent px-2 py-1.5 text-[13px] leading-[1.45] font-medium text-trs-ink">{premium.label}</span></td>
+                  <td className="px-1.5 py-1.5"><span className="block border border-transparent px-2 py-1.5 text-13 leading-[1.45] font-medium text-trs-ink">{premium.label}</span></td>
                   {c.options.map((o, n) => (
                     <td key={o.id} className="px-1.5 py-1.5">
                       <input className={`${cellCls} tabular-nums`} inputMode="decimal" aria-label={`${premium.label}: ${o.name}`} placeholder="0.00" maxLength={40} value={premium.cells[o.id] ?? ''} onChange={e => setCell(PREMIUM, o.id, e.target.value)} />
-                      {o.id !== CURRENT && <span className="block px-2 pt-0.5 text-left text-[12px] tabular-nums text-trs-muted" aria-label={`Change from current policy: ${o.name}`}>{changeText(lines[n]) ?? DASH}</span>}
+                      {o.id !== CURRENT && <span className="block px-2 pt-0.5 text-left text-12 tabular-nums text-trs-muted" aria-label={`Change from current policy: ${o.name}`}>{changeText(lines[n]) ?? DASH}</span>}
                     </td>
                   ))}
                   <td />
@@ -242,8 +242,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
               <tbody>
                 {wishes.map(w => (
                   <tr key={w.id} className="align-middle">
-                    <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{w.text}</td>
-                    <td className="cell-left px-3 py-2 text-[13px]">{w.need ? NEED_NAME[w.need] : <span className="text-trs-muted">Not graded</span>}</td>
+                    <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{w.text}</td>
+                    <td className="cell-left px-3 py-2 text-13">{w.need ? NEED_NAME[w.need] : <span className="text-trs-muted">Not graded</span>}</td>
                     {c.options.map(o => (
                       <td key={o.id} className="px-2 py-1.5">
                         <select className={`${selectCls} w-full`} aria-label={`${o.name}: ${w.text}`} value={c.wishes[w.id]?.[o.id] ?? ''} onChange={e => setMark(w.id, o.id, isMet(e.target.value) ? e.target.value : null)}>
@@ -256,8 +256,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 ))}
                 {anyMust && (
                   <tr>
-                    <td className="cell-left px-3 py-2 text-[13px] font-medium" colSpan={2}>Must have met</td>
-                    {counts.map(k => <td key={k.option} className="cell-left px-3 py-2 text-[13px] tabular-nums">{k.must.met} of {k.must.of}</td>)}
+                    <td className="cell-left px-3 py-2 text-13 font-medium" colSpan={2}>Must have met</td>
+                    {counts.map(k => <td key={k.option} className="cell-left px-3 py-2 text-13 tabular-nums">{k.must.met} of {k.must.of}</td>)}
                   </tr>
                 )}
               </tbody>

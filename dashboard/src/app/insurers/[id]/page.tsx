@@ -25,7 +25,7 @@ const HOW: Record<string, string> = {
   'policy no. in subject': 'Policy no. in subject', 'only policy with this insurer': 'Only policy with this insurer',
   'cover named in subject': 'Cover named in subject', agent: 'Agent', broker: 'Broker',
 }
-const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] outline-none focus:border-[#132c1c] max-w-[340px]'
+const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-13 outline-none focus:border-[#132c1c] max-w-[340px]'
 
 export default function InsurerThreadsPage() {
   const { id } = useParams<{ id: string }>()
@@ -64,8 +64,8 @@ export default function InsurerThreadsPage() {
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <Breadcrumbs current={{ label: data.insurer.company_name, href: `/insurers/${data.insurer.id}` }} fallback={{ label: 'Insurers', href: '/insurers' }} />
-        <h1 className="m-0 mt-3 text-[30px] leading-[1.15]">{data.insurer.company_name}</h1>
-        <div className="mt-2 text-[14px] text-trs-muted">{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
+        <h1 className="m-0 mt-3 text-32 leading-[1.15]">{data.insurer.company_name}</h1>
+        <div className="mt-2 text-14 text-trs-muted">{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
         <div className="mt-6 mb-4">
           <Segmented<View> value={view} onChange={setView} options={[
             { value: 'tag', label: 'To tag', count: groups.tag.length },
@@ -73,7 +73,7 @@ export default function InsurerThreadsPage() {
             { value: 'no_client', label: 'No client', count: groups.no_client.length },
           ]} />
         </div>
-        {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
+        {error && <p className="m-0 mb-3 text-13.5 text-trs-neg">{error}</p>}
         <Register label={`${data.insurer.company_name} threads`} minWidth={1080}>
           <RegisterHead>
             <RegisterTh first width={110}>Last message</RegisterTh>

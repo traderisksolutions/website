@@ -40,20 +40,20 @@ export function FloatingChatHeader({
               onBlur={commit}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } else if (e.key === 'Escape') setEditing(false) }}
               aria-label="Rename chat"
-              className="w-full text-[12.5px] font-semibold rounded border border-primary/40 bg-background px-1.5 py-0.5 leading-tight outline-none"
+              className="w-full text-12.5 font-semibold rounded border border-primary/40 bg-background px-1.5 py-0.5 leading-tight outline-none"
             />
           ) : editable ? (
             <button
               onClick={() => setEditing(true)}
               title="Rename chat"
-              className="text-[12.5px] font-semibold text-foreground leading-tight truncate max-w-full text-left hover:text-primary transition-colors"
+              className="text-12.5 font-semibold text-foreground leading-tight truncate max-w-full text-left hover:text-primary transition-colors"
             >
               {title}
             </button>
           ) : (
-            <p className="text-[12.5px] font-semibold text-foreground leading-tight truncate">{title}</p>
+            <p className="text-12.5 font-semibold text-foreground leading-tight truncate">{title}</p>
           )}
-          {subtitle && !editing && <p className="text-[10px] text-muted-foreground/60 leading-tight truncate">{subtitle}</p>}
+          {subtitle && !editing && <p className="text-11 text-muted-foreground/60 leading-tight truncate">{subtitle}</p>}
         </div>
       </div>
       <div className="flex items-center gap-0.5 flex-shrink-0">

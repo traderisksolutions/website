@@ -92,15 +92,15 @@ export default function FinancePage() {
             ? `${fmtMoney(sgd.collected, 'SGD')} collected of ${fmtMoney(sgd.billed, 'SGD')} billed (${pct}%) · ${fmtMoney(sgd.billed - sgd.collected, 'SGD')} to collect across ${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'}`
             : `${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'} to collect`} />
 
-        {error && <p className="mt-6 mb-0 text-[14px] text-trs-neg">{error}</p>}
+        {error && <p className="mt-6 mb-0 text-14 text-trs-neg">{error}</p>}
         {!data && !error && <Spinner label="Loading the reconciliation…" />}
 
         {data && (
           <>
             {!data.ledgerReady && (
-              <p className="mt-6 mb-0 text-[14px] text-trs-muted">
+              <p className="mt-6 mb-0 text-14 text-trs-muted">
                 Payments are being written straight onto the debit note because the finance migration has not been run yet.
-                Recording still works. Once <code className="text-[13px]">20260911_debit_note_payments.sql</code> is applied,
+                Recording still works. Once <code className="text-13">20260911_debit_note_payments.sql</code> is applied,
                 each payment is kept as its own entry and can be undone.
               </p>
             )}
@@ -126,7 +126,7 @@ export default function FinancePage() {
               </label>
             </div>
 
-            <h2 className="m-0 mt-8 mb-3 text-[16px] font-medium tracking-[-0.01em]">{view === 'open' ? 'Waiting to be collected' : 'Every debit note'}</h2>
+            <h2 className="m-0 mt-8 mb-3 text-16 font-medium tracking-[-0.01em]">{view === 'open' ? 'Waiting to be collected' : 'Every debit note'}</h2>
 
             <Register label={view === 'open' ? 'Debit notes waiting to be collected' : 'Every debit note'} minWidth={820}>
               <RegisterHead>
@@ -206,9 +206,9 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
           <RegisterCell colSpan={COLS} nowrap={false} className="px-6">
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="min-w-[260px]">
-                <p className="text-[12.5px] m-0 mb-2 text-trs-muted">Payments recorded</p>
+                <p className="text-12.5 m-0 mb-2 text-trs-muted">Payments recorded</p>
                 {note.receipts.length === 0 && (
-                  <p className="text-[14px] m-0 text-trs-muted">
+                  <p className="text-14 m-0 text-trs-muted">
                     Nothing recorded yet.
                     {Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0) > 0 &&
                       ` ${fmtMoney(Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0), note.currency)} is already set on the debit note itself.`}
@@ -216,15 +216,15 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
                 )}
                 <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
                   {note.receipts.map(r => (
-                    <li key={r.id} className="flex items-center gap-3 text-[14px] flex-wrap text-trs-ink">
+                    <li key={r.id} className="flex items-center gap-3 text-14 flex-wrap text-trs-ink">
                       <span className="tabular-nums font-medium">{fmtMoney(Number(r.amount), note.currency)}</span>
                       <span className="text-trs-muted">{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
-                      {r.reference && <span className="tabular-nums text-[13px] text-trs-muted">{r.reference}</span>}
+                      {r.reference && <span className="tabular-nums text-13 text-trs-muted">{r.reference}</span>}
                       <button
                         type="button"
                         onClick={() => onUndo(r.id)}
                         disabled={undoing === r.id}
-                        className="text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50 text-trs-neg"
+                        className="text-13 bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50 text-trs-neg"
                         
                         title="Undo this payment and put the balance back"
                       >
@@ -234,7 +234,7 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
                   ))}
                 </ul>
               </div>
-              <div className="flex items-center gap-4 text-[13.5px]">
+              <div className="flex items-center gap-4 text-13.5">
                 {note.drive_folder_url && (
                   <a href={note.drive_folder_url} target="_blank" rel="noreferrer" className="underline underline-offset-4 text-trs-ink">
                     Drive folder

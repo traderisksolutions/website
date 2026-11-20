@@ -52,7 +52,7 @@ export function DataTableSearch({
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] text-[#0f1412] placeholder:text-[#6f7a74]"
+        className="flex-1 min-w-0 bg-transparent border-none outline-none text-14 text-[#0f1412] placeholder:text-[#6f7a74]"
       />
       {value && (
         <button
@@ -87,7 +87,7 @@ export function DataTableFilter({
       size="compact"
       onClick={onClick}
       className={cn(
-        'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-[13px]',
+        'h-9 rounded-[999px] px-3.5 font-medium gap-1.5 text-13',
         active && 'bg-[#132c1c] text-white border-[#132c1c] hover:bg-[#1f4e3a] hover:opacity-90',
         className,
       )}
@@ -96,7 +96,7 @@ export function DataTableFilter({
       {count !== undefined && count > 0 && (
         <span
           className={cn(
-            'text-[11px] tabular-nums px-1.5 py-px rounded',
+            'text-11 tabular-nums px-1.5 py-px rounded',
             active
               ? 'bg-white/20 text-white'
               : 'bg-[#f1f2ee] text-[#4a5550]',

@@ -31,10 +31,10 @@ export function BulkBar({ count, onClear, children, className }: { count: number
   if (count <= 0) return null
   return (
     <div role="region" aria-label="Selected rows" className={cn('flex flex-wrap items-center gap-2 px-3 py-2 rounded-[8px] bg-trs-select-bg text-trs-select-fg', className)}>
-      <span className="text-[13px] font-medium tabular-nums">{count} selected</span>
+      <span className="text-13 font-medium tabular-nums">{count} selected</span>
       <div className="flex flex-wrap items-center gap-2 ml-auto">
         {children}
-        <button type="button" onClick={onClear} className="h-[30px] px-2.5 rounded-[7px] border-0 bg-transparent cursor-pointer text-[13px] text-trs-select-fg hover:bg-white/60">Clear</button>
+        <button type="button" onClick={onClear} className="h-[30px] px-2.5 rounded-[7px] border-0 bg-transparent cursor-pointer text-13 text-trs-select-fg hover:bg-white/60">Clear</button>
       </div>
     </div>
   )

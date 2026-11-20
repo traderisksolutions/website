@@ -7,8 +7,8 @@ import { PRODUCT_LINES } from '@/lib/product-lines'
 import type { InsurerProduct } from '@/lib/placement/rank'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 
-const cell = 'h-[30px] w-full rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
-const label = 'text-[11.5px] font-medium'
+const cell = 'h-[30px] w-full rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-13 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
+const label = 'text-12 font-medium'
 const splitList = (s: string) => s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean)
 
 /**
@@ -70,9 +70,9 @@ export function ProductEditor({ product, onSaved, onClose }: {
       <div className="flex flex-col gap-1">
         <span className={label} style={{ color: MUTED }}>People to ask · the starred person gets the request</span>
         <div className="flex flex-col">
-          {product.contacts.length === 0 && <span className="text-[13px] py-1 text-trs-neg">No one on file. Add a person, or this product cannot be asked.</span>}
+          {product.contacts.length === 0 && <span className="text-13 py-1 text-trs-neg">No one on file. Add a person, or this product cannot be asked.</span>}
           {product.contacts.map(c => (
-            <div key={c.contact_id} className="flex items-center gap-3 h-8 text-[13px]">
+            <div key={c.contact_id} className="flex items-center gap-3 h-8 text-13">
               <button type="button" onClick={() => makeDefault(c.contact_id)} disabled={busy || c.is_default} aria-label={c.is_default ? `${c.email} gets the request` : `Send requests to ${c.email}`}
                 className="bg-transparent border-0 p-0 cursor-pointer disabled:cursor-default" style={{ color: c.is_default ? INK : '#bfc5bf' }}>
                 <Star size={14} fill={c.is_default ? INK : 'none'} />
@@ -90,7 +90,7 @@ export function ProductEditor({ product, onSaved, onClose }: {
         </div>
       </div>
 
-      {error && <p className="m-0 text-[13px] text-trs-neg">{error}</p>}
+      {error && <p className="m-0 text-13 text-trs-neg">{error}</p>}
       <div className="flex items-center gap-2">
         <Btn level="primary" size="xs" onClick={save} loading={busy}>Save</Btn>
         <Btn size="xs" onClick={onClose} disabled={busy}>Close</Btn>

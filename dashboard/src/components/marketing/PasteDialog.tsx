@@ -34,21 +34,21 @@ export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, marke
     <Dialog open={open} onOpenChange={v => { if (!busy) { onOpenChange(v); if (!v) setError(null) } }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-[20px] font-medium tracking-[-0.01em] text-trs-ink">Paste text</DialogTitle>
-          <DialogDescription className="text-[14px] text-trs-muted">Each line starting with a single # becomes its own entry; no headings means one entry. Everything is saved as a draft to verify.</DialogDescription>
+          <DialogTitle className="text-20 font-medium tracking-[-0.01em] text-trs-ink">Paste text</DialogTitle>
+          <DialogDescription className="text-14 text-trs-muted">Each line starting with a single # becomes its own entry; no headings means one entry. Everything is saved as a draft to verify.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Section"><select value={section} onChange={e => setSection(e.target.value as KnowledgeSection)} className={inputCls}>{SECTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></Field>
             <Field label="Title (when there are no headings)"><input value={title} onChange={e => setTitle(e.target.value)} className={inputCls} /></Field>
           </div>
-          <Field label="Text"><textarea value={markdown} onChange={e => setMarkdown(e.target.value)} rows={12} className={`${textareaCls} font-mono text-[12.5px]`} /></Field>
+          <Field label="Text"><textarea value={markdown} onChange={e => setMarkdown(e.target.value)} rows={12} className={`${textareaCls} font-mono text-12.5`} /></Field>
           <Field label="Applies to" hint="None selected = every market">
-            <div className="flex flex-wrap gap-3 text-[14px]">
+            <div className="flex flex-wrap gap-3 text-14">
               {markets.map(m => <label key={m} className="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={picked.includes(m)} onChange={e => setPicked(p => e.target.checked ? Array.from(new Set([...p, m])) : p.filter(x => x !== m))} />{marketLabel(m)}</label>)}
             </div>
           </Field>
-          {error && <p className="m-0 text-[13px] text-trs-ink" role="alert" >{error}</p>}
+          {error && <p className="m-0 text-13 text-trs-ink" role="alert" >{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>

@@ -45,8 +45,8 @@ export function ReviewList({ state, reload }: { state: ReviewState; reload: () =
   if (state.missing) return <Empty>Review is not switched on yet.</Empty>
   return (
     <div className="flex flex-col gap-3">
-      {(state.error || error) && <p className="m-0 text-[13.5px] text-trs-neg">{error ?? state.error}</p>}
-      {notice && <p className="m-0 text-[13.5px] text-trs-ink">{notice}</p>}
+      {(state.error || error) && <p className="m-0 text-13.5 text-trs-neg">{error ?? state.error}</p>}
+      {notice && <p className="m-0 text-13.5 text-trs-ink">{notice}</p>}
       {state.tasks.length === 0 ? <Empty>No decisions waiting.</Empty> : (
         <ul className="m-0 p-0 list-none flex flex-col border-t border-trs-line">
           {state.tasks.map(t => <ReviewRow key={t.id} task={t} onDone={m => { setNotice(m); setError(null); reload() }} onError={setError} />)}
@@ -77,11 +77,11 @@ function ReviewRow({ task: t, onDone, onError }: { task: AgentTask; onDone: (m: 
     <li className="flex flex-col gap-2 py-3 border-b border-trs-line">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[12.5px] text-trs-muted truncate">
+          <div className="text-12.5 text-trs-muted truncate">
             {AGENT[t.agent] ?? t.agent}{client ? ` · ${client}` : ''} · {fmtDateTime(t.finished_at ?? t.created_at)}
           </div>
-          <div className="text-[14.5px] font-medium leading-snug text-trs-ink">{question}</div>
-          {t.thread_id && <Link href={`/engagement?thread=${t.thread_id}`} className="text-[13px] text-trs-muted no-underline hover:underline">Open thread</Link>}
+          <div className="text-14 font-medium leading-snug text-trs-ink">{question}</div>
+          {t.thread_id && <Link href={`/engagement?thread=${t.thread_id}`} className="text-13 text-trs-muted no-underline hover:underline">Open thread</Link>}
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <Btn size="xs" disabled={busy} onClick={() => void resolve({ decision: 'approve' }, true, 'Approved. Sent back to the agent.')}>Approve</Btn>

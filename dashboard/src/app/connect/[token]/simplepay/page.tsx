@@ -78,7 +78,7 @@ export default function SimplePayPage() {
               </div>
             )}
             {error && <p className="hrc-err">{error}</p>}
-            <div className="hrc-row" style={{ marginTop: 10 }}>
+            <div className="hrc-row mt-2.5">
               <button type="submit" className="hrc-btn p" disabled={busy || apiKey.trim().length < 10 || (!!companies && !companyId)}>{busy ? 'Reading SimplePay.' : 'Fetch the employee list'}</button>
               <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
             </div>

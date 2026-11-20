@@ -58,13 +58,13 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
       <Field label="Title"><input className={inputCls} value={form.title ?? ''} onChange={e => set('title', e.target.value)} /></Field>
       <Field label="Client" hint={client.id ? undefined : 'No client on this case'}>
         <div className="flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-1.5"><Chip tone={client.id ? 'neutral' : 'amber'}>{client.name}</Chip>{client.id !== item.company_id && <span className="text-[12px] text-trs-muted">changed</span>}</div>
+          <div className="flex flex-wrap items-center gap-1.5"><Chip tone={client.id ? 'neutral' : 'amber'}>{client.name}</Chip>{client.id !== item.company_id && <span className="text-12 text-trs-muted">changed</span>}</div>
           <input className={inputCls} placeholder="Search clients to refile" value={query} onChange={e => setQuery(e.target.value)} aria-label="Search clients" />
           {opts.companies.length > 0 && (
             <ul className="m-0 p-0 list-none rounded-[7px] border border-trs-line bg-white max-h-[180px] overflow-auto">
               {opts.companies.map(c => (
                 <li key={c.id}><button type="button" onClick={() => { setClient({ id: c.id, name: c.name }); set('company_id', c.id); set('policy_id', null); setQuery('') }}
-                  className="w-full text-left bg-transparent border-0 px-3 py-1.5 text-[13.5px] text-trs-ink cursor-pointer hover:bg-trs-canvas">{c.name}</button></li>
+                  className="w-full text-left bg-transparent border-0 px-3 py-1.5 text-13.5 text-trs-ink cursor-pointer hover:bg-trs-canvas">{c.name}</button></li>
               ))}
             </ul>
           )}
@@ -130,10 +130,10 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
   const addable = documents.filter(d => d.drive_url && !have.has(d.title))
   return (
     <div className="flex flex-col gap-2 px-4 py-2.5 border-t border-trs-line">
-      <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-trs-muted">
+      <div className="flex flex-wrap items-center gap-1.5 text-12.5 text-trs-muted">
         {files.length ? 'Attached' : 'No attachments'}
         {files.map(f => (
-          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-[22px] text-[12px] text-trs-ink">
+          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-[22px] text-12 text-trs-ink">
             <span className="max-w-[220px] truncate">{f}</span>
             <button type="button" aria-label={`Remove ${f}`} disabled={busy} onClick={() => void apply(files.filter(x => x !== f), [])} className="w-[16px] h-[16px] rounded-full border-0 bg-transparent text-trs-muted cursor-pointer hover:text-trs-neg leading-none">×</button>
           </span>
@@ -142,10 +142,10 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
       </div>
       {open && (
         <ul className="m-0 p-0 list-none rounded-[7px] border border-trs-line bg-white max-h-[220px] overflow-auto">
-          {addable.length === 0 && <li className="px-3 py-2 text-[12.5px] text-trs-muted">Nothing in the data room to add.</li>}
+          {addable.length === 0 && <li className="px-3 py-2 text-12.5 text-trs-muted">Nothing in the data room to add.</li>}
           {addable.map(d => (
             <li key={d.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-3 py-1.5 border-b border-trs-line last:border-b-0">
-              <span className="min-w-0"><span className="block text-[13px] text-trs-ink truncate">{d.title}</span><span className="block text-[11.5px] text-trs-muted">{d.doc_type.replace(/_/g, ' ')}</span></span>
+              <span className="min-w-0"><span className="block text-13 text-trs-ink truncate">{d.title}</span><span className="block text-12 text-trs-muted">{d.doc_type.replace(/_/g, ' ')}</span></span>
               <Btn size="xs" disabled={busy} onClick={() => void apply(files, [d.id])}>Attach</Btn>
             </li>
           ))}

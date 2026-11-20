@@ -146,8 +146,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
     onChange(null); setContacts([]); setAddingContact(false); setNotice(null)
   }
 
-  const inp = 'w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white px-3.5 text-[14px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]'
-  const row = 'w-full text-left px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] flex items-center gap-2.5 text-[14px] disabled:opacity-60'
+  const inp = 'w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white px-3.5 text-14 text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]'
+  const row = 'w-full text-left px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] flex items-center gap-2.5 text-14 disabled:opacity-60'
 
   return (
     <div className={cn('flex flex-col gap-3', className)} style={{ color: INK }}>
@@ -162,13 +162,13 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
               onFocus={() => setOpen(true)}
               placeholder="Search company name"
               aria-label="Company"
-              className="w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[14px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74] text-trs-ink"
+              className="w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-14 outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74] text-trs-ink"
               
             />
           </div>
           {open && (query.trim().length > 0 || suggestions.length > 0) && (
             <div className="absolute z-20 mt-1.5 w-full rounded-[14px] bg-white max-h-64 overflow-y-auto py-1" style={{ border: `1px solid ${RULE}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
-              {searching && <div className="px-4 py-2.5 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
+              {searching && <div className="px-4 py-2.5 text-13 flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
               {!searching && suggestions.map(c => (
                 <button key={c.id} type="button" onClick={() => pickCompany(c)} className={row} style={{ color: INK }}>
                   <Building2 size={14} className="flex-shrink-0 text-trs-subtle" />
@@ -182,7 +182,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
                 </button>
               )}
               {!searching && !query.trim() && suggestions.length === 0 && (
-                <div className="px-4 py-2.5 text-[13px] text-trs-muted">Type to search companies</div>
+                <div className="px-4 py-2.5 text-13 text-trs-muted">Type to search companies</div>
               )}
             </div>
           )}
@@ -190,7 +190,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       ) : (
         <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4 bg-trs-field">
           <Building2 size={14} className="flex-shrink-0 text-trs-muted" />
-          <span className="text-[15px] font-medium flex-1 truncate text-trs-ink">{value.companyName}</span>
+          <span className="text-15 font-medium flex-1 truncate text-trs-ink">{value.companyName}</span>
           <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4] text-trs-muted"><X size={14} /></button>
         </div>
       )}
@@ -201,12 +201,12 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
           {value.contactId && !addingContact ? (
             <div className="flex items-center gap-2.5 h-10 rounded-[10px] px-3.5" style={{ border: '1px solid #d5d9d4' }}>
               <Mail size={14} className="flex-shrink-0 text-trs-muted" />
-              <span className="text-[14px] flex-1 truncate">{value.contactName ? `${value.contactName} <${value.contactEmail}>` : value.contactEmail}</span>
+              <span className="text-14 flex-1 truncate">{value.contactName ? `${value.contactName} <${value.contactEmail}>` : value.contactEmail}</span>
               <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><Pencil size={12} /></button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {loadingContacts && <p className="m-0 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Loading contacts…</p>}
+              {loadingContacts && <p className="m-0 text-13 flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Loading contacts…</p>}
               {!loadingContacts && contacts.length > 0 && !addingContact && (
                 <div className="flex flex-col rounded-[12px] overflow-hidden" style={{ border: `1px solid ${RULE}` }}>
                   {contacts.map(c => (
@@ -218,7 +218,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
                 </div>
               )}
               {!addingContact ? (
-                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
+                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[7px] text-13.5 font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
                   <Plus size={12} /> Add email
                 </button>
               ) : (
@@ -241,8 +241,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
         </div>
       )}
 
-      {notice && <p className="m-0 text-[12.5px] text-trs-muted">{notice}</p>}
-      {error && <p role="alert" className="m-0 text-[12.5px] text-trs-ink-2">{error}</p>}
+      {notice && <p className="m-0 text-12.5 text-trs-muted">{notice}</p>}
+      {error && <p role="alert" className="m-0 text-12.5 text-trs-ink-2">{error}</p>}
     </div>
   )
 }

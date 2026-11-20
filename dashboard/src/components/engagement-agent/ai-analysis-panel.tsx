@@ -21,7 +21,7 @@ const FAINT = '#6f7a74'
 const HAIR = '#e6e8e4'
 const FIELD = '#f1f2ee'
 
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-[13px] underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] disabled:cursor-default disabled:no-underline disabled:opacity-50'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-13 underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] disabled:cursor-default disabled:no-underline disabled:opacity-50'
 
 interface DraftMeta {
   emailType:   string | null
@@ -87,15 +87,15 @@ export function AiAnalysisPanel({
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="text-[13px] font-medium text-trs-ink">Analysis</span>
+          <span className="text-13 font-medium text-trs-ink">Analysis</span>
           {meta?.emailType && <EmailTypeBadge type={meta.emailType} size="xs" />}
           {latest && (
-            <span className="text-[12px] text-trs-subtle">· {timeAgo(latest.created_at)}</span>
+            <span className="text-12 text-trs-subtle">· {timeAgo(latest.created_at)}</span>
           )}
           <Tip text="Generated each time the contact sends a new email. Summarises the thread and suggests a next step." />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {regenErr && <span className="text-[12px] max-w-[120px] truncate text-trs-ink-2" role="alert">{regenErr}</span>}
+          {regenErr && <span className="text-12 max-w-[120px] truncate text-trs-ink-2" role="alert">{regenErr}</span>}
           {threadId && latestMessageId && (
             <button
               type="button"
@@ -117,14 +117,14 @@ export function AiAnalysisPanel({
         )}
 
         {!loading && !regenerating && !latest && (
-          <p className="text-[13px] leading-relaxed m-0 text-trs-muted">
+          <p className="text-13 leading-relaxed m-0 text-trs-muted">
             Generated on each new email. Refresh above to run it now.
           </p>
         )}
 
         {latest && (
           <>
-            <p className="text-[13px] leading-[1.6] m-0 mb-2.5 text-trs-ink-2">{latest.summary}</p>
+            <p className="text-13 leading-[1.6] m-0 mb-2.5 text-trs-ink-2">{latest.summary}</p>
 
             {/* "Next action" was shown here as well. It is now one answer, from "Generate
                 response" above the composer, which reads the whole company file rather than this
@@ -167,10 +167,10 @@ export function AiAnalysisPanel({
               <div className="mt-2 flex flex-col gap-2">
                 {older.map(s => (
                   <div key={s.id} className="px-3 py-2.5 rounded-[10px] bg-trs-field">
-                    <p className="text-[12px] m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
-                    <p className="text-[12.5px] leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
+                    <p className="text-12 m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
+                    <p className="text-12.5 leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
                     {s.next_action && (
-                      <p className="text-[12.5px] mt-1 m-0 text-trs-muted">Next: {s.next_action}</p>
+                      <p className="text-12.5 mt-1 m-0 text-trs-muted">Next: {s.next_action}</p>
                     )}
                   </div>
                 ))}

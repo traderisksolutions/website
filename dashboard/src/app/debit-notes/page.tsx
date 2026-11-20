@@ -79,8 +79,7 @@ function FilterInput({ label, value, onChange, autoFocus }: { label: string; val
         onChange={e => onChange?.(e.target.value)}
         placeholder={`Filter ${label.toLowerCase()}`}
         aria-label={`Filter ${label.toLowerCase()}`}
-        className="flex-1 min-w-0 h-9 rounded-[7px] border bg-white px-2.5 text-[13px] outline-none focus:border-[#0f1412]"
-        style={{ borderColor: '#d5d9d4', color: INK }}
+        className="flex-1 min-w-0 h-9 rounded-[7px] border bg-white px-2.5 text-13 outline-none focus:border-[#0f1412] border-trs-line-2 text-trs-ink"
       />
       {value && (
         <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0 text-trs-muted"><X size={12} /></button>
@@ -121,7 +120,7 @@ function ColumnHeader({
       className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_#e6e8e4]' : 'px-4', last && 'pr-6')}>
       <span className={cn('group inline-flex items-center gap-1 h-11', right && 'flex-row-reverse')}>
         <button type="button" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
-          className={cn('inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-[13px] whitespace-nowrap', right && 'flex-row-reverse', isSorted && 'font-medium')} style={{ color: isSorted ? INK : MUTED }}>
+          className={cn('inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer text-13 whitespace-nowrap', right && 'flex-row-reverse', isSorted && 'font-medium')} style={{ color: isSorted ? INK : MUTED }}>
           {col.label}
           <SortIcon size={13} className={cn(isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
         </button>
@@ -137,7 +136,7 @@ function ColumnHeader({
             {col.type === 'status' ? (
               <div className="flex flex-col gap-0.5">
                 {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-[13.5px] px-2 py-1.5 rounded-[8px] hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
+                  <label key={s} className="flex items-center gap-2 text-13.5 px-2 py-1.5 rounded-[8px] hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
                     <input
                       type="checkbox"
                       checked={statusFilter?.has(s) ?? false}
@@ -151,7 +150,7 @@ function ColumnHeader({
                   </label>
                 ))}
                 {(statusFilter?.size ?? 0) > 0 && (
-                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-[13px] mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear</button>
+                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-13 mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear</button>
                 )}
               </div>
             ) : (
@@ -244,7 +243,7 @@ function DebitNotesContent() {
         </div>
         {(activeFilterCount > 0 || sortKey) && (
           <DataTableToolbar>
-            <span className="text-[13px] text-trs-muted">
+            <span className="text-13 text-trs-muted">
               {sorted.length} of {rows.length} debit note{rows.length !== 1 ? 's' : ''}
               {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}`}
               {sortKey && ` · sorted by ${COLUMNS.find(c => c.key === sortKey)?.label.toLowerCase()} (${sortDir === 'asc' ? 'ascending' : 'descending'})`}
@@ -283,13 +282,13 @@ function DebitNotesContent() {
                 {!loading && sorted.map(r => (
                   <RegisterRow key={r.id} onClick={() => setOpenId(r.id)}>
                     <RegisterCell first title={r.companies?.name ?? undefined} primary={r.companies?.name ?? '—'} secondary={r.policies?.class_of_insurance || 'No policy type'} />
-                    <RegisterCell><span className="text-[14px] tabular-nums text-trs-ink-2">{r.policies?.policy_number || '—'}</span></RegisterCell>
-                    <RegisterCell align="left" className="max-w-[220px]"><span className="block truncate text-[14px] text-trs-ink-2">{r.insurer ?? '—'}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px] tabular-nums text-trs-ink-2">{r.debit_note_no}</span></RegisterCell>
+                    <RegisterCell><span className="text-14 tabular-nums text-trs-ink-2">{r.policies?.policy_number || '—'}</span></RegisterCell>
+                    <RegisterCell align="left" className="max-w-[220px]"><span className="block truncate text-14 text-trs-ink-2">{r.insurer ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-14 tabular-nums text-trs-ink-2">{r.debit_note_no}</span></RegisterCell>
                     <RegisterCell primary={fmtDate(r.policies?.end_date ?? null)} />
                     <RegisterCell align="right" primary={<span className="font-medium">{fmt(r.gross_amount, r.currency)}</span>} secondary={r.currency} />
                     <RegisterCell align="right" primary={r.commission != null ? fmt(r.commission, r.currency) : '—'} />
-                    <RegisterCell last><span className="text-[14px] text-trs-ink-2">{STATUS_LABEL[r.status]}</span></RegisterCell>
+                    <RegisterCell last><span className="text-14 text-trs-ink-2">{STATUS_LABEL[r.status]}</span></RegisterCell>
                   </RegisterRow>
                 ))}
               </tbody>
@@ -353,7 +352,7 @@ function toEditForm(d: Detail): EditForm {
   }
 }
 
-const inputCls = 'text-[12.5px] border border-border rounded-md px-2 py-1 w-full'
+const inputCls = 'text-12.5 border border-border rounded-md px-2 py-1 w-full'
 
 function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => void; onSaved: () => void }) {
   const [detail, setDetail] = useState<Detail | null>(null)
@@ -450,7 +449,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             {editing && form ? (
               <DialogTitle asChild>
                 <input value={form.debitNoteNo} onChange={e => setForm(f => f && { ...f, debitNoteNo: e.target.value })}
-                  placeholder="Debit note no." className="text-[18px] font-semibold leading-none border border-border rounded-md px-2 py-1 w-[220px]" />
+                  placeholder="Debit note no." className="text-16 font-semibold leading-none border border-border rounded-md px-2 py-1 w-[220px]" />
               </DialogTitle>
             ) : (
               <DialogTitle>{detail?.debit_note_no ?? 'Loading…'}</DialogTitle>
@@ -469,9 +468,9 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
           <div className="py-8 flex justify-center"><Loader2 size={20} className="animate-spin text-muted-foreground" /></div>
         ) : confirmDelete ? (
           <div className="px-4 py-4">
-            <p className="text-[13px] mb-1">Delete debit note {detail.debit_note_no}?</p>
-            <p className="text-[11.5px] text-muted-foreground mb-4">This removes this debit note and its generated PDF. If no other debit notes are linked to its policy, the policy is removed too — the company and its contacts are never affected. This cannot be undone.</p>
-            {error && <p className="text-[11.5px] text-[#2a332f] mb-2">{error}</p>}
+            <p className="text-13 mb-1">Delete debit note {detail.debit_note_no}?</p>
+            <p className="text-12 text-muted-foreground mb-4">This removes this debit note and its generated PDF. If no other debit notes are linked to its policy, the policy is removed too — the company and its contacts are never affected. This cannot be undone.</p>
+            {error && <p className="text-12 text-[#2a332f] mb-2">{error}</p>}
             <div className="flex justify-end gap-2">
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)} disabled={deleting}>Cancel</Button>
               <Button size="sm" onClick={del} disabled={deleting} className="bg-white text-[#a1242f] border border-[#d5d9d4] hover:bg-[#faf9f6]">
@@ -485,14 +484,14 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               <DetailField label="Company"><span className="">{detail.companies?.name ?? '—'}</span></DetailField>
               {!editing && detail.event_type === 'endorsement' && (
                 <div className="mb-3 rounded-md border border-[#e6e8e4] bg-[#f1f2ee]/60 px-2.5 py-1.5">
-                  <p className="text-[12.5px] font-medium text-[#2a332f]">Mid-term endorsement</p>
-                  <p className="text-[11.5px] text-[#2a332f]">Effective {fmtDate(detail.endorsement_effective_date)}</p>
+                  <p className="text-12.5 font-medium text-[#2a332f]">Mid-term endorsement</p>
+                  <p className="text-12 text-[#2a332f]">Effective {fmtDate(detail.endorsement_effective_date)}</p>
                 </div>
               )}
               {editing && form ? (
                 <>
                   <div className="rounded-md border border-[--border-subtle] p-2.5 mb-3 flex items-center gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1">Debit note type
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1">Debit note type
                       <select value={form.eventType} onChange={e => setForm({ ...form, eventType: e.target.value as EventType })} className={inputCls}>
                         <option value="new_business">New business</option>
                         <option value="renewal">Renewal</option>
@@ -500,48 +499,48 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       </select>
                     </label>
                     {form.eventType === 'endorsement' && (
-                      <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1">Effective date
+                      <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1">Effective date
                         <input type="date" value={form.endorsementEffectiveDate} onChange={e => setForm({ ...form, endorsementEffectiveDate: e.target.value })} className={inputCls} />
                       </label>
                     )}
                   </div>
                   {/* Row 1 — reference numbers */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Policy number
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Policy number
                       <input value={form.policyNumber} onChange={e => setForm({ ...form, policyNumber: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Cover note no.
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Cover note no.
                       <input value={form.coverNoteNo} onChange={e => setForm({ ...form, coverNoteNo: e.target.value })} className={inputCls} />
                     </label>
                   </div>
                   {/* Row 2 — insurer, class & broker */}
                   <div className="grid grid-cols-3 gap-3 mb-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Insurer
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Insurer
                       <input value={form.insurer} onChange={e => setForm({ ...form, insurer: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Class of insurance
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Class of insurance
                       <input value={form.classOfInsurance} onChange={e => setForm({ ...form, classOfInsurance: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Broker
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Broker
                       <input value={form.broker} onChange={e => setForm({ ...form, broker: e.target.value })} className={inputCls} />
                     </label>
                   </div>
                   {/* Row 3 — dates (period + billing) — wraps to 2×2 in this narrower dialog */}
                   <div className="grid grid-cols-2 gap-3 mb-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period start
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Period start
                       <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Period end
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Period end
                       <input type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Issue date
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Issue date
                       <input type="date" value={form.issueDate} onChange={e => setForm({ ...form, issueDate: e.target.value })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Payment due date
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Payment due date
                       <input type="date" value={form.paymentDueDate} onChange={e => setForm({ ...form, paymentDueDate: e.target.value })} className={inputCls} />
                     </label>
                   </div>
-                  <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Description
+                  <label className="flex flex-col gap-1 text-11 text-muted-foreground">Description
                     <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className={inputCls} />
                   </label>
                 </>
@@ -570,10 +569,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <button onClick={() => removeLineItem(i)} className="text-muted-foreground hover:text-[#2a332f] flex-none"><X size={14} /></button>
                     </div>
                   ))}
-                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-[11.5px] text-[#0f1412] hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
+                  <button onClick={addLineItem} className="flex items-center gap-1.5 text-12 text-[#0f1412] hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</button>
 
                   {/* Fee rebate toggle — sits above the price row it nets against */}
-                  <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-2 max-w-[220px]">
+                  <label className="flex flex-col gap-1 text-11 text-muted-foreground mb-2 max-w-[220px]">
                     <span className="flex items-center gap-1.5">
                       <input type="checkbox" checked={feeRebateEnabled}
                         onChange={e => { setFeeRebateEnabled(e.target.checked); if (!e.target.checked) setForm(f => f && { ...f, feeRebate: 0 }) }} />
@@ -581,21 +580,21 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                     </span>
                   </label>
                   {feeRebateEnabled && (
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground mb-2 max-w-[220px]">Fee rebate amount
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground mb-2 max-w-[220px]">Fee rebate amount
                       <input type="number" value={form.feeRebate} onChange={e => setForm({ ...form, feeRebate: Number(e.target.value) })} className={inputCls} />
                     </label>
                   )}
 
                   {/* Price row — GST, currency, and the running total together */}
                   <div className="flex flex-wrap items-end gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[110px]">GST amount
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[110px]">GST amount
                       <input type="number" value={form.gstAmount} onChange={e => setForm({ ...form, gstAmount: Number(e.target.value) })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[110px]">Currency
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[110px]">Currency
                       <input value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className={inputCls} />
                     </label>
-                    <div className="flex flex-col gap-1 text-[10.5px] text-muted-foreground flex-1 min-w-[140px]">Premium Total
-                      <div className="text-[12.5px] border border-border rounded-md px-2 py-1 bg-muted/40 font-semibold flex items-center h-[30px]">
+                    <div className="flex flex-col gap-1 text-11 text-muted-foreground flex-1 min-w-[140px]">Premium Total
+                      <div className="text-12.5 border border-border rounded-md px-2 py-1 bg-muted/40 font-semibold flex items-center h-[30px]">
                         {form.currency} {(form.lineItems.reduce((s, l) => s + l.amount, 0) + form.gstAmount - (feeRebateEnabled ? form.feeRebate : 0)).toLocaleString('en-SG', { minimumFractionDigits: 2 })}
                       </div>
                     </div>
@@ -604,10 +603,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               ) : (
                 <>
                   {detail.line_items?.map((l, i) => (
-                    <div key={i} className="flex justify-between text-[12px] mb-1"><span>{l.description}</span><span>{fmt(l.amount, detail.currency)}</span></div>
+                    <div key={i} className="flex justify-between text-12 mb-1"><span>{l.description}</span><span>{fmt(l.amount, detail.currency)}</span></div>
                   ))}
-                  {!!detail.fee_rebate && <div className="flex justify-between text-[12px] mb-1"><span>Fee rebate</span><span>-{fmt(detail.fee_rebate, detail.currency)}</span></div>}
-                  <div className="flex justify-between text-[13px] font-semibold border-t border-[--border-subtle] pt-1.5 mt-1"><span>Premium Total</span><span>{fmt(detail.net_amount, detail.currency)}</span></div>
+                  {!!detail.fee_rebate && <div className="flex justify-between text-12 mb-1"><span>Fee rebate</span><span>-{fmt(detail.fee_rebate, detail.currency)}</span></div>}
+                  <div className="flex justify-between text-13 font-semibold border-t border-[--border-subtle] pt-1.5 mt-1"><span>Premium Total</span><span>{fmt(detail.net_amount, detail.currency)}</span></div>
                 </>
               )}
             </DetailSection>
@@ -616,10 +615,10 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               <DetailSection label="Commission & archive">
                 {editing && form ? (
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Commission rate (%)
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Commission rate (%)
                       <input type="number" value={form.commissionRate} onChange={e => setForm({ ...form, commissionRate: Number(e.target.value) })} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Commission amount
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Commission amount
                       <input type="number" value={form.commission} onChange={e => setForm({ ...form, commission: Number(e.target.value) })} className={inputCls} />
                     </label>
                   </div>
@@ -637,18 +636,18 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
             )}
 
             <DetailSection label="Payment">
-              <p className="text-[10.5px] text-muted-foreground mb-2.5">Not all of the premium always goes to the insurer directly — tag which channel(s) apply and track each independently for accounting.</p>
+              <p className="text-11 text-muted-foreground mb-2.5">Not all of the premium always goes to the insurer directly — tag which channel(s) apply and track each independently for accounting.</p>
               <div className="flex flex-col gap-3">
                 <div className="rounded-md border border-[--border-subtle] p-2.5">
-                  <label className="flex items-center gap-2 text-[12px] font-medium mb-2 cursor-pointer">
+                  <label className="flex items-center gap-2 text-12 font-medium mb-2 cursor-pointer">
                     <input type="checkbox" checked={payDirectToInsurer} onChange={e => setPayDirectToInsurer(e.target.checked)} className="accent-primary" />
                     (a) Direct to insurer
                   </label>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Paid amount to insurer
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Paid amount to insurer
                       <input type="number" value={paidDirectAmount} onChange={e => setPaidDirectAmount(Number(e.target.value))} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Status
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Status
                       <select value={paidDirectStatus} onChange={e => setPaidDirectStatus(e.target.value as PayStatus)} className={inputCls}>
                         <option value="unpaid">Unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option>
                       </select>
@@ -656,15 +655,15 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                   </div>
                 </div>
                 <div className="rounded-md border border-[--border-subtle] p-2.5">
-                  <label className="flex items-center gap-2 text-[12px] font-medium mb-2 cursor-pointer">
+                  <label className="flex items-center gap-2 text-12 font-medium mb-2 cursor-pointer">
                     <input type="checkbox" checked={payToTrsOps} onChange={e => setPayToTrsOps(e.target.checked)} className="accent-primary" />
                     (b) Pay to TRS
                   </label>
                   <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Paid to TRS Ops account
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Paid to TRS Ops account
                       <input type="number" value={paidAmount} onChange={e => setPaidAmount(Number(e.target.value))} className={inputCls} />
                     </label>
-                    <label className="flex flex-col gap-1 text-[10.5px] text-muted-foreground">Status
+                    <label className="flex flex-col gap-1 text-11 text-muted-foreground">Status
                       <select value={status} onChange={e => setStatus(e.target.value as PayStatus)} className={inputCls}>
                         <option value="unpaid">Unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option>
                       </select>
@@ -674,7 +673,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               </div>
             </DetailSection>
 
-            {error && <p className="px-4 text-[11.5px] text-[#2a332f]">{error}</p>}
+            {error && <p className="px-4 text-12 text-[#2a332f]">{error}</p>}
 
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <div className="flex items-center gap-2">

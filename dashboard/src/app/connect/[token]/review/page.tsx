@@ -128,7 +128,7 @@ function ReviewBody({ link, draft }: { link: PublicLink; draft: PublicDraft }) {
       <div className="hrc-field"><label htmlFor="rv-email">Your email, for the receipt</label><input id="rv-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></div>
 
       <div className="hrc-consent">
-        <b style={{ fontWeight: 500 }}>Before you submit</b><br />
+        <b className="font-medium">Before you submit</b><br />
         {consentFacts}
         <label>
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
@@ -164,7 +164,7 @@ function EmployeeRows(props: {
   return (
     <>
       <tr>
-        <td><b style={{ fontWeight: 500 }}>{e.name}</b></td>
+        <td><b className="font-medium">{e.name}</b></td>
         <td>Employee</td>
         <td className={e.dob ? '' : 'm'}><DobCell value={e.dob} onChange={iso => iso && props.onFixEmployeeDob(iso)} /></td>
         <td className={e.category ? '' : 'm'}>{e.category ?? '–'}</td>
@@ -178,7 +178,7 @@ function EmployeeRows(props: {
           <td className={d.dob ? '' : 'm'}><DobCell value={d.dob} onChange={iso => iso && props.onFixDependantDob(d.key, iso)} /></td>
           <td className="m">–</td>
           <td className="m">–</td>
-          <td style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <td className="flex gap-2 items-center">
             <span className="chip">{d.dob ? 'Complete' : 'Add date of birth'}</span>
             <button type="button" className="hrc-btn sm" onClick={() => props.onRemoveDependant(d.key)}>Remove</button>
           </td>
@@ -196,7 +196,7 @@ function EmployeeRows(props: {
           <td><input className="cell" type="text" inputMode="numeric" placeholder="DD/MM/YYYY" value={adding.dob} onChange={ev => props.onChangeAdd({ ...adding, dob: ev.target.value })} aria-label="Dependant date of birth" /></td>
           <td className="m">–</td>
           <td className="m">–</td>
-          <td style={{ display: 'flex', gap: 8 }}>
+          <td className="flex gap-2">
             <button type="button" className="hrc-btn sm p" disabled={!adding.name.trim()} onClick={props.onAdd}>Add</button>
             <button type="button" className="hrc-btn sm" onClick={props.onCancelAdd}>Cancel</button>
           </td>

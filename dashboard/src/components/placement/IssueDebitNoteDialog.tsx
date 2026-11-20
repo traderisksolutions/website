@@ -104,7 +104,7 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           <DialogDescription>{title}{quote ? ` · ${quote.insurer_name}${product ? ` · ${product}` : ''}` : ''}</DialogDescription>
         </DialogHeader>
         {issued ? (
-          <div className="flex flex-col gap-3 text-[14px]" style={{ color: INK }}>
+          <div className="flex flex-col gap-3 text-14" style={{ color: INK }}>
             <p className="m-0">{issued.debitNoteNo} issued{issued.driveFolderUrl ? ' and filed in Drive. The line is done.' : '. It is not in Drive yet, so the line stays open until it is filed.'}</p>
             <div className="flex gap-3">
               {issued.debitNoteId && <a href={`/debit-notes?open=${issued.debitNoteId}`} data-same-tab style={{ color: INK }}>Open debit note</a>}
@@ -115,8 +115,8 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {!quote && <p className="m-0 text-[13px]" style={{ color: MUTED }}>No chosen quote on this line; fill the figures in by hand.</p>}
-            {!target?.policy && <p className="m-0 text-[13px]" style={{ color: MUTED }}>This line has no policy record; one is created with the note, and the line is closed by hand.</p>}
+            {!quote && <p className="m-0 text-13" style={{ color: MUTED }}>No chosen quote on this line; fill the figures in by hand.</p>}
+            {!target?.policy && <p className="m-0 text-13" style={{ color: MUTED }}>This line has no policy record; one is created with the note, and the line is closed by hand.</p>}
             <Field label="Policy number (from the insurer)"><input className={inputCls} value={number} onChange={e => setNumber(e.target.value)} placeholder="Leave blank if not issued yet" /></Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Cover from"><input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
@@ -131,8 +131,8 @@ export function IssueDebitNoteDialog({ target, onClose, onDone }: {
               <Field label="Issue date"><input className={inputCls} type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></Field>
               <Field label="Payment due"><input className={inputCls} type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field>
             </div>
-            {quote?.premium_text && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>As quoted: {quote.premium_text}</p>}
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {quote?.premium_text && <p className="m-0 text-12.5" style={{ color: MUTED }}>As quoted: {quote.premium_text}</p>}
+            {error && <p className="text-13 m-0" style={{ color: ERROR }}>{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
               <Btn level="primary" className="h-9 px-4" onClick={issue} loading={busy}>Issue and file in Drive</Btn>

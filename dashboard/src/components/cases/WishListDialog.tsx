@@ -79,9 +79,9 @@ export function WishListDialog({ caseId, title, onClose, onChanged }: {
                 <tbody>
                   {wishes.map(n => (
                     <tr key={n.id} className="align-middle">
-                      <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{n.text}</td>
+                      <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{n.text}</td>
                       <td className="px-2 py-1.5"><NeedSelect label={`Need for: ${n.text}`} value={n.need ?? null} disabled={busy !== null} onChange={to => grade(n, to)} /></td>
-                      <td className="cell-left hidden px-3 py-2 text-[13px] truncate sm:table-cell">{n.author_kind === 'agent' ? actorName(n.author) : actorName(n.author, memory.staff)}</td>
+                      <td className="cell-left hidden px-3 py-2 text-13 truncate sm:table-cell">{n.author_kind === 'agent' ? actorName(n.author) : actorName(n.author, memory.staff)}</td>
                       <td className="px-2 py-1.5 whitespace-nowrap"><Btn size="xs" disabled={busy !== null} loading={busy === n.id} onClick={() => setAside(n)}>Set aside</Btn></td>
                     </tr>
                   ))}
@@ -96,7 +96,7 @@ export function WishListDialog({ caseId, title, onClose, onChanged }: {
               <Btn type="submit" level="primary" disabled={!text.trim() || busy !== null} loading={busy === 'add'}>Add wish</Btn>
             </form>
           )}
-          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          {error && <p className="m-0 text-13 text-trs-neg" role="alert">{error}</p>}
         </div>
         <DialogFooter className="gap-2 sm:space-x-0">
           <Btn disabled={busy !== null} onClick={onClose}>Close</Btn>

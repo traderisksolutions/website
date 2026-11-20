@@ -26,12 +26,12 @@ export function MarketingPage({ title, line, line2, actions, sites, siteKey, onS
     <AppSplitLayout className="bg-white">
       <AppMainPanel className="bg-white">
         <div className="flex-shrink-0 px-6 sm:px-12 pt-10 text-trs-ink">
-          {back && <div className="mb-3 text-[13.5px]">{back}</div>}
+          {back && <div className="mb-3 text-13.5">{back}</div>}
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div className="min-w-0">
-              <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>{title}</h1>
-              {line && <p className="m-0 mt-2 text-[15px] text-trs-muted">{line}</p>}
-              {line2 && <p className="m-0 mt-1 text-[13.5px] text-trs-muted">{line2}</p>}
+              <h1 className="m-0 text-32 font-medium tracking-[-0.03em] leading-[1.08]" style={{ textWrap: 'balance' }}>{title}</h1>
+              {line && <p className="m-0 mt-2 text-15 text-trs-muted">{line}</p>}
+              {line2 && <p className="m-0 mt-1 text-13.5 text-trs-muted">{line2}</p>}
             </div>
             <div className="flex items-center gap-3 flex-wrap pb-2">{actions}</div>
           </div>
@@ -49,5 +49,5 @@ export function MarketingPage({ title, line, line2, actions, sites, siteKey, onS
 }
 
 export function Note({ children, role }: { children: React.ReactNode; role?: 'alert' | 'status' }) {
-  return <p className="m-0 mb-4 text-[14px]" role={role} style={{ color: role === 'alert' ? INK : MUTED }}>{children}</p>
+  return <p className="m-0 mb-4 text-14" role={role} style={{ color: role === 'alert' ? INK : MUTED }}>{children}</p>
 }

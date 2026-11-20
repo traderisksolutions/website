@@ -10,6 +10,11 @@ const config: Config = {
         serif: ['var(--font-serif)', 'EB Garamond', 'Georgia', 'serif'],
         mono: ['var(--font-mono)', 'Geist Mono', 'ui-monospace', 'Menlo', 'monospace'],
       },
+      // The one type scale (design system, 20 Nov 2026). Pages use these names, never text-[Npx].
+      fontSize: {
+        '11': '11px', '12': '12px', '12.5': '12.5px', '13': '13px', '13.5': '13.5px', '14': '14px',
+        '15': '15px', '16': '16px', '20': '20px', '24': '24px', '32': '32px',
+      },
       colors: {
         // Revamp tokens (globals.css :root). Use these in class names instead of hex literals.
         trs: {

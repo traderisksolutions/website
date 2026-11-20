@@ -132,7 +132,7 @@ function Generate() {
                 <select value={focusId} onChange={e => setFocusId(e.target.value)} className={inputCls}>{options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}</select>
               </Field>
             )}
-            {(focusType === 'product' || focusType === 'case_study') && options.length === 0 && <p className="m-0 text-[13.5px] text-trs-muted">No entries of this kind in the knowledge bank yet. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add one</Link></p>}
+            {(focusType === 'product' || focusType === 'case_study') && options.length === 0 && <p className="m-0 text-13.5 text-trs-muted">No entries of this kind in the knowledge bank yet. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add one</Link></p>}
             {focusType === 'question'
               ? <Field label="The search to rank for" hint="Written as the reader types it into Google"><input value={question} onChange={e => setQuestion(e.target.value)} className={inputCls} placeholder="work injury compensation insurance for contractors" /></Field>
               : <>
@@ -155,20 +155,20 @@ function Generate() {
               <Segmented value={market} onChange={setMarket} options={(site?.markets ?? ['SG']).map(m => ({ value: m, label: marketLabel(m) }))} />
               <Segmented value={language} onChange={setLanguage} options={[{ value: '', label: `${MARKETS.find(m => m.code === market)?.language === 'id' ? 'Bahasa' : 'English'} (market default)` }, { value: 'en', label: 'English' }, { value: 'id', label: 'Bahasa Indonesia' }]} />
               <Segmented value={length} onChange={setLength} options={[{ value: 'standard', label: 'About 1,200 words' }, { value: 'long', label: 'About 2,000 words' }]} />
-              {data && missing.length > 0 && <p className="m-0 text-[13.5px] text-trs-muted">Knowledge bank missing {missing.join(', ')}. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add them</Link></p>}
+              {data && missing.length > 0 && <p className="m-0 text-13.5 text-trs-muted">Knowledge bank missing {missing.join(', ')}. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add them</Link></p>}
             </div>
           </SectionCard>
           <SectionCard title="3. Extra instructions (optional)">
             <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3} className={textareaCls} placeholder="Mention the statutory limit; do not mention premiums." />
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <Btn level="primary" disabled={!canSubmit} onClick={generate}>{busy ? 'Starting…' : 'Generate article'}</Btn>
-              {data && readiness.total === 0 && <span className="text-[13.5px] text-trs-muted">The knowledge bank is empty: nothing to write from.</span>}
+              {data && readiness.total === 0 && <span className="text-13.5 text-trs-muted">The knowledge bank is empty: nothing to write from.</span>}
             </div>
           </SectionCard>
         </div>
       </div>
 
-      <h2 className="m-0 mb-3 text-[17px] font-medium">Recent runs</h2>
+      <h2 className="m-0 mb-3 text-16 font-medium">Recent runs</h2>
       <Register label="Runs" minWidth={900} className={cn(loading && 'opacity-60')}>
         <RegisterHead>
           <RegisterTh first hint="When the run was started, Singapore time">Started</RegisterTh>

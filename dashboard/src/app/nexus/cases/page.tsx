@@ -208,7 +208,7 @@ const priorityLabel = (p: string) => PRIORITY_LABEL[p] ?? 'Later'
 /** A neutral list row: grey dot, ink text. Used for blocking items, questions, prerequisites. */
 function DotRow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <li className={cn('flex items-start gap-2.5 text-[14px] leading-[1.55] list-none', className)} style={{ color: BODY }}>
+    <li className={cn('flex items-start gap-2.5 text-14 leading-[1.55] list-none', className)} style={{ color: BODY }}>
       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[8px] bg-trs-subtle" aria-hidden />
       <span className="min-w-0 flex-1">{children}</span>
     </li>
@@ -218,7 +218,7 @@ function DotRow({ children, className }: { children: React.ReactNode; className?
 /** A party chip: the category's soft field, ink text. Category, not state. */
 function PartyChip({ party, className }: { party: string; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4', className)} style={{ background: partyField(party), color: BODY }}>
+    <span className={cn('inline-flex items-center rounded-[6px] px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4', className)} style={{ background: partyField(party), color: BODY }}>
       {partyLabel(party)}
     </span>
   )
@@ -226,15 +226,15 @@ function PartyChip({ party, className }: { party: string; className?: string }) 
 
 /** A chip that sits on a grey field: white fill, ink text. */
 function WhiteChip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
+  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
 }
 
 /** A small muted label above a group of rows (13px, sentence case). */
 function GroupLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn('m-0 text-[12.5px] font-medium', className)} style={{ color: MUTED }}>{children}</p>
+  return <p className={cn('m-0 text-12.5 font-medium', className)} style={{ color: MUTED }}>{children}</p>
 }
 
-const ghostBtn = 'inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer text-[13px] underline-offset-4 hover:underline disabled:opacity-40 disabled:cursor-default'
+const ghostBtn = 'inline-flex items-center gap-1 bg-transparent border-0 p-0 cursor-pointer text-13 underline-offset-4 hover:underline disabled:opacity-40 disabled:cursor-default'
 
 function contactName(c: Contact | null): string {
   if (!c) return '—'
@@ -378,11 +378,11 @@ export default function NexusPage() {
     <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] text-trs-ink">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 px-6 h-[68px] flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
-        <h1 className="m-0 text-[28px] font-medium tracking-[-0.03em] leading-none text-trs-ink">Case review</h1>
+        <h1 className="m-0 text-24 font-medium tracking-[-0.03em] leading-none text-trs-ink">Case review</h1>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 bg-trs-ink"
+          className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 bg-trs-ink"
           
         >
           New case
@@ -419,7 +419,7 @@ export default function NexusPage() {
               </div>
             ) : visible.length === 0 ? (
               <div className="px-5 py-16 text-center">
-                <p className="m-0 text-[15px] text-trs-muted">{search ? 'No cases match.' : 'No cases yet.'}</p>
+                <p className="m-0 text-15 text-trs-muted">{search ? 'No cases match.' : 'No cases yet.'}</p>
                 {!search && (
                   <button type="button" onClick={() => setCreateOpen(true)} className={cn(ghostBtn, 'mt-3')} style={{ color: INK }}>
                     Create the first case
@@ -440,10 +440,10 @@ export default function NexusPage() {
                       style={{ background: on ? FIELD : 'transparent' }}
                     >
                       <div className="flex items-center justify-between gap-2 min-w-0">
-                        <span className="text-[14px] font-medium truncate flex-1 text-trs-ink">{c.name}</span>
+                        <span className="text-14 font-medium truncate flex-1 text-trs-ink">{c.name}</span>
                         <Chip>{c.status === 'open' ? 'Open' : c.status === 'closed' ? 'Closed' : c.status}</Chip>
                       </div>
-                      <div className="text-[12.5px] truncate text-trs-muted">
+                      <div className="text-12.5 truncate text-trs-muted">
                         {c.thread_count} thread{c.thread_count !== 1 ? 's' : ''}
                         {c.last_activity && <> · {timeAgo(c.last_activity)}</>}
                         {c.description && <> · {c.description}</>}
@@ -465,7 +465,7 @@ export default function NexusPage() {
             onBack={() => setSelectedId(null)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[15px] px-6 text-center text-trs-muted">
+          <div className="flex-1 flex items-center justify-center text-15 px-6 text-center text-trs-muted">
             {loading ? 'Loading…' : 'Select a case, or create one.'}
           </div>
         )}
@@ -538,7 +538,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] text-trs-ink">New case</h2>
+          <h2 className="m-0 text-20 font-medium tracking-[-0.02em] text-trs-ink">New case</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
             <X size={15} />
           </button>
@@ -554,7 +554,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         </Field>
         <Field label="Company">
           {prefillCompany ? (
-            <div className="w-full h-10 rounded-[10px] px-3.5 text-[14px] flex items-center" style={{ background: FIELD, color: INK }}>
+            <div className="w-full h-10 rounded-[10px] px-3.5 text-14 flex items-center bg-trs-field text-trs-ink">
               {prefillCompany.name}
             </div>
           ) : (
@@ -569,9 +569,9 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
               />
               {companyPickerOpen && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
-                  {companySearching && <div className="px-3.5 py-2.5 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
+                  {companySearching && <div className="px-3.5 py-2.5 text-13 flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
                   {!companySearching && companyResults.length === 0 && (
-                    <div className="px-3.5 py-2.5 text-[13px] text-trs-muted">
+                    <div className="px-3.5 py-2.5 text-13 text-trs-muted">
                       {companyQuery.trim() ? `No match. “${companyQuery.trim()}” will be created as a new company.` : 'Type to search companies.'}
                     </div>
                   )}
@@ -580,7 +580,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                       key={c.id}
                       type="button"
                       onClick={() => { setSelectedCompanyId(c.id); setCompanyQuery(c.name); setCompanyPickerOpen(false) }}
-                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-trs-ink"
+                      className="w-full text-left px-3.5 py-2.5 text-14 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-trs-ink"
                       
                     >
                       {c.name}
@@ -991,7 +991,7 @@ function MissionHeader({
       {/* Top row: name + actions */}
       <div className="flex items-start justify-between gap-4 px-6 pt-5 pb-3 flex-wrap">
         <div className="min-w-0 flex-1">
-          <button type="button" onClick={onBack} className={cn(ghostBtn, 'md:hidden mb-2 text-[14px]')} style={{ color: MUTED }}>← Cases</button>
+          <button type="button" onClick={onBack} className={cn(ghostBtn, 'md:hidden mb-2 text-14')} style={{ color: MUTED }}>← Cases</button>
           <div className="flex items-center gap-2.5 min-w-0">
             {editingTitle ? (
               <input
@@ -1001,11 +1001,11 @@ function MissionHeader({
                 onBlur={onSaveTitle}
                 autoFocus
                 aria-label="Case name"
-                className={cn(inputCls, 'text-[20px] font-medium h-11 max-w-[520px]')}
+                className={cn(inputCls, 'text-20 font-medium h-11 max-w-[520px]')}
               />
             ) : (
               <>
-                <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate text-trs-ink">{caseData.name}</h2>
+                <h2 className="m-0 text-20 font-medium tracking-[-0.02em] truncate text-trs-ink">{caseData.name}</h2>
                 <button type="button" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case"
                   className="flex-shrink-0 w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-subtle">
                   <Pencil size={13} strokeWidth={2} />
@@ -1015,14 +1015,14 @@ function MissionHeader({
             <Chip>{caseData.status === 'open' ? 'Open' : caseData.status === 'closed' ? 'Closed' : caseData.status}</Chip>
           </div>
           {caseData.description && (
-            <p className="m-0 mt-1 text-[13px] truncate text-trs-muted">{caseData.description}</p>
+            <p className="m-0 mt-1 text-13 truncate text-trs-muted">{caseData.description}</p>
           )}
-          <LastHandledBy resourceId={caseData.id} className="block mt-1 text-[12.5px] truncate" />
+          <LastHandledBy resourceId={caseData.id} className="block mt-1 text-12.5 truncate" />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {confirmDelete ? (
             <>
-              <span className="text-[13px] mr-1 text-trs-muted">Delete this case?</span>
+              <span className="text-13 mr-1 text-trs-muted">Delete this case?</span>
               <Btn level="secondary" onClick={onDelete} className="text-trs-neg">Delete</Btn>
               <Btn level="secondary" onClick={onCancelDelete}>Cancel</Btn>
             </>
@@ -1052,7 +1052,7 @@ function MissionHeader({
 
       {/* Timeout notice — a plain row, no tint. */}
       {analyzeError === '__TIMEOUT__' && (
-        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5] text-trs-ink-2">
+        <p className="m-0 px-6 pb-3 text-13 leading-[1.5] text-trs-ink-2">
           Analysis timed out. This case has too many threads or attachments for the 60-second function limit. Unlink some threads and re-run, or move to a 300-second limit on Vercel Pro.
         </p>
       )}
@@ -1069,21 +1069,21 @@ function MissionHeader({
                 role="tab"
                 aria-selected={on}
                 onClick={() => onSetView(key)}
-                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-[15px] whitespace-nowrap', on ? 'font-medium' : 'hover:text-[#0f1412]')}
+                className={cn('relative pb-2.5 bg-transparent border-0 cursor-pointer text-15 whitespace-nowrap', on ? 'font-medium' : 'hover:text-[#0f1412]')}
                 style={{ color: on ? INK : MUTED }}
               >
                 {label}
-                {count > 0 && <span className="ml-1.5 tabular-nums text-[13px] text-trs-subtle">{count}</span>}
+                {count > 0 && <span className="ml-1.5 tabular-nums text-13 text-trs-subtle">{count}</span>}
                 <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
               </button>
             )
           })}
         </div>
-        <p className="m-0 pb-2.5 text-[13px] whitespace-nowrap text-trs-muted">{metaLine}</p>
+        <p className="m-0 pb-2.5 text-13 whitespace-nowrap text-trs-muted">{metaLine}</p>
       </div>
 
       {analyzeError && analyzeError !== '__TIMEOUT__' && (
-        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5] text-trs-ink-2">{analyzeError}</p>
+        <p className="m-0 px-6 pb-3 text-13 leading-[1.5] text-trs-ink-2">{analyzeError}</p>
       )}
     </div>
   )
@@ -1207,7 +1207,7 @@ function LogsView({
   if (!analysis) {
     return (
       <div className="px-6 py-16 flex flex-col items-center gap-3 text-center">
-        <p className="m-0 text-[15px] text-trs-muted">Logs fill after the first analysis.</p>
+        <p className="m-0 text-15 text-trs-muted">Logs fill after the first analysis.</p>
         <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
@@ -1247,7 +1247,7 @@ function LogsView({
 function NoThreadsState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 px-8 text-center">
-      <p className="m-0 text-[15px] max-w-[360px] leading-[1.6] text-trs-muted">
+      <p className="m-0 text-15 max-w-[360px] leading-[1.6] text-trs-muted">
         No threads linked. Each linked thread is one conversation with a party: client, insurer, lawyer or regulator.
       </p>
       <Btn level="secondary" onClick={onAdd}>Link threads</Btn>
@@ -1275,13 +1275,13 @@ function PreAnalysisState({
 
       {!analyzing && (
         <div className="rounded-[16px] px-6 py-8 flex flex-col items-center gap-4 text-center bg-trs-field">
-          <p className="m-0 text-[15px] max-w-[420px] leading-[1.6] text-trs-ink-2">
+          <p className="m-0 text-15 max-w-[420px] leading-[1.6] text-trs-ink-2">
             {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. The analysis produces a brief, stakeholder map, timeline, evidence ledger and draft emails.
           </p>
           <button
             type="button"
             onClick={onRunAnalysis}
-            className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 bg-trs-ink"
+            className="h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer hover:opacity-90 bg-trs-ink"
             
           >
             Run analysis
@@ -1316,10 +1316,10 @@ function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Loader2 size={14} className="animate-spin flex-shrink-0 text-trs-muted" />
-          <p className="m-0 text-[14px] font-medium text-trs-ink">Analysis running</p>
-          <span className="text-[13px] text-trs-muted">step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
+          <p className="m-0 text-14 font-medium text-trs-ink">Analysis running</p>
+          <span className="text-13 text-trs-muted">step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
         </div>
-        {progress && <span className="text-[14px] font-medium tabular-nums text-trs-ink">{progress.pct}%</span>}
+        {progress && <span className="text-14 font-medium tabular-nums text-trs-ink">{progress.pct}%</span>}
       </div>
 
       <div className="h-[3px] rounded-full overflow-hidden bg-trs-line">
@@ -1331,7 +1331,7 @@ function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
         {ANALYSIS_STAGES.map((s, i) => {
           const state = i < idx ? 'done' : i === idx ? 'current' : 'pending'
           return (
-            <li key={i} className={cn('flex items-center gap-2 text-[13px] list-none', state === 'current' && 'font-medium')}
+            <li key={i} className={cn('flex items-center gap-2 text-13 list-none', state === 'current' && 'font-medium')}
               style={{ color: state === 'current' ? INK : state === 'done' ? BODY : FAINT }}>
               <span className="w-3.5 flex-shrink-0 flex items-center justify-center">
                 {state === 'current'
@@ -1360,9 +1360,9 @@ function SectionLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink">
+      <h2 className="m-0 text-16 font-medium tracking-[-0.01em] leading-tight text-trs-ink">
         {title}
-        {count !== undefined && <span className="ml-2 text-[13px] font-normal tabular-nums text-trs-subtle">{count}</span>}
+        {count !== undefined && <span className="ml-2 text-13 font-normal tabular-nums text-trs-subtle">{count}</span>}
       </h2>
       {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>
@@ -1370,13 +1370,13 @@ function SectionLabel({
 }
 
 function NoDataState({ message }: { message: string }) {
-  return <p className="m-0 py-5 text-[14px] text-trs-muted">{message}</p>
+  return <p className="m-0 py-5 text-14 text-trs-muted">{message}</p>
 }
 
 /** One fact: muted term, ink value. Renders inside a <dl>. */
 function KFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline gap-2 text-[13.5px] min-w-0">
+    <div className="flex items-baseline gap-2 text-13.5 min-w-0">
       <dt className="m-0 flex-shrink-0 text-trs-muted">{label}</dt>
       <dd className="m-0 font-medium truncate text-trs-ink">{value}</dd>
     </div>
@@ -1391,7 +1391,7 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
   const label = c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label
   // v1.1: cited facts resolve to a real message/attachment → link to the source thread.
   const href = c.thread_id ? `/engagement?lead=${c.thread_id}` : null
-  const cls = 'inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-[11px] font-medium align-middle no-underline whitespace-nowrap'
+  const cls = 'inline-flex items-center rounded-[6px] px-1.5 py-0.5 text-11 font-medium align-middle no-underline whitespace-nowrap'
   if (href) return (
     <a href={href} onClick={e => e.stopPropagation()} title={`${c.excerpt ?? c.label}. Opens the source.`} className={cn(cls, 'hover:underline')} style={{ background: FIELD, color: BODY }}>
       {label}
@@ -1436,7 +1436,7 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
           </dl>
         )}
 
-        {summary && <p className="m-0 text-[14px] leading-[1.7] text-trs-ink-2">{summary}</p>}
+        {summary && <p className="m-0 text-14 leading-[1.7] text-trs-ink-2">{summary}</p>}
 
         {blocking.length > 0 && (
           <div>
@@ -1453,8 +1453,8 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
             <div className="flex flex-wrap gap-3">
               {pendingRows.map(([party, item]) => (
                 <div key={party} className="flex flex-col gap-1 px-4 py-3 rounded-[12px] flex-1 min-w-[200px]" style={{ background: partyField(party) }}>
-                  <span className="text-[12.5px] font-medium text-trs-muted">{partyLabel(party)}</span>
-                  <p className="m-0 text-[14px] leading-[1.5] text-trs-ink-2">{item as string}</p>
+                  <span className="text-12.5 font-medium text-trs-muted">{partyLabel(party)}</span>
+                  <p className="m-0 text-14 leading-[1.5] text-trs-ink-2">{item as string}</p>
                 </div>
               ))}
             </div>
@@ -1582,14 +1582,14 @@ function StakeholderMapSection({
 
   const toggle = (key: string) => setExpanded(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n })
 
-  const th = 'py-2.5 px-3 text-[12px] font-medium text-left'
+  const th = 'py-2.5 px-3 text-12 font-medium text-left'
 
   return (
     <div>
       <SectionLabel title="Stakeholders" count={stakeholders.length} />
       <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         <div className="overflow-x-auto">
-          <table className="trs-table w-full text-left border-collapse text-[14px]">
+          <table className="trs-table w-full text-left border-collapse text-14">
             <thead>
               <tr style={{ color: MUTED, borderBottom: `1px solid ${HAIR}` }}>
                 <th className="w-8"></th>
@@ -1602,7 +1602,7 @@ function StakeholderMapSection({
               {sortedGroups.map(([g, rs]) => (
                 <Fragment key={g}>
                   <tr>
-                    <td colSpan={4} className="pt-3 pb-1 px-3 text-[12.5px] font-medium text-trs-muted">
+                    <td colSpan={4} className="pt-3 pb-1 px-3 text-12.5 font-medium text-trs-muted">
                       {partyLabel(g)} <span className="tabular-nums text-trs-subtle">{rs.length}</span>
                     </td>
                   </tr>
@@ -1618,12 +1618,12 @@ function StakeholderMapSection({
                           <td className="py-3 pl-3 align-top"><ChevronDown size={14} className={cn('transition-transform mt-0.5', open && 'rotate-180')} style={{ color: FAINT }} /></td>
                           <td className="py-3 px-3 align-top cell-left">
                             <div className="font-medium text-trs-ink">{r.s.name}</div>
-                            {r.s.company && <div className="text-[12.5px] text-trs-muted">{r.s.company}</div>}
+                            {r.s.company && <div className="text-12.5 text-trs-muted">{r.s.company}</div>}
                           </td>
                           <td className="py-3 px-3 align-top">
                             {r.st ? <Chip title={r.st.full}>{r.st.label}</Chip> : <span className="text-trs-subtle">—</span>}
                           </td>
-                          <td className="py-3 px-3 align-top text-[13.5px] whitespace-nowrap cell-left" style={{ color: r.last ? BODY : FAINT }}>
+                          <td className="py-3 px-3 align-top text-13.5 whitespace-nowrap cell-left" style={{ color: r.last ? BODY : FAINT }}>
                             {status}
                             {r.outstanding.length > 0 && <span className="text-trs-muted"> · {r.outstanding.length} item{r.outstanding.length !== 1 ? 's' : ''} awaited</span>}
                           </td>
@@ -1632,20 +1632,20 @@ function StakeholderMapSection({
                           <tr className="bg-trs-tint">
                             <td></td>
                             <td colSpan={3} className="px-3 pb-4 pt-1 cell-left">
-                              {r.s.email && <p className="m-0 mb-1 text-[13px] text-trs-muted">{r.s.email}</p>}
-                              {r.s.role_summary && <p className="m-0 mb-2 text-[14px] leading-[1.55] text-trs-ink-2">{r.s.role_summary}</p>}
-                              {r.st && <p className="m-0 mb-2 text-[13px] text-trs-muted">Stance: {r.st.full}</p>}
+                              {r.s.email && <p className="m-0 mb-1 text-13 text-trs-muted">{r.s.email}</p>}
+                              {r.s.role_summary && <p className="m-0 mb-2 text-14 leading-[1.55] text-trs-ink-2">{r.s.role_summary}</p>}
+                              {r.st && <p className="m-0 mb-2 text-13 text-trs-muted">Stance: {r.st.full}</p>}
                               {r.outstanding.length > 0 && (
                                 <div className="mb-2">
                                   <GroupLabel className="mb-1">Waiting on them</GroupLabel>
                                   <ul className="m-0 p-0 flex flex-col gap-1">
-                                    {r.outstanding.map((o, oi) => <DotRow key={oi} className="text-[13.5px]">{o}</DotRow>)}
+                                    {r.outstanding.map((o, oi) => <DotRow key={oi} className="text-13.5">{o}</DotRow>)}
                                   </ul>
                                 </div>
                               )}
                               {r.thread && (
                                 <a href={`/engagement?lead=${r.thread.thread_id}`} onClick={e => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[13px] font-medium underline-offset-4 hover:underline no-underline text-trs-ink">
+                                  className="inline-flex items-center gap-1 text-13 font-medium underline-offset-4 hover:underline no-underline text-trs-ink">
                                   {r.overdue ? 'Chase in Engagement' : 'Open in Engagement'} →
                                 </a>
                               )}
@@ -1735,7 +1735,7 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
   return (
     <div>
       <SectionLabel title="Documents" count={total}>
-        <span className="text-[13px] tabular-nums text-trs-muted">{parsed} of {total} read by Nexus</span>
+        <span className="text-13 tabular-nums text-trs-muted">{parsed} of {total} read by Nexus</span>
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {sortedGroups.map(g => {
@@ -1745,18 +1745,18 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
             <div key={g.label} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
               <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
                 <PartyChip party={pt} className="flex-shrink-0" />
-                <span className="text-[14px] font-medium truncate text-trs-ink">{g.label}</span>
-                <span className="text-[13px] tabular-nums ml-auto text-trs-subtle">{g.items.length}</span>
+                <span className="text-14 font-medium truncate text-trs-ink">{g.label}</span>
+                <span className="text-13 tabular-nums ml-auto text-trs-subtle">{g.items.length}</span>
               </div>
               <div className="flex flex-col">
                 {g.items.map((f, i) => (
-                  <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-[#faf9f6]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
+                  <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-14 hover:bg-[#faf9f6]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                     {f.storage_url
                       ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline no-underline truncate text-trs-ink">{f.filename}</a>
                       : <span className="font-medium truncate text-trs-ink">{f.filename}</span>}
-                    <span className="text-[12.5px] flex-shrink-0 tabular-nums text-trs-muted">{fmtBytes(f.size_bytes)}</span>
+                    <span className="text-12.5 flex-shrink-0 tabular-nums text-trs-muted">{fmtBytes(f.size_bytes)}</span>
                     <span className="ml-auto flex items-center gap-3 flex-shrink-0">
-                      {f.created_at && <span className="text-[12.5px] text-trs-muted">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
+                      {f.created_at && <span className="text-12.5 text-trs-muted">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
                       <Chip>{f.parsed_at ? 'Read' : 'Pending'}</Chip>
                     </span>
                   </div>
@@ -1778,7 +1778,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
     </div>
   )
 
-  const th = 'py-2.5 px-4 text-[12px] font-medium text-left'
+  const th = 'py-2.5 px-4 text-12 font-medium text-left'
 
   // Full-width comparison table — rows are scenarios, columns compare across them.
   return (
@@ -1805,15 +1805,15 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
                     {/* Disposition chip + scenario name + strategic implication */}
                     <td className="py-4 px-4">
                       {disp && <Chip className="mb-1.5">{disp}</Chip>}
-                      <p className="m-0 text-[14px] font-medium leading-snug text-trs-ink">{cleanName}</p>
+                      <p className="m-0 text-14 font-medium leading-snug text-trs-ink">{cleanName}</p>
                       {s.strategic_implication && (
-                        <p className="m-0 mt-1 text-[13px] leading-[1.5] text-trs-muted">{s.strategic_implication}</p>
+                        <p className="m-0 mt-1 text-13 leading-[1.5] text-trs-muted">{s.strategic_implication}</p>
                       )}
                     </td>
 
                     {/* Probability % + bar */}
                     <td className="py-4 px-4">
-                      <span className="text-[14px] font-medium tabular-nums text-trs-ink">{pm.pct}</span>
+                      <span className="text-14 font-medium tabular-nums text-trs-ink">{pm.pct}</span>
                       <div className="h-[3px] rounded-full mt-1.5 overflow-hidden bg-trs-line">
                         <div className="h-full rounded-full" style={{ width: pm.barW, background: DOT }} />
                       </div>
@@ -1821,12 +1821,12 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
 
                     {/* Outcome + assumptions */}
                     <td className="py-4 px-4 cell-left">
-                      <p className="m-0 text-[14px] leading-[1.55] text-trs-ink-2">{s.outcome}</p>
+                      <p className="m-0 text-14 leading-[1.55] text-trs-ink-2">{s.outcome}</p>
                       {assumptions.length > 0 && (
                         <div className="mt-2.5">
                           <GroupLabel className="mb-1">Assumes</GroupLabel>
                           <ul className="m-0 p-0 flex flex-col gap-1">
-                            {assumptions.map((a, ai) => <DotRow key={ai} className="text-[13px]">{a}</DotRow>)}
+                            {assumptions.map((a, ai) => <DotRow key={ai} className="text-13">{a}</DotRow>)}
                           </ul>
                         </div>
                       )}
@@ -1834,12 +1834,12 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
 
                     {/* TRS action + watch-fors */}
                     <td className="py-4 px-4 cell-left">
-                      <p className="m-0 text-[14px] font-medium leading-[1.5] text-trs-ink">{s.trs_action}</p>
+                      <p className="m-0 text-14 font-medium leading-[1.5] text-trs-ink">{s.trs_action}</p>
                       {triggerConditions.length > 0 && (
                         <div className="mt-2.5">
                           <GroupLabel className="mb-1">Watch for</GroupLabel>
                           <ul className="m-0 p-0 flex flex-col gap-1">
-                            {triggerConditions.map((t, ti) => <DotRow key={ti} className="text-[13px]">{t}</DotRow>)}
+                            {triggerConditions.map((t, ti) => <DotRow key={ti} className="text-13">{t}</DotRow>)}
                           </ul>
                         </div>
                       )}
@@ -1897,14 +1897,14 @@ function MissionTimelineSection({
               {i < shown.length - 1 && <div className="w-px flex-1 mt-1.5 mb-1 bg-trs-line" />}
             </div>
             <div className={cn('min-w-0 flex-1', i < shown.length - 1 ? 'pb-5' : 'pb-0')}>
-              <div className="flex items-center gap-2 mb-1 flex-wrap text-[12.5px] text-trs-muted">
+              <div className="flex items-center gap-2 mb-1 flex-wrap text-12.5 text-trs-muted">
                 <span className="font-medium">{partyLabel(e.party)}</span>
                 <span title={e.date_excerpt ? `Source: “${e.date_excerpt}”` : undefined}>{fmtDate(e.date)}</span>
                 {e.date_verified === false && <Chip title="This date was not found verbatim in the source. Check it.">Date unverified</Chip>}
                 {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
               </div>
-              <p className="m-0 text-[14px] leading-[1.55] text-trs-ink">{e.event}</p>
-              {e.significance && <p className="m-0 mt-0.5 text-[13px] leading-[1.5] text-trs-muted">{e.significance}</p>}
+              <p className="m-0 text-14 leading-[1.55] text-trs-ink">{e.event}</p>
+              {e.significance && <p className="m-0 mt-0.5 text-13 leading-[1.5] text-trs-muted">{e.significance}</p>}
             </div>
           </div>
         ))}
@@ -1942,7 +1942,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
       </SectionLabel>
       <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         {shown.length === 0 ? (
-          <p className="m-0 text-[14px] text-center py-10 text-trs-muted">
+          <p className="m-0 text-14 text-center py-10 text-trs-muted">
             No {tab === 'email' ? 'email' : tab === 'attachment' ? 'attachment' : 'knowledge'} evidence in this analysis.
           </p>
         ) : (
@@ -1960,12 +1960,12 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className="text-[14px] font-medium truncate text-trs-ink">{item.filename_or_label}</span>
+                        <span className="text-14 font-medium truncate text-trs-ink">{item.filename_or_label}</span>
                         {item.coverage_relevant && <Chip>Coverage</Chip>}
                         {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
                       </div>
                       {!isOpen && item.key_facts?.[0] && (
-                        <p className="m-0 text-[13px] line-clamp-1 text-trs-muted">{item.key_facts[0]}</p>
+                        <p className="m-0 text-13 line-clamp-1 text-trs-muted">{item.key_facts[0]}</p>
                       )}
                     </div>
                     <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-180')} style={{ color: FAINT }} />
@@ -2111,7 +2111,7 @@ function NextStepsSection({
   return (
     <div>
       <SectionLabel title="Next steps" count={v1Steps?.length ?? 0}>
-        {draftableCount > 0 && <span className="text-[13px] tabular-nums text-trs-muted">{draftableCount} with a draft</span>}
+        {draftableCount > 0 && <span className="text-13 tabular-nums text-trs-muted">{draftableCount} with a draft</span>}
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {urgentMissing.length > 0 && (
@@ -2122,7 +2122,7 @@ function NextStepsSection({
                 <DotRow key={i}>
                   <span className="font-medium text-trs-ink">{m.item}</span>
                   <span className="text-trs-muted"> · from {m.required_from}</span>
-                  {m.impact && <span className="block text-[13px] mt-0.5 text-trs-muted">{m.impact}</span>}
+                  {m.impact && <span className="block text-13 mt-0.5 text-trs-muted">{m.impact}</span>}
                 </DotRow>
               ))}
             </ul>
@@ -2137,15 +2137,15 @@ function NextStepsSection({
 
           return (
             <div key={i} className="flex gap-4 px-5 py-4 rounded-[16px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
-              <span className="text-[14px] font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px] text-trs-subtle">
+              <span className="text-14 font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px] text-trs-subtle">
                 {step.step}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
-                  <span className="text-[14px] font-medium leading-[1.45] text-trs-ink">{step.action}</span>
+                  <span className="text-14 font-medium leading-[1.45] text-trs-ink">{step.action}</span>
                   <Chip className="flex-shrink-0">{stepPriorityLabel(step.priority)}</Chip>
                 </div>
-                <div className="flex items-center gap-2 mb-2 flex-wrap text-[12.5px] text-trs-muted">
+                <div className="flex items-center gap-2 mb-2 flex-wrap text-12.5 text-trs-muted">
                   {step.owner && <PartyChip party={step.owner} />}
                   {step.deadline && (
                     <span title="Timing is guidance, not a blocker. Any step can be drafted now.">{step.deadline} · guidance</span>
@@ -2156,7 +2156,7 @@ function NextStepsSection({
                     </Chip>
                   )}
                 </div>
-                <p className="m-0 text-[13.5px] leading-[1.55] mb-3 text-trs-muted">{step.rationale}</p>
+                <p className="m-0 text-13.5 leading-[1.55] mb-3 text-trs-muted">{step.rationale}</p>
 
                 {/* ── Step action bar (every step is draftable; recipient editable) ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -2174,7 +2174,7 @@ function NextStepsSection({
                     {copiedStep === step.step ? 'Copied' : 'Copy'}
                   </Btn>
                   {ds.errorMsg && (
-                    <span className="text-[12.5px]" style={{ color: ds.status === 'error' ? INK : MUTED }}>{ds.errorMsg}</span>
+                    <span className="text-12.5" style={{ color: ds.status === 'error' ? INK : MUTED }}>{ds.errorMsg}</span>
                   )}
                 </div>
 
@@ -2248,7 +2248,7 @@ function DraftOutputsSection({
   return (
     <div>
       <SectionLabel title="Draft outputs" count={steps.length}>
-        {!hasDrafts && hasLegacy && <span className="text-[13px] text-trs-muted">Legacy format</span>}
+        {!hasDrafts && hasLegacy && <span className="text-13 text-trs-muted">Legacy format</span>}
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {steps.map(step => (
@@ -2363,7 +2363,7 @@ function RunComparisonBanner({
         onClick={handleToggle}
         className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer"
       >
-        <div className="flex items-center gap-2 min-w-0 flex-wrap text-[13.5px]">
+        <div className="flex items-center gap-2 min-w-0 flex-wrap text-13.5">
           <span className="font-medium text-trs-ink">Compared with the run {prevAgo}</span>
           <span className="truncate text-trs-muted">
             {diffs.slice(0, 3).join(' · ')}{diffs.length > 3 ? ` · ${diffs.length - 3} more` : ''}
@@ -2377,7 +2377,7 @@ function RunComparisonBanner({
           <div>
             <GroupLabel className="mb-2">Changes since the previous run</GroupLabel>
             {diffs.length === 0 ? (
-              <p className="m-0 text-[13px] text-trs-muted">No metadata changes</p>
+              <p className="m-0 text-13 text-trs-muted">No metadata changes</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {diffs.map((d, i) => <WhiteChip key={i}>{d}</WhiteChip>)}
@@ -2392,19 +2392,19 @@ function RunComparisonBanner({
               <ul className="m-0 p-0 flex flex-col gap-2">
                 {stepDiff.map((d, i) => (
                   <li key={i} className="list-none rounded-[12px] bg-white px-4 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
-                    <p className="m-0 text-[12.5px] mb-0.5 text-trs-muted">{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
-                    <p className="m-0 text-[14px] leading-[1.45] text-trs-ink">{d.action}</p>
-                    {d.prevAction && <p className="m-0 mt-0.5 text-[13px] line-through leading-[1.4] text-trs-subtle">{d.prevAction}</p>}
+                    <p className="m-0 text-12.5 mb-0.5 text-trs-muted">{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
+                    <p className="m-0 text-14 leading-[1.45] text-trs-ink">{d.action}</p>
+                    {d.prevAction && <p className="m-0 mt-0.5 text-13 line-through leading-[1.4] text-trs-subtle">{d.prevAction}</p>}
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {prevSteps !== null && stepDiff.length === 0 && (
-            <p className="m-0 text-[13px] text-trs-muted">Step actions unchanged</p>
+            <p className="m-0 text-13 text-trs-muted">Step actions unchanged</p>
           )}
 
-          <p className="m-0 text-[12.5px] text-trs-muted">
+          <p className="m-0 text-12.5 text-trs-muted">
             Previous run: {new Date(previousRun.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
             {previousRun.run_duration_ms ? ` · ${Math.round(previousRun.run_duration_ms / 1000)}s` : ''}
           </p>
@@ -2454,7 +2454,7 @@ function RunHistoryView({
     return (
       <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
         <div className="flex flex-col items-center gap-3 py-12 px-8 text-center">
-          <p className="m-0 text-[15px] text-trs-muted">No analysis runs yet.</p>
+          <p className="m-0 text-15 text-trs-muted">No analysis runs yet.</p>
           <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
         </div>
         <div>
@@ -2473,7 +2473,7 @@ function RunHistoryView({
       </div>
       <div>
       <SectionLabel title="Analysis runs" count={runs.length}>
-        {runs.length >= 2 && <span className="text-[13px] text-trs-muted">Newest first</span>}
+        {runs.length >= 2 && <span className="text-13 text-trs-muted">Newest first</span>}
         {runs.filter(r => !r.pinned).length > 15 && (
           <Btn
             level="tertiary"
@@ -2509,14 +2509,14 @@ function RunHistoryView({
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-3 mb-2.5 flex-wrap">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <span className="text-[14px] font-medium text-trs-ink">{ts}</span>
-                  {run.triggered_by && <span className="text-[13px] truncate text-trs-muted">by {run.triggered_by}</span>}
+                  <span className="text-14 font-medium text-trs-ink">{ts}</span>
+                  {run.triggered_by && <span className="text-13 truncate text-trs-muted">by {run.triggered_by}</span>}
                   {isCurrent && <Chip>Current</Chip>}
                   {run.pinned && !isCurrent && <Chip>Pinned</Chip>}
                   {run.run_status === 'failed' && <Chip>Failed</Chip>}
                   {run.run_status === 'partial' && <Chip>Partial</Chip>}
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 text-[13px] text-trs-muted">
+                <div className="flex items-center gap-3 flex-shrink-0 text-13 text-trs-muted">
                   {durationS && <span className="tabular-nums">{durationS}</span>}
                   {modelLabel && <span>{modelLabel}</span>}
                   <button
@@ -2534,7 +2534,7 @@ function RunHistoryView({
               </div>
 
               {/* Stats line */}
-              <p className="m-0 mb-2.5 text-[13px] flex flex-wrap gap-x-4 gap-y-1 text-trs-muted">
+              <p className="m-0 mb-2.5 text-13 flex flex-wrap gap-x-4 gap-y-1 text-trs-muted">
                 {[
                   { v: run.threads_included,    l: 'threads'     },
                   { v: run.messages_included,   l: 'messages'    },
@@ -2564,7 +2564,7 @@ function RunHistoryView({
               {/* Truncation flags */}
               {run.truncation_flags?.length > 0 && (
                 <ul className="m-0 p-0 mb-2.5 flex flex-col gap-1">
-                  {run.truncation_flags.map((f, fi) => <DotRow key={fi} className="text-[13px]">{f}</DotRow>)}
+                  {run.truncation_flags.map((f, fi) => <DotRow key={fi} className="text-13">{f}</DotRow>)}
                 </ul>
               )}
 
@@ -2572,7 +2572,7 @@ function RunHistoryView({
               {run.run_status === 'failed' && run.error_message && (
                 <div className="mb-2.5 px-4 py-3 rounded-[12px] bg-trs-field">
                   <GroupLabel className="mb-1">Error</GroupLabel>
-                  <p className="m-0 text-[12.5px] font-mono leading-[1.5] break-all text-trs-ink-2">{run.error_message}</p>
+                  <p className="m-0 text-12.5 font-mono leading-[1.5] break-all text-trs-ink-2">{run.error_message}</p>
                 </div>
               )}
 
@@ -2591,14 +2591,14 @@ function RunHistoryView({
                   <ChevronDown size={12} strokeWidth={2} className={cn('transition-transform', isExpanded && 'rotate-180')} />
                 </button>
               ) : (
-                <span className="text-[13px] text-trs-muted">No analysis data. The run failed before completion.</span>
+                <span className="text-13 text-trs-muted">No analysis data. The run failed before completion.</span>
               )}
             </div>
 
             {/* Raw JSON viewer */}
             {isExpanded && rawJson[run.id] && (
               <div style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
-                <pre className="m-0 px-5 py-3 text-[12px] leading-relaxed overflow-x-auto max-h-96 font-mono text-trs-ink-2">
+                <pre className="m-0 px-5 py-3 text-12 leading-relaxed overflow-x-auto max-h-96 font-mono text-trs-ink-2">
                   {rawJson[run.id]}
                 </pre>
               </div>
@@ -2638,10 +2638,10 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left bg-transparent border-0 cursor-pointer"
       >
-        <span className="text-[16px] font-medium tracking-[-0.01em] text-trs-ink">
+        <span className="text-16 font-medium tracking-[-0.01em] text-trs-ink">
           Analysis metadata
           {(meta.truncation_flags?.length ?? 0) > 0 && (
-            <span className="ml-2 text-[13px] font-normal tabular-nums text-trs-subtle">{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
+            <span className="ml-2 text-13 font-normal tabular-nums text-trs-subtle">{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
           )}
         </span>
         <ChevronDown size={14} strokeWidth={2} className={cn('transition-transform', open && 'rotate-180')} style={{ color: FAINT }} />
@@ -2664,9 +2664,9 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
               <GroupLabel className="mb-1.5">Attachments processed</GroupLabel>
               <ul className="m-0 p-0 flex flex-col gap-1">
                 {meta.attachments_included.map((a, i) => (
-                  <li key={i} className="list-none flex items-center gap-3 text-[13.5px]">
+                  <li key={i} className="list-none flex items-center gap-3 text-13.5">
                     <span className="flex-1 min-w-0 truncate text-trs-ink-2">{a.filename}</span>
-                    <span className="flex-shrink-0 text-[12.5px] text-trs-muted">{METHOD_LABEL[a.method] ?? a.method}</span>
+                    <span className="flex-shrink-0 text-12.5 text-trs-muted">{METHOD_LABEL[a.method] ?? a.method}</span>
                   </li>
                 ))}
               </ul>
@@ -2677,7 +2677,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
             <div>
               <GroupLabel className="mb-1.5">Knowledge base documents</GroupLabel>
               <ul className="m-0 p-0 flex flex-col gap-1">
-                {meta.gdrive_docs.map((d, i) => <li key={i} className="list-none text-[13.5px] text-trs-ink-2">{d}</li>)}
+                {meta.gdrive_docs.map((d, i) => <li key={i} className="list-none text-13.5 text-trs-ink-2">{d}</li>)}
               </ul>
             </div>
           )}
@@ -2686,7 +2686,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
             <div>
               <GroupLabel className="mb-1.5">Quality flags</GroupLabel>
               <ul className="m-0 p-0 flex flex-col gap-1">
-                {meta.truncation_flags.map((f, i) => <DotRow key={i} className="text-[13.5px]">{f}</DotRow>)}
+                {meta.truncation_flags.map((f, i) => <DotRow key={i} className="text-13.5">{f}</DotRow>)}
               </ul>
             </div>
           )}
@@ -2699,8 +2699,8 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
 function MetaStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="m-0 text-[12.5px] text-trs-muted">{label}</dt>
-      <dd className="m-0 text-[14px] font-medium truncate text-trs-ink">{value}</dd>
+      <dt className="m-0 text-12.5 text-trs-muted">{label}</dt>
+      <dd className="m-0 text-14 font-medium truncate text-trs-ink">{value}</dd>
     </div>
   )
 }
@@ -2735,7 +2735,7 @@ function ThreadsOverviewCard({
     <div>
       <SectionLabel title="Linked threads" count={threads.length}>
         {(extracted > 0 || pending > 0) && (
-          <span className="text-[13px] tabular-nums text-trs-muted">
+          <span className="text-13 tabular-nums text-trs-muted">
             {extracted > 0 && `${extracted} attachment${extracted !== 1 ? 's' : ''} extracted`}
             {extracted > 0 && pending > 0 && ' · '}
             {pending > 0 && `${pending} pending`}
@@ -2755,12 +2755,12 @@ function ThreadsOverviewCard({
             {threads.slice(0, 5).map(ct => {
               const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
               return (
-                <span key={ct.id} className="inline-flex items-center rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4" style={{ background: partyField(ct.party_type), color: BODY }}>
+                <span key={ct.id} className="inline-flex items-center rounded-[6px] px-2 py-0.5 text-12 font-medium whitespace-nowrap leading-4" style={{ background: partyField(ct.party_type), color: BODY }}>
                   {name.length > 16 ? name.slice(0, 16) + '…' : name}
                 </span>
               )
             })}
-            {threads.length > 5 && <span className="text-[13px] text-trs-muted">{threads.length - 5} more</span>}
+            {threads.length > 5 && <span className="text-13 text-trs-muted">{threads.length - 5} more</span>}
           </div>
           <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 transition-transform', expanded && 'rotate-180')} style={{ color: FAINT }} />
         </button>
@@ -2786,7 +2786,7 @@ function ThreadsOverviewCard({
             </div>
             {/* Re-run on the ticked subset — uncheck emails, then re-analyse this group */}
             <div className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
-              <span className="text-[13px] tabular-nums text-trs-muted">
+              <span className="text-13 tabular-nums text-trs-muted">
                 {selected.size} of {threads.length} thread{threads.length === 1 ? '' : 's'} selected
                 {!allSelected && <button type="button" onClick={() => setSelected(new Set(threads.map(t => t.thread_id)))} className={cn(ghostBtn, 'ml-2')} style={{ color: INK }}>Select all</button>}
               </span>
@@ -2828,7 +2828,7 @@ function MessagesView({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 px-8 text-center">
-        <p className="m-0 text-[15px] max-w-[320px] leading-[1.6] text-trs-muted">No messages yet. Link email threads on Mission control to see every message here.</p>
+        <p className="m-0 text-15 max-w-[320px] leading-[1.6] text-trs-muted">No messages yet. Link email threads on Mission control to see every message here.</p>
         <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
@@ -2866,11 +2866,11 @@ function LinkedThreadCard({
       <div className="flex-1 min-w-0 basis-[240px]">
         <div className="flex items-center gap-2 mb-0.5 min-w-0">
           <PartyChip party={ct.party_type} className="flex-shrink-0" />
-          <span className="text-[14px] font-medium truncate text-trs-ink">{contact ? contactName(contact) : '—'}</span>
-          {contact?.company && <span className="text-[13px] truncate text-trs-muted">· {contact.company}</span>}
+          <span className="text-14 font-medium truncate text-trs-ink">{contact ? contactName(contact) : '—'}</span>
+          {contact?.company && <span className="text-13 truncate text-trs-muted">· {contact.company}</span>}
         </div>
-        <p className="m-0 text-[13.5px] truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p>
-        <p className="m-0 mt-1 text-[12.5px] text-trs-muted">{metaLine}</p>
+        <p className="m-0 text-13.5 truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p>
+        <p className="m-0 mt-1 text-12.5 text-trs-muted">{metaLine}</p>
       </div>
 
       {/* Actions */}
@@ -2880,7 +2880,7 @@ function LinkedThreadCard({
           onChange={e => onUpdatePartyType(ct.thread_id, e.target.value)}
           onClick={e => e.stopPropagation()}
           aria-label="Party type"
-          className="h-[30px] rounded-[6px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+          className="h-[30px] rounded-[6px] px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
           style={{ border: `1px solid ${CTRL}`, color: INK }}
         >
           {PARTY_TYPES.map(t => (
@@ -2890,7 +2890,7 @@ function LinkedThreadCard({
         <a
           href={`/engagement?lead=${ct.thread_id}`}
           onClick={e => e.stopPropagation()}
-          className="text-[13px] font-medium no-underline underline-offset-4 hover:underline whitespace-nowrap text-trs-ink"
+          className="text-13 font-medium no-underline underline-offset-4 hover:underline whitespace-nowrap text-trs-ink"
           
           title="Open this conversation in Engagement"
         >
@@ -2934,27 +2934,27 @@ function AttachmentCoverageCard({
   return (
     <div className="rounded-[16px] px-5 py-4 bg-trs-field">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <span className="text-[14px] font-medium text-trs-ink">Attachment coverage</span>
+        <span className="text-14 font-medium text-trs-ink">Attachment coverage</span>
         {pendingThreads.length > 0 && (
-          <span className="text-[13px] tabular-nums text-trs-muted">
+          <span className="text-13 tabular-nums text-trs-muted">
             {pendingThreads.length} thread{pendingThreads.length > 1 ? 's' : ''} pending extraction
           </span>
         )}
       </div>
 
       {ext === 0 && pendingThreads.length === 0 ? (
-        <p className="m-0 text-[14px] text-trs-muted">No attachments in the linked threads.</p>
+        <p className="m-0 text-14 text-trs-muted">No attachments in the linked threads.</p>
       ) : (
         <div className="flex items-center gap-6 flex-wrap">
           <dl className="m-0 flex items-center gap-6">
             <div>
-              <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{ext}</dd>
-              <dt className="m-0 text-[12.5px] mt-1 text-trs-muted">Extracted</dt>
+              <dd className="m-0 text-24 font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{ext}</dd>
+              <dt className="m-0 text-12.5 mt-1 text-trs-muted">Extracted</dt>
             </div>
             {pendingThreads.length > 0 && (
               <div>
-                <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{pendingThreads.length}</dd>
-                <dt className="m-0 text-[12.5px] mt-1 text-trs-muted">Pending</dt>
+                <dd className="m-0 text-24 font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{pendingThreads.length}</dd>
+                <dt className="m-0 text-12.5 mt-1 text-trs-muted">Pending</dt>
               </div>
             )}
           </dl>
@@ -2997,13 +2997,13 @@ function TimelineMessageCard({
           <div className="flex items-center gap-2 justify-between flex-wrap">
             <span className="flex items-center gap-2 min-w-0">
               <PartyChip party={party} />
-              <span className="text-[14px] font-medium truncate text-trs-ink">{who}</span>
-              {msg.subject && <span className="text-[13px] truncate text-trs-muted">· {msg.subject}</span>}
+              <span className="text-14 font-medium truncate text-trs-ink">{who}</span>
+              {msg.subject && <span className="text-13 truncate text-trs-muted">· {msg.subject}</span>}
             </span>
-            <span className="text-[12.5px] flex-shrink-0 text-trs-muted">{fmtDate(msg.sent_at)}</span>
+            <span className="text-12.5 flex-shrink-0 text-trs-muted">{fmtDate(msg.sent_at)}</span>
           </div>
           {!open && (
-            <p className="m-0 mt-1 text-[13.5px] leading-[1.5] line-clamp-2 text-trs-ink-2">
+            <p className="m-0 mt-1 text-13.5 leading-[1.5] line-clamp-2 text-trs-ink-2">
               {(msg.body_text ?? '').slice(0, 200)}
             </p>
           )}
@@ -3013,7 +3013,7 @@ function TimelineMessageCard({
       </div>
       {open && (
         <div className="px-4 pb-4" style={{ borderTop: `1px solid ${HAIR}` }}>
-          <p className="m-0 mt-3 text-[14px] leading-[1.7] whitespace-pre-wrap text-trs-ink-2">
+          <p className="m-0 mt-3 text-14 leading-[1.7] whitespace-pre-wrap text-trs-ink-2">
             {msg.body_text ?? '(empty)'}
           </p>
         </div>
@@ -3036,8 +3036,8 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-start gap-3 justify-between mb-2 flex-wrap">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <span className="text-[14px] font-medium tabular-nums flex-shrink-0 text-trs-subtle">{step.step}</span>
-            <span className="text-[14px] font-medium truncate text-trs-ink">{step.action}</span>
+            <span className="text-14 font-medium tabular-nums flex-shrink-0 text-trs-subtle">{step.step}</span>
+            <span className="text-14 font-medium truncate text-trs-ink">{step.action}</span>
           </div>
           <Chip className="flex-shrink-0">{priorityLabel(step.priority)}</Chip>
         </div>
@@ -3045,14 +3045,14 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
         {/* Party */}
         <div className="flex items-center gap-2 mb-2">
           <PartyChip party={step.party_type} />
-          <span className="text-[13px] truncate text-trs-muted">{step.party_name}</span>
+          <span className="text-13 truncate text-trs-muted">{step.party_name}</span>
         </div>
 
         {/* Intent */}
-        <p className="m-0 text-[14px] leading-[1.55] mb-1 text-trs-ink-2">{step.intent}</p>
+        <p className="m-0 text-14 leading-[1.55] mb-1 text-trs-ink-2">{step.intent}</p>
 
         {/* Reasoning */}
-        {step.reasoning && <p className="m-0 text-[13px] leading-[1.5] text-trs-muted">{step.reasoning}</p>}
+        {step.reasoning && <p className="m-0 text-13 leading-[1.5] text-trs-muted">{step.reasoning}</p>}
 
         {/* To/CC preview */}
         {(step.to_emails?.length > 0 || step.cc_emails?.length > 0) && (
@@ -3174,14 +3174,14 @@ function NexusStepCompose({
   if (sent) {
     return (
       <div className="px-5 py-5 flex flex-col items-center gap-2" style={{ borderTop: `1px solid ${HAIR}` }}>
-        <p className="m-0 text-[14px] font-medium text-trs-ink">Email sent</p>
+        <p className="m-0 text-14 font-medium text-trs-ink">Email sent</p>
         <button type="button" onClick={onClose} className={ghostBtn} style={{ color: MUTED }}>Close</button>
       </div>
     )
   }
 
-  const rowLabel = 'text-[12.5px] w-14 flex-shrink-0'
-  const rowInput = 'flex-1 min-w-0 h-9 rounded-[7px] px-3 text-[14px] bg-white outline-none focus:border-[#0f1412]'
+  const rowLabel = 'text-12.5 w-14 flex-shrink-0'
+  const rowInput = 'flex-1 min-w-0 h-9 rounded-[7px] px-3 text-14 bg-white outline-none focus:border-[#0f1412]'
 
   return (
     <div style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -3238,7 +3238,7 @@ function NexusStepCompose({
 
       {/* Actions */}
       <div className="px-5 pb-4 pt-3 flex items-center gap-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
-        {error && <p className="m-0 flex-1 text-[13px] truncate text-trs-ink-2">{error}</p>}
+        {error && <p className="m-0 flex-1 text-13 truncate text-trs-ink-2">{error}</p>}
         <div className="flex gap-2 ml-auto">
           <Btn level="secondary" onClick={onClose}>Cancel</Btn>
           {/* Email compose surface: the send button keeps TRS navy. */}
@@ -3246,7 +3246,7 @@ function NexusStepCompose({
             type="button"
             onClick={handleSend}
             disabled={sending || !toList.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-trs-green"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-trs-green"
             
           >
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} strokeWidth={2} />}
@@ -3329,7 +3329,7 @@ function NexusComposeWindow({
   if (minimized) {
     return (
       <div className="fixed bottom-0 right-6 z-50 flex items-center gap-3 pl-4 pr-2 py-2 rounded-t-[12px] cursor-pointer select-none text-white" style={{ background: INK, boxShadow: 'var(--shadow-panel)' }}>
-        <span className="text-[13.5px] font-medium truncate max-w-[220px]" onClick={() => setMinimized(false)}>
+        <span className="text-13.5 font-medium truncate max-w-[220px]" onClick={() => setMinimized(false)}>
           {subject || 'New message'}
         </span>
         <div className="flex items-center gap-1">
@@ -3347,7 +3347,7 @@ function NexusComposeWindow({
     <div className={cn('fixed bottom-0 right-6 z-50 flex flex-col bg-white rounded-t-[16px] overflow-hidden', panelW, panelH)} style={{ boxShadow: 'var(--shadow-modal)' }}>
       {/* Title bar */}
       <div className="flex items-center justify-between pl-4 pr-2 py-2 flex-shrink-0 select-none text-white bg-trs-ink" onDoubleClick={() => setMinimized(true)}>
-        <span className="text-[13.5px] font-medium truncate flex-1 mr-3">{subject || 'New message'}</span>
+        <span className="text-13.5 font-medium truncate flex-1 mr-3">{subject || 'New message'}</span>
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => setMinimized(true)} className={barBtn} title="Minimise" aria-label="Minimise"><Minus size={12} /></button>
           <button type="button" onClick={() => setExpanded(v => !v)} className={barBtn} title={expanded ? 'Restore' : 'Expand'} aria-label={expanded ? 'Restore' : 'Expand'}>
@@ -3361,11 +3361,11 @@ function NexusComposeWindow({
       <div className="flex flex-col flex-shrink-0 bg-white">
         {/* To */}
         <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">To</span>
+          <span className="text-12.5 w-14 flex-shrink-0 text-trs-muted">To</span>
           <input
             value={to}
             onChange={e => setTo(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+            className="flex-1 min-w-0 text-14 bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
             
             placeholder="recipient@example.com"
           />
@@ -3377,11 +3377,11 @@ function NexusComposeWindow({
         {/* CC (toggle) */}
         {showCc && (
           <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-            <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">Cc</span>
+            <span className="text-12.5 w-14 flex-shrink-0 text-trs-muted">Cc</span>
             <input
               value={cc}
               onChange={e => setCc(e.target.value)}
-              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+              className="flex-1 min-w-0 text-14 bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
               
               placeholder="cc@example.com, …"
             />
@@ -3390,11 +3390,11 @@ function NexusComposeWindow({
 
         {/* Subject */}
         <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">Subject</span>
+          <span className="text-12.5 w-14 flex-shrink-0 text-trs-muted">Subject</span>
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+            className="flex-1 min-w-0 text-14 bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
             
             placeholder="Subject"
           />
@@ -3413,7 +3413,7 @@ function NexusComposeWindow({
 
       {/* Send error */}
       {sendError && (
-        <p className="m-0 px-4 py-2 text-[13px] flex-shrink-0" style={{ color: BODY, background: FIELD }}>{sendError}</p>
+        <p className="m-0 px-4 py-2 text-13 flex-shrink-0 text-trs-ink-2 bg-trs-field">{sendError}</p>
       )}
 
       {/* Footer */}
@@ -3424,7 +3424,7 @@ function NexusComposeWindow({
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
               aria-label="Signature"
-              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"
+              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-13 bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"
               
             >
               <option value="">No signature</option>
@@ -3441,7 +3441,7 @@ function NexusComposeWindow({
             type="button"
             onClick={handleSend}
             disabled={sending || sent || !to.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-13.5 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
             style={{ background: sent ? INK : NAVY }}
           >
             {sent ? 'Sent' : sending ? <><Loader2 size={12} className="animate-spin" /> Sending…</> : <><Send size={12} /> Send</>}
@@ -3537,7 +3537,7 @@ function ThreadLinkerModal({
 
   const groupRow = (label: string, count?: number) => (
     <tr>
-      <td colSpan={5} className="px-4 pt-4 pb-1.5 text-[12.5px] font-medium text-trs-muted">
+      <td colSpan={5} className="px-4 pt-4 pb-1.5 text-12.5 font-medium text-trs-muted">
         {label}{count !== undefined && <span className="ml-1.5 tabular-nums text-trs-subtle">{count}</span>}
       </td>
     </tr>
@@ -3573,32 +3573,32 @@ function ThreadLinkerModal({
 
         {/* Contact */}
         <td className="py-3 pr-3 min-w-0 max-w-[160px] align-top cell-left">
-          <p className="m-0 text-[14px] font-medium truncate text-trs-ink">{thread.contact ? contactName(thread.contact) : '—'}</p>
-          {thread.contact?.company && <p className="m-0 text-[12.5px] truncate text-trs-muted">{thread.contact.company}</p>}
+          <p className="m-0 text-14 font-medium truncate text-trs-ink">{thread.contact ? contactName(thread.contact) : '—'}</p>
+          {thread.contact?.company && <p className="m-0 text-12.5 truncate text-trs-muted">{thread.contact.company}</p>}
         </td>
 
         {/* Subject */}
         <td className="py-3 pr-3 min-w-0 align-top cell-left">
-          <p className="m-0 text-[14px] truncate text-trs-ink-2">{thread.subject ?? '(no subject)'}</p>
-          {isSuggested && <p className="m-0 text-[12.5px] truncate text-trs-muted">{thread.match_reason}</p>}
+          <p className="m-0 text-14 truncate text-trs-ink-2">{thread.subject ?? '(no subject)'}</p>
+          {isSuggested && <p className="m-0 text-12.5 truncate text-trs-muted">{thread.match_reason}</p>}
         </td>
 
         {/* Date */}
-        <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top text-trs-muted">
+        <td className="py-3 pr-3 text-13 whitespace-nowrap align-top text-trs-muted">
           {fmtDate(thread.last_message_at)}
         </td>
 
         {/* Party type */}
         <td className="py-2.5 pr-4 w-[150px] align-top" onClick={e => e.stopPropagation()}>
           {alreadyLinked ? (
-            <span className="text-[13px] text-trs-muted">Already linked</span>
+            <span className="text-13 text-trs-muted">Already linked</span>
           ) : (
             <div className="flex flex-col gap-1.5">
               <select
                 value={pty}
                 onChange={e => setPartyTypes(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 aria-label="Party type"
-                className="h-[30px] w-full rounded-[6px] px-2 text-[13px] bg-white outline-none cursor-pointer focus:border-[#0f1412]"
+                className="h-[30px] w-full rounded-[6px] px-2 text-13 bg-white outline-none cursor-pointer focus:border-[#0f1412]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               >
                 {PARTY_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
@@ -3608,7 +3608,7 @@ function ThreadLinkerModal({
                 onChange={e => setLabels(prev => ({ ...prev, [thread.id]: e.target.value }))}
                 placeholder="Label, e.g. QBE Marine"
                 aria-label="Party label"
-                className="h-[30px] w-full rounded-[6px] px-2 text-[13px] bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
+                className="h-[30px] w-full rounded-[6px] px-2 text-13 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
                 style={{ border: `1px solid ${CTRL}`, color: INK }}
               />
             </div>
@@ -3618,7 +3618,7 @@ function ThreadLinkerModal({
     )
   }
 
-  const th = 'py-2.5 pr-3 text-left text-[12px] font-medium'
+  const th = 'py-2.5 pr-3 text-left text-12 font-medium'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(15,20,18,0.4)' }} onClick={onClose}>
@@ -3631,7 +3631,7 @@ function ThreadLinkerModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] text-trs-ink">Link threads</h2>
+          <h2 className="m-0 text-20 font-medium tracking-[-0.02em] text-trs-ink">Link threads</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
             <X size={15} />
           </button>
@@ -3659,7 +3659,7 @@ function ThreadLinkerModal({
             type="button"
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap bg-trs-ink"
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-14 font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap bg-trs-ink"
             
           >
             {linking && <Loader2 size={13} className="animate-spin" />}
@@ -3690,9 +3690,9 @@ function ThreadLinkerModal({
                       {linkedThreads.map(ct => (
                         <tr key={`linked-${ct.thread_id}`} style={{ borderTop: `1px solid ${HAIR}` }}>
                           <td className="px-4 py-3 w-10 align-top"><Chip>Linked</Chip></td>
-                          <td className="py-3 pr-3 max-w-[160px] align-top cell-left"><p className="m-0 text-[14px] font-medium truncate text-trs-ink">{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
-                          <td className="py-3 pr-3 min-w-0 align-top cell-left"><p className="m-0 text-[14px] truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p></td>
-                          <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top text-trs-muted">{fmtDate(ct.thread?.last_message_at ?? null)}</td>
+                          <td className="py-3 pr-3 max-w-[160px] align-top cell-left"><p className="m-0 text-14 font-medium truncate text-trs-ink">{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
+                          <td className="py-3 pr-3 min-w-0 align-top cell-left"><p className="m-0 text-14 truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p></td>
+                          <td className="py-3 pr-3 text-13 whitespace-nowrap align-top text-trs-muted">{fmtDate(ct.thread?.last_message_at ?? null)}</td>
                           <td className="py-3 pr-4 w-[150px] align-top">
                             <div className="flex items-center justify-between gap-2">
                               <PartyChip party={ct.party_type} />
@@ -3714,7 +3714,7 @@ function ThreadLinkerModal({
                   )}
                   {restRows.map(t => <ThreadTableRow key={t.id} thread={t} isSuggested={false} />)}
                   {restRows.length === 0 && suggestedRows.length === 0 && (
-                    <tr><td colSpan={5} className="text-center py-12 text-[15px]" style={{ color: MUTED, textAlign: 'center' }}>
+                    <tr><td colSpan={5} className="text-center py-12 text-15 text-trs-muted text-center">
                       {search ? 'No threads match.' : 'No threads available.'}
                     </td></tr>
                   )}
@@ -3727,7 +3727,7 @@ function ThreadLinkerModal({
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
           <div className="flex items-center gap-3">
-            <p className="m-0 text-[13px] tabular-nums text-trs-muted">
+            <p className="m-0 text-13 tabular-nums text-trs-muted">
               {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Select rows to add'}
             </p>
             {addCount > 0 && (

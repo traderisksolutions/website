@@ -22,7 +22,7 @@ type Data = { rooms: Room[]; unsorted: PolicyDocument[]; letters?: PolicyDocumen
 
 const LIFECYCLE_WORD: Record<string, string> = { quoting: 'Quoting', presented: 'Presented', bound: 'Bound', live: 'In force', renewal_due: 'Renewal due', lapsed: 'Lapsed' }
 const period = (a: string | null, b: string | null) => a || b ? `${fmtDate(a)} – ${fmtDate(b)}` : null
-const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-[12.5px] outline-none focus:border-[#0f1412] max-w-[190px]'
+const selCls = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-1.5 text-12.5 outline-none focus:border-[#0f1412] max-w-[190px]'
 
 export function statusWord(s: DataRoomStatus): string {
   if (s.state === 'none') return 'Nothing required'
@@ -142,13 +142,13 @@ export function DataRoom({ companyId }: { companyId: string }) {
           <Btn level="primary" disabled={busy === 'upload'} loading={busy === 'upload'} onClick={() => fileRef.current?.click()}><Upload size={14} /> Upload document</Btn>
         </>}
       >
-        {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink">{notice}</p>}
+        {notice && <p className="m-0 mb-3 text-13.5 text-trs-ink">{notice}</p>}
         {data.rooms.length === 0 && data.unsorted.length === 0 && !data.letters?.length && <Empty>No documents yet. Upload one, or they arrive here from email.</Empty>}
 
         {data.rooms.map(r => (
           <div key={r.policy.id} className="mb-6">
-            <div className="flex items-center gap-3 flex-wrap mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px] text-trs-ink">{r.policy.label ?? 'Policy'}</b>
+            <div className="flex items-center gap-3 flex-wrap mb-2 text-13.5">
+              <b className="font-medium text-14 text-trs-ink">{r.policy.label ?? 'Policy'}</b>
               {r.policy.insurer && <span className="text-trs-muted">{r.policy.insurer}</span>}
               {r.policy.policy_number && <span className="text-trs-muted">{r.policy.policy_number}</span>}
               {period(r.policy.start_date, r.policy.end_date) && <span className="text-trs-muted">{period(r.policy.start_date, r.policy.end_date)}</span>}
@@ -157,7 +157,7 @@ export function DataRoom({ companyId }: { companyId: string }) {
               {r.policy.drive_folder_url && <a href={r.policy.drive_folder_url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 no-underline hover:underline text-trs-ink"><FolderOpen size={13} /> Drive folder</a>}
             </div>
             {r.status.missing.length > 0 && (
-              <p className="m-0 mb-2 text-[13px] text-trs-muted">Missing: {r.status.missing.map(m => m.label).join(' · ')}</p>
+              <p className="m-0 mb-2 text-13 text-trs-muted">Missing: {r.status.missing.map(m => m.label).join(' · ')}</p>
             )}
             <Register label={`Documents for ${r.policy.label ?? 'policy'}`} minWidth={980}>
               {head}
@@ -170,8 +170,8 @@ export function DataRoom({ companyId }: { companyId: string }) {
 
         {!!data.letters?.length && (
           <div className="mb-6">
-            <div className="flex items-center gap-3 mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px] text-trs-ink">Letters</b>
+            <div className="flex items-center gap-3 mb-2 text-13.5">
+              <b className="font-medium text-14 text-trs-ink">Letters</b>
               <span className="text-trs-muted">{data.letters.length}</span>
             </div>
             <Register label="Letters" minWidth={980}>
@@ -185,8 +185,8 @@ export function DataRoom({ companyId }: { companyId: string }) {
 
         {data.unsorted.length > 0 && (
           <div className="mt-2">
-            <div className="flex items-center gap-3 mb-2 text-[13.5px]">
-              <b className="font-medium text-[14.5px] text-trs-ink">To sort</b>
+            <div className="flex items-center gap-3 mb-2 text-13.5">
+              <b className="font-medium text-14 text-trs-ink">To sort</b>
               <span className="text-trs-muted">{data.unsorted.length}</span>
             </div>
             <Register label="Documents to sort" minWidth={1080}>

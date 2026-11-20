@@ -50,7 +50,7 @@ export function BrochureLibrary() {
   return (
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
       <PageHeader title="Brochures"
-        meta={<span className="text-[13px] text-trs-muted">{data ? `${new Set(data.rows.map(r => r.product.toLowerCase())).size} products · ${data.rows.length} versions` : ' '}</span>}
+        meta={<span className="text-13 text-trs-muted">{data ? `${new Set(data.rows.map(r => r.product.toLowerCase())).size} products · ${data.rows.length} versions` : ' '}</span>}
         actions={<>
           {data?.drive_url && <a href={data.drive_url} target="_blank" rel="noreferrer" className={`${btnClass()} no-underline`}>Open Google Drive ↗</a>}
           {data?.saving && data.drive ? <LinkBtn level="primary" href="/brochures/new">Add version</LinkBtn>
@@ -59,15 +59,15 @@ export function BrochureLibrary() {
         {lines.length > 1 && <Segmented<string> value={line} onChange={setLine} label="Line" options={[{ value: 'all', label: 'All', count: data?.rows.length }, ...lines.map(l => ({ value: l, label: l, count: data?.rows.filter(r => r.line === l).length }))]} />}
       </PageHeader>
 
-      {error && <div className="text-[14px] text-trs-neg">{error}</div>}
-      {note && <div className="text-[13px] text-trs-pos">{note}</div>}
-      {data && !data.drive_read && <div className="text-[13px] text-trs-warn">Google Drive could not be read. Versions saved on this page are shown.</div>}
+      {error && <div className="text-14 text-trs-neg">{error}</div>}
+      {note && <div className="text-13 text-trs-pos">{note}</div>}
+      {data && !data.drive_read && <div className="text-13 text-trs-warn">Google Drive could not be read. Versions saved on this page are shown.</div>}
       {!data && !error && <Spinner label="Loading brochures" />}
 
       {data && (
         <section className="min-w-0">
           <div className="overflow-x-auto">
-            <table className="trs-table w-full min-w-[960px] text-[13px]" aria-label="Brochure versions">
+            <table className="trs-table w-full min-w-[960px] text-13" aria-label="Brochure versions">
               <thead><tr>
                 <th className="sticky left-0 z-[1] bg-white px-4">Product</th>
                 <th className="px-3">Line</th>
@@ -91,8 +91,8 @@ export function BrochureLibrary() {
                         {r.files.length === 0 ? <span className="text-trs-muted">No files</span> : (
                           <span className="flex flex-col gap-0.5">{r.files.map(f => (
                             <a key={f.id} href={f.url ?? undefined} target="_blank" rel="noreferrer" className={`block break-words no-underline hover:underline ${muted ? 'text-trs-subtle' : 'text-trs-ink'}`}>
-                              <span className="mr-1.5 text-[11px] text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
-                        {r.note && <span className="mt-1 block text-[12px] text-trs-muted">{r.note}</span>}
+                              <span className="mr-1.5 text-11 text-trs-muted">{f.kind === 'rates' ? 'Rates' : f.kind === 'brochure' ? 'Brochure' : 'File'}</span>{f.name}</a>))}</span>)}
+                        {r.note && <span className="mt-1 block text-12 text-trs-muted">{r.note}</span>}
                       </td>
                       <td className="whitespace-nowrap px-3 py-2.5 text-center"><Chip>{STATUS_WORD[r.status]}</Chip></td>
                       <td className="min-w-[180px] px-3 py-2 text-center whitespace-nowrap">
@@ -127,9 +127,9 @@ export function VersionPage({ rowKey }: { rowKey: string | null }) {
     <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[760px]">
       <Breadcrumbs current={{ label: title, href: rowKey ? `/brochures/edit?key=${encodeURIComponent(rowKey)}` : '/brochures/new' }} fallback={{ label: 'Brochures', href: '/brochures' }} />
       <PageHeader title={title} />
-      {error && <div className="text-[14px] text-trs-neg">{error}</div>}
+      {error && <div className="text-14 text-trs-neg">{error}</div>}
       {!data && !error && <Spinner label="Loading brochures" />}
-      {data && rowKey && !row && <div className="text-[14px] text-trs-neg">This version is not in the library.</div>}
+      {data && rowKey && !row && <div className="text-14 text-trs-neg">This version is not in the library.</div>}
       {data && (!rowKey || row) && <VersionForm row={row} rows={data.rows} />}
     </div>
   )
@@ -226,17 +226,17 @@ function VersionForm({ row, rows }: { row: LibraryRow | null; rows: LibraryRow[]
           </div>
 
           {canAddFiles && <div>
-            <div className="mb-1.5 text-[13px] font-medium text-trs-ink">{row ? 'Add files' : 'Brochure and rate file'}</div>
+            <div className="mb-1.5 text-13 font-medium text-trs-ink">{row ? 'Add files' : 'Brochure and rate file'}</div>
             <label onDragOver={e => { e.preventDefault(); setDrag(true) }} onDragLeave={() => setDrag(false)} onDrop={e => { e.preventDefault(); setDrag(false); addFiles(e.dataTransfer.files) }}
-              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] px-4 py-4 text-center text-[13px] ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
+              className={`flex min-h-[84px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] px-4 py-4 text-center text-13 ${drag ? 'bg-trs-tint' : 'bg-[#f1f2ee]'}`}>
               <span className="text-trs-ink">Drop files or choose</span>
-              <span className="text-[12px] text-trs-muted">PDF · XLSX</span>
+              <span className="text-12 text-trs-muted">PDF · XLSX</span>
               <input type="file" multiple className="sr-only" aria-label="Files" onChange={e => { addFiles(e.target.files); e.target.value = '' }} />
             </label>
             {files.length > 0 && <ul className="m-0 mt-2 list-none p-0">{files.map(f => {
               const p = progress.find(x => x.name === f.name)
               return (
-                <li key={f.name} className="flex items-center justify-between gap-3 py-1.5 text-[13px]">
+                <li key={f.name} className="flex items-center justify-between gap-3 py-1.5 text-13">
                   <span className="min-w-0 truncate text-trs-ink">{f.name} <span className="text-trs-muted">· {(f.size / 1_048_576).toFixed(1)} MB</span></span>
                   {p ? <span className={p.state === 'failed' ? 'text-trs-neg' : 'text-trs-muted'} title={p.error}>{p.state === 'done' ? 'In Drive' : p.state === 'failed' ? 'Failed' : p.state === 'uploading' ? 'Uploading' : 'Waiting'}</span>
                     : <Btn size="xs" level="tertiary" onClick={() => void removeFile(f.name)}>Remove</Btn>}
@@ -245,7 +245,7 @@ function VersionForm({ row, rows }: { row: LibraryRow | null; rows: LibraryRow[]
           </div>}
 
           <div className="flex items-center justify-end gap-2 pt-1">
-            {err && <span className="mr-auto text-[12.5px] text-trs-neg" role="alert">{err}</span>}
+            {err && <span className="mr-auto text-12.5 text-trs-neg" role="alert">{err}</span>}
             <Btn onClick={onClose} disabled={busy}>Cancel</Btn>
             <Btn level="primary" loading={busy} disabled={!ready} onClick={() => void save()}>{row ? 'Save' : 'Add version'}</Btn>
           </div>

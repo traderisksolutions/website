@@ -34,8 +34,8 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
               <X size={16} />
             </DialogPrimitive.Close>
-            <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold leading-tight tracking-[-0.02em] text-trs-ink" style={{ fontFamily: 'var(--font-geist), sans-serif' }}>{opts?.title}</DialogPrimitive.Title>
-            {opts?.body ? <DialogPrimitive.Description className="mt-2 mb-0 text-[14px] leading-relaxed text-trs-muted">{opts.body}</DialogPrimitive.Description> : <DialogPrimitive.Description className="sr-only">{opts?.title}</DialogPrimitive.Description>}
+            <DialogPrimitive.Title className="m-0 pr-10 text-20 font-semibold leading-tight tracking-[-0.02em] text-trs-ink" style={{ fontFamily: 'var(--font-geist), sans-serif' }}>{opts?.title}</DialogPrimitive.Title>
+            {opts?.body ? <DialogPrimitive.Description className="mt-2 mb-0 text-14 leading-relaxed text-trs-muted">{opts.body}</DialogPrimitive.Description> : <DialogPrimitive.Description className="sr-only">{opts?.title}</DialogPrimitive.Description>}
             <div className="mt-6 flex justify-end gap-2">
               <Btn onClick={() => close(false)}>{opts?.cancel ?? 'Cancel'}</Btn>
               <Btn level={opts?.danger ? 'danger' : 'primary'} onClick={() => close(true)} autoFocus>{opts?.action ?? 'Confirm'}</Btn>

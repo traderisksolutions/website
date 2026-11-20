@@ -35,7 +35,7 @@ export function LastHandledBy({ resourceId, className }: { resourceId: string; c
   if (!row) return null
   const who = row.user_name || row.user_email?.split('@')[0] || 'Someone'
   return (
-    <span className={className ?? 'text-[12.5px]'} style={{ color: MUTED }}>
+    <span className={className ?? 'text-12.5'} style={{ color: MUTED }}>
       Last handled by <span className="font-medium text-trs-ink-2">{who}</span> · {activityLabel(row.action)} · {relTime(row.created_at)}
     </span>
   )
@@ -65,7 +65,7 @@ export function ActivityFeed({ resourceId, limit = 50, emptyText = 'No activity 
       </div>
     )
   }
-  if (rows.length === 0) return <p className="m-0 py-5 text-[14px] text-trs-muted">{emptyText}</p>
+  if (rows.length === 0) return <p className="m-0 py-5 text-14 text-trs-muted">{emptyText}</p>
 
   return (
     <ul className="m-0 p-0 flex flex-col">
@@ -75,11 +75,11 @@ export function ActivityFeed({ resourceId, limit = 50, emptyText = 'No activity 
           <li key={r.id} className="list-none flex items-start gap-3 py-2.5" style={{ borderBottom: i < rows.length - 1 ? `1px solid ${HAIR}` : 'none' }}>
             <Avatar name={who} className="w-7 h-7 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="m-0 text-[14px] leading-snug text-trs-ink-2">
+              <p className="m-0 text-14 leading-snug text-trs-ink-2">
                 <span className="font-medium text-trs-ink">{who}</span> {activityLabel(r.action)}
                 {!resourceId && r.resource_type && <span className="text-trs-muted"> · {r.resource_type}</span>}
               </p>
-              <p className="m-0 mt-0.5 text-[12.5px] text-trs-muted">{relTime(r.created_at)}</p>
+              <p className="m-0 mt-0.5 text-12.5 text-trs-muted">{relTime(r.created_at)}</p>
             </div>
           </li>
         )

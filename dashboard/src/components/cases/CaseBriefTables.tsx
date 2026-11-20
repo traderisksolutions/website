@@ -39,20 +39,20 @@ export function BriefTable({ view, staff, onOpenThread }: { view: Pick<CaseBrief
             const rows = brief.rows.filter(r => r.part === part)
             if (!rows.length) return [(
               <tr key={part} className="align-top">
-                <td className="cell-left px-3 py-2 text-[13px] font-medium text-trs-ink">{name}</td>
-                <td className="cell-left px-3 py-2 text-[13px] text-trs-muted" colSpan={4}>None on record</td>
+                <td className="cell-left px-3 py-2 text-13 font-medium text-trs-ink">{name}</td>
+                <td className="cell-left px-3 py-2 text-13 text-trs-muted" colSpan={4}>None on record</td>
               </tr>
             )]
             return rows.map((r, i) => (
               <tr key={`${part}-${i}`} className="align-top">
-                <td className="cell-left px-3 py-2 text-[13px] font-medium text-trs-ink">{i === 0 ? name : <span className="sr-only">{name}</span>}</td>
-                <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words whitespace-pre-line">
+                <td className="cell-left px-3 py-2 text-13 font-medium text-trs-ink">{i === 0 ? name : <span className="sr-only">{name}</span>}</td>
+                <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words whitespace-pre-line">
                   {r.kind && <Chip tone={KIND_TONE[r.kind]} className="mr-1.5 align-middle">{r.kind}</Chip>}
                   {r.private && !r.text ? <span className="text-trs-muted">Words withheld</span> : r.text}
                 </td>
-                <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{r.who ?? muted}</td>
+                <td className="cell-left px-3 py-2 text-13 [overflow-wrap:anywhere]">{r.who ?? muted}</td>
                 <td className="px-3 py-2 whitespace-nowrap tabular-nums">{r.date ? fmtDay(r.date) : muted}</td>
-                <td className="cell-left px-3 py-2 text-[13px] leading-[1.5] break-words">{source(r)}</td>
+                <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{source(r)}</td>
               </tr>
             ))
           })}
@@ -101,11 +101,11 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
               <tbody>
                 {checklist.rows.map(r => (
                   <tr key={r.item_id} className="align-top">
-                    <td className="cell-left px-3 py-2 text-[13px] text-trs-ink break-words">{r.label}</td>
-                    <td className={`cell-left px-3 py-2 text-[13px] ${r.required ? 'text-trs-ink' : 'text-trs-muted'}`}>{r.required ? 'Required' : 'Optional'}</td>
+                    <td className="cell-left px-3 py-2 text-13 text-trs-ink break-words">{r.label}</td>
+                    <td className={`cell-left px-3 py-2 text-13 ${r.required ? 'text-trs-ink' : 'text-trs-muted'}`}>{r.required ? 'Required' : 'Optional'}</td>
                     <td className="cell-left px-3 py-2"><Chip tone={STATE_TONE[r.state]}>{ITEM_STATE_NAME[r.state]}</Chip></td>
-                    <td className="cell-left px-3 py-2 text-[13px] leading-[1.5]">{file(r)}</td>
-                    <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{r.actor ? `${actorName(r.actor, staff)}${r.at ? ` · ${fmtDay(r.at)}` : ''}` : muted}</td>
+                    <td className="cell-left px-3 py-2 text-13 leading-[1.5]">{file(r)}</td>
+                    <td className="cell-left px-3 py-2 text-13 [overflow-wrap:anywhere]">{r.actor ? `${actorName(r.actor, staff)}${r.at ? ` · ${fmtDay(r.at)}` : ''}` : muted}</td>
                     <td className="px-2 py-1.5">
                       <span className="flex flex-wrap justify-end gap-1.5">
                         {r.state === 'confirmed' || r.state === 'not_needed' ? act(r, 'clear', 'Undo') : [
@@ -138,12 +138,12 @@ export function CaseFiles({ files, onOpenThread }: { files: readonly CaseFileRow
             <tbody>
               {files.map((f, i) => (
                 <tr key={`${f.message_id}-${i}`} className="align-top">
-                  <td className="cell-left px-3 py-2 text-[13px] leading-[1.5]">
+                  <td className="cell-left px-3 py-2 text-13 leading-[1.5]">
                     {f.private ? <span className="text-trs-muted">Colleague’s mailbox · file name withheld</span>
                       : <button type="button" onClick={() => onOpenThread(f.thread_id)} className={`${subjectBtn} whitespace-normal [overflow-wrap:anywhere]`} title="Open the email thread">{f.filename}</button>}
                   </td>
-                  <td className="cell-left px-3 py-2 text-[13px]">{f.type ?? muted}</td>
-                  <td className="cell-left px-3 py-2 text-[13px] [overflow-wrap:anywhere]">{f.from ? senderName(f.from) : muted}</td>
+                  <td className="cell-left px-3 py-2 text-13">{f.type ?? muted}</td>
+                  <td className="cell-left px-3 py-2 text-13 [overflow-wrap:anywhere]">{f.from ? senderName(f.from) : muted}</td>
                   <td className="px-3 py-2 whitespace-nowrap tabular-nums">{f.at ? fmtDay(f.at) : muted}</td>
                 </tr>
               ))}

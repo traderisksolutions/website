@@ -41,11 +41,11 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
     } catch (e) { setMsg(e instanceof Error ? e.message : String(e)) } finally { setBusy(false) }
   }
 
-  if (!data) return <p className="text-[13.5px] text-trs-muted">{msg ?? 'Loading…'}</p>
+  if (!data) return <p className="text-13.5 text-trs-muted">{msg ?? 'Loading…'}</p>
   const p = data.parsed
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-center gap-2 text-[13px] text-trs-muted">
+      <div className="flex flex-wrap items-center gap-2 text-13 text-trs-muted">
         <Chip tone="blue">{data.isDefault ? 'Default method' : `Version ${data.current?.version}`}</Chip>
         {data.current && <span>{data.current.created_by?.split('@')[0]} · {day(data.current.created_at)}</span>}
         {data.migrationPending && <Chip tone="amber">Saving needs migration 20261103_agent_methods</Chip>}
@@ -54,13 +54,13 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
         {editing && <><Btn size="sm" level="tertiary" onClick={() => { setEditing(false); setDraft(data.text) }}>Cancel</Btn><Btn size="sm" level="primary" disabled={busy} onClick={() => void save({ text: draft })}>Save as new version</Btn></>}
         {view && isAdmin && <Btn size="sm" level="secondary" disabled={busy} onClick={() => void save({ restore: view })}>Restore this version</Btn>}
       </div>
-      {msg && <p className="m-0 text-[13.5px] text-trs-ink">{msg}</p>}
+      {msg && <p className="m-0 text-13.5 text-trs-ink">{msg}</p>}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
         <textarea value={draft} onChange={e => setDraft(e.target.value)} readOnly={!editing} spellCheck={false} aria-label="Renewal method"
-          className="w-full min-h-[560px] rounded-[10px] border border-trs-line bg-white p-4 font-mono text-[13px] leading-[1.6] text-trs-ink outline-none focus:border-trs-green" />
-        <aside className="flex flex-col gap-4 text-[13px] min-w-0">
+          className="w-full min-h-[560px] rounded-[10px] border border-trs-line bg-white p-4 font-mono text-13 leading-[1.6] text-trs-ink outline-none focus:border-trs-green" />
+        <aside className="flex flex-col gap-4 text-13 min-w-0">
           <div>
-            <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-ink">What the rules read</h3>
+            <h3 className="m-0 mb-2 text-13 font-semibold text-trs-ink">What the rules read</h3>
             <table className="w-full"><tbody className="[&_td]:py-1 [&_td:last-child]:text-right [&_td:last-child]:tabular-nums">
               <tr><td>Hold below loss ratio</td><td>{pct(p.holdBelow)}</td></tr>
               <tr><td>Increase above loss ratio</td><td>{pct(p.increaseAbove)}</td></tr>
@@ -74,17 +74,17 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
           </div>
           {p.unread.length > 0 && (
             <div>
-              <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-neg">Lines the rules could not read · {p.unread.length}</h3>
+              <h3 className="m-0 mb-2 text-13 font-semibold text-trs-neg">Lines the rules could not read · {p.unread.length}</h3>
               <ul className="m-0 pl-4 flex flex-col gap-1 text-trs-muted">{p.unread.map((u, i) => <li key={i} className="break-words">{u}</li>)}</ul>
             </div>
           )}
           {data.versions.length > 0 && (
             <div>
-              <h3 className="m-0 mb-2 text-[13px] font-semibold text-trs-ink">Versions</h3>
+              <h3 className="m-0 mb-2 text-13 font-semibold text-trs-ink">Versions</h3>
               <ul className="m-0 p-0 list-none flex flex-col gap-1">
                 {data.versions.map(v => (
                   <li key={v.version}><button type="button" onClick={() => setView(v.version === data.versions[0]?.version ? null : v.version)}
-                    className={`bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] ${(view ?? data.versions[0]?.version) === v.version ? 'text-trs-ink font-medium' : 'text-trs-muted'} hover:underline`}>
+                    className={`bg-transparent border-0 p-0 cursor-pointer text-left text-13 ${(view ?? data.versions[0]?.version) === v.version ? 'text-trs-ink font-medium' : 'text-trs-muted'} hover:underline`}>
                     Version {v.version} · {v.created_by?.split('@')[0]} · {day(v.created_at)}</button></li>
                 ))}
               </ul>

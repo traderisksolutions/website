@@ -109,12 +109,12 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
           <DialogTitle>Insurer rates</DialogTitle>
           <DialogDescription className="sr-only">Per-head or per-S$1,000 rates for a large group, totalled on the census</DialogDescription>
         </DialogHeader>
-        {counts === undefined && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Loading…</p>}
-        {counts === null && !error && <p className="m-0 text-[13.5px]" style={{ color: ERROR }}>No census on this line yet. Upload the employee list first.</p>}
+        {counts === undefined && <p className="m-0 text-13.5" style={{ color: MUTED }}>Loading…</p>}
+        {counts === null && !error && <p className="m-0 text-13.5" style={{ color: ERROR }}>No census on this line yet. Upload the employee list first.</p>}
         {counts && (
           <div className="flex flex-col gap-4 min-w-0">
             <div className="overflow-x-auto">
-              <table className="trs-table w-full text-[13px] border-collapse" style={{ color: INK }}>
+              <table className="trs-table w-full text-13 border-collapse" style={{ color: INK }}>
                 <thead><tr style={{ color: MUTED }}>
                   <th className="font-medium py-1 px-3">Plan</th><th className="font-medium py-1 px-3">Employees</th>
                   <th className="font-medium py-1 px-3">Alone</th><th className="font-medium py-1 px-3">+ spouse</th>
@@ -163,7 +163,7 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
                     </>}
                   </div>
                   <span className="flex items-center gap-2 justify-end">
-                    <span className="tabular-nums text-[13px]" style={{ color: INK }}>{result?.byProduct[r.product] != null ? sgd(result.byProduct[r.product]) : ''}</span>
+                    <span className="tabular-nums text-13" style={{ color: INK }}>{result?.byProduct[r.product] != null ? sgd(result.byProduct[r.product]) : ''}</span>
                     <button type="button" aria-label={`Remove ${r.product}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#eceeea]" style={{ color: MUTED }} onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}><X size={14} /></button>
                   </span>
                 </div>
@@ -172,21 +172,21 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
             </div>
 
             {result && (
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-[13.5px] tabular-nums" style={{ color: INK }}>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-13.5 tabular-nums" style={{ color: INK }}>
                 <span>Net {sgd(result.net)}</span><span>GST {sgd(result.gst)}</span><span className="font-semibold">Total {sgd(result.total)}</span>
                 {result.missing.length > 0 && <span style={{ color: ERROR }}>No rate for {result.missing.join(', ')}</span>}
               </div>
             )}
-            {check && <p className="m-0 text-[13px]" style={{ color: check.ok ? MUTED : ERROR }}>{check.ok ? `Stated total matches within S$${Math.abs(check.diff).toFixed(2)}.` : check.note}</p>}
+            {check && <p className="m-0 text-13" style={{ color: check.ok ? MUTED : ERROR }}>{check.ok ? `Stated total matches within S$${Math.abs(check.diff).toFixed(2)}.` : check.note}</p>}
 
             <div className="flex flex-wrap gap-2 items-center">
               <Btn level="primary" loading={busy} disabled={busy} onClick={() => void save()}>Add to comparison</Btn>
-              {error && <span className="text-[13px]" style={{ color: ERROR }}>{error}</span>}
-              {notice && <span className="text-[13px]" style={{ color: INK }}>{notice}</span>}
+              {error && <span className="text-13" style={{ color: ERROR }}>{error}</span>}
+              {notice && <span className="text-13" style={{ color: INK }}>{notice}</span>}
             </div>
 
             {saved.length > 0 && (
-              <div className="flex flex-col gap-1 text-[13px]" style={{ color: INK }}>
+              <div className="flex flex-col gap-1 text-13" style={{ color: INK }}>
                 <span style={{ color: MUTED }}>Entered on this line</span>
                 {saved.map(s => (
                   <div key={s.id} className="flex items-center gap-3">
@@ -199,7 +199,7 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
             )}
           </div>
         )}
-        {counts === null && error && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+        {counts === null && error && <p className="m-0 text-13" style={{ color: ERROR }}>{error}</p>}
       </DialogContent>
     </Dialog>
   )

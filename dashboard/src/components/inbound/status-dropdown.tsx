@@ -36,8 +36,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Lead status: ${st.label}. Click to change.`}
-        className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors"
-        style={{ background: '#f1f2ee', color: '#2a332f' }}
+        className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-12 font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors bg-trs-field text-trs-ink-2"
       >
         {st.label} <ChevronDown size={11} className="text-trs-muted" />
       </button>
@@ -59,7 +58,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
                 role="option"
                 aria-selected={on}
                 onClick={e => { e.stopPropagation(); onChange(lead.id, s); setOpen(false) }}
-                className="w-full text-left px-3 h-9 text-[13.5px] bg-transparent border-0 cursor-pointer flex items-center justify-between gap-3 hover:bg-[#faf9f6]"
+                className="w-full text-left px-3 h-9 text-13.5 bg-transparent border-0 cursor-pointer flex items-center justify-between gap-3 hover:bg-[#faf9f6]"
                 style={{ fontWeight: on ? 500 : 400, color: on ? INK : '#2a332f' }}
               >
                 {sc.label}
