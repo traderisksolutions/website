@@ -31,11 +31,11 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(
       `${SB_URL}/rest/v1/email_attachments?thread_id=eq.${threadId}` +
-      `&select=id,filename,mime_type,size_bytes&order=created_at.asc`,
+      `&select=id,filename,mime_type,size_bytes,created_at&order=created_at.asc`,
       { headers: sbH(), cache: 'no-store' })
     // The bytes are fetched again from Gmail at send time (the storage bucket is gone), so every
     // file on the thread can be re-attached; signature images are left out.
-    const all = res.ok ? await res.json() as { id: string; filename: string; mime_type: string | null; size_bytes: number | null }[] : []
+    const all = res.ok ? await res.json() as { id: string; filename: string; mime_type: string | null; size_bytes: number | null; created_at: string | null }[] : []
     const rows = all.filter(r => !isNoise(r.filename, r.mime_type)).map(r => ({ ...r, storage_url: gmailRef(r.id) }))
     // The same document often arrives on several messages in one thread; offer it once.
     const seen = new Set<string>()

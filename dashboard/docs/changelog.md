@@ -13,6 +13,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - The older quotations (`gb_quotations`) keep their `/pricing-matrix/quote/<id>/…` addresses. `scripts/eb-reprice-legacy.ts` re-prices them through the /eb builder into `eb_quotations` (dry run by default; `--apply` needs `20261120_eb_quotations_legacy.sql`). Neither the migration nor `--apply` has run.
 - Fix: a census without a category column kept its lives out of the proposal's census (`snapshotFrom` filtered on "Default", the categories are named "All employees"). Both now use `categoryName`.
 
+## 2026-11-20 — Today: find every thread, projects, files, save and redo
+
+- Add email threads also searches participant names and the text of every email, and lists everyone on each thread (Name <email>, +N). Up to 200 rows.
+- An open client row: Remove per thread (asked in place), Set project per thread (new migration `20261120_today_thread_project.sql`, not applied; hidden until it is), threads and emails grouped by project.
+- Email cards: Save (Updated with the time), Discard and redo (one model call; old draft rejected, figures checked), files from the client's threads, from the computer or dropped on the card, Open thread.
+- Folded row: per side whom, project and to-do; blank when nothing waits. Current annual premium on the row when on file.
+
 ## 2026-11-19 — Add email threads searches every email in a thread
 
 - A search asks the server, which answers only matching threads from all of them: every word, in any order, in the thread's subject, title, snippet or company, or in any email inside it (subject, sender) or the address of anyone on it. Each result shows the email that matched (`match`), so "Jiaqing" or "Chubb Deluge" finds the thread titled "Awfa — travel insurance quotation".

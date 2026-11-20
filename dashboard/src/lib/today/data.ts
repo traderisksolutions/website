@@ -276,7 +276,7 @@ export async function editDraft(id: string, p: { to: string; cc: string | null; 
   const r = oneRecipient(p.to, p.cc)
   if (!r.to) throw new Error('A draft needs a recipient and a message.')
   if (r.removed.length) throw new Error(`To takes one company. Send ${r.removed.join(', ')} their own email.`)
-  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ to_email: r.to, cc: r.cc.join(', ') || null, subject: p.subject, body: p.body }) })
+  await sb(`ai_drafts?id=eq.${enc(id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ to_email: r.to, cc: r.cc.join(', ') || null, subject: p.subject, body: p.body, updated_at: new Date().toISOString() }) })
 }
 
 /**

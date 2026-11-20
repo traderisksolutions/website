@@ -8,14 +8,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
+import { Btn, InlineSpinner, Spinner, inputCls } from '@/components/crm/primitives'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
-import type { DeskSide } from '@/lib/today/desk'
+import { participantsLine, type DeskSide, type Participant } from '@/lib/today/desk'
 import type { Suggestion } from '@/lib/today/learn-server'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[] }
 type Pick = { side: DeskSide; client: CompanyPick }
 
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
@@ -48,20 +48,23 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [addedHere, setAddedHere] = useState(0)
 
   useEffect(() => { void (async () => {
-    const r = await fetch('/api/engagement/conversations', { cache: 'no-store' })
+    const r = await fetch('/api/engagement/conversations?people=1', { cache: 'no-store' })
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
   // The server's search of every thread and every email in it, fetched once typing pauses.
+  // Names, every address and the text of every email are searched (body=1: a few seconds).
   const [found, setFound] = useState<Conv[]>([])
+  const [searching, setSearching] = useState(false)
   useEffect(() => {
     const t = q.trim()
-    if (t.length < 2) { setFound([]); return }
+    if (t.length < 2) { setFound([]); setSearching(false); return }
     const ctl = new AbortController()
     const timer = setTimeout(() => {
-      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}`, { cache: 'no-store', signal: ctl.signal })
-        .then(r => r.json()).then(j => setFound(Array.isArray(j) ? j : [])).catch(() => {})
-    }, 300)
+      setSearching(true)
+      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
+        .then(r => r.json()).then(j => { setFound(Array.isArray(j) ? j : []); setSearching(false) }).catch(() => {})
+    }, 350)
     return () => { clearTimeout(timer); ctl.abort() }
   }, [q])
 
@@ -73,7 +76,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     const all = [...found, ...(convs ?? []).filter(c => !seen.has(c.thread_id))]
       .sort((a, b) => String(b.last_message_at ?? b.created_at).localeCompare(String(a.last_message_at ?? a.created_at)))
     return all.filter(c => !taken.has(c.thread_id))
-      .filter(c => !t || seen.has(c.thread_id) || hasWords([subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet], t)).slice(0, 80)
+      .filter(c => !t || seen.has(c.thread_id) || hasWords([subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet, ...(c.participants ?? []).flatMap(p => [p.name, p.email])], t)).slice(0, 200)
   }, [convs, found, q, taken])
 
   function toggle(c: Conv) {
@@ -132,7 +135,8 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
               </div>
             </section>
           )}
-          <input type="search" aria-label="Search threads" placeholder="Search subject, sender or company" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          <input type="search" aria-label="Search threads" placeholder="Search subject, people, company or email text" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          {searching && <InlineSpinner label="Searching every email…" />}
           <div className="min-h-0 flex-1 overflow-auto rounded-[10px] border border-trs-line-2">
             {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-[13.5px] text-trs-muted">No threads match.</p> : (
               <table className="trs-table min-w-[760px]">
@@ -146,6 +150,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
+                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
                           {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
                         </td>
                         <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>

@@ -7,6 +7,7 @@ import { callGemini } from '@/lib/ai-call'
 import { GEMINI_FLASH } from '@/lib/gemini-models'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import { nextReply } from '@/lib/agents/crm-agent'
+import { figuresOf } from '@/lib/gb/client-draft'
 
 type Row = Record<string, any>
 
@@ -80,4 +81,43 @@ export async function askOnItem(id: string, instruction: string | null, actor: s
   }
   if (instruction?.trim()) await rewriteDraft(draftId, instruction, actor, id)
   return { draftId }
+}
+
+/** Columns a redo copies onto the new draft; id, times, status and the send record are its own. */
+const REDO_COPY = ['contact_id', 'thread_id', 'channel', 'subject', 'body', 'generated_by', 'email_type', 'inbound_lead_id', 'knowledge_docs', 'nexus_case_id', 'nexus_step_index', 'attachments', 'cc', 'to_email', 'context_used', 'work_item_id', 'pair_id', 'party', 'draft_class', 'relay_intent'] as const
+
+/** Pure. A redo may drop a money figure but never bring one the old draft did not carry. */
+export function redoKeepsFigures(redone: string, old: string): boolean {
+  const before = figuresOf(old)
+  for (const f of figuresOf(redone)) if (!before.has(f)) return false
+  return true
+}
+
+/**
+ * Discard and redo one email: a new pending draft is written from the old one and the thread
+ * (rewriteDraft), then the old draft is marked rejected. If the rewrite fails, or brings a money
+ * figure the old draft did not carry, the new draft is removed and the old one stays as it was.
+ * Started by a person's button only.
+ */
+export async function redoDraft(draftId: string, actor: string, note?: string | null): Promise<{ draftId: string; subject: string; body: string }> {
+  const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(draftId)}&select=*&limit=1`)
+  if (!d || d.deleted_at) throw new Error('This draft no longer exists.')
+  if (!['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
+  const copy: Row = { status: 'pending' }
+  for (const k of REDO_COPY) if (k in d) copy[k] = d[k]
+  copy.context_used = { ...(d.context_used ?? {}), redo_of: d.id, redo_by: actor }
+  const [fresh] = await sb<Row[]>('ai_drafts', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify(copy) })
+  if (!fresh?.id) throw new Error('Could not start the new draft.')
+  const undo = () => sb(`ai_drafts?id=eq.${enc(fresh.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'rejected', deleted_at: new Date().toISOString(), rejection_note: 'redo failed' }) }).catch(() => null)
+  const instruction = ['Write this email again from the conversation: fresh wording, the same recipient and purpose, every fact kept.', note?.trim() ? `Also: ${note.trim().slice(0, 500)}` : ''].filter(Boolean).join(' ')
+  let out: { subject: string; body: string }
+  try { out = await rewriteDraft(fresh.id, instruction, actor) } catch (e) { await undo(); throw e }
+  if (!redoKeepsFigures(out.body, String(d.body ?? ''))) {
+    await undo()
+    throw new Error('The new version changed a money figure, so it was not kept. The email stays as it was.')
+  }
+  await sb(`ai_drafts?id=eq.${enc(d.id)}&status=in.(pending,draft)`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'rejected', rejection_note: `redone from Today by ${actor}`, updated_at: new Date().toISOString() }) })
+  // A case pointing at the old draft points at the new one.
+  await sbTry(`work_items?draft_id=eq.${enc(d.id)}`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ draft_id: fresh.id, updated_at: new Date().toISOString() }) })
+  return { draftId: fresh.id, ...out }
 }

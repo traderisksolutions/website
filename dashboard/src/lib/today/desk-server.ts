@@ -7,7 +7,7 @@ import { oneRecipient } from '@/lib/email/recipients'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import type { ReadPlan } from '@/lib/chief/read'
 import { signalsForAdd } from './learn-server'
-import { groupRows, readKey, sideOfAddress, type AddItem, type DeskDraft, type DeskRow, type DeskThread } from './desk'
+import { annualPremium, groupRows, readKey, sideOfAddress, type AddItem, type DeskAttachment, type DeskDraft, type DeskPremium, type DeskRow, type DeskThread } from './desk'
 
 type Row = Record<string, any>
 
@@ -22,26 +22,65 @@ const LABEL: Record<string, string> = {
 }
 
 export async function insurerDomains(): Promise<Set<string>> {
-  const rows = await sbTry<Row[]>('companies?kind=eq.insurer&select=domains', [])
-  return new Set(rows.flatMap(r => (r.domains ?? []) as string[]).map(d => String(d).toLowerCase()).filter(Boolean))
+  return new Set((await insurerNames()).keys())
+}
+
+/** Insurer domain → the insurer's name. */
+async function insurerNames(): Promise<Map<string, string>> {
+  const rows = await sbTry<Row[]>('companies?kind=eq.insurer&select=company_name,domains', [])
+  return new Map(rows.flatMap(r => ((r.domains ?? []) as string[]).map(d => [String(d).toLowerCase(), String(r.company_name ?? '')] as const)).filter(([d]) => !!d))
+}
+
+const insurerOf = (email: string, names: ReadonlyMap<string, string>) => {
+  const domain = email.toLowerCase().split('@')[1] ?? ''
+  for (const [d, n] of names) if (domain === d || domain.endsWith(`.${d}`)) return n || null
+  return null
+}
+
+const OPEN_LIST = 'today_threads?removed_at=is.null&order=added_at.desc&limit=2000&select=owner_email,thread_id,company_id,side,added_at'
+
+/**
+ * The open list, with each thread's project when the columns exist (20261120_today_thread_project.sql).
+ * Before that migration is applied the read falls back to the list without projects.
+ */
+async function openList(): Promise<{ rows: Row[]; projects: boolean }> {
+  try { return { rows: await sb<Row[]>(`${OPEN_LIST},project,project_note`), projects: true } }
+  catch { return { rows: await sbTry<Row[]>(OPEN_LIST, []), projects: false } }
+}
+
+/** Current annual premium per client (desk.ts annualPremium): live policies and their placing debit notes. */
+async function premiums(companyIds: readonly string[]): Promise<Map<string, DeskPremium[]>> {
+  const out = new Map<string, DeskPremium[]>()
+  if (!companyIds.length) return out
+  const policies = await sbTry<Row[]>(`policies?company_id=in.${inList(companyIds)}&lifecycle=in.(live,bound,renewal_due)&select=id,company_id,premium,currency&limit=2000`, [])
+  const ids = policies.map(p => p.id as string)
+  const notes: Row[] = []
+  for (let i = 0; i < ids.length; i += 100) notes.push(...await sbTry<Row[]>(`debit_notes?policy_id=in.${inList(ids.slice(i, i + 100))}&event_type=in.(new_business,renewal)&select=policy_id,gross_amount,currency,issue_date,event_type&limit=2000`, []))
+  for (const c of companyIds) {
+    const mine = policies.filter(p => p.company_id === c)
+    const ps = annualPremium(mine.map(p => ({ id: p.id, premium: p.premium, currency: p.currency })), notes.filter(n => mine.some(p => p.id === n.policy_id)) as never)
+    if (ps.length) out.set(c, ps)
+  }
+  return out
 }
 
 /** The rows on Today for one person, or for everyone. Threads the viewer may not see are left out. */
-export async function loadDesk(viewer: string, who: string): Promise<{ rows: DeskRow[]; owners: string[] }> {
-  const all = await sbTry<Row[]>('today_threads?removed_at=is.null&select=owner_email,thread_id,company_id,side,added_at&order=added_at.desc&limit=2000', [])
+export async function loadDesk(viewer: string, who: string): Promise<{ rows: DeskRow[]; owners: string[]; projects: boolean }> {
+  const { rows: all, projects } = await openList()
   const owners = Array.from(new Set(all.map(r => String(r.owner_email)))).sort()
   const mine = who === 'all' ? all : all.filter(r => r.owner_email === who)
-  if (!mine.length) return { rows: [], owners }
+  if (!mine.length) return { rows: [], owners, projects }
   const visible = await visibleThreadIds(Array.from(new Set(mine.map(r => r.thread_id as string))), viewer)
   const listed = mine.filter(r => visible.has(r.thread_id))
   const ids = Array.from(new Set(listed.map(r => r.thread_id as string)))
-  if (!ids.length) return { rows: [], owners }
+  if (!ids.length) return { rows: [], owners, projects }
 
-  const [threads, msgs, domains] = await Promise.all([
+  const [threads, msgs, insurers] = await Promise.all([
     sbTry<Row[]>(`email_threads?id=in.${inList(ids)}&select=id,subject,display_subject,company_id,last_message_at`, []),
     sbTry<Row[]>(`email_messages?thread_id=in.${inList(ids)}&deleted_at=is.null&select=thread_id,direction,from_address,sent_at&order=sent_at.desc&limit=5000`, []),
-    insurerDomains(),
+    insurerNames(),
   ])
+  const domains = new Set(insurers.keys())
   const threadBy = new Map(threads.map(t => [t.id as string, t]))
   const msgsBy = new Map<string, Row[]>()
   for (const m of msgs) msgsBy.set(m.thread_id, [...(msgsBy.get(m.thread_id) ?? []), m])
@@ -54,13 +93,13 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
       threadId: r.thread_id, subject: t.display_subject || t.subject || '(no subject)', side: r.side, owner: r.owner_email,
       companyId: r.company_id ?? t.company_id ?? null, lastAt: last?.sent_at ?? t.last_message_at ?? null,
       lastFrom: last ? bare(last.from_address) : null, lastInbound: last?.direction === 'inbound' && !isTrs(bare(last.from_address)),
-      messages: ms.length, addedAt: r.added_at,
+      messages: ms.length, addedAt: r.added_at, project: r.project ?? null, projectNote: r.project_note ?? null,
     }
   })
 
   // Unsent drafts written on a thread, or anchored to one (a new email to an insurer has no thread yet).
   // Requests to insurers from a placement stay with the placement, where their dispatch is recorded.
-  const raw = await sbTry<Row[]>(`ai_drafts?or=(thread_id.in.${inList(ids)},context_used->>thread_id.in.${inList(ids)})&status=in.(pending,draft)&deleted_at=is.null&or=(email_type.is.null,email_type.neq.PLACEMENT_REQUEST)&select=id,thread_id,to_email,cc,subject,body,email_type,attachments,work_item_id,context_used,created_at&order=created_at.asc&limit=500`, [])
+  const raw = await sbTry<Row[]>(`ai_drafts?or=(thread_id.in.${inList(ids)},context_used->>thread_id.in.${inList(ids)})&status=in.(pending,draft)&deleted_at=is.null&or=(email_type.is.null,email_type.neq.PLACEMENT_REQUEST)&select=id,thread_id,to_email,cc,subject,body,email_type,attachments,work_item_id,context_used,created_at,updated_at&order=created_at.asc&limit=500`, [])
   const fallbackTo = new Map(deskThreads.map(t => [t.threadId, t.lastInbound ? t.lastFrom : null]))
   const shaped = raw.map(d => {
     const ctx = (d.context_used ?? {}) as Row
@@ -77,11 +116,15 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
     label: ctx.kind === 'bar_chaser' ? 'Chaser' : ctx.kind === 'read_step' ? String(ctx.title ?? 'Next step') : LABEL[d.email_type as string] ?? 'Email',
     attachments: Array.isArray(d.attachments) ? d.attachments.filter((a: Row) => a?.storage_url) : [],
     removed: [...r.removed, ...((ctx.removed_recipients as string[] | undefined) ?? [])],
-    workItemId: d.work_item_id ?? null, createdAt: d.created_at,
+    workItemId: d.work_item_id ?? null, createdAt: d.created_at, updatedAt: d.updated_at ?? null,
+    insurer: insurerOf(r.to, insurers),
   }))
 
   const companyIds = Array.from(new Set(deskThreads.map(t => t.companyId).filter((x): x is string => !!x)))
-  const companies = companyIds.length ? await sbTry<Row[]>(`companies?id=in.${inList(companyIds)}&select=id,company_name`, []) : []
+  const [companies, premiumOf] = await Promise.all([
+    companyIds.length ? sbTry<Row[]>(`companies?id=in.${inList(companyIds)}&select=id,company_name`, []) : Promise.resolve([] as Row[]),
+    premiums(companyIds).catch(() => new Map<string, DeskPremium[]>()),
+  ])
   const names = new Map(companies.map(c => [c.id as string, c.company_name as string]))
 
   const rows0 = groupRows(deskThreads, [], names, new Map())
@@ -89,7 +132,33 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
   const saved = keys.length ? await sbTry<Row[]>(`app_settings?key=in.${inList(keys)}&select=key,value`, []) : []
   const reads = new Map<string, ReadPlan>()
   for (const s of saved) { try { reads.set(String(s.key).slice('today_read:'.length), JSON.parse(s.value)) } catch { /* a bad entry reads as none */ } }
-  return { rows: groupRows(deskThreads, drafts, names, reads), owners }
+  const rows = groupRows(deskThreads, drafts, names, reads)
+  for (const r of rows) if (r.companyId && premiumOf.has(r.companyId)) r.premium = premiumOf.get(r.companyId)
+  return { rows, owners, projects }
+}
+
+/**
+ * Puts threads under a project of their client on the owner's Today (empty name: back under the
+ * client). Needs 20261120_today_thread_project.sql; until it is applied this says so.
+ */
+export async function setProject(owner: string, threadIds: readonly string[], project: string | null, note: string | null): Promise<void> {
+  if (!threadIds.length) return
+  try {
+    await sb(`today_threads?owner_email=eq.${enc(owner)}&thread_id=in.${inList(threadIds)}&removed_at=is.null`, {
+      method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ project, project_note: note }),
+    })
+  } catch (e) {
+    if (/project/.test(String(e)) && /42703|does not exist/.test(String(e))) throw new Error('Projects are not switched on yet: the database change is waiting to be applied.')
+    throw e
+  }
+}
+
+/** Replaces an unsent draft's attachments with a list already made safe (desk.ts attachmentsFrom). */
+export async function setDraftFiles(draftId: string, files: readonly DeskAttachment[]): Promise<DeskAttachment[]> {
+  const [d] = await sb<Row[]>(`ai_drafts?id=eq.${enc(draftId)}&select=id,status,deleted_at&limit=1`)
+  if (!d || d.deleted_at || !['pending', 'draft'].includes(d.status)) throw new Error('This draft was already sent or discarded.')
+  await sb(`ai_drafts?id=eq.${enc(draftId)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ attachments: files, updated_at: new Date().toISOString() }) })
+  return [...files]
 }
 
 /** Puts threads on a person's Today. Adding a removed thread again brings it back. */
