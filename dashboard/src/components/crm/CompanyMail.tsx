@@ -12,7 +12,7 @@ import { extractEmail } from '@/components/engagement/helpers'
 import type { Lead, RealMsg } from '@/components/engagement/types'
 import type { CompanyThread } from '@/lib/crm/types'
 import { threadTitle } from '@/lib/crm/subject'
-import { HiddenThreads } from './CompanyThreadList'
+import { FindThreads, HiddenThreads } from './CompanyThreadList'
 
 /**
  * Reading and answering this company's mail without leaving its page.
@@ -137,7 +137,7 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
         </span>
       </div>
 
-      {threads.length === 0 && <Empty>No threads are filed under this company yet.</Empty>}
+      {threads.length === 0 && <FindThreads companyId={companyId} onLinked={() => onRefresh?.()} />}
       {(hidden > 0 || threads.length === 0) && <div className={cn('mb-3', fullHeight && 'flex-shrink-0')}><HiddenThreads hidden={hidden} /></div>}
 
       {threads.length > 0 && (

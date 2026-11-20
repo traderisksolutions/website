@@ -4,7 +4,6 @@ import { CompanyEb } from '@/components/companies/CompanyEb'
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { CompanyHeader } from '@/components/crm/CompanyHeader'
 import { AlertsPanel, LeftOffPanel } from '@/components/crm/AlertsPanel'
@@ -39,8 +38,8 @@ import type {
 } from '@/lib/crm/types'
 import type { LinePosition, PlacementBundle } from '@/lib/placement/types'
 import { CompanyKnowledge } from '@/components/assistant/CompanyKnowledge'
-import { CompanyRenewals } from '@/components/policies/CompanyRenewals'
-import { RenewalCalendar } from '@/components/renewal/RenewalCalendar'
+import { CompanyClaims } from '@/components/companies/CompanyClaims'
+import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'
@@ -66,12 +65,14 @@ type Detail = {
 
 /**
  * The Workbench order (19 Nov 2026): what the client holds, what is being worked on, then quotes,
- * mail, files, people, money and the log. The rest follow.
+ * claims, mail, files, people, money and the log. The rest follow. Renewals folded into Policies
+ * (20 Nov 2026): the Renews column and the soonest-renewal order.
  */
 const MAIN_TABS = [
   { key: 'policies', label: 'Policies' },
   { key: 'working',  label: 'Working on' },
   { key: 'quotes',   label: 'Quotes' },
+  { key: 'claims',   label: 'Claims' },
   { key: 'threads',  label: 'Threads' },
   { key: 'documents', label: 'Documents' },
   { key: 'contacts', label: 'Contacts' },
@@ -81,7 +82,6 @@ const MAIN_TABS = [
 const MORE_TABS = [
   { key: 'eb',       label: 'Employment Benefits' },
   { key: 'knowledge', label: 'Knowledge' },
-  { key: 'renewals', label: 'Renewals' },
   { key: 'members',  label: 'Employees' },
   { key: 'nexus',    label: 'Nexus' },
 ] as const
@@ -90,7 +90,7 @@ type Tab = typeof TABS[number]['key']
 const DEFAULT_TAB: Tab = 'policies'
 type ThreadView = 'list' | 'reader'
 /** Older links still name the tabs that were folded or renamed. */
-const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', overview: 'contacts', people: 'contacts', purchases: 'policies', employees: 'members' }
+const TAB_ALIAS: Record<string, Tab> = { quotation: 'quotes', activity: 'log', overview: 'contacts', people: 'contacts', purchases: 'policies', employees: 'members', renewals: 'policies' }
 /** A policy still being quoted belongs with the requests; the rest are on the books. */
 const QUOTING = new Set(['quoting', 'presented'])
 const EMPTY_BUNDLE: PlacementData = { bundle: { placements: [], lines: [], rounds: [], dispatches: [], quotes: [], tiers: [], log: [] }, positions: [] }
@@ -132,9 +132,26 @@ function CompanyWorkspace() {
   const [letter, setLetter] = useState<LetterStatus | null>(null)
   const [letterOpen, setLetterOpen] = useState(false)
 
+  // Each load records its own failure so the tab that shows it can say what failed (not an empty list).
+  const [failed, setFailed] = useState<Record<string, string>>({})
   const j = useCallback(async <T,>(path: string, fallback: T): Promise<T> => {
-    try { const r = await fetch(path, { cache: 'no-store' }); return r.ok ? await r.json() : fallback } catch { return fallback }
-  }, [])
+    const key = path.split('?')[0].replace(`/api/companies/${id}`, '') || 'detail'
+    try {
+      const r = await fetch(path, { cache: 'no-store' })
+      if (r.ok) { setFailed(f => { if (!(key in f)) return f; const n = { ...f }; delete n[key]; return n }); return await r.json() }
+      const d = await r.json().catch(() => ({})) as { error?: string }
+      setFailed(f => ({ ...f, [key]: d.error ?? `Could not load (${r.status}).` }))
+      return fallback
+    } catch (e) {
+      setFailed(f => ({ ...f, [key]: e instanceof Error ? e.message : 'Could not load.' }))
+      return fallback
+    }
+  }, [id])
+  /** The red line a tab shows when its data did not load. */
+  const failure = (...keys: string[]) => {
+    const k = keys.find(x => failed[x])
+    return k ? <p className="m-0 mb-4 text-[13.5px] text-trs-neg" role="alert">This tab did not load: {failed[k]}</p> : null
+  }
 
   useEffect(() => { createClient().auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null)).catch(() => {}) }, [])
 
@@ -150,6 +167,7 @@ function CompanyWorkspace() {
   }, [id])
 
   const [threadsHidden, setThreadsHidden] = useState(0)
+  const [claimsOpen, setClaimsOpen] = useState<number | null>(null)
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[]; hidden?: number }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => { setThreads(r.threads); setThreadsHidden(r.hidden ?? 0) }), [id, j])
   // A thread filed under an insurer that names this client is not in the reader's list: it opens in the Inbox.
   const openThread = (threadId: string) => { if (threads?.some(t => t.id === threadId)) setThreadView('reader', threadId); else router.push(`/engagement?thread=${threadId}`) }
@@ -236,6 +254,7 @@ function CompanyWorkspace() {
       case 'threads': return threads?.length ?? null
       case 'log': return placementData === null && activity === null ? null : (placementData?.bundle.log.length ?? 0) + (activity?.length ?? 0)
       case 'nexus': return cases?.length ?? null
+      case 'claims': return claimsOpen
       case 'contacts': return people?.people.length ?? null
       default: return null
     }
@@ -259,23 +278,15 @@ function CompanyWorkspace() {
   if (tab === 'threads') {
     return (
       <div className="flex flex-col bg-white" style={{ height: 'calc(100vh / var(--ui-zoom) - var(--top-nav-h))', color: INK }}>
-        <div className="flex items-center gap-3 px-4 sm:px-6 h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
-          <button
-            type="button"
-            onClick={() => setTab(DEFAULT_TAB)}
-            className="inline-flex items-center gap-1 text-[14px] bg-transparent border-0 p-0 cursor-pointer flex-shrink-0 no-underline hover:underline"
-            style={{ color: MUTED }}
-          >
-            ← Back
-          </button>
-          <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{company.name}</span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2 min-h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
+          <Breadcrumbs className="min-w-0" current={{ label: 'Threads', href: `/companies/${id}?tab=threads` }} fallback={{ label: company.name, href: `/companies/${id}` }} />
           <span className="text-[13px] flex-shrink-0" style={{ color: MUTED }}>
             {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
             {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
           </span>
           <Segmented<ThreadView> value={threadView} onChange={v => setThreadView(v)} label="Threads view" className="flex-shrink-0" options={[{ value: 'list', label: 'List' }, { value: 'reader', label: 'Reader' }]} />
 
-          <div className="ml-auto hidden md:flex items-center gap-1 min-w-0 overflow-x-auto" role="tablist">
+          <div className="w-full md:w-auto md:ml-auto flex flex-wrap items-center gap-1 min-w-0" role="tablist" aria-label="Company sections">
             {TABS.filter(t => t.key !== 'threads').map(t => (
               <button
                 key={t.key}
@@ -293,7 +304,8 @@ function CompanyWorkspace() {
 
         <div className="flex-1 min-h-0">
           {threadView === 'list'
-            ? <div className="h-full overflow-y-auto px-4 sm:px-6 py-4"><CompanyThreadList companyId={id} onOpen={openThread} /></div>
+            ? <div className="h-full overflow-y-auto px-4 sm:px-6 py-4">{failure('/threads')}<CompanyThreadList companyId={id} onOpen={openThread} onLinked={() => void loadThreads()} /></div>
+            : failed['/threads'] ? <div className="px-4 sm:px-6 py-4">{failure('/threads')}</div>
             : threads
               ? <CompanyMail threads={threads} hidden={threadsHidden} companyId={id} companyName={company.name} fullHeight openId={openThreadId} onRefresh={() => { setThreads(null); void loadThreads() }} />
               : <Spinner label="Loading conversations…" />}
@@ -310,12 +322,8 @@ function CompanyWorkspace() {
           company={company}
           statusLine={ov.statusLine}
           facts={facts}
-          letter={letter}
-          draftsCount={draftsCount}
           onCompany={c => setOv(prev => prev ? { ...prev, company: c } : prev)}
           onStage={async (s: Stage) => { await patchCompany({ stage: s }) }}
-          onDrafts={() => setDraftsOpen(true)}
-          onLetter={() => setLetterOpen(true)}
           onNewRequest={() => setTab('working')}
         />
 
@@ -344,6 +352,7 @@ function CompanyWorkspace() {
 
         {tab === 'contacts' && (
           <>
+            {failure('/people')}
             {ov.alerts.length === 0 && <AlertsPanel alerts={ov.alerts} />}
             <LeftOffPanel leftOff={ov.leftOff} />
             <AccountNotesPanel notes={company.notes} onSave={notes => patchCompany({ notes })} />
@@ -360,14 +369,16 @@ function CompanyWorkspace() {
 
         {tab === 'documents' && <DataRoom companyId={id} />}
         {tab === 'knowledge' && <CompanyKnowledge companyId={id} />}
-        {tab === 'renewals' && <><RenewalCalendar companyId={id} /><CompanyRenewals companyId={id} /></>}
+        {tab === 'claims' && <CompanyClaims companyId={id} onCount={setClaimsOpen} />}
 
+        {tab === 'policies' && failure('/policies', '/data-room', '/placements')}
         {tab === 'policies' && (
           <PoliciesRegister title="" policies={existing} docStatus={docStatus} files={docFiles} bundle={placementData?.bundle ?? null} payments={detail?.payments ?? null}
             onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
         )}
 
         {tab === 'eb' && <CompanyEb companyId={id} companyName={company.name} policies={policies} />}
+        {tab === 'quotes' && failure('/quotes', '/placements', '/policies')}
         {tab === 'quotes' && (quotes && threads ? (
           <>
             <CompanyQuotes companyId={id} companyName={company.name} quotes={quotes} threads={threads} data={placementData} policies={policies} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />
@@ -378,14 +389,18 @@ function CompanyWorkspace() {
           </>
         ) : <Spinner />)}
 
+        {tab === 'members' && failure('/policies', '/placements')}
         {tab === 'members' && <MembersPanel policies={policies} bundle={placementData?.bundle ?? null} onChanged={onSpineChanged} onOpenDrafts={openDrafts} />}
 
+        {tab === 'payments' && failure('detail')}
         {tab === 'payments' && (detail ? (
           <CompanyPayments companyId={id} notes={detail.payments} summary={detail.paymentSummary} onChanged={reloadDetail} />
         ) : <Spinner />)}
 
+        {tab === 'log' && failure('/activity', '/placements')}
         {tab === 'log' && <CompanyLog bundle={placementData?.bundle ?? null} events={activity} onChanged={onSpineChanged} />}
 
+        {tab === 'nexus' && failure('/cases', '/threads')}
         {tab === 'nexus' && (threads && cases ? (
           <CompanyNexus
             company={company}

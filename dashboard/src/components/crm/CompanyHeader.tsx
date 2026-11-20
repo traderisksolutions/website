@@ -3,17 +3,15 @@
 import { useEffect, useState } from 'react'
 import { OwnerPicker } from '@/components/companies/OwnerPicker'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
-import { FileText, FolderOpen, ListChecks, Loader2, MailCheck, MoreHorizontal, Pencil, Pin } from 'lucide-react'
+import { FolderOpen, ListChecks, Loader2, MoreHorizontal, Pencil, Pin } from 'lucide-react'
 import { Btn, Chip, Field, inputCls, textareaCls } from './primitives'
 import { PageHeader } from '@/components/page-header'
 import { fmtDate, num } from '@/lib/format'
 import type { CompanyFacts } from '@/lib/companies/facts'
-import type { LetterStatus } from '@/lib/letters/appointment'
 import { EditCompanyDialog } from './dialogs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { dialogCls } from '@/components/placement/shared'
-import type { StaffMember } from '@/lib/crm/staff'
 import { STAGES, STAGE_LABEL, type Company, type Stage } from '@/lib/crm/types'
 
 /** Strip the money segment: the header names the relationship, the Finance tab carries the figures. */
@@ -23,19 +21,18 @@ function withoutMoney(line: string): string {
 
 const MENU_ITEM = 'px-3 py-2 rounded-[8px] text-[13.5px] cursor-pointer text-[#0f1412] focus:bg-[#faf9f6] data-[highlighted]:bg-[#faf9f6]'
 
-/** The Workbench header: name, one facts line (UEN, business, relationship, owner, policies, premium, letter), Edit, More and New request. */
-export function CompanyHeader({ company, statusLine, facts, letter, draftsCount, onCompany, onStage, onDrafts, onLetter, onNewRequest }: {
+/**
+ * The Workbench header: name, one facts line (UEN, business, relationship, owner, policies, premium),
+ * Edit, More and New request, the one primary. Drafts to approve and the appointment letter live in
+ * the rail only (20 Nov 2026).
+ */
+export function CompanyHeader({ company, statusLine, facts, onCompany, onStage, onNewRequest }: {
   /** Policies held, premium, client since; null while the policies load. */
   facts: CompanyFacts | null
-  letter: LetterStatus | null
   company: Company
   statusLine: string
-  /** Drafts waiting for approval across the company's placements and policies; null while unknown. */
-  draftsCount: number | null
   onCompany: (c: Company) => void
   onStage: (s: Stage) => Promise<void>
-  onDrafts: () => void
-  onLetter: () => void
   onNewRequest: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -119,7 +116,6 @@ export function CompanyHeader({ company, statusLine, facts, letter, draftsCount,
           {facts?.clientSince && fact('Client since', fmtDate(facts.clientSince))}
           {facts && fact('Policies', facts.held)}
           {facts && fact('Annual premium', facts.annualPremium != null ? `S$${num(facts.annualPremium, 0)}` : '—')}
-          {letter && fact('Appointment letter', letter.state === 'signed' ? `Signed${letter.at ? ` · ${fmtDate(letter.at)}` : ''}` : letter.state === 'sent' ? 'Sent, not signed' : letter.state === 'needed' ? <span className="text-trs-warn">Needed</span> : 'Not on file')}
           {company.domains.length > 0 && fact('Domain', company.domains[0])}
           {company.confirmed_at === null && (
             <span className="inline-flex items-center gap-2">
@@ -129,7 +125,6 @@ export function CompanyHeader({ company, statusLine, facts, letter, draftsCount,
           )}
         </span>}
         actions={<>
-          {draftsCount !== null && draftsCount > 0 && <Btn onClick={onDrafts}><MailCheck size={14} /> Drafts to approve ({draftsCount})</Btn>}
           <Btn onClick={() => setEditing(true)}><Pencil size={14} /> Edit</Btn>
           <DropdownMenu modal={false}>
             {/* A plain button: Btn has no forwardRef, and the trigger needs the DOM ref to anchor the menu. */}
@@ -139,7 +134,6 @@ export function CompanyHeader({ company, statusLine, facts, letter, draftsCount,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={6} className="w-52 rounded-[12px] border-[#e6e8e4] bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
               <DropdownMenuItem className={MENU_ITEM} onSelect={() => setAddingTodo(true)}><ListChecks size={14} /> Add to-do</DropdownMenuItem>
-              <DropdownMenuItem className={MENU_ITEM} onSelect={onLetter}><FileText size={14} /> Appointment letter</DropdownMenuItem>
               <DropdownMenuItem className={MENU_ITEM} onSelect={() => void openDrive()}><FolderOpen size={14} /> Drive</DropdownMenuItem>
               {pinsAvailable && <DropdownMenuItem className={MENU_ITEM} disabled={pinning} onSelect={() => void togglePin()}><Pin size={14} /> {pinned ? 'Unpin from Home' : 'Pin to Home'}</DropdownMenuItem>}
             </DropdownMenuContent>
