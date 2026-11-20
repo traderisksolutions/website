@@ -1168,6 +1168,53 @@ export const ebQuotations = pgTable("eb_quotations", {
 	check("eb_quotations_basis_check", sql`basis = ANY (ARRAY['renewal'::text, 'new_business'::text])`),
 ]);
 
+export const draftFeedback = pgTable("draft_feedback", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	summaryId: uuid("summary_id"),
+	threadId: uuid("thread_id"),
+	originalDraft: text("original_draft"),
+	finalSent: text("final_sent"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.summaryId],
+			foreignColumns: [threadSummaries.id],
+			name: "draft_feedback_summary_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "draft_feedback_thread_id_fkey"
+		}).onDelete("set null"),
+]);
+
+export const ebSchemes = pgTable("eb_schemes", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	companyId: uuid("company_id").notNull(),
+	planYear: text("plan_year").notNull(),
+	effectiveDate: date("effective_date"),
+	basis: text(),
+	insurer: text(),
+	census: jsonb(),
+	censusReadAt: timestamp("census_read_at", { withTimezone: true, mode: 'string' }),
+	censusReadBy: text("census_read_by"),
+	lastYear: jsonb("last_year"),
+	lastYearFiles: jsonb("last_year_files").default([]).notNull(),
+	lastYearReadAt: timestamp("last_year_read_at", { withTimezone: true, mode: 'string' }),
+	lastYearReadBy: text("last_year_read_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("eb_schemes_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops"), table.planYear.desc().nullsFirst().op("uuid_ops")),
+	foreignKey({
+			columns: [table.companyId],
+			foreignColumns: [companies.id],
+			name: "eb_schemes_company_id_fkey"
+		}).onDelete("cascade"),
+	unique("eb_schemes_company_id_plan_year_key").on(table.companyId, table.planYear),
+	check("eb_schemes_basis_check", sql`basis = ANY (ARRAY['renewal'::text, 'new_business'::text])`),
+]);
+
 export const emailMessages = pgTable("email_messages", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	threadId: uuid("thread_id").notNull(),
@@ -1255,93 +1302,6 @@ export const followUpReads = pgTable("follow_up_reads", {
 		}).onDelete("cascade"),
 ]);
 
-export const gbBenefitCandidates = pgTable("gb_benefit_candidates", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	rateTableId: uuid("rate_table_id").notNull(),
-	productCode: text("product_code").notNull(),
-	planCode: text("plan_code"),
-	canonBenefit: text("canon_benefit").notNull(),
-	valueText: text("value_text").notNull(),
-	valueNumeric: numeric("value_numeric"),
-	source: text(),
-	currentText: text("current_text"),
-	status: text().default('pending').notNull(),
-	decidedAt: timestamp("decided_at", { withTimezone: true, mode: 'string' }),
-	decidedBy: text("decided_by"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("gb_benefit_candidates_table_idx").using("btree", table.rateTableId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
-	foreignKey({
-			columns: [table.canonBenefit],
-			foreignColumns: [gbBenefitCanon.code],
-			name: "gb_benefit_candidates_canon_benefit_fkey"
-		}),
-	foreignKey({
-			columns: [table.productCode],
-			foreignColumns: [gbProductCanon.code],
-			name: "gb_benefit_candidates_product_code_fkey"
-		}),
-	foreignKey({
-			columns: [table.rateTableId],
-			foreignColumns: [gbRateTables.id],
-			name: "gb_benefit_candidates_rate_table_id_fkey"
-		}).onDelete("cascade"),
-	unique("gb_benefit_candidates_rate_table_id_product_code_canon_bene_key").on(table.canonBenefit, table.planCode, table.productCode, table.rateTableId),
-	check("gb_benefit_candidates_status_check", sql`status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])`),
-]);
-
-export const draftFeedback = pgTable("draft_feedback", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	summaryId: uuid("summary_id"),
-	threadId: uuid("thread_id"),
-	originalDraft: text("original_draft"),
-	finalSent: text("final_sent"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.summaryId],
-			foreignColumns: [threadSummaries.id],
-			name: "draft_feedback_summary_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "draft_feedback_thread_id_fkey"
-		}).onDelete("set null"),
-]);
-
-export const employeeProfiles = pgTable("employee_profiles", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	userId: uuid("user_id").notNull(),
-	gmailEmail: text("gmail_email"),
-	gmailRefreshToken: text("gmail_refresh_token"),
-	gmailConnectedAt: timestamp("gmail_connected_at", { withTimezone: true, mode: 'string' }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	isAdmin: boolean("is_admin").default(false),
-	onedriveRefreshToken: text("onedrive_refresh_token"),
-	onedriveAccountEmail: text("onedrive_account_email"),
-	onedriveConnectedAt: timestamp("onedrive_connected_at", { withTimezone: true, mode: 'string' }),
-}, (table): PgTableExtraConfigValue[] => [
-	uniqueIndex("employee_profiles_user_id_key").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
-]);
-
-export const errorLogs = pgTable("error_logs", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	source: text(),
-	feature: text(),
-	statusCode: integer("status_code"),
-	message: text(),
-	metadata: jsonb(),
-	resourceType: text("resource_type"),
-	resourceId: text("resource_id"),
-	threadId: uuid("thread_id"),
-}, (table): PgTableExtraConfigValue[] => [
-	index("error_logs_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	index("error_logs_feature_idx").using("btree", table.feature.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("text_ops")),
-	index("error_logs_source_status_idx").using("btree", table.source.asc().nullsLast().op("text_ops"), table.statusCode.asc().nullsLast().op("int4_ops"), table.createdAt.desc().nullsFirst().op("int4_ops")),
-]);
-
 export const emailFollowups = pgTable("email_followups", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	messageId: uuid("message_id").notNull(),
@@ -1390,6 +1350,96 @@ export const emailFollowups = pgTable("email_followups", {
 	unique("email_followups_message_id_key").on(table.messageId),
 	check("email_followups_status_check", sql`status = ANY (ARRAY['waiting'::text, 'replied'::text, 'superseded'::text, 'chased_out'::text, 'off'::text, 'not_needed'::text])`),
 	check("email_followups_to_party_check", sql`to_party = ANY (ARRAY['insurer'::text, 'client'::text, 'other'::text])`),
+]);
+
+export const employeeProfiles = pgTable("employee_profiles", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	userId: uuid("user_id").notNull(),
+	gmailEmail: text("gmail_email"),
+	gmailRefreshToken: text("gmail_refresh_token"),
+	gmailConnectedAt: timestamp("gmail_connected_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	isAdmin: boolean("is_admin").default(false),
+	onedriveRefreshToken: text("onedrive_refresh_token"),
+	onedriveAccountEmail: text("onedrive_account_email"),
+	onedriveConnectedAt: timestamp("onedrive_connected_at", { withTimezone: true, mode: 'string' }),
+}, (table): PgTableExtraConfigValue[] => [
+	uniqueIndex("employee_profiles_user_id_key").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+]);
+
+export const errorLogs = pgTable("error_logs", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	source: text(),
+	feature: text(),
+	statusCode: integer("status_code"),
+	message: text(),
+	metadata: jsonb(),
+	resourceType: text("resource_type"),
+	resourceId: text("resource_id"),
+	threadId: uuid("thread_id"),
+}, (table): PgTableExtraConfigValue[] => [
+	index("error_logs_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("error_logs_feature_idx").using("btree", table.feature.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("text_ops")),
+	index("error_logs_source_status_idx").using("btree", table.source.asc().nullsLast().op("text_ops"), table.statusCode.asc().nullsLast().op("int4_ops"), table.createdAt.desc().nullsFirst().op("int4_ops")),
+]);
+
+export const followUps = pgTable("follow_ups", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	companyId: uuid("company_id"),
+	threadId: uuid("thread_id"),
+	messageId: uuid("message_id"),
+	ownerParty: text("owner_party").notNull(),
+	ownerEmail: text("owner_email"),
+	counterpartyName: text("counterparty_name"),
+	counterpartyEmail: text("counterparty_email"),
+	what: text().notNull(),
+	dueAt: timestamp("due_at", { withTimezone: true, mode: 'string' }),
+	sinceAt: timestamp("since_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	status: text().default('open').notNull(),
+	snoozedUntil: timestamp("snoozed_until", { withTimezone: true, mode: 'string' }),
+	closedAt: timestamp("closed_at", { withTimezone: true, mode: 'string' }),
+	closedBy: text("closed_by"),
+	closedByMessageId: uuid("closed_by_message_id"),
+	sourceKind: text("source_kind").notNull(),
+	sourceRef: text("source_ref"),
+	sourceLabel: text("source_label"),
+	chaseDraftId: uuid("chase_draft_id"),
+	chasedAt: timestamp("chased_at", { withTimezone: true, mode: 'string' }),
+	chaseCount: integer("chase_count").default(0).notNull(),
+	dedupeKey: text("dedupe_key").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("follow_ups_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
+	index("follow_ups_open_idx").using("btree", table.status.asc().nullsLast().op("timestamptz_ops"), table.dueAt.asc().nullsLast().op("text_ops")),
+	index("follow_ups_owner_idx").using("btree", table.ownerEmail.asc().nullsLast().op("text_ops")),
+	index("follow_ups_source_idx").using("btree", table.sourceKind.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
+	index("follow_ups_thread_idx").using("btree", table.threadId.asc().nullsLast().op("uuid_ops")).where(sql`(status = ANY (ARRAY['open'::text, 'snoozed'::text]))`),
+	foreignKey({
+			columns: [table.closedByMessageId],
+			foreignColumns: [emailMessages.id],
+			name: "follow_ups_closed_by_message_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.companyId],
+			foreignColumns: [companies.id],
+			name: "follow_ups_company_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.messageId],
+			foreignColumns: [emailMessages.id],
+			name: "follow_ups_message_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "follow_ups_thread_id_fkey"
+		}).onDelete("set null"),
+	unique("follow_ups_dedupe_key_key").on(table.dedupeKey),
+	check("follow_ups_owner_party_check", sql`owner_party = ANY (ARRAY['trs'::text, 'insurer'::text, 'client'::text, 'date'::text])`),
+	check("follow_ups_source_kind_check", sql`source_kind = ANY (ARRAY['email'::text, 'rfq'::text, 'renewal'::text, 'debit_note'::text, 'claim'::text])`),
+	check("follow_ups_status_check", sql`status = ANY (ARRAY['open'::text, 'done'::text, 'snoozed'::text, 'dismissed'::text])`),
 ]);
 
 export const emailThreads = pgTable("email_threads", {
@@ -1449,62 +1499,16 @@ export const emailThreads = pgTable("email_threads", {
 	check("email_threads_label_check", sql`(label IS NULL) OR (label = ANY (ARRAY['quotation_request'::text, 'quote_received'::text, 'renewal'::text, 'claim'::text, 'member_movement'::text, 'endorsement'::text, 'document'::text, 'payment'::text, 'other'::text]))`),
 ]);
 
-export const followUps = pgTable("follow_ups", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	companyId: uuid("company_id"),
-	threadId: uuid("thread_id"),
-	messageId: uuid("message_id"),
-	ownerParty: text("owner_party").notNull(),
-	ownerEmail: text("owner_email"),
-	counterpartyName: text("counterparty_name"),
-	counterpartyEmail: text("counterparty_email"),
-	what: text().notNull(),
-	dueAt: timestamp("due_at", { withTimezone: true, mode: 'string' }),
-	sinceAt: timestamp("since_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	status: text().default('open').notNull(),
-	snoozedUntil: timestamp("snoozed_until", { withTimezone: true, mode: 'string' }),
-	closedAt: timestamp("closed_at", { withTimezone: true, mode: 'string' }),
-	closedBy: text("closed_by"),
-	closedByMessageId: uuid("closed_by_message_id"),
-	sourceKind: text("source_kind").notNull(),
-	sourceRef: text("source_ref"),
-	sourceLabel: text("source_label"),
-	chaseDraftId: uuid("chase_draft_id"),
-	chasedAt: timestamp("chased_at", { withTimezone: true, mode: 'string' }),
-	chaseCount: integer("chase_count").default(0).notNull(),
-	dedupeKey: text("dedupe_key").notNull(),
+export const gbProductCanon = pgTable("gb_product_canon", {
+	code: text().primaryKey().notNull(),
+	name: text().notNull(),
+	abbrev: text(),
+	kind: text().default('core').notNull(),
+	sortOrder: integer("sort_order").default(100).notNull(),
+	notes: text(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
-	index("follow_ups_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
-	index("follow_ups_open_idx").using("btree", table.status.asc().nullsLast().op("timestamptz_ops"), table.dueAt.asc().nullsLast().op("text_ops")),
-	index("follow_ups_owner_idx").using("btree", table.ownerEmail.asc().nullsLast().op("text_ops")),
-	index("follow_ups_source_idx").using("btree", table.sourceKind.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
-	index("follow_ups_thread_idx").using("btree", table.threadId.asc().nullsLast().op("uuid_ops")).where(sql`(status = ANY (ARRAY['open'::text, 'snoozed'::text]))`),
-	foreignKey({
-			columns: [table.closedByMessageId],
-			foreignColumns: [emailMessages.id],
-			name: "follow_ups_closed_by_message_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.companyId],
-			foreignColumns: [companies.id],
-			name: "follow_ups_company_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.messageId],
-			foreignColumns: [emailMessages.id],
-			name: "follow_ups_message_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "follow_ups_thread_id_fkey"
-		}).onDelete("set null"),
-	unique("follow_ups_dedupe_key_key").on(table.dedupeKey),
-	check("follow_ups_owner_party_check", sql`owner_party = ANY (ARRAY['trs'::text, 'insurer'::text, 'client'::text, 'date'::text])`),
-	check("follow_ups_source_kind_check", sql`source_kind = ANY (ARRAY['email'::text, 'rfq'::text, 'renewal'::text, 'debit_note'::text, 'claim'::text])`),
-	check("follow_ups_status_check", sql`status = ANY (ARRAY['open'::text, 'done'::text, 'snoozed'::text, 'dismissed'::text])`),
+	check("gb_product_canon_kind_check", sql`kind = ANY (ARRAY['core'::text, 'rider'::text])`),
 ]);
 
 export const gbComputationRules = pgTable("gb_computation_rules", {
@@ -1677,28 +1681,6 @@ export const gbQuotations = pgTable("gb_quotations", {
 		}).onDelete("set null"),
 ]);
 
-export const gbQuoteLines = pgTable("gb_quote_lines", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	quotationId: uuid("quotation_id").notNull(),
-	rateTableId: uuid("rate_table_id"),
-	insurerName: text("insurer_name"),
-	memberIndex: integer("member_index"),
-	memberName: text("member_name"),
-	relationship: text(),
-	category: text(),
-	age: integer(),
-	productCode: text("product_code"),
-	planCode: text("plan_code"),
-	premium: numeric(),
-	note: text(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.quotationId],
-			foreignColumns: [gbQuotations.id],
-			name: "gb_quote_lines_quotation_id_fkey"
-		}).onDelete("set null"),
-]);
-
 export const gbRateTables = pgTable("gb_rate_tables", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	insurerId: uuid("insurer_id"),
@@ -1744,6 +1726,28 @@ export const gbRateTables = pgTable("gb_rate_tables", {
 			name: "gb_rate_tables_insurer_id_fkey"
 		}).onDelete("set null"),
 	check("gb_rate_tables_schedule_status_check", sql`schedule_status = ANY (ARRAY['none'::text, 'scanning'::text, 'in_review'::text, 'approved'::text, 'failed'::text])`),
+]);
+
+export const gbQuoteLines = pgTable("gb_quote_lines", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	quotationId: uuid("quotation_id").notNull(),
+	rateTableId: uuid("rate_table_id"),
+	insurerName: text("insurer_name"),
+	memberIndex: integer("member_index"),
+	memberName: text("member_name"),
+	relationship: text(),
+	category: text(),
+	age: integer(),
+	productCode: text("product_code"),
+	planCode: text("plan_code"),
+	premium: numeric(),
+	note: text(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.quotationId],
+			foreignColumns: [gbQuotations.id],
+			name: "gb_quote_lines_quotation_id_fkey"
+		}).onDelete("set null"),
 ]);
 
 export const gbRates = pgTable("gb_rates", {
@@ -1799,30 +1803,6 @@ export const gbBenefits = pgTable("gb_benefits", {
 		}).onDelete("set null"),
 ]);
 
-export const geminiUsageLog = pgTable("gemini_usage_log", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	feature: text().notNull(),
-	inputTokens: integer("input_tokens").default(0).notNull(),
-	outputTokens: integer("output_tokens").default(0).notNull(),
-	costUsd: numeric("cost_usd").default('0').notNull(),
-	threadId: uuid("thread_id"),
-	provider: text(),
-	model: text(),
-	companyId: uuid("company_id"),
-	ok: boolean().default(true),
-	metadata: jsonb(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("gemini_usage_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	index("gemini_usage_feature_idx").using("btree", table.feature.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("text_ops")),
-	index("gemini_usage_log_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "gemini_usage_log_thread_id_fkey"
-		}).onDelete("set null"),
-]);
-
 export const gbBenefitCanon = pgTable("gb_benefit_canon", {
 	code: text().primaryKey().notNull(),
 	productCode: text("product_code").notNull(),
@@ -1843,16 +1823,83 @@ export const gbBenefitCanon = pgTable("gb_benefit_canon", {
 	check("gb_benefit_canon_compare_as_check", sql`compare_as = ANY (ARRAY['sgd_limit'::text, 'sgd_per_visit'::text, 'sgd_per_day'::text, 'room_tier'::text, 'percent'::text, 'salary_multiple'::text, 'as_charged'::text, 'days'::text, 'text'::text, 'boolean'::text])`),
 ]);
 
-export const gbProductCanon = pgTable("gb_product_canon", {
-	code: text().primaryKey().notNull(),
-	name: text().notNull(),
-	abbrev: text(),
-	kind: text().default('core').notNull(),
-	sortOrder: integer("sort_order").default(100).notNull(),
-	notes: text(),
+export const geoPromptResults = pgTable("geo_prompt_results", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	analysisId: uuid("analysis_id").notNull(),
+	siteId: uuid("site_id").notNull(),
+	promptId: uuid("prompt_id").notNull(),
+	citedDomains: text("cited_domains").array().default([""]).notNull(),
+	citedUrls: text("cited_urls").array().default([""]).notNull(),
+	searchUrls: text("search_urls").array().default([""]).notNull(),
+	usCited: boolean("us_cited").default(false).notNull(),
+	tone: text().default('not_mentioned').notNull(),
+	answerExcerpt: text("answer_excerpt"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
-	check("gb_product_canon_kind_check", sql`kind = ANY (ARRAY['core'::text, 'rider'::text])`),
+	index("geo_prompt_results_analysis_idx").using("btree", table.analysisId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.analysisId],
+			foreignColumns: [geoAnalyses.id],
+			name: "geo_prompt_results_analysis_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.promptId],
+			foreignColumns: [geoPrompts.id],
+			name: "geo_prompt_results_prompt_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.siteId],
+			foreignColumns: [marketingSites.id],
+			name: "geo_prompt_results_site_id_fkey"
+		}).onDelete("cascade"),
+	unique("geo_prompt_results_analysis_id_prompt_id_key").on(table.analysisId, table.promptId),
+	check("geo_prompt_results_tone_check", sql`tone = ANY (ARRAY['positive'::text, 'neutral'::text, 'negative'::text, 'not_mentioned'::text])`),
+]);
+
+export const hrLinks = pgTable("hr_links", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	reference: text().notNull(),
+	companyId: uuid("company_id"),
+	companyName: text("company_name").notNull(),
+	quotationId: uuid("quotation_id"),
+	effectiveDate: date("effective_date"),
+	recipientName: text("recipient_name").notNull(),
+	recipientEmail: text("recipient_email").notNull(),
+	ccEmail: text("cc_email"),
+	requestedBy: text("requested_by"),
+	message: text().default('').notNull(),
+	tokenHash: text("token_hash").notNull(),
+	status: text().default('sent').notNull(),
+	sentBy: text("sent_by"),
+	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }).notNull(),
+	openedAt: timestamp("opened_at", { withTimezone: true, mode: 'string' }),
+	submittedAt: timestamp("submitted_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	policyId: uuid("policy_id"),
+}, (table): PgTableExtraConfigValue[] => [
+	index("hr_links_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops"), table.createdAt.desc().nullsFirst().op("uuid_ops")),
+	index("hr_links_policy_idx").using("btree", table.policyId.asc().nullsLast().op("uuid_ops")).where(sql`(policy_id IS NOT NULL)`),
+	index("hr_links_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.expiresAt.asc().nullsLast().op("timestamptz_ops")),
+	foreignKey({
+			columns: [table.companyId],
+			foreignColumns: [companies.id],
+			name: "hr_links_company_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.policyId],
+			foreignColumns: [policies.id],
+			name: "hr_links_policy_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.quotationId],
+			foreignColumns: [gbQuotations.id],
+			name: "hr_links_quotation_id_fkey"
+		}).onDelete("set null"),
+	unique("hr_links_reference_key").on(table.reference),
+	unique("hr_links_token_hash_key").on(table.tokenHash),
+	check("hr_links_status_check", sql`status = ANY (ARRAY['sent'::text, 'opened'::text, 'submitted'::text, 'expired'::text, 'closed'::text])`),
 ]);
 
 export const gscConnections = pgTable("gsc_connections", {
@@ -1876,66 +1923,28 @@ export const gscConnections = pgTable("gsc_connections", {
 	check("gsc_connections_status_check", sql`status = ANY (ARRAY['connected'::text, 'needs_property'::text, 'error'::text, 'disconnected'::text])`),
 ]);
 
-export const geoAnalyses = pgTable("geo_analyses", {
+export const geminiUsageLog = pgTable("gemini_usage_log", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	siteId: uuid("site_id").notNull(),
-	version: integer().notNull(),
-	status: text().default('queued').notNull(),
-	pagesRead: integer("pages_read").default(0).notNull(),
-	promptsChecked: integer("prompts_checked").default(0).notNull(),
-	citedCount: integer("cited_count").default(0).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	feature: text().notNull(),
+	inputTokens: integer("input_tokens").default(0).notNull(),
+	outputTokens: integer("output_tokens").default(0).notNull(),
 	costUsd: numeric("cost_usd").default('0').notNull(),
+	threadId: uuid("thread_id"),
+	provider: text(),
 	model: text(),
-	summary: jsonb().default({}).notNull(),
-	error: text(),
-	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }),
-	completedAt: timestamp("completed_at", { withTimezone: true, mode: 'string' }),
-	createdBy: text("created_by"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("geo_analyses_queue_idx").using("btree", table.status.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("text_ops")).where(sql`(status = ANY (ARRAY['queued'::text, 'running'::text]))`),
-	index("geo_analyses_site_idx").using("btree", table.siteId.asc().nullsLast().op("int4_ops"), table.version.desc().nullsFirst().op("uuid_ops")),
-	foreignKey({
-			columns: [table.siteId],
-			foreignColumns: [marketingSites.id],
-			name: "geo_analyses_site_id_fkey"
-		}).onDelete("cascade"),
-	unique("geo_analyses_site_id_version_key").on(table.siteId, table.version),
-	check("geo_analyses_status_check", sql`status = ANY (ARRAY['queued'::text, 'running'::text, 'completed'::text, 'failed'::text])`),
-]);
-
-export const hrSubmissions = pgTable("hr_submissions", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	linkId: uuid("link_id").notNull(),
 	companyId: uuid("company_id"),
-	source: text().notNull(),
-	sourceMeta: jsonb("source_meta").default({}).notNull(),
-	employees: jsonb().default([]).notNull(),
-	dependants: jsonb().default([]).notNull(),
-	employeeCount: integer("employee_count").default(0).notNull(),
-	dependantCount: integer("dependant_count").default(0).notNull(),
-	status: text().default('draft').notNull(),
-	submittedByName: text("submitted_by_name"),
-	submittedByEmail: text("submitted_by_email"),
-	consentText: text("consent_text"),
-	consentAt: timestamp("consent_at", { withTimezone: true, mode: 'string' }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	ok: boolean().default(true),
+	metadata: jsonb(),
 }, (table): PgTableExtraConfigValue[] => [
-	index("hr_submissions_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	index("hr_submissions_link_idx").using("btree", table.linkId.asc().nullsLast().op("uuid_ops"), table.updatedAt.desc().nullsFirst().op("uuid_ops")),
+	index("gemini_usage_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("gemini_usage_feature_idx").using("btree", table.feature.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("text_ops")),
+	index("gemini_usage_log_created_idx").using("btree", table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
 	foreignKey({
-			columns: [table.companyId],
-			foreignColumns: [companies.id],
-			name: "hr_submissions_company_id_fkey"
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "gemini_usage_log_thread_id_fkey"
 		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.linkId],
-			foreignColumns: [hrLinks.id],
-			name: "hr_submissions_link_id_fkey"
-		}).onDelete("cascade"),
-	check("hr_submissions_source_check", sql`source = ANY (ARRAY['csv'::text, 'talenox'::text, 'simplepay'::text, 'workday'::text, 'hibob'::text, 'deel'::text, 'bamboohr'::text, 'manual'::text])`),
-	check("hr_submissions_status_check", sql`status = ANY (ARRAY['draft'::text, 'submitted'::text])`),
 ]);
 
 export const gmailMailboxes = pgTable("gmail_mailboxes", {
@@ -2028,79 +2037,38 @@ export const gscQueryPages = pgTable("gsc_query_pages", {
 		}).onDelete("cascade"),
 ]);
 
-export const hrLinks = pgTable("hr_links", {
+export const hrSubmissions = pgTable("hr_submissions", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	reference: text().notNull(),
+	linkId: uuid("link_id").notNull(),
 	companyId: uuid("company_id"),
-	companyName: text("company_name").notNull(),
-	quotationId: uuid("quotation_id"),
-	effectiveDate: date("effective_date"),
-	recipientName: text("recipient_name").notNull(),
-	recipientEmail: text("recipient_email").notNull(),
-	ccEmail: text("cc_email"),
-	requestedBy: text("requested_by"),
-	message: text().default('').notNull(),
-	tokenHash: text("token_hash").notNull(),
-	status: text().default('sent').notNull(),
-	sentBy: text("sent_by"),
-	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	expiresAt: timestamp("expires_at", { withTimezone: true, mode: 'string' }).notNull(),
-	openedAt: timestamp("opened_at", { withTimezone: true, mode: 'string' }),
-	submittedAt: timestamp("submitted_at", { withTimezone: true, mode: 'string' }),
+	source: text().notNull(),
+	sourceMeta: jsonb("source_meta").default({}).notNull(),
+	employees: jsonb().default([]).notNull(),
+	dependants: jsonb().default([]).notNull(),
+	employeeCount: integer("employee_count").default(0).notNull(),
+	dependantCount: integer("dependant_count").default(0).notNull(),
+	status: text().default('draft').notNull(),
+	submittedByName: text("submitted_by_name"),
+	submittedByEmail: text("submitted_by_email"),
+	consentText: text("consent_text"),
+	consentAt: timestamp("consent_at", { withTimezone: true, mode: 'string' }),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	policyId: uuid("policy_id"),
 }, (table): PgTableExtraConfigValue[] => [
-	index("hr_links_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops"), table.createdAt.desc().nullsFirst().op("uuid_ops")),
-	index("hr_links_policy_idx").using("btree", table.policyId.asc().nullsLast().op("uuid_ops")).where(sql`(policy_id IS NOT NULL)`),
-	index("hr_links_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops"), table.expiresAt.asc().nullsLast().op("timestamptz_ops")),
+	index("hr_submissions_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("hr_submissions_link_idx").using("btree", table.linkId.asc().nullsLast().op("uuid_ops"), table.updatedAt.desc().nullsFirst().op("uuid_ops")),
 	foreignKey({
 			columns: [table.companyId],
 			foreignColumns: [companies.id],
-			name: "hr_links_company_id_fkey"
+			name: "hr_submissions_company_id_fkey"
 		}).onDelete("set null"),
 	foreignKey({
-			columns: [table.policyId],
-			foreignColumns: [policies.id],
-			name: "hr_links_policy_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.quotationId],
-			foreignColumns: [gbQuotations.id],
-			name: "hr_links_quotation_id_fkey"
-		}).onDelete("set null"),
-	unique("hr_links_reference_key").on(table.reference),
-	unique("hr_links_token_hash_key").on(table.tokenHash),
-	check("hr_links_status_check", sql`status = ANY (ARRAY['sent'::text, 'opened'::text, 'submitted'::text, 'expired'::text, 'closed'::text])`),
-]);
-
-export const insurerContacts = pgTable("insurer_contacts", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	insurerId: uuid("insurer_id").notNull(),
-	productLine: text("product_line").notNull(),
-	notes: text(),
-	updatedBy: uuid("updated_by"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	contactId: uuid("contact_id"),
-	roleTitle: text("role_title"),
-	companyId: uuid("company_id"),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.companyId],
-			foreignColumns: [companies.id],
-			name: "insurer_contacts_company_id_fkey"
-		}),
-	foreignKey({
-			columns: [table.contactId],
-			foreignColumns: [contacts.id],
-			name: "insurer_contacts_contact_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.insurerId],
-			foreignColumns: [insurers.id],
-			name: "insurer_contacts_insurer_id_fkey"
-		}).onDelete("set null"),
+			columns: [table.linkId],
+			foreignColumns: [hrLinks.id],
+			name: "hr_submissions_link_id_fkey"
+		}).onDelete("cascade"),
+	check("hr_submissions_source_check", sql`source = ANY (ARRAY['csv'::text, 'talenox'::text, 'simplepay'::text, 'workday'::text, 'hibob'::text, 'deel'::text, 'bamboohr'::text, 'manual'::text])`),
+	check("hr_submissions_status_check", sql`status = ANY (ARRAY['draft'::text, 'submitted'::text])`),
 ]);
 
 export const geoPrompts = pgTable("geo_prompts", {
@@ -2172,53 +2140,32 @@ export const inboundLeads = pgTable("inbound_leads", {
 		}).onDelete("set null"),
 ]);
 
-export const geoPromptResults = pgTable("geo_prompt_results", {
+export const geoAnalyses = pgTable("geo_analyses", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	analysisId: uuid("analysis_id").notNull(),
 	siteId: uuid("site_id").notNull(),
-	promptId: uuid("prompt_id").notNull(),
-	citedDomains: text("cited_domains").array().default([""]).notNull(),
-	citedUrls: text("cited_urls").array().default([""]).notNull(),
-	searchUrls: text("search_urls").array().default([""]).notNull(),
-	usCited: boolean("us_cited").default(false).notNull(),
-	tone: text().default('not_mentioned').notNull(),
-	answerExcerpt: text("answer_excerpt"),
+	version: integer().notNull(),
+	status: text().default('queued').notNull(),
+	pagesRead: integer("pages_read").default(0).notNull(),
+	promptsChecked: integer("prompts_checked").default(0).notNull(),
+	citedCount: integer("cited_count").default(0).notNull(),
+	costUsd: numeric("cost_usd").default('0').notNull(),
+	model: text(),
+	summary: jsonb().default({}).notNull(),
+	error: text(),
+	startedAt: timestamp("started_at", { withTimezone: true, mode: 'string' }),
+	completedAt: timestamp("completed_at", { withTimezone: true, mode: 'string' }),
+	createdBy: text("created_by"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
-	index("geo_prompt_results_analysis_idx").using("btree", table.analysisId.asc().nullsLast().op("uuid_ops")),
-	foreignKey({
-			columns: [table.analysisId],
-			foreignColumns: [geoAnalyses.id],
-			name: "geo_prompt_results_analysis_id_fkey"
-		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.promptId],
-			foreignColumns: [geoPrompts.id],
-			name: "geo_prompt_results_prompt_id_fkey"
-		}).onDelete("cascade"),
+	index("geo_analyses_queue_idx").using("btree", table.status.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("text_ops")).where(sql`(status = ANY (ARRAY['queued'::text, 'running'::text]))`),
+	index("geo_analyses_site_idx").using("btree", table.siteId.asc().nullsLast().op("int4_ops"), table.version.desc().nullsFirst().op("uuid_ops")),
 	foreignKey({
 			columns: [table.siteId],
 			foreignColumns: [marketingSites.id],
-			name: "geo_prompt_results_site_id_fkey"
+			name: "geo_analyses_site_id_fkey"
 		}).onDelete("cascade"),
-	unique("geo_prompt_results_analysis_id_prompt_id_key").on(table.analysisId, table.promptId),
-	check("geo_prompt_results_tone_check", sql`tone = ANY (ARRAY['positive'::text, 'neutral'::text, 'negative'::text, 'not_mentioned'::text])`),
-]);
-
-export const hrLinkEvents = pgTable("hr_link_events", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	linkId: uuid("link_id").notNull(),
-	kind: text().notNull(),
-	detail: jsonb().default({}).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("hr_link_events_link_idx").using("btree", table.linkId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("timestamptz_ops")),
-	foreignKey({
-			columns: [table.linkId],
-			foreignColumns: [hrLinks.id],
-			name: "hr_link_events_link_id_fkey"
-		}).onDelete("cascade"),
-	check("hr_link_events_kind_check", sql`kind = ANY (ARRAY['sent'::text, 'resent'::text, 'opened'::text, 'uploaded'::text, 'connected'::text, 'saved'::text, 'submitted'::text, 'expired'::text, 'closed'::text, 'error'::text])`),
+	unique("geo_analyses_site_id_version_key").on(table.siteId, table.version),
+	check("geo_analyses_status_check", sql`status = ANY (ARRAY['queued'::text, 'running'::text, 'completed'::text, 'failed'::text])`),
 ]);
 
 export const insurerProducts = pgTable("insurer_products", {
@@ -2273,6 +2220,35 @@ export const interactions = pgTable("interactions", {
 		}).onDelete("set null"),
 ]);
 
+export const insurerContacts = pgTable("insurer_contacts", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	insurerId: uuid("insurer_id").notNull(),
+	productLine: text("product_line").notNull(),
+	notes: text(),
+	updatedBy: uuid("updated_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	contactId: uuid("contact_id"),
+	roleTitle: text("role_title"),
+	companyId: uuid("company_id"),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.companyId],
+			foreignColumns: [companies.id],
+			name: "insurer_contacts_company_id_fkey"
+		}),
+	foreignKey({
+			columns: [table.contactId],
+			foreignColumns: [contacts.id],
+			name: "insurer_contacts_contact_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.insurerId],
+			foreignColumns: [insurers.id],
+			name: "insurer_contacts_insurer_id_fkey"
+		}).onDelete("set null"),
+]);
+
 export const knowledgeEntries = pgTable("knowledge_entries", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	siteId: uuid("site_id").notNull(),
@@ -2315,42 +2291,6 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
 	sourceFolder: text("source_folder"),
 }, (table): PgTableExtraConfigValue[] => [
 	uniqueIndex("knowledge_chunks_file_chunk_key").using("btree", table.fileId.asc().nullsLast().op("int4_ops"), table.chunkIndex.asc().nullsLast().op("int4_ops")),
-]);
-
-export const salesOutreach = pgTable("sales_outreach", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	accountId: uuid("account_id").notNull(),
-	contactId: uuid("contact_id"),
-	company: text(),
-	email: text(),
-	channel: text().default('email').notNull(),
-	location: text(),
-	subject: text(),
-	body: text(),
-	version: integer().default(1).notNull(),
-	status: text().default('pending_approval').notNull(),
-	replyClass: text("reply_class"),
-	source: text(),
-	notes: text(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	approvedAt: timestamp("approved_at", { withTimezone: true, mode: 'string' }),
-	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("sales_outreach_account_idx").using("btree", table.accountId.asc().nullsLast().op("int4_ops"), table.version.desc().nullsFirst().op("uuid_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	index("sales_outreach_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
-	foreignKey({
-			columns: [table.accountId],
-			foreignColumns: [salesAccounts.id],
-			name: "sales_outreach_account_id_fkey"
-		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.contactId],
-			foreignColumns: [salesContacts.id],
-			name: "sales_outreach_contact_id_fkey"
-		}).onDelete("set null"),
-	check("sales_outreach_channel_check", sql`channel = ANY (ARRAY['email'::text, 'whatsapp'::text, 'linkedin'::text, 'other'::text])`),
-	check("sales_outreach_status_check", sql`status = ANY (ARRAY['pending_approval'::text, 'approved'::text, 'rejected'::text, 'queued'::text, 'sent'::text, 'replied'::text, 'suppressed'::text, 'cancelled'::text])`),
 ]);
 
 export const knowledgeVersions = pgTable("knowledge_versions", {
@@ -2411,6 +2351,42 @@ export const salesContacts = pgTable("sales_contacts", {
 			name: "sales_contacts_account_id_fkey"
 		}).onDelete("cascade"),
 	check("sales_contacts_email_status_check", sql`email_status = ANY (ARRAY['verified'::text, 'found_publicly'::text, 'suggested'::text, 'unknown'::text, 'invalid'::text, 'bounced'::text, 'suppressed'::text])`),
+]);
+
+export const salesOutreach = pgTable("sales_outreach", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	accountId: uuid("account_id").notNull(),
+	contactId: uuid("contact_id"),
+	company: text(),
+	email: text(),
+	channel: text().default('email').notNull(),
+	location: text(),
+	subject: text(),
+	body: text(),
+	version: integer().default(1).notNull(),
+	status: text().default('pending_approval').notNull(),
+	replyClass: text("reply_class"),
+	source: text(),
+	notes: text(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	approvedAt: timestamp("approved_at", { withTimezone: true, mode: 'string' }),
+	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("sales_outreach_account_idx").using("btree", table.accountId.asc().nullsLast().op("int4_ops"), table.version.desc().nullsFirst().op("uuid_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("sales_outreach_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.accountId],
+			foreignColumns: [salesAccounts.id],
+			name: "sales_outreach_account_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.contactId],
+			foreignColumns: [salesContacts.id],
+			name: "sales_outreach_contact_id_fkey"
+		}).onDelete("set null"),
+	check("sales_outreach_channel_check", sql`channel = ANY (ARRAY['email'::text, 'whatsapp'::text, 'linkedin'::text, 'other'::text])`),
+	check("sales_outreach_status_check", sql`status = ANY (ARRAY['pending_approval'::text, 'approved'::text, 'rejected'::text, 'queued'::text, 'sent'::text, 'replied'::text, 'suppressed'::text, 'cancelled'::text])`),
 ]);
 
 export const insurerDeclines = pgTable("insurer_declines", {
@@ -2499,35 +2475,6 @@ export const salesAccounts = pgTable("sales_accounts", {
 	check("sales_accounts_status_check", sql`status = ANY (ARRAY['new'::text, 'researching'::text, 'scored'::text, 'queued'::text, 'suppressed'::text, 'rejected'::text, 'closed'::text])`),
 ]);
 
-export const marketingCompetitors = pgTable("marketing_competitors", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	siteId: uuid("site_id").notNull(),
-	name: text().notNull(),
-	url: text().notNull(),
-	domain: text().notNull(),
-	blogUrl: text("blog_url"),
-	sitemapUrl: text("sitemap_url"),
-	status: text().default('active').notNull(),
-	pagesCount: integer("pages_count").default(0).notNull(),
-	bestPageUrl: text("best_page_url"),
-	bestPageNote: text("best_page_note"),
-	citedCount: integer("cited_count").default(0).notNull(),
-	searchHits: integer("search_hits").default(0).notNull(),
-	lastAnalysedAt: timestamp("last_analysed_at", { withTimezone: true, mode: 'string' }),
-	addedBy: text("added_by"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("marketing_competitors_site_idx").using("btree", table.siteId.asc().nullsLast().op("uuid_ops")).where(sql`(status = 'active'::text)`),
-	foreignKey({
-			columns: [table.siteId],
-			foreignColumns: [marketingSites.id],
-			name: "marketing_competitors_site_id_fkey"
-		}).onDelete("cascade"),
-	unique("marketing_competitors_site_id_domain_key").on(table.domain, table.siteId),
-	check("marketing_competitors_status_check", sql`status = ANY (ARRAY['active'::text, 'removed'::text])`),
-]);
-
 export const insurers = pgTable("insurers", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	name: text().notNull(),
@@ -2565,28 +2512,6 @@ export const lineChecklistItems = pgTable("line_checklist_items", {
 			name: "line_checklist_items_line_fkey"
 		}).onDelete("cascade"),
 	check("line_checklist_items_found_by_check", sql`found_by = ANY (ARRAY['file'::text, 'wish'::text, 'person'::text])`),
-]);
-
-export const newsletterSubscribers = pgTable("newsletter_subscribers", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	siteId: uuid("site_id").notNull(),
-	email: text().notNull(),
-	status: text().default('pending').notNull(),
-	sourceUrl: text("source_url"),
-	confirmSentAt: timestamp("confirm_sent_at", { withTimezone: true, mode: 'string' }),
-	confirmedAt: timestamp("confirmed_at", { withTimezone: true, mode: 'string' }),
-	unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true, mode: 'string' }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("newsletter_subscribers_site_idx").using("btree", table.siteId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
-	foreignKey({
-			columns: [table.siteId],
-			foreignColumns: [marketingSites.id],
-			name: "newsletter_subscribers_site_id_fkey"
-		}),
-	unique("newsletter_subscribers_site_id_email_key").on(table.email, table.siteId),
-	check("newsletter_subscribers_status_check", sql`status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'unsubscribed'::text])`),
 ]);
 
 export const policies = pgTable("policies", {
@@ -2647,6 +2572,28 @@ export const policies = pgTable("policies", {
 	check("policies_lifecycle_check", sql`lifecycle = ANY (ARRAY['quoting'::text, 'presented'::text, 'bound'::text, 'live'::text, 'renewal_due'::text, 'lapsed'::text, 'declined'::text, 'closed'::text])`),
 ]);
 
+export const newsletterSubscribers = pgTable("newsletter_subscribers", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	siteId: uuid("site_id").notNull(),
+	email: text().notNull(),
+	status: text().default('pending').notNull(),
+	sourceUrl: text("source_url"),
+	confirmSentAt: timestamp("confirm_sent_at", { withTimezone: true, mode: 'string' }),
+	confirmedAt: timestamp("confirmed_at", { withTimezone: true, mode: 'string' }),
+	unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("newsletter_subscribers_site_idx").using("btree", table.siteId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.siteId],
+			foreignColumns: [marketingSites.id],
+			name: "newsletter_subscribers_site_id_fkey"
+		}),
+	unique("newsletter_subscribers_site_id_email_key").on(table.email, table.siteId),
+	check("newsletter_subscribers_status_check", sql`status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'unsubscribed'::text])`),
+]);
+
 export const newsletterIssues = pgTable("newsletter_issues", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	siteId: uuid("site_id").notNull(),
@@ -2673,81 +2620,33 @@ export const newsletterIssues = pgTable("newsletter_issues", {
 	check("newsletter_issues_status_check", sql`status = ANY (ARRAY['draft'::text, 'sending'::text, 'sent'::text])`),
 ]);
 
-export const movementBatches = pgTable("movement_batches", {
+export const marketingCompetitors = pgTable("marketing_competitors", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	policyId: uuid("policy_id").notNull(),
-	companyId: uuid("company_id").notNull(),
-	insurerCompanyId: uuid("insurer_company_id"),
-	cadence: text().default('weekly').notNull(),
-	windowStart: date("window_start").notNull(),
-	windowEnd: date("window_end").notNull(),
-	status: text().default('open').notNull(),
-	workItemId: uuid("work_item_id"),
-	draftId: uuid("draft_id"),
-	pairId: uuid("pair_id"),
-	threadId: uuid("thread_id"),
-	sheetStorageUrl: text("sheet_storage_url"),
-	counts: jsonb().default({}).notNull(),
-	estimateTotal: numeric("estimate_total", { precision: 14, scale:  2 }),
-	notedTotal: numeric("noted_total", { precision: 14, scale:  2 }),
-	needsHuman: text("needs_human"),
-	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
-	notedAt: timestamp("noted_at", { withTimezone: true, mode: 'string' }),
-	billedAt: timestamp("billed_at", { withTimezone: true, mode: 'string' }),
-	settledAt: timestamp("settled_at", { withTimezone: true, mode: 'string' }),
-	chaseCount: integer("chase_count").default(0).notNull(),
-	lastChaseAt: timestamp("last_chase_at", { withTimezone: true, mode: 'string' }),
-	nextChaseAt: timestamp("next_chase_at", { withTimezone: true, mode: 'string' }),
+	siteId: uuid("site_id").notNull(),
+	name: text().notNull(),
+	url: text().notNull(),
+	domain: text().notNull(),
+	blogUrl: text("blog_url"),
+	sitemapUrl: text("sitemap_url"),
+	status: text().default('active').notNull(),
+	pagesCount: integer("pages_count").default(0).notNull(),
+	bestPageUrl: text("best_page_url"),
+	bestPageNote: text("best_page_note"),
+	citedCount: integer("cited_count").default(0).notNull(),
+	searchHits: integer("search_hits").default(0).notNull(),
+	lastAnalysedAt: timestamp("last_analysed_at", { withTimezone: true, mode: 'string' }),
+	addedBy: text("added_by"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	revision: integer().default(1).notNull(),
-	parentBatchId: uuid("parent_batch_id"),
-	subState: text("sub_state"),
-	awaitingSince: timestamp("awaiting_since", { withTimezone: true, mode: 'string' }),
-	question: text(),
 }, (table): PgTableExtraConfigValue[] => [
-	index("movement_batches_chase_idx").using("btree", table.nextChaseAt.asc().nullsLast().op("timestamptz_ops")).where(sql`(status = 'sent'::text)`),
-	uniqueIndex("movement_batches_open_once").using("btree", table.policyId.asc().nullsLast().op("date_ops"), table.windowStart.asc().nullsLast().op("date_ops")).where(sql`(status = 'open'::text)`),
-	index("movement_batches_parent_idx").using("btree", table.parentBatchId.asc().nullsLast().op("uuid_ops")).where(sql`(parent_batch_id IS NOT NULL)`),
-	index("movement_batches_policy_idx").using("btree", table.policyId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
+	index("marketing_competitors_site_idx").using("btree", table.siteId.asc().nullsLast().op("uuid_ops")).where(sql`(status = 'active'::text)`),
 	foreignKey({
-			columns: [table.companyId],
-			foreignColumns: [companies.id],
-			name: "movement_batches_company_id_fkey"
+			columns: [table.siteId],
+			foreignColumns: [marketingSites.id],
+			name: "marketing_competitors_site_id_fkey"
 		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.draftId],
-			foreignColumns: [aiDrafts.id],
-			name: "movement_batches_draft_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.insurerCompanyId],
-			foreignColumns: [companies.id],
-			name: "movement_batches_insurer_company_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.parentBatchId],
-			foreignColumns: [table.id],
-			name: "movement_batches_parent_batch_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.policyId],
-			foreignColumns: [policies.id],
-			name: "movement_batches_policy_id_fkey"
-		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "movement_batches_thread_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.workItemId],
-			foreignColumns: [workItems.id],
-			name: "movement_batches_work_item_id_fkey"
-		}).onDelete("set null"),
-	check("movement_batches_cadence_check", sql`cadence = ANY (ARRAY['immediate'::text, 'daily'::text, 'weekly'::text])`),
-	check("movement_batches_status_check", sql`status = ANY (ARRAY['open'::text, 'ready'::text, 'sent'::text, 'noted'::text, 'billed'::text, 'settled'::text, 'cancelled'::text])`),
-	check("movement_batches_sub_state_check", sql`(sub_state IS NULL) OR (sub_state = ANY (ARRAY['awaiting_client'::text, 'partial'::text]))`),
+	unique("marketing_competitors_site_id_domain_key").on(table.domain, table.siteId),
+	check("marketing_competitors_status_check", sql`status = ANY (ARRAY['active'::text, 'removed'::text])`),
 ]);
 
 export const policyMovements = pgTable("policy_movements", {
@@ -3089,6 +2988,111 @@ export const marketingSites = pgTable("marketing_sites", {
 	check("marketing_sites_nightly_count_check", sql`(nightly_count >= 0) AND (nightly_count <= 12)`),
 ]);
 
+export const movementBatches = pgTable("movement_batches", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	policyId: uuid("policy_id").notNull(),
+	companyId: uuid("company_id").notNull(),
+	insurerCompanyId: uuid("insurer_company_id"),
+	cadence: text().default('weekly').notNull(),
+	windowStart: date("window_start").notNull(),
+	windowEnd: date("window_end").notNull(),
+	status: text().default('open').notNull(),
+	workItemId: uuid("work_item_id"),
+	draftId: uuid("draft_id"),
+	pairId: uuid("pair_id"),
+	threadId: uuid("thread_id"),
+	sheetStorageUrl: text("sheet_storage_url"),
+	counts: jsonb().default({}).notNull(),
+	estimateTotal: numeric("estimate_total", { precision: 14, scale:  2 }),
+	notedTotal: numeric("noted_total", { precision: 14, scale:  2 }),
+	needsHuman: text("needs_human"),
+	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
+	notedAt: timestamp("noted_at", { withTimezone: true, mode: 'string' }),
+	billedAt: timestamp("billed_at", { withTimezone: true, mode: 'string' }),
+	settledAt: timestamp("settled_at", { withTimezone: true, mode: 'string' }),
+	chaseCount: integer("chase_count").default(0).notNull(),
+	lastChaseAt: timestamp("last_chase_at", { withTimezone: true, mode: 'string' }),
+	nextChaseAt: timestamp("next_chase_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	revision: integer().default(1).notNull(),
+	parentBatchId: uuid("parent_batch_id"),
+	subState: text("sub_state"),
+	awaitingSince: timestamp("awaiting_since", { withTimezone: true, mode: 'string' }),
+	question: text(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("movement_batches_chase_idx").using("btree", table.nextChaseAt.asc().nullsLast().op("timestamptz_ops")).where(sql`(status = 'sent'::text)`),
+	uniqueIndex("movement_batches_open_once").using("btree", table.policyId.asc().nullsLast().op("date_ops"), table.windowStart.asc().nullsLast().op("date_ops")).where(sql`(status = 'open'::text)`),
+	index("movement_batches_parent_idx").using("btree", table.parentBatchId.asc().nullsLast().op("uuid_ops")).where(sql`(parent_batch_id IS NOT NULL)`),
+	index("movement_batches_policy_idx").using("btree", table.policyId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.companyId],
+			foreignColumns: [companies.id],
+			name: "movement_batches_company_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.draftId],
+			foreignColumns: [aiDrafts.id],
+			name: "movement_batches_draft_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.insurerCompanyId],
+			foreignColumns: [companies.id],
+			name: "movement_batches_insurer_company_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.parentBatchId],
+			foreignColumns: [table.id],
+			name: "movement_batches_parent_batch_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.policyId],
+			foreignColumns: [policies.id],
+			name: "movement_batches_policy_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "movement_batches_thread_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.workItemId],
+			foreignColumns: [workItems.id],
+			name: "movement_batches_work_item_id_fkey"
+		}).onDelete("set null"),
+	check("movement_batches_cadence_check", sql`cadence = ANY (ARRAY['immediate'::text, 'daily'::text, 'weekly'::text])`),
+	check("movement_batches_status_check", sql`status = ANY (ARRAY['open'::text, 'ready'::text, 'sent'::text, 'noted'::text, 'billed'::text, 'settled'::text, 'cancelled'::text])`),
+	check("movement_batches_sub_state_check", sql`(sub_state IS NULL) OR (sub_state = ANY (ARRAY['awaiting_client'::text, 'partial'::text]))`),
+]);
+
+export const obCampaignSends = pgTable("ob_campaign_sends", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	campaignId: uuid("campaign_id").notNull(),
+	sequenceId: uuid("sequence_id").notNull(),
+	outboundLeadId: uuid("outbound_lead_id").notNull(),
+	instantlyEmailId: text("instantly_email_id"),
+	status: text().default('pending').notNull(),
+	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
+	repliedAt: timestamp("replied_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.campaignId],
+			foreignColumns: [obCampaigns.id],
+			name: "ob_campaign_sends_campaign_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.outboundLeadId],
+			foreignColumns: [outboundLeads.id],
+			name: "ob_campaign_sends_outbound_lead_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.sequenceId],
+			foreignColumns: [obCampaignSequences.id],
+			name: "ob_campaign_sends_sequence_id_fkey"
+		}).onDelete("set null"),
+]);
+
 export const obCampaignSequences = pgTable("ob_campaign_sequences", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	campaignId: uuid("campaign_id").notNull(),
@@ -3365,29 +3369,6 @@ export const obReplyEvents = pgTable("ob_reply_events", {
 		}).onDelete("set null"),
 ]);
 
-export const obSenderCampaignMappings = pgTable("ob_sender_campaign_mappings", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	campaignId: uuid("campaign_id").notNull(),
-	providerId: uuid("provider_id").notNull(),
-	providerCampaignId: text("provider_campaign_id").notNull(),
-	syncStatus: text("sync_status").default('active').notNull(),
-	lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: 'string' }),
-	syncError: text("sync_error"),
-	metadata: jsonb(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.campaignId],
-			foreignColumns: [obCampaigns.id],
-			name: "ob_sender_campaign_mappings_campaign_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.providerId],
-			foreignColumns: [obSenderProviders.id],
-			name: "ob_sender_campaign_mappings_provider_id_fkey"
-		}).onDelete("set null"),
-]);
-
 export const obCompanyDump = pgTable("ob_company_dump", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	searchId: uuid("search_id").notNull(),
@@ -3436,34 +3417,6 @@ export const obCampaigns = pgTable("ob_campaigns", {
 			columns: [table.searchId],
 			foreignColumns: [obSearchLog.id],
 			name: "ob_campaigns_search_id_fkey"
-		}).onDelete("set null"),
-]);
-
-export const obCampaignSends = pgTable("ob_campaign_sends", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	campaignId: uuid("campaign_id").notNull(),
-	sequenceId: uuid("sequence_id").notNull(),
-	outboundLeadId: uuid("outbound_lead_id").notNull(),
-	instantlyEmailId: text("instantly_email_id"),
-	status: text().default('pending').notNull(),
-	sentAt: timestamp("sent_at", { withTimezone: true, mode: 'string' }),
-	repliedAt: timestamp("replied_at", { withTimezone: true, mode: 'string' }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.campaignId],
-			foreignColumns: [obCampaigns.id],
-			name: "ob_campaign_sends_campaign_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.outboundLeadId],
-			foreignColumns: [outboundLeads.id],
-			name: "ob_campaign_sends_outbound_lead_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.sequenceId],
-			foreignColumns: [obCampaignSequences.id],
-			name: "ob_campaign_sends_sequence_id_fkey"
 		}).onDelete("set null"),
 ]);
 
@@ -3565,15 +3518,28 @@ export const pdfImportItems = pgTable("pdf_import_items", {
 		}).onDelete("set null"),
 ]);
 
-export const obSenderProviders = pgTable("ob_sender_providers", {
+export const obSenderCampaignMappings = pgTable("ob_sender_campaign_mappings", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
-	providerCode: text("provider_code").notNull(),
-	displayName: text("display_name").notNull(),
-	apiBaseUrl: text("api_base_url"),
-	isActive: boolean("is_active").default(true).notNull(),
-	capabilities: jsonb().notNull(),
+	campaignId: uuid("campaign_id").notNull(),
+	providerId: uuid("provider_id").notNull(),
+	providerCampaignId: text("provider_campaign_id").notNull(),
+	syncStatus: text("sync_status").default('active').notNull(),
+	lastSyncedAt: timestamp("last_synced_at", { withTimezone: true, mode: 'string' }),
+	syncError: text("sync_error"),
+	metadata: jsonb(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-});
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.campaignId],
+			foreignColumns: [obCampaigns.id],
+			name: "ob_sender_campaign_mappings_campaign_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.providerId],
+			foreignColumns: [obSenderProviders.id],
+			name: "ob_sender_campaign_mappings_provider_id_fkey"
+		}).onDelete("set null"),
+]);
 
 export const obSignalLibrary = pgTable("ob_signal_library", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -3722,46 +3688,6 @@ export const placementLines = pgTable("placement_lines", {
 	check("placement_lines_status_check", sql`status = ANY (ARRAY['open'::text, 'quoting'::text, 'quoted'::text, 'presented'::text, 'bound'::text, 'declined'::text, 'closed'::text, 'done'::text, 'dropped'::text, 'lost'::text])`),
 ]);
 
-export const placementLineTexts = pgTable("placement_line_texts", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	lineKey: text("line_key").notNull(),
-	part: text().notNull(),
-	body: text().notNull(),
-	editedBy: text("edited_by").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("placement_line_texts_key").using("btree", table.lineKey.asc().nullsLast().op("timestamptz_ops"), table.part.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	check("placement_line_texts_part_check", sql`part = ANY (ARRAY['to_insurer'::text, 'to_client'::text, 'knowledge'::text, 'client_data'::text, 'insurer_asks'::text])`),
-]);
-
-export const placementRounds = pgTable("placement_rounds", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	placementId: uuid("placement_id").notNull(),
-	lineId: uuid("line_id").notNull(),
-	roundNo: integer("round_no").notNull(),
-	spec: jsonb().default({}).notNull(),
-	changeSummary: text("change_summary"),
-	reason: text().default('initial').notNull(),
-	sourceMessageId: uuid("source_message_id"),
-	openedBy: text("opened_by"),
-	openedAt: timestamp("opened_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	closedAt: timestamp("closed_at", { withTimezone: true, mode: 'string' }),
-}, (table): PgTableExtraConfigValue[] => [
-	index("placement_rounds_line_idx").using("btree", table.lineId.asc().nullsLast().op("uuid_ops")),
-	foreignKey({
-			columns: [table.lineId],
-			foreignColumns: [placementLines.id],
-			name: "placement_rounds_line_id_fkey"
-		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.placementId],
-			foreignColumns: [placements.id],
-			name: "placement_rounds_placement_id_fkey"
-		}).onDelete("cascade"),
-	unique("placement_rounds_line_id_round_no_key").on(table.lineId, table.roundNo),
-	check("placement_rounds_reason_check", sql`reason = ANY (ARRAY['initial'::text, 'client_change'::text, 'insurer_query'::text, 'expiry'::text, 'broker'::text])`),
-]);
-
 export const placementQuotes = pgTable("placement_quotes", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	placementId: uuid("placement_id"),
@@ -3867,6 +3793,18 @@ export const placementQuotes = pgTable("placement_quotes", {
 	check("placement_quotes_status_check", sql`status = ANY (ARRAY['received'::text, 'superseded'::text, 'shortlisted'::text, 'recommended'::text, 'selected'::text, 'not_chosen'::text, 'expired'::text])`),
 ]);
 
+export const placementLineTexts = pgTable("placement_line_texts", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	lineKey: text("line_key").notNull(),
+	part: text().notNull(),
+	body: text().notNull(),
+	editedBy: text("edited_by").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("placement_line_texts_key").using("btree", table.lineKey.asc().nullsLast().op("timestamptz_ops"), table.part.asc().nullsLast().op("text_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	check("placement_line_texts_part_check", sql`part = ANY (ARRAY['to_insurer'::text, 'to_client'::text, 'knowledge'::text, 'client_data'::text, 'insurer_asks'::text])`),
+]);
+
 export const placementLog = pgTable("placement_log", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	companyId: uuid("company_id").notNull(),
@@ -3940,6 +3878,16 @@ export const outboundLeads = pgTable("outbound_leads", {
 }, (table): PgTableExtraConfigValue[] => [
 	uniqueIndex("outbound_leads_linkedin_url_key").using("btree", table.linkedinUrl.asc().nullsLast().op("text_ops")),
 ]);
+
+export const obSenderProviders = pgTable("ob_sender_providers", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	providerCode: text("provider_code").notNull(),
+	displayName: text("display_name").notNull(),
+	apiBaseUrl: text("api_base_url"),
+	isActive: boolean("is_active").default(true).notNull(),
+	capabilities: jsonb().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+});
 
 export const obSequenceVariantSteps = pgTable("ob_sequence_variant_steps", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -4032,26 +3980,6 @@ export const placementShares = pgTable("placement_shares", {
 	check("placement_shares_status_check", sql`status = ANY (ARRAY['drafted'::text, 'sent'::text, 'discarded'::text])`),
 ]);
 
-export const pmRateTables = pgTable("pm_rate_tables", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	calculatorId: uuid("calculator_id").notNull(),
-	ageBasis: text("age_basis"),
-	coverages: jsonb().notNull(),
-	rules: jsonb().notNull(),
-	accuracy: jsonb(),
-	reviewedBy: uuid("reviewed_by"),
-	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	source: text(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.calculatorId],
-			foreignColumns: [pmCalculators.id],
-			name: "pm_rate_tables_calculator_id_fkey"
-		}).onDelete("set null"),
-]);
-
 export const placementUnmatched = pgTable("placement_unmatched", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	messageId: uuid("message_id").notNull(),
@@ -4073,35 +4001,52 @@ export const placementUnmatched = pgTable("placement_unmatched", {
 	check("placement_unmatched_status_check", sql`status = ANY (ARRAY['open'::text, 'assigned'::text, 'ignored'::text])`),
 ]);
 
-export const placementTiers = pgTable("placement_tiers", {
+export const pmRateTables = pgTable("pm_rate_tables", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	calculatorId: uuid("calculator_id").notNull(),
+	ageBasis: text("age_basis"),
+	coverages: jsonb().notNull(),
+	rules: jsonb().notNull(),
+	accuracy: jsonb(),
+	reviewedBy: uuid("reviewed_by"),
+	reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	source: text(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.calculatorId],
+			foreignColumns: [pmCalculators.id],
+			name: "pm_rate_tables_calculator_id_fkey"
+		}).onDelete("set null"),
+]);
+
+export const placementRounds = pgTable("placement_rounds", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	placementId: uuid("placement_id").notNull(),
 	lineId: uuid("line_id").notNull(),
-	label: text().notNull(),
+	roundNo: integer("round_no").notNull(),
 	spec: jsonb().default({}).notNull(),
-	targetPremium: text("target_premium"),
-	status: text().default('proposed').notNull(),
-	source: text().default('broker').notNull(),
+	changeSummary: text("change_summary"),
+	reason: text().default('initial').notNull(),
 	sourceMessageId: uuid("source_message_id"),
-	createdBy: text("created_by"),
-	askedAt: timestamp("asked_at", { withTimezone: true, mode: 'string' }),
-	sort: integer().default(0).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	openedBy: text("opened_by"),
+	openedAt: timestamp("opened_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	closedAt: timestamp("closed_at", { withTimezone: true, mode: 'string' }),
 }, (table): PgTableExtraConfigValue[] => [
-	uniqueIndex("placement_tiers_label_idx").using("btree", sql`line_id`, sql`lower(label)`),
-	index("placement_tiers_line_idx").using("btree", table.lineId.asc().nullsLast().op("uuid_ops")),
+	index("placement_rounds_line_idx").using("btree", table.lineId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.lineId],
 			foreignColumns: [placementLines.id],
-			name: "placement_tiers_line_id_fkey"
+			name: "placement_rounds_line_id_fkey"
 		}).onDelete("cascade"),
 	foreignKey({
 			columns: [table.placementId],
 			foreignColumns: [placements.id],
-			name: "placement_tiers_placement_id_fkey"
+			name: "placement_rounds_placement_id_fkey"
 		}).onDelete("cascade"),
-	check("placement_tiers_source_check", sql`source = ANY (ARRAY['client'::text, 'broker'::text, 'insurer'::text])`),
-	check("placement_tiers_status_check", sql`status = ANY (ARRAY['proposed'::text, 'asked'::text, 'offered'::text, 'dropped'::text])`),
+	unique("placement_rounds_line_id_round_no_key").on(table.lineId, table.roundNo),
+	check("placement_rounds_reason_check", sql`reason = ANY (ARRAY['initial'::text, 'client_change'::text, 'insurer_query'::text, 'expiry'::text, 'broker'::text])`),
 ]);
 
 export const pmCalculatorRuns = pgTable("pm_calculator_runs", {
@@ -4281,6 +4226,37 @@ export const placements = pgTable("placements", {
 			name: "placements_company_id_fkey"
 		}).onDelete("cascade"),
 	check("placements_status_check", sql`status = ANY (ARRAY['open'::text, 'presented'::text, 'bound'::text, 'closed'::text])`),
+]);
+
+export const placementTiers = pgTable("placement_tiers", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	placementId: uuid("placement_id").notNull(),
+	lineId: uuid("line_id").notNull(),
+	label: text().notNull(),
+	spec: jsonb().default({}).notNull(),
+	targetPremium: text("target_premium"),
+	status: text().default('proposed').notNull(),
+	source: text().default('broker').notNull(),
+	sourceMessageId: uuid("source_message_id"),
+	createdBy: text("created_by"),
+	askedAt: timestamp("asked_at", { withTimezone: true, mode: 'string' }),
+	sort: integer().default(0).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	uniqueIndex("placement_tiers_label_idx").using("btree", sql`line_id`, sql`lower(label)`),
+	index("placement_tiers_line_idx").using("btree", table.lineId.asc().nullsLast().op("uuid_ops")),
+	foreignKey({
+			columns: [table.lineId],
+			foreignColumns: [placementLines.id],
+			name: "placement_tiers_line_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.placementId],
+			foreignColumns: [placements.id],
+			name: "placement_tiers_placement_id_fkey"
+		}).onDelete("cascade"),
+	check("placement_tiers_source_check", sql`source = ANY (ARRAY['client'::text, 'broker'::text, 'insurer'::text])`),
+	check("placement_tiers_status_check", sql`status = ANY (ARRAY['proposed'::text, 'asked'::text, 'offered'::text, 'dropped'::text])`),
 ]);
 
 export const pmBenefitTerms = pgTable("pm_benefit_terms", {
@@ -4507,20 +4483,6 @@ export const rfqDispatches = pgTable("rfq_dispatches", {
 		}).onDelete("set null"),
 ]);
 
-export const rfqEvents = pgTable("rfq_events", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	caseId: uuid("case_id"),
-	rfqRequestId: uuid("rfq_request_id"),
-	dispatchId: uuid("dispatch_id"),
-	quoteId: uuid("quote_id"),
-	eventType: text("event_type").notNull(),
-	insurerName: text("insurer_name"),
-	actor: text(),
-	summary: text(),
-	detail: jsonb(),
-});
-
 export const policyDocuments = pgTable("policy_documents", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	companyId: uuid("company_id"),
@@ -4591,6 +4553,20 @@ export const policyLines = pgTable("policy_lines", {
 	code: text().primaryKey().notNull(),
 	name: text().notNull(),
 	sort: integer().default(0).notNull(),
+});
+
+export const rfqEvents = pgTable("rfq_events", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	caseId: uuid("case_id"),
+	rfqRequestId: uuid("rfq_request_id"),
+	dispatchId: uuid("dispatch_id"),
+	quoteId: uuid("quote_id"),
+	eventType: text("event_type").notNull(),
+	insurerName: text("insurer_name"),
+	actor: text(),
+	summary: text(),
+	detail: jsonb(),
 });
 
 export const salesAudience = pgTable("sales_audience", {
@@ -4723,17 +4699,6 @@ export const salesCampaignContacts = pgTable("sales_campaign_contacts", {
 	check("sales_campaign_contacts_status_check", sql`status = ANY (ARRAY['review'::text, 'pending'::text, 'active'::text, 'completed'::text, 'replied'::text, 'bounced'::text, 'unsubscribed'::text])`),
 ]);
 
-export const salesSuppressions = pgTable("sales_suppressions", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	email: text().notNull(),
-	reason: text().notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	unique("sales_suppressions_email_key").on(table.email),
-	check("sales_suppressions_email_check", sql`email = lower(email)`),
-	check("sales_suppressions_reason_check", sql`reason = ANY (ARRAY['unsubscribed'::text, 'bounced'::text, 'manual'::text])`),
-]);
-
 export const salesCampaigns = pgTable("sales_campaigns", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	name: text().notNull(),
@@ -4753,9 +4718,20 @@ export const salesCampaigns = pgTable("sales_campaigns", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
-	check("sales_campaigns_status_check", sql`status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text])`),
 	check("sales_campaigns_daily_new_check", sql`(daily_new >= 0) AND (daily_new <= 100)`),
 	check("sales_campaigns_first_touch_check", sql`first_touch = ANY (ARRAY['template'::text, 'personal_draft'::text])`),
+	check("sales_campaigns_status_check", sql`status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text])`),
+]);
+
+export const salesSuppressions = pgTable("sales_suppressions", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	email: text().notNull(),
+	reason: text().notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	unique("sales_suppressions_email_key").on(table.email),
+	check("sales_suppressions_email_check", sql`email = lower(email)`),
+	check("sales_suppressions_reason_check", sql`reason = ANY (ARRAY['unsubscribed'::text, 'bounced'::text, 'manual'::text])`),
 ]);
 
 export const salesEvents = pgTable("sales_events", {
@@ -4832,13 +4808,6 @@ export const salesSends = pgTable("sales_sends", {
 	check("sales_sends_status_check", sql`status = ANY (ARRAY['sent'::text, 'failed'::text])`),
 ]);
 
-export const schemaMigrations = pgTable("schema_migrations", {
-	name: text().primaryKey().notNull(),
-	appliedAt: timestamp("applied_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	checksum: text(),
-	baseline: boolean().default(false).notNull(),
-});
-
 export const siteIntakes = pgTable("site_intakes", {
 	id: uuid().primaryKey().notNull(),
 	siteId: uuid("site_id").notNull(),
@@ -4881,6 +4850,13 @@ export const siteIntakes = pgTable("site_intakes", {
 	check("site_intakes_kind_check", sql`kind = ANY (ARRAY['find'::text, 'review'::text, 'enquiry'::text, 'chat'::text])`),
 	check("site_intakes_status_check", sql`status = ANY (ARRAY['partial'::text, 'submitted'::text, 'contacted'::text, 'met'::text, 'quoted'::text, 'won'::text, 'lost'::text])`),
 ]);
+
+export const schemaMigrations = pgTable("schema_migrations", {
+	name: text().primaryKey().notNull(),
+	appliedAt: timestamp("applied_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	checksum: text(),
+	baseline: boolean().default(false).notNull(),
+});
 
 export const staffDepartures = pgTable("staff_departures", {
 	email: text().primaryKey().notNull(),
@@ -4960,6 +4936,31 @@ export const rfqRequests = pgTable("rfq_requests", {
 			foreignColumns: [rfqDispatches.id],
 			name: "rfq_requests_won_dispatch_id_fkey"
 		}).onDelete("set null"),
+]);
+
+export const threadSearch = pgTable("thread_search", {
+	threadId: uuid("thread_id").primaryKey().notNull(),
+	companyId: uuid("company_id"),
+	mailboxes: text().array().default([""]).notNull(),
+	subject: text().default('').notNull(),
+	people: text().default('').notNull(),
+	attachments: text().default('').notNull(),
+	body: text().default('').notNull(),
+	lastMessageAt: timestamp("last_message_at", { withTimezone: true, mode: 'string' }),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	names: text().generatedAlwaysAs(sql`((((subject || ' '::text) || people) || ' '::text) || attachments)`),
+	// TODO: failed to parse database type 'tsvector'
+	doc: tsvector("doc").generatedAlwaysAs(sql`to_tsvector('simple'::regconfig, ((((((subject || ' '::text) || people) || ' '::text) || attachments) || ' '::text) || body))`),
+}, (table): PgTableExtraConfigValue[] => [
+	index("thread_search_company").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
+	index("thread_search_doc_gin").using("gin", table.doc.asc().nullsLast().op("tsvector_ops")),
+	index("thread_search_last").using("btree", table.lastMessageAt.desc().nullsLast().op("timestamptz_ops")),
+	index("thread_search_names_trgm").using("gin", table.names.asc().nullsLast().op("gin_trgm_ops")),
+	foreignKey({
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "thread_search_thread_id_fkey"
+		}).onDelete("cascade"),
 ]);
 
 export const threadVectors = pgTable("thread_vectors", {
@@ -5054,6 +5055,27 @@ export const todayThreads = pgTable("today_threads", {
 		}).onDelete("cascade"),
 	unique("today_threads_owner_email_thread_id_key").on(table.ownerEmail, table.threadId),
 	check("today_threads_side_check", sql`side = ANY (ARRAY['client'::text, 'insurer'::text])`),
+]);
+
+export const whatsappDrafts = pgTable("whatsapp_drafts", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	conversationId: uuid("conversation_id").notNull(),
+	inboundMessageId: uuid("inbound_message_id"),
+	content: text().notNull(),
+	status: text().default('pending').notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.conversationId],
+			foreignColumns: [whatsappConversations.id],
+			name: "whatsapp_drafts_conversation_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.inboundMessageId],
+			foreignColumns: [whatsappMessages.id],
+			name: "whatsapp_drafts_inbound_message_id_fkey"
+		}).onDelete("set null"),
 ]);
 
 export const trsNotes = pgTable("trs_notes", {
@@ -5154,27 +5176,6 @@ export const userSignatures = pgTable("user_signatures", {
 	voice: jsonb(),
 });
 
-export const whatsappDrafts = pgTable("whatsapp_drafts", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	conversationId: uuid("conversation_id").notNull(),
-	inboundMessageId: uuid("inbound_message_id"),
-	content: text().notNull(),
-	status: text().default('pending').notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.conversationId],
-			foreignColumns: [whatsappConversations.id],
-			name: "whatsapp_drafts_conversation_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.inboundMessageId],
-			foreignColumns: [whatsappMessages.id],
-			name: "whatsapp_drafts_inbound_message_id_fkey"
-		}).onDelete("set null"),
-]);
-
 export const whatsappMessages = pgTable("whatsapp_messages", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	contactId: uuid("contact_id"),
@@ -5237,31 +5238,6 @@ export const threadSummaries = pgTable("thread_summaries", {
 			foreignColumns: [emailThreads.id],
 			name: "thread_summaries_thread_id_fkey"
 		}).onDelete("set null"),
-]);
-
-export const threadSearch = pgTable("thread_search", {
-	threadId: uuid("thread_id").primaryKey().notNull(),
-	companyId: uuid("company_id"),
-	mailboxes: text().array().default([""]).notNull(),
-	subject: text().default('').notNull(),
-	people: text().default('').notNull(),
-	attachments: text().default('').notNull(),
-	body: text().default('').notNull(),
-	lastMessageAt: timestamp("last_message_at", { withTimezone: true, mode: 'string' }),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	names: text().generatedAlwaysAs(sql`((((subject || ' '::text) || people) || ' '::text) || attachments)`),
-	// TODO: failed to parse database type 'tsvector'
-	doc: tsvector("doc").generatedAlwaysAs(sql`to_tsvector('simple'::regconfig, ((((((subject || ' '::text) || people) || ' '::text) || attachments) || ' '::text) || body))`),
-}, (table): PgTableExtraConfigValue[] => [
-	index("thread_search_company").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
-	index("thread_search_doc_gin").using("gin", table.doc.asc().nullsLast().op("tsvector_ops")),
-	index("thread_search_last").using("btree", table.lastMessageAt.desc().nullsLast().op("timestamptz_ops")),
-	index("thread_search_names_trgm").using("gin", table.names.asc().nullsLast().op("gin_trgm_ops")),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "thread_search_thread_id_fkey"
-		}).onDelete("cascade"),
 ]);
 
 export const workItemNotes = pgTable("work_item_notes", {
@@ -5502,6 +5478,57 @@ export const debitNoteBundles = pgTable("debit_note_bundles", {
 			name: "debit_note_bundles_suggested_company_id_fkey"
 		}).onDelete("set null"),
 	check("debit_note_bundles_source_check", sql`source = ANY (ARRAY['manual_upload'::text, 'onedrive'::text, 'policy_movement'::text, 'insurer_invoice'::text])`),
+]);
+
+export const gbBenefitCandidates = pgTable("gb_benefit_candidates", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	rateTableId: uuid("rate_table_id").notNull(),
+	productCode: text("product_code").notNull(),
+	planCode: text("plan_code"),
+	canonBenefit: text("canon_benefit").notNull(),
+	valueText: text("value_text").notNull(),
+	valueNumeric: numeric("value_numeric"),
+	source: text(),
+	currentText: text("current_text"),
+	status: text().default('pending').notNull(),
+	decidedAt: timestamp("decided_at", { withTimezone: true, mode: 'string' }),
+	decidedBy: text("decided_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("gb_benefit_candidates_table_idx").using("btree", table.rateTableId.asc().nullsLast().op("text_ops"), table.status.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.canonBenefit],
+			foreignColumns: [gbBenefitCanon.code],
+			name: "gb_benefit_candidates_canon_benefit_fkey"
+		}),
+	foreignKey({
+			columns: [table.productCode],
+			foreignColumns: [gbProductCanon.code],
+			name: "gb_benefit_candidates_product_code_fkey"
+		}),
+	foreignKey({
+			columns: [table.rateTableId],
+			foreignColumns: [gbRateTables.id],
+			name: "gb_benefit_candidates_rate_table_id_fkey"
+		}).onDelete("cascade"),
+	unique("gb_benefit_candidates_rate_table_id_product_code_canon_bene_key").on(table.canonBenefit, table.planCode, table.productCode, table.rateTableId),
+	check("gb_benefit_candidates_status_check", sql`status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])`),
+]);
+
+export const hrLinkEvents = pgTable("hr_link_events", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	linkId: uuid("link_id").notNull(),
+	kind: text().notNull(),
+	detail: jsonb().default({}).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("hr_link_events_link_idx").using("btree", table.linkId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.asc().nullsLast().op("timestamptz_ops")),
+	foreignKey({
+			columns: [table.linkId],
+			foreignColumns: [hrLinks.id],
+			name: "hr_link_events_link_id_fkey"
+		}).onDelete("cascade"),
+	check("hr_link_events_kind_check", sql`kind = ANY (ARRAY['sent'::text, 'resent'::text, 'opened'::text, 'uploaded'::text, 'connected'::text, 'saved'::text, 'submitted'::text, 'expired'::text, 'closed'::text, 'error'::text])`),
 ]);
 
 export const ragDraftSources = pgTable("rag_draft_sources", {
