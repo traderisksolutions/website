@@ -16,7 +16,7 @@ import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { mailboxesByThread, ownersOf, visibleThreadIds } from '@/lib/mail/visibility-server'
 import { SB_URL } from '@/lib/sb'
-import { personalMailboxes } from '@/lib/mail/visibility'
+import { personalMailboxes, seesAllMail } from '@/lib/mail/visibility'
 import { inboxIndex, visibleRows } from '@/lib/mail/inbox-index'
 import { inboxPage, parseView, type InboxCounts } from '@/lib/mail/inbox-list'
 import type { Lead } from '@/components/engagement/types'
@@ -188,16 +188,19 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
       if (best) matchBy.set(t.id, best)
     }
   }
-  // Every thread is listed for everyone (Jarod, 20 Nov 2026); a colleague's private thread is marked below.
+  // Each person sees only their own mail and the team's; only the developer account sees every mailbox
+  // (Jarod, 20 Nov 2026, replacing the earlier "every thread listed for everyone").
   let openIds: Set<string> | null = null
   let page: InboxPageMeta | null = null
   if (paged) {
     const fresh = sp.get('fresh') === '1'
     // Every row is paged and counted; the rows the viewer may open (visibility.ts) mark the rest private.
-    const rows = await inboxIndex(fresh)
-    openIds = new Set((await visibleRows(rows, viewer, fresh)).map(r => r.id))
+    const all = await inboxIndex(fresh)
+    const open = await visibleRows(all, viewer, fresh)
+    openIds = new Set(open.map(r => r.id))
+    const rows = seesAllMail(viewer) ? all : open
     const offset = Math.max(0, Number(sp.get('offset') ?? 0) || 0)
-    const p = inboxPage(rows, { view: parseView(sp.get('view')), mailbox: (sp.get('mailbox') ?? 'all').toLowerCase(), matched: words.length ? new Set(threads.map(t => t.id)) : null, offset })
+    const p = inboxPage(rows, { view: parseView(sp.get('view')), mailbox: (sp.get('mailbox') ?? (seesAllMail(viewer) ? 'all' : 'operations')).toLowerCase(), matched: words.length ? new Set(threads.map(t => t.id)) : null, offset })
     // A deep link to a thread beyond this page: added to the first page.
     const ids = [...p.ids]
     if (offset === 0 && include && UUID.test(include) && !ids.includes(include) && rows.some(r => r.id === include)) ids.push(include)
@@ -209,7 +212,7 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
       for (const t of await r.json() as ThreadRow[]) have.set(t.id, t)
     }
     threads = ids.flatMap(id => have.get(id) ?? [])
-    page = { total: p.total, counts: p.counts, nextOffset: p.nextOffset, offset, mailboxes: personalMailboxes(rows) }
+    page = { total: p.total, counts: p.counts, nextOffset: p.nextOffset, offset, mailboxes: seesAllMail(viewer) ? personalMailboxes(rows) : [] }
   }
   // Everyone at TRS sees every thread in the list (Jarod, 20 Nov 2026); a thread read only from a
   // colleague's own mailbox is marked with its owner and opens only for those it is visible to.

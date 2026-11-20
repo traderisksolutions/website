@@ -38,19 +38,20 @@ test('INB-039 view counts follow the Mailbox pill', async ({ page }) => {
   expect(ops.counts.needs_reply).toBeLessThanOrEqual(all.counts.needs_reply)
 })
 
-test('INB-040 the Inbox place has no Inbound tab, and the old category views are gone', async ({ page }) => {
+test('INB-040 the Inbox place has no Inbound tab, and no quick views', async ({ page }) => {
   expect(navHrefs().some(t => t.href === '/inbound')).toBe(false)
   await openClean(page, '/engagement')
-  const views = page.getByRole('group', { name: 'Quick views' }).first()
-  await expect(views.getByRole('button', { name: /Needs reply/ })).toBeVisible(OPENS)
-  for (const gone of ['Prospects', 'Clients', 'Renewals', 'Claims']) await expect(views.getByRole('button', { name: new RegExp(`^${gone}`) })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Inbox', exact: true }).first()).toBeVisible()
   await expect(page.getByText(/^\d[\d,]* conversations?$/).first()).toBeVisible(OPENS)
+  await expect(page.getByRole('group', { name: 'Quick views' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Inbox', exact: true }).first()).toBeVisible()
 })
 
-test('INB-041 the mail rule line sits under the Mailbox pills', async ({ page }) => {
+test('INB-041 two Mailbox pills, Operations and Me; no colleague pills (the journey user is not the developer account)', async ({ page }) => {
   await openClean(page, '/engagement')
-  await expect(page.getByText('Mail you see: own inbox and Operations, plus threads you are on.').first()).toBeVisible(OPENS)
+  const pills = page.getByRole('radiogroup', { name: 'Mailbox' }).first()
+  await expect(pills.getByRole('radio', { name: 'Operations' })).toHaveAttribute('aria-checked', 'true', OPENS)
+  await expect(pills.getByRole('radio', { name: /^Me/ })).toBeVisible()
+  await expect(pills.getByRole('radio')).toHaveCount(2)
 })
 
 test('INB-042 a list that fails to load says so with Retry, not "No conversations"', async ({ page }) => {

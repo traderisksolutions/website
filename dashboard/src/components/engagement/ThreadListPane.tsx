@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { AlignJustify, Clock, FileEdit, Inbox, Menu, MessageSquare, PanelLeftClose, PanelLeftOpen, PenLine, RefreshCw, Rows3, Search, Unlink, X } from 'lucide-react'
+import { AlignJustify, Menu, PanelLeftClose, PanelLeftOpen, PenLine, RefreshCw, Rows3, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useEngagementNav, type EngagementTab } from '@/providers/engagement-nav-provider'
+import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { Btn, Segmented } from '@/components/crm/primitives'
 import { ConversationList } from './ConversationList'
 import type { Density } from './ThreadRow'
+import { pageUser } from '@/lib/supabase/client'
+import { seesAllMail } from '@/lib/mail/visibility'
 
 /**
  * Unified Mail Navigator. Header (Inbox, the true total, Compose), the Mailbox pill and the mail
@@ -16,15 +18,6 @@ import type { Density } from './ThreadRow'
  * (EngagementRail) and inline, full width, on narrow viewports.
  */
 
-type Section = { key: EngagementTab; label: string; caption: string }
-const SECTIONS: Section[] = [
-  { key: 'all',             label: 'Inbox',           caption: 'Every conversation, newest activity first.' },
-  { key: 'needs_reply',     label: 'Needs reply',     caption: 'Latest message is from the client and nobody has answered.' },
-  { key: 'awaiting_client', label: 'Awaiting client', caption: 'We wrote last; waiting on the other side.' },
-  { key: 'unlinked',        label: 'Unlinked',        caption: 'Not filed under a company yet.' },
-  { key: 'unassigned',      label: 'Unassigned',      caption: 'Filed under a company that has no owner.' },
-  { key: 'drafts',          label: 'Drafts',          caption: 'New emails saved before sending.' },
-]
 
 /** The DOM id of the navigator's search input — page.tsx focuses it on ⌘K / Ctrl+K / "/". */
 export const SEARCH_INPUT_ID = 'engagement-search'
@@ -33,7 +26,6 @@ const KEY_DENSITY = 'engagement_density'
 const DENSITIES: { key: Density; label: string; icon: typeof Menu }[] = [
   { key: 'comfortable', label: 'Comfortable rows', icon: Rows3 }, { key: 'standard', label: 'Standard rows', icon: Menu }, { key: 'compact', label: 'Compact rows', icon: AlignJustify },
 ]
-const VIEW_ICON: Partial<Record<EngagementTab, typeof Menu>> = { all: Inbox, needs_reply: MessageSquare, awaiting_client: Clock, unlinked: Unlink, drafts: FileEdit }
 
 /** A 36px icon button on Btn's tertiary level. */
 const ICO_BTN = 'w-9 h-9 px-0 hover:bg-trs-field'
@@ -76,19 +68,10 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
   const searchRef = useRef<HTMLInputElement>(null)
   const n = activeTab === 'drafts' ? counts.drafts : total
 
-  const views = SECTIONS.filter(s => s.key !== 'all')
-
-  const viewButton = (s: Section) => {
-    const on = activeTab === s.key
-    return (
-      <Btn key={s.key} level="tertiary" size="xs" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={s.caption}
-        className={cn('relative justify-between px-2.5 border-0 text-left', on ? 'font-medium text-trs-ink' : 'font-normal text-trs-ink-2')}>
-        {on && <span aria-hidden className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded bg-trs-ink" />}
-        <span className="truncate">{s.label}</span>
-        <span className="text-small tabular-nums pl-2 flex-shrink-0 text-trs-subtle">{counts[s.key]}</span>
-      </Btn>
-    )
-  }
+  // Who is reading: the developer account picks any mailbox; everyone else has Operations and Me.
+  const viewer = pageUser()?.email?.toLowerCase() ?? null
+  const seesAll = seesAllMail(viewer)
+  const me = viewer
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white text-trs-ink">
@@ -108,13 +91,10 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
 
       {/* Mailbox pill: the team's threads, or a person's own. The rule line is always there. */}
       <div className="mx-4 mb-2 flex-shrink-0">
-        {personal.length > 0 && (
-          <Segmented value={mailbox} onChange={setMailbox} label="Mailbox" options={[
-            { value: 'all', label: 'All' }, { value: 'operations', label: 'Operations' },
-            ...personal.map(m => ({ value: m, label: firstName(m) })),
-          ]} />
-        )}
-        <p className={cn('m-0 text-small text-trs-subtle', personal.length > 0 && 'mt-1.5')}>Mail you see: own inbox and Operations, plus threads you are on.</p>
+        {/* Two pills, Operations and Me; only the developer account picks any mailbox (Jarod, 20 Nov 2026). */}
+        <Segmented value={mailbox} onChange={setMailbox} label="Mailbox" options={seesAll
+          ? [{ value: 'all', label: 'All' }, { value: 'operations', label: 'Operations' }, ...personal.map(m => ({ value: m, label: firstName(m) }))]
+          : [{ value: 'operations', label: 'Operations' }, { value: 'me', label: me ? `Me (${me})` : 'Me' }]} />
       </div>
 
       {/* Search */}
@@ -127,10 +107,6 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
           : <kbd aria-hidden className="text-small leading-none rounded border px-1.5 py-[3px] font-[inherit] flex-shrink-0 border-trs-line-2 text-trs-subtle">⌘K</kbd>}
       </label>
 
-      {/* Quick views */}
-      <div className="grid grid-cols-2 gap-x-2 px-2.5 pb-2 flex-shrink-0" role="group" aria-label="Quick views">
-        {views.map(viewButton)}
-      </div>
 
       {/* Rows */}
       <div className="flex-1 min-h-0 border-t border-trs-line" onKeyDown={moveRowFocus}>
@@ -170,8 +146,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
  * view with its count as a small ink pill, and sync at the foot. Labels live in title/aria-label.
  */
 export function CollapsedNavRail() {
-  const { activeTab, setActiveTab, counts, refreshing, onRefresh, onOpenDraft, setNavCollapsed } = useEngagementNav()
-  const views = SECTIONS
+  const { refreshing, onRefresh, onOpenDraft, setNavCollapsed } = useEngagementNav()
 
   return (
     <div className="flex flex-col items-center gap-1.5 h-full py-4 bg-white text-trs-ink">
@@ -182,22 +157,6 @@ export function CollapsedNavRail() {
         <PenLine size={16} />
       </Btn>
       <div className="w-6 my-1 border-t border-trs-line" aria-hidden />
-      <div className="flex flex-col items-center gap-1.5" role="group" aria-label="Quick views">
-        {views.map(s => {
-          const Icon = VIEW_ICON[s.key] ?? Inbox
-          const count = counts[s.key]
-          const on = activeTab === s.key
-          return (
-            <Btn key={s.key} level="tertiary" size="xs" onClick={() => setActiveTab(s.key)} aria-pressed={on} title={`${s.label} · ${count}`} aria-label={`${s.label}, ${count}`}
-              className={cn(ICO_BTN, 'relative', on ? 'bg-trs-field text-trs-ink' : 'text-trs-ink-2')}>
-              <Icon size={16} />
-              {count > 0 && s.key !== 'all' && (
-                <i aria-hidden className="absolute top-0.5 right-0.5 not-italic text-small leading-[14px] rounded-full px-1 text-white tabular-nums bg-trs-green">{count > 99 ? '99+' : count}</i>
-              )}
-            </Btn>
-          )
-        })}
-      </div>
       <Btn level="tertiary" size="xs" onClick={() => onRefresh?.()} disabled={!onRefresh || refreshing} title={refreshing ? 'Syncing…' : 'Sync mail'} aria-label="Sync mail" className={cn(ICO_BTN, 'mt-auto text-trs-subtle')}>
         <RefreshCw size={15} className={cn(refreshing && 'animate-spin')} />
       </Btn>

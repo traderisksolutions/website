@@ -19,6 +19,8 @@ import type { Lead, ThreadState } from '@/components/engagement/types'
 import type { NewEmailDraft } from '@/components/engagement/NewEmailCompose'
 import type { InboxView } from '@/lib/mail/inbox-list'
 import type { DraftRow } from '@/components/engagement/ConversationList'
+import { pageUser } from '@/lib/supabase/client'
+import { seesAllMail } from '@/lib/mail/visibility'
 
 /** What the Inbox page read on the server for the navigator: the saved drafts (taken once, then read
  *  from the API) and the staff names for the Mailbox pill (null when the list had no personal
@@ -110,7 +112,8 @@ export function useEngagementNav(): EngagementNavContextValue {
 export function EngagementNavProvider({ children }: { children: ReactNode }) {
   const [activeTab, setActiveTab] = useState<EngagementTab>('all')
   const [search, setSearch] = useState('')
-  const [mailbox, setMailbox] = useState('all')
+  // Operations first; the developer account starts on every mailbox (Jarod, 20 Nov 2026).
+  const [mailbox, setMailbox] = useState(() => (seesAllMail(pageUser()?.email) ? 'all' : 'operations'))
   const [counts, setCounts] = useState<EngagementNavCounts>(EMPTY_COUNTS)
   const [refreshing, setRefreshing] = useState(false)
   const [onRefresh, setOnRefresh] = useState<(() => void) | null>(null)

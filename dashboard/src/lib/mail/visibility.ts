@@ -10,9 +10,12 @@
  * Pure. Tested in src/__tests__/mail-visibility.test.ts. The reads are in visibility-server.ts.
  */
 export const OPERATIONS_MAILBOX = 'operations@trade-risksol.com'
+/** The one account that sees every mailbox and every thread (Jarod, 20 Nov 2026). */
+export const DEVELOPER_ACCOUNT = 'developer@trade-risksol.com'
+export const seesAllMail = (viewer: string | null | undefined): boolean => viewer?.toLowerCase() === DEVELOPER_ACCOUNT
 
-/** The pill values: 'all' (everything the viewer may see), 'operations', or a personal address. */
-export type MailboxFilter = 'all' | 'operations' | string
+/** The pill values: 'operations' (the team's), 'me' (the rest the viewer may see), 'all', or a personal address (developer only). */
+export type MailboxFilter = 'all' | 'operations' | 'me' | string
 
 const lower = (xs: readonly string[]) => xs.map(x => x.toLowerCase())
 
@@ -23,7 +26,7 @@ export function isShared(mailboxes: readonly string[]): boolean {
 
 /** viewer null = a cron or secret-authenticated call, which sees everything. `participants` are the addresses on the thread. */
 export function canSeeThread(viewer: string | null | undefined, mailboxes: readonly string[], participants: readonly string[] = []): boolean {
-  if (viewer == null) return true
+  if (viewer == null || seesAllMail(viewer)) return true
   if (isShared(mailboxes)) return true
   const v = viewer.toLowerCase()
   return v === OPERATIONS_MAILBOX || lower(mailboxes).includes(v) || lower(participants).includes(v)
@@ -33,6 +36,8 @@ export function canSeeThread(viewer: string | null | undefined, mailboxes: reado
 export function inMailbox(filter: MailboxFilter, mailboxes: readonly string[]): boolean {
   if (filter === 'all') return true
   if (filter === 'operations') return isShared(mailboxes)
+  // The viewer's own: everything they may see that is not the team's (rows are already filtered to them).
+  if (filter === 'me') return !isShared(mailboxes)
   return lower(mailboxes).includes(filter.toLowerCase())
 }
 

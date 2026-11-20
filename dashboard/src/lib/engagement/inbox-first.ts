@@ -21,6 +21,7 @@ import { listStaff, type StaffMember } from '@/lib/crm/staff'
 import { editOptions } from '@/lib/today/data'
 import { EMAIL_SOURCES, ENGAGED_STATUSES, type Lead, type StoredSummary, type ThreadState } from '@/components/engagement/types'
 import type { DraftRow } from '@/components/engagement/ConversationList'
+import { seesAllMail } from '@/lib/mail/visibility'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -96,7 +97,8 @@ export async function inboxFirst(viewer: string | null, link: string | null): Pr
   const linkedThread = include && UUID.test(include)
     ? { id: include, state: threadState(include, null, viewer), rail: soft(railFirst(include, viewer), null) }
     : null
-  const sp = new URLSearchParams({ paged: '1', offset: '0', view: 'all', mailbox: 'all' })
+  // The default pill: Operations, or every mailbox for the developer account (Jarod, 20 Nov 2026).
+  const sp = new URLSearchParams({ paged: '1', offset: '0', view: 'all', mailbox: seesAllMail(viewer) ? 'all' : 'operations' })
   if (include) sp.set('include', include)
   const [list, formLeads, drafts, staff] = await Promise.all([
     inboxConversations(sp, viewer),

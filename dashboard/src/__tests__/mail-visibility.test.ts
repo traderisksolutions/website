@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canSeeThread, inMailbox, isShared, personalMailboxes, OPERATIONS_MAILBOX } from '@/lib/mail/visibility'
+import { canSeeThread, inMailbox, seesAllMail, isShared, personalMailboxes, OPERATIONS_MAILBOX } from '@/lib/mail/visibility'
 
 const NATHAN = 'nathan.budiutomo@trade-risksol.com'
 const CHENG = 'chengsou.tan@trade-risksol.com'
@@ -20,7 +20,8 @@ describe('thread visibility', () => {
     expect(canSeeThread(OPERATIONS_MAILBOX, [NATHAN])).toBe(true)
     expect(canSeeThread(CHENG, [NATHAN])).toBe(false)
     expect(canSeeThread(HASYA, [NATHAN])).toBe(false)
-    expect(canSeeThread('developer@trade-risksol.com', [NATHAN])).toBe(false)
+    // The developer account sees every mailbox (Jarod, 20 Nov 2026).
+    expect(canSeeThread('developer@trade-risksol.com', [NATHAN])).toBe(true)
   })
   it('a thread both Nathan and Cheng received, without operations@, is theirs', () => {
     expect(canSeeThread(NATHAN, [NATHAN, CHENG])).toBe(true)
@@ -50,5 +51,25 @@ describe('mailbox pill', () => {
   })
   it('lists the personal mailboxes among the visible threads, sorted, without operations@', () => {
     expect(personalMailboxes([{ mailboxes: [NATHAN, OPERATIONS_MAILBOX] }, { mailboxes: [CHENG] }, { mailboxes: [] }, {}])).toEqual([CHENG, NATHAN])
+  })
+})
+
+describe('two pills, and one account that sees every mailbox (20 Nov 2026)', () => {
+  it('only the developer account sees all mail', () => {
+    expect(seesAllMail('developer@trade-risksol.com')).toBe(true)
+    expect(seesAllMail('Developer@Trade-Risksol.com')).toBe(true)
+    expect(seesAllMail('cheng@trade-risksol.com')).toBe(false)
+    expect(seesAllMail(null)).toBe(false)
+  })
+  it('a colleague’s own thread stays closed to everyone but its owner, operations@ and the developer account', () => {
+    expect(canSeeThread('cheng@trade-risksol.com', ['nathan@trade-risksol.com'])).toBe(false)
+    expect(canSeeThread('developer@trade-risksol.com', ['nathan@trade-risksol.com'])).toBe(true)
+  })
+  it('Operations holds the team’s threads and Me the rest the viewer may see', () => {
+    expect(inMailbox('operations', ['operations@trade-risksol.com'])).toBe(true)
+    expect(inMailbox('operations', ['cheng@trade-risksol.com'])).toBe(false)
+    expect(inMailbox('me', ['cheng@trade-risksol.com'])).toBe(true)
+    expect(inMailbox('me', ['operations@trade-risksol.com'])).toBe(false)
+    expect(inMailbox('me', [])).toBe(false)
   })
 })

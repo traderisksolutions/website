@@ -19,6 +19,8 @@ import type { InboxCounts } from '@/lib/mail/inbox-list'
 import type { InboxFirst } from '@/lib/engagement/inbox-first'
 import { InboxTeamProvider, seedCompanyCard } from '@/components/engagement/company-card'
 import { firstPaintKey, keepFirstPaint } from '@/components/engagement/first-paint'
+import { seesAllMail } from '@/lib/mail/visibility'
+import { pageUser } from '@/lib/supabase/client'
 
 /**
  * The Inbox's interactive body (/engagement). The page reads the first screen on the server and
@@ -227,7 +229,7 @@ export function InboxClient({ initial }: { initial: InboxFirst | null }) {
   }, [initLeadId, view, mailbox, query, merge, setRefreshing])
 
   useEffect(() => {
-    const served = firstFromServer.current && view === 'all' && mailbox === 'all' && !query.trim()
+    const served = firstFromServer.current && view === 'all' && mailbox === (seesAllMail(pageUser()?.email) ? 'all' : 'operations') && !query.trim()
     firstFromServer.current = false
     if (served) return
     setLoading(true); setOrder([]); setPage(null); void load()
