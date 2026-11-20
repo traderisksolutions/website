@@ -28,11 +28,14 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_COMMIT_SHA: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev',
   },
-  // Group Benefits became Pricing Matrix on 2 Oct 2026. Old links and bookmarks still land.
+  // Every moved address in one list (not a page per redirect), so old links and bookmarks land.
   async redirects() {
     return [
       { source: '/group-benefits', destination: '/pricing-matrix', permanent: true },
       { source: '/group-benefits/:path*', destination: '/pricing-matrix/:path*', permanent: true },
+      { source: '/insurers', destination: '/companies?kind=insurer', permanent: false },
+      { source: '/marketing', destination: '/websites/traderisksolutions', permanent: false },
+      { source: '/sales', destination: '/sales/enquiries', permanent: false },
     ]
   },
 };
