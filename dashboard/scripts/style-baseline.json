@@ -1175,14 +1175,6 @@
   "height": 2,
   "control": 2
  },
- "src/components/page-header.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 2,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/components/placement/ComparisonGrid.tsx": {
   "style": 0,
   "hex": 0,
