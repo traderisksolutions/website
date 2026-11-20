@@ -13,7 +13,8 @@
     "prebuild": "node scripts/check-api-coverage.mjs",
     "api-key": "node scripts/api-key.mjs",
     "knip": "knip",
-    "check": "tsc --noEmit -p tsconfig.json && next lint --dir src && vitest run",
+    "check": "tsc --noEmit -p tsconfig.json && next lint --dir src && node scripts/check-style-drift.mjs && vitest run",
+    "style:baseline": "node scripts/check-style-drift.mjs --update",
     "journeys": "playwright test",
     "embed:run": "gcloud run jobs execute thread-embed --region asia-southeast1 --project trs-ai-project --account developer@trade-risksol.com --wait"
   },
