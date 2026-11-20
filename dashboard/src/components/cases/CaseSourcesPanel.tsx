@@ -66,7 +66,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
     }).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!data) return <Spinner label="Loading sources…" />
 
   const offered: Record<'proposed' | 'recent' | 'older', (Candidate | Proposal)[]> = { proposed: data.proposed, recent: data.recent, older: data.older }
@@ -187,7 +187,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
             </tbody>
           </Register>
       )}
-      {data.hidden > 0 && <p className="m-0 text-13 text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
+      {data.hidden > 0 && <p className="m-0 text-body text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
 
       <MoveThreadDialog conflicts={conflicts} caseTitle={data.item.title ?? 'This case'} staff={staff} busy={busy === 'add'}
         onCancel={() => { setConflicts([]); setTicked(new Set()) }}

@@ -117,7 +117,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
         <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
         <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex max-h-[calc(100vh-48px)] w-[min(880px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
           <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-9 w-9 items-center justify-center rounded-full border-0 bg-trs-field text-trs-ink-2 cursor-pointer"><X size={16} /></DialogPrimitive.Close>
-          <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold tracking-[-0.02em] text-trs-ink">{step === 1 ? 'Add from emails' : 'Parties and policies'}</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">{step === 1 ? 'Add from emails' : 'Parties and policies'}</DialogPrimitive.Title>
           <div className="text-body text-trs-muted">{step === 1 ? 'Latest Inbox threads. Tick the ones to add.' : 'One block per thread. Add a row for each policy the thread is about.'}</div>
 
           {step === 1 && <>

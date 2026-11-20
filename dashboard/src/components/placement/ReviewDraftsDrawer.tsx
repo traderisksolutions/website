@@ -462,7 +462,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
         </FieldRow>
 
         {sent ? (
-          <div className="trs-re flex-1 min-h-0 overflow-y-auto px-[var(--re-gutter)] py-4 text-15 leading-relaxed text-foreground [&_table]:border-collapse [&_td]:border [&_td]:border-input [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-input [&_th]:px-2 [&_th]:py-1 [&_p]:m-0 [&_p]:mb-3"
+          <div className="trs-re flex-1 min-h-0 overflow-y-auto px-[var(--re-gutter)] py-4 text-body leading-relaxed text-foreground [&_table]:border-collapse [&_td]:border [&_td]:border-input [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:border-input [&_th]:px-2 [&_th]:py-1 [&_p]:m-0 [&_p]:mb-3"
             dangerouslySetInnerHTML={{ __html: item.html }} />
         ) : (
           <div className={cn('flex-1 min-h-0 flex flex-col', busy && 'pointer-events-none opacity-60')} aria-busy={busy}>
@@ -524,7 +524,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   // ── Shell ────────────────────────────────────────────────────────────────────────────────────
   const header = (
     <header className="flex items-center gap-2 px-4 sm:px-5 h-14 flex-shrink-0 border-b border-trs-line">
-      <h2 className="m-0 text-heading font-medium tracking-[-0.01em] text-trs-ink">Drafts to approve</h2>
+      <h2 className="m-0 text-heading font-medium text-trs-ink">Drafts to approve</h2>
       <span className="text-body tabular-nums text-trs-muted">{items ? pending.length : ''}</span>
       <div className="ml-auto flex items-center gap-1.5">
         <Btn level="secondary" size="xs" onClick={() => void sendAll()} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>

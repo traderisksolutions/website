@@ -47,7 +47,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
     load().then(([m, b]) => { setMemory(m); setBrief(b) }).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!memory || !brief) return <Spinner label="Loading brief…" />
 
   const name = new Map<string, string>(memory.sections.map(s => [s.section, s.name]))
@@ -122,8 +122,8 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
               {rows.map(n => (
                 <tr key={n.id} className="align-top">
                   <td className="px-3 py-2 whitespace-nowrap">{name.get(n.section) ?? n.section}</td>
-                  <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{n.text}</td>
-                  <td className="cell-left px-3 py-2 text-13 leading-[1.5] max-w-[340px] break-words">{source(n)}</td>
+                  <td className="cell-left px-3 py-2 text-body leading-[1.5] break-words">{n.text}</td>
+                  <td className="cell-left px-3 py-2 text-body leading-[1.5] max-w-[340px] break-words">{source(n)}</td>
                   <td className="cell-left px-3 py-2 whitespace-nowrap">{n.author_kind === 'agent' ? actorName(n.author) : actorName(n.author, memory.staff)}</td>
                   <td className="px-2 py-1.5 whitespace-nowrap">
                     {n.status === 'current'
@@ -151,7 +151,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
             <Field label="Note">
               <textarea className={textareaCls} rows={4} maxLength={600} value={text} onChange={e => setText(e.target.value)} />
             </Field>
-            {addError && <p className="m-0 text-13 text-trs-neg" role="alert">{addError}</p>}
+            {addError && <p className="m-0 text-body text-trs-neg" role="alert">{addError}</p>}
           </div>
           <DialogFooter className="gap-2 sm:space-x-0">
             <Btn disabled={busy === 'add'} onClick={() => setAdding(false)}>Cancel</Btn>

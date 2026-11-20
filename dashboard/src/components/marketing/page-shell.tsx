@@ -30,7 +30,7 @@ export function MarketingPage({ title, line, line2, actions, sites, siteKey, onS
           {back && <div className="mb-3 text-body">{back}</div>}
           <div className="flex items-end justify-between gap-6 flex-wrap">
             <div className="min-w-0">
-              <h1 className="m-0 text-title font-medium tracking-[-0.03em] leading-[1.08] [text-wrap:balance]">{title}</h1>
+              <h1 className="m-0 text-title font-medium leading-[1.08] [text-wrap:balance]">{title}</h1>
               {line && <p className="m-0 mt-2 text-body text-trs-muted">{line}</p>}
               {line2 && <p className="m-0 mt-1 text-body text-trs-muted">{line2}</p>}
             </div>

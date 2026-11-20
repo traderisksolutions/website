@@ -64,7 +64,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
       <div className={embedded ? 'pt-6' : 'mx-auto max-w-[1400px] px-6 sm:px-12 pt-12 pb-20'}>
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            {!embedded && <h1 className="m-0 text-title font-medium tracking-[-0.03em] leading-[1.08]">Insurers</h1>}
+            {!embedded && <h1 className="m-0 text-title font-medium leading-[1.08]">Insurers</h1>}
             <p className={embedded ? 'm-0 text-body text-trs-muted' : 'm-0 mt-2 text-body text-trs-muted'}>
               {rows ? `${new Set(rows.map(r => r.insurer_company_id)).size} insurers · ${total} products${noContact ? ` · ${noContact} with no one to ask` : ''}` : 'Loading…'}
             </p>

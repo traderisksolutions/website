@@ -48,7 +48,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
     load().then(setView).catch(e => setFailed(errText(e)))
   }, [load])
 
-  if (failed) return <p className="m-0 text-13.5 text-trs-neg" role="alert">{failed}</p>
+  if (failed) return <p className="m-0 text-body text-trs-neg" role="alert">{failed}</p>
   if (!view) return <Spinner label="Loading rounds…" />
 
   async function draft(s: Step) {
@@ -122,7 +122,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
               <tbody>
                 {steps.map(s => (
                   <tr key={s.id} className="align-top">
-                    <td className="cell-left px-3 py-2 text-13 leading-[1.5] break-words">{s.text}{s.count > 1 ? ` · ${count(s.count, 'email')}` : ''}</td>
+                    <td className="cell-left px-3 py-2 text-body leading-[1.5] break-words">{s.text}{s.count > 1 ? ` · ${count(s.count, 'email')}` : ''}</td>
                     <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDay(s.since)}</td>
                     <td className="cell-left px-3 py-2 whitespace-nowrap">{s.agent ?? <span className="text-trs-muted">{DASH}</span>}</td>
                     <td className="px-2 py-1.5 whitespace-nowrap">{action(s)}</td>
@@ -167,21 +167,21 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
                     <td className="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDayTime(m.at)}</td>
                     <td className="cell-left px-3 py-2">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="text-13 text-trs-ink [overflow-wrap:anywhere]">{m.name}</span>
+                        <span className="text-body text-trs-ink [overflow-wrap:anywhere]">{m.name}</span>
                         {m.via && <Chip tone="blue">{m.via === 'referral' ? 'Referral' : `via ${m.via}`}</Chip>}
                       </span>
                     </td>
-                    <td className="cell-left px-3 py-2 text-13 [overflow-wrap:anywhere]">{m.insurer ?? <span className="text-trs-muted">{DASH}</span>}</td>
+                    <td className="cell-left px-3 py-2 text-body [overflow-wrap:anywhere]">{m.insurer ?? <span className="text-trs-muted">{DASH}</span>}</td>
                     <td className="px-2 py-1.5">{type(m)}</td>
                     <td className="cell-left px-3 py-2">
-                      {m.private ? <span className="text-13 text-trs-muted">In a colleague&apos;s mailbox</span> : (
+                      {m.private ? <span className="text-body text-trs-muted">In a colleague&apos;s mailbox</span> : (
                         <button type="button" onClick={() => onOpenThread(m.thread_id)} title="Open the email thread"
-                          className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-13 leading-[1.5] text-trs-ink whitespace-pre-line break-words">
+                          className="block w-full bg-transparent border-0 p-0 cursor-pointer text-left text-body leading-[1.5] text-trs-ink whitespace-pre-line break-words">
                           {dense(m.text) || <span className="text-trs-muted">No text</span>}
                         </button>
                       )}
                     </td>
-                    <td className="cell-left px-3 py-2 text-13 leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
+                    <td className="cell-left px-3 py-2 text-body leading-[1.5] [overflow-wrap:anywhere]">{m.files.length ? m.files.map((f, i) => <span key={i} className="block">{f}</span>) : <span className="text-trs-muted">{DASH}</span>}</td>
                   </tr>
                 ))}
               </tbody>

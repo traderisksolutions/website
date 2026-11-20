@@ -29,7 +29,7 @@ export function NewArticleDialog({ open, onOpenChange, siteKey, topics, onCreate
     <Dialog open={open} onOpenChange={v => { if (!busy) { onOpenChange(v); if (!v) setError(null) } }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-heading font-medium tracking-[-0.01em] text-trs-ink">New article</DialogTitle>
+          <DialogTitle className="text-heading font-medium text-trs-ink">New article</DialogTitle>
           <DialogDescription className="text-body text-trs-muted">Markdown body. Saved as a draft; the editor publishes it.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">

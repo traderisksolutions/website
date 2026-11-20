@@ -111,7 +111,7 @@ function ValueTiles({ value }: { value: CompanyValue }) {
       {value.byCurrency.map(v => (
         <div key={v.currency} className="rounded p-5 bg-trs-field">
           <p className="m-0 text-small text-trs-muted">Total billed ({v.currency})</p>
-          <p className="m-0 mt-1.5 text-title font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">
+          <p className="m-0 mt-1.5 text-title font-medium leading-none tabular-nums text-trs-ink">
             {v.billed.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
           <p className="m-0 mt-2 text-small text-trs-muted">
@@ -123,7 +123,7 @@ function ValueTiles({ value }: { value: CompanyValue }) {
 
       <div className="rounded p-5 bg-trs-field">
         <p className="m-0 text-small text-trs-muted">Policies</p>
-        <p className="m-0 mt-1.5 text-title font-medium tracking-[-0.02em] leading-none tabular-nums text-trs-ink">{value.policyCount}</p>
+        <p className="m-0 mt-1.5 text-title font-medium leading-none tabular-nums text-trs-ink">{value.policyCount}</p>
         <p className="m-0 mt-2 text-small text-trs-muted">
           {value.activePolicies} in force
           {value.firstBilled && <> · client since {fmtDate(value.firstBilled)}{years && years >= 1 ? ` (${years} yr)` : ''}</>}

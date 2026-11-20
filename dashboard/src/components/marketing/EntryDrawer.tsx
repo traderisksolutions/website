@@ -74,7 +74,7 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-trs-line">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-heading font-medium leading-[1.2] tracking-[-0.01em] [text-wrap:balance]">{existing ? existing.title : 'New entry'}</h2>
+            <h2 className="m-0 text-heading font-medium leading-[1.2] [text-wrap:balance]">{existing ? existing.title : 'New entry'}</h2>
             <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-body text-trs-muted">
               {existing && <KnowledgeStatusChip status={existing.status} />}
               <span>{meta.label}</span>

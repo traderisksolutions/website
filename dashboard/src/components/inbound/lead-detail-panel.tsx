@@ -50,7 +50,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             <ChannelBadge source={lead.source} />
             <StatusBadge status={lead.status as AppStatus} />
           </div>
-          <p className="text-heading font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
+          <p className="text-heading font-medium m-0 leading-tight text-trs-ink">
             {displayName(lead)}
           </p>
           {lead.company && (

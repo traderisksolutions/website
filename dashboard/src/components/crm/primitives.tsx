@@ -50,7 +50,7 @@ export function SectionCard({ title, actions, children, className, padded = true
     <section className={cn('min-w-0 pb-6 [section+&]:pt-6 [section+&]:border-t border-trs-line', className)}>
       {(title || actions) && (
         <header className={cn('flex items-center gap-3 mb-3 flex-wrap', title ? 'justify-between' : 'justify-end')}>
-          {title && <h2 className="m-0 text-heading font-medium tracking-[-0.01em] leading-tight text-trs-ink">{title}</h2>}
+          {title && <h2 className="m-0 text-heading font-medium leading-tight text-trs-ink">{title}</h2>}
           {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
         </header>
       )}

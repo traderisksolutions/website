@@ -34,7 +34,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-9 w-9 items-center justify-center rounded-full border-0 bg-trs-field text-trs-ink-2 cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-trs-green">
               <X size={16} />
             </DialogPrimitive.Close>
-            <DialogPrimitive.Title className="m-0 pr-10 text-heading font-semibold leading-tight tracking-[-0.02em] text-trs-ink">{opts?.title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="m-0 pr-10 text-heading font-semibold leading-tight text-trs-ink">{opts?.title}</DialogPrimitive.Title>
             {opts?.body ? <DialogPrimitive.Description className="mt-2 mb-0 text-body leading-relaxed text-trs-muted">{opts.body}</DialogPrimitive.Description> : <DialogPrimitive.Description className="sr-only">{opts?.title}</DialogPrimitive.Description>}
             <div className="mt-6 flex justify-end gap-2">
               <Btn onClick={() => close(false)}>{opts?.cancel ?? 'Cancel'}</Btn>

@@ -370,7 +370,7 @@ export default function NexusPage() {
     <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] text-trs-ink">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5 flex-shrink-0 bg-white border-b border-trs-line">
-        <h1 className="m-0 text-title font-medium tracking-[-0.03em] leading-none text-trs-ink">Case review</h1>
+        <h1 className="m-0 text-title font-medium leading-none text-trs-ink">Case review</h1>
         <Btn level="primary" onClick={() => setCreateOpen(true)}>
           New case
         </Btn>
@@ -523,7 +523,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="m-0 text-heading font-medium tracking-[-0.02em] text-trs-ink">New case</h2>
+          <h2 className="m-0 text-heading font-medium text-trs-ink">New case</h2>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0">
             <X size={15} />
           </Btn>
@@ -989,7 +989,7 @@ function MissionHeader({
               />
             ) : (
               <>
-                <h2 className="m-0 text-heading font-medium tracking-[-0.02em] truncate text-trs-ink">{caseData.name}</h2>
+                <h2 className="m-0 text-heading font-medium truncate text-trs-ink">{caseData.name}</h2>
                 <Btn level="tertiary" size="xs" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case" className="flex-shrink-0 w-8 px-0 text-trs-subtle">
                   <Pencil size={13} strokeWidth={2} />
                 </Btn>
@@ -1327,7 +1327,7 @@ function SectionLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-      <h2 className="m-0 text-heading font-medium tracking-[-0.01em] leading-tight text-trs-ink">
+      <h2 className="m-0 text-heading font-medium leading-tight text-trs-ink">
         {title}
         {count !== undefined && <span className="ml-2 text-body font-normal tabular-nums text-trs-subtle">{count}</span>}
       </h2>
@@ -2593,7 +2593,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
         onClick={() => setOpen(v => !v)}
         className={cn(ROW_TOGGLE, 'gap-3 px-5 py-3.5 hover:bg-transparent')}
       >
-        <span className="text-heading font-medium tracking-[-0.01em] text-trs-ink">
+        <span className="text-heading font-medium text-trs-ink">
           Analysis metadata
           {(meta.truncation_flags?.length ?? 0) > 0 && (
             <span className="ml-2 text-body font-normal tabular-nums text-trs-subtle">{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
@@ -2901,12 +2901,12 @@ function AttachmentCoverageCard({
         <div className="flex items-center gap-6 flex-wrap">
           <dl className="m-0 flex items-center gap-6">
             <div>
-              <dd className="m-0 text-title font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{ext}</dd>
+              <dd className="m-0 text-title font-medium tabular-nums leading-none text-trs-ink">{ext}</dd>
               <dt className="m-0 text-small mt-1 text-trs-muted">Extracted</dt>
             </div>
             {pendingThreads.length > 0 && (
               <div>
-                <dd className="m-0 text-title font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{pendingThreads.length}</dd>
+                <dd className="m-0 text-title font-medium tabular-nums leading-none text-trs-ink">{pendingThreads.length}</dd>
                 <dt className="m-0 text-small mt-1 text-trs-muted">Pending</dt>
               </div>
             )}
@@ -3561,7 +3561,7 @@ function ThreadLinkerModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-heading font-medium tracking-[-0.02em] text-trs-ink">Link threads</h2>
+          <h2 className="m-0 text-heading font-medium text-trs-ink">Link threads</h2>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0">
             <X size={15} />
           </Btn>

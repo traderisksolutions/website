@@ -158,7 +158,7 @@ function Overview({ ctx, onTab }: { ctx: Ctx; onTab: (t: Tab) => void }) {
   )
 }
 
-const FileTag = ({ name }: { name: string }) => <span className="rounded bg-trs-neg px-1 py-[2px] text-small font-bold text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
+const FileTag = ({ name }: { name: string }) => <span className="rounded bg-trs-neg px-1 py-[2px] text-small font-semibold text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
 
 function RequestTab({ ctx, onDone, onReview }: { ctx: Ctx; onDone: () => Promise<void>; onReview: (id: string | null) => void }) {
   const [items, setItems] = useState<RequestItem[]>(ctx.items)
