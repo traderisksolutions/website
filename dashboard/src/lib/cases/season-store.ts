@@ -56,22 +56,20 @@ export async function loadSeason(today = seasonToday()): Promise<SeasonView> {
   const paired = new Set([...pairs.values()].map(p => p.case_id))
   const listed = open.filter(c => paired.has(c.id) || keepsOwnRow(c as SeasonCase, window))
   const unnamed = listed.map(c => c.company_id as string | null).filter((id): id is string => !!id && !names.has(id))
-  const [states, extra, quotations, analysed] = await Promise.all([
+  const [states, extra, quotations] = await Promise.all([
     caseStates(listed),
     readIn(unnamed, 80, list => `companies?id=in.(${list})&select=id,company_name`),
-    sbTry<Row[]>(`gb_quotations?member_count=gt.0&created_at=gte.${enc(new Date(Date.now() - 400 * 86_400_000).toISOString())}&select=id,company_name,member_count,created_at&order=created_at.desc&limit=500`, []),
-    sbTry<{ key: string }[]>('app_settings?key=like.gb_analysis:*&select=key&limit=2000', []),
+    sbTry<Row[]>(`eb_quotations?created_at=gte.${enc(new Date(Date.now() - 400 * 86_400_000).toISOString())}&select=id,company_id,company_name,created_at&order=created_at.desc&limit=500`, []),
   ])
   for (const c of extra) if (c.company_name) names.set(c.id, c.company_name)
-  const packs = new Set(analysed.map(r => r.key.slice('gb_analysis:'.length)))
 
   const compare = (r: Omit<SeasonRow, 'compare'>): SeasonCompare | null => {
     if (r.group === 'employment_benefits') {
       const key = normCompany(r.company)
-      // The client's latest quotation that carries a census, as Today › Coming up finds it.
-      const q = key.length >= 3 ? quotations.find(x => normCompany(x.company_name) === key) : undefined
-      if (q && packs.has(q.id)) return { kind: 'compare_cover', href: `/pricing-matrix/quote/${q.id}/compare` }
-      return r.company_id ? { kind: 'new_quotation', href: `/pricing-matrix/new?company=${enc(r.company)}&companyId=${r.company_id}` } : null
+      // The client's latest proposal on the Quotation register, by company record, else by name.
+      const q = quotations.find(x => r.company_id && x.company_id === r.company_id) ?? (key.length >= 3 ? quotations.find(x => normCompany(x.company_name) === key) : undefined)
+      if (q) return { kind: 'proposal', href: `/eb/proposal/${q.id}` }
+      return r.company_id ? { kind: 'new_quotation', href: `/eb?company=${r.company_id}` } : null
     }
     // Any other line is compared by hand on its case.
     return r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null

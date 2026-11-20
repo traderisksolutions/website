@@ -12,7 +12,6 @@
 
 import { cn } from '@/lib/utils'
 import { forwardRef, type ReactNode, type UIEvent } from 'react'
-import { ArrowUp } from 'lucide-react'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EaListPanel
@@ -202,34 +201,5 @@ export function EaWorkspaceEmptyState({
     >
       <p className="m-0 px-8 text-center text-[16px]" style={{ color: '#4a5550' }}>{body || title}</p>
     </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ScrollToLatestButton
-//
-// A subtle floating affordance shown while reading older messages (scrolled
-// down away from the top of EaMessageArea, where the composer + newest
-// message live in the inverted newest-first stack) — positioned relative to
-// EaWorkspaceColumn (which is `relative`), not the viewport, so it stays
-// pinned to the reading pane rather than the whole page.
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function ScrollToLatestButton({ visible, onClick }: { visible: boolean; onClick: () => void }) {
-  if (!visible) return null
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'absolute bottom-4 right-4 z-10',
-        'flex items-center gap-1.5 text-[11px] font-semibold',
-        'px-3 py-1.5 rounded-full border border-[--border-subtle]',
-        'bg-card text-foreground shadow-[0_2px_10px_rgba(15,23,42,0.12)]',
-        'hover:bg-accent transition-colors',
-      )}
-    >
-      <ArrowUp size={12} strokeWidth={2.5} />
-      Latest message
-    </button>
   )
 }

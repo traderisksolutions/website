@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
 import { sbTry, enc }                from '@/lib/crm/db'
+import { currentUserEmail }          from '@/lib/crm/auth'
+import { visibleThreadIds }          from '@/lib/mail/visibility-server'
 
 type Row = {
   id: string
@@ -27,8 +29,10 @@ export async function GET(req: NextRequest) {
       `email_threads?deleted_at=is.null&subject=ilike.${like}&select=id,subject,snippet,category,last_message_at,companies(company_name)&order=last_message_at.desc&limit=40`,
       [],
     )
+    // Search never surfaces a colleague's private thread (INB-002).
+    const seen = await visibleThreadIds(rows.map(r => r.id), await currentUserEmail())
     return NextResponse.json({
-      threads: rows.map(r => ({
+      threads: rows.filter(r => seen.has(r.id)).map(r => ({
         id: r.id,
         subject: r.subject,
         snippet: r.snippet,

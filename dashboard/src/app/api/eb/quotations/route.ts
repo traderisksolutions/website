@@ -1,7 +1,9 @@
 /**
  * Employment Benefits quotations kept from /eb (src/lib/gb/eb-proposal-store.ts).
  *
- * POST { snapshot, company_id?, thread_id? } → { id }   keeps the quotation as /eb shows it
+ * POST { snapshot, company_id?, thread_id?, id? } → { id, version, updated }
+ *      keeps the quotation as /eb shows it; with id, updates that quotation in place unless its
+ *      proposal has gone (then a new version)
  * GET  ?company=<id> → { quotations }                    a company's quotations, newest first
  * GET               → { quotations }                    every quotation, newest first, up to 500 (no snapshot)
  *
@@ -25,9 +27,10 @@ export async function POST(req: NextRequest) {
   if (!s) return fail('The quotation is incomplete: a company, a start date, at least one insurer and one category are needed.')
   const companyId = isUuid(b?.company_id) ? b.company_id : null
   const threadId = isUuid(b?.thread_id) ? b.thread_id : null
+  const id = isUuid(b?.id) ? b.id : null
   try {
-    const row = await saveQuotation(s, { company_id: companyId, thread_id: threadId }, actor)
-    return NextResponse.json({ id: row.id, version: row.version })
+    const row = await saveQuotation(s, { company_id: companyId, thread_id: threadId, id }, actor)
+    return NextResponse.json({ id: row.id, version: row.version, updated: row.updated })
   } catch (e) {
     return errorResponse(e)
   }

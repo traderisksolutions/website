@@ -4,6 +4,8 @@ One component per UI job. This file lists every place a job is implemented more 
 
 Taken 13 Nov 2026 from the working tree. Read-only sweep; no code changed.
 
+Deleted since (Jarod, 20 Nov 2026: old quotations migrated; pages deleted): `group-benefits/NewEb.tsx`, `group-benefits/CompareCover.tsx` and every page under `app/pricing-matrix/quote/[id]/` (now one redirect). Rows below that name them are history; they no longer count as importers or candidates.
+
 ## Method
 
 - **Importers** = files under `src/` (tests excluded) with an `import … from` naming the module by alias or relative path. When a symbol is named (for example `primitives › Btn`), only importing files that also use that symbol are counted.

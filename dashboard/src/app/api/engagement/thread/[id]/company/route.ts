@@ -6,6 +6,13 @@
  * filing: the pick becomes the client the thread is about (`thread_insurers`), and a `name` with
  * no company on file creates the client first (the OUE referral through Mednefits, 11 Nov 2026).
  * Answers { companyId } for a filing, { clientCompanyId, created } for a client.
+ *
+ * GET /api/engagement/thread/[id]/company → { domain, unfiled }
+ *
+ * The thread's outside domain (the most frequent address on it that is not TRS, a personal
+ * mailbox or an automated sender) and how many other unfiled threads have someone from it. The
+ * rail's Link company offers "File all from this domain" with that count; the filing itself is
+ * POST /api/companies/domains, by a person, never automatic.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron }        from '@/lib/api-auth'
@@ -13,6 +20,27 @@ import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { setClientForThread }        from '@/lib/crm/client-link'
 import { enc, sbTry }                from '@/lib/crm/db'
 import { createClient }              from '@/lib/supabase/server'
+import { threadsOnDomain }           from '@/lib/crm/domains'
+import { currentUserEmail }          from '@/lib/crm/auth'
+import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { forgetInboxIndex }          from '@/lib/mail/inbox-index'
+import { outsideDomain }             from '@/lib/mail/inbox-list'
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const unauthorized = await requireStaffOrCron(req)
+  if (unauthorized) return unauthorized
+  const { id } = await params
+  try {
+    if (!(await threadVisibleTo(id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
+    const parts = await sbTry<{ email: string | null }[]>(`email_participants?thread_id=eq.${enc(id)}&select=email&limit=500`, [])
+    const domain = outsideDomain(parts.map(p => p.email ?? ''))
+    if (!domain) return NextResponse.json({ domain: null, unfiled: 0 })
+    const unfiled = (await threadsOnDomain(domain)).filter(t => t !== id).length
+    return NextResponse.json({ domain, unfiled })
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const unauthorized = await requireStaffOrCron(req)
@@ -30,6 +58,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const by = await createClient().then(c => c.auth.getUser()).then(u => u.data.user?.email ?? null).catch(() => null)
       const r = await setClientForThread(id, { companyId, name }, by)
       if (!r) return NextResponse.json({ error: 'Could not set the client' }, { status: 500 })
+      forgetInboxIndex()
       return NextResponse.json({ ok: true, clientCompanyId: r.clientId, created: r.created })
     }
     if (!companyId) return NextResponse.json({ error: 'companyId required' }, { status: 400 })
@@ -38,6 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       body: JSON.stringify({ company_id: companyId }),
     })
     if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 })
+    forgetInboxIndex()
     return NextResponse.json({ ok: true, companyId })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

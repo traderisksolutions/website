@@ -4,10 +4,11 @@ import { directory } from '@/lib/admin/k/deposit'
 import { clientsForThreads } from '@/lib/nexus/company-view'
 import { loadPortfolio } from './portfolio-load'
 import { detectCycles, toDesk, type DeskBusiness } from './admin-desk'
+import type { UnfiledMail } from './portfolio'
 
 type Row = { id: string; company_id: string | null; thread_id: string | null; owner_party: string; what: string; status: string; since_at: string; due_at: string | null; snoozed_until: string | null }
 
-export async function loadAdminDesk(): Promise<{ from: string | null; businesses: DeskBusiness[] }> {
+export async function loadAdminDesk(): Promise<{ from: string | null; businesses: DeskBusiness[]; unfiled: UnfiledMail | null }> {
   const [portfolio, dir] = await Promise.all([loadPortfolio('12m'), directory()])
   const top = portfolio.rows.filter(r => r.top)
   const requests: Row[] = []
@@ -44,5 +45,5 @@ export async function loadAdminDesk(): Promise<{ from: string | null; businesses
       open, cycles: detectCycles([...(firsts.get(b.id)?.values() ?? [])]),
     }
   })
-  return { from: portfolio.summary.requestsFrom, businesses }
+  return { from: portfolio.summary.requestsFrom, businesses, unfiled: portfolio.unfiled ?? null }
 }

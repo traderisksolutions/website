@@ -13,6 +13,8 @@ import { GEMINI_LITE } from '@/lib/gemini-models'
 import { personName } from '@/lib/format'
 import type { Company, LinkSuggestion, LinkVerdict, Stage } from './types'
 import { logActivity } from '@/lib/log-activity'
+import { visibleThreadIds } from '@/lib/mail/visibility-server'
+import { splitVisible } from './threads'
 
 type ContactMini = { id: string; email: string | null; first_name: string | null; last_name: string | null; company: string | null; company_id: string | null }
 type ThreadRow = {
@@ -29,6 +31,27 @@ export interface UnlinkedThread extends ThreadRow {
 const THREAD_SELECT = 'id,subject,snippet,category,status,last_message_at,contact_id,contacts(id,email,first_name,last_name,company,company_id)'
 
 // ── Queue ─────────────────────────────────────────────────────────────────────────────────────
+
+/** Suggestions older than this are not shown (687 stale ones from before 6 Nov 2026); they stay stored. */
+export const SUGGESTION_SHOWN_DAYS = 14
+
+/** A suggestion shown on Unfiled threads: made in the last 14 days. Pure. */
+export function freshSuggestion<T extends { created_at: string }>(s: T | null | undefined, now = Date.now()): T | null {
+  if (!s) return null
+  const at = Date.parse(s.created_at)
+  return Number.isFinite(at) && now - at <= SUGGESTION_SHOWN_DAYS * 86_400_000 ? s : null
+}
+
+/**
+ * The unfiled threads one person may see (INB-002), the private rest as a count, and only the
+ * suggestions made in the last 14 days. For the page; the suggester reads listUnlinkedThreads.
+ */
+export async function listUnfiledForViewer(viewer: string | null, now = Date.now()): Promise<{ threads: UnlinkedThread[]; hidden: number }> {
+  const all = await listUnlinkedThreads()
+  const visible = await visibleThreadIds(all.map(t => t.id), viewer)
+  const { shown, hidden } = splitVisible(all, visible)
+  return { threads: shown.map(t => ({ ...t, suggestion: freshSuggestion(t.suggestion, now) })), hidden }
+}
 
 export async function listUnlinkedThreads(): Promise<UnlinkedThread[]> {
   const [threads, suggestions] = await Promise.all([

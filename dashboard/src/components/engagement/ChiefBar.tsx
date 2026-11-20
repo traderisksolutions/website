@@ -14,7 +14,7 @@ import { toProblem } from '@/lib/email/recipients'
 import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
 import type { ReadPlan } from '@/lib/chief/read'
-import { doneHref, doneLabel, doneSummary } from '@/lib/chief/suggest-links'
+import { doneSummary } from '@/lib/chief/suggest-links'
 import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, SECOND, MAIN } from './rail-bits'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
@@ -89,11 +89,6 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
   const read = () => run('read', async () => { await post({ action: 'read' }) })
-  const draftToClient = (quotationId: string) => run('client-draft', async () => {
-    const r = await callApi<{ draftId?: string; error?: string }>(`/api/group-benefits/quote/${quotationId}/client-draft`, { method: 'POST', body: { thread_id: threadId } })
-    if (r.error) throw new Error(r.error)
-    if (r.draftId) setOpen(r.draftId)
-  })
   const execute = (stepIds: string[]) => run('execute', async () => { await post({ action: 'execute', stepIds }) })
   const step = (stepId: string, status: 'todo' | 'done') => run(`step:${stepId}`, async () => { await post({ action: 'step', stepId, status }) })
 
@@ -158,15 +153,10 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
         ))}
         {finished.map(s => {
           const d = doneOf(s)!
-          const clientDrafted = bar?.drafts.some(x => x.label === 'Employment benefits pricing to client')
           return (
             <ActionItem key={s.key} eyebrow="Done" title={s.title} meta={d.summary}>
               <Buttons>
-                {s.kind === 'eb_scenarios' && s.done?.draftable && !clientDrafted && (
-                  <button type="button" className={MAIN} onClick={() => draftToClient(d.quotationId)} disabled={!!busy} title="The premium summary, how the figures were derived and what TRS suggests, with the report attached. Waits here; nothing sends.">{busy === 'client-draft' ? 'Writing…' : 'Draft to client'}</button>
-                )}
-                <Link href={doneHref(s, d.quotationId)} className={`${SECOND} no-underline`}>{doneLabel(s)}</Link>
-                <Link href={`/eb?thread=${threadId}`} className={`${SECOND} no-underline`}>New analysis</Link>
+                <Link href={`/eb?thread=${threadId}`} className={`${MAIN} no-underline`}>New analysis</Link>
               </Buttons>
             </ActionItem>
           )

@@ -298,38 +298,3 @@ export function buildCompare(input: {
     products: PRODUCTS, picks, options, prices, benefits, labels, why, notes, workbook: wb.file, rules,
   }
 }
-
-const PICKS_KEY = (id: string) => `gb_compare:${id}`
-/** The broker's choices on the compare page, per product, category and cover. */
-export async function loadPicks(id: string): Promise<Record<string, Picks> | null> {
-  const { sbTry, enc } = await import('@/lib/crm/db')
-  const [r] = await sbTry<{ value: string }[]>(`app_settings?key=eq.${enc(PICKS_KEY(id))}&select=value&limit=1`, [])
-  try { return r?.value ? JSON.parse(r.value) as Record<string, Picks> : null } catch { return null }
-}
-export async function savePicks(id: string, picks: Record<string, Picks>): Promise<void> {
-  const { sb } = await import('@/lib/crm/db')
-  await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify([{ key: PICKS_KEY(id), value: JSON.stringify(picks), updated_at: new Date().toISOString() }]) })
-}
-
-/** The comparison for a quotation, as the page shows it. Server only. */
-export async function loadCompare(id: string): Promise<(CompareData & { company: string | null }) | { error: string; status: number }> {
-  const { sbTry, enc } = await import('@/lib/crm/db')
-  const { loadWorkbook, importWorkbook } = await import('./workbook')
-  const { loadAnalysis } = await import('./analysis')
-  const [q] = await sbTry<{ id: string; company_name: string | null; census: Member[] | null; effective_date: string | null; basis: string | null; requirement: { current_schedule?: Schedule; current_insurer?: string | null; last_year?: LastYear | null } | null }[]>(`gb_quotations?id=eq.${enc(id)}&select=id,company_name,census,effective_date,basis,requirement&limit=1`, [])
-  if (!q) return { error: 'Quotation not found', status: 404 }
-  if (!q.census?.length) return { error: 'The quotation has no census', status: 422 }
-  const wb = await loadWorkbook() ?? await importWorkbook().catch(() => null)
-  if (!wb) return { error: 'The house workbook is not loaded. Import it from the Drive folder.', status: 503 }
-  const { loadRules } = await import('./plan-pairs')
-  const [pack, stored] = await Promise.all([loadAnalysis(id), loadRules()])
-  const data = buildCompare({
-    quotationId: id, wb, members: q.census, schedule: q.requirement?.current_schedule ?? pack?.schedule ?? null,
-    effectiveDate: (q.effective_date ?? pack?.effectiveDate ?? new Date().toISOString()).slice(0, 10),
-    basis: (q.basis ?? pack?.basis) === 'renewal' ? 'renewal' : 'new_business',
-    currentInsurer: q.requirement?.current_insurer ?? pack?.currentInsurer ?? null,
-    lastYearTotal: q.requirement?.last_year?.total ?? pack?.lastYear?.total ?? null,
-    saved: await loadPicks(id), lastYear: q.requirement?.last_year ?? null, rules: stored.rules,
-  })
-  return { company: q.company_name, ...data }
-}

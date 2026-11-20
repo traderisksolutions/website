@@ -2,12 +2,13 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/page-header'
 import { Btn, Chip, LinkBtn, Segmented, Spinner, TONE_STYLE } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow, RegisterEmpty } from '@/components/ui/register'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import { fmtDate } from '@/lib/format'
 import { threadHref } from '@/lib/placement/position'
-import { dueTone, statusOf, type OwnerParty, type View } from '@/lib/nexus/rules'
+import { dueTone, statusOf, SNOOZE_DAYS, type OwnerParty, type View } from '@/lib/nexus/rules'
 import type { LedgerRow } from '@/lib/nexus/ledger'
 
 type Ledger = { rows: LedgerRow[]; counts: Record<View, number>; chaseable: number; mine_count: number; actor: string }
@@ -93,19 +94,15 @@ export function FollowUpsLedger() {
 
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
-      <div className="mx-auto max-w-[1500px] px-4 sm:px-12 pt-12 pb-20">
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Nexus</h1>
-            <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>Follow-ups</p>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
+      <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10 pt-6 pb-20">
+        <PageHeader title="Follow-ups"
+          meta={data ? `${data.counts.overdue} overdue · ${data.counts.week} due this week · ${data.counts.waiting} waiting on others` : 'Loading…'}
+          actions={<>
             <LinkBtn level="tertiary" href="/nexus/cases">Case review</LinkBtn>
             <Btn level="primary" disabled={allCount === 0 || !!busy} loading={busy === 'all'} onClick={() => void chase('all')}>
               Draft all chases ({allCount})
             </Btn>
-          </div>
-        </div>
+          </>} />
 
         <div className="flex items-center gap-2 flex-wrap mt-6 mb-3">
           <Segmented value={view} onChange={setView} options={VIEW_OPTIONS.map(o => ({ ...o, count: data?.counts[o.value] }))} />
@@ -136,7 +133,7 @@ export function FollowUpsLedger() {
                   {g.rows.map(r => <Row key={r.id} r={r} view={view} busy={busy === r.id}
                     onDone={() => void patch(r, { status: 'done' }, 'Marked done.')}
                     onReopen={() => void patch(r, { status: 'open' }, 'Reopened.')}
-                    onSnooze={() => void patch(r, { snooze_days: 3 }, 'Snoozed for 3 days.')}
+                    onSnooze={() => void patch(r, { snooze_days: SNOOZE_DAYS }, `Snoozed for ${SNOOZE_DAYS} days.`)}
                     onChase={() => void chase([r.id])} />)}
                 </Fragment>
               ))}
@@ -161,7 +158,7 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
     <RegisterRow>
       <RegisterCell first title={r.client_name ?? r.company_name ?? undefined}>
         {(r.client_id ?? r.company_id) && (r.client_name ?? r.company_name)
-          ? <Link href={`/nexus/companies/${r.client_id ?? r.company_id}`} className="block truncate font-medium no-underline hover:underline" style={{ color: INK }}>{r.client_name ?? r.company_name}</Link>
+          ? <Link href={`/companies/${r.client_id ?? r.company_id}?tab=nexus`} className="block truncate font-medium no-underline hover:underline" style={{ color: INK }}>{r.client_name ?? r.company_name}</Link>
           : <span style={{ color: MUTED }}>—</span>}
       </RegisterCell>
       <RegisterCell><Chip tone={status.tone}>{status.label}</Chip></RegisterCell>
@@ -183,17 +180,17 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
         {src.href ? <Link href={src.href} className="underline underline-offset-4" style={{ color: INK }}>{src.label}</Link> : <span style={{ color: MUTED }}>{src.label}</span>}
       </RegisterCell>
       <RegisterCell last>
-        <div className="flex items-center gap-1 justify-end">
-          {thread && <LinkBtn size="xs" level="tertiary" href={thread}>Open thread</LinkBtn>}
+        <div className="flex items-center gap-1.5 justify-center">
+          {thread && <LinkBtn size="xs" href={thread}>Open thread</LinkBtn>}
           {view === 'done' ? (
-            <Btn size="xs" level="tertiary" loading={busy} onClick={onReopen}>Reopen</Btn>
+            <Btn size="xs" loading={busy} onClick={onReopen}>Reopen</Btn>
           ) : (
             <>
               {(r.owner_party === 'insurer' || r.owner_party === 'client') && r.source_kind !== 'rfq' && (
-                <Btn size="xs" level="tertiary" disabled={busy || !r.counterparty_email} title={r.counterparty_email ? undefined : 'No email address on this row'} onClick={onChase}>Draft chase</Btn>
+                <Btn size="xs" disabled={busy || !r.counterparty_email} title={r.counterparty_email ? undefined : 'No email address on this row'} onClick={onChase}>Draft chase</Btn>
               )}
-              <Btn size="xs" level="tertiary" disabled={busy} onClick={onDone}>Mark done</Btn>
-              <Btn size="xs" level="tertiary" disabled={busy} onClick={onSnooze}>Snooze 3 days</Btn>
+              <Btn size="xs" disabled={busy} onClick={onDone}>Mark done</Btn>
+              <Btn size="xs" disabled={busy} onClick={onSnooze}>Snooze {SNOOZE_DAYS} days</Btn>
             </>
           )}
         </div>

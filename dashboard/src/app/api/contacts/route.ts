@@ -72,6 +72,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json() as {
       first_name?: string; last_name?: string; email?: string; phone?: string; company?: string
+      /** The company picked in the shared company field (People › Add contact); skips name resolution. */
+      company_id?: string
       isReferral?: boolean; notes?: string
     }
     const email = body.email?.trim().toLowerCase() || null
@@ -87,7 +89,8 @@ export async function POST(req: NextRequest) {
     // Note is raised — see debit-note-commit.ts's resolveCompany, reused verbatim (Sales Loop
     // v2, Phase 5 / F3). Omitted entirely (not set to null) when there's nothing to resolve, so
     // a merge-duplicates upsert never clobbers an already-linked company on an existing contact.
-    const companyId = company ? await resolveCompany({ companyName: company }).catch(() => null) : null
+    const picked = typeof body.company_id === 'string' && /^[0-9a-f-]{36}$/i.test(body.company_id) ? body.company_id : null
+    const companyId = picked ?? (company ? await resolveCompany({ companyName: company }).catch(() => null) : null)
 
     const record: Record<string, unknown> = { first_name, last_name, email, phone, company, source: 'manual' }
     if (companyId) record.company_id = companyId

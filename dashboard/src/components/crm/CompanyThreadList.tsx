@@ -2,37 +2,52 @@
 
 /**
  * A client's threads by where they sit: Active, Back burner, Member movements, each with its
- * label and the open case it is on (GET /api/companies/:id/relevance). A row opens the thread in
- * the reader beside this list. Threads in a colleague's mailbox are counted, never listed.
+ * label, who it waits on and the open case it is on (GET /api/companies/:id/relevance). Insurer
+ * threads that name the client are listed "via <insurer>". A row opens the thread in the reader.
+ * Threads in a colleague's mailbox are counted, never listed (INB-002). With no threads at all,
+ * Find threads searches the unfiled mail by the company's domains and name.
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Chip, Empty, Segmented, Spinner } from './primitives'
+import { Btn, Chip, Empty, Segmented, Spinner } from './primitives'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDate, DASH } from '@/lib/format'
 import { LABEL_NAME } from '@/lib/cases/labels'
 import { RELEVANCE, RELEVANCE_NAME, type Relevance } from '@/lib/cases/relevance'
+import { WAITING_ON_WORD } from '@/lib/crm/waiting-on'
 import type { CompanyRelevance } from '@/lib/cases/sources-store'
 
-export function CompanyThreadList({ companyId, onOpen }: {
+export function CompanyThreadList({ companyId, onOpen, onLinked }: {
   companyId: string
   /** Opens a thread in the reader. */
   onOpen: (threadId: string) => void
+  /** A thread was linked from Find threads; the page reloads its threads. */
+  onLinked?: () => void
 }) {
   const [data, setData] = useState<CompanyRelevance | null>(null)
   const [tab, setTab] = useState<Relevance>('active')
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setData(null); setError(null)
     callApi<CompanyRelevance>(`/api/companies/${companyId}/relevance`)
       // Open on the first group that holds anything.
       .then(d => { setData(d); setTab(RELEVANCE.find(r => d.counts[r] > 0) ?? 'active') })
       .catch(e => setError(errText(e)))
   }, [companyId])
+  useEffect(() => { load() }, [load])
 
-  if (error) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>
+  if (error) return <p className="m-0 text-[13.5px] text-trs-neg" role="alert">Threads did not load: {error}</p>
   if (!data) return <Spinner label="Loading threads…" />
+  if (data.threads.length === 0) {
+    return (
+      <section aria-label="Threads" className="flex flex-col gap-3 min-w-0">
+        <FindThreads companyId={companyId} onLinked={() => { load(); onLinked?.() }} />
+        <HiddenThreads hidden={data.hidden} />
+      </section>
+    )
+  }
   const rows = data.threads.filter(t => t.relevance === tab)
 
   return (
@@ -42,24 +57,88 @@ export function CompanyThreadList({ companyId, onOpen }: {
         {data.season.on && <span className="text-[13px] text-trs-ink-2">Renewal season · {[data.season.basis, data.season.date ? fmtDate(data.season.date) : null].filter(Boolean).join(' ')}</span>}
       </div>
       {rows.length === 0 ? <Empty compact>No threads in this group.</Empty> : (
-        <div className="overflow-x-auto rounded-[10px] border border-trs-line bg-white">
-          <table className="trs-table table-fixed" style={{ minWidth: 680 }}>
-            <colgroup><col /><col style={{ width: 164 }} /><col style={{ width: 124 }} /><col style={{ width: '30%' }} /></colgroup>
-            <thead><tr><th>Thread</th><th>Label</th><th>Last message</th><th>Case</th></tr></thead>
+        <Register label="Threads" minWidth={860}>
+          <RegisterHead>
+            <RegisterTh first>Thread</RegisterTh><RegisterTh>Label</RegisterTh><RegisterTh>Waiting on</RegisterTh><RegisterTh>Last message</RegisterTh><RegisterTh last>Case</RegisterTh>
+          </RegisterHead>
+          <tbody>
+            {rows.map(t => (
+              <RegisterRow key={t.id}>
+                <RegisterCell first identityWidth={340}
+                  primary={<button type="button" onClick={() => onOpen(t.id)} className="block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-trs-ink font-medium hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</button>}
+                  secondary={t.via ? `via ${t.via}` : undefined} />
+                <RegisterCell><Chip>{LABEL_NAME[t.label]}</Chip></RegisterCell>
+                <RegisterCell>{t.waitingOn ? WAITING_ON_WORD[t.waitingOn] : <span className="text-trs-muted">{DASH}</span>}</RegisterCell>
+                <RegisterCell className="tabular-nums">{fmtDate(t.last_message_at)}</RegisterCell>
+                <RegisterCell last align="left">{t.case ? <Link href={`/today/${t.case.id}`} className="block max-w-[260px] truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</RegisterCell>
+              </RegisterRow>
+            ))}
+          </tbody>
+        </Register>
+      )}
+      <HiddenThreads hidden={data.hidden} />
+    </section>
+  )
+}
+
+/** The count of threads in colleagues' mailboxes (never listed) and the mail rule (INB-002). */
+export function HiddenThreads({ hidden }: { hidden: number }) {
+  return (
+    <div className="text-[13px] text-trs-muted">
+      {hidden > 0 && <p className="m-0">{hidden} more in colleagues’ mailboxes</p>}
+      <p className="m-0">Mail you see: own inbox and Operations, plus threads you are on.</p>
+    </div>
+  )
+}
+
+type Found = { id: string; subject: string | null; last_message_at: string | null; matched: 'domain' | 'name' }
+
+/** Empty Threads tab: search the unfiled mail by the company's domains and name, then Link each by hand. */
+export function FindThreads({ companyId, onLinked }: { companyId: string; onLinked: () => void }) {
+  const [found, setFound] = useState<{ threads: Found[]; hidden: number; searched: { domains: string[]; name: string | null } } | null>(null)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [linked, setLinked] = useState<Set<string>>(new Set())
+  const [error, setError] = useState<string | null>(null)
+
+  async function find() {
+    setBusy('find'); setError(null)
+    try { setFound(await callApi(`/api/companies/${companyId}/find-threads`)) }
+    catch (e) { setError(errText(e)) }
+    finally { setBusy(null) }
+  }
+  async function link(id: string) {
+    setBusy(id); setError(null)
+    try {
+      await callApi(`/api/companies/triage/${id}`, { method: 'POST', body: { decision: 'link', companyId } })
+      setLinked(s => new Set(s).add(id))
+      onLinked()
+    } catch (e) { setError(errText(e)) }
+    finally { setBusy(null) }
+  }
+
+  const searched = found ? [...found.searched.domains, found.searched.name ? `“${found.searched.name}”` : null].filter(Boolean).join(', ') : ''
+  return (
+    <div className="flex flex-col gap-3 min-w-0">
+      {!found && <Empty action={<Btn level="primary" loading={busy === 'find'} onClick={() => void find()}>Find threads</Btn>}>No threads are filed under this company.</Empty>}
+      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {found && (found.threads.length === 0
+        ? <Empty compact>No unfiled threads match {searched || 'this company'}.</Empty>
+        : (
+          <Register label="Unfiled threads that match" minWidth={720}>
+            <RegisterHead><RegisterTh first>Thread</RegisterTh><RegisterTh>Matched on</RegisterTh><RegisterTh>Last message</RegisterTh><RegisterTh last>Link</RegisterTh></RegisterHead>
             <tbody>
-              {rows.map(t => (
-                <tr key={t.id}>
-                  <td className="px-3"><button type="button" onClick={() => onOpen(t.id)} className="block max-w-full truncate bg-transparent border-0 p-0 cursor-pointer text-left text-[13px] text-trs-ink hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</button></td>
-                  <td className="px-3"><Chip>{LABEL_NAME[t.label]}</Chip></td>
-                  <td className="px-3 whitespace-nowrap tabular-nums">{fmtDate(t.last_message_at)}</td>
-                  <td className="cell-left px-3">{t.case ? <Link href={`/today/${t.case.id}`} className="block truncate text-trs-ink no-underline hover:underline">{t.case.title ?? 'Open case'}</Link> : <span className="text-trs-muted">{DASH}</span>}</td>
-                </tr>
+              {found.threads.map(t => (
+                <RegisterRow key={t.id}>
+                  <RegisterCell first identityWidth={340} primary={<Link href={`/engagement?lead=${t.id}`} className="text-trs-ink no-underline hover:underline" title={t.subject ?? undefined}>{t.subject || 'No subject'}</Link>} />
+                  <RegisterCell>{t.matched === 'domain' ? 'Domain' : 'Name'}</RegisterCell>
+                  <RegisterCell className="tabular-nums">{fmtDate(t.last_message_at)}</RegisterCell>
+                  <RegisterCell last>{linked.has(t.id) ? 'Linked' : <Btn size="xs" loading={busy === t.id} disabled={!!busy} onClick={() => void link(t.id)}>Link</Btn>}</RegisterCell>
+                </RegisterRow>
               ))}
             </tbody>
-          </table>
-        </div>
-      )}
-      {data.hidden > 0 && <p className="m-0 text-[13px] text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
-    </section>
+          </Register>
+        ))}
+      {found && found.hidden > 0 && <p className="m-0 text-[13px] text-trs-muted">{found.hidden} more in colleagues’ mailboxes</p>}
+    </div>
   )
 }

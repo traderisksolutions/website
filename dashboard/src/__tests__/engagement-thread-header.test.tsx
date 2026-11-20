@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { ConfirmProvider } from '@/components/ui/confirm'
 import { ThreadHeader } from '@/components/engagement/ThreadHeader'
 import type { Lead } from '@/components/engagement/types'
 
@@ -108,21 +109,28 @@ describe('ThreadHeader', () => {
     expect(screen.queryByRole('button', { name: 'Forward' })).toBeNull()
   })
 
-  it('More holds Add to-do, Open company page and a confirmed Delete', async () => {
+  it('More holds Add to-do, Open company page and a Delete that asks first (useConfirm)', async () => {
     const p = props({ onDelete: vi.fn().mockResolvedValue(undefined) })
-    render(<ThreadHeader {...p} />)
+    render(<ConfirmProvider><ThreadHeader {...p} /></ConfirmProvider>)
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     expect(screen.getByRole('menu')).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Open company page' })).toHaveAttribute('href', '/companies/co-1')
     fireEvent.click(screen.getByRole('menuitem', { name: 'Add to-do' }))
     expect(p.onAddTask).toHaveBeenCalledOnce()
 
+    // Cancel keeps the thread.
     fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete thread' }))
-    expect(screen.getByText('Delete this thread?')).toBeInTheDocument()
+    expect(await screen.findByRole('dialog', { name: 'Delete this thread?' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(p.onDelete).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
-    expect(p.onDelete).toHaveBeenCalledOnce()
+
+    // Delete deletes.
+    fireEvent.click(screen.getByRole('button', { name: 'More actions' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete thread' }))
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Delete this thread?' })).getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(p.onDelete).toHaveBeenCalledOnce())
   })
 
   it('Escape closes the More menu', () => {

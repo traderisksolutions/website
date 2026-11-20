@@ -6,6 +6,9 @@ import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
 import { SB_URL } from '@/lib/sb'
+import { personalMailboxes } from '@/lib/mail/visibility'
+import { inboxIndex, visibleRows } from '@/lib/mail/inbox-index'
+import { inboxPage, parseView, type InboxCounts } from '@/lib/mail/inbox-list'
 
 const TRS_DOMAIN = 'trade-risksol.com'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -28,7 +31,7 @@ function sbHeaders() {
 }
 
 // GET /api/engagement/conversations
-// Returns one entry per email thread (not per contact).
+// Returns one entry per email thread (not per contact). ?paged=1: see GET below.
 /**
  * The status of each thread from its last messages, skipping auto-replies and forwards inside TRS.
  * Bodies and recipients are read only for the newest few messages of each thread.
@@ -69,25 +72,35 @@ export async function GET(req: NextRequest) {
   if (unauthorized) return unauthorized
 
   try {
-    // 1. Fetch all threads ordered by last activity
+    const sp = req.nextUrl.searchParams
+    // ?paged=1 is the Inbox (20 Nov 2026): one page of 100, newest first, out of every thread the
+    // viewer may see, with the view's total, the count per view and the personal mailboxes for the
+    // pill. &view= &mailbox= &q= &offset= narrow it; &fresh=1 reads the index again. Without it the
+    // answer is the old array of the newest 200 (People, Today › Add email threads, Policies).
+    const paged = sp.get('paged') === '1'
     type CampaignCtx = { campaign_id: string; campaign_name: string; product_type: string; step_replied_to: number | null } | null
     type ThreadRow = {
       id: string; subject: string | null; display_subject: string | null; snippet: string | null; last_message_at: string; contact_id: string | null; campaign_context: CampaignCtx; category: string | null
       company_id: string | null; companies: { id: string; name: string; owner_email?: string | null; kind?: string | null } | null
     }
-    const threadRes = await fetch(
-      `${SB_URL}/rest/v1/email_threads?select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&order=last_message_at.desc&limit=200`,
-      { headers: sbHeaders(), cache: 'no-store' }
-    )
-    let threads: ThreadRow[] = threadRes.ok ? await threadRes.json() : []
-    if (!Array.isArray(threads)) return NextResponse.json([])
+    const COLS = 'id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)'
+    let threads: ThreadRow[] = []
+    if (!paged) {
+      // 1. The newest 200 threads by last activity
+      const threadRes = await fetch(
+        `${SB_URL}/rest/v1/email_threads?select=${COLS}&deleted_at=is.null&order=last_message_at.desc&limit=200`,
+        { headers: sbHeaders(), cache: 'no-store' }
+      )
+      threads = threadRes.ok ? await threadRes.json() : []
+      if (!Array.isArray(threads)) return NextResponse.json([])
+    }
 
     // A deep link (/engagement?lead=<thread id>) can point at a thread older than the newest 200.
     // ?include=<thread id> adds that one thread so the page can open it.
-    const include = req.nextUrl.searchParams.get('include')
-    if (include && UUID.test(include) && !threads.some(t => t.id === include)) {
+    const include = sp.get('include')
+    if (!paged && include && UUID.test(include) && !threads.some(t => t.id === include)) {
       const one = await fetch(
-        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)&deleted_at=is.null&limit=1`,
+        `${SB_URL}/rest/v1/email_threads?id=eq.${include}&select=${COLS}&deleted_at=is.null&limit=1`,
         { headers: sbHeaders(), cache: 'no-store' }
       )
       const rows: ThreadRow[] = one.ok ? await one.json() : []
@@ -105,13 +118,13 @@ export async function GET(req: NextRequest) {
     const bodyOf = new Map<string, string>()
     if (words.length) {
       const pat = encodeURIComponent(`*${[...words].sort((x, y) => y.length - x.length)[0]}*`)
-      const cols = 'id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)'
+      const cols = COLS
       const get = async <T,>(path: string): Promise<T[]> => {
         const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbHeaders(), cache: 'no-store' })
         const j = r.ok ? await r.json() : []
         return Array.isArray(j) ? j : []
       }
-      const deep = req.nextUrl.searchParams.get('body') === '1'
+      const deep = sp.get('body') === '1'
       type Contact = { id: string; email: string | null; first_name: string | null; last_name: string | null }
       const [byThread, byMessage, byPerson, byCompany, byContact, byBody] = await Promise.all([
         get<ThreadRow>(`email_threads?or=(subject.ilike.${pat},display_subject.ilike.${pat},snippet.ilike.${pat})&select=${cols}&deleted_at=is.null&order=last_message_at.desc&limit=100`),
@@ -157,8 +170,9 @@ export async function GET(req: NextRequest) {
         const text = [t.subject, t.display_subject, t.snippet, t.companies?.name, ...(said.get(t.id) ?? []), bodyOf.get(t.id)].filter(Boolean).join(' ').toLowerCase()
         return words.every(w => text.includes(w))
       }).sort((x, y) => String(y.last_message_at).localeCompare(String(x.last_message_at)))
-      // The deep search can match hundreds of threads (a name in every signature): the newest 200 are read.
-      if (deep) threads = threads.slice(0, 200)
+      // The deep search can match hundreds of threads (a name in every signature): the newest 200 are
+      // read. The Inbox pages through them instead.
+      if (deep && !paged) threads = threads.slice(0, 200)
       for (const t of threads) {
         const lines = said.get(t.id) ?? []
         const best = lines.find(l => words.every(w => l.toLowerCase().includes(w))) ?? lines.find(l => l.toLowerCase().includes(words[0])) ?? lines[0]
@@ -167,10 +181,31 @@ export async function GET(req: NextRequest) {
     }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
-    const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
-    threads = threads.filter(t => ok.has(t.id))
+    let page: { total: number; counts: InboxCounts; nextOffset: number | null; offset: number; mailboxes: string[] } | null = null
+    if (paged) {
+      const fresh = sp.get('fresh') === '1'
+      const rows = await visibleRows(await inboxIndex(fresh), viewer, fresh)
+      const offset = Math.max(0, Number(sp.get('offset') ?? 0) || 0)
+      const p = inboxPage(rows, { view: parseView(sp.get('view')), mailbox: (sp.get('mailbox') ?? 'all').toLowerCase(), matched: words.length ? new Set(threads.map(t => t.id)) : null, offset })
+      // A deep link to a thread beyond this page: added to the first page when the viewer may see it.
+      const ids = [...p.ids]
+      if (offset === 0 && include && UUID.test(include) && !ids.includes(include) && rows.some(r => r.id === include)) ids.push(include)
+      const have = new Map(threads.map(t => [t.id, t]))
+      const want = ids.filter(id => !have.has(id))
+      for (let i = 0; i < want.length; i += 50) {
+        const r = await fetch(`${SB_URL}/rest/v1/email_threads?id=in.(${want.slice(i, i + 50).join(',')})&select=${COLS}&deleted_at=is.null`, { headers: sbHeaders(), cache: 'no-store' })
+        if (!r.ok) throw new Error(`Thread read failed (${r.status})`)
+        for (const t of await r.json() as ThreadRow[]) have.set(t.id, t)
+      }
+      threads = ids.flatMap(id => have.get(id) ?? [])
+      page = { total: p.total, counts: p.counts, nextOffset: p.nextOffset, offset, mailboxes: personalMailboxes(rows) }
+    } else {
+      const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
+      threads = threads.filter(t => ok.has(t.id))
+    }
     const boxes = await mailboxesByThread(threads.map(t => t.id))
-    if (threads.length === 0) return NextResponse.json([])
+    const answer = (rows: unknown[]) => NextResponse.json(page ? { rows, ...page } : rows)
+    if (threads.length === 0) return answer([])
 
     // 2. Batch-fetch contacts for linked threads
     const contactIds = Array.from(new Set(threads.filter(t => t.contact_id).map(t => t.contact_id!)))
@@ -237,7 +272,7 @@ export async function GET(req: NextRequest) {
     // 3b. ?people=1: everyone on each thread, by name where the email or a contact gives one
     //     (Today › Add email threads shows them on each row). Outside TRS first.
     const people = new Map<string, { name: string | null; email: string }[]>()
-    if (req.nextUrl.searchParams.get('people') === '1' && allThreadIds.length) {
+    if (sp.get('people') === '1' && allThreadIds.length) {
       const parts: { thread_id: string; email: string | null; name: string | null }[] = []
       for (let i = 0; i < allThreadIds.length; i += 100) {
         const r = await fetch(`${SB_URL}/rest/v1/email_participants?thread_id=in.(${allThreadIds.slice(i, i + 100).join(',')})&select=thread_id,email,name&limit=5000`, { headers: sbHeaders(), cache: 'no-store' })
@@ -328,7 +363,7 @@ export async function GET(req: NextRequest) {
       }]
     })
 
-    return NextResponse.json(result)
+    return answer(result)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })

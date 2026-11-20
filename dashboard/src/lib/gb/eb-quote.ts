@@ -148,3 +148,17 @@ export function categoryTotal(c: PricedCategory, product: string, picks: Record<
   return TIERS.reduce((sum, t) => sum + (c.products[product][t.key].options.find(o => o.plan === picks[t.key])?.premium ?? 0), 0)
 }
 
+
+/** The five house insurers as /eb names them, in the Current insurer list. */
+export const HOUSE_INSURERS = ['QBE (Steadfast MCare+)', 'Raffles Health (RCC Enhanced III)', 'Income (FlexCare)', 'Singlife (MyBenefits Plus)', 'AIA (Flexi Vital Care Plus)'] as const
+const HOUSE_MATCH: [RegExp, (typeof HOUSE_INSURERS)[number]][] = [
+  [/\bqbe\b|steadfast|mcare/i, HOUSE_INSURERS[0]], [/raffles|\brcc\b/i, HOUSE_INSURERS[1]], [/\bincome\b|ntuc|flexcare/i, HOUSE_INSURERS[2]],
+  [/singlife|singapore life|mybenefits/i, HOUSE_INSURERS[3]], [/\baia\b|flexi vital/i, HOUSE_INSURERS[4]],
+]
+export const UNKNOWN_INSURER = 'Unknown: '
+/** The house insurer a read names, or "Unknown: <the name read>" (Jarod, 20 Nov 2026): never a guess. '' when nothing was read. Pure. */
+export function insurerOf(read: string | null | undefined): string {
+  const s = String(read ?? '').replace(/\s+/g, ' ').trim()
+  if (!s) return ''
+  return HOUSE_MATCH.find(([re]) => re.test(s))?.[1] ?? `${UNKNOWN_INSURER}${s.slice(0, 80)}`
+}

@@ -106,7 +106,15 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     return active[0] ?? null
   }, [detail])
   const sgd = detail?.paymentSummary.byCurrency.find(m => m.currency === 'SGD') ?? detail?.paymentSummary.byCurrency[0] ?? null
-  const others = (related ?? []).filter(t => t.id !== threadId).slice(0, 5)
+  // The company's newest threads, the one open now among them and marked; the conversation the
+  // reader came from stays in the list, so it is one click back.
+  const threadList = useMemo(() => {
+    const all = related ?? []
+    const keep = new Set([activeThreadId, conversationThreadId].filter(Boolean) as string[])
+    const top = all.slice(0, 5)
+    const missing = all.filter(t => keep.has(t.id) && !top.some(x => x.id === t.id))
+    return [...top.slice(0, 5 - missing.length), ...missing]
+  }, [related, activeThreadId, conversationThreadId])
   const nameOf = (email: string | null) => email ? (staff.get(email)?.name ?? email.split('@')[0]) : null
   const storedDraft = summaries[0]?.draft_reply ?? null
   const summary = summaries[0]?.summary ?? null
@@ -134,10 +142,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
         {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-[13px] leading-[1.5] line-clamp-3" style={{ color: BODY }}>{summary}</p>}
         {analysisOpen && (
           <div className="mt-2 pl-[19px]">
-            <p className="m-0 mb-1 text-[12px]" style={{ color: MUTED }}>AI-generated. Check it against the messages before acting.</p>
-            <div className="rounded-[10px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
-              <AiAnalysisPanel summaries={summaries} loading={summariesLoading} threadId={threadId} latestMessageId={latestMessageId} ragSources={ragSources} onRefresh={onRefreshSummaries} />
-            </div>
+            <AiAnalysisPanel summaries={summaries} loading={summariesLoading} threadId={threadId} latestMessageId={latestMessageId} ragSources={ragSources} onRefresh={onRefreshSummaries} />
           </div>
         )}
       </AiRow>
@@ -156,10 +161,13 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
         {/* Who the thread is from comes first: it decides whose client, policy and actions the rail shows. */}
         {threadId && (
           <div className="px-1 mb-7 empty:hidden">
-            {lead.companyId && <InfoRow label="From">
-              <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
-                onChanged={onParty} onRead={() => setReadKey(k => k + 1)} />
-            </InfoRow>}
+            {/* The label applies to the company the thread is filed under: an unfiled thread links one here first. */}
+            <InfoRow label="From">
+              {lead.companyId
+                ? <ThreadParty threadId={threadId} companyName={lead.companyName ?? null} kind={kind} clientCompanyId={counterparty ? clientCompanyId : null} clientName={company?.name ?? null} clientNamed={counterparty ? clientNamed : null}
+                    onChanged={onParty} onRead={() => setReadKey(k => k + 1)} />
+                : <LinkCompanyPopover threadId={threadId} />}
+            </InfoRow>
             <ThreadReferral threadId={threadId} kind={kind} />
           </div>
         )}
@@ -172,14 +180,15 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
             {companyId ? (
               <>
                 <Arrow href={`/companies/${companyId}`}>{company?.name ?? (counterparty ? mine?.clientName : lead.companyName) ?? 'Company'}</Arrow>
-                {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner yet', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ')}</Small></>}
+                {company && <><br /><Small>{[KIND_LABEL[company.kind] ?? company.kind, company.domains[0] ?? company.domain, nameOf(company.owner_email) ?? 'No owner', counterparty && lead.companyName ? `via ${lead.companyName}` : null].filter(Boolean).join(' · ')}</Small></>}
+                {threadId && <><br /><LinkCompanyPopover threadId={threadId} change forClient={counterparty} /></>}
               </>
             ) : counterparty && lead.companyId ? (
               <>
                 <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
                 <br /><Small>{KIND_LABEL[kind ?? ''] ?? 'Company'}{clientNamed ? ` · about ${clientNamed}, not on file` : ' · client not linked'}</Small>
                 {threadId && clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={QUIET_LINK} style={{ color: INK }}>Create {clientNamed} and link</button></>}
-                {threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}
+                {threadId && <><br /><LinkCompanyPopover threadId={threadId} forClient /></>}
               </>
             ) : (
               <>Not linked{threadId && <><br /><LinkCompanyPopover threadId={threadId} /></>}</>
@@ -187,7 +196,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           </InfoRow>
           {companyId && (
             <InfoRow label="Employment Benefits">
-              <Arrow href={`/pricing-matrix/company/${companyId}`}>Compare cover</Arrow>
+              <Arrow href={`/companies/${companyId}?tab=eb`}>Quotations</Arrow>
             </InfoRow>
           )}
           {companyId && (
@@ -210,20 +219,21 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           {(contact || lead.email) && (
             <InfoRow label="Contact">{contact || lead.email}{contact && lead.email && <><br /><Small>{lead.email}</Small></>}</InfoRow>
           )}
-          {companyId && related && others.length > 0 && (
+          {companyId && related && threadList.some(t => t.id !== activeThreadId) && (
             <InfoRow label="Threads">
               <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
-                {others.map(t => (
-                  <li key={t.id}>
-                    <button type="button" onClick={() => onSelectThread(t.id)} aria-current={activeThreadId === t.id ? 'true' : undefined} className={cn('w-full text-left bg-transparent border-0 p-0 cursor-pointer', activeThreadId === t.id && 'font-medium')}>
-                      <span className="block text-[13.5px] truncate" style={{ color: INK }}>{t.subject ?? '(no subject)'}</span>
-                      <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
-                    </button>
-                  </li>
-                ))}
-                {conversationThreadId && activeThreadId && activeThreadId !== conversationThreadId && (
-                  <li><button type="button" onClick={() => onSelectThread(conversationThreadId)} className={QUIET_LINK} style={{ color: INK }}>Back to this conversation →</button></li>
-                )}
+                {threadList.map(t => {
+                  const on = activeThreadId === t.id
+                  return (
+                    <li key={t.id}>
+                      <button type="button" onClick={() => onSelectThread(t.id)} aria-current={on ? 'true' : undefined}
+                        className={cn('w-full text-left bg-transparent border-0 border-l-2 border-solid p-0 pl-2 cursor-pointer', on ? 'font-medium border-trs-green' : 'border-transparent')}>
+                        <span className="block text-[13.5px] truncate" style={{ color: INK }}>{t.subject ?? '(no subject)'}</span>
+                        <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
             </InfoRow>
           )}
@@ -231,7 +241,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           {/* Status, notes, conversations and draft history: the existing panel, folded. */}
           <details className="mt-3">
             <summary className="cursor-pointer text-[13.5px] list-none [&::-webkit-details-marker]:hidden" style={{ color: INK }}><span className="inline-block w-4" style={{ color: '#8c958f' }}>›</span>Status and notes</summary>
-            <section className="mt-2 rounded-[12px] overflow-hidden" style={{ border: `1px solid ${HAIR}` }} aria-label="Contact and status">
+            <section className="mt-2" aria-label="Contact and status">
               <div style={{ '--ea-context-w': '100%' } as React.CSSProperties}>
                 <EngagementContextPanel lead={lead} messages={messages} threadId={threadId} conversationThreadId={conversationThreadId} activeThreadId={activeThreadId}
                   onSelectThread={onSelectThread} onStatus={onStatus} onTransfer={onTransfer} onRestoreDraft={onRestoreDraft} />

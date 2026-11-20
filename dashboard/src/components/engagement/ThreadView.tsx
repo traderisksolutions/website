@@ -10,6 +10,7 @@ import { EaWorkspaceColumn, EaMessageArea } from './EaLayout'
 import { ThreadHeader } from './ThreadHeader'
 import { MessageBlock } from './MessageBlock'
 import { ContextRail, loadBoard } from './ContextRail'
+import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { pushCrumb } from '@/lib/nav/trail'
 import { cleanEmailBody } from '@/lib/clean-email-body'
 import { EngagementComposePanel } from '@/components/engagement-agent/engagement-compose-panel'
@@ -461,10 +462,11 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k) }, [onClose])
+  const threadId = lead.thread_id ?? (lead.source === 'thread' ? lead.id : null)
   const inp = 'h-9 w-full rounded-[7px] bg-white px-3.5 text-[14px] outline-none focus:border-[#0f1412]'
   const lbl = 'flex flex-col gap-1 text-[12.5px]'
   async function go() {
-    if (!lead.companyId) { setErr('Link this thread to a company first.'); return }
+    if (!lead.companyId) return
     if (!title.trim()) { setErr('Give the to-do a title.'); return }
     setBusy(true); setErr(null)
     try {
@@ -479,7 +481,7 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh]" style={{ background: 'rgba(15,20,18,0.4)' }} onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded-[16px] bg-white p-6" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 16px 40px rgba(15,20,18,0.14)', color: INK }}>
         <div className="flex items-start justify-between gap-3 mb-4">
-          <div><h2 id="task-from-email" className="m-0 text-[18px] font-medium tracking-[-0.01em]">New to-do</h2><p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{lead.companyName ? `For ${lead.companyName}` : 'This thread is not linked to a company yet'}</p></div>
+          <div><h2 id="task-from-email" className="m-0 text-[18px] font-medium tracking-[-0.01em]">New to-do</h2><p className="m-0 mt-0.5 text-[13px]" style={{ color: MUTED }}>{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
           <button type="button" onClick={onClose} aria-label="Close" title="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[10px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={16} /></button>
         </div>
         <div className="flex flex-col gap-3">
@@ -490,10 +492,10 @@ function TaskFromEmail({ lead, board, subject, onClose, onCreated }: { lead: Lea
           </div>
           <label className={lbl} style={{ color: MUTED }}>Internal note<textarea value={note} onChange={e => setNote(e.target.value)} rows={2} className="rounded-[10px] bg-white px-3.5 py-2 text-[14px] outline-none focus:border-[#0f1412] resize-y" style={{ border: '1px solid #d5d9d4', color: INK }} /></label>
         </div>
-        {err && <p className="m-0 mt-3 text-[13px]" style={{ color: BODY }} role="alert">{err}</p>}
+        {err && <p className="m-0 mt-3 text-[13px] text-trs-neg" role="alert">{err}</p>}
         <div className="mt-5 flex items-center justify-end gap-2">
           <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>Cancel</button>
-          <button type="button" onClick={() => void go()} disabled={busy} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
+          <button type="button" onClick={() => void go()} disabled={busy || !lead.companyId} title={lead.companyId ? undefined : 'Link a company to save the to-do'} className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 disabled:opacity-50" style={{ background: '#132c1c' }}>{busy ? 'Saving…' : 'Create to-do'}</button>
         </div>
       </div>
     </div>

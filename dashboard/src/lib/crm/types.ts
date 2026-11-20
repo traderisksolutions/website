@@ -241,6 +241,10 @@ export interface CompanyThread {
   summary: string | null
   nextAction: string | null
   caseIds: string[]
+  /** Filed under this insurer or partner and names the company (thread_insurers); null when filed under the company. */
+  via?: { id: string; name: string } | null
+  /** Who the thread waits on (src/lib/crm/waiting-on.ts); null when closed or no real message. */
+  waitingOn?: 'client' | 'trs' | 'insurer' | null
 }
 
 // ── Activity timeline ─────────────────────────────────────────────────────────────────────────

@@ -4,22 +4,16 @@
  *
  * Every figure and every bullet is written by code from the pricing pack. A model pass then
  * rewrites only the prose paragraphs in TRS's voice, with three of TRS's past client emails as
- * the sample; the result is kept only when it carries exactly the figures the code wrote. The
- * client report PDF (benefits side by side, with the options page) is attached. Nothing sends:
- * the draft waits in the thread's bar.
+ * the sample; the result is kept only when it carries exactly the figures the code wrote.
+ *
+ * The draft composer for the old quotations (composeClientDraft, the rail's "Draft to client") was
+ * deleted on 20 Nov 2026 with the old quotation pages; the pure pieces stay for their callers.
  */
-import { sb, sbTry, enc, isInternal } from '@/lib/crm/db'
-import { callGemini } from '../ai-call'
-import { GEMINI_FLASH } from '../gemini-models'
-import { ownWords } from '@/lib/admin/b/relay/intent'
-import { storeUpload } from '@/lib/storage/drive-upload'
-import { loadScenarios, type ScenarioPack } from './scenario-run'
-import { analysisAsScenarios, loadAnalysis } from './analysis'
+import { sbTry, enc, isInternal } from '@/lib/crm/db'
+import type { ScenarioPack } from './scenario-run'
 import { headline, type ScenarioInsurer } from './scenarios'
 import { shortInsurer } from './insurer-names'
-import { buildReportModel, longDate, type ReportOptions, type ReportQuotation } from './report-model'
-import { renderReportPdf } from './report-pdf'
-import { COVER_NAMES_KEY, type CoverNames } from './cover-names'
+import { longDate, type ReportOptions } from './report-model'
 
 type Row = Record<string, any>
 
@@ -199,41 +193,8 @@ export function keepsFigures(rewrite: string, source: string): boolean {
   return ratio > 0.6 && ratio < 1.6 && rewrite.includes('{owner_name}')
 }
 
-const TONE_SYSTEM = `You rewrite an email from a Singapore insurance broker (Trade Risk Solutions) to a client, in the voice of the broker's own past emails, which follow as samples.
-
-Voice: courteous and plain. Short paragraphs. "Dear <first name>," then thanks for what the client sent, then the figures, then a clear next step. Sign-off "Warmest Regards," then the placeholder {owner_name} on its own line, then "Trade Risk Solutions". No marketing adjectives, no exclamation marks except where the samples use "Thank you!", no apologies, nothing the draft does not say.
-
-Rules:
-- Rewrite only prose paragraphs. Keep every line that starts with a digit, a dash, an asterisk, "Plan Premium Summary", "How these figures", "Our suggestion", "Warmest Regards", "{owner_name}" or "Trade Risk Solutions" exactly as given, in the same order.
-- Never add, remove, round or reword a figure, an insurer name, a date or a member count.
-- Return the whole email as plain text. No subject line, no markdown.`
-
-async function exemplars(): Promise<string[]> {
-  const rows = await sbTry<Row[]>(`email_messages?direction=eq.outbound&deleted_at=is.null&or=(body_text.ilike.*Premium%20Summary*,body_text.ilike.*feasible%20options*,body_text.ilike.*quotes%20comparison*,body_text.ilike.*comparison%20for%20the%20upcoming*)&select=body_text,from_address&order=sent_at.desc&limit=12`, [])
-  const seen = new Set<string>()
-  return rows.map(r => ownWords(r.body_text).trim()).filter(t => t.length > 300 && t.length < 2500 && !seen.has(t.slice(0, 80)) && seen.add(t.slice(0, 80))).slice(0, 3)
-}
-
-export async function tonePass(draft: string, by: string | null, quotationId: string): Promise<{ body: string; rewritten: boolean }> {
-  const samples = await exemplars()
-  if (!samples.length) return { body: draft, rewritten: false }
-  const r = await callGemini({
-    agent: 'group_benefit', feature: 'gb_client_draft', model: GEMINI_FLASH, system: `${TONE_SYSTEM}\n\nSAMPLES OF THE BROKER'S OWN EMAILS:\n\n${samples.map((s, i) => `--- sample ${i + 1}\n${s}`).join('\n\n')}`,
-    parts: [{ text: `EMAIL TO REWRITE:\n\n${draft}` }], temperature: 0.3, maxOutputTokens: 3_000, thinkingShare: 0.15, metadata: { quotation_id: quotationId, by },
-  }).catch(() => ({ text: null as string | null, error: 'tone pass failed' }))
-  const text = (r.text ?? '').replace(/^```[a-z]*\s*|\s*```$/g, '').trim()
-  // A rewrite that leaves a template slot ("{owner_name}") from a sample email is not used.
-  return text && keepsFigures(text, draft) && !/\{[a-z_ ]+\}|\[[A-Z][a-z]+ ?[A-Za-z]*\]/.test(text) ? { body: text, rewritten: true } : { body: draft, rewritten: false }
-}
-
 const bare = (a: string | null | undefined) => (String(a ?? '').match(/<(.+?)>/)?.[1] ?? String(a ?? '')).trim().toLowerCase()
 const nameOf = (a: string | null | undefined) => (String(a ?? '').includes('<') ? String(a).split('<')[0].replace(/"/g, '').trim() : '') || null
-
-export type ClientDraft = {
-  to: string; toName: string | null; cc: string[]; firstName: string | null; subject: string; body: string; rewritten: boolean
-  attachments: { filename: string; mime_type: string; storage_url: string }[]
-  facts: ClientFacts
-}
 
 /** The client on the thread: the last person outside TRS who wrote on it; the others outside TRS who wrote are copied. */
 export async function clientOnThread(threadId: string): Promise<{ email: string; name: string | null; cc: string[] } | null> {
@@ -254,28 +215,4 @@ export async function clientOnThread(threadId: string): Promise<{ email: string;
   }
   const cc = Array.from(new Set(outside.map(x => bare(x.from_address)).filter(e => e && e !== email)))
   return { email, name, cc }
-}
-
-export async function composeClientDraft(quotationId: string, threadId: string, by: string | null): Promise<ClientDraft> {
-  const [q] = await sb<(ReportQuotation & { census: Row[] | null })[]>(`gb_quotations?id=eq.${enc(quotationId)}&select=id,company_name,effective_date,basis,member_count,census,results,category_map,benefits_analysis,notes,created_at,priorities,requirement&limit=1`)
-  if (!q) throw new Error('Quotation not found.')
-  const an = await loadAnalysis(quotationId)
-  const pack = an ? analysisAsScenarios(an, q.company_name) : await loadScenarios(quotationId)
-  if (!pack) throw new Error('Run the analysis first: the email is written from it.')
-  const client = await clientOnThread(threadId)
-  if (!client) throw new Error('No client on this thread to write to.')
-  const firstName = client.name ? client.name.split(/\s+/)[0] : null
-  const facts = clientFacts(q, pack)
-  const draft = codeDraft(facts, firstName)
-  const tone = await tonePass(draft.body, by, quotationId)
-
-  // The client report, with the options page, as the attachment.
-  const [names] = await sbTry<Row[]>(`app_settings?key=eq.${COVER_NAMES_KEY}&select=value&limit=1`, [])
-  let coverNames: CoverNames = {}
-  try { coverNames = JSON.parse(names?.value ?? '{}') } catch { /* canonical */ }
-  const pdf = await renderReportPdf(buildReportModel(q, coverNames, reportOptions(pack)))
-  const filename = `${(q.company_name || 'Quotation').replace(/[^\w.\- ]+/g, '').trim().replace(/\s+/g, '-')}-group-benefits-comparison.pdf`
-  const storage_url = await storeUpload('email-outgoing', filename, 'application/pdf', Buffer.from(pdf))
-
-  return { to: client.email, toName: client.name, cc: client.cc, firstName, subject: draft.subject, body: tone.body, rewritten: tone.rewritten, attachments: [{ filename, mime_type: 'application/pdf', storage_url }], facts }
 }

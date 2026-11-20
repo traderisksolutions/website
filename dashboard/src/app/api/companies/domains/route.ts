@@ -10,6 +10,7 @@ import { requireStaffOrCron }        from '@/lib/api-auth'
 import { describeDomains, decideDomain, type DomainDecisionInput } from '@/lib/crm/domains'
 import { listClientCompanies }       from '@/lib/crm/db'
 import { currentUserEmail }          from '@/lib/crm/auth'
+import { visibleThreadIds }          from '@/lib/mail/visibility-server'
 import { COMPANY_KINDS }             from '@/lib/crm/types'
 import { logActivity }               from '@/lib/log-activity'
 
@@ -24,7 +25,14 @@ export async function GET(req: NextRequest) {
       describeDomains(Math.max(1, Math.min(80, limit)), { read: req.nextUrl.searchParams.get('read') === '1' }),
       listClientCompanies(),
     ])
-    return NextResponse.json({ domains, companies: companies.map(c => ({ id: c.id, name: c.name, domains: c.domains })) })
+    // A colleague's private thread is never previewed (INB-002): its subject and opening line stay out.
+    const ids = domains.flatMap(d => d.previews.map(p => p.threadId).filter((x): x is string => !!x))
+    const seen = await visibleThreadIds(ids, await currentUserEmail())
+    const shown = domains.map(d => {
+      const previews = d.previews.filter(p => !p.threadId || seen.has(p.threadId)).map(p => ({ subject: p.subject, snippet: p.snippet, date: p.date }))
+      return { ...d, previews, subjects: previews.map(p => p.subject).filter((x): x is string => !!x) }
+    })
+    return NextResponse.json({ domains: shown, companies: companies.map(c => ({ id: c.id, name: c.name, domains: c.domains })) })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }

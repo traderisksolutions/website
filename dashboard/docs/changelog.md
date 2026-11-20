@@ -4,6 +4,58 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Old quotations deleted
+
+Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.
+
+- Removed pages: everything under `/pricing-matrix/quote/[id]/` (Compare cover, Census and policy, One change at a time, Plan builder, report) with `CompareCover.tsx` and `NewEb.tsx`. One server redirect replaces them: `/pricing-matrix/quote/<id>/**` → `/eb/proposal/<eb id>` when an eb_quotation carries that legacy_gb_id, else `/pricing-matrix` (EB-061).
+- Removed APIs: `/api/group-benefits/quote/[id]` and its analysis, ask-insurers, client-draft, compare, compare/draft, compare/report, compare/report-pdf, compare-benefits, documents, export, insurer-form, prepare-reply, report-pdf, scenarios, score; `/api/group-benefits/quote/available`, `quote/suggest-plans`, `quick-quote`, `extract-census`, `canon`, `coverage`, `folder`, `census/parse`.
+- Removed code only those used: `compare-report.ts`, `compare-report-pdf.tsx`, `compare-draft.ts`, `report-pdf.tsx`, `insurer-forms.ts`, `company-eb.ts`, `gb/store.ts`, `gb-export.ts`, `gb-plan-match.ts`; `composeClientDraft` and its model tone pass, `loadCompare`/`savePicks`, `threadOfQuotation`, `dropCrumb`, `doneHref`/`doneLabel`.
+- Links: the thread rail's done analysis shows New analysis only (no Draft to client, no Compare cover) (EB-062); the rail's Employment Benefits link reads Quotations; a company's quotes and Renewal Season open the re-priced proposal; the admin ledger links to the old address, which redirects. Plan rules confirm "Saved. New quotations use these rules."
+- Kept: `/api/public/gb-report` and `report-link.ts`, because two WhatsApp report links signed on 13 Nov 2026 open until 13 Dec 2026; delete then with their `policy.ts` and `check-api-coverage.mjs` entries. `/api/group-benefits/intake` (the email classifier calls it when filing is on), `/api/group-benefits/analysis` and `/api/group-benefits/quote` (no caller left; brief keeps analysis), gb_rate_tables and the rate-table pipeline.
+- Behaviours EB-061, EB-062; EB-005, 012, 014, 029, 033, 034, 038, 039 marked removed; EB-028 replaced; EB-054 done.
+
+## 2026-11-20 — Today and Calendar review
+
+- Removed: the case list `/today/queue` with Coming up, Mail and the Employment Benefits renewals panel on it. Old `/today?view=`, `?bridge=`, `?level=`, `?side=` links land on `/today`. `/api/today/count`, `/api/today/recompute` and `recomputePending` (no caller in the repo, `vercel.json` or the scheduler scripts), `loadHome`, `loadHomeCanvas`, the Home types and `cardOrder` are deleted. `src/lib/today/todo.ts` stays: the digest reads it.
+- Today: client rows lose their box, tinted header and rules; spacing separates. To client and To insurer are neutral chips. Whose Today is a menu button; Fold all and Unfurl all a secondary button. A load failure shows Retry. `?client=<company id>` opens that client.
+- Case page: Done, Mark done and Come back later return to Today with the case's client open, not to the next case.
+- Calendar: an Employment Benefits renewals tab (`?view=eb`, from `/api/today/eb-renewals`), each row with Open census (`/eb?company=<id>`). A failed load shows Retry, not "Nothing due this month". New debit note from a renewal passes `?company_id=`.
+- Design system: the 14 Nov table rule (header band, zebra, outer box) is replaced by the 19 Nov ledger.
+- Behaviours TOD-042 to TOD-048; TOD-001 to TOD-004, TOD-009 to TOD-012, TOD-024 and TOD-025 marked removed or moved.
+
+## 2026-11-20 — Employment Benefits review: safety, reopen, wording
+
+- Email to client: when the send went but recording it failed, the page says "Sent, but not marked sent." with Try again; a proposal whose email has gone never offers Email to client again, checked on the server too (EB-056).
+- The old New quotation is retired: `/pricing-matrix/new` and `/pricing-matrix/company/<id>` redirect to `/eb` and the company's Employment Benefits tab; `/eb` takes `?hrLink` and `?quotation` (EB-055).
+- Edit quotation on a proposal reopens it on `/eb`; Save updates it in place until its proposal is sent, then keeps a new version; Save then Prepare keeps one version (EB-057).
+- House workbook: Reload workbook on Quotation register › Insurers, and an automatic re-import when the Drive file is newer than the saved copy (EB-058).
+- Wording: Current and Against current (plain signed figures, no colour), Per person on the page and PDF; the client email drops the per-person column. An unknown current insurer reads "Unknown: <name read>" (EB-059).
+- Shape: one primary per step, house tables with centred headers, no dashed boxes, neutral check dots, Not priced with a tooltip instead of note sentences, every Remove confirmed, Premiums freeze one column on a phone; proposal pages lose the Back button and inline send confirm (EB-059).
+- Quotation register: Insurers column, company search, Status filter. Insurers tab on primitives and the house dialog. Brochures: Add version and Edit are full pages; stale "Rate tables" instruction removed (EB-060).
+- Removed: `useCoverNames.ts` (unused), the exported `statusOf` and `basisWord`.
+
+## 2026-11-20 — Clients review: mailbox rule, Unfiled threads, company page, People, Follow-ups
+
+- Mailbox rule (INB-002) on every Clients surface: the company Reader, Threads tab and its count, the overview, the Inbox rail's company threads, Unfiled threads (leftover, under an insurer, domain previews) and thread search. A colleague's private thread is counted ("N more in colleagues' mailboxes"), never listed (CLI-035).
+- Unfiled threads (was Match threads): registers instead of cards, the visible unfiled count in the meta, no File everything (Jarod), Keep on a duplicate asks to confirm, suggestions older than 14 days hidden (no data write; 620 of 697 are older).
+- Company page: New request is the one primary; Drafts and the appointment letter only in the rail. Renewals folded into Policies (Renews column, soonest first; `?tab=renewals` lands on Policies). Claims tab after Quotes. Threads list: Waiting on, insurer threads "via <insurer>", Find threads when empty, Breadcrumbs, tabs on phones. Every tab names a failed load.
+- Companies: the six unreachable quick views removed. People is built from contacts with company and thread links; status pills, Log referral, Import CSV and the Companies view removed.
+- Follow-ups: /nexus titled Follow-ups; /nexus/companies/<id> redirects to the company's Nexus tab; snooze is 7 days there and on the Admin desk. Portfolio and Admin desk: numbers centred; the facts line counts threads with no company.
+- Deleted with no remaining user: CompanyRenewals, RenewalCalendar, companies/attention.ts, contacts/CompaniesTab, BulkImportContacts. `/api/contacts/bulk` stays, now unused.
+- Behaviours: CLI-002, 003, 005, 006, 013, 020, 025, 027, 029, 033, INB-009, NAV-002, TOD-020, TOD-021 updated; CLI-035 to CLI-039 added. Journey: `tests/journeys/clients-review.spec.ts`.
+
+## 2026-11-20 — Inbox: server pages, filing by hand, Send by email fixed
+
+- The list pages from the server (`/api/engagement/conversations?paged=1`): 100 a page, newest first, More or scroll for the next, the true total in the header. Views, the Mailbox pill and the search narrow it on the server; counts follow the pill. The search covers every thread (subject, sender, participants, names, email text). One index per server, kept 60 seconds (`src/lib/mail/inbox-index.ts`); Refresh reads it fresh. The array answer without `paged=1` is unchanged for People, Today and Policies.
+- Views: Inbox, Needs reply, Awaiting client, Unlinked, Unassigned, Drafts. Prospects, Clients, Renewals and Claims removed; website-form leads stay in Inbox. The Inbound tab is off the bar; `/inbound` stays (the website page links it) without its tile row.
+- Mail rule line under the Mailbox pills. A failed list load shows the error with Retry.
+- Rail: Summary without box or disclaimer; Status and notes without border; the Threads list marks the open thread. From is three pills. Delete thread asks in the house confirm.
+- New email is the reading pane, not a modal (`NewEmailCompose.tsx`).
+- Filing by hand: Change company; Link company with search, + Add as a new company, File all from the domain (count first, then confirm, `POST /api/companies/domains`). `GET /api/engagement/thread/[id]/company` names the thread's outside domain and the unfiled threads on it. Unfiled threads offer Link company in From and New to-do.
+- Fix: drafts to a new address failed (contacts has no unique key on email; `on_conflict=email` returned 42P10). `/api/engagement/draft` (Reply, Compare cover's Send by email, the quotation drafts), `/api/engagement/drafts` (Save draft) and `/api/nexus/draft-create` (New email) look the contact up and insert only when none (`src/lib/crm/contact-for-email.ts`).
+- Behaviours INB-038 to INB-049.
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

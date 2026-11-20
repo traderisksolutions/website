@@ -2,11 +2,13 @@
 
 import React, { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { UploadCloud, Loader2, Mail } from 'lucide-react'
+import { UploadCloud, Mail, X } from 'lucide-react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbQuotationRegister } from '@/components/eb/EbQuotationRegister'
+import { WorkbookReload } from '@/components/eb/WorkbookReload'
 import { PageHeader } from '@/components/page-header'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
@@ -16,7 +18,7 @@ import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { uploadToDrive } from '@/lib/upload-attachment'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { Btn, LinkBtn, Segmented } from '@/components/crm/primitives'
+import { Btn, Chip, LinkBtn, Segmented } from '@/components/crm/primitives'
 import { PlanRules } from '@/components/group-benefits/PlanRules'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
@@ -37,7 +39,6 @@ type RateTable = {
 
 // Every status is the same neutral chip; the label carries the meaning.
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', extracting: 'Extracting', in_review: 'In review', approved: 'Approved', archived: 'Archived' }
-const CHIP = 'inline-flex items-center rounded-[6px] bg-[#f1f2ee] text-[#2a332f] text-[11.5px] font-medium px-2 py-0.5 whitespace-nowrap'
 
 // Workflow order: quotes are the job; employee lists feed them; insurers and coverage are reference.
 type Tab = 'eb' | 'hrlinks' | 'tables' | 'rules'
@@ -53,8 +54,9 @@ const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee li
  * one was deleted and this one took its name and address; /group-benefits redirects here.
  *
  * Since 20 Nov 2026 the page is the Quotation register: the quotations kept from /eb (eb_quotations),
- * each opening its proposal. The older quotations (gb_quotations) keep their /pricing-matrix/quote/<id>
- * addresses; scripts/eb-reprice-legacy.ts re-prices them into the register on Jarod's go.
+ * each opening its proposal. The older quotations (gb_quotations) were re-priced into the register
+ * (scripts/eb-reprice-legacy.ts) and their pages deleted on 20 Nov 2026: /pricing-matrix/quote/<id>/**
+ * redirects to the re-priced proposal, else here.
  * Since 27 Oct 2026 the Quotes tab is the register of employment-benefits policies across companies
  * (GET /api/eb/policies); "New quotation" opens a placement and lands on the company's Members tab.
  * The engine-by-hand paths below stay reachable under "By hand".
@@ -98,7 +100,8 @@ function PricingMatrix() {
     if (!(asked === 'quote' || params.get('thread') || hrLinkId)) return
     const q = new URLSearchParams()
     for (const k of ['company', 'companyId', 'thread', 'hrLink']) { const v = params.get(k); if (v) q.set(k, v) }
-    router.replace(`/pricing-matrix/new${q.size ? `?${q}` : ''}`)
+    if (q.get('companyId')) { q.set('company', q.get('companyId')!); q.delete('companyId') } else q.delete('company')
+    router.replace(`/eb${q.size ? `?${q}` : ''}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 
@@ -159,16 +162,14 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
   ]
   const who = (name: string | null) => contactsFor(name ?? '', contacts)
   const h2 = 'm-0 text-[16px] font-medium tracking-[-0.01em]'
-  const LINK = 'inline-flex items-center gap-1.5 text-[13px] font-medium bg-transparent border-0 p-0 cursor-pointer hover:underline'
 
   return (
     <div className="flex flex-col gap-10">
+      <WorkbookReload />
       <section>
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <h2 className={h2}>Priced here · {tables.length}</h2>
-          <button onClick={onUpload} className="inline-flex items-center gap-1.5 text-[13px] font-medium px-3.5 py-1.5 rounded-lg border border-[#d5d9d4] text-[#0f1412] bg-white hover:bg-[#faf9f6]">
-            <UploadCloud size={14} /> Upload rate PDF
-          </button>
+          <Btn size="xs" onClick={onUpload}><UploadCloud size={14} /> Upload rate PDF</Btn>
         </div>
         {loading ? <p className="m-0 py-10 text-center text-[15px]" style={{ color: '#4a5550' }}>Loading…</p>
         : tables.length === 0 ? (
@@ -177,20 +178,20 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
           <Register label="Insurers priced here" minWidth={980}>
             <RegisterHead>
               <RegisterTh first width={180}>Insurer</RegisterTh>
-              <RegisterTh align="right">Year</RegisterTh>
+              <RegisterTh>Year</RegisterTh>
               <RegisterTh>Rates</RegisterTh>
               <RegisterTh>Contact</RegisterTh>
-              <RegisterTh last align="right">{''}</RegisterTh>
+              <RegisterTh last>{''}</RegisterTh>
             </RegisterHead>
             <tbody>
               {tables.map(t => (
                 <RegisterRow key={t.id} onClick={() => router.push(`/pricing-matrix/${t.id}`)}>
                   <RegisterCell first primary={shortInsurer(t.insurer_name)} secondary={t.insurer_name ?? undefined} />
-                  <RegisterCell align="right"><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
-                  <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <span className={CHIP} style={{ color: VERIFICATION[v.status].color }} title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</span> })()}</RegisterCell>
+                  <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: t.plan_year ? '#0f1412' : '#8c958f' }}>{t.plan_year ?? '—'}</span></RegisterCell>
+                  <RegisterCell>{(() => { const v = verificationOf({ verification: t.verification }); return <Chip title={v.basis ?? undefined}>{t.status === 'approved' ? VERIFICATION[v.status].label : STATUS_LABEL[t.status] ?? t.status}</Chip> })()}</RegisterCell>
                   <RegisterCell align="left" nowrap={false}><ContactLines people={who(t.insurer_name)} /></RegisterCell>
-                  <RegisterCell last align="right">
-                    <button className={LINK} style={{ color: '#0f1412' }} onClick={e => { e.stopPropagation(); setEditing(t.insurer_name ?? '') }}>Edit contacts</button>
+                  <RegisterCell last>
+                    <Btn size="xs" level="tertiary" onClick={e => { e.stopPropagation(); setEditing(t.insurer_name ?? '') }}>Edit contacts</Btn>
                   </RegisterCell>
                 </RegisterRow>
               ))}
@@ -207,7 +208,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
             <RegisterTh first width={220}>Plan</RegisterTh>
             <RegisterTh>Rates</RegisterTh>
             <RegisterTh>Contact</RegisterTh>
-            <RegisterTh last align="right">{''}</RegisterTh>
+            <RegisterTh last>{''}</RegisterTh>
           </RegisterHead>
           <tbody>
             {onRequest.map(r => (
@@ -215,10 +216,10 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
                 <RegisterCell first primary={r.label} secondary={r.plan ? r.insurer : undefined} />
                 <RegisterCell><span className="text-[14px]" style={{ color: '#2a332f' }}>{r.rates}</span></RegisterCell>
                 <RegisterCell align="left" nowrap={false}><ContactLines people={who(r.insurer)} /></RegisterCell>
-                <RegisterCell last align="right">
-                  <span className="inline-flex items-center gap-4">
-                    <button className={LINK} style={{ color: '#4a5550' }} onClick={() => setEditing(r.insurer)}>Edit contacts</button>
-                    <button className={LINK} style={{ color: '#0f1412' }} onClick={() => onEmail(r.insurer, r.plan)}><Mail size={14} /> Email</button>
+                <RegisterCell last>
+                  <span className="inline-flex items-center gap-2">
+                    <Btn size="xs" level="tertiary" onClick={() => setEditing(r.insurer)}>Edit contacts</Btn>
+                    <Btn size="xs" onClick={() => onEmail(r.insurer, r.plan)}><Mail size={14} /> Email</Btn>
                   </span>
                 </RegisterCell>
               </RegisterRow>
@@ -265,25 +266,24 @@ function UploadModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-[16px] bg-white p-6 flex flex-col gap-3" style={{ boxShadow: '0 24px 64px rgba(15,20,18,0.2)' }} onClick={e => e.stopPropagation()}>
-        <div>
-          <h3 className="m-0 text-[20px] font-medium tracking-[-0.01em] text-foreground">Upload insurer rate PDF</h3>
-          <p className="text-[11.5px] text-muted-foreground/70 mt-0.5">Insurer, product, age basis, plan year and effective date are read from the PDF — you can correct them during review.</p>
-        </div>
-        <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
-          <UploadCloud size={24} className="text-muted-foreground/50" />
-          <span className="text-[12.5px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
-          <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
-        </label>
-        {error && <p className="text-[12px] text-[#a1242f]">{error}</p>}
-        <div className="flex justify-end gap-2 mt-1">
-          <button onClick={onClose} className="h-9 px-3.5 rounded-[10px] text-[14px] bg-transparent border-0 hover:bg-[#f1f2ee]">Cancel</button>
-          <button onClick={submit} disabled={busy || !file} className="flex items-center gap-1.5 h-9 px-5 rounded-[10px] text-[14px] font-medium bg-[#132c1c] text-white hover:opacity-90 disabled:opacity-50">
-            {busy && <Loader2 size={14} className="animate-spin" />}{busy ? 'Uploading…' : 'Upload and extract'}
-          </button>
-        </div>
-      </div>
-    </div>
+    <DialogPrimitive.Root open onOpenChange={o => { if (!o) onClose() }}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="trs-modal-overlay fixed inset-0 z-[100]" />
+        <DialogPrimitive.Content aria-describedby={undefined} className="trs-modal-panel fixed left-1/2 top-1/2 z-[101] flex w-[min(520px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-[28px] bg-white px-8 pt-7 pb-6 shadow-[0_30px_80px_rgba(15,20,18,0.25)] focus:outline-none">
+          <DialogPrimitive.Close aria-label="Close" className="absolute right-[18px] top-[18px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-0 bg-[#e8e8ed] text-[#3a3a3c] cursor-pointer"><X size={16} /></DialogPrimitive.Close>
+          <DialogPrimitive.Title className="m-0 pr-10 text-[22px] font-semibold tracking-[-0.02em] text-trs-ink">Upload insurer rate PDF</DialogPrimitive.Title>
+          <label className="flex flex-col items-center justify-center gap-2 rounded-[12px] py-10 cursor-pointer bg-[#f1f2ee] hover:bg-[#e6e8e4]">
+            <UploadCloud size={24} className="text-trs-muted" />
+            <span className="text-[13px] font-medium">{file ? file.name : 'Choose a PDF'}</span>
+            <input type="file" accept="application/pdf" className="hidden" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+          </label>
+          {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <Btn onClick={onClose}>Cancel</Btn>
+            <Btn level="primary" loading={busy} disabled={busy || !file} onClick={() => void submit()}>{busy ? 'Uploading…' : 'Upload and extract'}</Btn>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   )
 }

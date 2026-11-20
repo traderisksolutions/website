@@ -1,6 +1,5 @@
 import { needsOurReply } from '@/lib/threads/waiting'
 import type { Lead, RealMsg, ThreadState } from './types'
-import { PERSONAL_DOMAINS } from './types'
 export { timeAgo } from '@/lib/format'
 
 export function fullName(l: Lead): string {
@@ -21,17 +20,7 @@ export function daysSince(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
 }
 
-export function domainOf(email: string | null | undefined): string {
-  if (!email) return '__none__'
-  return email.split('@')[1]?.toLowerCase() ?? '__none__'
-}
-
-export function companyLabel(domainKey: string): string {
-  if (domainKey === '__personal__' || domainKey === '__none__') return 'Individual'
-  const base = domainKey.split('.')[0]
-  return base.charAt(0).toUpperCase() + base.slice(1)
-}
-
+/** One word against a form lead's own fields (the Inbox's thread search runs on the server). */
 export function matchesSearch(lead: Lead, q: string): boolean {
   if (!q) return true
   const lower = q.toLowerCase()
@@ -65,17 +54,8 @@ export function stripQuotedContent(body: string): string {
   return clean.some(l => l.trim()) ? clean.join('\n') : body
 }
 
-export function isPersonalDomain(email: string | null | undefined): boolean {
-  const d = domainOf(email)
-  return PERSONAL_DOMAINS.has(d) || d === '__none__'
-}
-
-export function needsReply(messages: RealMsg[]): boolean {
+function needsReply(messages: RealMsg[]): boolean {
   return needsOurReply(messages)
-}
-
-export function lastActivity(lead: Lead, messages: RealMsg[]): string {
-  return messages.at(-1)?.sent_at ?? lead.created_at
 }
 
 /** Needs a reply: the loaded thread's newest message is inbound, or, before the thread is

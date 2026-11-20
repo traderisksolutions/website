@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { contactIdFor }              from '@/lib/crm/contact-for-email'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -17,19 +18,8 @@ function sbH(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-async function resolveContactId(email: string): Promise<string | null> {
-  const clean = email.toLowerCase().trim()
-  if (!clean.includes('@')) return null
-  const res = await fetch(`${SB_URL}/rest/v1/contacts?on_conflict=email`, {
-    method: 'POST', headers: sbH('return=representation,resolution=merge-duplicates'),
-    body: JSON.stringify({ email: clean, source: 'engagement_draft' }),
-  })
-  const rows = res.ok ? await res.json() : []
-  if (Array.isArray(rows) && rows[0]?.id) return rows[0].id
-  const fallback = await fetch(`${SB_URL}/rest/v1/contacts?email=eq.${encodeURIComponent(clean)}&select=id&limit=1`, { headers: sbH() })
-  const fRows = fallback.ok ? await fallback.json() : []
-  return Array.isArray(fRows) ? (fRows[0]?.id ?? null) : null
-}
+/** Looked up, inserted only when none (contacts has no unique key on email: an upsert fails). */
+const resolveContactId = (email: string) => contactIdFor(email, { source: 'engagement_draft' })
 
 export async function GET() {
   const supabase = await createClient()

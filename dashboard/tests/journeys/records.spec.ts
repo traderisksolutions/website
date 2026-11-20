@@ -96,7 +96,7 @@ test('no page offers a hand-made back link or button; breadcrumbs carry Back', a
     await expect(page.getByRole('link', { name: /^←/ })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^←/ })).toHaveCount(0)
   }
-  await openClean(page, '/pricing-matrix/new')
+  await openClean(page, '/eb')
   await expect(page.getByRole('button', { name: /^←/ })).toHaveCount(0)
 })
 
