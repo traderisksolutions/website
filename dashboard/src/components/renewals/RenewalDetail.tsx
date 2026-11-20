@@ -22,9 +22,9 @@ import { LOSS_NAME, LOSS_REASONS, OPEN_STAGES, STAGE_NAME, isOpenStage, type Los
 import type { RenewalDetail as Detail } from '@/lib/renewals/pipeline-store'
 import { RiskChips, StageChip, ownerName, plainDays } from './bits'
 
-const h2 = 'm-0 mb-3 text-base font-semibold text-trs-ink'
-const dt = 'text-xs text-trs-muted'
-const dd = 'm-0 text-sm text-trs-ink'
+const h2 = 'm-0 mb-3 text-body font-semibold text-trs-ink'
+const dt = 'text-small text-trs-muted'
+const dd = 'm-0 text-body text-trs-ink'
 
 export function RenewalDetail({ id }: { id: string }) {
   const confirm = useConfirm()
@@ -71,7 +71,7 @@ export function RenewalDetail({ id }: { id: string }) {
   }
 
   if (missing) return <div className="px-4 md:px-8 py-6"><Empty action={<LinkBtn href="/renewals">Pipeline</LinkBtn>}>This renewal is not on the list.</Empty></div>
-  if (!r) return <div className="px-4 md:px-8 py-6">{error ? <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p> : <Spinner label="Loading the renewal…" />}</div>
+  if (!r) return <div className="px-4 md:px-8 py-6">{error ? <p className="m-0 text-body text-trs-neg" role="alert">{error}</p> : <Spinner label="Loading the renewal…" />}</div>
 
   const closed = !!r.outcome
   const renewedTo = r.renewed_policy_id ? r.policies.find(p => p.id === r.renewed_policy_id) : null
@@ -91,7 +91,7 @@ export function RenewalDetail({ id }: { id: string }) {
           <span className="inline-flex flex-wrap gap-1"><StageChip stage={r.stage} /><RiskChips risk={r.risk} /></span>
         </PageHeader>
       </div>
-      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
 
       <section aria-labelledby="ren-facts">
         <h2 id="ren-facts" className={h2}>Facts</h2>
@@ -111,7 +111,7 @@ export function RenewalDetail({ id }: { id: string }) {
             <div key={k} className="min-w-0">
               <dt className={dt}>{k}</dt>
               <dd className={dd}>{v}</dd>
-              {sub && <dd className="m-0 text-xs text-trs-muted truncate">{sub}</dd>}
+              {sub && <dd className="m-0 text-small text-trs-muted truncate">{sub}</dd>}
             </div>
           ))}
         </dl>
@@ -120,7 +120,7 @@ export function RenewalDetail({ id }: { id: string }) {
       <section aria-labelledby="ren-stage">
         <h2 id="ren-stage" className={h2}>Stage</h2>
         {closed ? (
-          <div className="flex flex-col gap-1 text-sm text-trs-ink">
+          <div className="flex flex-col gap-1 text-body text-trs-ink">
             <span><StageChip stage={r.stage} /></span>
             {r.outcome === 'renewed' && <span>New term: {renewedTo ? <Link href={`/policies/${renewedTo.id}`}>{renewedTo.policy_number ?? renewedTo.class_of_insurance ?? 'policy'}</Link> : r.renewed_policy_id ? <Link href={`/policies/${r.renewed_policy_id}`}>policy</Link> : '—'}</span>}
             {r.outcome === 'lost' && <span>Reason: {r.loss_reason ? LOSS_NAME[r.loss_reason as LossReason] ?? r.loss_reason : '—'}{r.loss_note ? ` · ${r.loss_note}` : ''}</span>}
@@ -200,9 +200,9 @@ export function RenewalDetail({ id }: { id: string }) {
       )}
 
       <section aria-labelledby="ren-lines" className="flex flex-col gap-4">
-        <h2 id="ren-lines" className="m-0 text-base font-semibold text-trs-ink">Lines held · {r.held.length}</h2>
-        {r.held.length ? <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5">{r.held.map(c => <li key={c}><Chip tone="green">{lineName(c)}</Chip></li>)}</ul> : <p className="m-0 text-sm text-trs-muted">None live.</p>}
-        <h2 className="m-0 text-base font-semibold text-trs-ink">Lines not held · {r.missing.length}</h2>
+        <h2 id="ren-lines" className="m-0 text-body font-semibold text-trs-ink">Lines held · {r.held.length}</h2>
+        {r.held.length ? <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5">{r.held.map(c => <li key={c}><Chip tone="green">{lineName(c)}</Chip></li>)}</ul> : <p className="m-0 text-body text-trs-muted">None live.</p>}
+        <h2 className="m-0 text-body font-semibold text-trs-ink">Lines not held · {r.missing.length}</h2>
         <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5">{r.missing.map(c => <li key={c}><Chip>{lineName(c)}</Chip></li>)}</ul>
       </section>
     </div>

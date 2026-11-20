@@ -54,8 +54,11 @@ test('INB-041 the mail rule line sits under the Mailbox pills', async ({ page })
 })
 
 test('INB-042 a list that fails to load says so with Retry, not "No conversations"', async ({ page }) => {
-  await page.route('**/api/engagement/conversations?**', r => r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'journey' }) }))
+  // The first screen arrives with the page; a search reloads the list from the browser, which is
+  // where a failure can be made to happen.
   await openClean(page, '/engagement')
+  await page.route('**/api/engagement/conversations?**', r => r.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'journey' }) }))
+  await page.getByRole('textbox', { name: 'Search conversations' }).first().fill('journey-no-match')
   await expect(page.getByRole('alert').filter({ hasText: 'The conversations did not load' }).first()).toBeVisible(OPENS)
   await expect(page.getByRole('button', { name: 'Retry' }).first()).toBeVisible()
   await expect(page.getByText('No conversations.')).toHaveCount(0)

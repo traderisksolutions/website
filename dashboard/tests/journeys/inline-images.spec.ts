@@ -26,7 +26,8 @@ test('DAT-020 a thread with inline images shows them from the signed link', asyn
   const id = await threadWithLinkedImage()
   test.skip(!id, 'no recent thread with a linked inline image (none ingested since the deploy)')
   await openClean(page, `/engagement?lead=${id}`)
-  await expect(page.getByRole('button', { name: /^(Collapse|Expand) message from/ }).first()).toBeVisible(OPENS)
+  // A one-message thread opens without an Expand button, so wait for the message itself.
+  await expect(page.getByRole('article', { name: /^Message from/ }).first()).toBeVisible(OPENS)
   // Each click renames its button, so take the first remaining one each time, never a stale index.
   for (const name of [/^Expand message from/, /^Show quoted history/]) {
     const left = page.getByRole('button', { name })

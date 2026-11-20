@@ -27,7 +27,7 @@ export function RenewalsDue({ who }: { who: string }) {
   const all = who === 'all'
   return (
     <section aria-labelledby="today-renewals" className="mb-7">
-      <h2 id="today-renewals" className="m-0 mb-3 text-base font-semibold text-trs-ink">Renewals due · {due.tasks.length}</h2>
+      <h2 id="today-renewals" className="m-0 mb-3 text-body font-semibold text-trs-ink">Renewals due · {due.tasks.length}</h2>
       <Register label="Renewals due" minWidth={all ? 760 : 660} maxHeight="20rem">
         <RegisterHead>
           <RegisterTh first>Client</RegisterTh>

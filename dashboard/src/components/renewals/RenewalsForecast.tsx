@@ -44,17 +44,17 @@ export function RenewalsForecast() {
           </>
         )}
       </PageHeader>
-      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       {!view ? (error ? null : <Spinner label="Loading the forecast…" />)
         : !view.tables ? <Empty>Renewal records are not set up yet.</Empty>
         : fc && (
           <>
             <section aria-labelledby="fc-chart">
-              <h2 id="fc-chart" className="m-0 mb-3 text-base font-semibold text-trs-ink">Commission expiring by month · SGD</h2>
+              <h2 id="fc-chart" className="m-0 mb-3 text-body font-semibold text-trs-ink">Commission expiring by month · SGD</h2>
               <CommissionBars months={fc.months} />
             </section>
             <section aria-labelledby="fc-table">
-              <h2 id="fc-table" className="m-0 mb-3 text-base font-semibold text-trs-ink">By month</h2>
+              <h2 id="fc-table" className="m-0 mb-3 text-body font-semibold text-trs-ink">By month</h2>
               <Register label="Forecast by month" minWidth={1040}>
                 <RegisterHead>
                   <RegisterTh first>Month</RegisterTh>
@@ -120,8 +120,8 @@ function CommissionBars({ months }: { months: ForecastMonth[] }) {
               <title>{`${monthName(m.month)}: ${S(v)} commission, ${m.due.count} due`}</title>
               <rect x={x} y={top} width={bw} height={plot} className="fill-transparent" />
               {h > 0 && <rect x={x} y={y} width={bw} height={h} rx={3} className="fill-[var(--trs-chart-1)]" />}
-              <text x={x + bw / 2} y={y - 6} textAnchor="middle" className="fill-trs-ink text-xs tabular-nums">{v > 0 ? barLabel(v) : ''}</text>
-              <text x={x + bw / 2} y={H - 8} textAnchor="middle" className="fill-trs-muted text-xs">{monthName(m.month, true)}</text>
+              <text x={x + bw / 2} y={y - 6} textAnchor="middle" className="fill-trs-ink text-small tabular-nums">{v > 0 ? barLabel(v) : ''}</text>
+              <text x={x + bw / 2} y={H - 8} textAnchor="middle" className="fill-trs-muted text-small">{monthName(m.month, true)}</text>
             </g>
           )
         })}
