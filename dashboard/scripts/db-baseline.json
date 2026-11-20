@@ -87,6 +87,10 @@
   "sb": 0,
   "fetch": 1
  },
+ "src/app/api/companies/[id]/find-threads/route.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
  "src/app/api/companies/[id]/payments/reminder/route.ts": {
   "sb": 2,
   "fetch": 0
@@ -217,7 +221,7 @@
  },
  "src/app/api/engagement/conversations/route.ts": {
   "sb": 0,
-  "fetch": 11
+  "fetch": 12
  },
  "src/app/api/engagement/draft/route.ts": {
   "sb": 0,
@@ -240,7 +244,7 @@
   "fetch": 2
  },
  "src/app/api/engagement/thread/[id]/company/route.ts": {
-  "sb": 1,
+  "sb": 2,
   "fetch": 1
  },
  "src/app/api/engagement/thread/[id]/party/route.ts": {
@@ -275,48 +279,12 @@
   "sb": 9,
   "fetch": 0
  },
- "src/app/api/group-benefits/coverage/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
  "src/app/api/group-benefits/insurer-contacts/route.ts": {
   "sb": 0,
   "fetch": 1
  },
  "src/app/api/group-benefits/last-year/read/route.ts": {
   "sb": 1,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/analysis/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/client-draft/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/compare/draft/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/compare/report/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/documents/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/group-benefits/quote/[id]/insurer-form/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/group-benefits/quote/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/group-benefits/quote/[id]/scenarios/route.ts": {
-  "sb": 3,
   "fetch": 0
  },
  "src/app/api/group-benefits/rate-tables/[id]/approve/route.ts": {
@@ -571,6 +539,10 @@
   "sb": 1,
   "fetch": 0
  },
+ "src/app/pricing-matrix/quote/[id]/[[...rest]]/page.tsx": {
+  "sb": 1,
+  "fetch": 0
+ },
  "src/lib/admin/a/document-clerk.ts": {
   "sb": 2,
   "fetch": 0
@@ -811,6 +783,10 @@
   "sb": 6,
   "fetch": 0
  },
+ "src/lib/clients/people.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
  "src/lib/clients/portfolio-load.ts": {
   "sb": 1,
   "fetch": 0
@@ -843,6 +819,10 @@
   "sb": 8,
   "fetch": 0
  },
+ "src/lib/crm/contact-for-email.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
  "src/lib/crm/context.ts": {
   "sb": 1,
   "fetch": 0
@@ -872,7 +852,7 @@
   "fetch": 0
  },
  "src/lib/crm/quotes.ts": {
-  "sb": 1,
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/crm/receipts.ts": {
@@ -904,7 +884,7 @@
   "fetch": 0
  },
  "src/lib/crm/threads.ts": {
-  "sb": 4,
+  "sb": 8,
   "fetch": 0
  },
  "src/lib/crm/triage.ts": {
@@ -975,10 +955,6 @@
   "sb": 4,
   "fetch": 0
  },
- "src/lib/gb/company-eb.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/lib/gb/compare-cover.ts": {
   "sb": 3,
   "fetch": 0
@@ -996,7 +972,7 @@
   "fetch": 6
  },
  "src/lib/gb/eb-proposal-store.ts": {
-  "sb": 16,
+  "sb": 19,
   "fetch": 0
  },
  "src/lib/gb/intake.ts": {
@@ -1062,6 +1038,10 @@
  "src/lib/log-activity.ts": {
   "sb": 0,
   "fetch": 1
+ },
+ "src/lib/mail/inbox-index.ts": {
+  "sb": 0,
+  "fetch": 3
  },
  "src/lib/mail/visibility-server.ts": {
   "sb": 3,
