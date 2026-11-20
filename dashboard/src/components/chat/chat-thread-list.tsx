@@ -3,6 +3,8 @@
 import React, { useState } from 'react'
 import { Plus, Archive, MessageSquare, Briefcase, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import type { ChatThread } from '@/lib/chat/chat-types'
 
 function timeAgo(iso: string | null): string {
@@ -36,43 +38,44 @@ export function ChatThreadList({
 
   return (
     <div className="flex-1 overflow-y-auto flex flex-col">
-      <button
+      <Btn
+        size="xs"
         onClick={onNew}
-        className="flex items-center gap-2 m-2.5 mb-1.5 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-primary text-12 font-semibold hover:bg-primary/10 transition-colors"
+        className="justify-start m-2.5 mb-1.5"
       >
         <Plus size={14} /> New chat
-      </button>
+      </Btn>
 
       {threads.length === 0 ? (
-        <p className="text-12 text-muted-foreground/60 text-center px-5 py-8">No previous chats yet.</p>
+        <p className="text-small text-muted-foreground/60 text-center px-5 py-8">No previous chats yet.</p>
       ) : (
         <div className="flex flex-col px-1.5 pb-2">
           {threads.map(t => {
             const active = t.id === activeThreadId
             return (
               <div key={t.id}
-                className={cn('group flex items-center gap-2 rounded-lg px-2.5 py-2 cursor-pointer transition-colors',
+                className={cn('group flex items-center gap-2 rounded px-2.5 py-2 cursor-pointer transition-colors',
                   active ? 'bg-primary/10' : 'hover:bg-muted/60')}
                 onClick={() => onOpen(t)}>
                 <MessageSquare size={13} className={cn('flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground/50')} />
                 <div className="min-w-0 flex-1">
                   {editingId === t.id ? (
-                    <input
+                    <Input
                       autoFocus
                       value={editValue}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => setEditValue(e.target.value)}
                       onBlur={commitRename}
                       onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitRename() } else if (e.key === 'Escape') { setEditingId(null); setEditValue('') } }}
-                      className="w-full text-12 rounded border border-primary/40 bg-background px-1.5 py-0.5 outline-none"
+                      className="h-7 text-small px-1.5 py-0.5"
                       aria-label="Rename chat"
                     />
                   ) : (
                     <>
-                      <p className={cn('text-12 truncate', active ? 'font-semibold text-foreground' : 'text-foreground/85')}>
+                      <p className={cn('text-small truncate', active ? 'font-semibold text-foreground' : 'text-foreground/85')}>
                         {t.title || 'New chat'}
                       </p>
-                      <div className="flex items-center gap-1.5 text-11 text-muted-foreground/55">
+                      <div className="flex items-center gap-1.5 text-small text-muted-foreground/55">
                         <span>{timeAgo(t.last_message_at ?? t.updated_at)}</span>
                         {t.case_id && <span className="inline-flex items-center gap-0.5"><Briefcase size={9} /> case</span>}
                         {t.status === 'minimized' && <span>· minimised</span>}
@@ -82,14 +85,14 @@ export function ChatThreadList({
                 </div>
                 {editingId !== t.id && (
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-                    <button onClick={(e) => { e.stopPropagation(); startRename(t) }} aria-label="Rename chat" title="Rename"
-                      className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-background">
+                    <Btn level="tertiary" size="xs" onClick={(e) => { e.stopPropagation(); startRename(t) }} aria-label="Rename chat" title="Rename"
+                      className="h-6 w-6 px-0">
                       <Pencil size={11} />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); onArchive(t.id) }} aria-label="Archive chat" title="Archive"
-                      className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-background">
+                    </Btn>
+                    <Btn level="tertiary" size="xs" onClick={(e) => { e.stopPropagation(); onArchive(t.id) }} aria-label="Archive chat" title="Archive"
+                      className="h-6 w-6 px-0">
                       <Archive size={12} />
-                    </button>
+                    </Btn>
                   </div>
                 )}
               </div>

@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Btn, Chip, Empty, SectionCard, Spinner } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 
 type Verdict = 'supported' | 'not_supported' | 'unclear'
 type Report = {
@@ -71,26 +72,26 @@ export default function ClaimSecondOpinionPage() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-6 py-8">
-      <h1 className="text-20 font-medium text-[#0f1412]">Claim second opinion</h1>
-      <p className="mt-1 text-13 text-[#4a5550]">corpcover.com requests · PDF due {SLA_H} hours after the documents arrive</p>
+      <h1 className="text-heading font-medium text-trs-ink">Claim second opinion</h1>
+      <p className="mt-1 text-body text-trs-muted">corpcover.com requests · PDF due {SLA_H} hours after the documents arrive</p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <SectionCard title="Requests" padded={false}>
-          {err && <p className="p-4 text-13 text-[#b3261e]">{err}</p>}
+          {err && <p className="p-4 text-body text-trs-neg">{err}</p>}
           {!rows && !err && <div className="p-4"><Spinner label="Loading" /></div>}
           {rows && !rows.length && <Empty>No claim requests yet.</Empty>}
           <ul>
             {rows?.map(r => (
               <li key={r.id}>
-                <button type="button" onClick={() => { setSel(r.id); setFiles([]); setRunErr('') }}
-                  className={`w-full px-4 py-3 text-left transition-colors hover:bg-[#faf9f6] ${sel === r.id ? 'bg-[#f1f2ee]' : ''}`}>
+                <Btn level="tertiary" onClick={() => { setSel(r.id); setFiles([]); setRunErr('') }}
+                  className={`h-auto w-full flex-col items-stretch justify-start gap-0 rounded-none border-0 px-4 py-3 text-left font-normal whitespace-normal hover:bg-trs-tint ${sel === r.id ? 'bg-trs-field' : ''}`}>
                   <span className="flex items-center justify-between gap-2">
-                    <span className="truncate text-14 font-medium text-[#0f1412]">{r.contact_name || r.email}</span>
+                    <span className="truncate text-body font-medium text-trs-ink">{r.contact_name || r.email}</span>
                     <Chip>{r.answers.second_opinion ? 'Report ready' : String(r.answers.plan ?? 'Claim')}</Chip>
                   </span>
-                  <span className="mt-0.5 block truncate text-12.5 text-[#4a5550]">{String(r.answers.claim_type ?? '')} · {String(r.answers.insurer ?? '')} · {String(r.answers.market ?? 'SG')}</span>
-                  <span className="block text-12 text-[#6f7a74]">{ago(r.created_at)}</span>
-                </button>
+                  <span className="mt-0.5 block truncate text-small text-trs-muted">{String(r.answers.claim_type ?? '')} · {String(r.answers.insurer ?? '')} · {String(r.answers.market ?? 'SG')}</span>
+                  <span className="block text-small text-trs-subtle">{ago(r.created_at)}</span>
+                </Btn>
               </li>
             ))}
           </ul>
@@ -99,29 +100,29 @@ export default function ClaimSecondOpinionPage() {
         <div className="grid content-start gap-6">
           {!row && (
             <SectionCard title="Process">
-              <ol className="grid gap-2 text-14 text-[#2a332f]">{STEPS.map((s, i) => <li key={s}>{i + 1}. {s}</li>)}</ol>
+              <ol className="grid gap-2 text-body text-trs-ink-2">{STEPS.map((s, i) => <li key={s}>{i + 1}. {s}</li>)}</ol>
             </SectionCard>
           )}
 
           {row && (
             <SectionCard title={row.contact_name || row.email || 'Claim'}>
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-13.5 sm:grid-cols-3">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-body sm:grid-cols-3">
                 {([['Email', row.email], ['Phone', row.phone], ['Plan', row.answers.plan], ['Claim', row.answers.claim_type], ['Status', row.answers.claim_status], ['Insurer', row.answers.insurer], ['Amount', row.answers.amount_claimed], ['Decision', row.answers.decision_date], ['Request id', row.id.slice(0, 8).toUpperCase()]] as [string, unknown][]).map(([k, v]) => (
-                  <div key={k}><dt className="text-12 text-[#6f7a74]">{k}</dt><dd className="text-[#0f1412]">{v ? String(v) : '—'}</dd></div>
+                  <div key={k}><dt className="text-small text-trs-subtle">{k}</dt><dd className="text-trs-ink">{v ? String(v) : '—'}</dd></div>
                 ))}
               </dl>
-              {row.answers.what_happened ? <p className="mt-4 whitespace-pre-wrap text-13.5 text-[#2a332f]">{String(row.answers.what_happened)}</p> : null}
+              {row.answers.what_happened ? <p className="mt-4 whitespace-pre-wrap text-body text-trs-ink-2">{String(row.answers.what_happened)}</p> : null}
 
-              <div className="mt-6 rounded-10 border border-dashed border-[#d5d9d4] p-4">
-                <label htmlFor="so-files" className="text-13.5 font-medium text-[#0f1412]">Documents from the client</label>
-                <p className="text-12.5 text-[#4a5550]">Policy schedule, wording and the insurer&apos;s letter. PDF, PNG or JPG; up to 8 files, 4.4 MB in total.</p>
-                <input id="so-files" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,text/plain"
-                  onChange={e => setFiles(Array.from(e.target.files ?? []))} className="mt-3 block text-13" />
+              <div className="mt-6 rounded border border-dashed border-trs-line-2 p-4">
+                <label htmlFor="so-files" className="text-body font-medium text-trs-ink">Documents from the client</label>
+                <p className="text-small text-trs-muted">Policy schedule, wording and the insurer&apos;s letter. PDF, PNG or JPG; up to 8 files, 4.4 MB in total.</p>
+                <Input id="so-files" type="file" multiple accept="application/pdf,image/png,image/jpeg,image/webp,text/plain"
+                  onChange={e => setFiles(Array.from(e.target.files ?? []))} className="mt-3" />
                 <div className="mt-3 flex items-center gap-3">
                   <Btn level="primary" onClick={run} disabled={!files.length || busy} loading={busy}>{report ? 'Run again' : 'Run review'}</Btn>
-                  {busy && <span className="text-12.5 text-[#4a5550]">Reading the documents. This takes 1 to 3 minutes.</span>}
+                  {busy && <span className="text-small text-trs-muted">Reading the documents. This takes 1 to 3 minutes.</span>}
                 </div>
-                {runErr && <p role="alert" className="mt-2 text-13 text-[#b3261e]">{runErr}</p>}
+                {runErr && <p role="alert" className="mt-2 text-body text-trs-neg">{runErr}</p>}
               </div>
             </SectionCard>
           )}
@@ -129,25 +130,25 @@ export default function ClaimSecondOpinionPage() {
           {row && report && (
             <SectionCard title="Report" actions={
               <div className="flex gap-2">
-                <a className="text-13 text-[#1f4e3a] hover:underline" href={`/api/claims/second-opinion/${row.id}/pdf`} target="_blank" rel="noopener">Preview PDF</a>
-                <a className="text-13 text-[#1f4e3a] hover:underline" href={`/api/claims/second-opinion/${row.id}/pdf?download=1`}>Download</a>
+                <a className="text-body text-trs-green-2 hover:underline" href={`/api/claims/second-opinion/${row.id}/pdf`} target="_blank" rel="noopener">Preview PDF</a>
+                <a className="text-body text-trs-green-2 hover:underline" href={`/api/claims/second-opinion/${row.id}/pdf?download=1`}>Download</a>
               </div>
             }>
-              <p className="text-12.5 text-[#6f7a74]">{ago(report.generated_at)} · {report.model} · {report.files.map(f => f.name).join(', ')}</p>
-              <p className="mt-3 text-14 text-[#0f1412]">{report.summary}</p>
+              <p className="text-small text-trs-subtle">{ago(report.generated_at)} · {report.model} · {report.files.map(f => f.name).join(', ')}</p>
+              <p className="mt-3 text-body text-trs-ink">{report.summary}</p>
               <ol className="mt-5 grid gap-5">
                 {report.reasons.map((x, i) => (
-                  <li key={i} className="grid gap-1.5 text-13.5">
+                  <li key={i} className="grid gap-1.5 text-body">
                     <span className="flex flex-wrap items-center gap-2">
-                      <b className="font-medium text-[#0f1412]">{i + 1}. {x.reason}</b>
+                      <b className="font-medium text-trs-ink">{i + 1}. {x.reason}</b>
                       <Chip>{VERDICT[x.verdict]}</Chip>
                       {x.quote_verified === false && <Chip>Quote not found, check original</Chip>}
                       {x.quote_verified == null && x.clause_quote && <Chip>Quote not machine-checked</Chip>}
                     </span>
-                    <span className="text-12.5 text-[#6f7a74]">{x.clause_ref}</span>
-                    {x.clause_quote && <q className="border-l-2 border-[#d5d9d4] pl-3 italic text-[#2a332f]">{x.clause_quote}</q>}
-                    <span className="text-[#2a332f]">{x.reasoning}</span>
-                    <span className="text-[#4a5550]">Ask the insurer: {x.question_for_insurer}</span>
+                    <span className="text-small text-trs-subtle">{x.clause_ref}</span>
+                    {x.clause_quote && <q className="border-l-2 border-trs-line-2 pl-3 italic text-trs-ink-2">{x.clause_quote}</q>}
+                    <span className="text-trs-ink-2">{x.reasoning}</span>
+                    <span className="text-trs-muted">Ask the insurer: {x.question_for_insurer}</span>
                   </li>
                 ))}
               </ol>

@@ -19,23 +19,23 @@ export default async function ConnectGmail({ searchParams }: { searchParams: Pro
   const connected = sp.connected
   const error = sp.error ? ERRORS[sp.error] ?? ERRORS.callback : null
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 bg-[#fafaf7] text-trs-ink">
-      <div className="w-full max-w-[460px] bg-white rounded-16 border border-[#e6e8e4] p-8">
-        <div className="text-13 tracking-[0.08em] uppercase mb-3 text-trs-muted">Trade Risk Solutions</div>
-        <h1 className="m-0 text-24 font-medium tracking-[-0.02em]">Gmail access: read only</h1>
+    <main className="min-h-screen flex items-center justify-center px-4 bg-trs-tint text-trs-ink">
+      <div className="w-full max-w-[460px] bg-white rounded border border-trs-line p-8">
+        <div className="text-body mb-3 text-trs-muted">Trade Risk Solutions</div>
+        <h1 className="m-0 text-title font-medium">Gmail access: read only</h1>
         {connected ? (
-          <p className="mt-4 mb-0 text-15 leading-[1.6]">{connected} is connected, read only. The TRS dashboard can read this mailbox. It cannot send, change or delete any email.</p>
+          <p className="mt-4 mb-0 text-body leading-[1.6]">{connected} is connected, read only. The TRS dashboard can read this mailbox. It cannot send, change or delete any email.</p>
         ) : (
           <>
-            <ul className="mt-5 mb-0 pl-0 list-none flex flex-col gap-2.5 text-15 leading-[1.5]">
-              <li className="flex gap-2.5"><span aria-hidden style={{ color: '#1f6b43' }}>✓</span><span>Reads your inbox and sent mail</span></li>
-              <li className="flex gap-2.5"><span aria-hidden style={{ color: '#a23b2c' }}>✕</span><span><b>Cannot send email</b> from your account</span></li>
-              <li className="flex gap-2.5"><span aria-hidden style={{ color: '#a23b2c' }}>✕</span><span>Cannot change, move or delete any email</span></li>
+            <ul className="mt-5 mb-0 pl-0 list-none flex flex-col gap-2.5 text-body leading-[1.5]">
+              <li className="flex gap-2.5"><span aria-hidden className="text-trs-pos">✓</span><span>Reads your inbox and sent mail</span></li>
+              <li className="flex gap-2.5"><span aria-hidden className="text-trs-neg">✕</span><span><b>Cannot send email</b> from your account</span></li>
+              <li className="flex gap-2.5"><span aria-hidden className="text-trs-neg">✕</span><span>Cannot change, move or delete any email</span></li>
             </ul>
-            <p className="mt-4 mb-0 text-14 leading-[1.6] text-trs-ink-2">Google will ask you to allow <b>“View your email messages and settings”</b>. That is the only permission requested.</p>
-            {error && <p className="text-14 mt-3 mb-0" style={{ color: '#a23b2c' }}>{error}</p>}
-            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-9 px-6 rounded-8 text-white text-15 font-medium no-underline bg-trs-green">Allow read-only access</a>
-            <p className="mt-4 mb-0 text-13 text-trs-muted">Sign in with your @trade-risksol.com account. Remove access at any time: Google Account → Security → Third-party connections.</p>
+            <p className="mt-4 mb-0 text-body leading-[1.6] text-trs-ink-2">Google will ask you to allow <b>“View your email messages and settings”</b>. That is the only permission requested.</p>
+            {error && <p className="text-body mt-3 mb-0 text-trs-neg">{error}</p>}
+            <a href="/auth/gmail" className="mt-6 inline-flex items-center justify-center h-9 px-6 rounded text-white text-body font-medium no-underline bg-trs-green">Allow read-only access</a>
+            <p className="mt-4 mb-0 text-body text-trs-muted">Sign in with your @trade-risksol.com account. Remove access at any time: Google Account → Security → Third-party connections.</p>
           </>
         )}
       </div>

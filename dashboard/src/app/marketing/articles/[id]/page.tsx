@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Btn, Chip, Field, SectionCard, Segmented, inputCls, textareaCls } from '@/components/crm/primitives'
 import { MarketingPage, MUTED, Note } from '@/components/marketing/page-shell'
+import { Input } from '@/components/ui/input'
 import { useSiteKey, useSites, withSite } from '@/components/marketing/site-switch'
 import { ArticleStatusChip, CategoryChip } from '@/components/marketing/chips'
 import { Prose } from '@/components/marketing/prose'
@@ -12,7 +13,6 @@ import { renderMarkdown, wordCount } from '@/lib/marketing/markdown'
 import { fmtDate } from '@/lib/marketing/labels'
 import type { ArticleDetail, ArticleStatus, SiteSummary } from '@/lib/marketing/types'
 
-const INK = '#0f1412'
 type Payload = { site: SiteSummary; article: ArticleDetail }
 
 export default function ArticlePage() {
@@ -102,9 +102,9 @@ function Article() {
             <SectionCard title="Text" actions={<Segmented value={view} onChange={setView} options={[{ value: 'edit', label: 'Edit' }, { value: 'preview', label: 'Preview' }]} />}>
               {view === 'edit' ? (
                 <div className="flex flex-col gap-3">
-                  <Field label="Title"><input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className={inputCls} /></Field>
+                  <Field label="Title"><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></Field>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <Field label="Slug" hint={a.status === 'published' ? 'Fixed once published' : undefined}><input value={form.slug} disabled={a.status === 'published'} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className={`${inputCls} font-mono text-13`} /></Field>
+                    <Field label="Slug" hint={a.status === 'published' ? 'Fixed once published' : undefined}><Input value={form.slug} disabled={a.status === 'published'} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} className="font-mono text-body" /></Field>
                     <Field label="Topic">
                       <select value={form.topic} onChange={e => setForm(f => ({ ...f, topic: e.target.value }))} className={inputCls}>
                         <option value="">No topic</option>
@@ -113,21 +113,21 @@ function Article() {
                       </select>
                     </Field>
                   </div>
-                  <Field label="Dek" hint="One sentence under the title on the site"><input value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} className={inputCls} maxLength={280} /></Field>
+                  <Field label="Dek" hint="One sentence under the title on the site"><Input value={form.excerpt} onChange={e => setForm(f => ({ ...f, excerpt: e.target.value }))} maxLength={280} /></Field>
                   <Field label="Meta description" hint={`${form.meta.length} of 160 characters`}><textarea value={form.meta} onChange={e => setForm(f => ({ ...f, meta: e.target.value }))} rows={2} className={textareaCls} /></Field>
-                  <Field label="Body (markdown)"><textarea value={form.markdown} onChange={e => setForm(f => ({ ...f, markdown: e.target.value }))} rows={28} className={`${textareaCls} font-mono text-12.5 leading-[1.55]`} /></Field>
+                  <Field label="Body (markdown)"><textarea value={form.markdown} onChange={e => setForm(f => ({ ...f, markdown: e.target.value }))} rows={28} className={`${textareaCls} font-mono text-small leading-[1.55]`} /></Field>
                 </div>
               ) : (
                 <article>
-                  <h1 className="m-0 mb-1 text-24 font-medium tracking-[-0.02em] leading-[1.15]">{form.title}</h1>
-                  {form.excerpt && <p className="m-0 mb-4 text-16 text-trs-muted">{form.excerpt}</p>}
+                  <h1 className="m-0 mb-1 text-title font-medium leading-[1.15]">{form.title}</h1>
+                  {form.excerpt && <p className="m-0 mb-4 text-heading text-trs-muted">{form.excerpt}</p>}
                   <Prose html={html} />
                 </article>
               )}
             </SectionCard>
             {a.faq.length > 0 && (
               <SectionCard title={`FAQ (${a.faq.length})`}>
-                <dl className="m-0 flex flex-col gap-3 text-14">
+                <dl className="m-0 flex flex-col gap-3 text-body">
                   {a.faq.map((f, i) => <div key={i}><dt className="font-medium">{f.question}</dt><dd className="m-0 mt-0.5 text-trs-muted">{f.answer.replace(/\[F\d+\]/g, '')}</dd></div>)}
                 </dl>
               </SectionCard>
@@ -137,7 +137,7 @@ function Article() {
           <div className="min-w-0 flex flex-col gap-6">
             {gq && (
               <SectionCard title="Quality gate">
-                <div className="flex flex-col gap-2 text-14">
+                <div className="flex flex-col gap-2 text-body">
                   <p className="m-0 flex items-center gap-2"><Chip>{gate?.passed_gate ? 'Passed' : 'Held'}</Chip>{typeof gate?.cost_usd === 'number' && <span className="text-trs-muted">US${gate.cost_usd.toFixed(2)}</span>}</p>
                   <p className="m-0 text-trs-muted">
                     {gq.unsupportedClaimCount ?? 0} unsupported claims · grounded {Math.round((gq.sourceGroundingScore ?? 0) * 100)}%
@@ -154,7 +154,7 @@ function Article() {
               </SectionCard>
             )}
             <SectionCard title="Record">
-              <dl className="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-13.5">
+              <dl className="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-body">
                 <dt className="text-trs-muted">Status</dt><dd className="m-0"><ArticleStatusChip status={a.status} /></dd>
                 <dt className="text-trs-muted">Source</dt><dd className="m-0"><CategoryChip category={a.category} /></dd>
                 <dt className="text-trs-muted">Language</dt><dd className="m-0">{a.language.toUpperCase()} · {a.market}</dd>

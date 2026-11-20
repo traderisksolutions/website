@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { Sparkles } from 'lucide-react'
+import { Btn } from '@/components/crm/primitives'
 import { useChatDock } from '@/providers/chat-dock-provider'
 import { FloatingChatHeader } from './floating-chat-header'
 import { FloatingChatBody } from './floating-chat-body'
@@ -50,14 +51,14 @@ export function FloatingChatDock() {
   // ── Closed → launcher pill ──────────────────────────────────────────────────
   if (!state.isOpen) {
     return (
-      <button
+      <Btn
+        level="primary"
         onClick={open}
         aria-label="Open AI consultant chat"
-        className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary text-primary-foreground pl-3.5 pr-4 py-2.5 text-12.5 font-semibold transition-transform hover:scale-[1.02] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-        style={{ boxShadow: '0 10px 30px -10px rgba(19,44,28,0.5)' }}
+        className="fixed bottom-5 right-5 z-40 gap-2 rounded-full shadow-[0_10px_30px_-10px_rgba(19,44,28,0.5)]"
       >
         <Sparkles size={15} /> Ask Opus
-      </button>
+      </Btn>
     )
   }
 
@@ -73,10 +74,9 @@ export function FloatingChatDock() {
   // ── Open → full window (desktop) / bottom-sheet (mobile) ────────────────────
   return (
     <div
-      className="fixed z-40 flex flex-col border border-[--border-subtle] bg-card overflow-hidden
-        inset-x-0 bottom-0 w-full rounded-t-2xl h-[min(85vh,calc(100vh/var(--ui-zoom)-1rem))]
-        sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[380px] sm:max-w-[calc(100vw-2rem)] sm:rounded-xl sm:h-[min(560px,calc(100vh/var(--ui-zoom)-2.5rem))]"
-      style={{ boxShadow: '0 16px 44px -16px rgba(16,24,40,0.34)' }}
+      className="fixed z-40 flex flex-col border border-trs-line bg-white overflow-hidden shadow-[0_16px_44px_-16px_rgba(16,24,40,0.34)]
+        inset-x-0 bottom-0 w-full rounded-t h-[min(85vh,calc(100vh/var(--ui-zoom)-1rem))]
+        sm:inset-x-auto sm:bottom-5 sm:right-5 sm:w-[380px] sm:max-w-[calc(100vw-2rem)] sm:rounded sm:h-[min(560px,calc(100vh/var(--ui-zoom)-2.5rem))]"
       role="dialog"
       aria-label="AI consultant chat"
     >

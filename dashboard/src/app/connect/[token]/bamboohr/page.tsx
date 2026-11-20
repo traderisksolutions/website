@@ -2,8 +2,9 @@
 
 // BambooHR: HR enters the company name and an API key from their own login. Read once, discarded.
 import { useState } from 'react'
-import Link from 'next/link'
 import type { HrRead } from '@/lib/hr/types'
+import { Btn, LinkBtn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink } from '@/components/hr-connect/link-context'
 import { PeopleFound } from '@/components/hr-connect/read-table'
@@ -52,19 +53,19 @@ export default function BambooHRPage() {
             <div className="hrc-fact"><b>Not read</b><span>Salary, bank details, identity numbers, addresses, contact details</span></div>
           </div>
 
-          <form onSubmit={fetchList}>
-            <div className="hrc-field" style={{ marginTop: 18 }}>
+          <form onSubmit={fetchList} className="mt-4">
+            <div className="hrc-field">
               <label htmlFor="bamboo-company">Company name</label>
-              <input id="bamboo-company" type="text" autoComplete="off" value={company} onChange={e => setCompany(e.target.value)} placeholder="yourcompany" />
+              <Input id="bamboo-company" type="text" autoComplete="off" value={company} onChange={e => setCompany(e.target.value)} placeholder="yourcompany" />
             </div>
             <div className="hrc-field">
               <label htmlFor="bamboo-key">API key</label>
-              <input id="bamboo-key" type="password" autoComplete="off" value={secret} onChange={e => setSecret(e.target.value)} placeholder="Paste the key" />
+              <Input id="bamboo-key" type="password" autoComplete="off" value={secret} onChange={e => setSecret(e.target.value)} placeholder="Paste the key" />
             </div>
             {error && <p className="hrc-err">{error}</p>}
             <div className="hrc-row mt-2.5">
-              <button type="submit" className="hrc-btn p" disabled={busy || !company.trim() || secret.trim().length < 10}>{busy ? 'Reading BambooHR.' : 'Fetch the employee list'}</button>
-              <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
+              <Btn type="submit" level="primary" disabled={busy || !company.trim() || secret.trim().length < 10}>{busy ? 'Reading BambooHR.' : 'Fetch the employee list'}</Btn>
+              <LinkBtn href={`/connect/${token}/upload`}>Upload a file instead</LinkBtn>
             </div>
           </form>
 

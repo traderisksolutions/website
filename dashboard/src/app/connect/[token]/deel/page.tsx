@@ -2,8 +2,9 @@
 
 // Deel: an admin creates an API token with people:read; HR pastes it. Read once, discarded.
 import { useState } from 'react'
-import Link from 'next/link'
 import type { HrRead } from '@/lib/hr/types'
+import { Btn, LinkBtn } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink } from '@/components/hr-connect/link-context'
 import { PeopleFound } from '@/components/hr-connect/read-table'
@@ -53,15 +54,15 @@ export default function DeelPage() {
             <div className="hrc-fact"><b>Added by you</b><span>Spouse and children, on the next page.</span></div>
           </div>
 
-          <form onSubmit={fetchList}>
-            <div className="hrc-field" style={{ marginTop: 18 }}>
+          <form onSubmit={fetchList} className="mt-4">
+            <div className="hrc-field">
               <label htmlFor="deel-token">Deel API token</label>
-              <input id="deel-token" type="password" autoComplete="off" value={secret} onChange={e => setSecret(e.target.value)} placeholder="Paste the token" />
+              <Input id="deel-token" type="password" autoComplete="off" value={secret} onChange={e => setSecret(e.target.value)} placeholder="Paste the token" />
             </div>
             {error && <p className="hrc-err">{error}</p>}
             <div className="hrc-row mt-2.5">
-              <button type="submit" className="hrc-btn p" disabled={busy || secret.trim().length < 10}>{busy ? 'Reading Deel.' : 'Fetch the employee list'}</button>
-              <Link href={`/connect/${token}/upload`} className="hrc-btn">Upload a file instead</Link>
+              <Btn type="submit" level="primary" disabled={busy || secret.trim().length < 10}>{busy ? 'Reading Deel.' : 'Fetch the employee list'}</Btn>
+              <LinkBtn href={`/connect/${token}/upload`}>Upload a file instead</LinkBtn>
             </div>
           </form>
 

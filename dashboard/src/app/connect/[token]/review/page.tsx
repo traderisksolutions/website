@@ -3,10 +3,11 @@
 // Review: the list grouped by employee, dependants added under each, dates of birth fixed inline,
 // consent, then Save and finish later or Submit.
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { CONSENT_TEXT, type HrDependant, type HrEmployee } from '@/lib/hr/types'
 import { toIsoDate } from '@/lib/dates/dob'
+import { Btn, LinkBtn, Segmented } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { Gate, countLine } from '@/components/hr-connect/frame'
 import { api, ApiError, useLink, type PublicDraft } from '@/components/hr-connect/link-context'
 import { fmtDob, fmtLong, plural, shortCompany } from '@/components/hr-connect/format'
@@ -18,7 +19,7 @@ function DobCell({ value, onChange }: { value: string | null; onChange: (iso: st
   const [raw, setRaw] = useState('')
   if (value) return <>{fmtDob(value)}</>
   return (
-    <input
+    <Input
       className="cell" type="text" inputMode="numeric" placeholder="DD/MM/YYYY" value={raw} aria-label="Date of birth"
       onChange={e => setRaw(e.target.value)}
       onBlur={() => { const iso = toIsoDate(raw); if (iso) onChange(iso, raw) }}
@@ -124,23 +125,23 @@ function ReviewBody({ link, draft }: { link: PublicLink; draft: PublicDraft }) {
       </div>
 
       <h2>Submitted by</h2>
-      <div className="hrc-field"><label htmlFor="rv-name">Your name</label><input id="rv-name" type="text" value={name} onChange={e => setName(e.target.value)} autoComplete="name" /></div>
-      <div className="hrc-field"><label htmlFor="rv-email">Your email, for the receipt</label><input id="rv-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></div>
+      <div className="hrc-field"><label htmlFor="rv-name">Your name</label><Input id="rv-name" type="text" value={name} onChange={e => setName(e.target.value)} autoComplete="name" /></div>
+      <div className="hrc-field"><label htmlFor="rv-email">Your email, for the receipt</label><Input id="rv-email" type="email" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" /></div>
 
       <div className="hrc-consent">
         <b className="font-medium">Before you submit</b><br />
         {consentFacts}
         <label>
-          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
+          <input type="checkbox" className="accent-trs-green" checked={consent} onChange={e => setConsent(e.target.checked)} />
           <span>{consentDeclaration || `I am authorised by ${shortCompany(link.company_name)} to provide this list.`}</span>
         </label>
       </div>
 
       {error && <p className="hrc-err">{error}</p>}
-      {msg && <p className="hrc-sub" style={{ margin: '10px 0 0' }}>{msg}</p>}
+      {msg && <p className="hrc-sub !mb-0 !mt-2.5">{msg}</p>}
       <div className="hrc-row">
-        <button type="button" className="hrc-btn" disabled={!!busy} onClick={onSave}>{busy === 'save' ? 'Saving.' : 'Save and finish later'}</button>
-        <button type="button" className="hrc-btn p" disabled={!!busy || employees.length === 0} onClick={onSubmit}>{busy === 'submit' ? 'Submitting.' : 'Submit the list'}</button>
+        <Btn disabled={!!busy} onClick={onSave}>{busy === 'save' ? 'Saving.' : 'Save and finish later'}</Btn>
+        <Btn level="primary" disabled={!!busy || employees.length === 0} onClick={onSubmit}>{busy === 'submit' ? 'Submitting.' : 'Submit the list'}</Btn>
       </div>
     </>
   )
@@ -180,30 +181,28 @@ function EmployeeRows(props: {
           <td className="m">–</td>
           <td className="flex gap-2 items-center">
             <span className="chip">{d.dob ? 'Complete' : 'Add date of birth'}</span>
-            <button type="button" className="hrc-btn sm" onClick={() => props.onRemoveDependant(d.key)}>Remove</button>
+            <Btn size="xs" onClick={() => props.onRemoveDependant(d.key)}>Remove</Btn>
           </td>
         </tr>
       ))}
       {adding ? (
         <tr>
-          <td className="dep"><input className="cell" type="text" placeholder="Dependant name" value={adding.name} onChange={ev => props.onChangeAdd({ ...adding, name: ev.target.value })} aria-label="Dependant name" /></td>
+          <td className="dep"><Input className="cell" type="text" placeholder="Dependant name" value={adding.name} onChange={ev => props.onChangeAdd({ ...adding, name: ev.target.value })} aria-label="Dependant name" /></td>
           <td>
-            <select className="cell" value={adding.relationship} onChange={ev => props.onChangeAdd({ ...adding, relationship: ev.target.value as 'spouse' | 'child' })} aria-label="Relationship">
-              <option value="spouse">Spouse</option>
-              <option value="child">Child</option>
-            </select>
+            <Segmented<'spouse' | 'child'> label="Relationship" value={adding.relationship} onChange={v => props.onChangeAdd({ ...adding, relationship: v })}
+              options={[{ value: 'spouse', label: 'Spouse' }, { value: 'child', label: 'Child' }]} />
           </td>
-          <td><input className="cell" type="text" inputMode="numeric" placeholder="DD/MM/YYYY" value={adding.dob} onChange={ev => props.onChangeAdd({ ...adding, dob: ev.target.value })} aria-label="Dependant date of birth" /></td>
+          <td><Input className="cell" type="text" inputMode="numeric" placeholder="DD/MM/YYYY" value={adding.dob} onChange={ev => props.onChangeAdd({ ...adding, dob: ev.target.value })} aria-label="Dependant date of birth" /></td>
           <td className="m">–</td>
           <td className="m">–</td>
           <td className="flex gap-2">
-            <button type="button" className="hrc-btn sm p" disabled={!adding.name.trim()} onClick={props.onAdd}>Add</button>
-            <button type="button" className="hrc-btn sm" onClick={props.onCancelAdd}>Cancel</button>
+            <Btn size="xs" level="primary" disabled={!adding.name.trim()} onClick={props.onAdd}>Add</Btn>
+            <Btn size="xs" onClick={props.onCancelAdd}>Cancel</Btn>
           </td>
         </tr>
       ) : (
         <tr>
-          <td className="dep" colSpan={6}><button type="button" className="hrc-btn sm" onClick={props.onStartAdd}>+ Add a dependant</button></td>
+          <td className="dep" colSpan={6}><Btn size="xs" onClick={props.onStartAdd}>+ Add a dependant</Btn></td>
         </tr>
       )}
     </>
@@ -218,7 +217,7 @@ export default function ReviewPage() {
         <>
           <h1>Review the list</h1>
           <p className="hrc-sub">Nothing has been provided yet. Upload a file or connect your HR system first.</p>
-          <div className="hrc-row"><Link href={`/connect/${token}`} className="hrc-btn p">Ways to provide the list</Link></div>
+          <div className="hrc-row"><LinkBtn href={`/connect/${token}`} level="primary">Ways to provide the list</LinkBtn></div>
         </>
       )}
     </Gate>

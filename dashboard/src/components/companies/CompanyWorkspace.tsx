@@ -13,7 +13,7 @@ import { CompanyPayments } from '@/components/crm/CompanyPayments'
 import { CompanyMail } from '@/components/crm/CompanyMail'
 import { CompanyThreadList } from '@/components/crm/CompanyThreadList'
 import { CompanyLog } from '@/components/crm/CompanyLog'
-import { Segmented, Spinner } from '@/components/crm/primitives'
+import { Btn, Segmented, Spinner } from '@/components/crm/primitives'
 import { ChevronDown } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PoliciesRegister } from '@/components/policies/PoliciesRegister'
@@ -129,7 +129,7 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
   /** The red line a tab shows when its data did not load. */
   const failure = (...keys: string[]) => {
     const k = keys.find(x => failed[x])
-    return k ? <p className="m-0 mb-4 text-sm text-trs-neg" role="alert">This tab did not load: {failed[k]}</p> : null
+    return k ? <p className="m-0 mb-4 text-body text-trs-neg" role="alert">This tab did not load: {failed[k]}</p> : null
   }
 
   const loadThreads = useCallback(() => j<{ threads: CompanyThread[]; hidden?: number }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => { setThreads(r.threads); setThreadsHidden(r.hidden ?? 0) }), [id, j])
@@ -214,7 +214,7 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
       <div className="flex flex-col bg-white text-trs-ink h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))]">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2 min-h-12 flex-shrink-0 bg-white border-b border-trs-line">
           <Breadcrumbs className="min-w-0" current={{ label: 'Threads', href: `/companies/${id}?tab=threads` }} fallback={{ label: company.name, href: `/companies/${id}` }} />
-          <span className="text-xs flex-shrink-0 text-trs-muted">
+          <span className="text-small flex-shrink-0 text-trs-muted">
             {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
             {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
           </span>
@@ -222,15 +222,16 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
 
           <div className="w-full md:w-auto md:ml-auto flex flex-wrap items-center gap-1 min-w-0" role="tablist" aria-label="Company sections">
             {TABS.filter(t => t.key !== 'threads').map(t => (
-              <button
+              <Btn
                 key={t.key}
-                type="button"
+                level="tertiary"
+                size="xs"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-8 px-2.5 rounded-md border-0 bg-transparent cursor-pointer text-xs whitespace-nowrap flex-shrink-0 hover:bg-trs-field text-trs-muted"
+                className="px-2.5 border-0 font-normal text-small flex-shrink-0 hover:bg-trs-field"
               >
                 {t.label}
-              </button>
+              </Btn>
             ))}
           </div>
         </div>
@@ -272,10 +273,10 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
             return { value: t.key, label: t.label, count: n !== null && n > 0 ? n : undefined }
           })} />
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger type="button" className="inline-flex h-8 items-center gap-1 rounded-lg border border-trs-line-2 bg-white px-3 text-xs font-medium text-trs-ink cursor-pointer hover:bg-trs-tint">More <ChevronDown size={13} /></DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6} className="w-56 rounded-xl border-trs-line bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
+            <DropdownMenuTrigger type="button" className="inline-flex h-8 items-center gap-1 rounded border border-trs-line-2 bg-white px-3 text-small font-medium text-trs-ink cursor-pointer hover:bg-trs-tint">More <ChevronDown size={13} /></DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6} className="w-56 rounded border-trs-line bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
               {MORE_TABS.map(t => { const n = countFor(t.key); return (
-                <DropdownMenuItem key={t.key} onSelect={() => setTab(t.key)} className="flex justify-between px-3 py-2 rounded-lg text-sm cursor-pointer text-trs-ink data-[highlighted]:bg-trs-tint">
+                <DropdownMenuItem key={t.key} onSelect={() => setTab(t.key)} className="flex justify-between px-3 py-2 rounded text-body cursor-pointer text-trs-ink data-[highlighted]:bg-trs-tint">
                   {t.label}{n ? <span className="text-trs-muted tabular-nums">{n}</span> : null}
                 </DropdownMenuItem>) })}
             </DropdownMenuContent>

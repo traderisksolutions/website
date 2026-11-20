@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { SectionCard, Empty, Spinner, Btn, textareaCls } from './primitives'
+import { SectionCard, Empty, Spinner, Btn, Segmented, textareaCls } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { fmtDate, fmtDateTime, fmtRelative } from '@/lib/format'
 import { threadHref } from '@/lib/placement/position'
-import { callApi, errText, selectCls, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 import type { ActivityEvent, ActivityKind } from '@/lib/crm/types'
 import type { LogKind, Placement, PlacementBundle } from '@/lib/placement/types'
 
@@ -69,15 +69,12 @@ export function CompanyLog({ bundle, events, onChanged }: {
         <div className="flex flex-col sm:flex-row gap-2 sm:items-start mb-4">
           <textarea className={`${textareaCls} flex-1`} rows={2} value={text} onChange={e => setText(e.target.value)} placeholder={target.title} aria-label="Log entry" />
           <div className="flex gap-2 items-start">
-            <select className={`${selectCls} w-auto`} value={kind} onChange={e => setKind(e.target.value as 'note' | 'decision')} aria-label="Kind">
-              <option value="note">Note</option>
-              <option value="decision">Decision</option>
-            </select>
+            <Segmented<'note' | 'decision'> value={kind} onChange={setKind} label="Kind" options={[{ value: 'note', label: 'Note' }, { value: 'decision', label: 'Decision' }]} />
             <Btn level="secondary" className="h-9" onClick={add} loading={busy} disabled={!text.trim()}>Add</Btn>
           </div>
         </div>
       )}
-      {error && <p className="text-[13px] m-0 mb-3 text-trs-neg">{error}</p>}
+      {error && <p className="text-body m-0 mb-3 text-trs-neg">{error}</p>}
       {loading && <Spinner label="Loading log…" />}
       {!loading && entries.length === 0 && <Empty compact>Nothing yet.</Empty>}
       {!loading && entries.length > 0 && (
@@ -95,12 +92,12 @@ export function CompanyLog({ bundle, events, onChanged }: {
                   <RegisterCell first identityWidth={120} title={`${fmtRelative(e.at)} · ${fmtDateTime(e.at)}`} primary={fmtDate(e.at)} />
                   <RegisterCell primary={e.kind} />
                   <RegisterCell align="left" nowrap={false}>
-                    <span className="block text-[13px] whitespace-pre-wrap text-trs-ink" title={e.detail ?? undefined}>{e.text}{e.detail && <span className="text-trs-muted"> · {e.detail}</span>}</span>
+                    <span className="block text-body whitespace-pre-wrap text-trs-ink" title={e.detail ?? undefined}>{e.text}{e.detail && <span className="text-trs-muted"> · {e.detail}</span>}</span>
                   </RegisterCell>
                   <RegisterCell last align="right">
                     {e.href
-                      ? <Link href={e.href} className="text-[14px] no-underline hover:underline text-trs-ink">Open</Link>
-                      : <span className="text-[14px] text-trs-muted">—</span>}
+                      ? <Link href={e.href} className="text-body no-underline hover:underline text-trs-ink">Open</Link>
+                      : <span className="text-body text-trs-muted">—</span>}
                   </RegisterCell>
                 </RegisterRow>
               ))}
