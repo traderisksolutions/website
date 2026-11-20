@@ -57,6 +57,8 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
   onSent?: (threadId: string | null) => void
 }) {
   const [to,       setTo]       = useState(initial.toEmail)
+  // The To field becomes a chip only once committed (Enter, a suggestion, or leaving the field), never while typing.
+  const [toDone,   setToDone]   = useState(Boolean(initial.toEmail.trim()))
   const [cc,       setCc]       = useState(initial.cc ?? '')
   const [subject,  setSubject]  = useState(initial.subject)
   // The editor works in HTML. A reopened draft (plain text) is expanded; an HTML body is kept.
@@ -75,7 +77,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
   const contentRef = useRef<HTMLElement>(null)
 
   // Recipient typeahead — same source as the reply editor (contacts + employees).
-  const toAc = useAutocomplete(to, c => setTo(c.email))
+  const toAc = useAutocomplete(to, c => { setTo(c.email); setToDone(true) })
   // CC is a comma-separated list — the typeahead matches the token currently being typed
   // and appends the picked address.
   const { chips: ccChips, current: ccQuery } = splitCc(cc)
@@ -210,8 +212,8 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
           <FieldRow label="To" tall htmlFor="new-email-to" right={
             !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded-[6px] bg-transparent border-0 cursor-pointer text-[12.5px] hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
           }>
-            {to.trim() ? (
-              <RecipientChip name={toName} email={to} onRemove={() => setTo('')} />
+            {toDone && to.trim() ? (
+              <RecipientChip name={toName} email={to} onRemove={() => { setTo(''); setToDone(false) }} />
             ) : (
               <div ref={toAc.boxRef} className="relative flex-1 min-w-[160px]">
                 <input
@@ -220,10 +222,10 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   onChange={e => { setTo(e.target.value); toAc.reopen() }}
                   onKeyDown={e => {
                     if (toAc.onKeyDown(e)) { e.stopPropagation(); return }
-                    if (e.key === 'Enter') { e.preventDefault(); setTo(to.trim()) }
+                    if (e.key === 'Enter') { e.preventDefault(); setTo(to.trim()); setToDone(Boolean(to.trim())) }
                   }}
                   onFocus={toAc.reopen}
-                  onBlur={() => { toAc.close(); setTo(to.trim()) }}
+                  onBlur={() => { toAc.close(); setTo(to.trim()); setToDone(Boolean(to.trim())) }}
                   placeholder="Add people…"
                   aria-label="Recipient email address"
                   autoComplete="off"
@@ -231,7 +233,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   className="w-full text-[14px] bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
                   style={{ color: INK }}
                 />
-                {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); toAc.close() }} />}
+                {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); setToDone(true); toAc.close() }} />}
               </div>
             )}
           </FieldRow>
