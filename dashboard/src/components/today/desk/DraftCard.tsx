@@ -17,6 +17,7 @@ import { timeAgo } from '@/lib/format'
 import { uploadAttachment } from '@/lib/upload-attachment'
 import { MAX_ATTACHMENTS, draftThread, editedAt, previewHref, suggestFiles, threadHref, type DeskAttachment, type DeskDraft, type ThreadFile } from '@/lib/today/desk'
 import { AttachmentRow } from './AttachmentRow'
+import { CommissionCheck, type CommissionState } from '@/components/email/CommissionCheck'
 import { InlineConfirm } from './InlineConfirm'
 
 let senderOnce: Promise<string | null> | null = null
@@ -66,6 +67,10 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
   const [busy, setBusy] = useState<'send' | 'discard' | 'save' | 'redo' | 'files' | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState('')
+  // Emails to a client run the commission check (Jarod, 20 Nov 2026); Send waits for it.
+  const toClient = d.side === 'client' && files.length > 0
+  const [check, setCheck] = useState<CommissionState | null>(null)
+  const blocked = toClient && !check?.ready
   useEffect(() => { setTo(d.to); setCc(d.cc); setSubject(d.subject); setBody(d.body) }, [d.id, d.to, d.cc, d.subject, d.body])
   useEffect(() => { setFiles(d.attachments) }, [d.id, d.attachments])
   useEffect(() => { setSavedAt(editedAt(d)) }, [d])
@@ -75,7 +80,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
 
   async function send() {
     setBusy('send'); setError(null)
-    try { await sendDraft(d, { to, cc, subject, body, attachments: files }); onSent(to.trim()) } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+    try { await sendDraft(d, { to, cc, subject, body, attachments: toClient && check ? check.attachments : files }); onSent(to.trim()) } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function save() {
     const problem = toProblem(to)
@@ -116,6 +121,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       onRemove={a => saveFiles(files.filter(f => f !== a), `${a.filename} removed`)}
       onError={setError} />
   )
+  const commission = toClient && <CommissionCheck attachments={files} onChange={setCheck} context={{ resource_type: 'ai_draft', resource_id: d.id }} />
   const updated = savedAt && <span className="text-[12px] font-medium text-trs-green" title={new Date(savedAt).toLocaleString('en-SG')}>Updated {timeAgo(savedAt)}</span>
   const threadLink = thread && <Link href={threadHref(thread)} className="inline-flex items-center gap-1 text-[12px] text-trs-green-2 underline-offset-[3px] hover:underline" target="_blank"><ExternalLink size={12} aria-hidden /> Open thread</Link>
   const frame = bare ? '' : 'rounded-[10px] border border-trs-line-2 bg-white'
@@ -128,12 +134,13 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       <label className="grid grid-cols-[64px_1fr] items-center gap-2 text-[12.5px] text-trs-muted">Subject<input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} className={inputCls} /></label>
       <textarea aria-label="Message" value={body} onChange={e => setBody(e.target.value)} rows={Math.min(22, Math.max(8, body.split('\n').length + 1))} className={`${textareaCls} leading-[1.5] resize-y`} />
       {filesBlock}
+      {commission}
       {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <Btn size="xs" level="tertiary" onClick={discard} disabled={!!busy} className="mr-auto">{busy === 'discard' ? 'Discarding…' : 'Discard'}</Btn>
         <Btn size="xs" level="tertiary" onClick={() => { setEditing(false); setError(null) }} disabled={!!busy}>Cancel</Btn>
         <Btn size="xs" onClick={save} loading={busy === 'save'} disabled={!!busy}>Save</Btn>
-        <Btn size="xs" level="primary" onClick={send} loading={busy === 'send'} disabled={!!busy}>Send</Btn>
+        <Btn size="xs" level="primary" onClick={send} loading={busy === 'send'} disabled={!!busy || blocked}>Send</Btn>
       </div>
     </Drop>
   )
@@ -152,6 +159,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
         ? <button type="button" onClick={() => setFull(f => !f)} aria-expanded={full} className="self-start border-0 bg-transparent p-0 text-[12.5px] text-trs-green-2 underline underline-offset-[3px] cursor-pointer">{full ? 'Show less' : 'Show full email'}</button>
         : null}
       {filesBlock}
+      {commission}
       {d.removed.length > 0 && <p className="m-0 text-[12.5px] text-trs-warn">Removed from To: {d.removed.join(', ')}. Each company gets its own email.</p>}
       {busy === 'redo' && <InlineSpinner label="Writing the email again…" />}
       {error && <p className="m-0 text-[13px] text-trs-neg" role="alert">{error}</p>}
@@ -162,7 +170,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
           </InlineConfirm>
         </span>
         <Btn size="xs" onClick={() => setEditing(true)} disabled={!!busy}>Edit</Btn>
-        <Btn size="xs" level="primary" onClick={send} loading={busy === 'send'} disabled={!!busy}>Send</Btn>
+        <Btn size="xs" level="primary" onClick={send} loading={busy === 'send'} disabled={!!busy || blocked}>Send</Btn>
       </div>
     </Drop>
   )

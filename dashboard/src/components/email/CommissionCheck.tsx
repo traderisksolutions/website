@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Btn, InlineSpinner } from '@/components/crm/primitives'
 import { useAuditLog } from '@/hooks/useAuditLog'
 
-export type EmailAttachment = { filename: string; mime_type?: string; storage_url: string }
+export type EmailAttachment = { filename: string; mime_type?: string | null; storage_url: string }
 type Hit = { page?: number; sheet?: string; cell?: string; text: string }
 type Check =
   | { phase: 'checking' }

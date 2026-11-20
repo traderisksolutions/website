@@ -27,7 +27,7 @@ describe('CommissionCheck', () => {
     const states: CommissionState[] = []
     render(<CommissionCheck attachments={[ours]} onChange={s => states.push(s)} />)
     await screen.findByText(/No commission found/)
-    expect(states.at(-1)).toEqual({ ready: true, attachments: [ours] })
+    await waitFor(() => expect(states.at(-1)).toEqual({ ready: true, attachments: [ours] }))
   })
 
   it('a blanked file sends its client copy, and only after the tick, which is logged', async () => {
