@@ -7,6 +7,7 @@ import { useSites, withSite } from '@/components/marketing/site-switch'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { timeAgo } from '@/lib/format'
 import type { WebsiteOverview } from '@/lib/marketing/website'
+import { MEASUREMENT_IDS } from '@/lib/marketing/ga4-types'
 
 export default function WebsitePage() {
   return <Suspense fallback={null}><Website /></Suspense>
@@ -35,9 +36,9 @@ function Website() {
   const rows: Row[] = data ? [
     {
       area: 'Google Analytics',
-      state: 'Not connected',
+      state: MEASUREMENT_IDS[key] ?? 'No tag recorded',
       figures: '—',
-      links: [],
+      links: MEASUREMENT_IDS[key] ? [{ title: 'Google Analytics', href: withSite('/marketing/analytics', key) }] : [],
     },
     {
       area: 'Search Console',

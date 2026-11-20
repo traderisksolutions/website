@@ -39,6 +39,8 @@
     --trs-warn:       #8A5A00;  --trs-warn-bg: #FBF1DC;
     --trs-neg:        #A1242F;  --trs-neg-bg:  #FBE9EA;
     --trs-info:       #1F4E6B;  --trs-info-bg: #E6EFF5;
+    /* Chart series, in this order (validated 20 Nov 2026: lightness, chroma, CVD, contrast all pass). */
+    --trs-chart-1:    #2E7D4F;  --trs-chart-2: #B07A12;
     --btn-h:          36px;     /* default control height */
     --btn-h-sm:       30px;     /* small control height; there is no third size */
 
