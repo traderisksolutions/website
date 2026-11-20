@@ -11,6 +11,7 @@
  * (/api/placements/auto), which opens the placement and drafts the insurer requests. Nothing is sent.
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { logError } from '@/lib/error-log'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { waitUntil } from '@vercel/functions'
@@ -93,7 +94,7 @@ ${text}`
 
     // A group benefits request goes straight to that agent. Its route answers at once and
     // works in its own invocation, so this one is not held open.
-    if (category === 'group_benefits' && (parsed.confidence ?? 0) >= GB_HANDOFF_CONFIDENCE) {
+    if (housekeepingOn() && category === 'group_benefits' && (parsed.confidence ?? 0) >= GB_HANDOFF_CONFIDENCE) {
       waitUntil(
         fetch(`${req.nextUrl.origin}/api/group-benefits/intake`, {
           method: 'POST',

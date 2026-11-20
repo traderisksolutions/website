@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation'
 import { TopBar } from '@/components/nav/top-navbar'
-import { HousekeepingBanner } from '@/components/HousekeepingBanner'
 import { AiCreditsAlert } from '@/components/AiCreditsAlert'
 import { EngagementRail, useShowEngagementRail } from '@/components/nav/engagement-rail'
 import { ChatDockProvider } from '@/providers/chat-dock-provider'
@@ -24,18 +23,13 @@ function MainContent({ children }: { children: React.ReactNode }) {
   const showEngagementRail = useShowEngagementRail()
   const { navCollapsed } = useEngagementNav()
   const marginLeft = !showEngagementRail ? 0 : navCollapsed ? `${RAIL_COLLAPSED}px` : 'var(--engagement-rail-w, 380px)'
-  // A company's own page is a working screen; the report of what the agent did stays on Today and the lists.
-  const onCompanyPage = /^\/companies\/[0-9a-f-]{36}/.test(usePathname())
   return (
     <div
       className="main-content min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] flex flex-col"
       style={{ background: 'hsl(var(--background))', marginLeft }}
     >
-      {/* Under the nav, above whatever page this is: seen once and cleared, rather than filed
-          into a notifications panel nobody opens. Renders nothing when the agent did nothing. */}
-      {/* A live fault first, then the report of what already happened. */}
+      {/* A live AI fault under the nav. The "Since you were away" report was removed (Jarod, 20 Nov 2026). */}
       <AiCreditsAlert />
-      {!onCompanyPage && <HousekeepingBanner />}
       {children}
     </div>
   )
