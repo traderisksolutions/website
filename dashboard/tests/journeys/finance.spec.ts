@@ -27,7 +27,7 @@ test('FIN-002 a company link narrows the register to that company', async ({ pag
 test('FIN-003 Receipts loads the reconciliation', async ({ page }) => {
   await openClean(page, '/finance')
   await expect(page.getByRole('heading', { name: 'Receipts' })).toBeVisible({ timeout: 30_000 })
-  await expect(page.getByText(/debit notes? to collect/)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByRole('table', { name: 'Debit notes waiting to be collected' })).toBeVisible({ timeout: 60_000 })
 })
 
 test('FIN-004 the new debit note page loads its review queue', async ({ page }) => {
