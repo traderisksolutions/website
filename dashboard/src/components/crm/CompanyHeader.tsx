@@ -198,7 +198,7 @@ function NewTodoDialog({ open, onClose, companyId, staff }: { open: boolean; onC
             <Field label="Due date"><input type="date" className={inputCls} value={due} onChange={e => setDue(e.target.value)} /></Field>
           </div>
           <Field label="Internal note"><textarea className={textareaCls} rows={2} value={note} onChange={e => setNote(e.target.value)} /></Field>
-          {error && <p className="m-0 text-[12px]" style={{ color: '#a1242f' }} role="alert">{error}</p>}
+          {error && <p className="m-0 text-[12px] text-trs-neg" role="alert">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Create to-do</Btn>

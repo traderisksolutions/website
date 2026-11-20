@@ -59,7 +59,7 @@ export function DebitNotePreviewPanel({ data }: {
     <div className="relative h-full">
       {url && <iframe title="Debit note preview" src={`${url}#toolbar=0&navpanes=0`} className="w-full h-full rounded-lg bg-white border-0" />}
       {(busy || !url) && !error && <div className="absolute inset-0 flex items-center justify-center text-muted-foreground"><Loader2 size={16} className="animate-spin" /></div>}
-      {error && <p className="absolute bottom-2 left-3 m-0 text-[12px]" style={{ color: '#a1242f' }}>{error}</p>}
+      {error && <p className="absolute bottom-2 left-3 m-0 text-[12px] text-trs-neg">{error}</p>}
     </div>
   )
 }

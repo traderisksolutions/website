@@ -209,7 +209,7 @@ const priorityLabel = (p: string) => PRIORITY_LABEL[p] ?? 'Later'
 function DotRow({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <li className={cn('flex items-start gap-2.5 text-[14px] leading-[1.55] list-none', className)} style={{ color: BODY }}>
-      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[8px]" style={{ background: DOT }} aria-hidden />
+      <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 mt-[8px] bg-trs-subtle" aria-hidden />
       <span className="min-w-0 flex-1">{children}</span>
     </li>
   )
@@ -226,7 +226,7 @@ function PartyChip({ party, className }: { party: string; className?: string }) 
 
 /** A chip that sits on a grey field: white fill, ink text. */
 function WhiteChip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4" style={{ color: BODY }}>{children}</span>
+  return <span className="inline-flex items-center rounded-[6px] bg-white px-2 py-0.5 text-[11.5px] font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
 }
 
 /** A small muted label above a group of rows (13px, sentence case). */
@@ -375,15 +375,15 @@ export default function NexusPage() {
   const selectedCase = cases.find(c => c.id === selectedId) ?? null
 
   return (
-    <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))]" style={{ color: INK }}>
+    <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] text-trs-ink">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 px-6 h-[68px] flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
-        <h1 className="m-0 text-[28px] font-medium tracking-[-0.03em] leading-none" style={{ color: INK }}>Case review</h1>
+        <h1 className="m-0 text-[28px] font-medium tracking-[-0.03em] leading-none text-trs-ink">Case review</h1>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90"
-          style={{ background: INK }}
+          className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer whitespace-nowrap hover:opacity-90 bg-trs-ink"
+          
         >
           New case
         </button>
@@ -396,7 +396,7 @@ export default function NexusPage() {
         <aside className={cn('w-full md:w-[280px] flex-shrink-0 flex-col overflow-hidden bg-white', selectedCase ? 'hidden md:flex' : 'flex')} style={{ borderRight: `1px solid ${HAIR}` }}>
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${HAIR}` }}>
             <label className="relative block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: FAINT }} />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -412,14 +412,14 @@ export default function NexusPage() {
               <div className="px-4 py-3 flex flex-col gap-3" aria-busy="true">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="flex flex-col gap-2 py-2">
-                    <span className="h-3.5 w-40 rounded animate-pulse" style={{ background: FIELD }} />
-                    <span className="h-3 w-24 rounded animate-pulse" style={{ background: FIELD }} />
+                    <span className="h-3.5 w-40 rounded animate-pulse bg-trs-field" />
+                    <span className="h-3 w-24 rounded animate-pulse bg-trs-field" />
                   </div>
                 ))}
               </div>
             ) : visible.length === 0 ? (
               <div className="px-5 py-16 text-center">
-                <p className="m-0 text-[15px]" style={{ color: MUTED }}>{search ? 'No cases match.' : 'No cases yet.'}</p>
+                <p className="m-0 text-[15px] text-trs-muted">{search ? 'No cases match.' : 'No cases yet.'}</p>
                 {!search && (
                   <button type="button" onClick={() => setCreateOpen(true)} className={cn(ghostBtn, 'mt-3')} style={{ color: INK }}>
                     Create the first case
@@ -440,10 +440,10 @@ export default function NexusPage() {
                       style={{ background: on ? FIELD : 'transparent' }}
                     >
                       <div className="flex items-center justify-between gap-2 min-w-0">
-                        <span className="text-[14px] font-medium truncate flex-1" style={{ color: INK }}>{c.name}</span>
+                        <span className="text-[14px] font-medium truncate flex-1 text-trs-ink">{c.name}</span>
                         <Chip>{c.status === 'open' ? 'Open' : c.status === 'closed' ? 'Closed' : c.status}</Chip>
                       </div>
-                      <div className="text-[12.5px] truncate" style={{ color: MUTED }}>
+                      <div className="text-[12.5px] truncate text-trs-muted">
                         {c.thread_count} thread{c.thread_count !== 1 ? 's' : ''}
                         {c.last_activity && <> · {timeAgo(c.last_activity)}</>}
                         {c.description && <> · {c.description}</>}
@@ -465,7 +465,7 @@ export default function NexusPage() {
             onBack={() => setSelectedId(null)}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-[15px] px-6 text-center" style={{ color: MUTED }}>
+          <div className="flex-1 flex items-center justify-center text-[15px] px-6 text-center text-trs-muted">
             {loading ? 'Loading…' : 'Select a case, or create one.'}
           </div>
         )}
@@ -538,8 +538,8 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>New case</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] text-trs-ink">New case</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
             <X size={15} />
           </button>
         </div>
@@ -569,9 +569,9 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
               />
               {companyPickerOpen && (
                 <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white rounded-[12px] max-h-44 overflow-y-auto" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
-                  {companySearching && <div className="px-3.5 py-2.5 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Searching…</div>}
+                  {companySearching && <div className="px-3.5 py-2.5 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
                   {!companySearching && companyResults.length === 0 && (
-                    <div className="px-3.5 py-2.5 text-[13px]" style={{ color: MUTED }}>
+                    <div className="px-3.5 py-2.5 text-[13px] text-trs-muted">
                       {companyQuery.trim() ? `No match. “${companyQuery.trim()}” will be created as a new company.` : 'Type to search companies.'}
                     </div>
                   )}
@@ -580,8 +580,8 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
                       key={c.id}
                       type="button"
                       onClick={() => { setSelectedCompanyId(c.id); setCompanyQuery(c.name); setCompanyPickerOpen(false) }}
-                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]"
-                      style={{ color: INK }}
+                      className="w-full text-left px-3.5 py-2.5 text-[14px] bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-trs-ink"
+                      
                     >
                       {c.name}
                     </button>
@@ -984,7 +984,7 @@ function MissionHeader({
   return (
     <div className="relative flex-shrink-0 bg-white" style={{ borderBottom: `1px solid ${HAIR}` }}>
       {analyzing && analyzeProgress && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-10" style={{ background: HAIR }}>
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden z-10 bg-trs-line">
           <div className="h-full transition-[width] duration-300 ease-linear" style={{ width: `${analyzeProgress.pct}%`, background: INK }} />
         </div>
       )}
@@ -1005,9 +1005,9 @@ function MissionHeader({
               />
             ) : (
               <>
-                <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate" style={{ color: INK }}>{caseData.name}</h2>
+                <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] truncate text-trs-ink">{caseData.name}</h2>
                 <button type="button" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case"
-                  className="flex-shrink-0 w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: FAINT }}>
+                  className="flex-shrink-0 w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-subtle">
                   <Pencil size={13} strokeWidth={2} />
                 </button>
               </>
@@ -1015,15 +1015,15 @@ function MissionHeader({
             <Chip>{caseData.status === 'open' ? 'Open' : caseData.status === 'closed' ? 'Closed' : caseData.status}</Chip>
           </div>
           {caseData.description && (
-            <p className="m-0 mt-1 text-[13px] truncate" style={{ color: MUTED }}>{caseData.description}</p>
+            <p className="m-0 mt-1 text-[13px] truncate text-trs-muted">{caseData.description}</p>
           )}
           <LastHandledBy resourceId={caseData.id} className="block mt-1 text-[12.5px] truncate" />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
           {confirmDelete ? (
             <>
-              <span className="text-[13px] mr-1" style={{ color: MUTED }}>Delete this case?</span>
-              <Btn level="secondary" onClick={onDelete} style={{ color: '#a1242f' }}>Delete</Btn>
+              <span className="text-[13px] mr-1 text-trs-muted">Delete this case?</span>
+              <Btn level="secondary" onClick={onDelete} className="text-trs-neg">Delete</Btn>
               <Btn level="secondary" onClick={onCancelDelete}>Cancel</Btn>
             </>
           ) : (
@@ -1044,7 +1044,7 @@ function MissionHeader({
                   {analyzing ? (analyzeProgress ? `${analyzeProgress.pct}%` : 'Analysing…') : 'Run analysis'}
                 </Btn>
               )}
-              <Btn level="tertiary" onClick={onConfirmDelete} style={{ color: MUTED }}>Delete</Btn>
+              <Btn level="tertiary" onClick={onConfirmDelete} className="text-trs-muted">Delete</Btn>
             </>
           )}
         </div>
@@ -1052,7 +1052,7 @@ function MissionHeader({
 
       {/* Timeout notice — a plain row, no tint. */}
       {analyzeError === '__TIMEOUT__' && (
-        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5]" style={{ color: BODY }}>
+        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5] text-trs-ink-2">
           Analysis timed out. This case has too many threads or attachments for the 60-second function limit. Unlink some threads and re-run, or move to a 300-second limit on Vercel Pro.
         </p>
       )}
@@ -1073,17 +1073,17 @@ function MissionHeader({
                 style={{ color: on ? INK : MUTED }}
               >
                 {label}
-                {count > 0 && <span className="ml-1.5 tabular-nums text-[13px]" style={{ color: FAINT }}>{count}</span>}
+                {count > 0 && <span className="ml-1.5 tabular-nums text-[13px] text-trs-subtle">{count}</span>}
                 <span className={cn('absolute left-0 right-0 bottom-0 h-[2px] rounded-full', on ? 'block' : 'hidden')} style={{ background: INK }} aria-hidden />
               </button>
             )
           })}
         </div>
-        <p className="m-0 pb-2.5 text-[13px] whitespace-nowrap" style={{ color: MUTED }}>{metaLine}</p>
+        <p className="m-0 pb-2.5 text-[13px] whitespace-nowrap text-trs-muted">{metaLine}</p>
       </div>
 
       {analyzeError && analyzeError !== '__TIMEOUT__' && (
-        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5]" style={{ color: BODY }}>{analyzeError}</p>
+        <p className="m-0 px-6 pb-3 text-[13px] leading-[1.5] text-trs-ink-2">{analyzeError}</p>
       )}
     </div>
   )
@@ -1207,7 +1207,7 @@ function LogsView({
   if (!analysis) {
     return (
       <div className="px-6 py-16 flex flex-col items-center gap-3 text-center">
-        <p className="m-0 text-[15px]" style={{ color: MUTED }}>Logs fill after the first analysis.</p>
+        <p className="m-0 text-[15px] text-trs-muted">Logs fill after the first analysis.</p>
         <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
@@ -1247,7 +1247,7 @@ function LogsView({
 function NoThreadsState({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 px-8 text-center">
-      <p className="m-0 text-[15px] max-w-[360px] leading-[1.6]" style={{ color: MUTED }}>
+      <p className="m-0 text-[15px] max-w-[360px] leading-[1.6] text-trs-muted">
         No threads linked. Each linked thread is one conversation with a party: client, insurer, lawyer or regulator.
       </p>
       <Btn level="secondary" onClick={onAdd}>Link threads</Btn>
@@ -1274,15 +1274,15 @@ function PreAnalysisState({
       {analyzing && <AnalyzingBanner progress={analyzeProgress} />}
 
       {!analyzing && (
-        <div className="rounded-[16px] px-6 py-8 flex flex-col items-center gap-4 text-center" style={{ background: FIELD }}>
-          <p className="m-0 text-[15px] max-w-[420px] leading-[1.6]" style={{ color: BODY }}>
+        <div className="rounded-[16px] px-6 py-8 flex flex-col items-center gap-4 text-center bg-trs-field">
+          <p className="m-0 text-[15px] max-w-[420px] leading-[1.6] text-trs-ink-2">
             {threads.length} thread{threads.length !== 1 ? 's' : ''} linked. The analysis produces a brief, stakeholder map, timeline, evidence ledger and draft emails.
           </p>
           <button
             type="button"
             onClick={onRunAnalysis}
-            className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90"
-            style={{ background: INK }}
+            className="h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer hover:opacity-90 bg-trs-ink"
+            
           >
             Run analysis
           </button>
@@ -1312,17 +1312,17 @@ function PreAnalysisState({
 function AnalyzingBanner({ progress }: { progress: AnalysisProgress | null }) {
   const idx = progress?.stageIdx ?? 0
   return (
-    <div className="flex flex-col gap-3 px-5 py-4 rounded-[16px]" style={{ background: FIELD }} role="status" aria-live="polite">
+    <div className="flex flex-col gap-3 px-5 py-4 rounded-[16px] bg-trs-field" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: MUTED }} />
-          <p className="m-0 text-[14px] font-medium" style={{ color: INK }}>Analysis running</p>
-          <span className="text-[13px]" style={{ color: MUTED }}>step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
+          <Loader2 size={14} className="animate-spin flex-shrink-0 text-trs-muted" />
+          <p className="m-0 text-[14px] font-medium text-trs-ink">Analysis running</p>
+          <span className="text-[13px] text-trs-muted">step {Math.min(idx + 1, ANALYSIS_STAGES.length)} of {ANALYSIS_STAGES.length}</span>
         </div>
-        {progress && <span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{progress.pct}%</span>}
+        {progress && <span className="text-[14px] font-medium tabular-nums text-trs-ink">{progress.pct}%</span>}
       </div>
 
-      <div className="h-[3px] rounded-full overflow-hidden" style={{ background: HAIR }}>
+      <div className="h-[3px] rounded-full overflow-hidden bg-trs-line">
         <div className="h-full rounded-full transition-[width] duration-300 ease-linear" style={{ width: `${progress?.pct ?? 0}%`, background: INK }} />
       </div>
 
@@ -1360,9 +1360,9 @@ function SectionLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: INK }}>
+      <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink">
         {title}
-        {count !== undefined && <span className="ml-2 text-[13px] font-normal tabular-nums" style={{ color: FAINT }}>{count}</span>}
+        {count !== undefined && <span className="ml-2 text-[13px] font-normal tabular-nums text-trs-subtle">{count}</span>}
       </h2>
       {children && <div className="flex items-center gap-2 flex-wrap">{children}</div>}
     </div>
@@ -1370,15 +1370,15 @@ function SectionLabel({
 }
 
 function NoDataState({ message }: { message: string }) {
-  return <p className="m-0 py-5 text-[14px]" style={{ color: MUTED }}>{message}</p>
+  return <p className="m-0 py-5 text-[14px] text-trs-muted">{message}</p>
 }
 
 /** One fact: muted term, ink value. Renders inside a <dl>. */
 function KFact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-2 text-[13.5px] min-w-0">
-      <dt className="m-0 flex-shrink-0" style={{ color: MUTED }}>{label}</dt>
-      <dd className="m-0 font-medium truncate" style={{ color: INK }}>{value}</dd>
+      <dt className="m-0 flex-shrink-0 text-trs-muted">{label}</dt>
+      <dd className="m-0 font-medium truncate text-trs-ink">{value}</dd>
     </div>
   )
 }
@@ -1436,11 +1436,11 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
           </dl>
         )}
 
-        {summary && <p className="m-0 text-[14px] leading-[1.7]" style={{ color: BODY }}>{summary}</p>}
+        {summary && <p className="m-0 text-[14px] leading-[1.7] text-trs-ink-2">{summary}</p>}
 
         {blocking.length > 0 && (
           <div>
-            <GroupLabel className="mb-2">Blocking <span className="tabular-nums" style={{ color: FAINT }}>{blocking.length}</span></GroupLabel>
+            <GroupLabel className="mb-2">Blocking <span className="tabular-nums text-trs-subtle">{blocking.length}</span></GroupLabel>
             <ul className="m-0 p-0 flex flex-col gap-1.5">
               {blocking.map((b, i) => <DotRow key={i}>{b}</DotRow>)}
             </ul>
@@ -1453,8 +1453,8 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
             <div className="flex flex-wrap gap-3">
               {pendingRows.map(([party, item]) => (
                 <div key={party} className="flex flex-col gap-1 px-4 py-3 rounded-[12px] flex-1 min-w-[200px]" style={{ background: partyField(party) }}>
-                  <span className="text-[12.5px] font-medium" style={{ color: MUTED }}>{partyLabel(party)}</span>
-                  <p className="m-0 text-[14px] leading-[1.5]" style={{ color: BODY }}>{item as string}</p>
+                  <span className="text-[12.5px] font-medium text-trs-muted">{partyLabel(party)}</span>
+                  <p className="m-0 text-[14px] leading-[1.5] text-trs-ink-2">{item as string}</p>
                 </div>
               ))}
             </div>
@@ -1602,8 +1602,8 @@ function StakeholderMapSection({
               {sortedGroups.map(([g, rs]) => (
                 <Fragment key={g}>
                   <tr>
-                    <td colSpan={4} className="pt-3 pb-1 px-3 text-[12.5px] font-medium" style={{ color: MUTED }}>
-                      {partyLabel(g)} <span className="tabular-nums" style={{ color: FAINT }}>{rs.length}</span>
+                    <td colSpan={4} className="pt-3 pb-1 px-3 text-[12.5px] font-medium text-trs-muted">
+                      {partyLabel(g)} <span className="tabular-nums text-trs-subtle">{rs.length}</span>
                     </td>
                   </tr>
                   {rs.map(r => {
@@ -1617,24 +1617,24 @@ function StakeholderMapSection({
                         <tr className="cursor-pointer hover:bg-[#faf9f6]" style={{ borderTop: `1px solid ${HAIR}` }} onClick={() => toggle(r.key)} aria-expanded={open}>
                           <td className="py-3 pl-3 align-top"><ChevronDown size={14} className={cn('transition-transform mt-0.5', open && 'rotate-180')} style={{ color: FAINT }} /></td>
                           <td className="py-3 px-3 align-top cell-left">
-                            <div className="font-medium" style={{ color: INK }}>{r.s.name}</div>
-                            {r.s.company && <div className="text-[12.5px]" style={{ color: MUTED }}>{r.s.company}</div>}
+                            <div className="font-medium text-trs-ink">{r.s.name}</div>
+                            {r.s.company && <div className="text-[12.5px] text-trs-muted">{r.s.company}</div>}
                           </td>
                           <td className="py-3 px-3 align-top">
-                            {r.st ? <Chip title={r.st.full}>{r.st.label}</Chip> : <span style={{ color: FAINT }}>—</span>}
+                            {r.st ? <Chip title={r.st.full}>{r.st.label}</Chip> : <span className="text-trs-subtle">—</span>}
                           </td>
                           <td className="py-3 px-3 align-top text-[13.5px] whitespace-nowrap cell-left" style={{ color: r.last ? BODY : FAINT }}>
                             {status}
-                            {r.outstanding.length > 0 && <span style={{ color: MUTED }}> · {r.outstanding.length} item{r.outstanding.length !== 1 ? 's' : ''} awaited</span>}
+                            {r.outstanding.length > 0 && <span className="text-trs-muted"> · {r.outstanding.length} item{r.outstanding.length !== 1 ? 's' : ''} awaited</span>}
                           </td>
                         </tr>
                         {open && (
-                          <tr style={{ background: HOVER }}>
+                          <tr className="bg-trs-tint">
                             <td></td>
                             <td colSpan={3} className="px-3 pb-4 pt-1 cell-left">
-                              {r.s.email && <p className="m-0 mb-1 text-[13px]" style={{ color: MUTED }}>{r.s.email}</p>}
-                              {r.s.role_summary && <p className="m-0 mb-2 text-[14px] leading-[1.55]" style={{ color: BODY }}>{r.s.role_summary}</p>}
-                              {r.st && <p className="m-0 mb-2 text-[13px]" style={{ color: MUTED }}>Stance: {r.st.full}</p>}
+                              {r.s.email && <p className="m-0 mb-1 text-[13px] text-trs-muted">{r.s.email}</p>}
+                              {r.s.role_summary && <p className="m-0 mb-2 text-[14px] leading-[1.55] text-trs-ink-2">{r.s.role_summary}</p>}
+                              {r.st && <p className="m-0 mb-2 text-[13px] text-trs-muted">Stance: {r.st.full}</p>}
                               {r.outstanding.length > 0 && (
                                 <div className="mb-2">
                                   <GroupLabel className="mb-1">Waiting on them</GroupLabel>
@@ -1645,7 +1645,7 @@ function StakeholderMapSection({
                               )}
                               {r.thread && (
                                 <a href={`/engagement?lead=${r.thread.thread_id}`} onClick={e => e.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[13px] font-medium underline-offset-4 hover:underline no-underline" style={{ color: INK }}>
+                                  className="inline-flex items-center gap-1 text-[13px] font-medium underline-offset-4 hover:underline no-underline text-trs-ink">
                                   {r.overdue ? 'Chase in Engagement' : 'Open in Engagement'} →
                                 </a>
                               )}
@@ -1735,7 +1735,7 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
   return (
     <div>
       <SectionLabel title="Documents" count={total}>
-        <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{parsed} of {total} read by Nexus</span>
+        <span className="text-[13px] tabular-nums text-trs-muted">{parsed} of {total} read by Nexus</span>
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {sortedGroups.map(g => {
@@ -1745,18 +1745,18 @@ function AttachmentsSection({ threads, attachmentRecords }: { threads: CaseThrea
             <div key={g.label} className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
               <div className="flex items-center gap-2.5 px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
                 <PartyChip party={pt} className="flex-shrink-0" />
-                <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{g.label}</span>
-                <span className="text-[13px] tabular-nums ml-auto" style={{ color: FAINT }}>{g.items.length}</span>
+                <span className="text-[14px] font-medium truncate text-trs-ink">{g.label}</span>
+                <span className="text-[13px] tabular-nums ml-auto text-trs-subtle">{g.items.length}</span>
               </div>
               <div className="flex flex-col">
                 {g.items.map((f, i) => (
                   <div key={f.id ?? i} className="flex items-center gap-3 px-4 py-2.5 text-[14px] hover:bg-[#faf9f6]" style={{ borderTop: i === 0 ? 'none' : `1px solid ${HAIR}` }}>
                     {f.storage_url
-                      ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline no-underline truncate" style={{ color: INK }}>{f.filename}</a>
-                      : <span className="font-medium truncate" style={{ color: INK }}>{f.filename}</span>}
-                    <span className="text-[12.5px] flex-shrink-0 tabular-nums" style={{ color: MUTED }}>{fmtBytes(f.size_bytes)}</span>
+                      ? <a href={f.storage_url} target="_blank" rel="noopener noreferrer" className="font-medium underline-offset-4 hover:underline no-underline truncate text-trs-ink">{f.filename}</a>
+                      : <span className="font-medium truncate text-trs-ink">{f.filename}</span>}
+                    <span className="text-[12.5px] flex-shrink-0 tabular-nums text-trs-muted">{fmtBytes(f.size_bytes)}</span>
                     <span className="ml-auto flex items-center gap-3 flex-shrink-0">
-                      {f.created_at && <span className="text-[12.5px]" style={{ color: MUTED }}>{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
+                      {f.created_at && <span className="text-[12.5px] text-trs-muted">{new Date(f.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>}
                       <Chip>{f.parsed_at ? 'Read' : 'Pending'}</Chip>
                     </span>
                   </div>
@@ -1805,23 +1805,23 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
                     {/* Disposition chip + scenario name + strategic implication */}
                     <td className="py-4 px-4">
                       {disp && <Chip className="mb-1.5">{disp}</Chip>}
-                      <p className="m-0 text-[14px] font-medium leading-snug" style={{ color: INK }}>{cleanName}</p>
+                      <p className="m-0 text-[14px] font-medium leading-snug text-trs-ink">{cleanName}</p>
                       {s.strategic_implication && (
-                        <p className="m-0 mt-1 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{s.strategic_implication}</p>
+                        <p className="m-0 mt-1 text-[13px] leading-[1.5] text-trs-muted">{s.strategic_implication}</p>
                       )}
                     </td>
 
                     {/* Probability % + bar */}
                     <td className="py-4 px-4">
-                      <span className="text-[14px] font-medium tabular-nums" style={{ color: INK }}>{pm.pct}</span>
-                      <div className="h-[3px] rounded-full mt-1.5 overflow-hidden" style={{ background: HAIR }}>
+                      <span className="text-[14px] font-medium tabular-nums text-trs-ink">{pm.pct}</span>
+                      <div className="h-[3px] rounded-full mt-1.5 overflow-hidden bg-trs-line">
                         <div className="h-full rounded-full" style={{ width: pm.barW, background: DOT }} />
                       </div>
                     </td>
 
                     {/* Outcome + assumptions */}
                     <td className="py-4 px-4 cell-left">
-                      <p className="m-0 text-[14px] leading-[1.55]" style={{ color: BODY }}>{s.outcome}</p>
+                      <p className="m-0 text-[14px] leading-[1.55] text-trs-ink-2">{s.outcome}</p>
                       {assumptions.length > 0 && (
                         <div className="mt-2.5">
                           <GroupLabel className="mb-1">Assumes</GroupLabel>
@@ -1834,7 +1834,7 @@ function ScenarioSection({ scenarios }: { scenarios: V1Scenario[] }) {
 
                     {/* TRS action + watch-fors */}
                     <td className="py-4 px-4 cell-left">
-                      <p className="m-0 text-[14px] font-medium leading-[1.5]" style={{ color: INK }}>{s.trs_action}</p>
+                      <p className="m-0 text-[14px] font-medium leading-[1.5] text-trs-ink">{s.trs_action}</p>
                       {triggerConditions.length > 0 && (
                         <div className="mt-2.5">
                           <GroupLabel className="mb-1">Watch for</GroupLabel>
@@ -1893,18 +1893,18 @@ function MissionTimelineSection({
         {shown.map((e, i) => (
           <div key={i} className="flex gap-4">
             <div className="flex flex-col items-center">
-              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-[7px]" style={{ background: DOT }} />
-              {i < shown.length - 1 && <div className="w-px flex-1 mt-1.5 mb-1" style={{ background: HAIR }} />}
+              <span className="w-2 h-2 rounded-full flex-shrink-0 mt-[7px] bg-trs-subtle" />
+              {i < shown.length - 1 && <div className="w-px flex-1 mt-1.5 mb-1 bg-trs-line" />}
             </div>
             <div className={cn('min-w-0 flex-1', i < shown.length - 1 ? 'pb-5' : 'pb-0')}>
-              <div className="flex items-center gap-2 mb-1 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+              <div className="flex items-center gap-2 mb-1 flex-wrap text-[12.5px] text-trs-muted">
                 <span className="font-medium">{partyLabel(e.party)}</span>
                 <span title={e.date_excerpt ? `Source: “${e.date_excerpt}”` : undefined}>{fmtDate(e.date)}</span>
                 {e.date_verified === false && <Chip title="This date was not found verbatim in the source. Check it.">Date unverified</Chip>}
                 {e.citation_ids.map(cid => <CitationChip key={cid} id={cid} citations={citations} />)}
               </div>
-              <p className="m-0 text-[14px] leading-[1.55]" style={{ color: INK }}>{e.event}</p>
-              {e.significance && <p className="m-0 mt-0.5 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{e.significance}</p>}
+              <p className="m-0 text-[14px] leading-[1.55] text-trs-ink">{e.event}</p>
+              {e.significance && <p className="m-0 mt-0.5 text-[13px] leading-[1.5] text-trs-muted">{e.significance}</p>}
             </div>
           </div>
         ))}
@@ -1942,7 +1942,7 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
       </SectionLabel>
       <div className="rounded-[16px] bg-white overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
         {shown.length === 0 ? (
-          <p className="m-0 text-[14px] text-center py-10" style={{ color: MUTED }}>
+          <p className="m-0 text-[14px] text-center py-10 text-trs-muted">
             No {tab === 'email' ? 'email' : tab === 'attachment' ? 'attachment' : 'knowledge'} evidence in this analysis.
           </p>
         ) : (
@@ -1960,12 +1960,12 @@ function EvidencePanelSection({ items, citations }: { items: V1Evidence[]; citat
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                        <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{item.filename_or_label}</span>
+                        <span className="text-[14px] font-medium truncate text-trs-ink">{item.filename_or_label}</span>
                         {item.coverage_relevant && <Chip>Coverage</Chip>}
                         {item.citation_id && <CitationChip id={item.citation_id} citations={citations} />}
                       </div>
                       {!isOpen && item.key_facts?.[0] && (
-                        <p className="m-0 text-[13px] line-clamp-1" style={{ color: MUTED }}>{item.key_facts[0]}</p>
+                        <p className="m-0 text-[13px] line-clamp-1 text-trs-muted">{item.key_facts[0]}</p>
                       )}
                     </div>
                     <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 mt-0.5 transition-transform', isOpen && 'rotate-180')} style={{ color: FAINT }} />
@@ -2111,18 +2111,18 @@ function NextStepsSection({
   return (
     <div>
       <SectionLabel title="Next steps" count={v1Steps?.length ?? 0}>
-        {draftableCount > 0 && <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>{draftableCount} with a draft</span>}
+        {draftableCount > 0 && <span className="text-[13px] tabular-nums text-trs-muted">{draftableCount} with a draft</span>}
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {urgentMissing.length > 0 && (
-          <div className="px-5 py-4 rounded-[16px]" style={{ background: FIELD }}>
-            <GroupLabel className="mb-2">Prerequisites <span className="tabular-nums" style={{ color: FAINT }}>{urgentMissing.length}</span></GroupLabel>
+          <div className="px-5 py-4 rounded-[16px] bg-trs-field">
+            <GroupLabel className="mb-2">Prerequisites <span className="tabular-nums text-trs-subtle">{urgentMissing.length}</span></GroupLabel>
             <ul className="m-0 p-0 flex flex-col gap-1.5">
               {urgentMissing.map((m, i) => (
                 <DotRow key={i}>
-                  <span className="font-medium" style={{ color: INK }}>{m.item}</span>
-                  <span style={{ color: MUTED }}> · from {m.required_from}</span>
-                  {m.impact && <span className="block text-[13px] mt-0.5" style={{ color: MUTED }}>{m.impact}</span>}
+                  <span className="font-medium text-trs-ink">{m.item}</span>
+                  <span className="text-trs-muted"> · from {m.required_from}</span>
+                  {m.impact && <span className="block text-[13px] mt-0.5 text-trs-muted">{m.impact}</span>}
                 </DotRow>
               ))}
             </ul>
@@ -2137,15 +2137,15 @@ function NextStepsSection({
 
           return (
             <div key={i} className="flex gap-4 px-5 py-4 rounded-[16px] bg-white" style={{ border: `1px solid ${HAIR}` }}>
-              <span className="text-[14px] font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px]" style={{ color: FAINT }}>
+              <span className="text-[14px] font-medium tabular-nums flex-shrink-0 w-5 text-right pt-[1px] text-trs-subtle">
                 {step.step}
               </span>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-3 mb-1.5 flex-wrap">
-                  <span className="text-[14px] font-medium leading-[1.45]" style={{ color: INK }}>{step.action}</span>
+                  <span className="text-[14px] font-medium leading-[1.45] text-trs-ink">{step.action}</span>
                   <Chip className="flex-shrink-0">{stepPriorityLabel(step.priority)}</Chip>
                 </div>
-                <div className="flex items-center gap-2 mb-2 flex-wrap text-[12.5px]" style={{ color: MUTED }}>
+                <div className="flex items-center gap-2 mb-2 flex-wrap text-[12.5px] text-trs-muted">
                   {step.owner && <PartyChip party={step.owner} />}
                   {step.deadline && (
                     <span title="Timing is guidance, not a blocker. Any step can be drafted now.">{step.deadline} · guidance</span>
@@ -2156,7 +2156,7 @@ function NextStepsSection({
                     </Chip>
                   )}
                 </div>
-                <p className="m-0 text-[13.5px] leading-[1.55] mb-3" style={{ color: MUTED }}>{step.rationale}</p>
+                <p className="m-0 text-[13.5px] leading-[1.55] mb-3 text-trs-muted">{step.rationale}</p>
 
                 {/* ── Step action bar (every step is draftable; recipient editable) ── */}
                 <div className="flex items-center gap-2 flex-wrap pt-3" style={{ borderTop: `1px solid ${HAIR}` }}>
@@ -2248,7 +2248,7 @@ function DraftOutputsSection({
   return (
     <div>
       <SectionLabel title="Draft outputs" count={steps.length}>
-        {!hasDrafts && hasLegacy && <span className="text-[13px]" style={{ color: MUTED }}>Legacy format</span>}
+        {!hasDrafts && hasLegacy && <span className="text-[13px] text-trs-muted">Legacy format</span>}
       </SectionLabel>
       <div className="flex flex-col gap-3">
         {steps.map(step => (
@@ -2356,7 +2356,7 @@ function RunComparisonBanner({
   }
 
   return (
-    <div className="rounded-[16px]" style={{ background: FIELD }}>
+    <div className="rounded-[16px] bg-trs-field">
       <button
         type="button"
         aria-expanded={open}
@@ -2364,8 +2364,8 @@ function RunComparisonBanner({
         className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0 flex-wrap text-[13.5px]">
-          <span className="font-medium" style={{ color: INK }}>Compared with the run {prevAgo}</span>
-          <span className="truncate" style={{ color: MUTED }}>
+          <span className="font-medium text-trs-ink">Compared with the run {prevAgo}</span>
+          <span className="truncate text-trs-muted">
             {diffs.slice(0, 3).join(' · ')}{diffs.length > 3 ? ` · ${diffs.length - 3} more` : ''}
           </span>
         </div>
@@ -2377,7 +2377,7 @@ function RunComparisonBanner({
           <div>
             <GroupLabel className="mb-2">Changes since the previous run</GroupLabel>
             {diffs.length === 0 ? (
-              <p className="m-0 text-[13px]" style={{ color: MUTED }}>No metadata changes</p>
+              <p className="m-0 text-[13px] text-trs-muted">No metadata changes</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {diffs.map((d, i) => <WhiteChip key={i}>{d}</WhiteChip>)}
@@ -2392,19 +2392,19 @@ function RunComparisonBanner({
               <ul className="m-0 p-0 flex flex-col gap-2">
                 {stepDiff.map((d, i) => (
                   <li key={i} className="list-none rounded-[12px] bg-white px-4 py-2.5" style={{ border: `1px solid ${HAIR}` }}>
-                    <p className="m-0 text-[12.5px] mb-0.5" style={{ color: MUTED }}>{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
-                    <p className="m-0 text-[14px] leading-[1.45]" style={{ color: INK }}>{d.action}</p>
-                    {d.prevAction && <p className="m-0 mt-0.5 text-[13px] line-through leading-[1.4]" style={{ color: FAINT }}>{d.prevAction}</p>}
+                    <p className="m-0 text-[12.5px] mb-0.5 text-trs-muted">{STEP_DIFF_LABEL[d.type]} · step {d.step}</p>
+                    <p className="m-0 text-[14px] leading-[1.45] text-trs-ink">{d.action}</p>
+                    {d.prevAction && <p className="m-0 mt-0.5 text-[13px] line-through leading-[1.4] text-trs-subtle">{d.prevAction}</p>}
                   </li>
                 ))}
               </ul>
             </div>
           )}
           {prevSteps !== null && stepDiff.length === 0 && (
-            <p className="m-0 text-[13px]" style={{ color: MUTED }}>Step actions unchanged</p>
+            <p className="m-0 text-[13px] text-trs-muted">Step actions unchanged</p>
           )}
 
-          <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>
+          <p className="m-0 text-[12.5px] text-trs-muted">
             Previous run: {new Date(previousRun.created_at).toLocaleString('en-SG', { dateStyle: 'medium', timeStyle: 'short' })}
             {previousRun.run_duration_ms ? ` · ${Math.round(previousRun.run_duration_ms / 1000)}s` : ''}
           </p>
@@ -2454,7 +2454,7 @@ function RunHistoryView({
     return (
       <div className="px-6 py-6 flex flex-col gap-10 pb-16 max-w-[1100px]">
         <div className="flex flex-col items-center gap-3 py-12 px-8 text-center">
-          <p className="m-0 text-[15px]" style={{ color: MUTED }}>No analysis runs yet.</p>
+          <p className="m-0 text-[15px] text-trs-muted">No analysis runs yet.</p>
           <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
         </div>
         <div>
@@ -2473,7 +2473,7 @@ function RunHistoryView({
       </div>
       <div>
       <SectionLabel title="Analysis runs" count={runs.length}>
-        {runs.length >= 2 && <span className="text-[13px]" style={{ color: MUTED }}>Newest first</span>}
+        {runs.length >= 2 && <span className="text-[13px] text-trs-muted">Newest first</span>}
         {runs.filter(r => !r.pinned).length > 15 && (
           <Btn
             level="tertiary"
@@ -2509,14 +2509,14 @@ function RunHistoryView({
             <div className="px-5 py-4">
               <div className="flex items-start justify-between gap-3 mb-2.5 flex-wrap">
                 <div className="flex items-center gap-2 min-w-0 flex-wrap">
-                  <span className="text-[14px] font-medium" style={{ color: INK }}>{ts}</span>
-                  {run.triggered_by && <span className="text-[13px] truncate" style={{ color: MUTED }}>by {run.triggered_by}</span>}
+                  <span className="text-[14px] font-medium text-trs-ink">{ts}</span>
+                  {run.triggered_by && <span className="text-[13px] truncate text-trs-muted">by {run.triggered_by}</span>}
                   {isCurrent && <Chip>Current</Chip>}
                   {run.pinned && !isCurrent && <Chip>Pinned</Chip>}
                   {run.run_status === 'failed' && <Chip>Failed</Chip>}
                   {run.run_status === 'partial' && <Chip>Partial</Chip>}
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 text-[13px]" style={{ color: MUTED }}>
+                <div className="flex items-center gap-3 flex-shrink-0 text-[13px] text-trs-muted">
                   {durationS && <span className="tabular-nums">{durationS}</span>}
                   {modelLabel && <span>{modelLabel}</span>}
                   <button
@@ -2534,7 +2534,7 @@ function RunHistoryView({
               </div>
 
               {/* Stats line */}
-              <p className="m-0 mb-2.5 text-[13px] flex flex-wrap gap-x-4 gap-y-1" style={{ color: MUTED }}>
+              <p className="m-0 mb-2.5 text-[13px] flex flex-wrap gap-x-4 gap-y-1 text-trs-muted">
                 {[
                   { v: run.threads_included,    l: 'threads'     },
                   { v: run.messages_included,   l: 'messages'    },
@@ -2544,10 +2544,10 @@ function RunHistoryView({
                   { v: run.missing_items_count, l: 'blockers'    },
                   { v: run.evidence_count,      l: 'evidence'    },
                 ].map(({ v, l }) => (
-                  <span key={l}><span className="font-medium tabular-nums" style={{ color: INK }}>{v}</span> {l}</span>
+                  <span key={l}><span className="font-medium tabular-nums text-trs-ink">{v}</span> {l}</span>
                 ))}
                 {run.gdrive_docs_count > 0 && (
-                  <span><span className="font-medium tabular-nums" style={{ color: INK }}>{run.gdrive_docs_count}</span> Drive docs</span>
+                  <span><span className="font-medium tabular-nums text-trs-ink">{run.gdrive_docs_count}</span> Drive docs</span>
                 )}
                 {(run.gemini_tokens ?? 0) > 0 && (
                   <span className="tabular-nums">{((run.gemini_tokens ?? 0) + (run.claude_tokens ?? 0)).toLocaleString()} tokens</span>
@@ -2570,9 +2570,9 @@ function RunHistoryView({
 
               {/* Error message for failed runs */}
               {run.run_status === 'failed' && run.error_message && (
-                <div className="mb-2.5 px-4 py-3 rounded-[12px]" style={{ background: FIELD }}>
+                <div className="mb-2.5 px-4 py-3 rounded-[12px] bg-trs-field">
                   <GroupLabel className="mb-1">Error</GroupLabel>
-                  <p className="m-0 text-[12.5px] font-mono leading-[1.5] break-all" style={{ color: BODY }}>{run.error_message}</p>
+                  <p className="m-0 text-[12.5px] font-mono leading-[1.5] break-all text-trs-ink-2">{run.error_message}</p>
                 </div>
               )}
 
@@ -2591,14 +2591,14 @@ function RunHistoryView({
                   <ChevronDown size={12} strokeWidth={2} className={cn('transition-transform', isExpanded && 'rotate-180')} />
                 </button>
               ) : (
-                <span className="text-[13px]" style={{ color: MUTED }}>No analysis data. The run failed before completion.</span>
+                <span className="text-[13px] text-trs-muted">No analysis data. The run failed before completion.</span>
               )}
             </div>
 
             {/* Raw JSON viewer */}
             {isExpanded && rawJson[run.id] && (
               <div style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
-                <pre className="m-0 px-5 py-3 text-[12px] leading-relaxed overflow-x-auto max-h-96 font-mono" style={{ color: BODY }}>
+                <pre className="m-0 px-5 py-3 text-[12px] leading-relaxed overflow-x-auto max-h-96 font-mono text-trs-ink-2">
                   {rawJson[run.id]}
                 </pre>
               </div>
@@ -2631,17 +2631,17 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
   }
 
   return (
-    <div className="rounded-[16px]" style={{ background: FIELD }}>
+    <div className="rounded-[16px] bg-trs-field">
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center justify-between gap-3 px-5 py-3.5 text-left bg-transparent border-0 cursor-pointer"
       >
-        <span className="text-[16px] font-medium tracking-[-0.01em]" style={{ color: INK }}>
+        <span className="text-[16px] font-medium tracking-[-0.01em] text-trs-ink">
           Analysis metadata
           {(meta.truncation_flags?.length ?? 0) > 0 && (
-            <span className="ml-2 text-[13px] font-normal tabular-nums" style={{ color: FAINT }}>{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
+            <span className="ml-2 text-[13px] font-normal tabular-nums text-trs-subtle">{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
           )}
         </span>
         <ChevronDown size={14} strokeWidth={2} className={cn('transition-transform', open && 'rotate-180')} style={{ color: FAINT }} />
@@ -2665,8 +2665,8 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
               <ul className="m-0 p-0 flex flex-col gap-1">
                 {meta.attachments_included.map((a, i) => (
                   <li key={i} className="list-none flex items-center gap-3 text-[13.5px]">
-                    <span className="flex-1 min-w-0 truncate" style={{ color: BODY }}>{a.filename}</span>
-                    <span className="flex-shrink-0 text-[12.5px]" style={{ color: MUTED }}>{METHOD_LABEL[a.method] ?? a.method}</span>
+                    <span className="flex-1 min-w-0 truncate text-trs-ink-2">{a.filename}</span>
+                    <span className="flex-shrink-0 text-[12.5px] text-trs-muted">{METHOD_LABEL[a.method] ?? a.method}</span>
                   </li>
                 ))}
               </ul>
@@ -2677,7 +2677,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
             <div>
               <GroupLabel className="mb-1.5">Knowledge base documents</GroupLabel>
               <ul className="m-0 p-0 flex flex-col gap-1">
-                {meta.gdrive_docs.map((d, i) => <li key={i} className="list-none text-[13.5px]" style={{ color: BODY }}>{d}</li>)}
+                {meta.gdrive_docs.map((d, i) => <li key={i} className="list-none text-[13.5px] text-trs-ink-2">{d}</li>)}
               </ul>
             </div>
           )}
@@ -2699,8 +2699,8 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
 function MetaStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="m-0 text-[12.5px]" style={{ color: MUTED }}>{label}</dt>
-      <dd className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{value}</dd>
+      <dt className="m-0 text-[12.5px] text-trs-muted">{label}</dt>
+      <dd className="m-0 text-[14px] font-medium truncate text-trs-ink">{value}</dd>
     </div>
   )
 }
@@ -2735,7 +2735,7 @@ function ThreadsOverviewCard({
     <div>
       <SectionLabel title="Linked threads" count={threads.length}>
         {(extracted > 0 || pending > 0) && (
-          <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+          <span className="text-[13px] tabular-nums text-trs-muted">
             {extracted > 0 && `${extracted} attachment${extracted !== 1 ? 's' : ''} extracted`}
             {extracted > 0 && pending > 0 && ' · '}
             {pending > 0 && `${pending} pending`}
@@ -2760,7 +2760,7 @@ function ThreadsOverviewCard({
                 </span>
               )
             })}
-            {threads.length > 5 && <span className="text-[13px]" style={{ color: MUTED }}>{threads.length - 5} more</span>}
+            {threads.length > 5 && <span className="text-[13px] text-trs-muted">{threads.length - 5} more</span>}
           </div>
           <ChevronDown size={14} strokeWidth={2} className={cn('flex-shrink-0 transition-transform', expanded && 'rotate-180')} style={{ color: FAINT }} />
         </button>
@@ -2786,7 +2786,7 @@ function ThreadsOverviewCard({
             </div>
             {/* Re-run on the ticked subset — uncheck emails, then re-analyse this group */}
             <div className="flex items-center justify-between gap-3 px-4 py-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}`, background: HOVER }}>
-              <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+              <span className="text-[13px] tabular-nums text-trs-muted">
                 {selected.size} of {threads.length} thread{threads.length === 1 ? '' : 's'} selected
                 {!allSelected && <button type="button" onClick={() => setSelected(new Set(threads.map(t => t.thread_id)))} className={cn(ghostBtn, 'ml-2')} style={{ color: INK }}>Select all</button>}
               </span>
@@ -2828,7 +2828,7 @@ function MessagesView({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 px-8 text-center">
-        <p className="m-0 text-[15px] max-w-[320px] leading-[1.6]" style={{ color: MUTED }}>No messages yet. Link email threads on Mission control to see every message here.</p>
+        <p className="m-0 text-[15px] max-w-[320px] leading-[1.6] text-trs-muted">No messages yet. Link email threads on Mission control to see every message here.</p>
         <button type="button" onClick={onGoToMission} className={ghostBtn} style={{ color: INK }}>Go to Mission control</button>
       </div>
     )
@@ -2866,11 +2866,11 @@ function LinkedThreadCard({
       <div className="flex-1 min-w-0 basis-[240px]">
         <div className="flex items-center gap-2 mb-0.5 min-w-0">
           <PartyChip party={ct.party_type} className="flex-shrink-0" />
-          <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{contact ? contactName(contact) : '—'}</span>
-          {contact?.company && <span className="text-[13px] truncate" style={{ color: MUTED }}>· {contact.company}</span>}
+          <span className="text-[14px] font-medium truncate text-trs-ink">{contact ? contactName(contact) : '—'}</span>
+          {contact?.company && <span className="text-[13px] truncate text-trs-muted">· {contact.company}</span>}
         </div>
-        <p className="m-0 text-[13.5px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p>
-        <p className="m-0 mt-1 text-[12.5px]" style={{ color: MUTED }}>{metaLine}</p>
+        <p className="m-0 text-[13.5px] truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p>
+        <p className="m-0 mt-1 text-[12.5px] text-trs-muted">{metaLine}</p>
       </div>
 
       {/* Actions */}
@@ -2890,8 +2890,8 @@ function LinkedThreadCard({
         <a
           href={`/engagement?lead=${ct.thread_id}`}
           onClick={e => e.stopPropagation()}
-          className="text-[13px] font-medium no-underline underline-offset-4 hover:underline whitespace-nowrap"
-          style={{ color: INK }}
+          className="text-[13px] font-medium no-underline underline-offset-4 hover:underline whitespace-nowrap text-trs-ink"
+          
           title="Open this conversation in Engagement"
         >
           Open
@@ -2899,8 +2899,8 @@ function LinkedThreadCard({
         <button
           type="button"
           onClick={() => onUnlink(ct.thread_id)}
-          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]"
-          style={{ color: FAINT }}
+          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-subtle"
+          
           title="Remove from case"
           aria-label="Remove from case"
         >
@@ -2932,29 +2932,29 @@ function AttachmentCoverageCard({
   const other = Math.max(0, ext - byType.pdf - byType.image - byType.docx - byType.xlsx)
 
   return (
-    <div className="rounded-[16px] px-5 py-4" style={{ background: FIELD }}>
+    <div className="rounded-[16px] px-5 py-4 bg-trs-field">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <span className="text-[14px] font-medium" style={{ color: INK }}>Attachment coverage</span>
+        <span className="text-[14px] font-medium text-trs-ink">Attachment coverage</span>
         {pendingThreads.length > 0 && (
-          <span className="text-[13px] tabular-nums" style={{ color: MUTED }}>
+          <span className="text-[13px] tabular-nums text-trs-muted">
             {pendingThreads.length} thread{pendingThreads.length > 1 ? 's' : ''} pending extraction
           </span>
         )}
       </div>
 
       {ext === 0 && pendingThreads.length === 0 ? (
-        <p className="m-0 text-[14px]" style={{ color: MUTED }}>No attachments in the linked threads.</p>
+        <p className="m-0 text-[14px] text-trs-muted">No attachments in the linked threads.</p>
       ) : (
         <div className="flex items-center gap-6 flex-wrap">
           <dl className="m-0 flex items-center gap-6">
             <div>
-              <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em]" style={{ color: INK }}>{ext}</dd>
-              <dt className="m-0 text-[12.5px] mt-1" style={{ color: MUTED }}>Extracted</dt>
+              <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{ext}</dd>
+              <dt className="m-0 text-[12.5px] mt-1 text-trs-muted">Extracted</dt>
             </div>
             {pendingThreads.length > 0 && (
               <div>
-                <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em]" style={{ color: INK }}>{pendingThreads.length}</dd>
-                <dt className="m-0 text-[12.5px] mt-1" style={{ color: MUTED }}>Pending</dt>
+                <dd className="m-0 text-[24px] font-medium tabular-nums leading-none tracking-[-0.02em] text-trs-ink">{pendingThreads.length}</dd>
+                <dt className="m-0 text-[12.5px] mt-1 text-trs-muted">Pending</dt>
               </div>
             )}
           </dl>
@@ -2997,13 +2997,13 @@ function TimelineMessageCard({
           <div className="flex items-center gap-2 justify-between flex-wrap">
             <span className="flex items-center gap-2 min-w-0">
               <PartyChip party={party} />
-              <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{who}</span>
-              {msg.subject && <span className="text-[13px] truncate" style={{ color: MUTED }}>· {msg.subject}</span>}
+              <span className="text-[14px] font-medium truncate text-trs-ink">{who}</span>
+              {msg.subject && <span className="text-[13px] truncate text-trs-muted">· {msg.subject}</span>}
             </span>
-            <span className="text-[12.5px] flex-shrink-0" style={{ color: MUTED }}>{fmtDate(msg.sent_at)}</span>
+            <span className="text-[12.5px] flex-shrink-0 text-trs-muted">{fmtDate(msg.sent_at)}</span>
           </div>
           {!open && (
-            <p className="m-0 mt-1 text-[13.5px] leading-[1.5] line-clamp-2" style={{ color: BODY }}>
+            <p className="m-0 mt-1 text-[13.5px] leading-[1.5] line-clamp-2 text-trs-ink-2">
               {(msg.body_text ?? '').slice(0, 200)}
             </p>
           )}
@@ -3013,7 +3013,7 @@ function TimelineMessageCard({
       </div>
       {open && (
         <div className="px-4 pb-4" style={{ borderTop: `1px solid ${HAIR}` }}>
-          <p className="m-0 mt-3 text-[14px] leading-[1.7] whitespace-pre-wrap" style={{ color: BODY }}>
+          <p className="m-0 mt-3 text-[14px] leading-[1.7] whitespace-pre-wrap text-trs-ink-2">
             {msg.body_text ?? '(empty)'}
           </p>
         </div>
@@ -3036,8 +3036,8 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
       <div className="px-5 pt-4 pb-3">
         <div className="flex items-start gap-3 justify-between mb-2 flex-wrap">
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
-            <span className="text-[14px] font-medium tabular-nums flex-shrink-0" style={{ color: FAINT }}>{step.step}</span>
-            <span className="text-[14px] font-medium truncate" style={{ color: INK }}>{step.action}</span>
+            <span className="text-[14px] font-medium tabular-nums flex-shrink-0 text-trs-subtle">{step.step}</span>
+            <span className="text-[14px] font-medium truncate text-trs-ink">{step.action}</span>
           </div>
           <Chip className="flex-shrink-0">{priorityLabel(step.priority)}</Chip>
         </div>
@@ -3045,14 +3045,14 @@ function PlaybookStepCard({ step, threads }: { step: PlaybookStep; threads: Case
         {/* Party */}
         <div className="flex items-center gap-2 mb-2">
           <PartyChip party={step.party_type} />
-          <span className="text-[13px] truncate" style={{ color: MUTED }}>{step.party_name}</span>
+          <span className="text-[13px] truncate text-trs-muted">{step.party_name}</span>
         </div>
 
         {/* Intent */}
-        <p className="m-0 text-[14px] leading-[1.55] mb-1" style={{ color: BODY }}>{step.intent}</p>
+        <p className="m-0 text-[14px] leading-[1.55] mb-1 text-trs-ink-2">{step.intent}</p>
 
         {/* Reasoning */}
-        {step.reasoning && <p className="m-0 text-[13px] leading-[1.5]" style={{ color: MUTED }}>{step.reasoning}</p>}
+        {step.reasoning && <p className="m-0 text-[13px] leading-[1.5] text-trs-muted">{step.reasoning}</p>}
 
         {/* To/CC preview */}
         {(step.to_emails?.length > 0 || step.cc_emails?.length > 0) && (
@@ -3174,7 +3174,7 @@ function NexusStepCompose({
   if (sent) {
     return (
       <div className="px-5 py-5 flex flex-col items-center gap-2" style={{ borderTop: `1px solid ${HAIR}` }}>
-        <p className="m-0 text-[14px] font-medium" style={{ color: INK }}>Email sent</p>
+        <p className="m-0 text-[14px] font-medium text-trs-ink">Email sent</p>
         <button type="button" onClick={onClose} className={ghostBtn} style={{ color: MUTED }}>Close</button>
       </div>
     )
@@ -3238,7 +3238,7 @@ function NexusStepCompose({
 
       {/* Actions */}
       <div className="px-5 pb-4 pt-3 flex items-center gap-3 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
-        {error && <p className="m-0 flex-1 text-[13px] truncate" style={{ color: BODY }}>{error}</p>}
+        {error && <p className="m-0 flex-1 text-[13px] truncate text-trs-ink-2">{error}</p>}
         <div className="flex gap-2 ml-auto">
           <Btn level="secondary" onClick={onClose}>Cancel</Btn>
           {/* Email compose surface: the send button keeps TRS navy. */}
@@ -3246,8 +3246,8 @@ function NexusStepCompose({
             type="button"
             onClick={handleSend}
             disabled={sending || !toList.trim()}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-            style={{ background: NAVY }}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 bg-trs-green"
+            
           >
             {sending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} strokeWidth={2} />}
             {sending ? 'Sending…' : 'Send'}
@@ -3346,7 +3346,7 @@ function NexusComposeWindow({
   return (
     <div className={cn('fixed bottom-0 right-6 z-50 flex flex-col bg-white rounded-t-[16px] overflow-hidden', panelW, panelH)} style={{ boxShadow: 'var(--shadow-modal)' }}>
       {/* Title bar */}
-      <div className="flex items-center justify-between pl-4 pr-2 py-2 flex-shrink-0 select-none text-white" style={{ background: INK }} onDoubleClick={() => setMinimized(true)}>
+      <div className="flex items-center justify-between pl-4 pr-2 py-2 flex-shrink-0 select-none text-white bg-trs-ink" onDoubleClick={() => setMinimized(true)}>
         <span className="text-[13.5px] font-medium truncate flex-1 mr-3">{subject || 'New message'}</span>
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => setMinimized(true)} className={barBtn} title="Minimise" aria-label="Minimise"><Minus size={12} /></button>
@@ -3361,12 +3361,12 @@ function NexusComposeWindow({
       <div className="flex flex-col flex-shrink-0 bg-white">
         {/* To */}
         <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>To</span>
+          <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">To</span>
           <input
             value={to}
             onChange={e => setTo(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
-            style={{ color: INK }}
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+            
             placeholder="recipient@example.com"
           />
           {!showCc && (
@@ -3377,12 +3377,12 @@ function NexusComposeWindow({
         {/* CC (toggle) */}
         {showCc && (
           <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-            <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>Cc</span>
+            <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">Cc</span>
             <input
               value={cc}
               onChange={e => setCc(e.target.value)}
-              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
-              style={{ color: INK }}
+              className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+              
               placeholder="cc@example.com, …"
             />
           </label>
@@ -3390,12 +3390,12 @@ function NexusComposeWindow({
 
         {/* Subject */}
         <label className="flex items-center gap-2 px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <span className="text-[12.5px] w-14 flex-shrink-0" style={{ color: MUTED }}>Subject</span>
+          <span className="text-[12.5px] w-14 flex-shrink-0 text-trs-muted">Subject</span>
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74]"
-            style={{ color: INK }}
+            className="flex-1 min-w-0 text-[14px] bg-transparent outline-none border-0 placeholder:text-[#6f7a74] text-trs-ink"
+            
             placeholder="Subject"
           />
         </label>
@@ -3424,8 +3424,8 @@ function NexusComposeWindow({
               value={sigId ?? ''}
               onChange={e => setSigId(e.target.value || null)}
               aria-label="Signature"
-              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee]"
-              style={{ color: MUTED }}
+              className="h-[30px] max-w-[200px] rounded-[6px] px-2 text-[13px] bg-transparent border-0 outline-none cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"
+              
             >
               <option value="">No signature</option>
               {signatures.map(s => (
@@ -3537,8 +3537,8 @@ function ThreadLinkerModal({
 
   const groupRow = (label: string, count?: number) => (
     <tr>
-      <td colSpan={5} className="px-4 pt-4 pb-1.5 text-[12.5px] font-medium" style={{ color: MUTED }}>
-        {label}{count !== undefined && <span className="ml-1.5 tabular-nums" style={{ color: FAINT }}>{count}</span>}
+      <td colSpan={5} className="px-4 pt-4 pb-1.5 text-[12.5px] font-medium text-trs-muted">
+        {label}{count !== undefined && <span className="ml-1.5 tabular-nums text-trs-subtle">{count}</span>}
       </td>
     </tr>
   )
@@ -3573,25 +3573,25 @@ function ThreadLinkerModal({
 
         {/* Contact */}
         <td className="py-3 pr-3 min-w-0 max-w-[160px] align-top cell-left">
-          <p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{thread.contact ? contactName(thread.contact) : '—'}</p>
-          {thread.contact?.company && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.contact.company}</p>}
+          <p className="m-0 text-[14px] font-medium truncate text-trs-ink">{thread.contact ? contactName(thread.contact) : '—'}</p>
+          {thread.contact?.company && <p className="m-0 text-[12.5px] truncate text-trs-muted">{thread.contact.company}</p>}
         </td>
 
         {/* Subject */}
         <td className="py-3 pr-3 min-w-0 align-top cell-left">
-          <p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{thread.subject ?? '(no subject)'}</p>
-          {isSuggested && <p className="m-0 text-[12.5px] truncate" style={{ color: MUTED }}>{thread.match_reason}</p>}
+          <p className="m-0 text-[14px] truncate text-trs-ink-2">{thread.subject ?? '(no subject)'}</p>
+          {isSuggested && <p className="m-0 text-[12.5px] truncate text-trs-muted">{thread.match_reason}</p>}
         </td>
 
         {/* Date */}
-        <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top" style={{ color: MUTED }}>
+        <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top text-trs-muted">
           {fmtDate(thread.last_message_at)}
         </td>
 
         {/* Party type */}
         <td className="py-2.5 pr-4 w-[150px] align-top" onClick={e => e.stopPropagation()}>
           {alreadyLinked ? (
-            <span className="text-[13px]" style={{ color: MUTED }}>Already linked</span>
+            <span className="text-[13px] text-trs-muted">Already linked</span>
           ) : (
             <div className="flex flex-col gap-1.5">
               <select
@@ -3631,8 +3631,8 @@ function ThreadLinkerModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Link threads</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+          <h2 className="m-0 text-[20px] font-medium tracking-[-0.02em] text-trs-ink">Link threads</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
             <X size={15} />
           </button>
         </div>
@@ -3640,7 +3640,7 @@ function ThreadLinkerModal({
         {/* Search + bulk action bar */}
         <div className="flex items-center gap-3 px-6 pb-4 flex-shrink-0 flex-wrap" style={{ borderBottom: `1px solid ${HAIR}` }}>
           <label className="relative flex-1 min-w-[220px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: FAINT }} />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -3650,7 +3650,7 @@ function ThreadLinkerModal({
               className={cn(inputCls, 'pl-9 pr-9')}
             />
             {search && (
-              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}>
+              <button type="button" onClick={() => setSearch('')} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
                 <X size={13} />
               </button>
             )}
@@ -3659,8 +3659,8 @@ function ThreadLinkerModal({
             type="button"
             onClick={linkSelected}
             disabled={addCount === 0 || linking}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap"
-            style={{ background: INK }}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[7px] text-white text-[14px] font-medium border-0 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 whitespace-nowrap bg-trs-ink"
+            
           >
             {linking && <Loader2 size={13} className="animate-spin" />}
             {addCount > 0 ? `Add ${addCount} thread${addCount > 1 ? 's' : ''}` : 'Add threads'}
@@ -3675,7 +3675,7 @@ function ThreadLinkerModal({
             <div className="overflow-x-auto">
               <table className="trs-table w-full border-collapse min-w-[640px]">
                 <thead className="sticky top-0 bg-white" style={{ boxShadow: `inset 0 -1px 0 ${HAIR}` }}>
-                  <tr style={{ color: MUTED }}>
+                  <tr className="text-trs-muted">
                     <th className="px-4 py-2.5 text-left w-10"></th>
                     <th className={th}>Contact</th>
                     <th className={th}>Subject</th>
@@ -3690,9 +3690,9 @@ function ThreadLinkerModal({
                       {linkedThreads.map(ct => (
                         <tr key={`linked-${ct.thread_id}`} style={{ borderTop: `1px solid ${HAIR}` }}>
                           <td className="px-4 py-3 w-10 align-top"><Chip>Linked</Chip></td>
-                          <td className="py-3 pr-3 max-w-[160px] align-top cell-left"><p className="m-0 text-[14px] font-medium truncate" style={{ color: INK }}>{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
-                          <td className="py-3 pr-3 min-w-0 align-top cell-left"><p className="m-0 text-[14px] truncate" style={{ color: BODY }}>{ct.thread?.subject ?? '(no subject)'}</p></td>
-                          <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top" style={{ color: MUTED }}>{fmtDate(ct.thread?.last_message_at ?? null)}</td>
+                          <td className="py-3 pr-3 max-w-[160px] align-top cell-left"><p className="m-0 text-[14px] font-medium truncate text-trs-ink">{ct.thread?.contact ? contactName(ct.thread.contact) : (ct.party_label ?? '—')}</p></td>
+                          <td className="py-3 pr-3 min-w-0 align-top cell-left"><p className="m-0 text-[14px] truncate text-trs-ink-2">{ct.thread?.subject ?? '(no subject)'}</p></td>
+                          <td className="py-3 pr-3 text-[13px] whitespace-nowrap align-top text-trs-muted">{fmtDate(ct.thread?.last_message_at ?? null)}</td>
                           <td className="py-3 pr-4 w-[150px] align-top">
                             <div className="flex items-center justify-between gap-2">
                               <PartyChip party={ct.party_type} />
@@ -3727,7 +3727,7 @@ function ThreadLinkerModal({
         {/* Footer */}
         <div className="flex items-center justify-between gap-3 px-6 py-3 flex-shrink-0 flex-wrap" style={{ borderTop: `1px solid ${HAIR}` }}>
           <div className="flex items-center gap-3">
-            <p className="m-0 text-[13px] tabular-nums" style={{ color: MUTED }}>
+            <p className="m-0 text-[13px] tabular-nums text-trs-muted">
               {addCount > 0 ? `${addCount} thread${addCount > 1 ? 's' : ''} selected` : 'Select rows to add'}
             </p>
             {addCount > 0 && (

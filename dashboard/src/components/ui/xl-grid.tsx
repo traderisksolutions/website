@@ -117,7 +117,7 @@ export function XlBand({ children, colSpan }: { children: React.ReactNode; colSp
 }
 
 export function XlEmpty({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
-  return <tr><td colSpan={colSpan} className="py-6 text-center text-[12.5px]" style={{ color: MUTED }}>{children}</td></tr>
+  return <tr><td colSpan={colSpan} className="py-6 text-center text-[12.5px] text-trs-muted">{children}</td></tr>
 }
 
 /** A 20px button that fits inside a 24px grid row. */

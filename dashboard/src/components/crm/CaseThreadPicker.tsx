@@ -42,12 +42,12 @@ function ThreadRow({ id, checked, onToggle, subject, summary, category, meta, wh
         <span className="flex items-start gap-3 min-w-0">
           <input type="checkbox" className="mt-[3px] flex-shrink-0" checked={checked} onChange={onToggle} onClick={e => e.stopPropagation()} aria-label={`Select ${subject ?? 'thread'}`} data-thread={id} />
           <span className="min-w-0">
-            <span className="block text-[15px] font-medium leading-tight truncate" style={{ color: INK }}>{subject ?? '(no subject)'}</span>
-            <span className="block text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{summary ?? meta}</span>
+            <span className="block text-[15px] font-medium leading-tight truncate text-trs-ink">{subject ?? '(no subject)'}</span>
+            <span className="block text-[12.5px] mt-0.5 truncate text-trs-muted">{summary ?? meta}</span>
           </span>
         </span>
       </RegisterCell>
-      <RegisterCell>{category ? <Chip className="capitalize">{category === 'group_benefits' ? 'Group benefits' : category}</Chip> : <span style={{ color: '#8c958f' }}>—</span>}</RegisterCell>
+      <RegisterCell>{category ? <Chip className="capitalize">{category === 'group_benefits' ? 'Group benefits' : category}</Chip> : <span className="text-trs-subtle">—</span>}</RegisterCell>
       <RegisterCell last align="right" primary={fmtRelative(when)} secondary={summary ? meta : undefined} />
     </RegisterRow>
   )
@@ -177,8 +177,8 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
 
             <button
               onClick={() => setPage('everything')}
-              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4"
-              style={{ color: INK }}
+              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-trs-ink"
+              
             >
               <Inbox size={12} /> Search all emails
             </button>
@@ -186,7 +186,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
         ) : (
           <>
             <label className="relative block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
               <input
                 className={cn(inputCls, 'pl-9')}
                 placeholder="Search subject or sender across every thread"
@@ -214,8 +214,8 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
 
             <button
               onClick={() => setPage('company')}
-              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4"
-              style={{ color: INK }}
+              className="self-start inline-flex items-center gap-1.5 text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-trs-ink"
+              
             >
               <ArrowLeft size={12} /> Back to {companyName}&apos;s emails
             </button>
@@ -223,7 +223,7 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
         )}
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[12.5px]" style={{ color: MUTED }}>Case name</span>
+          <span className="text-[12.5px] text-trs-muted">Case name</span>
           <input
             className={inputCls}
             placeholder="Left blank, it is named from what you picked"
@@ -232,10 +232,10 @@ export function CaseThreadPicker({ open, onClose, threads, companyName, busy, er
           />
         </label>
 
-        {error && <p className="text-[13px] m-0" style={{ color: '#a1242f' }}>{error}</p>}
+        {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
 
         <div className="flex items-center justify-between gap-3 pt-1">
-          <p className="text-[13px] m-0" style={{ color: MUTED }}>
+          <p className="text-[13px] m-0 text-trs-muted">
             {selected.size === 0
               ? 'Nothing picked yet.'
               : <>{selected.size} thread{selected.size === 1 ? '' : 's'} picked{chosenFromElsewhere > 0 && `, ${chosenFromElsewhere} from elsewhere`}.</>}

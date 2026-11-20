@@ -155,23 +155,23 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       {!value ? (
         <div ref={boxRef} className="relative">
           <div className="relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#8c958f' }} />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-trs-subtle" />
             <input
               value={query}
               onChange={e => { setQuery(e.target.value); setOpen(true) }}
               onFocus={() => setOpen(true)}
               placeholder="Search company name"
               aria-label="Company"
-              className="w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[14px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74]"
-              style={{ color: INK }}
+              className="w-full h-9 rounded-[7px] border border-[#d5d9d4] bg-white pl-10 pr-4 text-[14px] outline-none focus:border-[#0f1412] placeholder:text-[#6f7a74] text-trs-ink"
+              
             />
           </div>
           {open && (query.trim().length > 0 || suggestions.length > 0) && (
             <div className="absolute z-20 mt-1.5 w-full rounded-[14px] bg-white max-h-64 overflow-y-auto py-1" style={{ border: `1px solid ${RULE}`, boxShadow: '0 8px 24px rgba(15,20,18,0.08)' }}>
-              {searching && <div className="px-4 py-2.5 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Searching…</div>}
+              {searching && <div className="px-4 py-2.5 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Searching…</div>}
               {!searching && suggestions.map(c => (
                 <button key={c.id} type="button" onClick={() => pickCompany(c)} className={row} style={{ color: INK }}>
-                  <Building2 size={14} className="flex-shrink-0" style={{ color: '#8c958f' }} />
+                  <Building2 size={14} className="flex-shrink-0 text-trs-subtle" />
                   <span className="truncate">{c.name}</span>
                 </button>
               ))}
@@ -182,16 +182,16 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
                 </button>
               )}
               {!searching && !query.trim() && suggestions.length === 0 && (
-                <div className="px-4 py-2.5 text-[13px]" style={{ color: MUTED }}>Type to search companies</div>
+                <div className="px-4 py-2.5 text-[13px] text-trs-muted">Type to search companies</div>
               )}
             </div>
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4" style={{ background: '#f1f2ee' }}>
-          <Building2 size={14} className="flex-shrink-0" style={{ color: MUTED }} />
-          <span className="text-[15px] font-medium flex-1 truncate" style={{ color: INK }}>{value.companyName}</span>
-          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4]" style={{ color: MUTED }}><X size={14} /></button>
+        <div className="flex items-center gap-2.5 h-12 rounded-[12px] px-4 bg-trs-field">
+          <Building2 size={14} className="flex-shrink-0 text-trs-muted" />
+          <span className="text-[15px] font-medium flex-1 truncate text-trs-ink">{value.companyName}</span>
+          <button type="button" onClick={clearCompany} aria-label="Change company" title="Change company" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#e6e8e4] text-trs-muted"><X size={14} /></button>
         </div>
       )}
 
@@ -200,29 +200,29 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
         <div>
           {value.contactId && !addingContact ? (
             <div className="flex items-center gap-2.5 h-10 rounded-[10px] px-3.5" style={{ border: '1px solid #d5d9d4' }}>
-              <Mail size={14} className="flex-shrink-0" style={{ color: MUTED }} />
+              <Mail size={14} className="flex-shrink-0 text-trs-muted" />
               <span className="text-[14px] flex-1 truncate">{value.contactName ? `${value.contactName} <${value.contactEmail}>` : value.contactEmail}</span>
-              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><Pencil size={12} /></button>
+              <button type="button" onClick={() => onChange({ ...value, contactId: null, contactEmail: null, contactName: null })} aria-label="Change recipient" title="Change recipient" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><Pencil size={12} /></button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {loadingContacts && <p className="m-0 text-[13px] flex items-center gap-1.5" style={{ color: MUTED }}><Loader2 size={12} className="animate-spin" /> Loading contacts…</p>}
+              {loadingContacts && <p className="m-0 text-[13px] flex items-center gap-1.5 text-trs-muted"><Loader2 size={12} className="animate-spin" /> Loading contacts…</p>}
               {!loadingContacts && contacts.length > 0 && !addingContact && (
                 <div className="flex flex-col rounded-[12px] overflow-hidden" style={{ border: `1px solid ${RULE}` }}>
                   {contacts.map(c => (
                     <button key={c.id} type="button" onClick={() => pickContact(c)} className={cn(row, 'py-2.5')} style={{ color: INK, borderBottom: `1px solid ${RULE}` }}>
-                      <Mail size={13} className="flex-shrink-0" style={{ color: '#8c958f' }} />
+                      <Mail size={13} className="flex-shrink-0 text-trs-subtle" />
                       <span className="truncate">{contactLabel(c)}</span>
                     </button>
                   ))}
                 </div>
               )}
               {!addingContact ? (
-                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: INK }}>
+                <button type="button" onClick={() => setAddingContact(true)} className="self-start inline-flex items-center gap-1.5 h-9 px-3 rounded-[7px] text-[13.5px] font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
                   <Plus size={12} /> Add email
                 </button>
               ) : (
-                <div className="flex flex-col gap-3 rounded-[16px] p-4" style={{ background: '#f1f2ee' }}>
+                <div className="flex flex-col gap-3 rounded-[16px] p-4 bg-trs-field">
                   <Field label="Email (required)"><input value={newEmail} onChange={e => setNewEmail(e.target.value)} className={inp} /></Field>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="Name (optional)"><input value={newName} onChange={e => setNewName(e.target.value)} className={inp} /></Field>
@@ -241,8 +241,8 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
         </div>
       )}
 
-      {notice && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{notice}</p>}
-      {error && <p role="alert" className="m-0 text-[12.5px]" style={{ color: '#2a332f' }}>{error}</p>}
+      {notice && <p className="m-0 text-[12.5px] text-trs-muted">{notice}</p>}
+      {error && <p role="alert" className="m-0 text-[12.5px] text-trs-ink-2">{error}</p>}
     </div>
   )
 }

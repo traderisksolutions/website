@@ -225,10 +225,10 @@ function CompanyWorkspace() {
 
   if (error) {
     return (
-      <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
+      <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
         <div className="mx-auto max-w-[1320px] px-6 sm:px-12 pt-12 pb-20">
-          <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline" style={{ color: MUTED }}>Companies</Link>
-          <p className="m-0 mt-6 text-[16px]" style={{ color: MUTED }}>{error}</p>
+          <Link href="/companies" className="inline-flex items-center gap-1.5 text-[14px] no-underline hover:underline text-trs-muted">Companies</Link>
+          <p className="m-0 mt-6 text-[16px] text-trs-muted">{error}</p>
         </div>
       </div>
     )
@@ -280,7 +280,7 @@ function CompanyWorkspace() {
       <div className="flex flex-col bg-white" style={{ height: 'calc(100vh / var(--ui-zoom) - var(--top-nav-h))', color: INK }}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 sm:px-6 py-2 min-h-12 flex-shrink-0 bg-white" style={{ borderBottom: '1px solid #e6e8e4' }}>
           <Breadcrumbs className="min-w-0" current={{ label: 'Threads', href: `/companies/${id}?tab=threads` }} fallback={{ label: company.name, href: `/companies/${id}` }} />
-          <span className="text-[13px] flex-shrink-0" style={{ color: MUTED }}>
+          <span className="text-[13px] flex-shrink-0 text-trs-muted">
             {threads ? `${threads.length} thread${threads.length === 1 ? '' : 's'}` : ''}
             {ov.needsReply > 0 && ` · ${ov.needsReply} awaiting reply`}
           </span>
@@ -293,8 +293,8 @@ function CompanyWorkspace() {
                 type="button"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="h-[30px] px-2.5 rounded-[6px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap flex-shrink-0 hover:bg-[#f1f2ee]"
-                style={{ color: MUTED }}
+                className="h-[30px] px-2.5 rounded-[6px] border-0 bg-transparent cursor-pointer text-[13px] whitespace-nowrap flex-shrink-0 hover:bg-[#f1f2ee] text-trs-muted"
+                
               >
                 {t.label}
               </button>
@@ -316,7 +316,7 @@ function CompanyWorkspace() {
   }
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="max-w-[1440px] px-4 sm:px-6 lg:px-10 pt-6 pb-20">
         <CompanyHeader
           company={company}

@@ -93,7 +93,7 @@ export function FollowUpsLedger() {
   const allCount = data?.chaseable ?? 0
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10 pt-6 pb-20">
         <PageHeader title="Follow-ups"
           meta={data ? `${data.counts.overdue} overdue · ${data.counts.week} due this week · ${data.counts.waiting} waiting on others` : 'Loading…'}
@@ -108,8 +108,8 @@ export function FollowUpsLedger() {
           <Segmented value={view} onChange={setView} options={VIEW_OPTIONS.map(o => ({ ...o, count: data?.counts[o.value] }))} />
           <Btn size="xs" level={mine ? 'secondary' : 'tertiary'} aria-pressed={mine} onClick={() => setMine(m => !m)}>Mine</Btn>
         </div>
-        {error && <p role="alert" className="m-0 mb-3 text-[13px]" style={{ color: ERROR }}>{/does not exist|42P01/.test(error) ? 'Nexus needs its database update (follow_ups) before it can show follow-ups.' : error}</p>}
-        {note && <p role="status" className="m-0 mb-3 text-[13px]" style={{ color: MUTED }}>{note}</p>}
+        {error && <p role="alert" className="m-0 mb-3 text-[13px] text-trs-neg">{/does not exist|42P01/.test(error) ? 'Nexus needs its database update (follow_ups) before it can show follow-ups.' : error}</p>}
+        {note && <p role="status" className="m-0 mb-3 text-[13px] text-trs-muted">{note}</p>}
 
         {loading && !data ? <Spinner label="Loading follow-ups…" /> : (
           <Register label="Follow-ups" minWidth={1320} maxHeight="calc(100vh - 290px)">
@@ -129,7 +129,7 @@ export function FollowUpsLedger() {
               {data && groups.length === 0 && <RegisterEmpty colSpan={COLS}>{EMPTY[view]}</RegisterEmpty>}
               {groups.map(g => (
                 <Fragment key={g.party}>
-                  <RegisterGroupRow colSpan={COLS}>{g.label} <span className="tabular-nums font-normal" style={{ color: MUTED }}>{g.rows.length}</span></RegisterGroupRow>
+                  <RegisterGroupRow colSpan={COLS}>{g.label} <span className="tabular-nums font-normal text-trs-muted">{g.rows.length}</span></RegisterGroupRow>
                   {g.rows.map(r => <Row key={r.id} r={r} view={view} busy={busy === r.id}
                     onDone={() => void patch(r, { status: 'done' }, 'Marked done.')}
                     onReopen={() => void patch(r, { status: 'open' }, 'Reopened.')}
@@ -158,14 +158,14 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
     <RegisterRow>
       <RegisterCell first title={r.client_name ?? r.company_name ?? undefined}>
         {(r.client_id ?? r.company_id) && (r.client_name ?? r.company_name)
-          ? <Link href={`/companies/${r.client_id ?? r.company_id}?tab=nexus`} className="block truncate font-medium no-underline hover:underline" style={{ color: INK }}>{r.client_name ?? r.company_name}</Link>
-          : <span style={{ color: MUTED }}>—</span>}
+          ? <Link href={`/companies/${r.client_id ?? r.company_id}?tab=nexus`} className="block truncate font-medium no-underline hover:underline text-trs-ink">{r.client_name ?? r.company_name}</Link>
+          : <span className="text-trs-muted">—</span>}
       </RegisterCell>
       <RegisterCell><Chip tone={status.tone}>{status.label}</Chip></RegisterCell>
       <RegisterCell>
         <div className="flex justify-center items-center gap-2 min-w-0 max-w-[220px]">
           <Chip tone={chip.tone}>{chip.label}</Chip>
-          {debtor && <span className="truncate text-[12px]" style={{ color: MUTED }} title={debtor}>{debtor}</span>}
+          {debtor && <span className="truncate text-[12px] text-trs-muted" title={debtor}>{debtor}</span>}
         </div>
       </RegisterCell>
       <RegisterCell align="left" title={r.what} primary={clip(r.what, 60)} />
@@ -177,7 +177,7 @@ function Row({ r, view, busy, onDone, onReopen, onSnooze, onChase }: {
         </span>
       </RegisterCell>
       <RegisterCell>
-        {src.href ? <Link href={src.href} className="underline underline-offset-4" style={{ color: INK }}>{src.label}</Link> : <span style={{ color: MUTED }}>{src.label}</span>}
+        {src.href ? <Link href={src.href} className="underline underline-offset-4 text-trs-ink">{src.label}</Link> : <span className="text-trs-muted">{src.label}</span>}
       </RegisterCell>
       <RegisterCell last>
         <div className="flex items-center gap-1.5 justify-center">

@@ -16,7 +16,7 @@ type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
 const COLS = 13
 const cell = 'h-[30px] rounded-[6px] border border-[#d5d9d4] bg-white px-2 text-[13px] text-[#0f1412] outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]'
-const dash = <span style={{ color: '#8c958f' }}>—</span>
+const dash = <span className="text-trs-subtle">—</span>
 const short = (xs: string[]) => xs.length === 0 ? dash : <span title={xs.join(', ')}>{xs.slice(0, 2).join(', ')}{xs.length > 2 ? ` +${xs.length - 2}` : ''}</span>
 
 /**
@@ -71,10 +71,10 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <label className="relative">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-trs-subtle" />
               <input id="insurers-search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search insurers, products, people" aria-label="Search insurers"
-                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412]" style={{ borderColor: '#d5d9d4' }} />
-              {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>}
+                className="h-9 w-[260px] sm:w-[320px] rounded-[7px] border bg-white pl-11 pr-9 text-[14px] outline-none focus:border-[#0f1412] border-trs-line-2"  />
+              {q && <button type="button" onClick={() => setQ('')} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><X size={13} /></button>}
             </label>
             <select id="insurers-line" value={line} onChange={e => setLine(e.target.value)} aria-label="Product line" className="h-9 rounded-[7px] border bg-white px-3 text-[14px] cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>
               <option value="">All lines</option>
@@ -91,7 +91,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
             onProduct={p => { setRows(rs => [...(rs ?? []), { ...p, stats: { asked: 0, quoted: 0, declined: 0, won: 0, avg_days: null, last_asked: null, declined_industries: [] } }]); setOpen(p.id); setAdding(null) }} />
         )}
 
-        {error && <p className="mt-4 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+        {error && <p className="mt-4 text-[13px] text-trs-neg">{error}</p>}
         <div className="mt-5"><Segmented<'products' | 'declines'> value={view} onChange={setView} options={[{ value: 'products', label: 'Products' }, { value: 'declines', label: 'Declines' }]} /></div>
         {view === 'declines' && <div className="mt-4"><DeclinesRegister q={q} line={line} /></div>}
         <div className="mt-6" hidden={view !== 'products'}>
@@ -117,8 +117,8 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
                 {groups.length === 0 && <RegisterEmpty colSpan={COLS}>{total === 0 ? 'No products yet. Add an insurer, then the products you ask it for.' : 'Nothing matches.'}</RegisterEmpty>}
                 {groups.map(([insurer, rs]) => (
                   <Fragment key={insurer}>
-                    <RegisterGroupRow colSpan={COLS}>{insurer}<span className="ml-2 font-normal" style={{ color: MUTED }}>{rs.length} product{rs.length === 1 ? '' : 's'}</span>
-                      {rs[0]?.insurer_company_id && <Link href={`/insurers/${rs[0].insurer_company_id}`} className="ml-3 font-normal underline underline-offset-4" style={{ color: INK }}>Threads</Link>}</RegisterGroupRow>
+                    <RegisterGroupRow colSpan={COLS}>{insurer}<span className="ml-2 font-normal text-trs-muted">{rs.length} product{rs.length === 1 ? '' : 's'}</span>
+                      {rs[0]?.insurer_company_id && <Link href={`/insurers/${rs[0].insurer_company_id}`} className="ml-3 font-normal underline underline-offset-4 text-trs-ink">Threads</Link>}</RegisterGroupRow>
                     {rs.map(r => {
                       const def = r.contacts.find(c => c.is_default) ?? r.contacts[0] ?? null
                       const isOpen = open === r.id
@@ -131,7 +131,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
                             <RegisterCell align="center">{short(r.declines)}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.min_premium == null ? dash : num(r.min_premium, 0)}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.max_lives ?? dash}</RegisterCell>
-                            <RegisterCell align="center">{def ? <span title={def.email}>{def.name ?? def.email}</span> : <span style={{ color: ERROR }}>No one</span>}</RegisterCell>
+                            <RegisterCell align="center">{def ? <span title={def.email}>{def.name ?? def.email}</span> : <span className="text-trs-neg">No one</span>}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.contacts.length}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.stats.asked || dash}</RegisterCell>
                             <RegisterCell align="center" className="tabular-nums">{r.stats.asked ? r.stats.quoted : dash}</RegisterCell>
@@ -155,7 +155,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
               <section className="mt-10">
                 <h2 className="m-0 mb-3 text-[16px] font-medium">Email threads by insurer</h2>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
-                  {insurers.map(i => <Link key={i.id} href={`/insurers/${i.id}`} className="no-underline hover:underline" style={{ color: INK }}>{i.name}</Link>)}
+                  {insurers.map(i => <Link key={i.id} href={`/insurers/${i.id}`} className="no-underline hover:underline text-trs-ink">{i.name}</Link>)}
                 </div>
               </section>
             )}
@@ -209,7 +209,7 @@ function AddBar({ mode, insurers, defaultLine, onClose, onInsurer, onProduct }: 
       )}
       <Btn level="primary" size="xs" onClick={submit} loading={busy} disabled={!ready}>{mode === 'insurer' ? 'Add insurer' : 'Add product'}</Btn>
       <Btn size="xs" onClick={onClose} disabled={busy}>Cancel</Btn>
-      {error && <span className="text-[13px]" style={{ color: ERROR }}>{error}</span>}
+      {error && <span className="text-[13px] text-trs-neg">{error}</span>}
     </div>
   )
 }

@@ -162,7 +162,7 @@ export default function TriagePage() {
           ]} />
         </PageHeader>
 
-        {notice && <p className="mt-4 mb-0 text-[14px]" role="status" style={{ color: MUTED }}>{notice}</p>}
+        {notice && <p className="mt-4 mb-0 text-[14px] text-trs-muted" role="status" >{notice}</p>}
         {error && <p className="mt-4 mb-0 text-[14px] text-trs-neg" role="alert">{error}</p>}
 
         {tab === 'domains' && (
@@ -286,19 +286,19 @@ function DomainRowView({ row, companies, busy, onDecide }: {
             ? <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 tabular-nums text-trs-ink">{row.threads}</button>
             : <span className="tabular-nums">{row.threads}</span>}
         </RegisterCell>
-        <RegisterCell align="left" title={row.people.join(', ')}>{row.people.slice(0, 2).join(' · ') || <span style={{ color: MUTED }}>Nobody named</span>}</RegisterCell>
-        <RegisterCell align="left" title={row.counterparties.join(', ')}>{row.counterparties.slice(0, 2).join(' · ') || <span style={{ color: MUTED }}>None</span>}</RegisterCell>
+        <RegisterCell align="left" title={row.people.join(', ')}>{row.people.slice(0, 2).join(' · ') || <span className="text-trs-muted">Nobody named</span>}</RegisterCell>
+        <RegisterCell align="left" title={row.counterparties.join(', ')}>{row.counterparties.slice(0, 2).join(' · ') || <span className="text-trs-muted">None</span>}</RegisterCell>
         <RegisterCell align="left" nowrap={false}>
           {s ? (
             <span className="block max-w-[280px]">
-              <span className="flex items-center gap-1.5 flex-wrap"><span className="font-medium">{s.name}</span><Chip>{s.kind}</Chip><span style={{ color: MUTED }}>{Math.round(s.confidence * 100)}%</span></span>
-              {s.evidence && <span className="block text-[12px]" style={{ color: MUTED }}>On the strength of: {s.evidence}</span>}
-              {s.alternative && <span className="block text-[12px]" style={{ color: MUTED }}>Could also be a {s.alternative.kind}: {s.alternative.why}</span>}
+              <span className="flex items-center gap-1.5 flex-wrap"><span className="font-medium">{s.name}</span><Chip>{s.kind}</Chip><span className="text-trs-muted">{Math.round(s.confidence * 100)}%</span></span>
+              {s.evidence && <span className="block text-[12px] text-trs-muted">On the strength of: {s.evidence}</span>}
+              {s.alternative && <span className="block text-[12px] text-trs-muted">Could also be a {s.alternative.kind}: {s.alternative.why}</span>}
             </span>
-          ) : <span style={{ color: MUTED }}>Not read</span>}
+          ) : <span className="text-trs-muted">Not read</span>}
         </RegisterCell>
         <RegisterCell align="left" nowrap={false}>
-          {row.nearest.length === 0 ? <span style={{ color: MUTED }}>None</span> : (
+          {row.nearest.length === 0 ? <span className="text-trs-muted">None</span> : (
             <span className="flex flex-col items-start gap-1">
               {row.nearest.map(n => (
                 <Btn key={n.companyId} size="xs" disabled={busy} onClick={() => onDecide({ decision: 'assign', companyId: n.companyId })} title={`Assign to ${n.name}`}>{n.name} · {Math.round(n.score * 100)}%</Btn>
@@ -409,11 +409,11 @@ function ThreadRowView({ row, companies, onDone, onError }: { row: ThreadRow; co
       <RegisterCell first identityWidth={320} primary={<Link href={`/engagement?lead=${row.id}`} className="text-trs-ink no-underline hover:underline" title={row.subject ?? undefined}>{row.subject ?? 'No subject'}</Link>}
         secondary={[contactName, row.contacts?.company].filter(Boolean).join(' · ') || 'No contact'} />
       <RegisterCell>{fmtRelative(row.last_message_at)}</RegisterCell>
-      <RegisterCell>{row.category ? <Chip className="capitalize">{row.category}</Chip> : <span style={{ color: MUTED }}>None</span>}</RegisterCell>
+      <RegisterCell>{row.category ? <Chip className="capitalize">{row.category}</Chip> : <span className="text-trs-muted">None</span>}</RegisterCell>
       <RegisterCell>
         {suggested
           ? <span className="inline-flex items-center gap-2"><span className="truncate max-w-[180px]" title={s?.rationale ?? undefined}>{suggested}</span><Btn size="xs" disabled={busy} onClick={() => decide({ decision: 'accept' })}>Accept</Btn></span>
-          : <span style={{ color: MUTED }}>None</span>}
+          : <span className="text-trs-muted">None</span>}
       </RegisterCell>
       <RegisterCell last nowrap={false}>
         <span className="flex gap-2 items-center min-w-[380px]">

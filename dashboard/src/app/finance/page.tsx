@@ -85,20 +85,20 @@ export default function FinancePage() {
   const pct = sgd && sgd.billed > 0 ? Math.round((sgd.collected / sgd.billed) * 100) : 0
 
   return (
-    <div className="bg-white" style={{ color: INK }}>
+    <div className="bg-white text-trs-ink">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
         <PageHeader title="Receipts"
           meta={!data ? 'Loading…' : sgd
             ? `${fmtMoney(sgd.collected, 'SGD')} collected of ${fmtMoney(sgd.billed, 'SGD')} billed (${pct}%) · ${fmtMoney(sgd.billed - sgd.collected, 'SGD')} to collect across ${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'}`
             : `${data.counts.open} debit note${data.counts.open === 1 ? '' : 's'} to collect`} />
 
-        {error && <p className="mt-6 mb-0 text-[14px]" style={{ color: '#a1242f' }}>{error}</p>}
+        {error && <p className="mt-6 mb-0 text-[14px] text-trs-neg">{error}</p>}
         {!data && !error && <Spinner label="Loading the reconciliation…" />}
 
         {data && (
           <>
             {!data.ledgerReady && (
-              <p className="mt-6 mb-0 text-[14px]" style={{ color: MUTED }}>
+              <p className="mt-6 mb-0 text-[14px] text-trs-muted">
                 Payments are being written straight onto the debit note because the finance migration has not been run yet.
                 Recording still works. Once <code className="text-[13px]">20260911_debit_note_payments.sql</code> is applied,
                 each payment is kept as its own entry and can be undone.
@@ -115,7 +115,7 @@ export default function FinancePage() {
                 ]}
               />
               <label className="relative flex-1 min-w-[220px] max-w-[360px]">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6f7a74' }} />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-trs-subtle" />
                 <input
                   className={cn(inputCls, 'pl-9')}
                   placeholder="Search client, debit note or insurer"
@@ -181,7 +181,7 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
       <RegisterRow onClick={onToggle} className={cn(open && 'bg-[#faf9f6]')}>
         <RegisterCell first title={client}
           primary={note.company_id
-            ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="no-underline hover:underline" style={{ color: INK }}>{client}</Link>
+            ? <Link href={`/companies/${note.company_id}?tab=payments`} onClick={e => e.stopPropagation()} className="no-underline hover:underline text-trs-ink">{client}</Link>
             : client}
           secondary={<span className="tabular-nums">{note.debit_note_no}</span>}
           className={cn(open && 'bg-[#faf9f6]')}
@@ -202,13 +202,13 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
       </RegisterRow>
 
       {open && (
-        <RegisterRow style={{ background: '#faf9f6' }}>
+        <RegisterRow className="bg-trs-tint">
           <RegisterCell colSpan={COLS} nowrap={false} className="px-6">
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="min-w-[260px]">
-                <p className="text-[12.5px] m-0 mb-2" style={{ color: MUTED }}>Payments recorded</p>
+                <p className="text-[12.5px] m-0 mb-2 text-trs-muted">Payments recorded</p>
                 {note.receipts.length === 0 && (
-                  <p className="text-[14px] m-0" style={{ color: MUTED }}>
+                  <p className="text-[14px] m-0 text-trs-muted">
                     Nothing recorded yet.
                     {Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0) > 0 &&
                       ` ${fmtMoney(Number(note.paid_amount ?? 0) + Number(note.paid_direct_amount ?? 0), note.currency)} is already set on the debit note itself.`}
@@ -216,16 +216,16 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
                 )}
                 <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
                   {note.receipts.map(r => (
-                    <li key={r.id} className="flex items-center gap-3 text-[14px] flex-wrap" style={{ color: INK }}>
+                    <li key={r.id} className="flex items-center gap-3 text-[14px] flex-wrap text-trs-ink">
                       <span className="tabular-nums font-medium">{fmtMoney(Number(r.amount), note.currency)}</span>
-                      <span style={{ color: MUTED }}>{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
-                      {r.reference && <span className="tabular-nums text-[13px]" style={{ color: MUTED }}>{r.reference}</span>}
+                      <span className="text-trs-muted">{fmtDate(r.received_on)} · {CHANNEL_LABEL[r.channel]}</span>
+                      {r.reference && <span className="tabular-nums text-[13px] text-trs-muted">{r.reference}</span>}
                       <button
                         type="button"
                         onClick={() => onUndo(r.id)}
                         disabled={undoing === r.id}
-                        className="text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50"
-                        style={{ color: '#a1242f' }}
+                        className="text-[13px] bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 disabled:opacity-50 text-trs-neg"
+                        
                         title="Undo this payment and put the balance back"
                       >
                         Undo
@@ -236,11 +236,11 @@ function FinanceRow({ note, open, onToggle, onPay, onUndo, undoing }: {
               </div>
               <div className="flex items-center gap-4 text-[13.5px]">
                 {note.drive_folder_url && (
-                  <a href={note.drive_folder_url} target="_blank" rel="noreferrer" className="underline underline-offset-4" style={{ color: INK }}>
+                  <a href={note.drive_folder_url} target="_blank" rel="noreferrer" className="underline underline-offset-4 text-trs-ink">
                     Drive folder
                   </a>
                 )}
-                <Link href={`/debit-notes?open=${note.id}`} className="underline underline-offset-4" style={{ color: INK }}>
+                <Link href={`/debit-notes?open=${note.id}`} className="underline underline-offset-4 text-trs-ink">
                   Open the debit note
                 </Link>
               </div>

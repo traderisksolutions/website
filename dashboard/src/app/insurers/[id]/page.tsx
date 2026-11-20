@@ -56,16 +56,16 @@ export default function InsurerThreadsPage() {
     finally { setBusy(null) }
   }
 
-  if (error && !data) return <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12"><p style={{ color: ERROR }}>{error}</p></div>
+  if (error && !data) return <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12"><p className="text-trs-neg">{error}</p></div>
   if (!data) return <Spinner label="Loading threads" />
   const rows = groups[view]
 
   return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: INK }}>
+    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <Breadcrumbs current={{ label: data.insurer.company_name, href: `/insurers/${data.insurer.id}` }} fallback={{ label: 'Insurers', href: '/insurers' }} />
         <h1 className="m-0 mt-3 text-[30px] leading-[1.15]">{data.insurer.company_name}</h1>
-        <div className="mt-2 text-[14px]" style={{ color: MUTED }}>{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
+        <div className="mt-2 text-[14px] text-trs-muted">{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
         <div className="mt-6 mb-4">
           <Segmented<View> value={view} onChange={setView} options={[
             { value: 'tag', label: 'To tag', count: groups.tag.length },
@@ -73,7 +73,7 @@ export default function InsurerThreadsPage() {
             { value: 'no_client', label: 'No client', count: groups.no_client.length },
           ]} />
         </div>
-        {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
+        {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
         <Register label={`${data.insurer.company_name} threads`} minWidth={1080}>
           <RegisterHead>
             <RegisterTh first width={110}>Last message</RegisterTh>
@@ -92,12 +92,12 @@ export default function InsurerThreadsPage() {
                 <RegisterRow key={r.id}>
                   <RegisterCell first primary={fmt(r.last_message_at)} />
                   <RegisterCell align="left" title={r.subject}>
-                    <Link href={`/engagement?lead=${r.thread_id}`} className="no-underline hover:underline" style={{ color: INK }}>{r.subject}</Link>
+                    <Link href={`/engagement?lead=${r.thread_id}`} className="no-underline hover:underline text-trs-ink">{r.subject}</Link>
                   </RegisterCell>
-                  <RegisterCell align="left">{r.client ? <Link href={`/companies/${r.client.id}?tab=documents`} className="no-underline hover:underline" style={{ color: INK }}>{r.client.name}</Link> : <span style={{ color: MUTED }}>No client</span>}</RegisterCell>
+                  <RegisterCell align="left">{r.client ? <Link href={`/companies/${r.client.id}?tab=documents`} className="no-underline hover:underline text-trs-ink">{r.client.name}</Link> : <span className="text-trs-muted">No client</span>}</RegisterCell>
                   <RegisterCell>
-                    {r.policy_status === 'not_a_policy' ? <span style={{ color: MUTED }}>Not about a policy</span>
-                      : r.options.length === 0 ? <span style={{ color: MUTED }}>{r.client ? 'Client has no policies' : '–'}</span>
+                    {r.policy_status === 'not_a_policy' ? <span className="text-trs-muted">Not about a policy</span>
+                      : r.options.length === 0 ? <span className="text-trs-muted">{r.client ? 'Client has no policies' : '–'}</span>
                       : (
                         <select className={selCls} value={chosen} disabled={busy === r.id} aria-label="Policy" onChange={e => setPick(p => ({ ...p, [r.id]: e.target.value }))}>
                           <option value="">Choose the policy…</option>

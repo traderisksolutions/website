@@ -118,13 +118,13 @@ export function Alert({
                 <span className="sr-only">{t.label}: </span>{title}
               </h2>
             )}
-            {children && <div className="mt-[3px] text-[13px] leading-[1.5]" style={{ color: 'var(--trs-ink-2)' }}>{children}</div>}
+            {children && <div className="mt-[3px] text-[13px] leading-[1.5] text-trs-ink-2">{children}</div>}
           </div>
           {onDismiss && (
             <button
               type="button" onClick={onDismiss} aria-label="Dismiss this alert"
-              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[var(--trs-field)]"
-              style={{ color: 'var(--trs-subtle)' }}
+              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-[6px] text-[15px] leading-none transition-colors hover:bg-[var(--trs-field)] text-trs-subtle"
+              
             >
               ×
             </button>
@@ -156,14 +156,14 @@ export function Alert({
                         <path d="M3 1l4 4-4 4" stroke="var(--trs-subtle)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     ) : (
-                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full" style={{ background: 'var(--trs-subtle)' }} />
+                      <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-trs-subtle" />
                     )}
-                    <span className="text-[13px] leading-[1.5]" style={{ color: 'var(--trs-ink-2)' }}>{r.summary}</span>
+                    <span className="text-[13px] leading-[1.5] text-trs-ink-2">{r.summary}</span>
                   </button>
                   {expandable && isOpen && (
                     <div id={id} className="pb-2 pl-5 pt-[2px]">
                       {r.detail.map((d, n) => (
-                        <div key={n} className="text-[12px] leading-[1.6]" style={{ color: 'var(--trs-muted)' }}>{d}</div>
+                        <div key={n} className="text-[12px] leading-[1.6] text-trs-muted">{d}</div>
                       ))}
                     </div>
                   )}
@@ -177,8 +177,8 @@ export function Alert({
           <div className="mt-[9px]">
             <a
               href={actionHref}
-              className="text-[13px] underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)]"
-              style={{ color: 'var(--trs-ink)' }}
+              className="text-[13px] underline decoration-[var(--trs-line-2)] underline-offset-[3px] hover:decoration-[var(--trs-ink)] text-trs-ink"
+              
             >
               {actionLabel}
             </a>

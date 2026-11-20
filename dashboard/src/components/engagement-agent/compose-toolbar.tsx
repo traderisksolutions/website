@@ -173,9 +173,9 @@ export function FieldRow({ label, htmlFor, children, right, className, tall }: {
 }) {
   return (
     <div className={cn('flex items-center gap-3 px-[var(--re-gutter,40px)] border-b border-[#e6e8e4] text-[14px]', tall ? 'min-h-10 py-1' : 'h-10', className)}>
-      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-[13px]" style={{ color: MUTED }}>{label}</label>
+      <label htmlFor={htmlFor} className="w-14 flex-shrink-0 text-[13px] text-trs-muted">{label}</label>
       <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">{children}</div>
-      {right && <div className="ml-auto flex items-center gap-2 flex-shrink-0 text-[12.5px]" style={{ color: FAINT }}>{right}</div>}
+      {right && <div className="ml-auto flex items-center gap-2 flex-shrink-0 text-[12.5px] text-trs-subtle">{right}</div>}
     </div>
   )
 }
@@ -191,7 +191,7 @@ export function RecipientChip({ name, email, onRemove, onClick, title }: {
   const initial = (name || email || '?').trim().charAt(0).toUpperCase()
   const Tag: 'button' | 'span' = onClick ? 'button' : 'span'
   return (
-    <span className="inline-flex items-center gap-1.5 h-6 rounded-full bg-[#f1f2ee] pl-1 pr-2 text-[13px] max-w-full" style={{ color: INK }} title={title ?? email ?? name}>
+    <span className="inline-flex items-center gap-1.5 h-6 rounded-full bg-[#f1f2ee] pl-1 pr-2 text-[13px] max-w-full text-trs-ink" title={title ?? email ?? name}>
       <Tag
         {...(onClick ? { type: 'button', onClick, className: 'inline-flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer min-w-0 text-inherit' } : { className: 'inline-flex items-center gap-1.5 min-w-0' })}
       >
@@ -200,7 +200,7 @@ export function RecipientChip({ name, email, onRemove, onClick, title }: {
       </Tag>
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={`Remove ${name || email}`} title="Remove"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4]" style={{ color: MUTED }}>
+          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4] text-trs-muted">
           <X size={11} strokeWidth={2} />
         </button>
       )}
@@ -223,12 +223,12 @@ export function QuietSelect({ label, value, onChange, children, className }: {
         title={label}
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-[12.5px] cursor-pointer outline-none rounded-[6px] hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 max-w-[220px] truncate"
-        style={{ color: FAINT }}
+        className="appearance-none bg-transparent border-0 pl-0 pr-4 h-7 text-[12.5px] cursor-pointer outline-none rounded-[6px] hover:bg-[#f1f2ee] focus-visible:ring-2 focus-visible:ring-[#0f1412]/30 max-w-[220px] truncate text-trs-subtle"
+        
       >
         {children}
       </select>
-      <ChevronDown size={11} strokeWidth={2} aria-hidden className="pointer-events-none absolute right-0.5" style={{ color: '#8c958f' }} />
+      <ChevronDown size={11} strokeWidth={2} aria-hidden className="pointer-events-none absolute right-0.5 text-trs-subtle" />
     </span>
   )
 }
@@ -236,12 +236,12 @@ export function QuietSelect({ label, value, onChange, children, className }: {
 /** Attachment chip in the tray under the editor. */
 export function AttachmentChip({ name, onRemove, meta }: { name: string; onRemove?: () => void; meta?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-7 rounded-[6px] bg-[#f1f2ee] pl-2.5 pr-1.5 text-[12.5px] max-w-full" style={{ color: BODY }}>
+    <span className="inline-flex items-center gap-1.5 h-7 rounded-[6px] bg-[#f1f2ee] pl-2.5 pr-1.5 text-[12.5px] max-w-full text-trs-ink-2">
       <span className="truncate max-w-[220px]">{name}</span>
-      {meta && <span style={{ color: FAINT }}>{meta}</span>}
+      {meta && <span className="text-trs-subtle">{meta}</span>}
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={`Remove ${name}`} title="Remove"
-          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4]" style={{ color: MUTED }}>
+          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-transparent border-0 p-0 cursor-pointer hover:bg-[#d5d9d4] text-trs-muted">
           <X size={11} strokeWidth={2} />
         </button>
       )}

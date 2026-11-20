@@ -87,9 +87,9 @@ function Enquiries() {
   return (
     <AppSplitLayout className="bg-white">
       <AppMainPanel className="bg-white">
-        <div className="flex-shrink-0 px-6 sm:px-12 pt-10" style={{ color: INK }}>
+        <div className="flex-shrink-0 px-6 sm:px-12 pt-10 text-trs-ink">
           <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Enquiries</h1>
-          <p className="m-0 mt-2 text-[15px]" style={{ color: MUTED }}>
+          <p className="m-0 mt-2 text-[15px] text-trs-muted">
             {!siteCounts ? 'Loading…' : <>{siteName} · {siteCounts.total} submission{siteCounts.total === 1 ? '' : 's'} · {siteCounts.open} new</>}
           </p>
 
@@ -109,7 +109,7 @@ function Enquiries() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16" style={{ color: INK }}>
+        <div className="flex-1 overflow-auto px-6 sm:px-12 pt-6 pb-16 text-trs-ink">
           {error && <p className="m-0 mb-4 text-[14px]" role="alert">{error}</p>}
           <Register label={`${siteName} enquiries`} minWidth={1080} className={cn(loading && 'opacity-60')}>
             <RegisterHead>
@@ -132,15 +132,15 @@ function Enquiries() {
                 return (
                   <RegisterRow key={r.id} selected={on} onClick={() => go({ id: on ? null : r.id })}>
                     <RegisterCell first selected={on} identityWidth={240}
-                      primary={r.company_name ?? <span style={{ color: MUTED }}>No company yet</span>}
+                      primary={r.company_name ?? <span className="text-trs-muted">No company yet</span>}
                       secondary={r.contact_name ?? '–'} />
-                    <RegisterCell align="left" primary={r.email ?? <span style={{ color: MUTED }}>–</span>} secondary={r.phone ?? undefined} />
+                    <RegisterCell align="left" primary={r.email ?? <span className="text-trs-muted">–</span>} secondary={r.phone ?? undefined} />
                     <RegisterCell primary={r.industry ? answerLabel('industry', r.industry) : '–'} />
                     <RegisterCell align="left" primary={cover.length ? <span className="block max-w-[260px] truncate" title={cover.join(', ')}>{cover.join(', ')}</span> : '–'}
                       secondary={r.flags?.length ? `${r.flags.length} flag${r.flags.length === 1 ? '' : 's'} for the adviser` : undefined} />
                     <RegisterCell primary={bookingLabel(r.booking) ?? '–'} secondary={r.booking?.format ? (r.booking.format === 'whatsapp' ? 'WhatsApp call' : 'Google Meet') : undefined} />
                     <RegisterCell primary={STATUS_LABEL[r.status] ?? r.status} />
-                    <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{fmtWhen(r.submitted_at ?? r.updated_at)}</span></RegisterCell>
+                    <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{fmtWhen(r.submitted_at ?? r.updated_at)}</span></RegisterCell>
                   </RegisterRow>
                 )
               })}

@@ -117,7 +117,7 @@ function CompaniesInner() {
 
         {kind === 'insurer' && <InsurersDirectory embedded />}
 
-        {kind === 'client' && error && <p className="mt-8 text-[14px]" style={{ color: MUTED }}>{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Retry</button></p>}
+        {kind === 'client' && error && <p className="mt-8 text-[14px] text-trs-muted">{error} <button type="button" onClick={() => void reload()} className="underline bg-transparent border-0 cursor-pointer text-trs-ink">Retry</button></p>}
 
         {kind === 'client' && !data && !error && (
           <div className="mt-6 rounded-[16px] overflow-hidden bg-white" style={{ border: '1px solid #e6e8e4' }} aria-busy="true">
@@ -129,14 +129,14 @@ function CompaniesInner() {
         {kind === 'client' && data && (
           <>
             {anyFilter && (
-              <p className="mt-6 mb-3 text-[13.5px] flex items-center gap-3 flex-wrap" style={{ color: MUTED }} aria-live="polite">
+              <p className="mt-6 mb-3 text-[13.5px] flex items-center gap-3 flex-wrap text-trs-muted" aria-live="polite">
                 <span>{stateLine}</span>
-                <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Clear filters</button>
+                <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear filters</button>
               </p>
             )}
             {!anyFilter && <div className="mt-6" />}
             {visible.length === 0 ? (
-              <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>No companies match. <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="underline bg-transparent border-0 cursor-pointer" style={{ color: INK }}>Clear filters</button></p>
+              <p className="py-16 text-center text-[16px] m-0 text-trs-muted">No companies match. <button type="button" onClick={() => { setF(EMPTY); setQ('') }} className="underline bg-transparent border-0 cursor-pointer text-trs-ink">Clear filters</button></p>
             ) : (
               <CompanyTable rows={visible} today={today} staff={staff} workloads={workloads} selectedId={null} onSelect={select} sort={sort} onSort={onSort} highlight={q} />
             )}
@@ -173,25 +173,25 @@ function FilterPopover({ f, onChange, staff, me, onClose, onClear }: {
   return (
     <div ref={ref} role="dialog" aria-label="Filter companies" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[360px] rounded-[16px] bg-white overflow-hidden" style={{ border: '1px solid #e6e8e4', boxShadow: '0 16px 48px rgba(15,20,18,0.14)' }}>
       <div className="flex items-center justify-between px-5 pt-4 pb-3">
-        <span className="text-[15px] font-medium" style={{ color: INK }}>Filters{active ? <span className="ml-1.5 text-[13px] font-normal" style={{ color: '#6f7a74' }}>{active} on</span> : null}</span>
-        <button type="button" onClick={onClear} disabled={!active} className="text-[13px] bg-transparent border-0 cursor-pointer disabled:cursor-default disabled:opacity-40 hover:underline underline-offset-4" style={{ color: INK }}>Reset</button>
+        <span className="text-[15px] font-medium text-trs-ink">Filters{active ? <span className="ml-1.5 text-[13px] font-normal text-trs-subtle">{active} on</span> : null}</span>
+        <button type="button" onClick={onClear} disabled={!active} className="text-[13px] bg-transparent border-0 cursor-pointer disabled:cursor-default disabled:opacity-40 hover:underline underline-offset-4 text-trs-ink">Reset</button>
       </div>
       <ul className="m-0 p-0 list-none">
         {rowsDef.map(row => (
           <li key={row.label} className="flex items-center justify-between gap-4 px-5 h-12" style={{ borderTop: '1px solid #f1f2ee' }}>
-            <span className="text-[14px]" style={{ color: INK }}>{row.label}</span>
+            <span className="text-[14px] text-trs-ink">{row.label}</span>
             <span className="relative">
               <select value={row.value} onChange={e => row.onChange(e.target.value)} aria-label={row.label} className={cn(sel, row.value ? 'font-medium' : '')} style={{ direction: 'rtl', color: row.value ? INK : MUTED }}>
                 {row.options.map(o => <option key={o.value} value={o.value} style={{ direction: 'ltr' }}>{o.label}</option>)}
               </select>
-              <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: MUTED }}><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-trs-muted"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </span>
           </li>
         ))}
       </ul>
       <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: '1px solid #f1f2ee' }}>
-        <span className="text-[12px]" style={{ color: '#6f7a74' }}>Renewal periods count from today.</span>
-        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer" style={{ background: '#132c1c' }}>Done</button>
+        <span className="text-[12px] text-trs-subtle">Renewal periods count from today.</span>
+        <button type="button" onClick={onClose} className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer bg-trs-green">Done</button>
       </div>
     </div>
   )

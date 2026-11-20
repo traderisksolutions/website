@@ -39,11 +39,11 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
   }
 
   const copyIcon = (key: string) => copied === key
-    ? <Check size={12} className="flex-shrink-0" style={{ color: INK }} />
-    : <Copy size={12} className="flex-shrink-0" style={{ color: '#8c958f' }} />
+    ? <Check size={12} className="flex-shrink-0 text-trs-ink" />
+    : <Copy size={12} className="flex-shrink-0 text-trs-subtle" />
 
   return (
-    <div className="flex flex-col h-full" style={{ color: INK }}>
+    <div className="flex flex-col h-full text-trs-ink">
 
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2 flex-shrink-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
@@ -52,19 +52,19 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             <ChannelBadge source={lead.source} />
             <StatusBadge status={lead.status as AppStatus} />
           </div>
-          <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-tight" style={{ color: INK }}>
+          <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
             {displayName(lead)}
           </p>
           {lead.company && (
-            <p className="text-[13px] mt-0.5 mb-0" style={{ color: MUTED }}>{lead.company}</p>
+            <p className="text-[13px] mt-0.5 mb-0 text-trs-muted">{lead.company}</p>
           )}
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close detail panel"
-          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer"
-          style={{ color: MUTED }}
+          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-[8px] hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer text-trs-muted"
+          
         >
           <X size={14} />
         </button>
@@ -94,7 +94,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
               aria-label={`Copy email address: ${lead.email}`}
               className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left"
             >
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block" style={{ color: INK }}>
+              <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block text-trs-ink">
                 {lead.email}
               </span>
               {copyIcon('email')}
@@ -109,7 +109,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
               aria-label={`Copy phone: ${lead.phone}`}
               className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer"
             >
-              <span style={{ color: INK }}>{lead.phone}</span>
+              <span className="text-trs-ink">{lead.phone}</span>
               {copyIcon('phone')}
             </button>
           </DetailField>
@@ -157,7 +157,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           aria-label="Internal notes for this lead"
           className={textareaCls}
         />
-        <p className="m-0 mt-1.5 text-[12px]" style={{ color: '#6f7a74' }}>Team only. Saved when the field loses focus.</p>
+        <p className="m-0 mt-1.5 text-[12px] text-trs-subtle">Team only. Saved when the field loses focus.</p>
       </DetailSection>
     </div>
   )

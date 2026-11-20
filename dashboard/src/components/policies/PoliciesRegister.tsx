@@ -156,7 +156,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                               {doc ? <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>{FILE_WORD[doc.doc_type] ?? 'Document'} ↗</a>
                                 : dn ? <a href={`/api/debit-notes/${dn.id}/pdf`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>Debit note ↗</a>
                                 : f?.folder ? <a href={f.folder} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: MUTED }}>Folder ↗</a>
-                                : <span style={{ color: MUTED }}>{files === null ? '…' : '—'}</span>}
+                                : <span className="text-trs-muted">{files === null ? '…' : '—'}</span>}
                             </RegisterCell>
                           )
                         })()}
@@ -186,10 +186,10 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                             {canClose && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'closed') }}>Close</Btn>}
                           </span>
                         </div>
-                        {errors[p.id] && <p className="text-[12.5px] m-0" style={{ color: ERROR }}>{errors[p.id]}</p>}
+                        {errors[p.id] && <p className="text-[12.5px] m-0 text-trs-neg">{errors[p.id]}</p>}
                         {sec === 'employees' && <MembersPanel policies={[p]} bundle={bundle} onChanged={onChanged} onOpenDrafts={onOpenDrafts ?? (() => {})} />}
                         {sec === 'dns' && <PolicyDebitNotes notes={dns} />}
-                        {sec === 'quotes' && quotes.length === 0 && <span className="text-[12.5px]" style={{ color: MUTED }}>No quotes on file for this policy.</span>}
+                        {sec === 'quotes' && quotes.length === 0 && <span className="text-[12.5px] text-trs-muted">No quotes on file for this policy.</span>}
                         {sec === 'quotes' && quotes.length > 0 && (
                           <Register label={`${line} quotes`} minWidth={960} dense>
                             <RegisterHead>
@@ -209,7 +209,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                                 return (
                                   <RegisterRow key={q.id}>
                                     <RegisterCell first primary={q.insurer_name} title={q.insurer_name} />
-                                    <RegisterCell align="left" title={q.plan_label ?? undefined}><span className="text-[13px]" style={{ color: MUTED }}>{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
+                                    <RegisterCell align="left" title={q.plan_label ?? undefined}><span className="text-[13px] text-trs-muted">{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
                                     <RegisterCell align="right" primary={rounds.get(q.round_id)?.round_no ?? '—'} />
                                     <RegisterCell align="right" primary={`${q.premium_amount != null ? fmtAmount(q.premium_amount, q.currency ?? 'SGD') : (q.premium_text ?? '—')}${q.needs_review ? ' · check' : ''}`} />
                                     <RegisterCell primary={q.limit_text ?? '—'} />
@@ -217,12 +217,12 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                                     <RegisterCell primary={q.source === 'rate_table' ? 'Rate table' : 'Insurer'} />
                                     <RegisterCell>
                                       {q.thread_id
-                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-[13px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
-                                        : <span className="text-[13px]" style={{ color: MUTED }}>—</span>}
+                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-[13px] no-underline hover:underline text-trs-ink">Thread</Link>
+                                        : <span className="text-[13px] text-trs-muted">—</span>}
                                     </RegisterCell>
                                     <RegisterCell last align="right">
                                       {chosen
-                                        ? <span className="text-[13px]" style={{ color: INK }}>Chosen</span>
+                                        ? <span className="text-[13px] text-trs-ink">Chosen</span>
                                         : <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy !== null || q.status === 'not_chosen'} loading={busy === q.id} onClick={e => { e.stopPropagation(); void choose(p, q.id) }}>Choose</Btn>}
                                     </RegisterCell>
                                   </RegisterRow>
@@ -248,7 +248,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
 
 /** The debit notes billed under one policy, newest first. */
 function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
-  if (notes.length === 0) return <span className="text-[12.5px]" style={{ color: MUTED }}>No debit notes on this policy yet. Raise one from Debit Notes.</span>
+  if (notes.length === 0) return <span className="text-[12.5px] text-trs-muted">No debit notes on this policy yet. Raise one from Debit Notes.</span>
   const sorted = [...notes].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
   return (
     <XlGrid label="Debit notes" minWidth={860}>
@@ -270,7 +270,7 @@ function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
             <XlCell>{d.outstanding > 0 ? fmtAmount(d.outstanding, d.currency) : ''}</XlCell>
             <XlCell>{d.payment_due_date ? fmtDate(d.payment_due_date) : ''}</XlCell>
             <XlCell fill={d.derived === 'paid' ? 'good' : d.derived === 'overdue' ? 'bad' : d.derived === 'partial' ? 'warn' : null}>{PAY_WORD[d.derived]}</XlCell>
-            <XlCell>{d.drive_folder_url ? <a href={d.drive_folder_url} target="_blank" rel="noreferrer" className="no-underline hover:underline" style={{ color: INK }}>Filed ↗</a> : ''}</XlCell>
+            <XlCell>{d.drive_folder_url ? <a href={d.drive_folder_url} target="_blank" rel="noreferrer" className="no-underline hover:underline text-trs-ink">Filed ↗</a> : ''}</XlCell>
           </XlRow>
         ))}
       </tbody>
@@ -285,7 +285,7 @@ function PolicyRows({ row, detail, expanded, onToggle, href }: { row: React.Reac
       <RegisterRow onClick={onToggle} selected={expanded}>{row}</RegisterRow>
       {expanded && (
         <tr style={{ borderBottom: '1px solid #e6e8e4', background: '#fafafa' }}>
-          <td colSpan={COLS} className="px-[10px] py-2">{detail}<a href={href} className="mt-2 inline-block text-[13px] underline underline-offset-[3px]" style={{ color: '#0f1412' }}>Open policy</a></td>
+          <td colSpan={COLS} className="px-[10px] py-2">{detail}<a href={href} className="mt-2 inline-block text-[13px] underline underline-offset-[3px] text-trs-ink">Open policy</a></td>
         </tr>
       )}
     </>
@@ -330,7 +330,7 @@ function MarkLiveDialog({ policy, onClose, onDone }: { policy: PolicyView | null
             <Field label="Start"><input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
             <Field label="End"><input className={inputCls} type="date" value={end} onChange={e => setEnd(e.target.value)} /></Field>
           </div>
-          {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+          {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
             <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Mark live</Btn>

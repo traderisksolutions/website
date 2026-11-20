@@ -71,21 +71,21 @@ export default function RfqRegisterPage() {
   ]
 
   return (
-    <div className="bg-white" style={{ color: INK }}>
+    <div className="bg-white text-trs-ink">
       <div className="mx-auto max-w-[1500px] px-4 sm:px-6 lg:px-10 py-6 pb-20 min-w-0">
         <PageHeader className="mb-4" title="Requests for quotes"
           meta={counts ? `${counts.open} open${counts.done_this_month > 0 ? ` · ${counts.done_this_month} done this month` : ''}` : undefined}
           actions={
             <label className="relative flex items-center">
-              <Search size={14} className="absolute left-2.5" style={{ color: MUTED }} aria-hidden />
+              <Search size={14} className="absolute left-2.5 text-trs-muted" aria-hidden />
               <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search ref, company, line" aria-label="Search requests"
                 className="h-9 w-[240px] sm:w-[280px] rounded-[8px] border border-trs-line-2 bg-white pl-8 pr-8 text-[13.5px] outline-none focus:border-trs-ink" />
-              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-trs-canvas" style={{ color: MUTED }}><X size={13} /></button>}
+              {q && <button type="button" aria-label="Clear search" onClick={() => setQ('')} className="absolute right-1 w-[30px] h-[30px] inline-flex items-center justify-center rounded-[7px] bg-transparent border-0 cursor-pointer hover:bg-trs-canvas text-trs-muted"><X size={13} /></button>}
             </label>
           }>
           <Segmented<Filter> value={filter} onChange={setFilter} label="Requests" options={chips.map(c => ({ value: c.key, label: c.label, count: c.n }))} />
         </PageHeader>
-        {error && <p className="m-0 mb-3 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+        {error && <p className="m-0 mb-3 text-[13px] text-trs-neg">{error}</p>}
 
         {filter === 'unmatched'
           ? <UnmatchedReplies replies={unmatched} onChanged={load} />
@@ -124,7 +124,7 @@ export default function RfqRegisterPage() {
                       <XlCell title={r.options.join(' · ')}>{r.options.length ? clip(r.options.join(' · '), 22) : ''}</XlCell>
                       <XlCell>{r.round || ''}</XlCell>
                       <XlCell>{r.asked}</XlCell>
-                      <XlCell>{r.quoted}{r.declined ? <span style={{ color: MUTED }}> ·{r.declined}✕</span> : null}</XlCell>
+                      <XlCell>{r.quoted}{r.declined ? <span className="text-trs-muted"> ·{r.declined}✕</span> : null}</XlCell>
                       <XlCell title={r.lowest ? `${r.lowest.insurer_name}${r.lowest.tier_label ? ` · ${r.lowest.tier_label}` : ''}` : undefined}>
                         {r.lowest?.premium_amount != null ? sgd(r.lowest.premium_amount) : ''}
                       </XlCell>
@@ -187,15 +187,15 @@ function UnmatchedReplies({ replies, onChanged }: { replies: Unmatched[] | null;
             <XlRow key={r.id}>
               <XlNum n={i + 1} />
               <XlCell>{fmtDate(r.created_at)}</XlCell>
-              <XlCell title={r.forwarded_by ? `Forwarded by ${r.forwarded_by}` : undefined}>{r.from_address ?? ''}{r.forwarded_by && <span style={{ color: MUTED }}> · fwd</span>}</XlCell>
+              <XlCell title={r.forwarded_by ? `Forwarded by ${r.forwarded_by}` : undefined}>{r.from_address ?? ''}{r.forwarded_by && <span className="text-trs-muted"> · fwd</span>}</XlCell>
               <XlCell align="left" title={r.subject ?? undefined} width={280}>
                 {r.thread_id
-                  ? <Link href={threadHref(r.thread_id) ?? '#'} className="block truncate no-underline hover:underline" style={{ color: INK }}>{r.subject || '(no subject)'}</Link>
+                  ? <Link href={threadHref(r.thread_id) ?? '#'} className="block truncate no-underline hover:underline text-trs-ink">{r.subject || '(no subject)'}</Link>
                   : <span className="block truncate">{r.subject || '(no subject)'}</span>}
               </XlCell>
               <XlCell muted title={r.reason} width={200}><span className="block truncate">{r.reason}</span></XlCell>
               <XlCell align="left" nowrap={false}>
-                {r.candidates.length === 0 && <span style={{ color: MUTED }}>No open request from this sender. Open the thread, or ignore.</span>}
+                {r.candidates.length === 0 && <span className="text-trs-muted">No open request from this sender. Open the thread, or ignore.</span>}
                 <span className="flex flex-col gap-0.5 py-1">
                   {r.candidates.map(c => (
                     <label key={c.dispatch_id} className="inline-flex items-center gap-1.5 cursor-pointer">
@@ -204,7 +204,7 @@ function UnmatchedReplies({ replies, onChanged }: { replies: Unmatched[] | null;
                     </label>
                   ))}
                 </span>
-                {errors[r.id] && <span className="block text-[12px]" style={{ color: ERROR }}>{errors[r.id]}</span>}
+                {errors[r.id] && <span className="block text-[12px] text-trs-neg">{errors[r.id]}</span>}
               </XlCell>
               <XlCell>
                 <span className="inline-flex gap-1">

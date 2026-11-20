@@ -174,7 +174,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
           ? <>Nightly writing is off. Set {countControl} of articles to start.</>
           : <>Every night at {time}, write {countControl} {cadence.count === 1 ? 'article' : 'articles'} of about {lengthControl} on the prompts ticked in the latest analysis, then {postControl} to {site.domain}{site.blog_base_path}.</>}
       </p>
-      <p className="m-0 mt-3.5 text-[13.5px]" style={{ color: MUTED }}>Click an underlined part to change it.</p>
+      <p className="m-0 mt-3.5 text-[13.5px] text-trs-muted">Click an underlined part to change it.</p>
     </>
   )
 }
@@ -186,7 +186,7 @@ function Step({ done, title, children, last }: { done: boolean; title: React.Rea
     <li className="flex gap-4">
       <span className="flex flex-col items-center w-[18px] flex-shrink-0">
         <span className="block rounded-full mt-[7px]" style={done ? { width: 9, height: 9, background: INK } : { width: 9, height: 9, background: '#fff', border: '2px solid #bfc5bf' }} aria-hidden />
-        {!last && <span className="block flex-1 w-px mt-1.5" style={{ background: RULE }} aria-hidden />}
+        {!last && <span className="block flex-1 w-px mt-1.5 bg-trs-line" aria-hidden />}
       </span>
       <div className={cn('min-w-0 flex-1', last ? 'pb-0' : 'pb-[26px]')}>
         <b className="block text-[15px] font-medium">{title}</b>
@@ -196,7 +196,7 @@ function Step({ done, title, children, last }: { done: boolean; title: React.Rea
   )
 }
 
-const stepNote = (text: React.ReactNode) => <span className="block text-[13.5px] leading-[1.5] mt-0.5 max-w-[70ch]" style={{ color: MUTED }}>{text}</span>
+const stepNote = (text: React.ReactNode) => <span className="block text-[13.5px] leading-[1.5] mt-0.5 max-w-[70ch] text-trs-muted">{text}</span>
 
 function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; cadence: Cadence; site: SiteSummary; when: string; siteKey: string | null }) {
   const a = plan.analysis
@@ -204,8 +204,8 @@ function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; ca
   const inputs = a && k
   return (
     <div className="grid gap-x-7 gap-y-4 max-w-[980px] grid-cols-1 sm:grid-cols-[200px_minmax(0,1fr)]">
-      <div className="text-[15px] pt-[3px]" style={{ color: MUTED }}>
-        <b className="block text-[20px] font-medium tracking-[-0.02em]" style={{ color: INK }}>Tonight</b>
+      <div className="text-[15px] pt-[3px] text-trs-muted">
+        <b className="block text-[20px] font-medium tracking-[-0.02em] text-trs-ink">Tonight</b>
         {when}
       </div>
       <ol className="list-none m-0 p-0 flex flex-col">
@@ -213,23 +213,23 @@ function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; ca
           {stepNote(inputs
             ? <>Competitors analysis from {shortDate(a.completed_at ?? a.created_at)}, knowledge file saved {fmtDate(k.created_at, true)?.replace(' SGT', '')}{k.created_by ? ` by ${k.created_by.split('@')[0]}` : ''}. Both current.</>
             : !a
-              ? <>Run one on <Link href={withSite('/marketing/competitors', siteKey)} className="underline underline-offset-2" style={{ color: INK }}>Competitors</Link>.{!k && ' No knowledge file yet either.'}</>
-              : <>Save one on <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2" style={{ color: INK }}>Knowledge</Link>.</>)}
+              ? <>Run one on <Link href={withSite('/marketing/competitors', siteKey)} className="underline underline-offset-2 text-trs-ink">Competitors</Link>.{!k && ' No knowledge file yet either.'}</>
+              : <>Save one on <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Knowledge</Link>.</>)}
         </Step>
         <Step done={plan.prompts.length > 0} title={plan.prompts.length > 0 ? `${plan.prompts.length} ${plan.prompts.length === 1 ? 'prompt' : 'prompts'} to tackle` : cadence.count === 0 ? 'No articles tonight' : 'No prompts to tackle'}>
           {plan.prompts.length > 0 ? <>
             {stepNote('Ticked in Competitors, not yet covered by an article, highest impressions first.')}
             <ul className="list-none m-0 mt-2 p-0 flex flex-col gap-1.5">
               {plan.prompts.map(p => (
-                <li key={p.id} className="text-[13.5px]" style={{ color: INK2 }}>
+                <li key={p.id} className="text-[13.5px] text-trs-ink-2">
                   {p.prompt}
-                  <em className="not-italic ml-2" style={{ color: FAINT }}>{p.impressions == null ? '–' : n(p.impressions)}{p.cited_domains.length ? ` · cited: ${p.cited_domains.join(', ')}` : ''}</em>
+                  <em className="not-italic ml-2 text-trs-subtle">{p.impressions == null ? '–' : n(p.impressions)}{p.cited_domains.length ? ` · cited: ${p.cited_domains.join(', ')}` : ''}</em>
                 </li>
               ))}
             </ul>
           </> : stepNote(cadence.count === 0
             ? 'Set a number of articles in the sentence above.'
-            : <>No prompts ticked. Tick prompts on <Link href={withSite('/marketing/competitors?tab=prompts', siteKey)} className="underline underline-offset-2" style={{ color: INK }}>Competitors</Link>. The night falls back to Search Console targets.</>)}
+            : <>No prompts ticked. Tick prompts on <Link href={withSite('/marketing/competitors?tab=prompts', siteKey)} className="underline underline-offset-2 text-trs-ink">Competitors</Link>. The night falls back to Search Console targets.</>)}
         </Step>
         <Step done={false} title="Write">
           {stepNote(<>Twelve-step engine, every fact cited from Knowledge {k ? `v${k.version}` : '(no file yet)'}, quality gate on.</>)}
@@ -252,13 +252,13 @@ function Nights({ groups, siteKey }: { groups: NightGroup[]; siteKey: string | n
     <ul className="list-none m-0 p-0 max-w-[980px]">
       {groups.flatMap(g => g.rows.map((r, i) => (
         <li key={r.run_id} className="grid gap-4 items-baseline py-3.5 text-[14px] grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
-          <span className="tabular-nums" style={{ color: MUTED }}>{i === 0 ? g.label : ''}</span>
+          <span className="tabular-nums text-trs-muted">{i === 0 ? g.label : ''}</span>
           <span className="font-medium min-w-0">
-            <Link href={withSite(r.article_id ? `/marketing/articles/${r.article_id}` : `/marketing/generate/runs/${r.run_id}`, siteKey)} className="no-underline hover:underline underline-offset-2 block truncate" style={{ color: INK }}>{r.title}</Link>
-            <small className="block font-normal text-[12.5px] mt-0.5 truncate" style={{ color: MUTED }}>{r.detail}</small>
+            <Link href={withSite(r.article_id ? `/marketing/articles/${r.article_id}` : `/marketing/generate/runs/${r.run_id}`, siteKey)} className="no-underline hover:underline underline-offset-2 block truncate text-trs-ink">{r.title}</Link>
+            <small className="block font-normal text-[12.5px] mt-0.5 truncate text-trs-muted">{r.detail}</small>
           </span>
           <span><Chip>{r.status}</Chip></span>
-          <span className="tabular-nums sm:text-right" style={{ color: MUTED }}>{usd(r.cost_usd)}</span>
+          <span className="tabular-nums sm:text-right text-trs-muted">{usd(r.cost_usd)}</span>
         </li>
       )))}
     </ul>

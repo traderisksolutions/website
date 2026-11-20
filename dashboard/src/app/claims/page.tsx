@@ -84,7 +84,7 @@ export default function ClaimsPage() {
   }
 
   return (
-    <div className="w-full min-w-0 px-4 md:px-8 py-6 max-w-[1200px] mx-auto" style={{ color: INK }}>
+    <div className="w-full min-w-0 px-4 md:px-8 py-6 max-w-[1200px] mx-auto text-trs-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h1 className="m-0 text-[30px] font-medium tracking-[-0.02em]">Claims</h1>
         <div className="flex flex-wrap gap-2">
@@ -109,10 +109,10 @@ export default function ClaimsPage() {
       {(scope.company || scope.policy) && (
         <p className="m-0 mb-3 flex flex-wrap items-center gap-2 text-[13.5px]">
           <Chip>{[scopeName, scope.policy ? `Policy ${scope.policy}` : null].filter(Boolean).join(' · ')}</Chip>
-          <button type="button" onClick={clearScope} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px]" style={{ color: INK }}>Show every client</button>
+          <button type="button" onClick={clearScope} className="bg-transparent border-0 p-0 cursor-pointer underline underline-offset-4 text-[13.5px] text-trs-ink">Show every client</button>
         </p>
       )}
-      {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
       {notice && <p className="m-0 mb-3 text-[13.5px]">{notice}</p>}
 
       {view === 'forms' ? <WebsiteForms onCount={setFormsNew} /> : !rows ? <Spinner label="Loading claims…" /> : shown.length === 0 ? <Empty>{scope.company || scope.policy ? 'No claims on file for this client.' : 'No claims here.'}</Empty> : (
@@ -120,7 +120,7 @@ export default function ClaimsPage() {
           <div className="hidden md:block overflow-x-auto rounded-[10px] bg-white" style={{ boxShadow: 'var(--card-shadow)' }}>
             <table className="trs-table w-full text-[13.5px] border-collapse">
               <thead>
-                <tr className="text-[12px]" style={{ color: MUTED }}>
+                <tr className="text-[12px] text-trs-muted">
                   {['Claim', 'Client', 'Class · insurer', 'Loss', 'Status', 'Waiting on', 'Claimed S$', 'Last mail', 'Threads'].map(h => (
                     <th key={h} className="font-medium px-3 py-2.5 whitespace-nowrap">{h}</th>
                   ))}
@@ -131,7 +131,7 @@ export default function ClaimsPage() {
                   const st = statusOf(r)
                   return (
                     <tr key={r.id} onClick={() => select(r.id)} aria-selected={selected === r.id} className="cursor-pointer">
-                      <td className="px-3 py-2.5 max-w-[260px]"><span className={selected === r.id ? 'font-medium' : ''}>{r.title}</span>{r.opened_mode === 'midway' || r.opened_mode === 'from_forward' ? <span className="block text-[12px]" style={{ color: MUTED }}>{r.opened_mode === 'midway' ? 'Opened midway' : 'Opened from forward'}</span> : null}</td>
+                      <td className="px-3 py-2.5 max-w-[260px]"><span className={selected === r.id ? 'font-medium' : ''}>{r.title}</span>{r.opened_mode === 'midway' || r.opened_mode === 'from_forward' ? <span className="block text-[12px] text-trs-muted">{r.opened_mode === 'midway' ? 'Opened midway' : 'Opened from forward'}</span> : null}</td>
                       <td className="px-3 py-2.5 cell-left">{r.client ?? '—'}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">{CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</td>
                       <td className="px-3 py-2.5 tabular-nums whitespace-nowrap">{day(r.loss_date)}</td>
@@ -151,12 +151,12 @@ export default function ClaimsPage() {
               const st = statusOf(r)
               return (
                 <button key={r.id} type="button" onClick={() => select(r.id)} className="text-left rounded-[10px] bg-white px-4 py-3 border-0 cursor-pointer min-w-0 w-full" style={{ boxShadow: selected === r.id ? 'inset 0 0 0 1.5px #132c1c' : 'var(--card-shadow)', color: INK }}>
-                  <div className="text-[12.5px] truncate" style={{ color: MUTED }}>{r.client ?? '—'} · {CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</div>
+                  <div className="text-[12.5px] truncate text-trs-muted">{r.client ?? '—'} · {CLASS[r.class] ?? r.class}{r.insurer ? ` · ${r.insurer}` : ''}</div>
                   <div className="text-[15px] font-medium leading-snug">{r.title}</div>
                   <div className="flex flex-wrap gap-1.5 mt-2 items-center">
                     <Chip tone={st.tone}>{st.label}</Chip>
                     {r.waiting_on && <Chip>{WAITING[r.waiting_on] ?? r.waiting_on}{r.waiting_days != null ? ` · ${r.waiting_days} d` : ''}</Chip>}
-                    {r.amount_claimed != null && <span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>S$ {money(r.amount_claimed)}</span>}
+                    {r.amount_claimed != null && <span className="text-[12.5px] tabular-nums text-trs-muted">S$ {money(r.amount_claimed)}</span>}
                   </div>
                 </button>
               )
@@ -189,11 +189,11 @@ function NewClaim({ onDone, onCancel }: { onDone: (id: string) => void; onCancel
     <div className="rounded-[10px] bg-white p-4 mb-4 flex flex-col gap-3" style={{ boxShadow: 'var(--card-shadow)' }}>
       <h2 className="m-0 text-[16px] font-medium">New claim</h2>
       <div className="grid gap-3 md:grid-cols-3">
-        <label className="text-[12.5px] min-w-0" style={{ color: MUTED }}>Claim<input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Worker hand injury" /></label>
-        <label className="text-[12.5px] min-w-0" style={{ color: MUTED }}>Insurer<input className={inputCls} value={insurer} onChange={e => setInsurer(e.target.value)} /></label>
-        <label className="text-[12.5px] min-w-0" style={{ color: MUTED }}>Policy number<input className={inputCls} value={policy} onChange={e => setPolicy(e.target.value)} /></label>
+        <label className="text-[12.5px] min-w-0 text-trs-muted">Claim<input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder="Worker hand injury" /></label>
+        <label className="text-[12.5px] min-w-0 text-trs-muted">Insurer<input className={inputCls} value={insurer} onChange={e => setInsurer(e.target.value)} /></label>
+        <label className="text-[12.5px] min-w-0 text-trs-muted">Policy number<input className={inputCls} value={policy} onChange={e => setPolicy(e.target.value)} /></label>
       </div>
-      {err && <p className="m-0 text-[13.5px]" style={{ color: ERROR }}>{err}</p>}
+      {err && <p className="m-0 text-[13.5px] text-trs-neg">{err}</p>}
       <div className="flex justify-between gap-2">
         <Btn level="tertiary" onClick={onCancel} disabled={busy}>Cancel</Btn>
         <Btn level="secondary" onClick={() => void save()} loading={busy} disabled={title.trim().length < 3}>Open claim</Btn>
@@ -209,7 +209,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
   const load = useCallback(() => { setErr(null); callApi<ClaimDetail>(`/api/claims/${id}`).then(setD).catch(e => setErr(errText(e))) }, [id])
   useEffect(() => { setD(null); setOutcome(false); load() }, [load])
 
-  if (err) return <p className="m-0 text-[13.5px]" style={{ color: ERROR }}>{err}</p>
+  if (err) return <p className="m-0 text-[13.5px] text-trs-neg">{err}</p>
   if (!d) return <Spinner label="Loading claim…" />
   const r = d.row
   const st = statusOf(r)
@@ -243,11 +243,11 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
 
       {d.needs_human && (
         <div className="border-l-[3px] pl-3 text-[14px]" style={{ borderColor: 'rgba(161,36,47,0.4)' }}>
-          <div className="text-[12px] uppercase tracking-[0.04em]" style={{ color: ERROR }}>Decision needed</div>
+          <div className="text-[12px] uppercase tracking-[0.04em] text-trs-neg">Decision needed</div>
           <div>{d.needs_human}</div>
         </div>
       )}
-      {d.next_action && <div className="text-[14px]"><span style={{ color: MUTED }}>Next: </span>{d.next_action}</div>}
+      {d.next_action && <div className="text-[14px]"><span className="text-trs-muted">Next: </span>{d.next_action}</div>}
 
       <div>
         <h3 className="m-0 mb-2 text-[14px] font-medium">Timeline</h3>
@@ -260,7 +260,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
                 <span className="min-w-0">
                   {e.rebuilt && <Chip tone="amber" className="mr-1.5">{e.rebuilt === 'forward' ? 'From forward' : 'Rebuilt'}</Chip>}
                   <span className="break-words">{e.line || '(no text)'}</span>
-                  <span className="block text-[12px] truncate" style={{ color: MUTED }}>{e.from}</span>
+                  <span className="block text-[12px] truncate text-trs-muted">{e.from}</span>
                 </span>
               </li>
             ))}
@@ -270,17 +270,17 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="rounded-[8px] p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
-          <div className="flex justify-between items-baseline"><h3 className="m-0 text-[14px] font-medium">Documents</h3><span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{got} of {d.documents.length}</span></div>
+          <div className="flex justify-between items-baseline"><h3 className="m-0 text-[14px] font-medium">Documents</h3><span className="text-[12.5px] tabular-nums text-trs-muted">{got} of {d.documents.length}</span></div>
           <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[13.5px]">
-            {d.documents.map(x => <li key={x.item} className="flex gap-2"><span aria-hidden style={{ color: x.received ? '#132c1c' : ERROR }}>{x.received ? '✓' : '✕'}</span><span className="min-w-0">{x.item}{x.source && <span className="block text-[12px] truncate" style={{ color: MUTED }}>{x.source}</span>}</span></li>)}
+            {d.documents.map(x => <li key={x.item} className="flex gap-2"><span aria-hidden style={{ color: x.received ? '#132c1c' : ERROR }}>{x.received ? '✓' : '✕'}</span><span className="min-w-0">{x.item}{x.source && <span className="block text-[12px] truncate text-trs-muted">{x.source}</span>}</span></li>)}
           </ul>
-          {d.files.length > 0 && <div className="text-[12.5px] pt-1 border-t border-[#e6e8e4]" style={{ color: MUTED }}>Files held: {d.files.length}</div>}
+          {d.files.length > 0 && <div className="text-[12.5px] pt-1 border-t border-[#e6e8e4] text-trs-muted">Files held: {d.files.length}</div>}
         </div>
         <div className="rounded-[8px] p-3 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
-          <div className="flex justify-between items-baseline"><h3 className="m-0 text-[14px] font-medium">Missing</h3><span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{d.gaps.length}</span></div>
-          {d.gaps.length === 0 ? <span className="text-[13.5px]" style={{ color: MUTED }}>Nothing missing.</span> : (
+          <div className="flex justify-between items-baseline"><h3 className="m-0 text-[14px] font-medium">Missing</h3><span className="text-[12.5px] tabular-nums text-trs-muted">{d.gaps.length}</span></div>
+          {d.gaps.length === 0 ? <span className="text-[13.5px] text-trs-muted">Nothing missing.</span> : (
             <ul className="m-0 p-0 list-none flex flex-col gap-1 text-[13.5px]">
-              {d.gaps.map(g => <li key={g.item}>{g.item}<span className="block text-[12px]" style={{ color: MUTED }}>{g.basis}</span></li>)}
+              {d.gaps.map(g => <li key={g.item}>{g.item}<span className="block text-[12px] text-trs-muted">{g.basis}</span></li>)}
             </ul>
           )}
         </div>
@@ -289,20 +289,20 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
       <Drafts id={id} drafts={d.drafts} onDone={(msg) => { onChanged(msg); load() }} onError={onError} />
 
       <div>
-        <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-[14px] font-medium">Inbox threads</h3><span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{d.threads.length}</span></div>
+        <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-[14px] font-medium">Inbox threads</h3><span className="text-[12.5px] tabular-nums text-trs-muted">{d.threads.length}</span></div>
         {d.threads.length === 0 ? <Empty compact>No threads linked.</Empty> : (
           <div className="overflow-x-auto">
             <table className="trs-table w-full text-[13.5px] border-collapse min-w-[560px]">
-              <thead><tr className="text-[12px]" style={{ color: MUTED }}>{['Thread', 'Side', 'How it joined', 'Messages', 'Last'].map(h => <th key={h} className="font-medium px-2 py-2">{h}</th>)}</tr></thead>
+              <thead><tr className="text-[12px] text-trs-muted">{['Thread', 'Side', 'How it joined', 'Messages', 'Last'].map(h => <th key={h} className="font-medium px-2 py-2">{h}</th>)}</tr></thead>
               <tbody>
                 {d.threads.map(t => (
                   <tr key={t.id}>
-                    <td className="px-2 py-2 max-w-[320px]"><Link href={`/engagement?thread=${t.id}`} className="no-underline hover:underline break-words" style={{ color: INK }}>{t.subject ?? 'Thread'}</Link></td>
+                    <td className="px-2 py-2 max-w-[320px]"><Link href={`/engagement?thread=${t.id}`} className="no-underline hover:underline break-words text-trs-ink">{t.subject ?? 'Thread'}</Link></td>
                     <td className="px-2 py-2"><Chip tone={t.side === 'insurer' ? 'blue' : 'neutral'}>{SIDE[t.side] ?? t.side}</Chip></td>
                     <td className="px-2 py-2 cell-left">
                       {t.joined_by === 'forward' || t.joined_by === 'midway' ? <Chip tone="amber">{JOINED[t.joined_by]}</Chip> : JOINED[t.joined_by ?? ''] ?? 'Case worker'}
-                      {t.rebuilt > 0 && <span className="text-[12.5px]" style={{ color: MUTED }}> · {t.rebuilt} rebuilt</span>}
-                      {t.joined_evidence && <span className="block text-[12px]" style={{ color: MUTED }}>{t.joined_evidence}</span>}
+                      {t.rebuilt > 0 && <span className="text-[12.5px] text-trs-muted"> · {t.rebuilt} rebuilt</span>}
+                      {t.joined_evidence && <span className="block text-[12px] text-trs-muted">{t.joined_evidence}</span>}
                     </td>
                     <td className="px-2 py-2 tabular-nums">{t.messages}</td>
                     <td className="px-2 py-2 tabular-nums whitespace-nowrap">{day(t.last)}</td>
@@ -328,11 +328,11 @@ function Outcome({ id, onDone }: { id: string; onDone: () => void }) {
     catch (e) { setErr(errText(e)) } finally { setBusy(false) }
   }
   return (
-    <div className="flex flex-wrap items-end gap-3 rounded-[8px] p-3" style={{ background: '#faf9f6' }}>
+    <div className="flex flex-wrap items-end gap-3 rounded-[8px] p-3 bg-trs-tint">
       <Segmented value={stage} onChange={setStage} options={[{ value: 'settled', label: 'Settled' }, { value: 'declined', label: 'Declined' }, { value: 'withdrawn', label: 'Withdrawn' }]} />
-      {stage === 'settled' && <label className="text-[12.5px] w-[180px]" style={{ color: MUTED }}>Settled S$<input className={inputCls} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} /></label>}
+      {stage === 'settled' && <label className="text-[12.5px] w-[180px] text-trs-muted">Settled S$<input className={inputCls} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} /></label>}
       <Btn level="secondary" loading={busy} onClick={() => void save()}>Save outcome</Btn>
-      {err && <p className="m-0 w-full text-[13.5px]" style={{ color: ERROR }}>{err}</p>}
+      {err && <p className="m-0 w-full text-[13.5px] text-trs-neg">{err}</p>}
     </div>
   )
 }
@@ -361,19 +361,19 @@ function Drafts({ id, drafts, onDone, onError }: { id: string; drafts: ClaimDeta
 
   return (
     <div>
-      <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-[14px] font-medium">Drafts</h3><span className="text-[12.5px] tabular-nums" style={{ color: MUTED }}>{drafts.length}</span></div>
+      <div className="flex justify-between items-baseline mb-2"><h3 className="m-0 text-[14px] font-medium">Drafts</h3><span className="text-[12.5px] tabular-nums text-trs-muted">{drafts.length}</span></div>
       {!current ? <Empty compact>No draft waiting.</Empty> : (
         <div className="rounded-[8px] px-3 py-2.5 flex flex-col gap-2" style={{ boxShadow: 'var(--card-shadow)' }}>
           {editing ? (
             <div className="flex flex-col gap-2">
-              <label className="text-[12.5px]" style={{ color: MUTED }}>To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
-              <label className="text-[12.5px]" style={{ color: MUTED }}>Cc<input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} /></label>
-              <label className="text-[12.5px]" style={{ color: MUTED }}>Subject<input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} /></label>
+              <label className="text-[12.5px] text-trs-muted">To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
+              <label className="text-[12.5px] text-trs-muted">Cc<input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} /></label>
+              <label className="text-[12.5px] text-trs-muted">Subject<input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} /></label>
               <textarea className={textareaCls} rows={10} value={body} onChange={e => setBody(e.target.value)} />
             </div>
           ) : (
             <>
-              <div className="text-[12.5px] break-words" style={{ color: MUTED }}>To {current.to}{current.cc ? ` · Cc ${current.cc}` : ''}</div>
+              <div className="text-[12.5px] break-words text-trs-muted">To {current.to}{current.cc ? ` · Cc ${current.cc}` : ''}</div>
               <div className="text-[13.5px] font-medium">{current.subject}</div>
               <pre className="m-0 whitespace-pre-wrap font-sans text-[14px] leading-relaxed">{current.body.replace(/\{owner_name\}/g, 'Your name')}</pre>
             </>

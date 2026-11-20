@@ -110,7 +110,7 @@ export function RegisterCell({ primary, secondary, children, align = 'center', f
     <td colSpan={colSpan} title={title}
       className={cn(dense ? 'py-1.5' : 'py-4', 'align-middle', (first || align === 'left') && 'cell-left', nowrap && 'whitespace-nowrap',
         first && cn('relative z-10', selected ? 'bg-[var(--trs-mint)]' : 'bg-white'), cellPad(dense, first, last), className)}>
-      {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: 'var(--trs-green)' }} aria-hidden />}
+      {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-trs-green" aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
       <div className={cn('min-w-0 max-w-full', !first && align !== 'left' && 'mx-auto')} style={first ? { width } : undefined}>
         {primary !== undefined && (

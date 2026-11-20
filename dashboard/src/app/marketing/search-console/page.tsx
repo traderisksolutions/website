@@ -110,7 +110,7 @@ function SearchConsole() {
       {data && status === 'connected' && (
         <div className={cn('flex flex-col gap-8', loading && 'opacity-60')}>
           <section>
-            <h2 className="m-0 mb-3 text-[17px] font-medium">Next actions <span className="font-normal" style={{ color: MUTED }}>· ranked by impressions, brand searches excluded</span></h2>
+            <h2 className="m-0 mb-3 text-[17px] font-medium">Next actions <span className="font-normal text-trs-muted">· ranked by impressions, brand searches excluded</span></h2>
             <Register label="Actions" minWidth={900}>
               <RegisterHead>
                 <RegisterTh first hint="The Google search, and the page of ours it lands on">Search</RegisterTh>
@@ -126,7 +126,7 @@ function SearchConsole() {
                     <RegisterCell first identityWidth={360} primary={a.query} secondary={a.page ? a.page.replace(/^https?:\/\/[^/]+/, '') : undefined} />
                     <RegisterCell><Chip>{ACTION_KIND_LABEL[a.kind]}</Chip></RegisterCell>
                     <RegisterCell align="right"><span className="tabular-nums">{n(a.impressions)}</span></RegisterCell>
-                    <RegisterCell align="right"><span className="tabular-nums">{n(a.clicks)}<span style={{ color: MUTED }}> of {a.expectedClicks}</span></span></RegisterCell>
+                    <RegisterCell align="right"><span className="tabular-nums">{n(a.clicks)}<span className="text-trs-muted"> of {a.expectedClicks}</span></span></RegisterCell>
                     <RegisterCell align="right"><span className="tabular-nums">{a.position.toFixed(1)}</span></RegisterCell>
                     <RegisterCell last>{a.kind === 'write' && <Btn level="tertiary" size="xs" onClick={() => router.push(withSite(`/marketing/generate?query=${encodeURIComponent(a.query)}&position=${a.position}`, siteKey))}>Generate</Btn>}</RegisterCell>
                   </RegisterRow>
@@ -136,7 +136,7 @@ function SearchConsole() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-[17px] font-medium">Top searches <span className="font-normal" style={{ color: MUTED }}>· last 28 days</span></h2>
+            <h2 className="m-0 mb-3 text-[17px] font-medium">Top searches <span className="font-normal text-trs-muted">· last 28 days</span></h2>
             <Register label="Top searches" minWidth={720}>
               <RegisterHead><RegisterTh first>Search</RegisterTh><RegisterTh align="right">Impressions</RegisterTh><RegisterTh align="right">Clicks</RegisterTh><RegisterTh align="right">Click rate</RegisterTh><RegisterTh align="right" last>Position</RegisterTh></RegisterHead>
               <tbody>
@@ -146,7 +146,7 @@ function SearchConsole() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-[17px] font-medium">Top pages <span className="font-normal" style={{ color: MUTED }}>· last 28 days</span></h2>
+            <h2 className="m-0 mb-3 text-[17px] font-medium">Top pages <span className="font-normal text-trs-muted">· last 28 days</span></h2>
             <Register label="Top pages" minWidth={720}>
               <RegisterHead><RegisterTh first>Page</RegisterTh><RegisterTh align="right">Impressions</RegisterTh><RegisterTh align="right">Clicks</RegisterTh><RegisterTh align="right">Click rate</RegisterTh><RegisterTh align="right" last>Position</RegisterTh></RegisterHead>
               <tbody>
@@ -163,11 +163,11 @@ function SearchConsole() {
 function MetricRow({ label, impressions, clicks, ctr, position }: { label: string; impressions: number; clicks: number; ctr: number; position: number }) {
   return (
     <RegisterRow>
-      <RegisterCell first identityWidth={420} primary={<span className="truncate" style={{ color: INK }}>{label}</span>} />
+      <RegisterCell first identityWidth={420} primary={<span className="truncate text-trs-ink">{label}</span>} />
       <RegisterCell align="right"><span className="tabular-nums">{n(impressions)}</span></RegisterCell>
       <RegisterCell align="right"><span className="tabular-nums">{n(clicks)}</span></RegisterCell>
-      <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{(ctr * 100).toFixed(1)}%</span></RegisterCell>
-      <RegisterCell align="right" last><span className="tabular-nums" style={{ color: MUTED }}>{position.toFixed(1)}</span></RegisterCell>
+      <RegisterCell align="right"><span className="tabular-nums text-trs-muted">{(ctr * 100).toFixed(1)}%</span></RegisterCell>
+      <RegisterCell align="right" last><span className="tabular-nums text-trs-muted">{position.toFixed(1)}</span></RegisterCell>
     </RegisterRow>
   )
 }

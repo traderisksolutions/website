@@ -92,7 +92,7 @@ function Newsletter() {
                       <RegisterCell align="right"><span className="tabular-nums">{i.article_ids.length}</span></RegisterCell>
                       <RegisterCell primary={STATUS[i.status]} />
                       <RegisterCell align="right"><span className="tabular-nums">{i.status === 'draft' ? '–' : `${i.recipients}${i.failures ? ` · ${i.failures} failed` : ''}`}</span></RegisterCell>
-                      <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{day(i.sent_at ?? i.created_at)}</span></RegisterCell>
+                      <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{day(i.sent_at ?? i.created_at)}</span></RegisterCell>
                     </RegisterRow>
                   ))}
               </tbody>
@@ -116,8 +116,8 @@ function Newsletter() {
                     <RegisterRow key={s.id}>
                       <RegisterCell first identityWidth={300} primary={s.email} />
                       <RegisterCell primary={STATUS[s.status]} secondary={s.status === 'pending' ? (s.confirm_sent_at ? `Confirmation sent ${day(s.confirm_sent_at)}` : 'Confirmation not sent yet') : undefined} />
-                      <RegisterCell align="left" primary={<span className="block max-w-[320px] truncate" style={{ color: MUTED }}>{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
-                      <RegisterCell last align="right"><span className="tabular-nums" style={{ color: MUTED }}>{day(s.confirmed_at ?? s.created_at)}</span></RegisterCell>
+                      <RegisterCell align="left" primary={<span className="block max-w-[320px] truncate text-trs-muted">{s.source_url ? s.source_url.replace(/^https?:\/\//, '').split('?')[0] : '–'}</span>} />
+                      <RegisterCell last align="right"><span className="tabular-nums text-trs-muted">{day(s.confirmed_at ?? s.created_at)}</span></RegisterCell>
                     </RegisterRow>
                   ))}
               </tbody>
@@ -147,14 +147,14 @@ function Sender({ site, ready, pendingUnsent, post, onChanged }: { site: Payload
       <h2 className="m-0 text-[20px] font-medium tracking-[-0.01em]">Sender</h2>
       <div className="grid gap-3 max-w-[640px]">
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Sender email
+          <label className="grid gap-1 text-[12.5px] text-trs-muted">Sender email
             <input value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="news@corpcover.com" autoComplete="off" />
           </label>
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Sender name
+          <label className="grid gap-1 text-[12.5px] text-trs-muted">Sender name
             <input value={name} onChange={e => setName(e.target.value)} className={inputCls} placeholder={site.name} />
           </label>
         </div>
-        <p className="m-0 text-[13px]" style={{ color: MUTED }}>Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
+        <p className="m-0 text-[13px] text-trs-muted">Must be a verified &quot;Send mail as&quot; address of the Gmail mailbox the dashboard is connected to, on a domain with SPF and DKIM.</p>
         <div className="flex items-center gap-3 flex-wrap">
           <Btn onClick={() => run('save')} loading={busy === 'save'}>Save sender</Btn>
           {ready && pendingUnsent > 0 && <Btn onClick={() => run('confirm')} loading={busy === 'confirm'}>Send {pendingUnsent} pending confirmation{pendingUnsent === 1 ? '' : 's'}</Btn>}
@@ -221,22 +221,22 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="grid gap-4 content-start">
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Subject
+          <label className="grid gap-1 text-[12.5px] text-trs-muted">Subject
             <input value={subject} onChange={e => setSubject(e.target.value)} disabled={!draft} className={inputCls} maxLength={150} />
           </label>
-          <label className="grid gap-1 text-[12.5px]" style={{ color: MUTED }}>Opening note (optional)
+          <label className="grid gap-1 text-[12.5px] text-trs-muted">Opening note (optional)
             <textarea value={intro} onChange={e => setIntro(e.target.value)} disabled={!draft} rows={4} className={textareaCls} maxLength={2000} placeholder="Two or three lines above the articles" />
           </label>
           <fieldset className="grid gap-1.5 m-0 p-0 border-0" disabled={!draft}>
-            <legend className="text-[12.5px] mb-1.5" style={{ color: MUTED }}>Articles, in order; the first leads ({ids.length} of up to 6)</legend>
-            {articles.length === 0 && <p className="m-0 text-[14px]" style={{ color: MUTED }}>No published articles on this site.</p>}
+            <legend className="text-[12.5px] mb-1.5 text-trs-muted">Articles, in order; the first leads ({ids.length} of up to 6)</legend>
+            {articles.length === 0 && <p className="m-0 text-[14px] text-trs-muted">No published articles on this site.</p>}
             <div className="grid gap-1 max-h-[300px] overflow-auto pr-1">
               {articles.map(a => {
                 const pos = ids.indexOf(a.id)
                 return (
                   <label key={a.id} className={cn('flex items-start gap-2.5 rounded-[10px] px-3 py-2 text-[14px] cursor-pointer', pos >= 0 ? 'bg-[#edf7e8]' : 'hover:bg-[#faf9f6]')}>
                     <input type="checkbox" checked={pos >= 0} onChange={() => toggle(a.id)} className="mt-1" />
-                    <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-[12.5px]" style={{ color: MUTED }}>Published {day(a.published_at)}</span></span>
+                    <span className="min-w-0 flex-1"><span className="block">{pos >= 0 ? `${pos + 1}. ` : ''}{a.title}</span><span className="block text-[12.5px] text-trs-muted">Published {day(a.published_at)}</span></span>
                   </label>
                 )
               })}
@@ -249,10 +249,10 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
             {draft && <Btn level="tertiary" onClick={remove} loading={busy === 'delete'}>Delete</Btn>}
           </div>
           {(msg || progress) && <p className="m-0 text-[13.5px]" role="status">{[progress, msg].filter(Boolean).join(' · ')}</p>}
-          {issue.status === 'sent' && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Sent {day(issue.sent_at)} to {issue.recipients}{issue.failures ? `, ${issue.failures} failed` : ''}.</p>}
+          {issue.status === 'sent' && <p className="m-0 text-[13.5px] text-trs-muted">Sent {day(issue.sent_at)} to {issue.recipients}{issue.failures ? `, ${issue.failures} failed` : ''}.</p>}
         </div>
         <div className="grid gap-1.5 content-start">
-          <span className="text-[12.5px]" style={{ color: MUTED }}>Preview{dirty ? ' (save to refresh)' : ''}</span>
+          <span className="text-[12.5px] text-trs-muted">Preview{dirty ? ' (save to refresh)' : ''}</span>
           <iframe title="Email preview" sandbox="" srcDoc={preview ?? '<p style="font-family:sans-serif;color:#4a5550">Loading…</p>'} className="w-full h-[640px] rounded-[12px] bg-white" style={{ border: `1px solid ${RULE}` }} />
         </div>
       </div>

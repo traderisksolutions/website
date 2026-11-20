@@ -484,7 +484,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
         {bundle.pdf_import_items.map(it => (
           <a key={it.id} href={`/api/debit-notes/imports/items/${it.id}/pdf`} target="_blank" rel="noreferrer"
             title={it.error_message ?? undefined}
-            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#0f1412] hover:bg-[#e6e8e4]" style={{ background: '#f1f2ee' }}>
+            className="flex items-center gap-1.5 text-[13px] px-3 h-9 rounded-[8px] no-underline text-[#0f1412] hover:bg-[#e6e8e4] bg-trs-field">
             <FileText size={11} className="text-muted-foreground/60" />
             {it.original_filename ?? 'document.pdf'}
             {it.doc_type && <span className="text-[12px] text-[#4a5550]">{DOC_TYPE_LABEL[it.doc_type]}</span>}

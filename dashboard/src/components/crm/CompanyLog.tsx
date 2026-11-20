@@ -77,7 +77,7 @@ export function CompanyLog({ bundle, events, onChanged }: {
           </div>
         </div>
       )}
-      {error && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="text-[13px] m-0 mb-3 text-trs-neg">{error}</p>}
       {loading && <Spinner label="Loading log…" />}
       {!loading && entries.length === 0 && <Empty compact>Nothing yet.</Empty>}
       {!loading && entries.length > 0 && (
@@ -95,12 +95,12 @@ export function CompanyLog({ bundle, events, onChanged }: {
                   <RegisterCell first identityWidth={120} title={`${fmtRelative(e.at)} · ${fmtDateTime(e.at)}`} primary={fmtDate(e.at)} />
                   <RegisterCell primary={e.kind} />
                   <RegisterCell align="left" nowrap={false}>
-                    <span className="block text-[13px] whitespace-pre-wrap" style={{ color: INK }} title={e.detail ?? undefined}>{e.text}{e.detail && <span style={{ color: MUTED }}> · {e.detail}</span>}</span>
+                    <span className="block text-[13px] whitespace-pre-wrap text-trs-ink" title={e.detail ?? undefined}>{e.text}{e.detail && <span className="text-trs-muted"> · {e.detail}</span>}</span>
                   </RegisterCell>
                   <RegisterCell last align="right">
                     {e.href
-                      ? <Link href={e.href} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Open</Link>
-                      : <span className="text-[14px]" style={{ color: MUTED }}>—</span>}
+                      ? <Link href={e.href} className="text-[14px] no-underline hover:underline text-trs-ink">Open</Link>
+                      : <span className="text-[14px] text-trs-muted">—</span>}
                   </RegisterCell>
                 </RegisterRow>
               ))}

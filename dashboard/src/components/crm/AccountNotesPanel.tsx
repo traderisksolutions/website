@@ -31,10 +31,10 @@ export function AccountNotesPanel({ notes, onSave }: { notes: string | null; onS
       {editing ? (
         <>
           <textarea className={textareaCls} rows={18} value={draft} onChange={e => setDraft(e.target.value)} />
-          {error && <p className="m-0 mt-2 text-[14px]" style={{ color: '#a1242f' }}>{error}</p>}
+          {error && <p className="m-0 mt-2 text-[14px] text-trs-neg">{error}</p>}
         </>
       ) : notes?.trim() ? (
-        <div className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words" style={{ color: BODY }}>{notes}</div>
+        <div className="text-[14px] leading-[1.6] whitespace-pre-wrap break-words text-trs-ink-2">{notes}</div>
       ) : <Empty compact>No notes.</Empty>}
     </SectionCard>
   )

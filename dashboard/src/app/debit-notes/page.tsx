@@ -83,7 +83,7 @@ function FilterInput({ label, value, onChange, autoFocus }: { label: string; val
         style={{ borderColor: '#d5d9d4', color: INK }}
       />
       {value && (
-        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0" style={{ color: MUTED }}><X size={12} /></button>
+        <button type="button" onClick={() => onChange?.('')} aria-label={`Clear ${label.toLowerCase()} filter`} className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] flex-shrink-0 text-trs-muted"><X size={12} /></button>
       )}
     </div>
   )
@@ -137,7 +137,7 @@ function ColumnHeader({
             {col.type === 'status' ? (
               <div className="flex flex-col gap-0.5">
                 {STATUS_OPTIONS.map(s => (
-                  <label key={s} className="flex items-center gap-2 text-[13.5px] px-2 py-1.5 rounded-[8px] hover:bg-[#faf9f6] cursor-pointer" style={{ color: INK }}>
+                  <label key={s} className="flex items-center gap-2 text-[13.5px] px-2 py-1.5 rounded-[8px] hover:bg-[#faf9f6] cursor-pointer text-trs-ink">
                     <input
                       type="checkbox"
                       checked={statusFilter?.has(s) ?? false}
@@ -151,7 +151,7 @@ function ColumnHeader({
                   </label>
                 ))}
                 {(statusFilter?.size ?? 0) > 0 && (
-                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-[13px] mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4" style={{ color: INK }}>Clear</button>
+                  <button type="button" onClick={() => onStatusFilterChange?.(new Set())} className="text-[13px] mt-1 text-left px-2 py-1 bg-transparent border-0 cursor-pointer underline underline-offset-4 text-trs-ink">Clear</button>
                 )}
               </div>
             ) : (
@@ -244,7 +244,7 @@ function DebitNotesContent() {
         </div>
         {(activeFilterCount > 0 || sortKey) && (
           <DataTableToolbar>
-            <span className="text-[13px]" style={{ color: MUTED }}>
+            <span className="text-[13px] text-trs-muted">
               {sorted.length} of {rows.length} debit note{rows.length !== 1 ? 's' : ''}
               {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}`}
               {sortKey && ` · sorted by ${COLUMNS.find(c => c.key === sortKey)?.label.toLowerCase()} (${sortDir === 'asc' ? 'ascending' : 'descending'})`}
@@ -283,13 +283,13 @@ function DebitNotesContent() {
                 {!loading && sorted.map(r => (
                   <RegisterRow key={r.id} onClick={() => setOpenId(r.id)}>
                     <RegisterCell first title={r.companies?.name ?? undefined} primary={r.companies?.name ?? '—'} secondary={r.policies?.class_of_insurance || 'No policy type'} />
-                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.policies?.policy_number || '—'}</span></RegisterCell>
-                    <RegisterCell align="left" className="max-w-[220px]"><span className="block truncate text-[14px]" style={{ color: BODY }}>{r.insurer ?? '—'}</span></RegisterCell>
-                    <RegisterCell><span className="text-[14px] tabular-nums" style={{ color: BODY }}>{r.debit_note_no}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px] tabular-nums text-trs-ink-2">{r.policies?.policy_number || '—'}</span></RegisterCell>
+                    <RegisterCell align="left" className="max-w-[220px]"><span className="block truncate text-[14px] text-trs-ink-2">{r.insurer ?? '—'}</span></RegisterCell>
+                    <RegisterCell><span className="text-[14px] tabular-nums text-trs-ink-2">{r.debit_note_no}</span></RegisterCell>
                     <RegisterCell primary={fmtDate(r.policies?.end_date ?? null)} />
                     <RegisterCell align="right" primary={<span className="font-medium">{fmt(r.gross_amount, r.currency)}</span>} secondary={r.currency} />
                     <RegisterCell align="right" primary={r.commission != null ? fmt(r.commission, r.currency) : '—'} />
-                    <RegisterCell last><span className="text-[14px]" style={{ color: BODY }}>{STATUS_LABEL[r.status]}</span></RegisterCell>
+                    <RegisterCell last><span className="text-[14px] text-trs-ink-2">{STATUS_LABEL[r.status]}</span></RegisterCell>
                   </RegisterRow>
                 ))}
               </tbody>

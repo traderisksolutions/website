@@ -23,7 +23,7 @@ function Sites() {
     <MarketingPage
       title="Sites"
       line={!status ? (error ?? 'Loading…') : <>{sites.length} sites · engine {status.engine ? 'connected' : 'not connected'} · Search Console {status.gsc ? 'configured' : 'not configured'}</>}
-      line2={site && <>Public feed <a href={`/api/public/blog?site=${site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: INK }}>/api/public/blog?site={site.domain}</a></>}
+      line2={site && <>Public feed <a href={`/api/public/blog?site=${site.domain}`} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-trs-ink">/api/public/blog?site={site.domain}</a></>}
       sites={sites} siteKey={siteKey} onSite={setSiteKey}
     >
       {site ? <SiteForm key={`${site.id}:${site.updated_at}`} site={site} onSaved={reload} /> : <Note>Loading…</Note>}
@@ -101,7 +101,7 @@ function SiteForm({ site, onSaved }: { site: Site; onSaved: () => void }) {
       </div>
       <div className="lg:col-span-2 flex items-center gap-3 flex-wrap">
         <Btn level="primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</Btn>
-        {note && <span className="text-[13.5px]" style={{ color: MUTED }} role="status">{note}</span>}
+        {note && <span className="text-[13.5px] text-trs-muted" role="status">{note}</span>}
         {error && <span className="text-[13.5px]" role="alert">{error}</span>}
       </div>
     </div>

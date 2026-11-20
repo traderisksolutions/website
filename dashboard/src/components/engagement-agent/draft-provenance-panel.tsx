@@ -51,9 +51,9 @@ export function DraftProvenancePanel({
         className="flex items-center justify-between w-full text-left bg-transparent border-0 p-0 cursor-pointer"
       >
         <span className="flex items-center gap-1.5">
-          <span className="text-[12.5px] font-medium" style={{ color: BODY }}>How this draft was made</span>
+          <span className="text-[12.5px] font-medium text-trs-ink-2">How this draft was made</span>
           {!open && (
-            <span className="text-[12px] tabular-nums" style={{ color: FAINT }}>
+            <span className="text-[12px] tabular-nums text-trs-subtle">
               {signalCount} signal{signalCount !== 1 ? 's' : ''}
             </span>
           )}
@@ -68,7 +68,7 @@ export function DraftProvenancePanel({
       </button>
 
       {open && (
-        <div className="mt-1 text-[12.5px]" style={{ color: MUTED }}>
+        <div className="mt-1 text-[12.5px] text-trs-muted">
           <RetrievalSourcesPanel sources={ragSources} gdocNames={gdocNames} generatedBy={generatedBy} />
           <ApprovedExamplesPanel examples={examples} />
           <AntiPatternPanel watchOuts={watchOuts} />

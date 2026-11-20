@@ -69,7 +69,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="mt-4 flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="m-0 text-[13px] tabular-nums" style={{ color: MUTED }}>
+        <p className="m-0 text-[13px] tabular-nums text-trs-muted">
           {d.isDefault ? 'Default' : `Edited ${when(d.updatedAt) ?? ''}`} · {words.toLocaleString()} words · read by client drafts, Ask AI, group benefits and summaries
         </p>
         {isAdmin && (
@@ -77,7 +77,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
             {!d.isDefault && (
               confirmRestore ? (
                 <>
-                  <span className="text-[13px]" style={{ color: MUTED }}>Replace with the default?</span>
+                  <span className="text-[13px] text-trs-muted">Replace with the default?</span>
                   <button type="button" onClick={() => setConfirmRestore(false)}
                           className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer" style={{ borderColor: '#d5d9d4', color: INK }}>Cancel</button>
                   <button type="button" onClick={() => void restore()} disabled={!!busy}
@@ -93,7 +93,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
               )
             )}
             <button type="button" onClick={() => void save()} disabled={!dirty || !!busy}
-                    className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40" style={{ background: '#132c1c' }}>
+                    className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium border-0 cursor-pointer disabled:opacity-40 bg-trs-green">
               {busy === 'save' ? 'Saving…' : 'Save'}
             </button>
           </div>
@@ -114,7 +114,7 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" }}
       />
 
-      {!isAdmin && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>Only an administrator can edit this.</p>}
+      {!isAdmin && <p className="m-0 text-[12.5px] text-trs-muted">Only an administrator can edit this.</p>}
     </div>
   )
 }

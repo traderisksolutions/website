@@ -45,7 +45,7 @@ export function SectionCard({ title, actions, children, className, padded = true
     <section className={cn('min-w-0 pb-6 [section+&]:pt-6 [section+&]:border-t', className)} style={{ borderColor: 'var(--trs-line)' }}>
       {(title || actions) && (
         <header className={cn('flex items-center gap-3 mb-3 flex-wrap', title ? 'justify-between' : 'justify-end')}>
-          {title && <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight" style={{ color: INK }}>{title}</h2>}
+          {title && <h2 className="m-0 text-[16px] font-medium tracking-[-0.01em] leading-tight text-trs-ink">{title}</h2>}
           {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
         </header>
       )}
@@ -59,7 +59,7 @@ export function Empty({ children, compact, action }: { children: React.ReactNode
   if (!action) return <p className={cn('text-[14px] text-center m-0', compact ? 'py-5' : 'py-10')} style={{ color: MUTED }}>{children}</p>
   return (
     <div className={cn('flex flex-col items-center gap-3 text-center', compact ? 'py-5' : 'py-10')}>
-      <p className="m-0 text-[14px]" style={{ color: MUTED }}>{children}</p>
+      <p className="m-0 text-[14px] text-trs-muted">{children}</p>
       {action}
     </div>
   )
@@ -70,12 +70,12 @@ export function Spinner({ label, rows = 5 }: { label?: string; rows?: number }) 
   const widths = ['34%', '18%', '14%', '20%']
   return (
     <div role="status" aria-live="polite" className="flex flex-col py-3 min-w-0">
-      <span className="text-[12.5px] mb-2" style={{ color: MUTED }}>{label ?? 'Loading…'}</span>
-      <div className="flex items-center gap-4 h-10 border-b" style={{ borderColor: 'var(--trs-ink)' }}>
+      <span className="text-[12.5px] mb-2 text-trs-muted">{label ?? 'Loading…'}</span>
+      <div className="flex items-center gap-4 h-10 border-b border-trs-ink">
         {widths.map((w, i) => <span key={i} className="trs-sk" style={{ width: `calc(${w} * .55)`, height: 9 }} />)}
       </div>
       {Array.from({ length: rows }, (_, r) => (
-        <div key={r} className="flex items-center gap-4 h-[46px] border-b" style={{ borderColor: 'var(--trs-line)' }}>
+        <div key={r} className="flex items-center gap-4 h-[46px] border-b border-trs-line">
           {widths.map((w, i) => <span key={i} className="trs-sk" style={{ width: w, opacity: 1 - r * 0.12 }} />)}
         </div>
       ))}
@@ -85,7 +85,7 @@ export function Spinner({ label, rows = 5 }: { label?: string; rows?: number }) 
 
 /** A small inline wait, for a button or a line of text. */
 export function InlineSpinner({ label }: { label?: string }) {
-  return <span className="inline-flex items-center gap-2 text-[13px]" style={{ color: MUTED }}><Loader2 size={14} className="animate-spin" />{label}</span>
+  return <span className="inline-flex items-center gap-2 text-[13px] text-trs-muted"><Loader2 size={14} className="animate-spin" />{label}</span>
 }
 
 const BTN_BASE = 'inline-flex items-center justify-center gap-1.5 border font-medium whitespace-nowrap transition-[background-color,border-color,color,opacity] disabled:opacity-45 disabled:cursor-not-allowed cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trs-green'
@@ -153,9 +153,9 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-[13px] font-medium mb-1.5" style={{ color: INK }}>{label}</span>
+      <span className="block text-[13px] font-medium mb-1.5 text-trs-ink">{label}</span>
       {children}
-      {hint && <span className="block text-[12px] mt-1" style={{ color: MUTED }}>{hint}</span>}
+      {hint && <span className="block text-[12px] mt-1 text-trs-muted">{hint}</span>}
     </label>
   )
 }

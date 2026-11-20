@@ -80,16 +80,16 @@ export function EntryDrawer({ entry, siteKey, defaultSection, markets, onClose, 
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             <h2 className="m-0 text-[22px] font-medium leading-[1.2] tracking-[-0.01em]" style={{ textWrap: 'balance' }}>{existing ? existing.title : 'New entry'}</h2>
-            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-[13.5px]" style={{ color: MUTED }}>
+            <p className="m-0 mt-2 flex items-center gap-2 flex-wrap text-[13.5px] text-trs-muted">
               {existing && <KnowledgeStatusChip status={existing.status} />}
               <span>{meta.label}</span>
               {existing && <span>· updated {fmtDate(existing.updated_at)}{existing.updated_by ? ` by ${existing.updated_by}` : ''}</span>}
             </p>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0 -mr-2 -mt-1">
-            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronUp size={18} /></button>
-            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default" style={{ color: MUTED }}><ChevronDown size={18} /></button>
-            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={18} /></button>
+            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Previous entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default text-trs-muted"><ChevronUp size={18} /></button>
+            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Next entry" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-30 disabled:cursor-default text-trs-muted"><ChevronDown size={18} /></button>
+            <button type="button" onClick={onClose} aria-label="Close" className="w-9 h-9 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted"><X size={18} /></button>
           </div>
         </div>
       </div>

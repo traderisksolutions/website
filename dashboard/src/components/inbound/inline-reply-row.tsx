@@ -166,12 +166,12 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
         <td colSpan={6} className="px-4 py-3" style={{ background: '#faf9f6', borderBottom: '1px solid #e6e8e4' }}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3 flex-wrap">
-              <Check size={14} className="flex-shrink-0" style={{ color: INK }} />
-              <span className="text-[13.5px]" style={{ color: '#2a332f' }}>Reply sent to {lead.email}</span>
+              <Check size={14} className="flex-shrink-0 text-trs-ink" />
+              <span className="text-[13.5px] text-trs-ink-2">Reply sent to {lead.email}</span>
               <a
                 href={`/engagement?lead=${lead.id}`}
-                className="text-[13.5px] no-underline hover:underline underline-offset-4"
-                style={{ color: INK }}
+                className="text-[13.5px] no-underline hover:underline underline-offset-4 text-trs-ink"
+                
               >
                 View in Engagement →
               </a>
@@ -180,8 +180,8 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
               type="button"
               onClick={onCollapse}
               aria-label="Collapse reply panel"
-              className="bg-transparent border-0 p-0 cursor-pointer"
-              style={{ color: MUTED }}
+              className="bg-transparent border-0 p-0 cursor-pointer text-trs-muted"
+              
             >
               <ChevronUp size={14} />
             </button>
@@ -198,7 +198,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
 
           {/* Header */}
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[14px] font-medium flex items-center gap-1" style={{ color: INK }}>
+            <span className="text-[14px] font-medium flex items-center gap-1 text-trs-ink">
               AI reply draft
               <Tip text="Drafted from TRS FAQ documents only, no pricing. Review and edit before sending." />
             </span>
@@ -208,8 +208,8 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                   type="button"
                   onClick={generateDraft}
                   disabled={generating}
-                  className="bg-transparent border-0 cursor-pointer text-[13px] p-0 underline underline-offset-4 disabled:opacity-50"
-                  style={{ color: MUTED }}
+                  className="bg-transparent border-0 cursor-pointer text-[13px] p-0 underline underline-offset-4 disabled:opacity-50 text-trs-muted"
+                  
                 >
                   {generating ? 'Regenerating…' : 'Regenerate'}
                 </button>
@@ -218,8 +218,8 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                 type="button"
                 onClick={onCollapse}
                 aria-label="Collapse reply panel"
-                className="bg-transparent border-0 p-0 cursor-pointer"
-                style={{ color: MUTED }}
+                className="bg-transparent border-0 p-0 cursor-pointer text-trs-muted"
+                
               >
                 <ChevronUp size={14} />
               </button>
@@ -229,10 +229,10 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
           {!hasDraft && !generating ? (
             <div className="flex items-center gap-3 flex-wrap">
               <Btn level="primary" onClick={generateDraft} disabled={generating}>Generate reply</Btn>
-              {sendError && <span className="text-[13px]" style={{ color: MUTED }}>{sendError}</span>}
+              {sendError && <span className="text-[13px] text-trs-muted">{sendError}</span>}
             </div>
           ) : generating && !hasDraft ? (
-            <div className="text-[13px]" style={{ color: MUTED }}>Generating…</div>
+            <div className="text-[13px] text-trs-muted">Generating…</div>
           ) : (
             <>
               {/* Rich editor */}
@@ -250,7 +250,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
               <div className="flex flex-col gap-2">
                 {senders.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[12.5px] w-[64px] flex-shrink-0" style={{ color: MUTED }}>From</span>
+                    <span className="text-[12.5px] w-[64px] flex-shrink-0 text-trs-muted">From</span>
                     <select
                       value={selectedFromEmail}
                       onChange={e => setSelectedFromEmail(e.target.value)}
@@ -265,7 +265,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                 )}
                 {signatures.length > 0 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-[12.5px] w-[64px] flex-shrink-0" style={{ color: MUTED }}>Signature</span>
+                    <span className="text-[12.5px] w-[64px] flex-shrink-0 text-trs-muted">Signature</span>
                     {selectedSig ? (
                       <>
                         <Chip className="max-w-[260px] overflow-hidden text-ellipsis">
@@ -275,8 +275,8 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                           type="button"
                           onClick={() => setSelectedSigId('')}
                           aria-label="Remove signature"
-                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer p-0"
-                          style={{ color: MUTED }}
+                          className="w-6 h-6 inline-flex items-center justify-center rounded-[6px] hover:bg-[#f1f2ee] bg-transparent border-0 cursor-pointer p-0 text-trs-muted"
+                          
                         >
                           <X size={12} />
                         </button>
@@ -300,7 +300,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
 
               {/* To + Send row */}
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <span className="text-[12.5px] flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
+                <span className="text-[12.5px] flex items-center gap-1.5 flex-wrap text-trs-muted">
                   To {lead.email}
                   {selectedFromEmail && selectedFromEmail !== 'operations@trade-risksol.com' && (
                     <Chip>cc operations@</Chip>
@@ -308,7 +308,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
                   <Tip text="Sent via Gmail. From a personal address, operations@ is copied so replies stay in the shared thread." />
                 </span>
                 <div className="flex items-center gap-3">
-                  {sendError && <span className="text-[13px]" style={{ color: MUTED }}>{sendError}</span>}
+                  {sendError && <span className="text-[13px] text-trs-muted">{sendError}</span>}
                   <Btn level="primary" onClick={sendReply} disabled={sending || !hasDraft} loading={sending}>
                     {!sending && <Send size={12} />} {sending ? 'Sending…' : 'Send reply'}
                   </Btn>

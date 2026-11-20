@@ -33,18 +33,18 @@ function LoginCard() {
       <div className="w-full max-w-[400px] bg-white rounded-[16px] px-9 py-10" style={{ border: '1px solid #e6e8e4' }}>
         {/* Wordmark */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center rounded-[12px] mb-4 w-12 h-12" style={{ background: INK }}>
+          <div className="inline-flex items-center justify-center rounded-[12px] mb-4 w-12 h-12 bg-trs-ink">
             <span className="text-white text-[16px] font-medium tracking-[-0.01em]">TRS</span>
           </div>
-          <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight" style={{ color: INK }}>
+          <h1 className="m-0 text-[24px] font-medium tracking-[-0.02em] leading-tight text-trs-ink">
             Trade Risk Solutions
           </h1>
-          <p className="m-0 mt-1.5 text-[14px]" style={{ color: MUTED }}>Internal dashboard</p>
+          <p className="m-0 mt-1.5 text-[14px] text-trs-muted">Internal dashboard</p>
         </div>
 
         {/* Error */}
         {error && (
-          <p role="alert" className="m-0 mb-5 text-[13.5px] text-center leading-relaxed" style={{ color: '#2a332f' }}>{error}</p>
+          <p role="alert" className="m-0 mb-5 text-[13.5px] text-center leading-relaxed text-trs-ink-2">{error}</p>
         )}
 
         {/* Sign in button */}
@@ -64,7 +64,7 @@ function LoginCard() {
           Sign in with Google
         </button>
 
-        <p className="m-0 mt-5 text-center text-[13px] leading-relaxed" style={{ color: MUTED }}>
+        <p className="m-0 mt-5 text-center text-[13px] leading-relaxed text-trs-muted">
           Only @trade-risksol.com accounts can sign in.
         </p>
       </div>

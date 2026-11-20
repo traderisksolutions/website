@@ -151,7 +151,7 @@ function Ask({ question, hint, children, small }: { question: string; hint: stri
     <div className="max-w-[760px]">
       <p className={cn('m-0 font-medium tracking-[-0.02em] leading-[1.25]', small ? 'text-[20px] mb-3.5' : 'text-[26px] mb-[18px]')} style={{ textWrap: 'balance' }}>
         {question}
-        <small className="block text-[14px] font-normal tracking-normal mt-1.5" style={{ color: MUTED }}>{hint}</small>
+        <small className="block text-[14px] font-normal tracking-normal mt-1.5 text-trs-muted">{hint}</small>
       </p>
       {children}
     </div>
@@ -165,7 +165,7 @@ function RegisterFoot({ colSpan, left, right }: { colSpan: number; left: React.R
   return (
     <tfoot>
       <tr>
-        <td colSpan={colSpan} className="px-6 py-3 text-[13px]" style={{ color: MUTED }}>
+        <td colSpan={colSpan} className="px-6 py-3 text-[13px] text-trs-muted">
           <div className="flex items-center justify-between gap-3 flex-wrap"><span>{left}</span>{right && <span>{right}</span>}</div>
         </td>
       </tr>
@@ -215,13 +215,13 @@ function CompaniesTab({ data, busy, onAdd, onRemove }: { data: Payload; busy: bo
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at ? n(c.pages_count) : '–'}</span></RegisterCell>
                 <RegisterCell align="left" nowrap={false} className="min-w-[240px] max-w-[420px]">
                   {best ? <>
-                    <span className="block text-[13.5px] leading-[1.4] break-all" style={{ color: INK2 }}>{best}</span>
-                    {c.best_page_note && <span className="block text-[12.5px] mt-0.5" style={{ color: MUTED }}>{c.best_page_note}</span>}
-                  </> : <span style={{ color: FAINT }}>–</span>}
+                    <span className="block text-[13.5px] leading-[1.4] break-all text-trs-ink-2">{best}</span>
+                    {c.best_page_note && <span className="block text-[12.5px] mt-0.5 text-trs-muted">{c.best_page_note}</span>}
+                  </> : <span className="text-trs-subtle">–</span>}
                 </RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at && checked ? `${c.cited_count} of ${checked}` : '–'}</span></RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{c.last_analysed_at ? n(c.search_hits) : '–'}</span></RegisterCell>
-                <RegisterCell><span style={{ color: MUTED }}>{fmtDay(c.created_at)}</span></RegisterCell>
+                <RegisterCell><span className="text-trs-muted">{fmtDay(c.created_at)}</span></RegisterCell>
                 <RegisterCell last><Btn level="tertiary" size="xs" disabled={busy} onClick={() => onRemove(c)}>Remove</Btn></RegisterCell>
               </RegisterRow>
             )
@@ -275,10 +275,10 @@ function PromptsTab({ data, busy, onAdd, onToggle, onRemove }: { data: Payload; 
                 <RegisterCell className="pl-5 pr-1">
                   <input type="checkbox" checked={p.selected} disabled={busy} onChange={() => onToggle(p)} aria-label={`Write for: ${p.prompt}`} className="block w-4 h-4 cursor-pointer" style={{ accentColor: INK }} />
                 </RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.prompt}</span></RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{p.search_query || <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
-                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-[13.5px] leading-[1.4]" style={{ color: INK2 }}>{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span style={{ color: FAINT }}>–</span>}</span></RegisterCell>
-                <RegisterCell>{r ? <Chip>{TONE_LABEL[r.tone] ?? r.tone}</Chip> : <span style={{ color: FAINT }}>–</span>}</RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[260px] max-w-[420px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{p.prompt}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[320px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{p.search_query || <span className="text-trs-subtle">–</span>}</span></RegisterCell>
+                <RegisterCell align="left" nowrap={false} className="min-w-[200px] max-w-[360px]"><span className="block text-[13.5px] leading-[1.4] text-trs-ink-2">{r?.cited_domains?.length ? r.cited_domains.join(' · ') : <span className="text-trs-subtle">–</span>}</span></RegisterCell>
+                <RegisterCell>{r ? <Chip>{TONE_LABEL[r.tone] ?? r.tone}</Chip> : <span className="text-trs-subtle">–</span>}</RegisterCell>
                 <RegisterCell align="right"><span className="tabular-nums">{p.impressions == null ? '–' : n(p.impressions)}</span></RegisterCell>
                 <RegisterCell last><Btn level="tertiary" size="xs" disabled={busy} onClick={() => onRemove(p)}>Remove</Btn></RegisterCell>
               </RegisterRow>
@@ -308,13 +308,13 @@ function HistoryTab({ analyses, siteName }: { analyses: GeoAnalysis[]; siteName:
             : a.status === 'running' ? `started ${fmtWhen(a.started_at) ?? ''}` : 'waiting for the engine'
         return (
           <li key={a.id} className="grid gap-4 items-baseline py-3.5 text-[14px] grid-cols-2 sm:grid-cols-[120px_minmax(0,1fr)_150px_120px]" style={{ borderBottom: `1px solid ${RULE}` }}>
-            <span className="tabular-nums" style={{ color: MUTED }}>{fmtWhen(a.completed_at ?? a.created_at)}</span>
+            <span className="tabular-nums text-trs-muted">{fmtWhen(a.completed_at ?? a.created_at)}</span>
             <span className="font-medium min-w-0">
               Analysis v{a.version}{status && <> <Chip className="ml-1.5 align-middle">{status}</Chip></>}
-              <small className="block font-normal text-[12.5px] mt-0.5 break-words" style={{ color: MUTED }}>{detail}</small>
+              <small className="block font-normal text-[12.5px] mt-0.5 break-words text-trs-muted">{detail}</small>
             </span>
-            <span style={{ color: MUTED }}>{modelLabel(a.model)}</span>
-            <span className="tabular-nums sm:text-right" style={{ color: MUTED }}>{usd(a.cost_usd)}</span>
+            <span className="text-trs-muted">{modelLabel(a.model)}</span>
+            <span className="tabular-nums sm:text-right text-trs-muted">{usd(a.cost_usd)}</span>
           </li>
         )
       })}

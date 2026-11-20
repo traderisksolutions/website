@@ -70,7 +70,7 @@ export function ProductEditor({ product, onSaved, onClose }: {
       <div className="flex flex-col gap-1">
         <span className={label} style={{ color: MUTED }}>People to ask · the starred person gets the request</span>
         <div className="flex flex-col">
-          {product.contacts.length === 0 && <span className="text-[13px] py-1" style={{ color: ERROR }}>No one on file. Add a person, or this product cannot be asked.</span>}
+          {product.contacts.length === 0 && <span className="text-[13px] py-1 text-trs-neg">No one on file. Add a person, or this product cannot be asked.</span>}
           {product.contacts.map(c => (
             <div key={c.contact_id} className="flex items-center gap-3 h-8 text-[13px]">
               <button type="button" onClick={() => makeDefault(c.contact_id)} disabled={busy || c.is_default} aria-label={c.is_default ? `${c.email} gets the request` : `Send requests to ${c.email}`}
@@ -78,8 +78,8 @@ export function ProductEditor({ product, onSaved, onClose }: {
                 <Star size={14} fill={c.is_default ? INK : 'none'} />
               </button>
               <span className="w-[180px] truncate">{c.name ?? '—'}</span>
-              <span className="flex-1 truncate" style={{ color: MUTED }}>{c.email}</span>
-              <button type="button" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#f1f2ee]" style={{ color: MUTED }}><X size={13} /></button>
+              <span className="flex-1 truncate text-trs-muted">{c.email}</span>
+              <button type="button" onClick={() => remove(c.contact_id)} disabled={busy} aria-label={`Remove ${c.email}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#f1f2ee] text-trs-muted"><X size={13} /></button>
             </div>
           ))}
         </div>
@@ -90,7 +90,7 @@ export function ProductEditor({ product, onSaved, onClose }: {
         </div>
       </div>
 
-      {error && <p className="m-0 text-[13px]" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="m-0 text-[13px] text-trs-neg">{error}</p>}
       <div className="flex items-center gap-2">
         <Btn level="primary" size="xs" onClick={save} loading={busy}>Save</Btn>
         <Btn size="xs" onClick={onClose} disabled={busy}>Close</Btn>

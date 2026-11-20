@@ -110,9 +110,9 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
 
   return (
     <SectionCard title={title}>
-      {error && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{error}</p>}
-      {notice && <p className="text-[13px] m-0 mb-3" style={{ color: INK }}>{notice}</p>}
-      {loadError && <p className="text-[13px] m-0 mb-3" style={{ color: ERROR }}>{loadError}</p>}
+      {error && <p className="text-[13px] m-0 mb-3 text-trs-neg">{error}</p>}
+      {notice && <p className="text-[13px] m-0 mb-3 text-trs-ink">{notice}</p>}
+      {loadError && <p className="text-[13px] m-0 mb-3 text-trs-neg">{loadError}</p>}
 
       {/* 1. Employee list */}
       <Sub
@@ -131,7 +131,7 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
         )}
       >
         {quoting ? (
-          <p className="m-0 text-[14px]" style={{ color: INK }}>
+          <p className="m-0 text-[14px] text-trs-ink">
             {!lineId && 'No placement line linked to this policy.'}
             {lineId && (
               <>
@@ -236,17 +236,17 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
                   <RegisterCell align="right" primary={t.pax ?? '—'} />
                   <RegisterCell align="right" primary={fmtAmount(t.amount, t.currency)} />
                   <RegisterCell align="right" primary={t.estimate_amount != null ? fmtAmount(Number(t.estimate_amount), t.currency) : '—'} secondary={t.variance_amount != null && Math.abs(Number(t.variance_amount)) > 1 ? `${Number(t.variance_amount) > 0 ? '+' : ''}${fmtAmount(Number(t.variance_amount), t.currency)} vs expected` : undefined} />
-                  <RegisterCell align="left" nowrap={false}><span className="block text-[14px] max-w-[360px]" style={{ color: INK }}>{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
+                  <RegisterCell align="left" nowrap={false}><span className="block text-[14px] max-w-[360px] text-trs-ink">{t.description ?? (t.member_names.length ? t.member_names.join(', ') : '—')}</span></RegisterCell>
                   <RegisterCell>
                     {t.source_thread_id
-                      ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Thread</Link>
-                      : <span className="text-[14px]" style={{ color: MUTED }}>—</span>}
+                      ? <Link href={threadHref(t.source_thread_id) ?? '#'} className="text-[14px] no-underline hover:underline text-trs-ink">Thread</Link>
+                      : <span className="text-[14px] text-trs-muted">—</span>}
                   </RegisterCell>
                   <RegisterCell last>
                     {t.debit_note_id
-                      ? <Link href="/debit-notes" className="text-[14px] no-underline hover:underline" style={{ color: INK }}>Issued</Link>
+                      ? <Link href="/debit-notes" className="text-[14px] no-underline hover:underline text-trs-ink">Issued</Link>
                       : t.bundle_id
-                        ? <Link href="/debit-notes/new" className="text-[14px] no-underline hover:underline" style={{ color: INK }}>In review</Link>
+                        ? <Link href="/debit-notes/new" className="text-[14px] no-underline hover:underline text-trs-ink">In review</Link>
                         : <Btn size="xs" level="tertiary" loading={busy === `bill:${t.id}`} disabled={busy !== null || !t.source_attachment_id} title={t.source_attachment_id ? undefined : 'No insurer document on file; raise it from Debit notes'} onClick={() => void raiseNote(t.id)}>Raise TRS note</Btn>}
                   </RegisterCell>
                 </RegisterRow>
@@ -306,9 +306,9 @@ function PolicySection({ policy, bundle, onChanged, onOpenDrafts }: {
 /** A sub-section inside the policy card: a 14px heading, its actions on the right, then content. */
 function Sub({ title, actions, children }: { title: string; actions?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="py-4 first:pt-0 border-t first:border-t-0" style={{ borderColor: '#e6e8e4' }}>
+    <div className="py-4 first:pt-0 border-t first:border-t-0 border-trs-line">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-        <h3 className="m-0 text-[14px] font-medium" style={{ color: INK }}>{title}</h3>
+        <h3 className="m-0 text-[14px] font-medium text-trs-ink">{title}</h3>
         {actions && <div className="flex items-center gap-1.5 flex-wrap">{actions}</div>}
       </div>
       {children}
@@ -346,7 +346,7 @@ function AskTierCDialog({ open, lineId, productLine, onClose, onDone }: {
         </DialogHeader>
         <div className="flex flex-col gap-4">
           <ContactPicker productLines={[productLine]} tier="c" value={picks} onChange={setPicks} />
-          {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+          {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
             <Btn level="primary" className="h-9 px-4" onClick={draft} loading={busy} disabled={picks === null}>Draft the requests</Btn>
@@ -394,9 +394,9 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
         </DialogHeader>
         {result ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-[14px]" style={{ color: INK }}>{result.count} on the list · {result.quotes} engine quote{result.quotes === 1 ? '' : 's'}{result.partial ? ' · some insurers could not be priced' : ''}</p>
-            {result.notes.length > 0 && <ul className="m-0 pl-4 text-[13px]" style={{ color: MUTED }}>{result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
-            {result.issues.length > 0 && <ul className="m-0 pl-4 text-[13px]" style={{ color: MUTED }}>{result.issues.slice(0, 10).map((n, i) => <li key={i}>{n}</li>)}</ul>}
+            <p className="m-0 text-[14px] text-trs-ink">{result.count} on the list · {result.quotes} engine quote{result.quotes === 1 ? '' : 's'}{result.partial ? ' · some insurers could not be priced' : ''}</p>
+            {result.notes.length > 0 && <ul className="m-0 pl-4 text-[13px] text-trs-muted">{result.notes.map((n, i) => <li key={i}>{n}</li>)}</ul>}
+            {result.issues.length > 0 && <ul className="m-0 pl-4 text-[13px] text-trs-muted">{result.issues.slice(0, 10).map((n, i) => <li key={i}>{n}</li>)}</ul>}
             <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
@@ -410,7 +410,7 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
                 <option value="renewal">Renewal</option>
               </select>
             </Field>
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy !== null}>Cancel</Btn>
               <Btn level="primary" className="h-9 px-4" onClick={run} loading={busy !== null} disabled={!file}>{busy === 'reading' ? 'Reading the list…' : busy === 'pricing' ? 'Pricing…' : 'Upload and price'}</Btn>
@@ -459,8 +459,8 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
         </DialogHeader>
         {sent ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-[14px]" style={{ color: INK }}>{sent.mailError ? `Link created. Email not sent: ${sent.mailError}` : 'Link sent.'}</p>
-            <p className="m-0 text-[13px] break-all" style={{ color: MUTED }}>{sent.url}</p>
+            <p className="m-0 text-[14px] text-trs-ink">{sent.mailError ? `Link created. Email not sent: ${sent.mailError}` : 'Link sent.'}</p>
+            <p className="m-0 text-[13px] break-all text-trs-muted">{sent.url}</p>
             <div className="flex justify-end pt-2"><Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn></div>
           </div>
         ) : (
@@ -471,7 +471,7 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
             </div>
             <Field label="Copy"><input className={inputCls} type="email" value={cc} onChange={e => setCc(e.target.value)} /></Field>
             <Field label="Message"><textarea className={textareaCls} rows={4} value={message} onChange={e => setMessage(e.target.value)} /></Field>
-            {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+            {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
               <Btn level="primary" className="h-9 px-4" onClick={send} loading={busy}>Send</Btn>
@@ -537,7 +537,7 @@ function RecordMovementDialog({ open, policyId, onClose, onDone }: { open: boole
             <Field label="Pax"><input className={inputCls} type="number" min={1} step={1} value={pax} onChange={e => setPax(e.target.value)} /></Field>
           </div>
           <Field label="Detail"><input className={inputCls} value={detail} onChange={e => setDetail(e.target.value)} placeholder="Plan, category, date of birth" /></Field>
-          {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+          {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
             <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>
@@ -616,7 +616,7 @@ function RecordNoteDialog({ open, policyId, currency: defaultCurrency, onClose, 
           </div>
           <Field label="Description"><input className={inputCls} value={description} onChange={e => setDescription(e.target.value)} /></Field>
           <Field label="Member names" hint="Comma-separated"><input className={inputCls} value={names} onChange={e => setNames(e.target.value)} /></Field>
-          {error && <p className="text-[13px] m-0" style={{ color: ERROR }}>{error}</p>}
+          {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
             <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Record</Btn>

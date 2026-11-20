@@ -132,7 +132,7 @@ function Generate() {
                 <select value={focusId} onChange={e => setFocusId(e.target.value)} className={inputCls}>{options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}</select>
               </Field>
             )}
-            {(focusType === 'product' || focusType === 'case_study') && options.length === 0 && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>No entries of this kind in the knowledge bank yet. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2" style={{ color: INK }}>Add one</Link></p>}
+            {(focusType === 'product' || focusType === 'case_study') && options.length === 0 && <p className="m-0 text-[13.5px] text-trs-muted">No entries of this kind in the knowledge bank yet. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add one</Link></p>}
             {focusType === 'question'
               ? <Field label="The search to rank for" hint="Written as the reader types it into Google"><input value={question} onChange={e => setQuestion(e.target.value)} className={inputCls} placeholder="work injury compensation insurance for contractors" /></Field>
               : <>
@@ -155,14 +155,14 @@ function Generate() {
               <Segmented value={market} onChange={setMarket} options={(site?.markets ?? ['SG']).map(m => ({ value: m, label: marketLabel(m) }))} />
               <Segmented value={language} onChange={setLanguage} options={[{ value: '', label: `${MARKETS.find(m => m.code === market)?.language === 'id' ? 'Bahasa' : 'English'} (market default)` }, { value: 'en', label: 'English' }, { value: 'id', label: 'Bahasa Indonesia' }]} />
               <Segmented value={length} onChange={setLength} options={[{ value: 'standard', label: 'About 1,200 words' }, { value: 'long', label: 'About 2,000 words' }]} />
-              {data && missing.length > 0 && <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Knowledge bank missing {missing.join(', ')}. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2" style={{ color: INK }}>Add them</Link></p>}
+              {data && missing.length > 0 && <p className="m-0 text-[13.5px] text-trs-muted">Knowledge bank missing {missing.join(', ')}. <Link href={withSite('/marketing/knowledge', siteKey)} className="underline underline-offset-2 text-trs-ink">Add them</Link></p>}
             </div>
           </SectionCard>
           <SectionCard title="3. Extra instructions (optional)">
             <textarea value={instructions} onChange={e => setInstructions(e.target.value)} rows={3} className={textareaCls} placeholder="Mention the statutory limit; do not mention premiums." />
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <Btn level="primary" disabled={!canSubmit} onClick={generate}>{busy ? 'Starting…' : 'Generate article'}</Btn>
-              {data && readiness.total === 0 && <span className="text-[13.5px]" style={{ color: MUTED }}>The knowledge bank is empty: nothing to write from.</span>}
+              {data && readiness.total === 0 && <span className="text-[13.5px] text-trs-muted">The knowledge bank is empty: nothing to write from.</span>}
             </div>
           </SectionCard>
         </div>
@@ -190,9 +190,9 @@ function Generate() {
                 <RegisterCell>{r.setup.market ?? '–'}{r.setup.language ? ` · ${r.setup.language.toUpperCase()}` : ''}</RegisterCell>
                 <RegisterCell><RunStatusChip status={r.status} /></RegisterCell>
                 <RegisterCell><GateChip passed={g?.passed_gate ?? null} /></RegisterCell>
-                <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{fmtDuration(r.total_duration_ms)}</span></RegisterCell>
-                <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{typeof g?.cost_usd === 'number' ? `$${g.cost_usd.toFixed(2)}` : '–'}</span></RegisterCell>
-                <RegisterCell last><span style={{ color: MUTED }}>{TRIGGER_LABEL[r.triggered_by] ?? r.triggered_by}</span></RegisterCell>
+                <RegisterCell align="right"><span className="tabular-nums text-trs-muted">{fmtDuration(r.total_duration_ms)}</span></RegisterCell>
+                <RegisterCell align="right"><span className="tabular-nums text-trs-muted">{typeof g?.cost_usd === 'number' ? `$${g.cost_usd.toFixed(2)}` : '–'}</span></RegisterCell>
+                <RegisterCell last><span className="text-trs-muted">{TRIGGER_LABEL[r.triggered_by] ?? r.triggered_by}</span></RegisterCell>
               </RegisterRow>
             )
           })}

@@ -135,7 +135,7 @@ function Knowledge() {
       {data?.migrationPending ? <Note role="status">{MIGRATION_LINE}</Note> : (
         <div className={cn('grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]', loading && 'opacity-60')}>
           <div className="min-w-0">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5 text-[12.5px]" style={{ color: MUTED }}>
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-2.5 text-[12.5px] text-trs-muted">
               <span role="status">{state}</span>
               <span>Lines starting with # are headings; each heading is one fact the writer may cite</span>
             </div>
@@ -160,9 +160,9 @@ function Knowledge() {
           </div>
 
           <aside className="min-w-0">
-            <h3 className="m-0 mb-2.5 text-[13px] font-medium uppercase tracking-[0.06em]" style={{ color: MUTED }}>Versions</h3>
+            <h3 className="m-0 mb-2.5 text-[13px] font-medium uppercase tracking-[0.06em] text-trs-muted">Versions</h3>
             {data && data.versions.length === 0 ? (
-              <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>No versions yet.</p>
+              <p className="m-0 text-[13.5px] text-trs-muted">No versions yet.</p>
             ) : (
               <ul className="list-none m-0 p-0">
                 {(data?.versions ?? []).map(v => {
@@ -174,14 +174,14 @@ function Knowledge() {
                       <span className="min-w-0">
                         v{v.version}
                         {cur ? ' · current' : (
-                          <span className="ml-2 text-[12.5px]" style={{ color: MUTED }}>
-                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50" style={{ color: MUTED }} disabled={locked} onClick={() => view(v.version)}>view</button>
+                          <span className="ml-2 text-[12.5px] text-trs-muted">
+                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50 text-trs-muted" disabled={locked} onClick={() => view(v.version)}>view</button>
                             {' · '}
-                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50" style={{ color: MUTED }} disabled={locked} onClick={() => restore(v.version)}>restore</button>
+                            <button type="button" className="bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:cursor-not-allowed disabled:opacity-50 text-trs-muted" disabled={locked} onClick={() => restore(v.version)}>restore</button>
                           </span>
                         )}
                       </span>
-                      <span className="text-[12.5px] whitespace-nowrap" style={{ color: MUTED }}>{fmtDay(v.created_at)}, {author(v.created_by)}</span>
+                      <span className="text-[12.5px] whitespace-nowrap text-trs-muted">{fmtDay(v.created_at)}, {author(v.created_by)}</span>
                     </li>
                   )
                 })}

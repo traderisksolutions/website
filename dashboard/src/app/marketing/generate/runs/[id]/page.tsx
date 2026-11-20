@@ -79,7 +79,7 @@ function Run() {
 
   return (
     <MarketingPage
-      back={<Link href={withSite('/marketing/generate', siteKey)} className="underline underline-offset-2" style={{ color: MUTED }}>← Generate</Link>}
+      back={<Link href={withSite('/marketing/generate', siteKey)} className="underline underline-offset-2 text-trs-muted">← Generate</Link>}
       title={title}
       line={run && <span className="inline-flex items-center gap-2 flex-wrap"><RunStatusChip status={run.status} />{gate && <Chip>{gate.passed_gate ? 'Gate passed' : 'Held by gate'}</Chip>}{run.article_status && <Chip>{run.article_status === 'pending' ? 'Article awaiting approval' : `Article ${run.article_status}`}</Chip>}</span>}
       line2={run && <>{done} of {nodes.length} stages · {fmtDuration(run.total_duration_ms ?? elapsed)} · US${cost.toFixed(2)} · {run.setup.market}{run.setup.target_query ? ` · search: ${run.setup.target_query}` : ''} · started {fmtDate(run.created_at, true)}{run.created_by ? ` by ${run.created_by}` : ''}{run.error ? ` · ${run.error}` : ''}</>}
@@ -106,10 +106,10 @@ function Run() {
                     <li key={d.key} style={{ borderBottom: i < ENGINE_NODE_DEFS.length - 1 ? `1px solid ${RULE}` : undefined }}>
                       <button type="button" onClick={() => setSelected(on ? null : d.key)} aria-current={on ? 'step' : undefined}
                         className={cn('w-full flex items-center gap-3 px-5 py-3 text-left bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'bg-[#f1f2ee]')} style={{ color: INK }}>
-                        <span className="w-6 text-[13px] tabular-nums flex-shrink-0" style={{ color: MUTED }}>{i + 1}</span>
+                        <span className="w-6 text-[13px] tabular-nums flex-shrink-0 text-trs-muted">{i + 1}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[14.5px] font-medium truncate">{d.label}</span>
-                          <span className="block text-[12.5px] truncate" style={{ color: MUTED }}>{nd?.status === 'completed' ? [fmtDuration(nd.duration_ms), cost != null && cost > 0 ? `$${cost.toFixed(3)}` : null, nd.model && nd.model !== 'none' ? nd.model : null].filter(Boolean).join(' · ') : nd?.status === 'failed' ? nd.error?.slice(0, 120) : d.example}</span>
+                          <span className="block text-[12.5px] truncate text-trs-muted">{nd?.status === 'completed' ? [fmtDuration(nd.duration_ms), cost != null && cost > 0 ? `$${cost.toFixed(3)}` : null, nd.model && nd.model !== 'none' ? nd.model : null].filter(Boolean).join(' · ') : nd?.status === 'failed' ? nd.error?.slice(0, 120) : d.example}</span>
                         </span>
                         <NodeStatusChip status={nd?.status ?? 'queued'} />
                       </button>
@@ -119,12 +119,12 @@ function Run() {
               </ol>
             </SectionCard>
             <SectionCard title={`Activity (${data.events.length})`}>
-              {data.events.length === 0 ? <p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Nothing yet.</p> : (
+              {data.events.length === 0 ? <p className="m-0 text-[13.5px] text-trs-muted">Nothing yet.</p> : (
                 <ol className="m-0 p-0 list-none flex flex-col gap-1.5 text-[13.5px] max-h-[360px] overflow-auto">
                   {data.events.map(e => (
                     <li key={e.id} className="grid grid-cols-[64px_80px_1fr] gap-2">
-                      <span className="tabular-nums" style={{ color: MUTED }}>{new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Singapore' }).format(new Date(e.created_at))}</span>
-                      <span className="truncate" style={{ color: MUTED }}>{e.node_key ?? e.level}</span>
+                      <span className="tabular-nums text-trs-muted">{new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Singapore' }).format(new Date(e.created_at))}</span>
+                      <span className="truncate text-trs-muted">{e.node_key ?? e.level}</span>
                       <span className="break-words">{e.message}</span>
                     </li>
                   ))}
@@ -146,41 +146,41 @@ function Run() {
 }
 
 function Inspector({ node, sources, onClose }: { node: RunNode | null; sources: RunDetail['sources']; onClose: () => void }) {
-  if (!node) return <SectionCard title="Stage detail" className="border-t-0 pt-0"><p className="m-0 text-[13.5px]" style={{ color: MUTED }}>Select a stage to see its prompt, inputs, output and sources.</p></SectionCard>
+  if (!node) return <SectionCard title="Stage detail" className="border-t-0 pt-0"><p className="m-0 text-[13.5px] text-trs-muted">Select a stage to see its prompt, inputs, output and sources.</p></SectionCard>
   const referenced = new Set(node.source_ids)
   const used = sources.filter(s => referenced.has(s.doc_id))
   const meta = node.metadata as { cost_usd?: number; fact_ids?: string[]; provider?: string; attempts?: number; round?: number; verdict?: string }
   return (
     <SectionCard title={node.label} className="border-t-0 pt-0" actions={<Btn level="tertiary" size="xs" onClick={onClose}>Close</Btn>}>
       <div className="flex flex-col gap-4 text-[13.5px]">
-        <p className="m-0 flex items-center gap-2 flex-wrap"><NodeStatusChip status={node.status} />{node.duration_ms != null && <span style={{ color: MUTED }}>{fmtDuration(node.duration_ms)}</span>}{used.length > 0 && <span style={{ color: MUTED }}>· {used.length} sources</span>}</p>
+        <p className="m-0 flex items-center gap-2 flex-wrap"><NodeStatusChip status={node.status} />{node.duration_ms != null && <span className="text-trs-muted">{fmtDuration(node.duration_ms)}</span>}{used.length > 0 && <span className="text-trs-muted">· {used.length} sources</span>}</p>
         {node.error && <p className="m-0">{node.error}</p>}
         {node.prompt && <Block title="Prompt" text={node.prompt} />}
         {node.input_summary && <Block title="Inputs" text={node.input_summary} />}
         {node.output_summary && <Block title="Output" text={node.output_summary} />}
         {used.length > 0 && (
           <div>
-            <p className="m-0 mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: MUTED }}>Sources</p>
+            <p className="m-0 mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-trs-muted">Sources</p>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {used.map(s => (
                 <li key={s.id} className="rounded-[10px] p-2.5" style={{ border: `1px solid ${RULE}` }}>
                   <p className="m-0 font-medium">{s.title}</p>
-                  <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{s.used_in.length ? `Facts ${s.used_in.join(', ')}` : 'Loaded, not cited'}{s.score != null ? ` · match ${Math.round(s.score * 100)}%` : ''}</p>
+                  <p className="m-0 text-[12.5px] text-trs-muted">{s.used_in.length ? `Facts ${s.used_in.join(', ')}` : 'Loaded, not cited'}{s.score != null ? ` · match ${Math.round(s.score * 100)}%` : ''}</p>
                   {s.excerpt && <p className="m-0 mt-1 text-[12.5px]">{s.excerpt.slice(0, 200)}{s.excerpt.length > 200 ? '…' : ''}</p>}
-                  {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="text-[12.5px] underline underline-offset-2" style={{ color: INK }}>Source ↗</a>}
+                  {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="text-[12.5px] underline underline-offset-2 text-trs-ink">Source ↗</a>}
                 </li>
               ))}
             </ul>
           </div>
         )}
         <dl className="m-0 grid grid-cols-[90px_1fr] gap-x-3 gap-y-1">
-          {node.model && <><dt style={{ color: MUTED }}>Model</dt><dd className="m-0 break-all">{node.model}</dd></>}
-          {node.token_usage && <><dt style={{ color: MUTED }}>Tokens</dt><dd className="m-0 tabular-nums">{node.token_usage.input ?? 0} in · {node.token_usage.output ?? 0} out</dd></>}
-          {typeof meta.cost_usd === 'number' && <><dt style={{ color: MUTED }}>Cost</dt><dd className="m-0 tabular-nums">${meta.cost_usd.toFixed(4)}</dd></>}
-          {meta.provider && <><dt style={{ color: MUTED }}>Provider</dt><dd className="m-0">{meta.provider}{meta.attempts && meta.attempts > 1 ? ` · attempt ${meta.attempts}` : ''}</dd></>}
-          {meta.verdict && <><dt style={{ color: MUTED }}>Verdict</dt><dd className="m-0">{meta.verdict}{typeof meta.round === 'number' ? ` · round ${meta.round}` : ''}</dd></>}
-          {Array.isArray(meta.fact_ids) && meta.fact_ids.length > 0 && <><dt style={{ color: MUTED }}>Facts</dt><dd className="m-0 break-words">{meta.fact_ids.join(', ')}</dd></>}
-          {node.started_at && <><dt style={{ color: MUTED }}>Started</dt><dd className="m-0">{fmtDate(node.started_at, true)}</dd></>}
+          {node.model && <><dt className="text-trs-muted">Model</dt><dd className="m-0 break-all">{node.model}</dd></>}
+          {node.token_usage && <><dt className="text-trs-muted">Tokens</dt><dd className="m-0 tabular-nums">{node.token_usage.input ?? 0} in · {node.token_usage.output ?? 0} out</dd></>}
+          {typeof meta.cost_usd === 'number' && <><dt className="text-trs-muted">Cost</dt><dd className="m-0 tabular-nums">${meta.cost_usd.toFixed(4)}</dd></>}
+          {meta.provider && <><dt className="text-trs-muted">Provider</dt><dd className="m-0">{meta.provider}{meta.attempts && meta.attempts > 1 ? ` · attempt ${meta.attempts}` : ''}</dd></>}
+          {meta.verdict && <><dt className="text-trs-muted">Verdict</dt><dd className="m-0">{meta.verdict}{typeof meta.round === 'number' ? ` · round ${meta.round}` : ''}</dd></>}
+          {Array.isArray(meta.fact_ids) && meta.fact_ids.length > 0 && <><dt className="text-trs-muted">Facts</dt><dd className="m-0 break-words">{meta.fact_ids.join(', ')}</dd></>}
+          {node.started_at && <><dt className="text-trs-muted">Started</dt><dd className="m-0">{fmtDate(node.started_at, true)}</dd></>}
         </dl>
       </div>
     </SectionCard>
@@ -192,9 +192,9 @@ function Block({ title, text }: { title: string; text: string }) {
   const long = text.length > 600
   return (
     <div>
-      <p className="m-0 mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em]" style={{ color: MUTED }}>{title}</p>
-      <pre className="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-[#faf9f6] p-2.5 font-mono text-[11.5px] leading-[1.5]" style={{ color: INK }}>{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
-      {long && <button type="button" onClick={() => setOpen(v => !v)} className="mt-1 bg-transparent border-0 p-0 cursor-pointer text-[12.5px] underline underline-offset-2" style={{ color: INK }}>{open ? 'Show less' : 'Show all'}</button>}
+      <p className="m-0 mb-1.5 text-[11px] font-medium uppercase tracking-[0.06em] text-trs-muted">{title}</p>
+      <pre className="m-0 whitespace-pre-wrap break-words rounded-[10px] bg-[#faf9f6] p-2.5 font-mono text-[11.5px] leading-[1.5] text-trs-ink">{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
+      {long && <button type="button" onClick={() => setOpen(v => !v)} className="mt-1 bg-transparent border-0 p-0 cursor-pointer text-[12.5px] underline underline-offset-2 text-trs-ink">{open ? 'Show less' : 'Show all'}</button>}
     </div>
   )
 }

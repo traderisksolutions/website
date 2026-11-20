@@ -39,7 +39,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         className="inline-flex items-center gap-1 rounded-[6px] px-2 py-0.5 text-[11.5px] font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors"
         style={{ background: '#f1f2ee', color: '#2a332f' }}
       >
-        {st.label} <ChevronDown size={11} style={{ color: MUTED }} />
+        {st.label} <ChevronDown size={11} className="text-trs-muted" />
       </button>
 
       {open && (
@@ -63,7 +63,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
                 style={{ fontWeight: on ? 500 : 400, color: on ? INK : '#2a332f' }}
               >
                 {sc.label}
-                {on && <Check size={13} style={{ color: INK }} aria-hidden />}
+                {on && <Check size={13} className="text-trs-ink" aria-hidden />}
               </button>
             )
           })}

@@ -73,7 +73,7 @@ function Knowledge() {
 
   return (
     <MarketingPage
-      back={<Link href={withSite('/marketing/knowledge', siteKey)} className="no-underline hover:underline" style={{ color: MUTED }}>Knowledge file</Link>}
+      back={<Link href={withSite('/marketing/knowledge', siteKey)} className="no-underline hover:underline text-trs-muted">Knowledge file</Link>}
       title="Knowledge sections"
       line={!data ? 'Loading…' : <>{n(readiness.total)} entries · {n(readiness.verified)} verified · {missing.length === 0 ? `ready to write for ${marketLabel(market)}` : `missing for ${marketLabel(market)}: ${missing.join(', ')}`}</>}
       line2={data && data.site.markets.length > 1 && <span className="inline-flex items-center gap-2">Check readiness for <Segmented value={market} onChange={setMarket} options={data.site.markets.map(m => ({ value: m, label: marketLabel(m) }))} /></span>}
@@ -103,9 +103,9 @@ function Knowledge() {
               <RegisterRow key={e.id} selected={on} onClick={() => go({ entry: on ? null : e.id })}>
                 <RegisterCell first selected={on} identityWidth={360} primary={e.title} secondary={e.body.replace(/\s+/g, ' ').slice(0, 140)} />
                 <RegisterCell><KnowledgeStatusChip status={e.status} /></RegisterCell>
-                <RegisterCell>{e.markets.length ? e.markets.map(m => <Chip key={m} className="mr-1">{m}</Chip>) : <span style={{ color: MUTED }}>All</span>}</RegisterCell>
-                <RegisterCell align="right"><span className="tabular-nums" style={{ color: MUTED }}>{e.priority}</span></RegisterCell>
-                <RegisterCell last><span style={{ color: MUTED }}>{fmtDay(e.updated_at)}</span></RegisterCell>
+                <RegisterCell>{e.markets.length ? e.markets.map(m => <Chip key={m} className="mr-1">{m}</Chip>) : <span className="text-trs-muted">All</span>}</RegisterCell>
+                <RegisterCell align="right"><span className="tabular-nums text-trs-muted">{e.priority}</span></RegisterCell>
+                <RegisterCell last><span className="text-trs-muted">{fmtDay(e.updated_at)}</span></RegisterCell>
               </RegisterRow>
             )
           })}

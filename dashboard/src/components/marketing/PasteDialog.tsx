@@ -34,8 +34,8 @@ export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, marke
     <Dialog open={open} onOpenChange={v => { if (!busy) { onOpenChange(v); if (!v) setError(null) } }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-[20px] font-medium tracking-[-0.01em]" style={{ color: INK }}>Paste text</DialogTitle>
-          <DialogDescription className="text-[14px]" style={{ color: MUTED }}>Each line starting with a single # becomes its own entry; no headings means one entry. Everything is saved as a draft to verify.</DialogDescription>
+          <DialogTitle className="text-[20px] font-medium tracking-[-0.01em] text-trs-ink">Paste text</DialogTitle>
+          <DialogDescription className="text-[14px] text-trs-muted">Each line starting with a single # becomes its own entry; no headings means one entry. Everything is saved as a draft to verify.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -48,7 +48,7 @@ export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, marke
               {markets.map(m => <label key={m} className="inline-flex items-center gap-1.5 cursor-pointer"><input type="checkbox" checked={picked.includes(m)} onChange={e => setPicked(p => e.target.checked ? Array.from(new Set([...p, m])) : p.filter(x => x !== m))} />{marketLabel(m)}</label>)}
             </div>
           </Field>
-          {error && <p className="m-0 text-[13px]" role="alert" style={{ color: INK }}>{error}</p>}
+          {error && <p className="m-0 text-[13px] text-trs-ink" role="alert" >{error}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>

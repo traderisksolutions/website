@@ -70,18 +70,18 @@ function Article() {
 
   return (
     <MarketingPage
-      back={<Link href={withSite('/marketing/articles', siteKey)} className="underline underline-offset-2" style={{ color: MUTED }}>← Articles</Link>}
+      back={<Link href={withSite('/marketing/articles', siteKey)} className="underline underline-offset-2 text-trs-muted">← Articles</Link>}
       title={a ? form.title || a.title : 'Article'}
       line={a && <span className="inline-flex items-center gap-2 flex-wrap">
         <ArticleStatusChip status={a.status} /><CategoryChip category={a.category} />
         <span>/{a.slug}</span>
-        {a.status === 'published' && <a href={a.url} target="_blank" rel="noreferrer" className="underline underline-offset-2" style={{ color: INK }}>{a.url.replace(/^https?:\/\//, '')}</a>}
+        {a.status === 'published' && <a href={a.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 text-trs-ink">{a.url.replace(/^https?:\/\//, '')}</a>}
       </span>}
       line2={a && <>
         {words} words · updated {fmtDate(a.updated_at, true)}{a.updated_by ? ` by ${a.updated_by}` : ''}
         {a.published_at && <> · published {fmtDate(a.published_at)}</>}
         {a.approved_by && <> · approved by {a.approved_by}</>}
-        {a.run && <> · <Link href={withSite(`/marketing/generate/runs/${a.run.id}`, siteKey)} className="underline underline-offset-2" style={{ color: INK }}>View the run</Link></>}
+        {a.run && <> · <Link href={withSite(`/marketing/generate/runs/${a.run.id}`, siteKey)} className="underline underline-offset-2 text-trs-ink">View the run</Link></>}
       </>}
       sites={sites} siteKey={siteKey} onSite={k => { setSiteKey(k); router.push(`/marketing/articles?site=${k}`) }}
       actions={a && <>
@@ -120,7 +120,7 @@ function Article() {
               ) : (
                 <article>
                   <h1 className="m-0 mb-1 text-[26px] font-medium tracking-[-0.02em] leading-[1.15]">{form.title}</h1>
-                  {form.excerpt && <p className="m-0 mb-4 text-[17px]" style={{ color: MUTED }}>{form.excerpt}</p>}
+                  {form.excerpt && <p className="m-0 mb-4 text-[17px] text-trs-muted">{form.excerpt}</p>}
                   <Prose html={html} />
                 </article>
               )}
@@ -128,7 +128,7 @@ function Article() {
             {a.faq.length > 0 && (
               <SectionCard title={`FAQ (${a.faq.length})`}>
                 <dl className="m-0 flex flex-col gap-3 text-[14px]">
-                  {a.faq.map((f, i) => <div key={i}><dt className="font-medium">{f.question}</dt><dd className="m-0 mt-0.5" style={{ color: MUTED }}>{f.answer.replace(/\[F\d+\]/g, '')}</dd></div>)}
+                  {a.faq.map((f, i) => <div key={i}><dt className="font-medium">{f.question}</dt><dd className="m-0 mt-0.5 text-trs-muted">{f.answer.replace(/\[F\d+\]/g, '')}</dd></div>)}
                 </dl>
               </SectionCard>
             )}
@@ -138,30 +138,30 @@ function Article() {
             {gq && (
               <SectionCard title="Quality gate">
                 <div className="flex flex-col gap-2 text-[14px]">
-                  <p className="m-0 flex items-center gap-2"><Chip>{gate?.passed_gate ? 'Passed' : 'Held'}</Chip>{typeof gate?.cost_usd === 'number' && <span style={{ color: MUTED }}>US${gate.cost_usd.toFixed(2)}</span>}</p>
-                  <p className="m-0" style={{ color: MUTED }}>
+                  <p className="m-0 flex items-center gap-2"><Chip>{gate?.passed_gate ? 'Passed' : 'Held'}</Chip>{typeof gate?.cost_usd === 'number' && <span className="text-trs-muted">US${gate.cost_usd.toFixed(2)}</span>}</p>
+                  <p className="m-0 text-trs-muted">
                     {gq.unsupportedClaimCount ?? 0} unsupported claims · grounded {Math.round((gq.sourceGroundingScore ?? 0) * 100)}%
                     {typeof metrics.h2_count === 'number' && <> · {String(metrics.h2_count)} H2</>}
                     {typeof metrics.reading_minutes === 'number' && <> · {String(metrics.reading_minutes)} min read</>}
                   </p>
                   {(gq.recommendations ?? []).length > 0 && (
-                    <ul className="m-0 pl-4 flex flex-col gap-1" style={{ color: INK }}>{(gq.recommendations ?? []).slice(0, 8).map((r, i) => <li key={i}>{r}</li>)}</ul>
+                    <ul className="m-0 pl-4 flex flex-col gap-1 text-trs-ink">{(gq.recommendations ?? []).slice(0, 8).map((r, i) => <li key={i}>{r}</li>)}</ul>
                   )}
                   {(gq.missingTopics ?? []).length > 0 && (
-                    <p className="m-0" style={{ color: MUTED }}>Knowledge gaps: {(gq.missingTopics ?? []).join('; ')}</p>
+                    <p className="m-0 text-trs-muted">Knowledge gaps: {(gq.missingTopics ?? []).join('; ')}</p>
                   )}
                 </div>
               </SectionCard>
             )}
             <SectionCard title="Record">
               <dl className="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13.5px]">
-                <dt style={{ color: MUTED }}>Status</dt><dd className="m-0"><ArticleStatusChip status={a.status} /></dd>
-                <dt style={{ color: MUTED }}>Source</dt><dd className="m-0"><CategoryChip category={a.category} /></dd>
-                <dt style={{ color: MUTED }}>Language</dt><dd className="m-0">{a.language.toUpperCase()} · {a.market}</dd>
-                <dt style={{ color: MUTED }}>Created</dt><dd className="m-0">{fmtDate(a.created_at, true)}</dd>
-                <dt style={{ color: MUTED }}>Published</dt><dd className="m-0">{fmtDate(a.published_at, true) ?? '–'}</dd>
-                <dt style={{ color: MUTED }}>Approved</dt><dd className="m-0">{a.approved_at ? `${fmtDate(a.approved_at, true)} · ${a.approved_by ?? ''}` : '–'}</dd>
-                <dt style={{ color: MUTED }}>URL</dt><dd className="m-0 break-all">{a.url}</dd>
+                <dt className="text-trs-muted">Status</dt><dd className="m-0"><ArticleStatusChip status={a.status} /></dd>
+                <dt className="text-trs-muted">Source</dt><dd className="m-0"><CategoryChip category={a.category} /></dd>
+                <dt className="text-trs-muted">Language</dt><dd className="m-0">{a.language.toUpperCase()} · {a.market}</dd>
+                <dt className="text-trs-muted">Created</dt><dd className="m-0">{fmtDate(a.created_at, true)}</dd>
+                <dt className="text-trs-muted">Published</dt><dd className="m-0">{fmtDate(a.published_at, true) ?? '–'}</dd>
+                <dt className="text-trs-muted">Approved</dt><dd className="m-0">{a.approved_at ? `${fmtDate(a.approved_at, true)} · ${a.approved_by ?? ''}` : '–'}</dd>
+                <dt className="text-trs-muted">URL</dt><dd className="m-0 break-all">{a.url}</dd>
               </dl>
             </SectionCard>
           </div>

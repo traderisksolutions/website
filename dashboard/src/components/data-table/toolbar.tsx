@@ -45,7 +45,7 @@ export function DataTableSearch({
         className,
       )}
     >
-      <Search className="h-4 w-4 flex-shrink-0" style={{ color: '#6f7a74' }} />
+      <Search className="h-4 w-4 flex-shrink-0 text-trs-subtle" />
       <input
         type="text"
         value={value}

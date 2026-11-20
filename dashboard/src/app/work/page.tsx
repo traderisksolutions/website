@@ -78,8 +78,8 @@ export default function WorkPage() {
         </>}
       </PageHeader>
       {view === 'review' ? <ReviewList state={review} reload={review.reload} /> : <>
-        {error && <p className="m-0 mb-3 text-[13.5px]" style={{ color: ERROR }}>{error}</p>}
-        {notice && <p className="m-0 mb-3 text-[13.5px]" style={{ color: INK }}>{notice}</p>}
+        {error && <p className="m-0 mb-3 text-[13.5px] text-trs-neg">{error}</p>}
+        {notice && <p className="m-0 mb-3 text-[13.5px] text-trs-ink">{notice}</p>}
         {!items ? <Spinner label="Loading work…" /> : shown.length === 0 ? <Empty>Nothing here.</Empty> : (
           <div className="flex flex-col gap-3">
             {shown.map((i, n) => <Card key={i.id} item={i} first={n === 0} today={today} staff={staff} onDone={(msg) => { setNotice(msg); setError(null); load() }} onError={m => setError(m)} />)}
@@ -124,8 +124,8 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="w-full text-left bg-transparent border-0 p-0 cursor-pointer">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[12.5px] truncate" style={{ color: MUTED }}>{client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}{i.policy_number ? ` · ${i.policy_number}` : ''}</div>
-            <div className="text-[15.5px] font-medium leading-snug" style={{ color: INK }}>{i.title}</div>
+            <div className="text-[12.5px] truncate text-trs-muted">{client}{i.insurer_name ? ` · ${i.insurer_name}` : ''}{i.policy_number ? ` · ${i.policy_number}` : ''}</div>
+            <div className="text-[15.5px] font-medium leading-snug text-trs-ink">{i.title}</div>
           </div>
           {due && <span className="shrink-0 text-[12.5px] font-medium" style={{ color: late ? ERROR : MUTED }}>{due}</span>}
         </div>
@@ -138,39 +138,39 @@ function Card({ item: i, first, today, staff, onDone, onError }: { item: WorkIte
       </button>
 
       {open && (
-        <div className="mt-3 flex flex-col gap-3 text-[14px]" style={{ color: INK }}>
-          {i.summary && <p className="m-0" style={{ color: MUTED }}>{i.summary}</p>}
+        <div className="mt-3 flex flex-col gap-3 text-[14px] text-trs-ink">
+          {i.summary && <p className="m-0 text-trs-muted">{i.summary}</p>}
           {i.needs_human && (
             <div className="border-l-[3px] pl-3" style={{ borderColor: 'rgba(161,36,47,0.4)' }}>
-              <div className="text-[12px] uppercase tracking-[0.04em]" style={{ color: ERROR }}>Decision needed</div>
+              <div className="text-[12px] uppercase tracking-[0.04em] text-trs-neg">Decision needed</div>
               <div>{i.needs_human}</div>
             </div>
           )}
-          {i.next_action && <div><span style={{ color: MUTED }}>Next: </span>{i.next_action}{i.deadline_basis ? <span style={{ color: MUTED }}> · {i.deadline_basis}</span> : null}</div>}
+          {i.next_action && <div><span className="text-trs-muted">Next: </span>{i.next_action}{i.deadline_basis ? <span className="text-trs-muted"> · {i.deadline_basis}</span> : null}</div>}
 
           {i.draft && (
             <div className="rounded-[8px] px-3 py-2.5 border border-trs-line">
               {editing ? (
                 <div className="flex flex-col gap-2">
-                  <label className="text-[12.5px]" style={{ color: MUTED }}>To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
-                  <label className="text-[12.5px]" style={{ color: MUTED }}>Cc<input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} /></label>
-                  <label className="text-[12.5px]" style={{ color: MUTED }}>Subject<input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} /></label>
+                  <label className="text-[12.5px] text-trs-muted">To<input className={inputCls} value={to} onChange={e => setTo(e.target.value)} /></label>
+                  <label className="text-[12.5px] text-trs-muted">Cc<input className={inputCls} value={cc} onChange={e => setCc(e.target.value)} /></label>
+                  <label className="text-[12.5px] text-trs-muted">Subject<input className={inputCls} value={subject} onChange={e => setSubject(e.target.value)} /></label>
                   <textarea className={textareaCls} rows={10} value={body} onChange={e => setBody(e.target.value)} />
                 </div>
               ) : (
                 <>
-                  <div className="text-[12.5px] break-words" style={{ color: MUTED }}>To {i.draft.to}{i.draft.cc ? ` · Cc ${i.draft.cc}` : ''}</div>
+                  <div className="text-[12.5px] break-words text-trs-muted">To {i.draft.to}{i.draft.cc ? ` · Cc ${i.draft.cc}` : ''}</div>
                   <div className="text-[13.5px] font-medium mt-0.5">{i.draft.subject}</div>
                   <pre className="m-0 mt-2 whitespace-pre-wrap font-sans text-[14px] leading-relaxed">{i.draft.body.replace(/\{owner_name\}/g, 'Your name')}</pre>
                 </>
               )}
-              {i.draft.attachments.length > 0 && <div className="text-[12.5px] mt-2" style={{ color: MUTED }}>Attached: {i.draft.attachments.map(a => a.filename).join(', ')}</div>}
+              {i.draft.attachments.length > 0 && <div className="text-[12.5px] mt-2 text-trs-muted">Attached: {i.draft.attachments.map(a => a.filename).join(', ')}</div>}
             </div>
           )}
 
           {i.threads.length > 0 && (
             <div className="text-[13px] flex flex-col gap-0.5">
-              {i.threads.map(t => <Link key={t.id} href={`/engagement?thread=${t.id}`} className="no-underline hover:underline truncate" style={{ color: MUTED }}>{t.side === 'insurer' ? 'Insurer · ' : ''}{t.subject ?? 'Thread'}</Link>)}
+              {i.threads.map(t => <Link key={t.id} href={`/engagement?thread=${t.id}`} className="no-underline hover:underline truncate text-trs-muted">{t.side === 'insurer' ? 'Insurer · ' : ''}{t.subject ?? 'Thread'}</Link>)}
             </div>
           )}
 

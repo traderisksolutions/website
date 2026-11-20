@@ -66,7 +66,7 @@ function SettingsInner() {
           <nav aria-label="Settings sections" className="md:sticky md:top-20 self-start">
             {(['you', 'team', 'agents'] as const).map(g => (
               <div key={g} className="mb-5">
-                <p className="m-0 mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: '#8c958f' }}>{GROUP_LABEL[g]}</p>
+                <p className="m-0 mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-trs-subtle">{GROUP_LABEL[g]}</p>
                 <ul className="m-0 p-0 list-none flex md:flex-col gap-0.5 overflow-x-auto">
                   {SECTIONS.filter(s => s.group === g).map(s => {
                     const on = section === s.key
@@ -74,7 +74,7 @@ function SettingsInner() {
                       <li key={s.key} className="flex-shrink-0">
                         <button type="button" onClick={() => setSection(s.key)} aria-current={on ? 'page' : undefined}
                           className={cn('relative w-full text-left h-9 px-3 rounded-[7px] border-0 cursor-pointer text-[14px]', on ? 'font-medium' : 'hover:bg-[#f1f2ee]')} style={{ color: on ? INK : MUTED, background: on ? '#f1f2ee' : undefined }}>
-                          {on && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full" style={{ background: INK }} aria-hidden />}
+                          {on && <span className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-trs-ink" aria-hidden />}
                           {s.label}
                         </button>
                       </li>
@@ -111,28 +111,28 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
   return (
     <div className="flex flex-col gap-6">
       <Block title="Account">
-        {!profile ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> : (
+        {!profile ? <p className="m-0 text-[14px] text-trs-muted">Loading…</p> : (
           <dl className="m-0 grid grid-cols-[140px_1fr] gap-y-2 text-[14px]">
-            <dt style={{ color: MUTED }}>Signed in as</dt><dd className="m-0" style={{ color: INK }}>{profile.email ?? '—'}</dd>
-            <dt style={{ color: MUTED }}>Role</dt><dd className="m-0" style={{ color: INK }}>{profile.is_admin ? 'Administrator' : 'Staff'}</dd>
+            <dt className="text-trs-muted">Signed in as</dt><dd className="m-0 text-trs-ink">{profile.email ?? '—'}</dd>
+            <dt className="text-trs-muted">Role</dt><dd className="m-0 text-trs-ink">{profile.is_admin ? 'Administrator' : 'Staff'}</dd>
           </dl>
         )}
       </Block>
       <Block title="Gmail for sending">
-        {gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#2a332f' }}>{ERROR_MSGS[gmailError] ?? 'Connection failed. Please try again.'}</p>}
-        {gmailConnected && !gmailError && <p className="m-0 mb-3 text-[13.5px]" style={{ color: '#2a332f' }}>Gmail connected. Add your signature under Signatures.</p>}
-        {!profile ? <p className="m-0 text-[14px]" style={{ color: MUTED }}>Loading…</p> : profile.gmail_email ? (
+        {gmailError && <p className="m-0 mb-3 text-[13.5px] text-trs-ink-2">{ERROR_MSGS[gmailError] ?? 'Connection failed. Please try again.'}</p>}
+        {gmailConnected && !gmailError && <p className="m-0 mb-3 text-[13.5px] text-trs-ink-2">Gmail connected. Add your signature under Signatures.</p>}
+        {!profile ? <p className="m-0 text-[14px] text-trs-muted">Loading…</p> : profile.gmail_email ? (
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="m-0 text-[14px]" style={{ color: INK }}>Connected · {profile.gmail_email}</p>
+            <p className="m-0 text-[14px] text-trs-ink">Connected · {profile.gmail_email}</p>
             <button type="button" onClick={() => void disconnect()} disabled={disconnecting} className="h-9 px-3.5 rounded-[7px] bg-white text-[13.5px] border cursor-pointer disabled:opacity-50" style={{ borderColor: '#d5d9d4', color: INK }}>{disconnecting ? 'Removing…' : 'Disconnect'}</button>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="m-0 text-[14px]" style={{ color: MUTED }}>Not connected. Replies send from the shared address.</p>
-            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium no-underline inline-flex items-center" style={{ background: '#132c1c' }}>Connect Gmail</a>
+            <p className="m-0 text-[14px] text-trs-muted">Not connected. Replies send from the shared address.</p>
+            <a href="/api/auth/gmail/connect" className="h-9 px-4 rounded-[7px] text-white text-[13.5px] font-medium no-underline inline-flex items-center bg-trs-green">Connect Gmail</a>
           </div>
         )}
-        <p className="m-0 mt-3 text-[12.5px]" style={{ color: MUTED }}>A separate Google grant with the send scope only. Message content is never stored — only a token for sending.</p>
+        <p className="m-0 mt-3 text-[12.5px] text-trs-muted">A separate Google grant with the send scope only. Message content is never stored — only a token for sending.</p>
       </Block>
     </div>
   )
@@ -141,7 +141,7 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-[16px] px-6 py-5" style={{ border: `1px solid ${RULE}` }}>
-      <h3 className="m-0 mb-3 text-[16px] font-medium" style={{ color: INK }}>{title}</h3>
+      <h3 className="m-0 mb-3 text-[16px] font-medium text-trs-ink">{title}</h3>
       {children}
     </div>
   )

@@ -83,19 +83,19 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[14px] font-medium" style={{ color: INK }}>{fullName(lead)}</span>
-            {lead.company && <span className="text-[13.5px]" style={{ color: MUTED }}>· {lead.company}</span>}
-            {lead.topic   && <span className="text-[13.5px]" style={{ color: MUTED }}>— {lead.topic}</span>}
+            <span className="text-[14px] font-medium text-trs-ink">{fullName(lead)}</span>
+            {lead.company && <span className="text-[13.5px] text-trs-muted">· {lead.company}</span>}
+            {lead.topic   && <span className="text-[13.5px] text-trs-muted">— {lead.topic}</span>}
           </div>
           {body && (
-            <p className="m-0 mt-1 text-[13.5px] truncate" style={{ color: MUTED }}>
+            <p className="m-0 mt-1 text-[13.5px] truncate text-trs-muted">
               {body}
             </p>
           )}
         </div>
 
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <span className="text-[12.5px] tabular-nums" style={{ color: '#6f7a74' }}>{timeAgo(lead.created_at)}</span>
+          <span className="text-[12.5px] tabular-nums text-trs-subtle">{timeAgo(lead.created_at)}</span>
           <div className="relative" ref={menuRef}>
             <button
               type="button"
@@ -126,33 +126,33 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
         <div className="px-5 py-4 border-t border-[#e6e8e4]" onClick={e => e.stopPropagation()}>
           {body && (
             <div className="mb-4">
-              <p className="m-0 mb-1.5 text-[12.5px]" style={{ color: MUTED }}>Claim details</p>
-              <p className="m-0 text-[14px] leading-relaxed whitespace-pre-wrap" style={{ color: INK }}>{body}</p>
+              <p className="m-0 mb-1.5 text-[12.5px] text-trs-muted">Claim details</p>
+              <p className="m-0 text-[14px] leading-relaxed whitespace-pre-wrap text-trs-ink">{body}</p>
             </div>
           )}
           <div className="grid gap-x-6 gap-y-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
             {lead.email && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Email</p>
-                <button type="button" onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px]" style={{ color: INK }}>
+                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Email</p>
+                <button type="button" onClick={() => copy(lead.email!, 'email')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] text-trs-ink">
                   <span className="max-w-[180px] truncate">{lead.email}</span>
-                  {copied === 'email' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#8c958f' }} />}
+                  {copied === 'email' ? <Check size={12} className="text-trs-muted" /> : <Copy size={12} className="text-trs-subtle" />}
                 </button>
               </div>
             )}
             {lead.phone && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Phone</p>
-                <button type="button" onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] tabular-nums" style={{ color: INK }}>
+                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Phone</p>
+                <button type="button" onClick={() => copy(lead.phone!, 'phone')} className="bg-transparent border-0 p-0 cursor-pointer inline-flex items-center gap-1.5 text-[14px] tabular-nums text-trs-ink">
                   {lead.phone}
-                  {copied === 'phone' ? <Check size={12} style={{ color: MUTED }} /> : <Copy size={12} style={{ color: '#8c958f' }} />}
+                  {copied === 'phone' ? <Check size={12} className="text-trs-muted" /> : <Copy size={12} className="text-trs-subtle" />}
                 </button>
               </div>
             )}
             {lead.contact_type && (
               <div>
-                <p className="m-0 mb-1 text-[12.5px]" style={{ color: MUTED }}>Type</p>
-                <p className="m-0 text-[14px]" style={{ color: INK }}>{lead.contact_type}</p>
+                <p className="m-0 mb-1 text-[12.5px] text-trs-muted">Type</p>
+                <p className="m-0 text-[14px] text-trs-ink">{lead.contact_type}</p>
               </div>
             )}
           </div>
@@ -221,7 +221,7 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
   const filtered = filter === 'new' ? leads.filter(l => l.status === 'new') : leads
 
   return (
-    <div style={{ color: INK }}>
+    <div className="text-trs-ink">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Segmented
           value={filter}
@@ -239,12 +239,12 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
       <div className="mt-4">
         {loading ? (
           <div className="flex flex-col gap-3" aria-busy="true">
-            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse" style={{ background: '#f1f2ee' }} />)}
+            {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[72px] rounded-[16px] animate-pulse bg-trs-field" />)}
           </div>
         ) : error ? (
-          <p className="py-16 text-center text-[16px] m-0" style={{ color: '#a1242f' }}>{error}</p>
+          <p className="py-16 text-center text-[16px] m-0 text-trs-neg">{error}</p>
         ) : filtered.length === 0 ? (
-          <p className="py-16 text-center text-[16px] m-0" style={{ color: MUTED }}>{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
+          <p className="py-16 text-center text-[16px] m-0 text-trs-muted">{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
         ) : (
           <div className="flex flex-col gap-3">
             {filtered.map(lead => <LeadCard key={lead.id} lead={lead} onStatus={handleStatus} />)}

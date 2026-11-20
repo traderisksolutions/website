@@ -26,7 +26,7 @@ export function OwnerPicker({ value, staff, onChange, disabled, size = 'sm' }: {
         <span key={email} className="inline-flex items-center gap-0.5">
           <PersonTag email={email} staff={map} size={size} />
           <button type="button" disabled={disabled} onClick={() => onChange(value.filter(e => e !== email))} aria-label={`Remove ${map.get(email)?.name ?? email}`} title="Remove"
-            className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50" style={{ color: '#8c958f' }}><X size={11} /></button>
+            className="w-5 h-5 inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 text-trs-subtle"><X size={11} /></button>
         </span>
       ))}
       {adding || value.length === 0 ? (
