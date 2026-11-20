@@ -4,13 +4,15 @@
  * An Employment Benefits proposal (Jarod, 19 Nov 2026): the PDF built from a kept quotation, the
  * checks before it goes, Download, Edit quotation (/eb?quotation=<id>) and Email to client
  * (/eb/proposal/<id>/email). Email to client is never offered once the email has gone; a send that
- * went but was not recorded shows Try again. No model is called.
+ * went but was not recorded shows Try again. Insurers: each one's route and where its request stands
+ * (EB-075). No model is called.
  */
 import { use } from 'react'
 import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
 import { PageHeader } from '@/components/page-header'
 import { LinkBtn, Spinner } from '@/components/crm/primitives'
 import { Checks, MarkSent, PdfPreview, shortDate, useQuotation } from '@/components/eb/proposal-shared'
+import { EbInsurers } from '@/components/eb/EbInsurers'
 
 export default function ProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -33,6 +35,7 @@ export default function ProposalPage({ params }: { params: Promise<{ id: string 
             </>} />
           {q!.draft_sent && !q!.sent_at && <MarkSent id={id} onDone={() => void reload()} />}
           <Checks checks={view.checks} />
+          <EbInsurers id={id} />
           <PdfPreview id={id} />
         </>}
       </div>

@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Employment Benefits: each insurer on a proposal, tracked
+
+- **Insurers** on the proposal page: route with why or a broker's override with its reason; status (Not asked, Requested, Chased, Quoted, Declined, Revised) with the date of each step; a note; the placement module's quotes for the client (`eb_quotation_insurers`, `20261121_w_eb_quotation_insurers.sql`, EB-075).
+
 ## 2026-11-21 — Employment Benefits: a route per insurer
 
 - **Routes** on /eb (`gb/routes.ts`): each house insurer is Brochure price or Insurer to quote, from the package limits, minimum group, underwriting age and rate-card dates, with every reason (EB-074).

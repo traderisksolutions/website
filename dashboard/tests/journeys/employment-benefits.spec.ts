@@ -96,3 +96,14 @@ test('EB-073 Products: the five house products from the workbook beside their ra
   await expect(products.locator('thead th')).toContainText(['Product', 'Covers', 'Plans', 'Rates', 'Benefits', 'Rate tables', 'Same', 'With GST', 'Different', 'Workbook only', 'Table only'])
   await expect(page.getByRole('heading', { name: 'Read queue' })).toBeVisible()
 })
+
+test('EB-075 a proposal lists its insurers: route with why, status, the date of the step, a note; read only here', async ({ page }) => {
+  const [q] = await dbRows<{ id: string }>('eb_quotations?select=id&order=created_at.desc&limit=1')
+  test.skip(!q, 'no kept quotation')
+  await openClean(page, `/eb/proposal/${q.id}`)
+  const t = page.getByRole('table', { name: 'Insurers' })
+  await expect(t).toBeVisible({ timeout: 60_000 })
+  await expect(t.locator('thead th')).toHaveText(['Insurer', 'Route', 'Status', 'Since', 'Note'])
+  await expect(t.getByText(/^(Brochure price|Insurer to quote)$/).first()).toBeVisible()
+  await expect(t.getByRole('combobox', { name: /^Status: / }).first()).toBeVisible()
+})
