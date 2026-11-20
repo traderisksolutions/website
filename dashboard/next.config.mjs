@@ -42,6 +42,8 @@ const nextConfig = {
       // Employment Benefits has one home, /eb (Jarod, 20 Nov 2026). /pricing-matrix/quote/... stays: it
       // resolves an old quotation id to its proposal.
       { source: '/pricing-matrix', destination: '/eb/quotations', permanent: true },
+      // An old New quotation link named the company by id; /eb reads it as ?company=<id>.
+      { source: '/pricing-matrix/new', has: [{ type: 'query', key: 'companyId', value: '(?<cid>.+)' }], destination: '/eb?company=:cid', permanent: true },
       { source: '/pricing-matrix/new', destination: '/eb', permanent: true },
       { source: '/pricing-matrix/hr-links/:id', destination: '/eb/hr-links/:id', permanent: true },
       { source: '/pricing-matrix/company/:id', destination: '/companies/:id?tab=eb', permanent: true },

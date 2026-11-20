@@ -44,7 +44,7 @@ export const PLACES: Place[] = [
   // (eb_quotations, at the old /pricing-matrix address) · Brochures.
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'New quotation', href: '/eb' },
-    { title: 'Quotation register', href: '/pricing-matrix' },
+    { title: 'Quotation register', href: '/eb/quotations' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [
