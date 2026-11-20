@@ -37,6 +37,7 @@ const nextConfig = {
       { source: '/marketing', destination: '/websites/traderisksolutions', permanent: false },
       { source: '/sales', destination: '/sales/enquiries', permanent: false },
       { source: '/companies/portfolio', destination: '/companies', permanent: false },
+      { source: '/work', destination: '/today', permanent: false },
       // Employment Benefits has one home, /eb (Jarod, 20 Nov 2026). /pricing-matrix/quote/... stays: it
       // resolves an old quotation id to its proposal.
       { source: '/pricing-matrix', destination: '/eb/quotations', permanent: true },
