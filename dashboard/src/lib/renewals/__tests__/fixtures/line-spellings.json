@@ -1,0 +1,1178 @@
+[
+{
+"spelling": "Motor Policy - Commercial Fleet",
+"is_eb": false,
+"product_line": null,
+"count": 26
+},
+{
+"spelling": "Contractors' All Risks (CAR)",
+"is_eb": false,
+"product_line": "construction_car",
+"count": 17
+},
+{
+"spelling": "General Comprehensive Liability",
+"is_eb": false,
+"product_line": "general_liability",
+"count": 17
+},
+{
+"spelling": "Group Personal Accident",
+"is_eb": false,
+"product_line": null,
+"count": 13
+},
+{
+"spelling": "Professional Indemnity (PI)",
+"is_eb": false,
+"product_line": "professional_indemnity",
+"count": 13
+},
+{
+"spelling": "Work Injury Compensation",
+"is_eb": false,
+"product_line": null,
+"count": 13
+},
+{
+"spelling": "Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 12
+},
+{
+"spelling": "Work Injury Compensation (WICA)",
+"is_eb": false,
+"product_line": "wica",
+"count": 12
+},
+{
+"spelling": "Employee Benefits Insurance",
+"is_eb": true,
+"product_line": "employee_benefits",
+"count": 10
+},
+{
+"spelling": "Performance Bond",
+"is_eb": false,
+"product_line": null,
+"count": 10
+},
+{
+"spelling": "Foreign Worker Medical Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 9
+},
+{
+"spelling": "Surety Bonds",
+"is_eb": false,
+"product_line": "surety_bonds",
+"count": 9
+},
+{
+"spelling": "Commercial Vehicle Insurance",
+"is_eb": false,
+"product_line": "commercial_vehicle",
+"count": 7
+},
+{
+"spelling": "Employee Benefit Insurance",
+"is_eb": true,
+"product_line": null,
+"count": 7
+},
+{
+"spelling": "FOREIGN WORKER MEDICAL",
+"is_eb": false,
+"product_line": null,
+"count": 7
+},
+{
+"spelling": "Contractors' All Risk",
+"is_eb": false,
+"product_line": null,
+"count": 6
+},
+{
+"spelling": "Foreign Worker Medical",
+"is_eb": false,
+"product_line": null,
+"count": 6
+},
+{
+"spelling": "Professional Indemnity",
+"is_eb": false,
+"product_line": null,
+"count": 6
+},
+{
+"spelling": "Employee Benefits - GHS, GMM, GP, SP, Dental, GPA",
+"is_eb": true,
+"product_line": null,
+"count": 5
+},
+{
+"spelling": "Industrial All Risk (IAR) & Fire",
+"is_eb": false,
+"product_line": "iar_fire",
+"count": 5
+},
+{
+"spelling": "Motor Fleet",
+"is_eb": false,
+"product_line": null,
+"count": 5
+},
+{
+"spelling": "Contractors' All Risks, Project Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 4
+},
+{
+"spelling": "Cyber Insurance",
+"is_eb": false,
+"product_line": "cyber",
+"count": 4
+},
+{
+"spelling": "Event Liability Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 4
+},
+{
+"spelling": "Fleet Insurance (Trailers)",
+"is_eb": false,
+"product_line": null,
+"count": 4
+},
+{
+"spelling": "Group Personal Accident (GPA)",
+"is_eb": false,
+"product_line": null,
+"count": 4
+},
+{
+"spelling": "Professional Indemnity Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 4
+},
+{
+"spelling": "Contractors' All Risk, Project Employers' Liability",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Employee Benefits Plan",
+"is_eb": true,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "FWMI",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Group Business Travel",
+"is_eb": false,
+"product_line": "group_travel",
+"count": 3
+},
+{
+"spelling": "Group Medical (Employee Benefits)",
+"is_eb": true,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Maid Insurance Package",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Marine Cargo",
+"is_eb": false,
+"product_line": "marine_cargo",
+"count": 3
+},
+{
+"spelling": "Miscellaneous Professional Indemnity Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Motor Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Motor Trade",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "PERFORMANCE BOND",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Shopcare",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Work Injury Compensation Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 3
+},
+{
+"spelling": "Asset Manager Liability Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Clinic Care",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Contractor's All Risks",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Contractors' All Risks",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Contractors' All Risks Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Cyber Liability",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Directors & Officers (D&O)",
+"is_eb": false,
+"product_line": "do",
+"count": 2
+},
+{
+"spelling": "Domestic Helper Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "EXCESS PROTECTOR INSURANCE",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Erection All Risks, Project Employers' Liability",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "FWMI for <person>",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Foreign Worker Medical Insurance",
+"is_eb": false,
+"product_line": "foreign_worker_medical",
+"count": 2
+},
+{
+"spelling": "Foreign Workers Medical Insurance Enhanced",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "GATLB",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "GE BizSupreme for Stall",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Group Medical Insurance",
+"is_eb": true,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Industrial All Risk",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Industrial All Risks",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "International Employee Benefits",
+"is_eb": true,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Marine Cargo Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Public Liability Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Single Project Professional Indemnity",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Travel Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Travel Insurance (Single Trip)",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Worker Injury Compensation (WIC)",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "Workmen's Comp / WIC",
+"is_eb": false,
+"product_line": null,
+"count": 2
+},
+{
+"spelling": "<person>'s Security Bond",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "ASSET MANAGEMENT LIABILITY INSURANCE",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "B.Spoke - Professional Indemnity",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "B.Spoke Insurance (Professional Indemnity and D&O)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "B.Spoke Insurance (Professional Indemnity)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "BIZSUPREME",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Basic Medical, Outpatient GP",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Biz Supeme - Office Deluxe Plan",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Business Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Business Insurance (F&B)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Business Insurance (Healthcare Package)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Business Package (Restaurant)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "CONTRACTORS' ALL RISK",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "CafeCare - Food Stall",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Chubb TravelPro",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "ClinicCare",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Combined General Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Commercial All Risk",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Commercial General Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Commercial Vehicles",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Comprehensive Group Medical Plan Renewal- 2026",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Construction All Risks & Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Construction All Risks (CAR) & Project Employer's Liability (PEL)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractor Suite",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractor's All Risk",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractor's All Risks / Employer's Liability",
+"is_eb": false,
+"product_line": "construction_car",
+"count": 1
+},
+{
+"spelling": "Contractor's Renovation Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractors' All Risk, Employer's Liability, Performance Bond",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractors' All Risk, Project Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Contractors' All Risk, Project Employers' Liability, Performance Bond",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Cyber Liability Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "D&0/PI/ Crime Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "D&O / PI",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "DOMESTIC HELPER INSURANCE",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Directors & Officers Liability",
+"is_eb": false,
+"product_line": "do",
+"count": 1
+},
+{
+"spelling": "Directors & Officers Liability Insurance (D&O)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Domestic Helper insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "ELECTRONIC EQUIPMENT",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Employee Benefits",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Employee Benefits - Group Hospital & Surgical, GP Outpatient, Specialists Outpatient",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Employee Benefits- Renewal",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Erection All Risks",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Erection All Risks, Project Employers Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Erection All Risks; Project Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Event Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Excess Protector Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "F&B All Risks & WIC",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "FWM",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "FWM endorsement",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "FWMI for 18 Workers on Unnamed basis",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Fire & Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Fire Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Fire and EP; Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Fire and Extraneous Perils; Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Fleet Insurance (Prime Movers)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Food Stall Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Foreign Worker Medical (FWMI)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Foreign Worker Medical Cover",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Foreign Worker Medical Insurance (FWMI)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Foreign Workers Medical",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Freight Forwarder's Liability, Goods-in-Transit, Fidelity Guarantee",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "GE BizSupreme for Office",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "GE Business Supreme- Wholesale Deluxe Plan",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "GHS, GMM, GOC, GOS, GDT, GPA & GTL",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "GROUP PERSONAL ACCIDENT",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "GROUP TRAVEL",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Good In Transit",
+"is_eb": false,
+"product_line": "inland_transit",
+"count": 1
+},
+{
+"spelling": "Great Bizflexi for shop at VivoCity",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Business Travel",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Health",
+"is_eb": true,
+"product_line": "group_health",
+"count": 1
+},
+{
+"spelling": "Group Health Insurance",
+"is_eb": true,
+"product_line": "group_health",
+"count": 1
+},
+{
+"spelling": "Group Hospital & Surgical Plan",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Hospital & Surgical Plan , Group GP, SP Outpatient Plans",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Hospital & Surgical Plan , Group Outpatient Plan",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Hospitalisation & Surgical",
+"is_eb": true,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Group Term Life & Group Hospital and Surgical",
+"is_eb": false,
+"product_line": "employee_benefits",
+"count": 1
+},
+{
+"spelling": "Home Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Inland Transit",
+"is_eb": false,
+"product_line": "inland_transit",
+"count": 1
+},
+{
+"spelling": "Investment Management Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Investment Management Insurance (IMI)",
+"is_eb": false,
+"product_line": "imi",
+"count": 1
+},
+{
+"spelling": "Machinery All Risks and Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Machinery Breakdown",
+"is_eb": false,
+"product_line": "machinery_breakdown",
+"count": 1
+},
+{
+"spelling": "Maid Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Motor Commercial Fleet",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Motor Policy - Commercial",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Motor Policy - Private",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Motor Trade Plate",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Office Care",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Office Package Plan",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Office Standard Plan",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Office Standard Plan - GE BIZSupreme",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "OfficeCare",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "OfficeCare Policy",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Officecare",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Officecare Policy (Plan B)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Overseas Travel Accident Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Private Motor Car (Comprehensive)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Professional Indemnity / Comprehensive Commercial Legal Expense (for the company with annual turnover less than $100M) / Family Legal Expense / Personal Cyber",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Project Employer's Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Project Employers' Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Project Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Public Liability (Contractors)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Public Liability (PL), Group Personal Accident (GPA) &",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Public Liability, Work Injury Compensation",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Public Liabity & Fire Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Rental Bond",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "SME Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Secuirty Bond for <person>",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "ShopCare Insurance- Renewal",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Shopcare for shop at Yishun Outlet",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Single Project Professional Indemnity Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Single Trip Travel Insurance",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Stock Throughput",
+"is_eb": false,
+"product_line": "stock_throughput",
+"count": 1
+},
+{
+"spelling": "Trade Credit",
+"is_eb": false,
+"product_line": "trade_credit",
+"count": 1
+},
+{
+"spelling": "Travel Insurance (Annual)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Travel Insurance (Travel Pro Enhanced)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Travel Insurance - Essential",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WCODC",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WIC Insurance, Public Liability",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WICA",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WICA - Name basis",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WICA for 1 admin staff",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "WORK INJURY COMPENSATION",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Work Injury Compensation (WICA)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Work Injury Compensation - Commercial Risk",
+"is_eb": false,
+"product_line": "wica",
+"count": 1
+},
+{
+"spelling": "Work Injury Compensation Endorsement",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Work Injury Compensation Insurance WICA",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Worker Injury Compensation",
+"is_eb": false,
+"product_line": null,
+"count": 1
+},
+{
+"spelling": "Worker Injury Compensation (WIC) & Public Liability (PL)",
+"is_eb": false,
+"product_line": null,
+"count": 1
+}
+]
