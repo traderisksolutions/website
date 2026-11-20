@@ -1,8 +1,7 @@
 /**
  * Routes between records, and where Back goes. A record opened from a page returns to that page:
- * the company, the thread, the list. Employment Benefits opened from the company page or a
- * thread's rail goes straight to the company's Compare cover; only a quotation opened from the
- * Employment Benefits list returns to the list.
+ * the company, the thread, the list. A proposal opened from the Quotation register returns to the
+ * register. The old quotation pages were deleted on 20 Nov 2026 (employment-benefits.spec.ts EB-061).
  */
 import { test, expect, type Page } from '@playwright/test'
 import { companyId, dbRows, openClean } from './helpers'
@@ -17,24 +16,14 @@ async function opensTab(page: Page, click: () => Promise<void>): Promise<Page> {
 
 const back = (p: Page) => p.getByRole('navigation', { name: 'Breadcrumb' }).getByRole('link').first()
 
-test('company page › Employment Benefits opens its Compare cover; Back returns to the company', async ({ page }) => {
-  const id = await companyId(page, 'OUE')
-  await openClean(page, `/companies/${id}`)
-  const tab = await opensTab(page, () => page.getByRole('link', { name: 'Employment Benefits', exact: true }).and(page.locator(':not([href="/eb"])')).first().click())
-  await expect(tab).toHaveURL(/\/pricing-matrix\/quote\/[^/]+\/compare/)
-  await expect(back(tab)).toHaveAttribute('href', new RegExp(`/companies/${id}`))
-  await expect(back(tab)).toContainText('OUE')
-})
-
-test('thread rail › Employment Benefits opens the company Compare cover; Back returns to that thread', async ({ page }) => {
-  const [t] = await dbRows<{ id: string }>('email_threads?select=id,companies!inner(kind)&companies.kind=eq.client&deleted_at=is.null&order=last_message_at.desc&limit=1')
+test('thread rail › Employment Benefits › Quotations opens the company\'s Employment Benefits tab', async ({ page }) => {
+  const [t] = await dbRows<{ id: string; company_id: string }>('email_threads?select=id,company_id,companies!inner(kind)&companies.kind=eq.client&deleted_at=is.null&order=last_message_at.desc&limit=1')
   test.skip(!t, 'no thread filed under a client')
   await openClean(page, `/engagement?lead=${t.id}`)
-  const link = page.getByRole('complementary', { name: 'Context' }).getByRole('link', { name: 'Compare cover' })
+  const link = page.getByRole('complementary', { name: 'Context' }).getByRole('link', { name: 'Quotations' })
   await expect(link).toBeVisible({ timeout: 30_000 })
-  const tab = await opensTab(page, () => link.click())
-  await expect(tab).toHaveURL(/\/pricing-matrix\/(quote\/[^/]+\/compare|new\?company=)/)
-  await expect(back(tab)).toHaveAttribute('href', new RegExp(`/engagement\\?lead=${t.id}`))
+  await expect(link).toHaveAttribute('href', `/companies/${t.company_id}?tab=eb`)
+  await expect(page.getByRole('link', { name: 'Compare cover' })).toHaveCount(0)
 })
 
 test('Employment Benefits › Quotation register › a proposal returns to the register, not to a company visited before', async ({ page }) => {

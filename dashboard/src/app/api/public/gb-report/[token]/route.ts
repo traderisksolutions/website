@@ -2,8 +2,12 @@
  * GET /api/public/gb-report/:token → the client report as it was sent on WhatsApp, for a client
  * with no login. The token (src/lib/gb/report-link.ts) names the kept Drive copy, is signed and
  * expires after 30 days; anything else is 404. Only files in Drive's group-benefits/client-reports
- * folder are ever named by a token, because only the send route signs them. A file trashed in
+ * folder are ever named by a token, because only the send route signed them. A file trashed in
  * Drive is withdrawn: Drive still serves its bytes, so the route checks first.
+ *
+ * The send route went with Compare cover on 20 Nov 2026; no new link is signed. This route stays
+ * until the last link sent (13 Nov 2026) expires on 13 Dec 2026, then it, report-link.ts and its
+ * policy.ts / check-api-coverage.mjs entries can be deleted.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { readReportToken } from '@/lib/gb/report-link'

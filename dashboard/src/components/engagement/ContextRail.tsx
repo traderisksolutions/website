@@ -187,7 +187,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           </InfoRow>
           {companyId && (
             <InfoRow label="Employment Benefits">
-              <Arrow href={`/companies/${companyId}?tab=eb`}>Compare cover</Arrow>
+              <Arrow href={`/companies/${companyId}?tab=eb`}>Quotations</Arrow>
             </InfoRow>
           )}
           {companyId && (

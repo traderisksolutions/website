@@ -80,6 +80,8 @@ test('TOD-030 the Wish list count opens the case’s wish list; Close adds nothi
 
 test('TOD-031 a renewal case compares the offers by policy terms, premium and wish list', async ({ page }) => {
   const view = await (await page.request.get('/api/renewal-season', { headers })).json() as { rows: Row[] }
+  // EB-061: Employment Benefits rows open a proposal or New quotation, never the deleted Compare cover.
+  for (const r of view.rows) expect(r.compare?.href ?? '').not.toMatch(/^\/pricing-matrix\/quote\//)
   const at = view.rows.findIndex(r => r.case && r.compare?.kind === 'comparison')
   test.skip(at < 0, 'no general renewal case in the window')
   const id = view.rows[at].case!.id

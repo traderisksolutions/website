@@ -4,6 +4,17 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Old quotations deleted
+
+Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.
+
+- Removed pages: everything under `/pricing-matrix/quote/[id]/` (Compare cover, Census and policy, One change at a time, Plan builder, report) with `CompareCover.tsx` and `NewEb.tsx`. One server redirect replaces them: `/pricing-matrix/quote/<id>/**` → `/eb/proposal/<eb id>` when an eb_quotation carries that legacy_gb_id, else `/pricing-matrix` (EB-061).
+- Removed APIs: `/api/group-benefits/quote/[id]` and its analysis, ask-insurers, client-draft, compare, compare/draft, compare/report, compare/report-pdf, compare-benefits, documents, export, insurer-form, prepare-reply, report-pdf, scenarios, score; `/api/group-benefits/quote/available`, `quote/suggest-plans`, `quick-quote`, `extract-census`, `canon`, `coverage`, `folder`, `census/parse`.
+- Removed code only those used: `compare-report.ts`, `compare-report-pdf.tsx`, `compare-draft.ts`, `report-pdf.tsx`, `insurer-forms.ts`, `company-eb.ts`, `gb/store.ts`, `gb-export.ts`, `gb-plan-match.ts`; `composeClientDraft` and its model tone pass, `loadCompare`/`savePicks`, `threadOfQuotation`, `dropCrumb`, `doneHref`/`doneLabel`.
+- Links: the thread rail's done analysis shows New analysis only (no Draft to client, no Compare cover) (EB-062); the rail's Employment Benefits link reads Quotations; a company's quotes and Renewal Season open the re-priced proposal; the admin ledger links to the old address, which redirects. Plan rules confirm "Saved. New quotations use these rules."
+- Kept: `/api/public/gb-report` and `report-link.ts`, because two WhatsApp report links signed on 13 Nov 2026 open until 13 Dec 2026; delete then with their `policy.ts` and `check-api-coverage.mjs` entries. `/api/group-benefits/intake` (the email classifier calls it when filing is on), `/api/group-benefits/analysis` and `/api/group-benefits/quote` (no caller left; brief keeps analysis), gb_rate_tables and the rate-table pipeline.
+- Behaviours EB-061, EB-062; EB-005, 012, 014, 029, 033, 034, 038, 039 marked removed; EB-028 replaced; EB-054 done.
+
 ## 2026-11-20 — Today and Calendar review
 
 - Removed: the case list `/today/queue` with Coming up, Mail and the Employment Benefits renewals panel on it. Old `/today?view=`, `?bridge=`, `?level=`, `?side=` links land on `/today`. `/api/today/count`, `/api/today/recompute` and `recomputePending` (no caller in the repo, `vercel.json` or the scheduler scripts), `loadHome`, `loadHomeCanvas`, the Home types and `cardOrder` are deleted. `src/lib/today/todo.ts` stays: the digest reads it.

@@ -13,7 +13,7 @@ import { DASH, fmtDate } from '@/lib/format'
 import { STAGE_LABEL, isStage } from '@/lib/cases/stage'
 import type { SeasonCompare, SeasonRow } from '@/lib/cases/season'
 
-const COMPARE_NAME: Record<SeasonCompare['kind'], string> = { compare_cover: 'Compare cover', new_quotation: 'New quotation', comparison: 'Comparison' }
+const COMPARE_NAME: Record<SeasonCompare['kind'], string> = { proposal: 'Proposal', new_quotation: 'New quotation', comparison: 'Comparison' }
 const link = 'text-trs-ink no-underline hover:underline'
 const none = <span className="text-trs-muted">{DASH}</span>
 

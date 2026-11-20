@@ -6,8 +6,8 @@
  *
  * One census in, one analysis out. Saves the census as a quotation priced at the suggested
  * package (the same draft the quick quote makes), then prices every package at every insurer in
- * one run (src/lib/gb/analysis.ts) and answers with the quotation id; the report lives at
- * /pricing-matrix/quote/<id>/analysis. No model is called.
+ * one run (src/lib/gb/analysis.ts) and answers with the quotation id. Its report page was deleted
+ * on 20 Nov 2026 with the other old quotation pages; no page calls this route now. No model is called.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'

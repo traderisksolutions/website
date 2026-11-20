@@ -16,21 +16,17 @@ Back goes to the page the record was opened from. The trail (`src/lib/nav/trail.
 
 | From | Click | Lands on | Back goes to |
 | --- | --- | --- | --- |
-| Quotes › Employment Benefits | A company row | Compare cover of that quotation | Employment Benefits list |
-| Company page | Employment Benefits (header) | Company's newest Compare cover; New quotation if none | The company |
-| Inbox thread | Rail › Employment Benefits › Compare cover | Company's newest Compare cover; New quotation if none | That thread |
-| Today › Coming up › EB renewals | Compare cover / Open census | Compare cover / New quotation | Today |
-| Compare cover | Ask insurers | Plan builder | Compare cover |
-| Compare cover | One change at a time | Analysis | Compare cover |
-| Compare cover | Today › Census and policy (or Add last year's policy) | The quotation's census and policy (`/pricing-matrix/quote/<id>/edit`); Confirm reprices it in place | Compare cover |
-| Employee lists | Quote (a submitted HR link) | New quotation with the list as the census (`/pricing-matrix/new?hrLink=<id>`) | Employee lists |
-| Quotation (older page, retired) | Any link to `/pricing-matrix/quote/<id>` or `/report` | Compare cover | — |
-| Compare cover | Client report › Download PDF / Send on WhatsApp / Send by email | The PDF; WhatsApp with a signed link; a draft on the client thread | Compare cover |
+| Quotes › Employment Benefits | A row of the Quotation register | The proposal (`/eb/proposal/<id>`) | Quotation register |
+| Company page | Employment Benefits (header) | The company's Employment Benefits tab (`?tab=eb`) | The company |
+| Inbox thread | Rail › Employment Benefits › Quotations | The company's Employment Benefits tab | That thread |
+| Renewal Season | An Employment Benefits row › Proposal / New quotation | The client's newest proposal / `/eb?company=<id>` | Renewal Season |
+| Employee lists | Quote (a submitted HR link) | New quotation with the list as the census (`/eb?hrLink=<id>`) | Employee lists |
+| Old quotation address | `/pricing-matrix/quote/<id>` and anything under it | The re-priced proposal (`eb_quotations.legacy_gb_id` = id), else the Quotation register | — |
 | Employment Benefits | Plan rules (tab) | Plans that go together, per insurer, with the brochure page | Employment Benefits |
 
-One screen enters a census and last year's policy: New quotation (`NewEb.tsx`). A new quotation, an existing one and an HR link's list all open it. Quick quote and the By hand wizard are retired.
+One screen enters a census and last year's policy: New quotation (`/eb`). `/pricing-matrix/new` and `/pricing-matrix/company/<companyId>` redirect there and to the company's Employment Benefits tab.
 
-`/pricing-matrix/company/<companyId>` resolves the company's Employment Benefits (`src/lib/gb/company-eb.ts`). Quotations carry the company by name, matched with `companyKey`.
+The old quotation pages (Compare cover, Census and policy, One change at a time, Plan builder, report) were deleted on 20 Nov 2026 once 16 of the 21 gb_quotations were re-priced into eb_quotations; the 5 not moved stay in gb_quotations as an archive and their addresses land on the register.
 
 ## Records
 

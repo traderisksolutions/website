@@ -111,7 +111,7 @@ export const keepsOwnRow = (c: SeasonCase, w: SeasonWindow): boolean =>
 
 /** What the list shows of a case. Counted in season-store.ts. */
 export type SeasonCaseState = { threads: number; wishes: number; documents: { ticked: number; required: number } | null; /** Options on offer in the case's saved comparison. */ options: number }
-export type SeasonCompare = { kind: 'compare_cover' | 'new_quotation' | 'comparison'; href: string }
+export type SeasonCompare = { kind: 'proposal' | 'new_quotation' | 'comparison'; href: string }
 export type SeasonRow = {
   key: string
   company_id: string | null; company: string

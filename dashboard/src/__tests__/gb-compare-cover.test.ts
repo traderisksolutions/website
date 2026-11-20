@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { buildCompare, factsAsBenefits, indexRates, matchPlan, priceCover, productOf } from '@/lib/gb/compare-cover'
 import { normaliseLastYear } from '@/lib/gb/last-year'
 import { amountOf, changeOf, coverWords, hospitalParts } from '@/lib/gb/compare-words'
-import { compareFacts, codeEmail } from '@/lib/gb/compare-draft'
 import type { Workbook, WbRate, WbBenefit } from '@/lib/gb/workbook'
 import type { Member } from '@/lib/gb-quote'
 
@@ -68,19 +67,12 @@ describe('compare engine', () => {
     expect(matchPlan(benefitsOf('Steadfast MCare+'), wb.lists['Steadfast MCare+'][H], H, t).plan).toBe('Plan 3 · Govt 1-bed · 0%')
     expect(matchPlan(benefitsOf('AIA Flexi Vital Care Plus'), wb.lists['AIA Flexi Vital Care Plus'][H], H, t).plan).toBe('Plan 3 (Pte 1-bed)')
   })
-  it('builds today, the five products and their prices; the email names gains and losses', () => {
+  it('builds today, the five products and their prices', () => {
     expect(productOf('QBE Insurance (Singapore)')).toBe('Steadfast MCare+')
     const d = buildCompare({ quotationId: 'q', wb, members, schedule, effectiveDate: '2026-10-24', basis: 'renewal', currentInsurer: 'QBE' })
     expect(d.categories).toEqual([{ key: '3', name: 'Plan 3', lives: 3, employees: 2 }])
     expect(d.today.picks['3'][H]).toBe('Plan 3 · Govt 1-bed · 0%')
     expect(d.prices['3']['RCC Enhanced III'][H]['Plan 5 (GRH 1-bed)']).toBeCloseTo(800 * 3)
-    const f = compareFacts({ ...d, company: 'Test Co' }, 'RCC Enhanced III', d.picks['RCC Enhanced III'])
-    expect(f.todayTotal).toBe(3000)
-    expect(f.total).toBe(2400)
-    expect(f.less.map(h => h.label)).toContain('ICU')
-    const e = codeEmail(f, 'Grace')
-    expect(e.body).toContain('S$2,400 a year, net of GST, −20.0% against today\'s S$3,000')
-    expect(e.body).toContain('- ICU: S$10,000, against As charged (up to APL) today (less)')
   })
   it('today is last year\'s policy: its cover as rows, its premium net of GST, its documents linked', () => {
     const ly = { ...normaliseLastYear({ insurer: 'Great Eastern', policyNumber: 'GE-1', premiumByCover: { GHS: 2180 }, total: 2180, gst: 'included', documents: [{ file: 'Schedule.pdf', kind: 'schedule' }] }), documents: [{ file: 'Schedule.pdf', kind: 'schedule' as const, date: null, ref: 'drivefile:abc' }] }
@@ -91,9 +83,6 @@ describe('compare engine', () => {
     expect(d.today.benefits['3'][H]).toMatchObject({ 'ghs.hospital_type': 'Government', 'ghs.room_board': '1-bed', 'ghs.annual_limit': '$80,000', 'ghs.copay': 'Nil' })
     expect(coverWords(H, 'today', d.today.benefits['3'][H])).toBe('Government 1-bed · S$80,000 a year')
     expect(d.today.policy?.documents[0].href).toBe('https://drive.google.com/file/d/abc/view')
-    const f = compareFacts({ ...d, company: 'Test Co' }, 'RCC Enhanced III', d.picks['RCC Enhanced III'])
-    expect(f.todayTotal).toBe(2000)
-    expect(f.covers[0].today).toBe('Government 1-bed · S$80,000 a year')
   })
   it('states numbers as rows and splits a hospital plan into ward and limit', () => {
     expect(factsAsBenefits({ hosp: null, gmm: 60000, gpCopay: 0, spLimit: null, dental: 500, pa: 100000 })).toEqual({ 'Major Medical': { 'gmm.annual_limit': '$60,000' }, 'Outpatient GP': { 'gp.copay': 'Nil' }, Dental: { 'dental.annual_limit': '$500' }, 'Personal Accident': { 'pa.death': '$100,000' } })
