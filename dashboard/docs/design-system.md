@@ -27,6 +27,19 @@ every page follows.
 | Modals and pages | Real work is a full page; a modal only to confirm or for a short pick. Removals go through `useConfirm`. | `ui/confirm.tsx` |
 | Empty, loading, error | Loading shows placeholder rows in a table's shape with the wait named small above; an empty list names what is missing and offers the action that fills it (`Empty action=`); an error says what failed in red. | `Spinner`, `Empty` |
 
+## One design, no page styling of its own (Jarod, 20 Nov 2026)
+
+"The goal is a universal design and style: no styles written into individual elements, no individual pages." A page is assembled from the shared parts and the tokens; it does not set its own colours, sizes, radii or controls.
+
+| Do not write in a page | Write instead |
+| --- | --- |
+| `style={{ … }}` | a Tailwind class on a token (`text-trs-muted`, `bg-trs-tint`, `border-trs-line`) |
+| a colour literal (`'#0f1412'`) | a token class, or `var(--trs-…)` where a library needs a value (charts: `--trs-chart-1`, `--trs-chart-2`) |
+| `text-[13px]`, `h-[30px]`, `rounded-[7px]` | the scale (`text-sm`, `text-xs`), or the shared part that already carries the size |
+| `<button>`, `<input>`, `<select>`, `<textarea>`, `<table>` | `Btn` / `Button`, `Field` + `inputCls`, `Segmented`, `Register` |
+
+`scripts/check-style-drift.mjs` runs in `npm run check` and CI. It counts these per file against `scripts/style-baseline.json`; a file above its count, or a new file with any, fails. Counts only go down: after converting a page, run `npm run style:baseline -- <files>` and commit the lower numbers. A line that must keep a typed value (a PDF renderer, an email template) carries `drift-ok: <reason>`. `Button` (`ui/button`) is drawn by the same ladder as `Btn` (`btnClass`), so both look the same.
+
 ## Surface tokens
 
 | Token | Value | Used for |
