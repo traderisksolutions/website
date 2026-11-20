@@ -95,18 +95,6 @@
   "sb": 4,
   "fetch": 0
  },
- "src/app/api/companies/apply-suggested-stages/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/companies/from-lead/route.ts": {
-  "sb": 8,
-  "fetch": 0
- },
- "src/app/api/companies/pipeline/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/companies/route.ts": {
   "sb": 0,
   "fetch": 3
@@ -114,10 +102,6 @@
  "src/app/api/companies/threads/search/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/contacts/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 1
  },
  "src/app/api/contacts/bulk/route.ts": {
   "sb": 0,
@@ -127,10 +111,6 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/contacts/counts/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
  "src/app/api/contacts/route.ts": {
   "sb": 0,
   "fetch": 4
@@ -139,19 +119,11 @@
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/cron/catchup-summaries/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/app/api/cron/gmail-watch/route.ts": {
   "sb": 0,
   "fetch": 3
  },
  "src/app/api/db/[table]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/debit-notes/[id]/email-attachment/route.ts": {
   "sb": 0,
   "fetch": 1
  },
@@ -215,10 +187,6 @@
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/email/attachments/reparse-spreadsheets/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/email/available-senders/route.ts": {
   "sb": 0,
   "fetch": 3
@@ -250,10 +218,6 @@
  "src/app/api/engagement/conversations/route.ts": {
   "sb": 0,
   "fetch": 11
- },
- "src/app/api/engagement/draft-rag/route.ts": {
-  "sb": 0,
-  "fetch": 4
  },
  "src/app/api/engagement/draft/route.ts": {
   "sb": 0,
@@ -303,10 +267,6 @@
   "sb": 2,
   "fetch": 0
  },
- "src/app/api/group-benefits/canon/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/app/api/group-benefits/census/read/route.ts": {
   "sb": 3,
   "fetch": 0
@@ -318,10 +278,6 @@
  "src/app/api/group-benefits/coverage/route.ts": {
   "sb": 0,
   "fetch": 5
- },
- "src/app/api/group-benefits/extract-census/route.ts": {
-  "sb": 0,
-  "fetch": 1
  },
  "src/app/api/group-benefits/insurer-contacts/route.ts": {
   "sb": 0,
@@ -355,14 +311,6 @@
   "sb": 0,
   "fetch": 3
  },
- "src/app/api/group-benefits/quote/[id]/prepare-reply/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/group-benefits/quote/[id]/report-pdf/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/app/api/group-benefits/quote/[id]/route.ts": {
   "sb": 0,
   "fetch": 2
@@ -371,29 +319,9 @@
   "sb": 3,
   "fetch": 0
  },
- "src/app/api/group-benefits/quote/[id]/score/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/group-benefits/quote/available/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/group-benefits/quote/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/group-benefits/quote/suggest-plans/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
  "src/app/api/group-benefits/rate-tables/[id]/approve/route.ts": {
   "sb": 0,
   "fetch": 4
- },
- "src/app/api/group-benefits/rate-tables/[id]/calculator/route.ts": {
-  "sb": 0,
-  "fetch": 2
  },
  "src/app/api/group-benefits/rate-tables/[id]/extract/route.ts": {
   "sb": 0,
@@ -402,14 +330,6 @@
  "src/app/api/group-benefits/rate-tables/[id]/pdf/route.ts": {
   "sb": 0,
   "fetch": 1
- },
- "src/app/api/group-benefits/rate-tables/[id]/rich-rules/extract/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/group-benefits/rate-tables/[id]/rich-rules/route.ts": {
-  "sb": 0,
-  "fetch": 5
  },
  "src/app/api/group-benefits/rate-tables/[id]/route.ts": {
   "sb": 0,
@@ -426,14 +346,6 @@
  "src/app/api/group-benefits/sources/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/home/counts/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/home/crm/route.ts": {
-  "sb": 7,
-  "fetch": 0
  },
  "src/app/api/inbound/auto-draft/route.ts": {
   "sb": 0,
@@ -478,10 +390,6 @@
  "src/app/api/nexus/attachments/extract/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/nexus/attachments/re-extract/route.ts": {
-  "sb": 0,
-  "fetch": 4
  },
  "src/app/api/nexus/cases/[id]/analyze/route.ts": {
   "sb": 0,
@@ -1051,10 +959,6 @@
   "sb": 1,
   "fetch": 0
  },
- "src/lib/gb-export.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/lib/gb/analysis.ts": {
   "sb": 3,
   "fetch": 0
@@ -1119,10 +1023,6 @@
   "sb": 13,
   "fetch": 0
  },
- "src/lib/gb/store.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/lib/gb/workbook.ts": {
   "sb": 2,
   "fetch": 0
@@ -1137,10 +1037,6 @@
  },
  "src/lib/gmail/mailboxes.ts": {
   "sb": 7,
-  "fetch": 0
- },
- "src/lib/home/board.ts": {
-  "sb": 1,
   "fetch": 0
  },
  "src/lib/hr/links.ts": {
@@ -1327,10 +1223,6 @@
   "sb": 3,
   "fetch": 0
  },
- "src/lib/sales/campaigns.ts": {
-  "sb": 12,
-  "fetch": 0
- },
  "src/lib/sales/db.ts": {
   "sb": 2,
   "fetch": 3
@@ -1345,10 +1237,6 @@
  },
  "src/lib/sales/ingest.ts": {
   "sb": 10,
-  "fetch": 0
- },
- "src/lib/sales/runner.ts": {
-  "sb": 24,
   "fetch": 0
  },
  "src/lib/storage/attachment-bytes.ts": {
