@@ -16,9 +16,9 @@
   "control": 2
  },
  "src/app/calendar/page.tsx": {
-  "style": 23,
+  "style": 24,
   "hex": 6,
-  "font": 17,
+  "font": 18,
   "radius": 2,
   "height": 1,
   "control": 2
@@ -424,36 +424,12 @@
   "control": 0
  },
  "src/app/pricing-matrix/page.tsx": {
-  "style": 11,
-  "hex": 10,
-  "font": 15,
-  "radius": 5,
-  "height": 0,
-  "control": 7
- },
- "src/app/pricing-matrix/quote/[id]/analysis/page.tsx": {
-  "style": 104,
-  "hex": 16,
-  "font": 81,
+  "style": 6,
+  "hex": 7,
+  "font": 9,
   "radius": 2,
-  "height": 0,
-  "control": 11
- },
- "src/app/pricing-matrix/quote/[id]/edit/page.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 1,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/app/pricing-matrix/quote/[id]/plans/page.tsx": {
-  "style": 39,
-  "hex": 13,
-  "font": 41,
-  "radius": 0,
-  "height": 0,
-  "control": 7
+  "height": 1,
+  "control": 1
  },
  "src/app/renewal-season/page.tsx": {
   "style": 0,
@@ -511,14 +487,6 @@
   "height": 1,
   "control": 2
  },
- "src/app/today/queue/page.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 13,
-  "radius": 2,
-  "height": 0,
-  "control": 1
- },
  "src/app/unsubscribed/page.tsx": {
   "style": 7,
   "hex": 3,
@@ -574,14 +542,6 @@
   "radius": 0,
   "height": 0,
   "control": 0
- },
- "src/components/BulkImportContacts.tsx": {
-  "style": 22,
-  "hex": 8,
-  "font": 17,
-  "radius": 3,
-  "height": 0,
-  "control": 3
  },
  "src/components/ConditionalShell.tsx": {
   "style": 1,
@@ -879,14 +839,6 @@
   "height": 2,
   "control": 10
  },
- "src/components/contacts/CompaniesTab.tsx": {
-  "style": 20,
-  "hex": 9,
-  "font": 13,
-  "radius": 1,
-  "height": 2,
-  "control": 2
- },
  "src/components/crm/AccountNotesPanel.tsx": {
   "style": 2,
   "hex": 2,
@@ -960,12 +912,12 @@
   "control": 3
  },
  "src/components/crm/CompanyThreadList.tsx": {
-  "style": 4,
+  "style": 0,
   "hex": 0,
-  "font": 4,
-  "radius": 1,
+  "font": 5,
+  "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 1
  },
  "src/components/crm/NexusSummary.tsx": {
   "style": 14,
@@ -1077,7 +1029,7 @@
   "font": 1,
   "radius": 0,
   "height": 0,
-  "control": 0
+  "control": 1
  },
  "src/components/eb/ProposalSection.tsx": {
   "style": 2,
@@ -1264,12 +1216,12 @@
   "control": 0
  },
  "src/components/engagement/LinkCompanyPopover.tsx": {
-  "style": 7,
-  "hex": 8,
-  "font": 5,
-  "radius": 3,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 4
  },
  "src/components/engagement/MessageBlock.tsx": {
   "style": 45,
@@ -1279,11 +1231,11 @@
   "height": 0,
   "control": 9
  },
- "src/components/engagement/NewEmailComposeModal.tsx": {
+ "src/components/engagement/NewEmailCompose.tsx": {
   "style": 9,
-  "hex": 0,
+  "hex": 1,
   "font": 9,
-  "radius": 3,
+  "radius": 1,
   "height": 2,
   "control": 7
  },
@@ -1375,14 +1327,6 @@
   "height": 1,
   "control": 3
  },
- "src/components/group-benefits/CompareCover.tsx": {
-  "style": 48,
-  "hex": 10,
-  "font": 45,
-  "radius": 8,
-  "height": 1,
-  "control": 4
- },
  "src/components/group-benefits/InsurerContactsDialog.tsx": {
   "style": 3,
   "hex": 3,
@@ -1398,14 +1342,6 @@
   "radius": 0,
   "height": 0,
   "control": 8
- },
- "src/components/group-benefits/NewEb.tsx": {
-  "style": 49,
-  "hex": 14,
-  "font": 40,
-  "radius": 5,
-  "height": 0,
-  "control": 16
  },
  "src/components/group-benefits/PlanRules.tsx": {
   "style": 0,
@@ -1839,30 +1775,6 @@
   "height": 0,
   "control": 4
  },
- "src/components/today/ComingUp.tsx": {
-  "style": 0,
-  "hex": 0,
-  "font": 9,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/today/EbRenewals.tsx": {
-  "style": 9,
-  "hex": 5,
-  "font": 7,
-  "radius": 1,
-  "height": 1,
-  "control": 0
- },
- "src/components/today/MailView.tsx": {
-  "style": 7,
-  "hex": 0,
-  "font": 3,
-  "radius": 1,
-  "height": 0,
-  "control": 4
- },
  "src/components/today/desk/AddThreads.tsx": {
   "style": 0,
   "hex": 0,
@@ -2031,25 +1943,9 @@
   "height": 0,
   "control": 0
  },
- "src/lib/gb/compare-report-pdf.tsx": {
-  "style": 3,
-  "hex": 10,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
  "src/lib/gb/eb-proposal-pdf.tsx": {
   "style": 3,
   "hex": 3,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/lib/gb/report-pdf.tsx": {
-  "style": 4,
-  "hex": 7,
   "font": 0,
   "radius": 0,
   "height": 0,
