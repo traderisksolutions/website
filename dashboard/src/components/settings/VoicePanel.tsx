@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Btn, textareaCls } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
+import { restoreDefaultVoice, saveVoice, voiceSettings } from '@/app/settings/actions'
 
 type Payload = { text: string; isDefault: boolean; updatedAt: string | null; defaultText: string; error?: string }
 
@@ -27,9 +28,8 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   const [confirmRestore, setConfirmRestore] = useState(false)
 
   useEffect(() => {
-    fetch('/api/settings/voice', { cache: 'no-store' })
-      .then(r => r.json())
-      .then((j: Payload) => { if (j.error) setMsg({ tone: 'error', text: j.error }); else { setD(j); setText(j.text) } })
+    voiceSettings()
+      .then(r => { if (!r.ok) setMsg({ tone: 'error', text: r.error }); else { setD(r.data as Payload); setText(r.data.text) } })
       .catch(() => setMsg({ tone: 'error', text: 'Could not load the tone of voice.' }))
   }, [])
 
@@ -39,9 +39,9 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   async function save() {
     setBusy('save'); setMsg(null)
     try {
-      const res = await fetch('/api/settings/voice', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
-      const j = await res.json()
-      if (!res.ok) { setMsg({ tone: 'error', text: j.error ?? 'Could not save.' }); return }
+      const r = await saveVoice(text)
+      if (!r.ok) { setMsg({ tone: 'error', text: r.error }); return }
+      const j = r.data
       setD(prev => prev ? { ...prev, text: text.trim(), isDefault: false, updatedAt: j.updatedAt } : prev)
       setText(text.trim())
       setMsg({ tone: 'ok', text: 'Saved. Agents use it from their next draft.' })
@@ -51,9 +51,9 @@ export function VoicePanel({ isAdmin }: { isAdmin: boolean }) {
   async function restore() {
     setBusy('restore'); setMsg(null); setConfirmRestore(false)
     try {
-      const res = await fetch('/api/settings/voice', { method: 'DELETE' })
-      const j = await res.json()
-      if (!res.ok) { setMsg({ tone: 'error', text: j.error ?? 'Could not restore.' }); return }
+      const r = await restoreDefaultVoice()
+      if (!r.ok) { setMsg({ tone: 'error', text: r.error }); return }
+      const j = r.data
       setD(prev => prev ? { ...prev, text: j.text, isDefault: true, updatedAt: null } : prev)
       setText(j.text)
       setMsg({ tone: 'ok', text: 'Default restored.' })

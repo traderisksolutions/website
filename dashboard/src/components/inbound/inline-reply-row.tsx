@@ -10,6 +10,7 @@ import { Btn, Chip, inputCls } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
 import { displayName, messagePreview } from './helpers'
 import type { Lead } from './types'
+import { listSignatures } from '@/app/settings/actions'
 
 // ── Types local to the reply workflow ─────────────────────────────────────────
 
@@ -71,7 +72,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
   useEffect(() => {
     Promise.all([
       fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []),
-      fetch('/api/signatures').then(r => r.ok ? r.json() : []),
+      listSignatures().then(r => r.ok ? r.data : []),
     ]).then(([senderRows, sigRows]: [InboundSender[], InboundSigOption[]]) => {
       const ss = Array.isArray(senderRows) ? senderRows : []
       if (ss.length > 0) { setSenders(ss); setSelectedFromEmail(ss[0].email) }

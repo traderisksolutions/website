@@ -10,6 +10,7 @@ import { VoicePanel } from '@/components/settings/VoicePanel'
 import { RenewalMethodPanel } from '@/components/settings/RenewalMethodPanel'
 import { ClientFormsPanel } from '@/components/settings/ClientFormsPanel'
 import { ChecklistPanel } from '@/components/settings/ChecklistPanel'
+import { disconnectGmail, myProfile } from './actions'
 
 /**
  * Settings, structured as Alps Wills structures it: one page, a nav of sections on the left,
@@ -49,7 +50,7 @@ function SettingsInner() {
   const section = (SECTIONS.some(s => s.key === params.get('section')) ? params.get('section') : 'profile') as Section
   const setSection = (s: Section) => router.replace(`/settings${s === 'profile' ? '' : `?section=${s}`}`, { scroll: false })
   const [profile, setProfile] = useState<Profile | null>(null)
-  async function loadProfile() { const r = await fetch('/api/auth/profile', { cache: 'no-store' }); if (r.ok) setProfile(await r.json()) }
+  async function loadProfile() { const r = await myProfile(); if (r.ok) setProfile(r.data) }
   useEffect(() => { void loadProfile() }, [])
   const active = SECTIONS.find(s => s.key === section)!
 
@@ -104,7 +105,7 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
   const [disconnecting, setDisconnecting] = useState(false)
   const gmailError = params.get('gmail_error')
   const gmailConnected = params.get('gmail_connected') === '1'
-  async function disconnect() { setDisconnecting(true); try { await fetch('/api/auth/gmail/disconnect', { method: 'DELETE' }); onChange() } finally { setDisconnecting(false) } }
+  async function disconnect() { setDisconnecting(true); try { await disconnectGmail(); onChange() } finally { setDisconnecting(false) } }
   return (
     <div className="flex flex-col gap-6">
       <Block title="Account">

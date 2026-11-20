@@ -27,14 +27,6 @@
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/auth/gmail/disconnect/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/auth/profile/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
  "src/app/api/brochures/[id]/upload-url/route.ts": {
   "sb": 1,
   "fetch": 0
@@ -207,10 +199,6 @@
   "sb": 7,
   "fetch": 0
  },
- "src/app/api/forms/route.ts": {
-  "sb": 7,
-  "fetch": 0
- },
  "src/app/api/group-benefits/census/read/route.ts": {
   "sb": 3,
   "fetch": 0
@@ -289,10 +277,6 @@
  },
  "src/app/api/marketing/gsc/select-property/route.ts": {
   "sb": 2,
-  "fetch": 0
- },
- "src/app/api/methods/[key]/route.ts": {
-  "sb": 5,
   "fetch": 0
  },
  "src/app/api/nexus/attachments/extract/route.ts": {
@@ -423,22 +407,6 @@
   "sb": 6,
   "fetch": 0
  },
- "src/app/api/settings/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/settings/voice/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/signatures/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/signatures/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
  "src/app/api/thread-insurers/[id]/route.ts": {
   "sb": 3,
   "fetch": 0
@@ -454,10 +422,6 @@
  "src/app/api/unsubscribe/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/users/route.ts": {
-  "sb": 0,
-  "fetch": 7
  },
  "src/app/api/work/[id]/edit/route.ts": {
   "sb": 4,

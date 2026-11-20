@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Btn, Chip } from '@/components/crm/primitives'
 import { PRODUCT_LINES, productLineLabel } from '@/lib/product-lines'
 import { Register } from '@/components/ui/register'
+import { addClientForm, clientForms, searchSentAttachments, updateClientForm } from '@/app/settings/actions'
 
 type Form = { id: string; line: string; flow: string | null; kind: string; insurer: string | null; title: string; filename: string; active: boolean; sent_count: number; last_sent: string | null; attach_on: string[] }
 type Found = { id: string; filename: string; sent_at: string | null; subject: string | null; stored: boolean }
@@ -24,22 +25,21 @@ export function ClientFormsPanel({ isAdmin }: { isAdmin: boolean }) {
   const [add, setAdd] = useState<{ line: string; kind: string; flow: string }>({ line: 'general_liability', kind: 'proposal_form', flow: '' })
 
   const load = useCallback(async () => {
-    const r = await fetch('/api/forms', { cache: 'no-store' }); const j = await r.json()
-    if (!r.ok) setMsg(j.error ?? 'Could not load the forms'); else setForms(j.forms)
+    const r = await clientForms()
+    if (!r.ok) setMsg(r.error); else setForms(r.data as Form[])
   }, [])
   useEffect(() => { void load() }, [load])
 
   async function edit(id: string, body: Record<string, unknown>) {
-    const r = await fetch('/api/forms', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, ...body }) })
-    const j = await r.json(); if (!r.ok) setMsg(j.error); else await load()
+    const r = await updateClientForm({ id, ...body }); if (!r.ok) setMsg(r.error); else await load()
   }
   async function search() {
-    const r = await fetch(`/api/forms?search=${encodeURIComponent(q)}`, { cache: 'no-store' }); const j = await r.json()
-    setFound(r.ok ? j.found : []); if (!r.ok) setMsg(j.error)
+    const r = await searchSentAttachments(q)
+    setFound(r.ok ? r.data : []); if (!r.ok) setMsg(r.error)
   }
   async function addForm(f: Found) {
-    const r = await fetch('/api/forms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ attachment_id: f.id, line: add.line, kind: add.kind, flow: add.flow || null, title: f.filename.replace(/\.[a-z0-9]+$/i, '') }) })
-    const j = await r.json(); if (!r.ok) setMsg(j.error); else { setMsg(`Added ${f.filename}`); setFound([]); setQ(''); await load() }
+    const r = await addClientForm({ attachment_id: f.id, line: add.line, kind: add.kind, flow: add.flow || null, title: f.filename.replace(/\.[a-z0-9]+$/i, '') })
+    if (!r.ok) setMsg(r.error); else { setMsg(`Added ${f.filename}`); setFound([]); setQ(''); await load() }
   }
 
   if (!forms) return <p className="text-body text-trs-muted">{msg ?? 'Loading…'}</p>

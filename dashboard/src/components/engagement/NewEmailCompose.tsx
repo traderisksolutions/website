@@ -9,6 +9,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { X, Trash2, Signature } from 'lucide-react'
 import { Btn } from '@/components/crm/primitives'
 import { addCompanyContact } from '@/app/companies/[id]/actions'
+import { listSignatures } from '@/app/settings/actions'
 import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, TbMenu, TbMenuItem, externalDomain,
 } from '@/components/engagement-agent/compose-toolbar'
@@ -89,7 +90,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
   useEffect(() => {
     Promise.all([
       fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch('/api/signatures', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      listSignatures().then(r => r.ok ? r.data : []).catch(() => []),
     ]).then(([snd, sg]) => {
       const s = Array.isArray(snd) ? snd : []; setSenders(s); if (s[0]) setFromEmail(s[0].email)
       const g = Array.isArray(sg) ? sg : [];   setSigs(g);   if (g[0]) setSigId(g[0].id)

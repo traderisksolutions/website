@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input }  from '@/components/ui/input'
 import { Btn } from '@/components/crm/primitives'
 import { cn } from '@/lib/utils'
+import { createSignature, deleteSignature as deleteSignatureAction, getSetting, listSignatures, setSetting, updateSignature } from '@/app/settings/actions'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -166,12 +167,9 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
   const loadAll = useCallback(async () => {
     setLoading(true)
-    const [sigRes, settingsRes] = await Promise.all([
-      fetch('/api/signatures', { cache: 'no-store' }),
-      fetch('/api/settings?key=shared_email_senders', { cache: 'no-store' }),
-    ])
-    const sigData      = sigRes.ok ? await sigRes.json() : []
-    const settingsData = settingsRes.ok ? await settingsRes.json() : {}
+    const [sigRes, settingsRes] = await Promise.all([listSignatures(), getSetting('shared_email_senders')])
+    const sigData      = sigRes.ok ? sigRes.data : []
+    const settingsData = settingsRes.ok ? settingsRes.data : null
 
     setSigs(Array.isArray(sigData) ? sigData : [])
 
@@ -254,29 +252,15 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
       if (row.sig) {
         // Update existing
-        const res = await fetch(`/api/signatures/${row.sig.id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Save failed' }))
-          setFormError(err.error ?? 'Save failed')
-          return
-        }
-        const updated = await res.json()
+        const res = await updateSignature(row.sig.id, payload)
+        if (!res.ok) { setFormError(res.error); return }
+        const updated = res.data
         setSigs(prev => prev.map(s => s.id === row.sig!.id ? { ...s, ...updated } : s))
       } else {
         // Create new
-        const res = await fetch('/api/signatures', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: 'Save failed' }))
-          setFormError(err.error ?? 'Save failed')
-          return
-        }
-        const created = await res.json()
+        const res = await createSignature(payload)
+        if (!res.ok) { setFormError(res.error); return }
+        const created = res.data
         setSigs(prev => [...prev, created])
       }
       closeEdit()
@@ -286,7 +270,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
   async function deleteSignature(sigId: string) {
     setDeleting(true)
     try {
-      await fetch(`/api/signatures/${sigId}`, { method: 'DELETE' })
+      await deleteSignatureAction(sigId)
       setSigs(prev => prev.filter(s => s.id !== sigId))
       setConfirmDel(null)
       if (editEmail) closeEdit()
@@ -298,10 +282,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
   async function persistShared(next: string[]) {
     setAliasSaving(true)
     try {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'shared_email_senders', value: JSON.stringify(next.map(e => ({ email: e }))) }),
-      })
+      const res = await setSetting('shared_email_senders', JSON.stringify(next.map(e => ({ email: e }))))
       if (res.ok) setSharedEmails(next)
       else setAliasError('Failed to save — please try again')
     } catch { setAliasError('Network error') }
@@ -324,7 +305,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
     // Also soft-delete the signature tied to this address if any
     const tied = sigs.find(s => s.sending_email?.toLowerCase() === email.toLowerCase())
     if (tied) {
-      await fetch(`/api/signatures/${tied.id}`, { method: 'DELETE' })
+      await deleteSignatureAction(tied.id)
       setSigs(prev => prev.filter(s => s.id !== tied.id))
     }
     await persistShared(sharedEmails.filter(e => e !== email))
