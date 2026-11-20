@@ -54,8 +54,9 @@ const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee li
  * one was deleted and this one took its name and address; /group-benefits redirects here.
  *
  * Since 20 Nov 2026 the page is the Quotation register: the quotations kept from /eb (eb_quotations),
- * each opening its proposal. The older quotations (gb_quotations) keep their /pricing-matrix/quote/<id>
- * addresses; scripts/eb-reprice-legacy.ts re-prices them into the register on Jarod's go.
+ * each opening its proposal. The older quotations (gb_quotations) were re-priced into the register
+ * (scripts/eb-reprice-legacy.ts) and their pages deleted on 20 Nov 2026: /pricing-matrix/quote/<id>/**
+ * redirects to the re-priced proposal, else here.
  * Since 27 Oct 2026 the Quotes tab is the register of employment-benefits policies across companies
  * (GET /api/eb/policies); "New quotation" opens a placement and lands on the company's Members tab.
  * The engine-by-hand paths below stay reachable under "By hand".

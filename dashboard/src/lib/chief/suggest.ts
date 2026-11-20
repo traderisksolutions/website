@@ -33,8 +33,8 @@ export type Suggestion = {
   /** The census file on the thread the estimate will read, when there is one and no quotation yet. */
   attachment: string
   rows: number
-  /** Already acted on: where the result is, and what it says. `draftable` when the older scenario pack exists, which the client draft still reads. */
-  done: { quotationId: string; members: number; summary?: string; draftable?: boolean } | null
+  /** Already acted on: where the result is, and what it says. */
+  done: { quotationId: string; members: number; summary?: string } | null
 }
 
 export type ThreadSuggestion = Suggestion & { threadId: string; subject: string | null; company: string | null; companyId: string | null; receivedAt: string }
@@ -109,8 +109,8 @@ async function scenarioSuggestion(thread: Row, dismissed: Set<string>, census: C
   return {
     key, kind: 'eb_scenarios', attachment: q ? '' : census?.filename ?? '', rows: q?.member_count ?? census?.rows ?? 0, threadId: thread.id, receivedAt: census?.receivedAt ?? thread.last_message_at ?? thread.created_at ?? '',
     title: 'Employment benefits analysis', detail, yes: 'Open census',
-    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack), draftable: true }
-      : scen ? { quotationId: scen.quotationId, members: q?.member_count ?? 0, summary: packSummary(scen), draftable: true } : null,
+    done: pack ? { quotationId: pack.quotationId, members: q?.member_count ?? 0, summary: analysisSummary(pack) }
+      : scen ? { quotationId: scen.quotationId, members: q?.member_count ?? 0, summary: packSummary(scen) } : null,
   }
 }
 

@@ -38,7 +38,7 @@ export function PlanRules() {
       const r = await fetch('/api/group-benefits/plan-rules', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules }) })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(j.error ?? `Not saved (${r.status})`)
-      setData(d => d && { ...d, ...j }); setRules(j.rules); setMsg('Saved. Compare cover uses these rules from its next load.')
+      setData(d => d && { ...d, ...j }); setRules(j.rules); setMsg('Saved. New quotations use these rules.')
     } catch (e) { setMsg(e instanceof Error ? e.message : 'Not saved') } finally { setBusy(false) }
   }
 

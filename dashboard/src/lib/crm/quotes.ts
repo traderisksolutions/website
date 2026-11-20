@@ -18,10 +18,13 @@ export async function listCompanyQuotes(company: Company): Promise<QuoteRow[]> {
   const rows = await sbTry<GbRow[]>(`gb_quotations?company_name=ilike.${encodeURIComponent(company.name)}` +
     `&select=id,company_name,effective_date,member_count,created_at&order=created_at.desc`, [])
   const freshCutoff = Date.now() - QUOTE_FRESH_DAYS * 86_400_000
+  // The quotation pages were deleted on 20 Nov 2026: each opens its re-priced proposal, else the register.
+  const moved = rows.length ? await sbTry<{ id: string; legacy_gb_id: string }[]>(`eb_quotations?legacy_gb_id=in.(${rows.map(g => g.id).join(',')})&select=id,legacy_gb_id`, []) : []
+  const proposal = new Map(moved.map(e => [e.legacy_gb_id, e.id]))
   return rows.map((g): QuoteRow => ({
     id: g.id, kind: 'pricing_matrix', title: 'Pricing Matrix quotation',
     status: 'Prepared', isOpen: new Date(g.created_at).getTime() > freshCutoff,
     created_at: g.created_at, effective_date: g.effective_date, productLine: 'group_benefits', memberCount: g.member_count,
-    href: `/pricing-matrix/quote/${g.id}/compare`,
+    href: proposal.has(g.id) ? `/eb/proposal/${proposal.get(g.id)}` : '/pricing-matrix',
   }))
 }

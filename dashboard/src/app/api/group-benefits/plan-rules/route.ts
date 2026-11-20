@@ -1,7 +1,7 @@
 /**
  * GET → { rules, updatedBy, updatedAt, plans }: the plan rules (src/lib/gb/plan-pairs.ts) and the
  *   plans each product sells per cover, from the house workbook, so Plan rules can show the pairs.
- * PUT { rules } → saves them. Compare cover applies them from its next load.
+ * PUT { rules } → saves them. New quotation (/eb) applies them from its next price.
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'

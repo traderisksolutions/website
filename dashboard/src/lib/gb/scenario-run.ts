@@ -101,9 +101,6 @@ export async function plansFromCensusFile(q: Quotation, threadIds: string[]) {
   return censusPlans(atts[0]?.parsed_text)
 }
 
-/** A thread's tag on a quotation, from its notes; null for a quotation priced from a file. */
-export const threadOfQuotation = (notes: string | null | undefined): string | null => notes?.match(/\[thread:([0-9a-f-]{36})\]/i)?.[1] ?? null
-
 export async function censusFor(threadId: string, threadIds: string[]): Promise<{ quotation: Quotation; how: string } | { error: string }> {
   for (const id of threadIds) {
     const own = await quotationForThread(id)

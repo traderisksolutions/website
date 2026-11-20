@@ -3,8 +3,8 @@ import { trailAfter, trailAt } from '@/lib/nav/trail'
 
 describe('trailAfter', () => {
   const thread = { label: 'Empyrion — group medical renewal', href: '/engagement?lead=t1' }
-  const quote = { label: 'Quotation · Empyrion DC', href: '/pricing-matrix/quote/q1' }
-  const plans = { label: 'Plan builder', href: '/pricing-matrix/quote/q1/plans?scenario=A' }
+  const quote = { label: 'Quotation · Empyrion DC', href: '/eb/proposal/q1' }
+  const plans = { label: 'Census', href: '/eb?thread=t1' }
   it('grows as pages are clicked through', () => {
     expect(trailAfter(trailAfter(trailAfter([], thread), quote), plans)).toEqual([thread, quote, plans])
   })
