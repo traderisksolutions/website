@@ -10,6 +10,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - The old New quotation is retired: `/pricing-matrix/new` and `/pricing-matrix/company/<id>` redirect to `/eb` and the company's Employment Benefits tab; `/eb` takes `?hrLink` and `?quotation` (EB-055).
 - Edit quotation on a proposal reopens it on `/eb`; Save updates it in place until its proposal is sent, then keeps a new version; Save then Prepare keeps one version (EB-057).
 - House workbook: Reload workbook on Quotation register › Insurers, and an automatic re-import when the Drive file is newer than the saved copy (EB-058).
+- Wording: Current and Against current (plain signed figures, no colour), Per person on the page and PDF; the client email drops the per-person column. An unknown current insurer reads "Unknown: <name read>" (EB-059).
+- Shape: one primary per step, house tables with centred headers, no dashed boxes, neutral check dots, Not priced with a tooltip instead of note sentences, every Remove confirmed, Premiums freeze one column on a phone; proposal pages lose the Back button and inline send confirm (EB-059).
+- Quotation register: Insurers column, company search, Status filter. Insurers tab on primitives and the house dialog. Brochures: Add version and Edit are full pages; stale "Rate tables" instruction removed (EB-060).
+- Removed: `useCoverNames.ts` (unused), the exported `statusOf` and `basisWord`.
 
 ## 2026-11-20 — "Since you were away" removed
 

@@ -48,6 +48,12 @@ test('a census in categories, one tier lower first, then premiums per category w
   await expect(directors.getByRole('cell', { name: 'Hospital & Surgical' })).toBeVisible()
   await expect(directors.getByRole('cell', { name: 'Directors · premium a year' })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Total premium' }).getByRole('cell', { name: 'Premium a year' })).toBeVisible()
+  // Wording (EB-059): Current, Against current as plain signed figures, Per person; one primary per step.
+  await expect(directors.getByRole('columnheader', { name: 'Current' })).toBeVisible()
+  await expect(directors.getByRole('cell', { name: 'Against current' }).first()).toBeVisible()
+  await expect(directors.getByRole('cell', { name: 'Per person' })).toBeVisible()
+  await expect(page.getByText(/^Today$|Against today|^A life$/)).toHaveCount(0)
+  await expect(page.getByText('Other insurer')).toHaveCount(0)
 
   // Proposal under Total (EB-051): every insurer ticked, one taken out, nothing saved here.
   const proposal = page.getByRole('table', { name: 'Insurers in the proposal' })
@@ -63,6 +69,13 @@ test('a census read can be removed, and nothing from it stays', async ({ page })
   await page.locator('#eb-upload').setInputFiles({ name: 'journey-census.csv', mimeType: 'text/csv', buffer: Buffer.from(CENSUS) })
   await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
   await page.getByRole('region', { name: 'Census' }).getByRole('button', { name: 'Remove' }).click()
+  // Every Remove asks first (EB-059): Cancel keeps it, Remove takes it.
+  const ask = page.getByRole('dialog')
+  await expect(ask).toContainText('Remove journey-census.csv?')
+  await ask.getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible()
+  await page.getByRole('region', { name: 'Census' }).getByRole('button', { name: 'Remove' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove' }).click()
   await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
   await expect(page.getByRole('table', { name: 'Cover by category' })).toHaveCount(0)
 })
@@ -93,4 +106,15 @@ test('a proposal reopens as Edit quotation with its census and insurers; a sent 
   await expect(page.getByRole('heading', { name: 'Edit quotation', level: 1 })).toBeVisible()
   await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('table', { name: 'Insurers in the proposal' })).toBeVisible({ timeout: 60_000 })
+})
+
+test('the Quotation register searches by company and filters by status; Insurers carries Reload workbook (EB-058, EB-059)', async ({ page }) => {
+  await openClean(page, '/pricing-matrix')
+  const table = page.getByRole('table', { name: 'Quotation register' })
+  await expect(table.getByRole('columnheader', { name: 'Insurers' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('radiogroup', { name: 'Status' })).toBeVisible()
+  await page.getByRole('searchbox', { name: 'Search by company' }).fill('zzq no such company')
+  await expect(table.getByText('No quotation matches.')).toBeVisible()
+  await page.getByRole('radiogroup', { name: 'Section' }).getByRole('radio', { name: 'Insurers' }).click()
+  await expect(page.getByRole('button', { name: 'Reload workbook' })).toBeVisible()
 })

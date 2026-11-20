@@ -196,9 +196,10 @@ const TD = 'border:1px solid #d5d9d4;padding:6px 12px;'
 
 /** The client email, written by code from the proposal's own figures. HTML, with the premium table. */
 export function proposalEmail(m: ProposalModel, first: string | null, sender: string | null): { subject: string; html: string } {
-  const rows = m.products.map((p, i) => ({ p, t: m.totals[i], l: m.perLife[i] })).filter(r => r.t > 0).sort((a, b) => a.t - b.t)
-  const table = `<table style="border-collapse:collapse;font-size:14px"><thead><tr><th style="${TD}text-align:left">Insurer</th><th style="${TD}text-align:center">Annual premium, net of GST</th><th style="${TD}text-align:center">A life</th></tr></thead><tbody>${
-    rows.map(r => `<tr><td style="${TD}">${esc(r.p)}</td><td style="${TD}text-align:center">${sgd(r.t)}</td><td style="${TD}text-align:center">${r.l != null ? sgd(r.l) : '—'}</td></tr>`).join('')}</tbody></table>`
+  // Insurer and annual premium only (Jarod, 20 Nov 2026: no per-person figure in the email).
+  const rows = m.products.map((p, i) => ({ p, t: m.totals[i] })).filter(r => r.t > 0).sort((a, b) => a.t - b.t)
+  const table = `<table style="border-collapse:collapse;font-size:14px"><thead><tr><th style="${TD}text-align:left">Insurer</th><th style="${TD}text-align:center">Annual premium, net of GST</th></tr></thead><tbody>${
+    rows.map(r => `<tr><td style="${TD}">${esc(r.p)}</td><td style="${TD}text-align:center">${sgd(r.t)}</td></tr>`).join('')}</tbody></table>`
   const lives = `${m.employees} employee${m.employees === 1 ? '' : 's'}${m.dependants ? `, ${m.dependants} dependant${m.dependants === 1 ? '' : 's'}` : ''}`
   const html = [
     `<p>Dear ${esc(first ?? 'Sir or Madam')},</p>`,

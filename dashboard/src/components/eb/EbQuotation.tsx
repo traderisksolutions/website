@@ -14,10 +14,13 @@
  *
  * Premiums: one table per category, most senior first, then a total. Every product priced from the
  * house workbook (src/lib/gb/eb-quote.ts); each cover's heading carries its premium; each product's
- * plan can be changed per cover, plan rules applied. The first two columns stay in place.
+ * plan can be changed per cover, plan rules applied. The first two columns (row, Current) stay in
+ * place; under 834px only the first. Differences read as plain signed figures ("−S$1,200").
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Btn, Field, inputCls, Segmented, Spinner } from '@/components/crm/primitives'
+import { Btn, Chip, Field, inputCls, Segmented, Spinner } from '@/components/crm/primitives'
+import { tableFrame } from '@/components/cases/shared'
+import { useConfirm } from '@/components/ui/confirm'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { fmtDate } from '@/lib/format'
 import type { Member } from '@/lib/gb-quote'
@@ -26,21 +29,24 @@ import type { LastYear } from '@/lib/gb/last-year'
 import { applyRules } from '@/lib/gb/plan-pairs'
 import { ProposalSection } from './ProposalSection'
 import type { CensusLife, EditState } from '@/lib/gb/eb-proposal'
-import { categoryTotal, censusCategories, lastYearNet, lowerTier, MAX_CATEGORIES, startDesign, TIERS, todayFromLastYear, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
+import { categoryTotal, censusCategories, HOUSE_INSURERS, insurerOf, lastYearNet, lowerTier, MAX_CATEGORIES, startDesign, TIERS, todayFromLastYear, UNKNOWN_INSURER, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
 
 type Source = { attachment_id: string; filename: string; at: string; subject: string | null }
 type Picks = Record<string, Record<string, Record<CoverKey, string>>>   // category → product → cover → plan
 type Reopened = { quotation?: { id: string; company_id: string | null; company_name: string; version: number }; edit: EditState | null; census?: CensusLife[]; products: string[]; effectiveDate: string; basis: 'renewal' | 'new_business'; picks: Picks }
 
-const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', LINE = '#e6e8e4', LINE2 = '#d5d9d4', BAND = '#f0f2ee', FIELD = '#f1f2ee', GREEN = '#132c1c', SOFT = '#edf7e8', TODAY = '#f3f7f4', UP = '#1d6b3f', DOWN = '#a3361f'
-const INSURERS = ['', 'QBE (Steadfast MCare+)', 'Raffles Health (RCC Enhanced III)', 'Income (FlexCare)', 'Singlife (MyBenefits Plus)', 'AIA (Flexi Vital Care Plus)', 'Other insurer']
+const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', FIELD = '#f1f2ee', GREEN = '#132c1c', SOFT = '#edf7e8', DOWN = '#a3361f', LINE2 = '#d5d9d4'
 const NOT_KNOWN = 'Not on the census'
 const f0 = (n: number) => Math.round(n).toLocaleString('en-SG')
 const nextMonthFirst = () => { const t = new Date(Date.now() + 8 * 3600_000); const y = t.getUTCMonth() === 11 ? t.getUTCFullYear() + 1 : t.getUTCFullYear(); return `${y}-${String((t.getUTCMonth() + 1) % 12 + 1).padStart(2, '0')}-01` }
+/** A difference as plain text with its sign: "−S$1,200", "+S$800", "S$0". */
+const signed = (d: number) => { const r = Math.round(d); return r === 0 ? 'S$0' : `${r < 0 ? '−' : '+'}S$${f0(Math.abs(r))}` }
+/** Why a cell shows Not priced, for its tooltip. */
+const notPricedWhy = (product: string, cover: string) => product === 'AIA Flexi Vital Care Plus' && cover === 'Personal Accident' ? 'AIA personal accident: the rate rule is not confirmed.' : 'No rate in the house workbook for this plan and these ages.'
 
 function FileRow({ name, meta, action }: { name: string; meta?: string; action?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[8px] px-3 py-2 text-[13.5px] bg-white" style={{ border: `1px solid ${LINE}` }}>
+    <div className="flex items-center justify-between gap-3 py-1.5 text-[13.5px]">
       <span className="min-w-0"><span className="block truncate" style={{ color: INK }}>{name}</span>{meta && <span className="block text-[12px]" style={{ color: MUTED }}>{meta}</span>}</span>
       {action}
     </div>
@@ -59,15 +65,14 @@ function Drop({ id, label, accept, multiple, disabled, onFiles }: { id: string; 
   )
 }
 
-function Against({ v, today }: { v: number | null; today: number | null }) {
-  if (v == null || today == null) return <span style={{ color: SUBTLE }}>—</span>
-  const d = Math.round(v - today)
-  if (d === 0) return <span style={{ color: SUBTLE }}>Same premium</span>
-  return <span style={{ color: d < 0 ? UP : DOWN }}>S${f0(Math.abs(d))} {d < 0 ? 'less' : 'more'}</span>
+function Against({ v, current }: { v: number | null; current: number | null }) {
+  if (v == null || current == null) return <span style={{ color: SUBTLE }}>—</span>
+  return <span>{signed(v - current)}</span>
 }
 
 export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quotationId = null }: { threadId: string | null; companyId?: string | null; hrLinkId?: string | null; quotationId?: string | null }) {
   // ?company=<id> (the company page's New quotation): the name and its files arrive with the sources.
+  const confirm = useConfirm()
   const [pick, setPick] = useState<CompanyPick>({ id: companyId, name: '' })
   const [sources, setSources] = useState<Source[]>([])
   const [current, setCurrent] = useState('')
@@ -103,7 +108,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       if (cancelled) return
       setSources(d.sources ?? []); setDocs(d.documents ?? [])
       if (d.companyName) setPick(p => p.name ? p : { id: d.companyId ?? null, name: d.companyName! })
-      if (d.currentInsurer) setCurrent(c => c || INSURERS.find(i => i && i.toLowerCase().includes(d.currentInsurer!.toLowerCase().split(' ')[0])) || 'Other insurer')
+      if (d.currentInsurer) setCurrent(c => c || insurerOf(d.currentInsurer))
     }).catch(() => {})
     return () => { cancelled = true }
   }, [threadId, pick.id])
@@ -211,9 +216,9 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       setLastYear(ly)
       if (ly.periodTo) { const n = new Date(`${ly.periodTo}T00:00:00Z`); n.setUTCDate(n.getUTCDate() + 1); setEffDate(n.toISOString().slice(0, 10)) }
       setBasis('renewal')
-      const named = `${ly.insurer ?? ''} ${ly.product ?? ''}`.toLowerCase()
-      const hit = INSURERS.find(i => i && i.toLowerCase().split(/[ ()]+/).some(w => w.length > 3 && named.includes(w)))
-      if (hit) setCurrent(hit)
+      // The insurer read: one of the five, else "Unknown: <the name read>". Never a guess.
+      const named = insurerOf([ly.insurer, ly.product].filter(Boolean).join(' '))
+      if (named) setCurrent(named)
     } catch (e) { setError(e instanceof Error ? e.message : "Last year's policy could not be read.") }
     finally { setReadingPolicy(false) }
   }
@@ -248,7 +253,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     setBusy(true); setError(null)
     try {
       const res = await fetch('/api/eb/price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-        effective_date: effDate, basis, current_insurer: current && current !== 'Other insurer' ? current : null,
+        effective_date: effDate, basis, current_insurer: current.startsWith(UNKNOWN_INSURER) ? current.slice(UNKNOWN_INSURER.length) : current || null,
         categories: chosen.map(c => ({ name: c.name, members: c.members, design: designs[c.name], today: todayFor(c) })),
       }) })
       const d = await res.json().catch(() => ({})) as Priced & { error?: string }
@@ -272,47 +277,61 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     })
   }
 
+  async function removeCensus() {
+    if (!(await confirm({ title: `Remove ${file?.name ?? 'the census'}?`, body: 'The categories, design and premiums read from it go with it. The file stays where it came from.', action: 'Remove', danger: true }))) return
+    clearCensus()
+  }
+  async function removePolicy() {
+    if (!(await confirm({ title: 'Remove last year’s policy?', body: 'The current cover and premium read from it go with it. The files stay where they came from.', action: 'Remove', danger: true }))) return
+    clearPolicy()
+  }
+  async function removeUpload(i: number) {
+    if (!(await confirm({ title: `Remove ${uploads[i]?.name ?? 'this file'}?`, body: 'It is taken off this quotation only.', action: 'Remove', danger: true }))) return
+    setUploads(u => u.filter((_, j) => j !== i))
+  }
+  const insurerOptions = [...HOUSE_INSURERS as readonly string[], ...(current.startsWith(UNKNOWN_INSURER) ? [current] : [])]
+
   return (
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-4" aria-label="Documents">
         <div className="max-w-[560px]"><CompanyField value={pick} onChange={setPick} allowCreate listId="eb-company-options" /></div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="eb-census">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-8">
+          <section className="flex flex-col gap-3 min-w-0" aria-labelledby="eb-census">
             <h2 id="eb-census" className="m-0 text-[15px] font-medium">Census</h2>
             <Drop id="eb-upload" label={reading && file?.upload ? 'Reading every tab…' : 'Add census'} accept=".xlsx,.xls,.xlsm,.csv" disabled={reading} onFiles={fs => void readCensus({ name: fs[0].name, upload: fs[0] })} />
-            {file && members && <FileRow name={file.name} meta={`${members.length} lives`} action={<span className="flex items-center gap-2"><span className="text-[11.5px] px-2 py-0.5 rounded-full" style={{ background: SOFT, color: GREEN }}>Read</span><Btn size="xs" level="tertiary" onClick={clearCensus}>Remove</Btn></span>} />}
+            {file && members && <FileRow name={file.name} meta={`${members.length} lives`} action={<span className="flex items-center gap-2"><Chip>Read</Chip><Btn size="xs" level="tertiary" onClick={() => void removeCensus()}>Remove</Btn></span>} />}
             {needsPassword && file && (
               <div className="flex items-end gap-2 flex-wrap">
                 <Field label={needsPassword.wrong ? 'That password does not open the file' : 'This file is password-protected'}>
                   <input id="eb-password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} placeholder="Password" />
                 </Field>
-                <Btn level="primary" onClick={() => void readCensus(file, password)} loading={reading}>Open</Btn>
+                <Btn onClick={() => void readCensus(file, password)} loading={reading}>Open</Btn>
               </div>
             )}
-            {sources.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread\u2019s'} emails</p>}
+            {sources.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread’s'} emails</p>}
             {sources.slice(0, 8).map(s => {
               const on = file?.attachmentId === s.attachment_id
               return <FileRow key={s.attachment_id} name={s.filename} meta={`${fmtDate(s.at)}${s.subject ? ` · ${s.subject}` : ''}`}
-                action={<Btn size="sm" level={on ? 'primary' : 'secondary'} loading={reading && on} disabled={reading} onClick={() => void readCensus({ name: s.filename, attachmentId: s.attachment_id })}>{on && members ? 'Added' : 'Add'}</Btn>} />
+                action={<Btn size="xs" aria-pressed={on} loading={reading && on} disabled={reading} onClick={() => void readCensus({ name: s.filename, attachmentId: s.attachment_id })}>{on && members ? 'Added' : 'Add'}</Btn>} />
             })}
           </section>
-          <section className="flex flex-col gap-3 rounded-[12px] p-5 min-w-0" style={{ border: `1.5px dashed ${LINE}` }} aria-labelledby="eb-policy">
+          <section className="flex flex-col gap-3 min-w-0" aria-labelledby="eb-policy">
             <h2 id="eb-policy" className="m-0 text-[15px] font-medium">Last year&apos;s policy and premium</h2>
             <Drop id="eb-policy-files" label="Add policy documents" accept=".pdf,.png,.jpg,.jpeg,.xlsx" multiple disabled={readingPolicy} onFiles={fs => setUploads(u => [...u, ...fs].slice(0, 12))} />
-            {uploads.map((f, i) => <FileRow key={`${f.name}-${i}`} name={f.name} meta={`${Math.max(1, Math.round(f.size / 1024))} KB`} action={<button type="button" aria-label={`Remove ${f.name}`} onClick={() => setUploads(u => u.filter((_, j) => j !== i))} className="bg-transparent border-0 p-1 cursor-pointer text-[15px]" style={{ color: MUTED }}>×</button>} />)}
-            {docs.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread\u2019s'} emails</p>}
+            {uploads.map((f, i) => <FileRow key={`${f.name}-${i}`} name={f.name} meta={`${Math.max(1, Math.round(f.size / 1024))} KB`} action={<Btn size="xs" level="tertiary" aria-label={`Remove ${f.name}`} onClick={() => void removeUpload(i)}>Remove</Btn>} />)}
+            {docs.length > 0 && <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>On {pick.name ? `${pick.name}'s` : 'this thread’s'} emails</p>}
             {docs.slice(0, 10).map(s => { const on = docIds.includes(s.attachment_id); return (
               <FileRow key={s.attachment_id} name={s.filename} meta={`${fmtDate(s.at)}${s.subject ? ` · ${s.subject}` : ''}`}
-                action={<Btn size="sm" level={on ? 'primary' : 'secondary'} disabled={readingPolicy} onClick={() => setDocIds(d => on ? d.filter(x => x !== s.attachment_id) : [...d, s.attachment_id])}>{on ? 'Added' : 'Add'}</Btn>} />
+                action={<Btn size="xs" aria-pressed={on} disabled={readingPolicy} onClick={() => setDocIds(d => on ? d.filter(x => x !== s.attachment_id) : [...d, s.attachment_id])}>{on ? 'Added' : 'Add'}</Btn>} />
             ) })}
             {(uploads.length > 0 || docIds.length > 0) && (
-              <div><Btn level="primary" loading={readingPolicy} disabled={readingPolicy} onClick={() => void readPolicy()}>{readingPolicy ? `Reading ${uploads.length + docIds.length} ${uploads.length + docIds.length === 1 ? 'document' : 'documents'}…` : 'Read policy'}</Btn></div>
+              <div><Btn loading={readingPolicy} disabled={readingPolicy} onClick={() => void readPolicy()}>{readingPolicy ? `Reading ${uploads.length + docIds.length} ${uploads.length + docIds.length === 1 ? 'document' : 'documents'}…` : 'Read policy'}</Btn></div>
             )}
             {lastYear && (
               <div className="flex flex-col gap-1 text-[13px]">
-                <div className="flex items-center justify-between gap-3"><span className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</span><Btn size="xs" level="tertiary" onClick={clearPolicy}>Remove</Btn></div>
+                <div className="flex items-center justify-between gap-3"><span className="font-medium">{[lastYear.insurer, lastYear.product].filter(Boolean).join(' · ') || 'Insurer not stated'}</span><Btn size="xs" level="tertiary" onClick={() => void removePolicy()}>Remove</Btn></div>
                 <div style={{ color: MUTED }}>{[lastYear.policyNumber && `Policy ${lastYear.policyNumber}`, lastYear.periodFrom && lastYear.periodTo && `${fmtDate(lastYear.periodFrom)} to ${fmtDate(lastYear.periodTo)}`, lyNet != null && `S$${f0(lyNet)} a year, net of GST`].filter(Boolean).join(' · ')}</div>
-                <div style={{ color: MUTED }}>{Object.keys(lyToday).length ? `Today's cover set for ${Object.keys(lyToday).length} of ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}` : cats.length ? 'No census category matched the policy categories' : 'Add the census to set today\u2019s cover'}</div>
+                <div style={{ color: MUTED }}>{Object.keys(lyToday).length ? `Current cover set for ${Object.keys(lyToday).length} of ${cats.length} ${cats.length === 1 ? 'category' : 'categories'}` : cats.length ? 'No census category matched the policy categories' : 'Add the census to set the current cover'}</div>
                 {lastYear.conflicts.map(c => <div key={c} style={{ color: '#8a5a00' }}>{c}</div>)}
               </div>
             )}
@@ -321,30 +340,30 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
         {error && <p className="m-0 text-[13.5px]" style={{ color: DOWN }} role="alert">{error}</p>}
 
         {members && (
-          <div className="overflow-x-auto rounded-[10px]" style={{ border: `1px solid ${LINE}` }}>
-            <table className="w-full text-[13.5px]" style={{ borderCollapse: 'collapse', minWidth: 760 }} aria-label="Census">
-              <thead><tr style={{ background: BAND, color: MUTED }} className="text-[12px]">
-                {['Census category', 'Employees', 'Spouses', 'Children', 'Lives', 'Plan on the census', 'In this quotation'].map((h, i) => <th key={h} className={`px-3 py-2 font-medium ${i === 0 ? 'text-left sticky left-0' : 'text-center'}`} style={i === 0 ? { background: BAND } : undefined}>{h}</th>)}
+          <div className={tableFrame}>
+            <table className="trs-table" style={{ minWidth: 760 }} aria-label="Census">
+              <thead><tr>
+                {['Census category', 'Employees', 'Spouses', 'Children', 'Lives', 'Plan on the census', 'In this quotation'].map((h, i) => <th key={h} className={i === 0 ? 'sticky left-0 z-10 bg-white' : undefined}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {cats.map((c, i) => {
                   const on = included.includes(c.name)
                   return (
-                    <tr key={c.name} style={{ borderTop: `1px solid ${LINE}`, background: i % 2 ? '#f9faf8' : 'white' }}>
-                      <td className="px-3 py-2 text-left sticky left-0 font-medium" style={{ background: i % 2 ? '#f9faf8' : 'white' }}>{c.name}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{c.employees}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{c.spouses}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{c.children}</td>
-                      <td className="px-3 py-2 text-center tabular-nums">{c.lives}</td>
-                      <td className="px-3 py-2 text-center" style={{ color: c.plan ? INK : SUBTLE }}>{c.plan ?? 'Not on the census'}</td>
-                      <td className="px-3 py-2 text-center"><input id={`eb-inc-${i}`} type="checkbox" checked={on} disabled={!on && included.length >= MAX_CATEGORIES} onChange={e => toggle(c.name, e.target.checked)} aria-label={`Include ${c.name}`} /></td>
+                    <tr key={c.name}>
+                      <td className="sticky left-0 bg-white font-medium">{c.name}</td>
+                      <td>{c.employees}</td>
+                      <td>{c.spouses}</td>
+                      <td>{c.children}</td>
+                      <td>{c.lives}</td>
+                      <td style={{ color: c.plan ? INK : SUBTLE }}>{c.plan ?? 'Not on the census'}</td>
+                      <td><input id={`eb-inc-${i}`} type="checkbox" checked={on} disabled={!on && included.length >= MAX_CATEGORIES} onChange={e => toggle(c.name, e.target.checked)} aria-label={`Include ${c.name}`} className="h-4 w-4 accent-[#132c1c] cursor-pointer" /></td>
                     </tr>
                   )
                 })}
-                <tr style={{ borderTop: `1px solid ${LINE2}` }} className="font-semibold">
-                  <td className="px-3 py-2 text-left sticky left-0 bg-white">Total</td>
-                  {(['employees', 'spouses', 'children', 'lives'] as const).map(k => <td key={k} className="px-3 py-2 text-center tabular-nums">{cats.reduce((a, c) => a + c[k], 0)}</td>)}
-                  <td /><td className="px-3 py-2 text-center">{included.length} of {MAX_CATEGORIES}</td>
+                <tr className="row-total">
+                  <td className="sticky left-0 bg-white">Total</td>
+                  {(['employees', 'spouses', 'children', 'lives'] as const).map(k => <td key={k}>{cats.reduce((a, c) => a + c[k], 0)}</td>)}
+                  <td /><td>{included.length} of {MAX_CATEGORIES}</td>
                 </tr>
               </tbody>
             </table>
@@ -361,30 +380,31 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
             <Field label="Basis"><Segmented size="sm" label="Basis" value={basis} onChange={v => { setBasis(v); setPriced(null) }} options={[{ value: 'renewal', label: 'Renewal' }, { value: 'new_business', label: 'New business' }]} /></Field>
             <Field label="Current insurer">
               <select id="eb-current" value={current} onChange={e => { setCurrent(e.target.value); setPriced(null) }} className={inputCls}>
-                {INSURERS.map(i => <option key={i} value={i}>{i || 'Not known'}</option>)}
+                <option value="">Not known</option>
+                {insurerOptions.map(i => <option key={i} value={i}>{i}</option>)}
               </select>
             </Field>
           </div>
-          <div className="overflow-x-auto rounded-[10px]" style={{ border: `1px solid ${LINE}` }}>
-            <table className="text-[13px]" style={{ borderCollapse: 'separate', borderSpacing: 0, minWidth: 1400, width: '100%' }} aria-label="Cover by category">
+          <div className={tableFrame}>
+            <table className="trs-table" style={{ minWidth: 1400 }} aria-label="Cover by category">
               <thead><tr>
-                <th className="sticky left-0 z-10 px-3 py-2 text-left font-semibold" style={{ background: BAND, width: 200, minWidth: 200, boxShadow: `inset -2px 0 0 ${GREEN}` }}>Category</th>
-                {TIERS.map(t => <th key={t.key} className="px-3 py-2 text-left font-semibold" style={{ background: BAND, minWidth: t.key === 'hs' ? 260 : 180 }}>{t.label}</th>)}
+                <th className="sticky left-0 z-10 bg-white" style={{ width: 200, minWidth: 200 }}>Category</th>
+                {TIERS.map(t => <th key={t.key} style={{ minWidth: t.key === 'hs' ? 260 : 180 }}>{t.label}</th>)}
               </tr></thead>
               <tbody>
                 {chosen.map(c => (
                   <tr key={c.name}>
-                    <td className="sticky left-0 z-10 px-3 py-3 align-top bg-white" style={{ borderTop: `1px solid ${LINE}`, boxShadow: `inset -2px 0 0 ${GREEN}` }}>
+                    <td className="sticky left-0 z-10 bg-white align-top">
                       <div className="font-semibold text-[14px]">{c.name}</div>
-                      <div className="text-[12px]" style={{ color: MUTED }}>{c.employees} employees{c.plan ? ` · today ${c.plan}` : ''}</div>
+                      <div className="text-[12px]" style={{ color: MUTED }}>{c.employees} employees{c.plan ? ` · current ${c.plan}` : ''}</div>
                     </td>
                     {TIERS.map(t => {
-                      const today = todayFor(c)[t.key], cur = designs[c.name]?.[t.key] ?? 0
-                      const lo = today != null ? lowerTier(t.key, today) : null
-                      const choices: { tier: number; label: string }[] = today == null ? [] : lo === today ? [{ tier: today, label: 'Same' }] : [{ tier: lo!, label: 'Lower' }, { tier: today, label: 'Same' }]
+                      const now = todayFor(c)[t.key], cur = designs[c.name]?.[t.key] ?? 0
+                      const lo = now != null ? lowerTier(t.key, now) : null
+                      const choices: { tier: number; label: string }[] = now == null ? [] : lo === now ? [{ tier: now, label: 'Same' }] : [{ tier: lo!, label: 'Lower' }, { tier: now, label: 'Same' }]
                       const other = !choices.some(x => x.tier === cur)
                       return (
-                        <td key={t.key} className="px-3 py-3 align-top" style={{ borderTop: `1px solid ${LINE}`, borderLeft: `1px solid ${LINE}` }}>
+                        <td key={t.key} className="align-top text-left" style={{ paddingTop: 10, paddingBottom: 10 }}>
                           {choices.map(x => {
                             const on = cur === x.tier
                             return (
@@ -397,7 +417,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
                           })}
                           <select id={`eb-${c.name}-${t.key}`} aria-label={`${t.label}, ${c.name}`} value={other ? String(cur) : ''} onChange={e => e.target.value !== '' && setTier(c.name, t.key, Number(e.target.value))}
                             className="w-full h-[26px] rounded-[7px] border-0 px-2 text-[12px] cursor-pointer" style={{ background: FIELD, color: other ? INK : MUTED, fontWeight: other ? 600 : 400, boxShadow: other && choices.length ? `inset 0 0 0 2px ${GREEN}` : undefined }}>
-                            <option value="">{today == null ? 'Not on the census · choose' : 'Other tier'}</option>
+                            <option value="">{now == null ? 'Not on the census · choose' : 'Other tier'}</option>
                             {t.tiers.map((x, i) => <option key={x.words} value={i}>{x.words}</option>)}
                           </select>
                         </td>
@@ -421,59 +441,63 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   )
 }
 
+/** Premium tables: the first two columns (row label, Current) stay in place; on a phone only the first. */
+const FREEZE_CSS = `.eb-prem .eb-c1{position:sticky;left:0;z-index:10;background:#fff}.eb-prem .eb-c2{position:sticky;left:var(--eb-c1);z-index:10;background:#fff;box-shadow:inset -1px 0 0 #d5d9d4}@media (max-width:833px){.eb-prem .eb-c2{position:static;box-shadow:none}}`
+
 function Premiums({ priced, picks, onChoose, lastYearTotal }: { priced: Priced; picks: Picks; onChoose: (c: PricedCategory, product: string, key: CoverKey, plan: string) => void; lastYearTotal: number | null }) {
   const C1 = 190, C2 = 210
   const head = (
-    <thead><tr className="text-[12px]" style={{ color: MUTED }}>
-      <th className="sticky left-0 z-20 px-3 py-2 text-left font-medium" style={{ background: BAND, width: C1, minWidth: C1 }} />
-      <th className="sticky z-20 px-3 py-2 font-medium" style={{ left: C1, background: BAND, width: C2, minWidth: C2, boxShadow: `1px 0 0 ${LINE2}` }}>Today</th>
-      {priced.products.map(p => <th key={p} className="px-3 py-2 font-medium" style={{ background: BAND, minWidth: 290 }}>{p}</th>)}
+    <thead><tr>
+      <th className="eb-c1" style={{ width: C1, minWidth: C1, zIndex: 20 }} />
+      <th className="eb-c2" style={{ width: C2, minWidth: C2, zIndex: 20 }}>Current</th>
+      {priced.products.map(p => <th key={p} style={{ minWidth: 290 }}>{p}</th>)}
     </tr></thead>
   )
-  const sticky = (bg: string) => ({ c1: { position: 'sticky' as const, left: 0, zIndex: 10, background: bg, width: C1, minWidth: C1 }, c2: { position: 'sticky' as const, left: C1, zIndex: 10, background: bg === 'white' ? TODAY : bg, width: C2, minWidth: C2, boxShadow: `1px 0 0 ${LINE2}` } })
-  // Today's total only when every cover's plan today is known; a part-known total would understate it.
-  const todayOf = (c: PricedCategory) => TIERS.some(t => c.today.words[t.key] === NOT_KNOWN) ? null : TIERS.reduce((a, t) => a + (c.today.premium[t.key] ?? 0), 0)
+  // The current total only when every cover's current plan is known; a part-known total would understate it.
+  const currentOf = (c: PricedCategory) => TIERS.some(t => c.today.words[t.key] === NOT_KNOWN) ? null : TIERS.reduce((a, t) => a + (c.today.premium[t.key] ?? 0), 0)
   const grand = priced.products.map(p => priced.categories.reduce((a, c) => a + categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)), 0))
-  const todays = priced.categories.map(todayOf)
-  // Last year's policy is today's premium for the whole quotation when it was read and every category is priced.
-  const grandToday = lastYearTotal ?? (todays.some(x => x == null) ? null : todays.reduce<number>((a, b) => a + (b ?? 0), 0))
+  const currents = priced.categories.map(currentOf)
+  // Last year's policy is the current premium for the whole quotation when it was read and every category is priced.
+  const grandCurrent = lastYearTotal ?? (currents.some(x => x == null) ? null : currents.reduce<number>((a, b) => a + (b ?? 0), 0))
   const lives = priced.categories.reduce((a, c) => a + c.lives, 0)
-  const table = 'w-full text-[13px] tabular-nums'
-  const tstyle = { borderCollapse: 'separate' as const, borderSpacing: 0, minWidth: 1860 }
+  const unaged = priced.notes.map(n => n.match(/^(\d+) (?:life has|lives have) no date of birth/)?.[1]).find(Boolean)
+  const frame = `${tableFrame} eb-prem`
+  const vars = { ['--eb-c1' as string]: `${C1}px` } as React.CSSProperties
+  const tstyle = { minWidth: 1860 }
   return (
     <section id="eb-premiums" className="flex flex-col gap-6" aria-labelledby="eb-prem-h">
+      <style>{FREEZE_CSS}</style>
       <div className="flex flex-col gap-1">
         <h2 id="eb-prem-h" className="m-0 text-[17px] font-semibold">Premiums</h2>
-        <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{priced.categories.length} {priced.categories.length === 1 ? 'category' : 'categories'} · {lives} lives · S$ a year, net of GST · rates from {priced.workbook.name}, read {fmtDate(priced.workbook.readAt)}</p>
+        <p className="m-0 text-[12.5px]" style={{ color: MUTED }}>{priced.categories.length} {priced.categories.length === 1 ? 'category' : 'categories'} · {lives} lives{unaged ? ` · ${unaged} without an age, not priced` : ''} · S$ a year, net of GST · rates from {priced.workbook.name}, read {fmtDate(priced.workbook.readAt)}</p>
       </div>
       {priced.categories.map(c => {
         const tot = priced.products.map(p => categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)))
-        const today = todayOf(c)
+        const cur = currentOf(c)
         return (
           <div key={c.name} className="flex flex-col gap-2">
             <h3 className="m-0 text-[16px] font-semibold">{c.name} <span className="text-[13px] font-normal" style={{ color: MUTED }}>· {c.employees} employees · {c.lives} lives</span></h3>
-            <div className="overflow-x-auto rounded-[10px]" style={{ border: `1px solid ${LINE}` }}>
-              <table className={table} style={tstyle} aria-label={`Premiums, ${c.name}`}>
+            <div className={frame} style={vars}>
+              <table className="trs-table" style={tstyle} aria-label={`Premiums, ${c.name}`}>
                 {head}
                 <tbody>
                   {TIERS.map(t => {
                     const rows = priced.products.map(p => { const pc = c.products[p][t.key], plan = picks[c.name]?.[p]?.[t.key] ?? ''; return { pc, plan, opt: pc.options.find(o => o.plan === plan) ?? null } })
                     const tp = c.today.premium[t.key]
                     if (rows.every(r => !r.plan) && !tp) return null
-                    const band = sticky('#f4f6f2'), plain = sticky('white')
                     return [
-                      <tr key={`${t.key}h`} className="font-semibold text-[13.5px]" style={{ background: '#f4f6f2' }}>
-                        <td className="px-3 py-2 text-left" style={{ ...band.c1, borderTop: `1px solid ${LINE2}` }}>{t.label}</td>
-                        <td className="px-3 py-2 text-center" style={{ ...band.c2, background: '#eaf1ec', borderTop: `1px solid ${LINE2}` }}>{tp != null ? f0(tp) : '—'}</td>
-                        {rows.map((r, i) => <td key={i} className="px-3 py-2 text-center" style={{ borderTop: `1px solid ${LINE2}` }}>{!r.plan ? '—' : r.opt?.premium == null ? 'Not priced' : r.pc.locked ? 'In hospital premium' : f0(r.opt.premium)}</td>)}
+                      <tr key={`${t.key}h`} className="font-semibold">
+                        <td className="eb-c1">{t.label}</td>
+                        <td className="eb-c2">{tp != null ? f0(tp) : '—'}</td>
+                        {rows.map((r, i) => <td key={i} title={r.plan && r.opt?.premium == null ? notPricedWhy(priced.products[i], t.cover) : undefined}>{!r.plan ? '—' : r.pc.locked ? 'In hospital premium' : r.opt?.premium == null ? 'Not priced' : f0(r.opt.premium)}</td>)}
                       </tr>,
                       <tr key={`${t.key}c`}>
-                        <td className="px-3 py-1.5 pl-6 text-left text-[12.5px]" style={{ ...plain.c1, color: MUTED, borderTop: `1px solid ${LINE}` }}>Cover</td>
-                        <td className="px-3 py-1.5 text-center text-[12.5px]" style={{ ...plain.c2, borderTop: `1px solid ${LINE}` }}>{c.today.words[t.key]}</td>
+                        <td className="eb-c1 pl-6 text-[12.5px]" style={{ color: MUTED }}>Cover</td>
+                        <td className="eb-c2 text-[12.5px]">{c.today.words[t.key]}</td>
                         {rows.map((r, i) => {
                           const p = priced.products[i]
                           return (
-                            <td key={p} className="px-3 py-1.5 text-center" style={{ borderTop: `1px solid ${LINE}` }}>
+                            <td key={p}>
                               {r.pc.locked ? <span className="text-[12.5px]" style={{ color: MUTED }}>{r.opt?.words ?? 'None'} · with hospital plan</span> : (
                                 <select id={`eb-p-${c.name}-${i}-${t.key}`} aria-label={`${t.label} at ${p}, ${c.name}`} value={r.plan} onChange={e => onChoose(c, p, t.key, e.target.value)}
                                   className="w-full h-7 rounded-[7px] border-0 px-1.5 text-[12px] cursor-pointer text-center" style={{ background: FIELD, color: INK, textAlignLast: 'center' }}>
@@ -486,13 +510,13 @@ function Premiums({ priced, picks, onChoose, lastYearTotal }: { priced: Priced; 
                         })}
                       </tr>,
                       <tr key={`${t.key}a`}>
-                        <td className="px-3 py-1.5 pl-6 text-left text-[12.5px]" style={{ ...plain.c1, color: MUTED, borderTop: `1px solid ${LINE}` }}>Against today</td>
-                        <td className="px-3 py-1.5 text-center" style={{ ...plain.c2, color: SUBTLE, borderTop: `1px solid ${LINE}` }}>—</td>
-                        {rows.map((r, i) => <td key={i} className="px-3 py-1.5 text-center text-[12.5px]" style={{ borderTop: `1px solid ${LINE}` }}><Against v={r.plan ? r.opt?.premium ?? null : 0} today={tp} /></td>)}
+                        <td className="eb-c1 pl-6 text-[12.5px]" style={{ color: MUTED }}>Against current</td>
+                        <td className="eb-c2" style={{ color: SUBTLE }}>—</td>
+                        {rows.map((r, i) => <td key={i} className="text-[12.5px]"><Against v={r.plan ? r.opt?.premium ?? null : 0} current={tp} /></td>)}
                       </tr>,
                     ]
                   })}
-                  <SubRows label={`${c.name} · premium a year`} today={today} totals={tot} lives={c.lives} sticky={sticky('white')} />
+                  <SubRows label={`${c.name} · premium a year`} current={cur} totals={tot} lives={c.lives} />
                 </tbody>
               </table>
             </div>
@@ -501,45 +525,43 @@ function Premiums({ priced, picks, onChoose, lastYearTotal }: { priced: Priced; 
       })}
       <div className="flex flex-col gap-2">
         <h3 className="m-0 text-[16px] font-semibold">Total <span className="text-[13px] font-normal" style={{ color: MUTED }}>· {priced.categories.length} {priced.categories.length === 1 ? 'category' : 'categories'} · {lives} lives</span></h3>
-        <div className="overflow-x-auto rounded-[10px]" style={{ border: `1px solid ${LINE}` }}>
-          <table className={table} style={tstyle} aria-label="Total premium">
+        <div className={frame} style={vars}>
+          <table className="trs-table" style={tstyle} aria-label="Total premium">
             {head}
             <tbody>
               {priced.categories.map((c, ci) => (
                 <tr key={c.name}>
-                  <td className="px-3 py-2 text-left" style={{ ...sticky('white').c1, borderTop: `1px solid ${LINE}` }}>{c.name}</td>
-                  <td className="px-3 py-2 text-center" style={{ ...sticky('white').c2, borderTop: `1px solid ${LINE}` }}>{todays[ci] != null ? f0(todays[ci]!) : '—'}</td>
-                  {priced.products.map(p => <td key={p} className="px-3 py-2 text-center" style={{ borderTop: `1px solid ${LINE}` }}>{f0(categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)))}</td>)}
+                  <td className="eb-c1">{c.name}</td>
+                  <td className="eb-c2">{currents[ci] != null ? f0(currents[ci]!) : '—'}</td>
+                  {priced.products.map(p => <td key={p}>{f0(categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)))}</td>)}
                 </tr>
               ))}
-              <SubRows label="Premium a year" today={grandToday} totals={grand} lives={lives} sticky={sticky('white')} />
+              <SubRows label="Premium a year" current={grandCurrent} totals={grand} lives={lives} />
             </tbody>
           </table>
         </div>
       </div>
-      {priced.notes.length > 0 && <ul className="m-0 pl-5 text-[12.5px] flex flex-col gap-1" style={{ color: MUTED }}>{priced.notes.map(n => <li key={n}>{n}</li>)}</ul>}
     </section>
   )
 }
 
-function SubRows({ label, today, totals, lives, sticky }: { label: string; today: number | null; totals: number[]; lives: number; sticky: { c1: React.CSSProperties; c2: React.CSSProperties } }) {
-  const line = `2px solid ${INK}`
+function SubRows({ label, current, totals, lives }: { label: string; current: number | null; totals: number[]; lives: number }) {
   return (
     <>
-      <tr className="font-bold text-[14px]">
-        <td className="px-3 py-2 text-left" style={{ ...sticky.c1, borderTop: line }}>{label}</td>
-        <td className="px-3 py-2 text-center" style={{ ...sticky.c2, borderTop: line }}>{today != null ? f0(today) : '—'}</td>
-        {totals.map((v, i) => <td key={i} className="px-3 py-2 text-center" style={{ borderTop: line }}>{f0(v)}</td>)}
+      <tr className="row-total">
+        <td className="eb-c1">{label}</td>
+        <td className="eb-c2">{current != null ? f0(current) : '—'}</td>
+        {totals.map((v, i) => <td key={i}>{f0(v)}</td>)}
       </tr>
       <tr className="text-[12.5px]">
-        <td className="px-3 py-1.5 pl-6 text-left" style={{ ...sticky.c1, color: MUTED, borderTop: `1px solid ${LINE}` }}>Against today</td>
-        <td className="px-3 py-1.5 text-center" style={{ ...sticky.c2, color: SUBTLE, borderTop: `1px solid ${LINE}` }}>—</td>
-        {totals.map((v, i) => <td key={i} className="px-3 py-1.5 text-center" style={{ borderTop: `1px solid ${LINE}` }}><Against v={v} today={today} />{today ? <div className="text-[11px]" style={{ color: SUBTLE }}>{v === today ? '' : `${Math.abs((v - today) / today * 100).toFixed(1)}%`}</div> : null}</td>)}
+        <td className="eb-c1 pl-6" style={{ color: MUTED }}>Against current</td>
+        <td className="eb-c2" style={{ color: SUBTLE }}>—</td>
+        {totals.map((v, i) => <td key={i}><Against v={v} current={current} />{current && Math.round(v) !== Math.round(current) ? <div className="text-[11px]" style={{ color: MUTED }}>{`${v < current ? '−' : '+'}${Math.abs((v - current) / current * 100).toFixed(1)}%`}</div> : null}</td>)}
       </tr>
       <tr className="text-[12.5px]">
-        <td className="px-3 py-1.5 pl-6 text-left" style={{ ...sticky.c1, color: MUTED, borderTop: `1px solid ${LINE}` }}>A life</td>
-        <td className="px-3 py-1.5 text-center" style={{ ...sticky.c2, borderTop: `1px solid ${LINE}` }}>{today != null && lives ? f0(today / lives) : '—'}</td>
-        {totals.map((v, i) => <td key={i} className="px-3 py-1.5 text-center" style={{ borderTop: `1px solid ${LINE}` }}>{lives ? f0(v / lives) : '—'}</td>)}
+        <td className="eb-c1 pl-6" style={{ color: MUTED }}>Per person</td>
+        <td className="eb-c2">{current != null && lives ? f0(current / lives) : '—'}</td>
+        {totals.map((v, i) => <td key={i}>{lives ? f0(v / lives) : '—'}</td>)}
       </tr>
     </>
   )

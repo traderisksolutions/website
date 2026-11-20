@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
 import { fmtDateTime } from '@/lib/format'
+import { headingCls } from '@/components/cases/shared'
 
 type File = { name: string; driveFileId: string | null; modifiedAt: string | null; readAt: string }
 
@@ -30,13 +31,13 @@ export function WorkbookReload() {
   return (
     <section aria-labelledby="eb-workbook-h" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="eb-workbook-h" className="m-0 text-[16px] font-medium tracking-[-0.01em]">House workbook</h2>
+        <h2 id="eb-workbook-h" className={headingCls}>House workbook</h2>
         <Btn size="xs" loading={busy} disabled={busy} onClick={() => void reload()}>Reload workbook</Btn>
       </div>
-      <p className="m-0 text-[13.5px] text-trs-muted">
+      <p className="m-0 text-sm text-trs-muted">
         {file === undefined ? 'Reading…' : file === null ? 'Not imported' : `${file.name} · changed in Drive ${fmtDateTime(file.modifiedAt)} · imported ${fmtDateTime(file.readAt)}`}
       </p>
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
     </section>
   )
 }

@@ -82,10 +82,10 @@ export function ProposalSection({ priced, picks, members, company, companyId, th
                 <tr key={p}>
                   <td className="cell-left px-3">{p}</td>
                   <td className="px-3"><input type="checkbox" checked={on} onChange={() => toggle(p)} aria-label={`Include ${p}`} className="h-4 w-4 accent-[#132c1c] cursor-pointer" /></td>
-                  <td className="px-3 tabular-nums" style={{ background: on && lowest === p ? '#e0fcd8' : undefined, color: on ? undefined : '#8c958f' }}>{f0(totals[i])}</td>
+                  <td className={`px-3 tabular-nums${on && lowest === p ? ' cell-best' : ''}`} style={{ color: on ? undefined : '#8c958f' }}>{f0(totals[i])}</td>
                   <td className="cell-left px-3 text-[12.5px]">
                     {flags.length
-                      ? <span className="inline-flex items-center gap-1.5 text-trs-warn"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />{flags.join(', ')}: priced at S$0 or not priced</span>
+                      ? <span className="inline-flex items-center gap-1.5 text-trs-warn"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-trs-subtle" />{flags.join(', ')}: priced at S$0 or not priced</span>
                       : <span className="text-trs-muted">—</span>}
                   </td>
                 </tr>

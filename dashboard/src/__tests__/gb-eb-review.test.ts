@@ -41,3 +41,14 @@ describe('isStale', () => {
     expect(isStale({ ...file, modifiedAt: null }, '2026-11-12T00:00:00Z')).toBe(true)
   })
 })
+
+describe('insurerOf', () => {
+  it('names one of the five, or Unknown with the name read', async () => {
+    const { insurerOf } = await import('@/lib/gb/eb-quote')
+    expect(insurerOf('QBE Insurance (Singapore) Pte Ltd')).toBe('QBE (Steadfast MCare+)')
+    expect(insurerOf('Raffles Health Insurance')).toBe('Raffles Health (RCC Enhanced III)')
+    expect(insurerOf('AIA Singapore')).toBe('AIA (Flexi Vital Care Plus)')
+    expect(insurerOf('Great Eastern Life')).toBe('Unknown: Great Eastern Life')
+    expect(insurerOf('')).toBe('')
+  })
+})
