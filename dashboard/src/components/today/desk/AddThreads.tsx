@@ -173,12 +173,11 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                                 const hit = !!q.trim() && hasWords([v.subject, v.insurer, ...v.people], q.trim().toLowerCase())
                                 return (
                                   <li key={v.subject}>
-                                    <button type="button" onClick={() => pickConversation(c, v)} aria-pressed={on}
-                                      className={`flex w-full items-baseline gap-2 rounded-[8px] border px-2 py-1 text-left text-[12.5px] cursor-pointer ${on ? 'border-trs-green bg-white' : 'border-trs-line-2 bg-white hover:border-trs-ink-2'}`}>
-                                      <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium text-trs-ink' : 'text-trs-ink-2'}`} title={v.subject}>{v.subject}</span>
-                                      <span className="shrink-0 text-trs-muted">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
-                                      <span className="w-[54px] shrink-0 text-right font-medium text-trs-ink">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
-                                    </button>
+                                    <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} className="w-full justify-start gap-2 text-left">
+                                      <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium' : ''}`} title={v.subject}>{v.subject}</span>
+                                      <span className="shrink-0 text-xs font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
+                                      <span className="w-14 shrink-0 text-right font-medium">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
+                                    </Btn>
                                   </li>
                                 )
                               })}
