@@ -7,21 +7,22 @@
  */
 import Link from 'next/link'
 import { Sparkles } from 'lucide-react'
-import { btnClass } from '@/components/crm/primitives'
+import { Btn, btnClass } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 
-export const INK = '#0f1412'
-export const BODY = '#2a332f'
-export const MUTED = '#4a5550'
-const SUBTLE = '#8c958f'
-export const HAIR = '#e6e8e4'
-export const ERROR = '#a1242f'
+/** The rail's colours as token values, for importers that still pass a colour in a style. */
+export const INK = 'var(--trs-ink)'
+export const BODY = 'var(--trs-ink-2)'
+export const MUTED = 'var(--trs-muted)'
+export const HAIR = 'var(--trs-line)'
+export const ERROR = 'var(--trs-neg)'
 /** Buttons in a rail are the house ladder at row height (30px): outlined secondary, one green primary. */
 export const SECOND = btnClass('secondary', 'xs')
 export const MAIN = btnClass('primary', 'xs')
 
 function GroupPill({ children }: { children: React.ReactNode }) {
   return (
-    <p className="m-0 mb-3 inline-block rounded-full px-3 py-1 text-body font-medium" style={{ color: 'var(--trs-green, #1f6b3e)', background: 'var(--trs-soft, #eaf6ec)', border: '1px solid rgba(31,107,62,0.28)' }}>{children}</p>
+    <p className="m-0 mb-3 inline-block rounded-full border border-[rgba(31,107,62,0.28)] bg-trs-soft px-3 py-1 text-body font-medium text-trs-green">{children}</p>
   )
 }
 
@@ -38,9 +39,9 @@ export function Group({ label, children, ariaLabel }: { label: string; children:
 export function ActionItem({ eyebrow, title, meta, alert, children }: { eyebrow: string; title: string; meta?: string | null; alert?: boolean; children?: React.ReactNode }) {
   return (
     <div className="mb-6 last:mb-0">
-      <p className="m-0 mb-1 text-small" style={{ color: SUBTLE, letterSpacing: '0.06em' }}>{eyebrow}</p>
-      <p className="m-0 text-body font-medium leading-[1.3] break-words text-trs-ink" >{title}</p>
-      {meta && <p className="m-0 mt-0.5 text-body tabular-nums" style={{ color: alert ? ERROR : MUTED, fontWeight: alert ? 500 : 400 }}>{meta}</p>}
+      <p className="m-0 mb-1 text-small text-trs-subtle">{eyebrow}</p>
+      <p className="m-0 text-body font-medium leading-[1.3] break-words text-trs-ink">{title}</p>
+      {meta && <p className={cn('m-0 mt-0.5 text-body tabular-nums', alert ? 'font-medium text-trs-neg' : 'font-normal text-trs-muted')}>{meta}</p>}
       {children}
     </div>
   )
@@ -59,7 +60,7 @@ export function AiRow({ title, detail, action, onClick, href, disabled, busy, ch
         </div>
         {href
           ? <Link href={href} className={`${SECOND} no-underline flex-shrink-0`}>{action}</Link>
-          : <button type="button" className={`${SECOND} flex-shrink-0`} onClick={onClick} disabled={disabled || busy}>{busy ? 'Working…' : action}</button>}
+          : <Btn size="xs" className="flex-shrink-0" onClick={onClick} disabled={disabled || busy}>{busy ? 'Working…' : action}</Btn>}
       </div>
       {children}
     </div>
@@ -69,7 +70,7 @@ export function AiRow({ title, detail, action, onClick, href, disabled, busy, ch
 /** Label left, value right. The value may carry a second muted line and inline arrow links. */
 export function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-x-3 py-[5px] text-body items-start" style={{ gridTemplateColumns: '92px minmax(0,1fr)' }}>
+    <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-3 py-[5px] text-body items-start">
       <span className="text-trs-muted">{label}</span>
       <span className="min-w-0 break-words text-trs-ink" >{children}</span>
     </div>

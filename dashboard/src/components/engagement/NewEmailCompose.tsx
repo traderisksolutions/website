@@ -6,9 +6,9 @@ import { cn } from '@/lib/utils'
 import { RichEditor, plainToHtml, htmlToPlain } from '@/components/RichEditor'
 import { useAutocomplete, SuggestionList } from '@/components/engagement/RecipientAutocomplete'
 import { useConfirm } from '@/components/ui/confirm'
+import { Btn } from '@/components/crm/primitives'
 import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, externalDomain,
-  BTN_PRIMARY, BTN_SECONDARY, BTN_TERTIARY, INK, FAINT,
 } from '@/components/engagement-agent/compose-toolbar'
 
 /**
@@ -194,23 +194,22 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
         if (fullscreen) setFullscreen(false); else void requestClose()
       }}
       className={cn(
-        'flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-white focus:outline-none',
+        'flex-1 min-w-0 h-full flex flex-col overflow-hidden bg-white text-trs-ink focus:outline-none',
         fullscreen && 'fixed inset-0 z-50',
         '[--re-gutter:20px] sm:[--re-gutter:40px]',
       )}
-      style={{ color: INK }}
     >
           {/* ── Bar: New email · Draft saved · Close ── */}
           <div className="flex items-center gap-2.5 px-[var(--re-gutter)] pt-4 pb-2.5 flex-shrink-0">
-            <h1 className="m-0 text-heading font-semibold" style={{ color: INK }}>New email</h1>
+            <h1 className="m-0 text-heading font-semibold text-trs-ink">New email</h1>
             <span className="flex-1" />
-            {savedState && <span className="text-small mr-1" style={{ color: FAINT }} role="status">{savedState}</span>}
-            <button type="button" onClick={requestClose} className={cn(BTN_TERTIARY, 'h-[30px] px-2.5')} aria-label="Close" title="Close (Esc)">Close</button>
+            {savedState && <span className="text-small mr-1 text-trs-subtle" role="status">{savedState}</span>}
+            <Btn level="tertiary" size="xs" onClick={requestClose} className="px-2.5" aria-label="Close" title="Close (Esc)">Close</Btn>
           </div>
 
           {/* ── To ── */}
           <FieldRow label="To" tall htmlFor="new-email-to" right={
-            !showCc ? <button type="button" onClick={() => setShowCc(true)} aria-label="Add Cc" className="h-[30px] px-1.5 rounded bg-transparent border-0 cursor-pointer text-small hover:bg-[#f1f2ee]" style={{ color: FAINT }}>Cc</button> : undefined
+            !showCc ? <Btn level="tertiary" size="xs" onClick={() => setShowCc(true)} aria-label="Add Cc" className="px-1.5 border-0 text-small font-normal text-trs-subtle hover:bg-trs-field hover:text-trs-subtle">Cc</Btn> : undefined
           }>
             {toDone && to.trim() ? (
               <RecipientChip name={toName} email={to} onRemove={() => { setTo(''); setToDone(false) }} />
@@ -230,8 +229,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   aria-label="Recipient email address"
                   autoComplete="off"
                   autoFocus
-                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
-                  style={{ color: INK }}
+                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 text-trs-ink placeholder:text-trs-subtle"
                 />
                 {toAc.visible && <SuggestionList items={toAc.items} highlight={toAc.highlight} onPick={c => { setTo(c.email); setToDone(true); toAc.close() }} />}
               </div>
@@ -259,8 +257,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                   placeholder={ccChips.length === 0 ? (personal ? 'operations@ is added on send' : 'Add Cc…') : ''}
                   aria-label="Cc"
                   autoComplete="off"
-                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 placeholder:text-[#6f7a74]"
-                  style={{ color: INK }}
+                  className="w-full text-body bg-transparent border-none outline-none focus-visible:outline-none py-1 text-trs-ink placeholder:text-trs-subtle"
                 />
                 {ccAc.visible && <SuggestionList items={ccAc.items} highlight={ccAc.highlight} onPick={c => { setCc([...ccChips, c.email].join(', ') + ', '); ccAc.close() }} />}
               </div>
@@ -298,8 +295,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
               onChange={e => setSubject(e.target.value)}
               placeholder="Subject"
               aria-label="Subject"
-              className="w-full text-body bg-transparent border-none outline-none py-1 placeholder:text-[#6f7a74]"
-              style={{ color: INK }}
+              className="w-full text-body bg-transparent border-none outline-none py-1 text-trs-ink placeholder:text-trs-subtle"
             />
           </FieldRow>
 
@@ -326,17 +322,17 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
           {/* ── Footer: external note or error · Save draft · Send ── */}
           <div className="flex items-center gap-2 px-[var(--re-gutter)] pt-2.5 pb-4 flex-shrink-0 flex-wrap">
             {error ? (
-              <span className="text-small min-w-0 truncate text-trs-neg" role="alert" >{error}</span>
+              <span className="text-small min-w-0 truncate text-trs-neg" role="alert">{error}</span>
             ) : external ? (
-              <span className="text-small min-w-0 truncate" style={{ color: FAINT }}>External recipient · {external}</span>
+              <span className="text-small min-w-0 truncate text-trs-subtle">External recipient · {external}</span>
             ) : null}
             <span className="flex-1" />
-            <button type="button" onClick={saveAsDraft} disabled={savingDraft || sending} className={BTN_SECONDARY}>
+            <Btn level="secondary" onClick={saveAsDraft} disabled={savingDraft || sending}>
               {savingDraft ? 'Saving…' : 'Save draft'}
-            </button>
-            <button type="button" onClick={send} disabled={sending} className={cn(BTN_PRIMARY, 'h-9 text-body')}>
+            </Btn>
+            <Btn level="primary" onClick={send} disabled={sending} className="h-9">
               {sending ? 'Sending…' : 'Send'}
-            </button>
+            </Btn>
           </div>
     </section>
   )

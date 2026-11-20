@@ -15,10 +15,17 @@ import { addWorkingDays } from '@/lib/admin/b/cadence'
 import type { Bar, BarDraft, BarRequest } from '@/lib/chief/bar'
 import type { ReadPlan } from '@/lib/chief/read'
 import { doneSummary } from '@/lib/chief/suggest-links'
-import { ActionItem, AiRow, Buttons, Group, INK, BODY, MUTED, HAIR, ERROR, SECOND, MAIN } from './rail-bits'
+import { Btn, LinkBtn, inputCls, textareaCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
+import { ActionItem, AiRow, Buttons, Group } from './rail-bits'
+import { firstPaintKey, takeFirstPaint } from './first-paint'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
-const FIELD = 'w-full rounded bg-white px-2.5 py-1.5 text-body outline-none focus:border-[#0f1412]'
+/** The shared field at rail height (32, the rail's button height). */
+const FIELD = cn(inputCls, 'h-8 px-2.5')
+const AREA = cn(textareaCls, 'px-2.5 py-1.5 leading-[1.5]')
+/** A quiet underlined text action inside a line of copy. */
+const TEXT_LINK = 'bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer'
 
 const dayLabel = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })
 
@@ -53,7 +60,12 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     try { setBar(await callApi<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
   }, [threadId])
 
-  useEffect(() => { setBar(null); setOpen(null); setElsewhere(null); void load() }, [load, refreshKey])
+  // The open thread's bar comes with the page on first paint (first-paint.ts); every other read is the API's.
+  useEffect(() => {
+    setOpen(null); setElsewhere(null)
+    const kept = takeFirstPaint<Bar>(firstPaintKey.bar(threadId))
+    if (kept) { setBar(kept); setError(null) } else { setBar(null); void load() }
+  }, [load, refreshKey, threadId])
   useEffect(() => { onOpenChange?.(open !== null) }, [open, onOpenChange])
   useEffect(() => {
     fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
@@ -102,12 +114,12 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   return (
     <>
       <Group label="Actions" ariaLabel="Next actions">
-        {error && !bar && <p className="m-0 text-body" style={{ color: ERROR }}>{error}</p>}
-        {!bar && !error && <p className="m-0 text-body" style={{ color: MUTED }}>Loading…</p>}
+        {error && !bar && <p className="m-0 text-body text-trs-neg">{error}</p>}
+        {!bar && !error && <p className="m-0 text-body text-trs-muted">Loading…</p>}
         {bar && st && (
           bar.hold?.noAction ? (
             <ActionItem eyebrow="Held" title="No action needed">
-              <Buttons><button type="button" className={SECOND} onClick={clear} disabled={!!busy}>Undo</button></Buttons>
+              <Buttons><Btn size="xs" onClick={clear} disabled={!!busy}>Undo</Btn></Buttons>
             </ActionItem>
           ) : (
             <ActionItem
@@ -119,35 +131,35 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
                   ? [st.sentAt ? `Sent ${dayLabel(st.sentAt)}` : null, st.side === 'insurer' ? 'Insurer' : 'Client', st.overdue ? `chaser due ${dayLabel(st.chaseDue)}` : `chaser ${dayLabel(st.chaseDue)} · ${st.workingDaysLeft} working day${st.workingDaysLeft === 1 ? '' : 's'}`].filter(Boolean).join(' · ')
                   : bar.autoReply ? `Auto-reply from ${bar.autoReply.from}` : null}
               alert={st.kind === 'waiting' && st.overdue}>
-              {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-small" style={{ color: MUTED }}>Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
+              {bar.autoReply && st.kind !== 'none' && <p className="m-0 mt-0.5 text-small text-trs-muted">Auto-reply from {bar.autoReply.from}. Timer unchanged.</p>}
               <Buttons>
                 {st.kind === 'waiting' && !chaseOpen && (
-                  <button type="button" className={MAIN} onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</button>
+                  <Btn size="xs" level="primary" onClick={chaser} disabled={!!busy || !st.email}>{busy === 'chaser' ? 'Preparing…' : 'Send chaser'}</Btn>
                 )}
-                {st.kind === 'waiting' && <button type="button" className={SECOND} onClick={snooze} disabled={!!busy}>Snooze 3 days</button>}
+                {st.kind === 'waiting' && <Btn size="xs" onClick={snooze} disabled={!!busy}>Snooze 3 days</Btn>}
                 {st.kind === 'reply' && bar.drafts.length === 0 && (
-                  <button type="button" className={MAIN} onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</button>
+                  <Btn size="xs" level="primary" onClick={reply} disabled={!!busy}>{busy === 'reply' ? 'Writing…' : 'Draft reply'}</Btn>
                 )}
                 {bar.enquiry?.stage === 'detected' && (
-                  <button type="button" className={MAIN} onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</button>
+                  <Btn size="xs" level="primary" onClick={prepare} disabled={!!busy}>{busy === 'prepare' ? 'Preparing…' : 'Prepare insurer emails'}</Btn>
                 )}
-                {bar.caseItem && <Link href={`/today/${bar.caseItem.id}`} className={`${SECOND} no-underline`}>Open case</Link>}
-                {st.kind !== 'none' && <button type="button" className={SECOND} onClick={noAction} disabled={!!busy}>No action</button>}
+                {bar.caseItem && <LinkBtn size="xs" href={`/today/${bar.caseItem.id}`}>Open case</LinkBtn>}
+                {st.kind !== 'none' && <Btn size="xs" onClick={noAction} disabled={!!busy}>No action</Btn>}
               </Buttons>
-              {elsewhere && <p className="m-0 mt-2 text-small" style={{ color: MUTED }}>The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px]" style={{ color: INK }}>Open that thread →</Link></p>}
-              {bar.hold?.until && <button type="button" onClick={clear} className="mt-2 bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }}>Cancel snooze</button>}
+              {elsewhere && <p className="m-0 mt-2 text-small text-trs-muted">The insurer emails for this client are already prepared on another thread. <Link href={`/engagement?lead=${elsewhere}`} className="underline underline-offset-[3px] text-trs-ink">Open that thread →</Link></p>}
+              {bar.hold?.until && <button type="button" onClick={clear} className={cn(TEXT_LINK, 'mt-2 text-trs-muted')}>Cancel snooze</button>}
             </ActionItem>
           )
         )}
-        {error && bar && <p className="m-0 mb-3 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
+        {error && bar && <p className="m-0 mb-3 text-body text-trs-neg" role="alert">{error}</p>}
 
         {pending.map(s => (
           <ActionItem key={s.key} eyebrow="Suggested" title={s.title} meta={s.detail}>
             <Buttons>
               {s.kind === 'eb_scenarios'
-                ? <Link href={`/eb?thread=${threadId}`} className={`${MAIN} no-underline`}>Open census</Link>
-                : <button type="button" className={MAIN} onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</button>}
-              <button type="button" className={SECOND} onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</button>
+                ? <LinkBtn size="xs" level="primary" href={`/eb?thread=${threadId}`}>Open census</LinkBtn>
+                : <Btn size="xs" level="primary" onClick={() => suggest(s.key)} disabled={!!busy}>{yesLabel(s)}</Btn>}
+              <Btn size="xs" onClick={() => dismiss(s.key)} disabled={!!busy}>Not now</Btn>
             </Buttons>
           </ActionItem>
         ))}
@@ -156,7 +168,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
           return (
             <ActionItem key={s.key} eyebrow="Done" title={s.title} meta={d.summary}>
               <Buttons>
-                <Link href={`/eb?thread=${threadId}`} className={`${MAIN} no-underline`}>New analysis</Link>
+                <LinkBtn size="xs" level="primary" href={`/eb?thread=${threadId}`}>New analysis</LinkBtn>
               </Buttons>
             </ActionItem>
           )
@@ -164,7 +176,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
 
         {bar && bar.drafts.length > 0 && (
           <div className="mb-6">
-            <p className="m-0 mb-1.5 text-small" style={{ color: '#8c958f', letterSpacing: '0.06em' }}>Drafts</p>
+            <p className="m-0 mb-1.5 text-small text-trs-subtle">Drafts</p>
             <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
               {bar.drafts.map(d => (
                 <li key={d.id}>
@@ -204,30 +216,30 @@ function ReadSteps({ plan, busy, onExecute, onStep, onOpenDraft }: {
   const who = (s: ReadPlan['steps'][number]) => s.kind === 'email' ? `Email · ${s.to?.name ?? s.to?.email ?? ''}${s.party === 'insurer' && s.insurer ? ` · ${s.insurer}` : s.party === 'client' ? ' · client' : ''}` : 'Action'
   return (
     <div className="mt-2.5 pl-[19px]" aria-label="Next steps">
-      <p className="m-0 text-body font-medium" style={{ color: INK }}>Next steps</p>
-      {plan.summary && <p className="m-0 mt-1 text-body" style={{ color: BODY }}>{plan.summary}</p>}
-      {plan.situation && <p className="m-0 mt-1 text-small whitespace-pre-line" style={{ color: MUTED }}>{plan.situation}</p>}
+      <p className="m-0 text-body font-medium text-trs-ink">Next steps</p>
+      {plan.summary && <p className="m-0 mt-1 text-body text-trs-ink-2">{plan.summary}</p>}
+      {plan.situation && <p className="m-0 mt-1 text-small whitespace-pre-line text-trs-muted">{plan.situation}</p>}
       <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
         {plan.steps.map(s => (
           <li key={s.id} className="flex items-start gap-2 text-body">
             {s.status === 'proposed' && <input type="checkbox" className="mt-[3px]" checked={picked.has(s.id)} onChange={e => setPicked(p => { const n = new Set(p); if (e.target.checked) n.add(s.id); else n.delete(s.id); return n })} aria-label={s.title} />}
             {s.status === 'todo' && <input type="checkbox" className="mt-[3px]" checked={false} onChange={() => onStep(s.id, 'done')} aria-label={`Done: ${s.title}`} disabled={!!busy} />}
             {s.status === 'done' && <input type="checkbox" className="mt-[3px]" checked readOnly onChange={() => onStep(s.id, 'todo')} aria-label={`Undo: ${s.title}`} disabled={!!busy} />}
-            {s.status === 'drafted' && <span className="mt-[3px] inline-block w-[13px] text-center text-small" style={{ color: MUTED }} aria-hidden>✎</span>}
+            {s.status === 'drafted' && <span className="mt-[3px] inline-block w-[13px] text-center text-small text-trs-muted" aria-hidden>✎</span>}
             <div className="min-w-0">
-              <p className="m-0" style={{ color: INK, textDecoration: s.status === 'done' ? 'line-through' : undefined }}>{s.title}</p>
-              <p className="m-0 text-small" style={{ color: MUTED }}>{who(s)}{s.detail ? ` — ${s.detail}` : ''}</p>
-              {s.status === 'drafted' && s.draftId && <button type="button" onClick={() => onOpenDraft(s.draftId!)} className="bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: INK }}>Drafted · open</button>}
+              <p className={cn('m-0 text-trs-ink', s.status === 'done' && 'line-through')}>{s.title}</p>
+              <p className="m-0 text-small text-trs-muted">{who(s)}{s.detail ? ` — ${s.detail}` : ''}</p>
+              {s.status === 'drafted' && s.draftId && <button type="button" onClick={() => onOpenDraft(s.draftId!)} className={cn(TEXT_LINK, 'text-trs-ink')}>Drafted · open</button>}
             </div>
           </li>
         ))}
       </ul>
       {proposed.length > 0 && (
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          <button type="button" className={MAIN} onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
+          <Btn size="xs" level="primary" onClick={() => onExecute(chosen.map(s => s.id))} disabled={!!busy || chosen.length === 0}>
             {busy === 'execute' ? 'Drafting…' : [emails ? `Draft ${emails} email${emails === 1 ? '' : 's'}` : null, actions ? `${actions} action${actions === 1 ? '' : 's'} to do` : null].filter(Boolean).join(' · ') || 'Nothing ticked'}
-          </button>
-          <span className="text-small" style={{ color: MUTED }}>Each email is its own draft, one address in To. Nothing sends.</span>
+          </Btn>
+          <span className="text-small text-trs-muted">Each email is its own draft, one address in To. Nothing sends.</span>
         </div>
       )}
     </div>
@@ -265,24 +277,24 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
   }
 
   return (
-    <div className="rounded overflow-hidden" style={{ border: `1px solid ${HAIR}` }}>
+    <div className="rounded overflow-hidden border border-trs-line">
       <button type="button" onClick={onToggle} aria-expanded={open} className="w-full text-left bg-transparent border-0 px-3 py-2 cursor-pointer">
-        <span className="block text-body font-medium" style={{ color: INK }}>{draft.label}</span>
-        <span className="block text-small truncate" style={{ color: MUTED }}>To {draft.person ?? draft.to}</span>
+        <span className="block text-body font-medium text-trs-ink">{draft.label}</span>
+        <span className="block text-small truncate text-trs-muted">To {draft.person ?? draft.to}</span>
       </button>
       {open && (
         <div className="px-3 pb-3 flex flex-col gap-1.5">
-          {draft.removed.length > 0 && <p className="m-0 text-small" style={{ color: ERROR }}>Removed from To: {draft.removed.join(', ')}. Each company gets its own email.</p>}
-          <Labelled label="To"><input aria-label="To" value={to} onChange={e => setTo(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
-          {draft.person && <p className="m-0 text-small" style={{ color: MUTED }}>{draft.person}</p>}
-          <Labelled label="Cc"><input aria-label="Cc" value={cc} onChange={e => setCc(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
-          <Labelled label="Subject"><input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
-          <textarea aria-label="Message" value={body} onChange={e => setBody(e.target.value)} rows={Math.min(18, Math.max(7, body.split('\n').length + 1))} className={`${FIELD} resize-y leading-[1.5]`} style={{ border: `1px solid ${HAIR}`, color: INK }} />
-          {draft.attachments.length > 0 && <p className="m-0 text-small" style={{ color: MUTED }}>Attached: {draft.attachments.map(a => a.filename).join(', ')}</p>}
-          {error && <p className="m-0 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
+          {draft.removed.length > 0 && <p className="m-0 text-small text-trs-neg">Removed from To: {draft.removed.join(', ')}. Each company gets its own email.</p>}
+          <Labelled label="To"><input aria-label="To" value={to} onChange={e => setTo(e.target.value)} className={FIELD} /></Labelled>
+          {draft.person && <p className="m-0 text-small text-trs-muted">{draft.person}</p>}
+          <Labelled label="Cc"><input aria-label="Cc" value={cc} onChange={e => setCc(e.target.value)} className={FIELD} /></Labelled>
+          <Labelled label="Subject"><input aria-label="Subject" value={subject} onChange={e => setSubject(e.target.value)} className={FIELD} /></Labelled>
+          <textarea aria-label="Message" value={body} onChange={e => setBody(e.target.value)} rows={Math.min(18, Math.max(7, body.split('\n').length + 1))} className={AREA} />
+          {draft.attachments.length > 0 && <p className="m-0 text-small text-trs-muted">Attached: {draft.attachments.map(a => a.filename).join(', ')}</p>}
+          {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
           <div className="flex gap-1.5">
-            <button type="button" className={MAIN} onClick={send} disabled={!!busy}>{busy === 'send' ? 'Sending…' : 'Send'}</button>
-            <button type="button" className={SECOND} onClick={discard} disabled={!!busy}>Discard</button>
+            <Btn size="xs" level="primary" onClick={send} disabled={!!busy}>{busy === 'send' ? 'Sending…' : 'Send'}</Btn>
+            <Btn size="xs" onClick={discard} disabled={!!busy}>Discard</Btn>
           </div>
         </div>
       )}
@@ -291,7 +303,7 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
 }
 
 const Labelled = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="flex items-center gap-2"><span className="w-[52px] flex-shrink-0 text-small" style={{ color: MUTED }}>{label}</span><div className="flex-1 min-w-0">{children}</div></div>
+  <div className="flex items-center gap-2"><span className="w-[52px] flex-shrink-0 text-small text-trs-muted">{label}</span><div className="flex-1 min-w-0">{children}</div></div>
 )
 
 type RecipientPhase = 'queued' | 'sending' | 'sent' | 'error'
@@ -344,52 +356,52 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
   const ready = enquiry.requests.filter(r => r.recipients.length > 0)
   return (
     <div className="mt-3 pt-0">
-      <p className="m-0 text-body font-medium" style={{ color: INK }}>New policy enquiry</p>
-      <p className="m-0 mt-0.5 text-body tabular-nums" style={{ color: BODY }}>
+      <p className="m-0 text-body font-medium text-trs-ink">New policy enquiry</p>
+      <p className="m-0 mt-0.5 text-body tabular-nums text-trs-ink-2">
         {enquiry.policies} polic{enquiry.policies === 1 ? 'y' : 'ies'} · {enquiry.emails} email{enquiry.emails === 1 ? '' : 's'} to send{enquiry.sent ? ` · ${enquiry.sent} sent` : ''}
       </p>
-      {enquiry.awaitingDetails.length > 0 && <p className="m-0 mt-0.5 text-small" style={{ color: MUTED }}>On hold for client details: {enquiry.awaitingDetails.join(', ')}</p>}
+      {enquiry.awaitingDetails.length > 0 && <p className="m-0 mt-0.5 text-small text-trs-muted">On hold for client details: {enquiry.awaitingDetails.join(', ')}</p>}
 
       <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-1.5">
         {ready.map(r => {
           const key = `req:${r.draftId}`
           const t = textOf(r)
           return (
-            <li key={r.draftId} className="rounded px-3 py-2" style={{ border: `1px solid ${HAIR}` }}>
-              <p className="m-0 text-body font-medium" style={{ color: INK }}>{r.line}</p>
+            <li key={r.draftId} className="rounded border border-trs-line px-3 py-2">
+              <p className="m-0 text-body font-medium text-trs-ink">{r.line}</p>
               <ul className="m-0 mt-1 p-0 list-none flex flex-col gap-1">
                 {r.recipients.map(p => (
                   <li key={p.dispatchId} className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 text-small" style={{ color: BODY }}>
+                    <span className="min-w-0 text-small text-trs-ink-2">
                       <span className="block truncate">{p.person ? `${p.person} · ` : ''}{p.insurer}</span>
-                      <span className="block truncate" style={{ color: MUTED }}>{p.email || 'No address on file'}</span>
+                      <span className="block truncate text-trs-muted">{p.email || 'No address on file'}</span>
                     </span>
                     {phases[p.dispatchId]
-                      ? <span className="flex-shrink-0 text-small" style={{ color: phases[p.dispatchId] === 'error' ? ERROR : MUTED }}>{{ queued: 'Queued', sending: 'Sending…', sent: 'Sent', error: 'Not sent' }[phases[p.dispatchId]]}</span>
-                      : <button type="button" onClick={() => removeInsurer(p.dispatchId)} disabled={sendingAll} className="flex-shrink-0 bg-transparent border-0 p-0 text-small underline underline-offset-[3px] cursor-pointer" style={{ color: MUTED }} aria-label={`Remove ${p.insurer}`}>Remove</button>}
+                      ? <span className={cn('flex-shrink-0 text-small', phases[p.dispatchId] === 'error' ? 'text-trs-neg' : 'text-trs-muted')}>{{ queued: 'Queued', sending: 'Sending…', sent: 'Sent', error: 'Not sent' }[phases[p.dispatchId]]}</span>
+                      : <button type="button" onClick={() => removeInsurer(p.dispatchId)} disabled={sendingAll} className={cn(TEXT_LINK, 'flex-shrink-0 text-trs-muted')} aria-label={`Remove ${p.insurer}`}>Remove</button>}
                   </li>
                 ))}
               </ul>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <button type="button" className={SECOND} aria-expanded={open === key} onClick={() => setOpen(v => v === key ? null : key)}>{open === key ? 'Hide message' : 'See message'}</button>
-                <button type="button" className={MAIN} disabled={sendingAll || r.recipients.some(p => !p.email)} onClick={() => sendAll([r])}>Send {r.recipients.length} separately</button>
+                <Btn size="xs" aria-expanded={open === key} onClick={() => setOpen(v => v === key ? null : key)}>{open === key ? 'Hide message' : 'See message'}</Btn>
+                <Btn size="xs" level="primary" disabled={sendingAll || r.recipients.some(p => !p.email)} onClick={() => sendAll([r])}>Send {r.recipients.length} separately</Btn>
               </div>
               {open === key && (
                 <div className="mt-2 flex flex-col gap-1.5">
-                  <Labelled label="Subject"><input aria-label="Subject" value={t.subject} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, subject: e.target.value } }))} className={FIELD} style={{ border: `1px solid ${HAIR}`, color: INK }} /></Labelled>
-                  <textarea aria-label="Message" value={t.body} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, body: e.target.value } }))} rows={Math.min(18, Math.max(7, t.body.split('\n').length + 1))} className={`${FIELD} resize-y leading-[1.5]`} style={{ border: `1px solid ${HAIR}`, color: INK }} />
-                  {r.attachments.length > 0 && <p className="m-0 text-small" style={{ color: MUTED }}>Attached: {r.attachments.map(a => a.filename).join(', ')}</p>}
+                  <Labelled label="Subject"><input aria-label="Subject" value={t.subject} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, subject: e.target.value } }))} className={FIELD} /></Labelled>
+                  <textarea aria-label="Message" value={t.body} onChange={e => setEdits(x => ({ ...x, [r.draftId]: { ...t, body: e.target.value } }))} rows={Math.min(18, Math.max(7, t.body.split('\n').length + 1))} className={AREA} />
+                  {r.attachments.length > 0 && <p className="m-0 text-small text-trs-muted">Attached: {r.attachments.map(a => a.filename).join(', ')}</p>}
                 </div>
               )}
             </li>
           )
         })}
       </ul>
-      {error && <p className="m-0 mt-2 text-body" style={{ color: ERROR }} role="alert">{error}</p>}
+      {error && <p className="m-0 mt-2 text-body text-trs-neg" role="alert">{error}</p>}
       {ready.length > 1 && (
-        <button type="button" className={`${MAIN} mt-2`} disabled={sendingAll} onClick={() => sendAll(ready)}>
+        <Btn size="xs" level="primary" className="mt-2" disabled={sendingAll} onClick={() => sendAll(ready)}>
           {sendingAll ? 'Sending…' : `Send all ${enquiry.emails} separately`}
-        </button>
+        </Btn>
       )}
     </div>
   )

@@ -215,10 +215,6 @@
   "sb": 0,
   "fetch": 4
  },
- "src/app/api/engagement/conversations/route.ts": {
-  "sb": 0,
-  "fetch": 13
- },
  "src/app/api/engagement/draft/route.ts": {
   "sb": 0,
   "fetch": 19
@@ -249,7 +245,7 @@
  },
  "src/app/api/engagement/thread/route.ts": {
   "sb": 0,
-  "fetch": 13
+  "fetch": 5
  },
  "src/app/api/finance/reconciliation/route.ts": {
   "sb": 1,
@@ -1031,9 +1027,17 @@
   "sb": 0,
   "fetch": 1
  },
+ "src/lib/mail/inbox-conversations.ts": {
+  "sb": 0,
+  "fetch": 13
+ },
  "src/lib/mail/inbox-index.ts": {
   "sb": 0,
   "fetch": 3
+ },
+ "src/lib/mail/thread-read.ts": {
+  "sb": 0,
+  "fetch": 8
  },
  "src/lib/mail/visibility-server.ts": {
   "sb": 4,

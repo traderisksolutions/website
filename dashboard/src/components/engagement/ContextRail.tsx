@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { BoardPayload, BoardTask } from '@/lib/crm/board'
+import type { BoardTask } from '@/lib/crm/board'
 import type { CompanyThread, PaymentDerived, PaymentSummary } from '@/lib/crm/types'
 import type { Policy } from '@/components/crm/PoliciesPanel'
 import { fmtMoney, fmtDate } from '@/lib/format'
@@ -13,10 +13,12 @@ import { ChiefBar } from './ChiefBar'
 import { LinkCompanyPopover } from './LinkCompanyPopover'
 import { ThreadParty, type PartyChange } from './ThreadParty'
 import { ThreadReferral } from './ThreadReferral'
+import { useCompanyCard, useInboxTeam } from './company-card'
 import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { AiAnalysisPanel } from '@/components/engagement-agent/ai-analysis-panel'
 import { EngagementContextPanel } from '@/components/engagement-agent/engagement-context-panel'
-import { AiRow, Arrow, Group, InfoRow, Small, INK, BODY, MUTED, HAIR } from './rail-bits'
+import { Btn } from '@/components/crm/primitives'
+import { AiRow, Arrow, Group, InfoRow, Small } from './rail-bits'
 import type { Lead, RealMsg, StoredSummary, RagSource } from './types'
 import { fullName, timeAgo } from './helpers'
 
@@ -26,17 +28,9 @@ import { fullName, timeAgo } from './helpers'
  *                open to-dos, add to a case (src/components/engagement/ChiefBar.tsx)
  *   AI           read the thread, pricing options, summary, draft reply
  *   Information  company, policy, renewal, outstanding, contact, related threads, status and notes
- * White ground, green pill per group, spacing in place of boxes. Reads the same board and company
- * APIs as Home and Companies.
+ * White ground, green pill per group, spacing in place of boxes. Reads the company's card (name,
+ * owner, open to-dos: company-card.tsx) and the same company APIs as Companies.
  */
-
-let boardCache: { at: number; p: Promise<BoardPayload> } | null = null
-export function loadBoard(): Promise<BoardPayload> {
-  if (boardCache && Date.now() - boardCache.at < 60_000) return boardCache.p
-  const p = fetch('/api/board', { cache: 'no-store' }).then(r => r.json() as Promise<BoardPayload>)
-  boardCache = { at: Date.now(), p }
-  return p
-}
 
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
@@ -84,12 +78,14 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     setParty(p => ({ ...(p && p.threadId === threadId ? p : {}), threadId, ...c }))
     onRefresh?.()
   }
-  const [board, setBoard] = useState<BoardPayload | null>(null)
+  const card = useCompanyCard(companyId, taskRefresh)
+  const team = useInboxTeam()
+  /** Status and notes reads its conversations when first opened, not with the rail. */
+  const [statusOpen, setStatusOpen] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [related, setRelated] = useState<CompanyThread[] | null>(null)
   const [analysisOpen, setAnalysisOpen] = useState(false)
 
-  useEffect(() => { loadBoard().then(setBoard).catch(() => setBoard(null)) }, [taskRefresh])
   useEffect(() => {
     setDetail(null); setRelated(null)
     if (!companyId) return
@@ -97,10 +93,10 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     fetch(`/api/companies/${companyId}/threads`, { cache: 'no-store' }).then(r => r.json()).then(d => setRelated(d.threads ?? [])).catch(() => setRelated([]))
   }, [companyId])
 
-  const company = useMemo(() => board?.companies.find(c => c.id === companyId) ?? null, [board, companyId])
-  const staff = useMemo(() => new Map((board?.staff ?? []).map(s => [s.email, s])), [board])
-  const today = board?.today ?? new Date().toISOString().slice(0, 10)
-  const tasks = useMemo(() => company ? sortTasks(company.tasks.filter(isOpen), today) : [], [company, today])
+  const company = card?.company ?? null
+  const staff = useMemo(() => new Map(team.staff.map(s => [s.email, s])), [team])
+  const today = new Date().toISOString().slice(0, 10)
+  const tasks = useMemo(() => company && card ? sortTasks(card.tasks.filter(isOpen), today) : [], [company, card, today])
   const policy = useMemo(() => {
     const active = (detail?.policies ?? []).filter(p => p.status === 'active' && p.end_date).sort((a, b) => a.end_date!.localeCompare(b.end_date!))
     return active[0] ?? null
@@ -122,13 +118,13 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
 
   const actionsFooter = (
     <div className="flex flex-col gap-1.5">
-      {companyId && board && tasks.length > 0 && (
+      {companyId && card && tasks.length > 0 && (
         <ul className="m-0 p-0 list-none mb-1">
           {tasks.slice(0, 5).map(t => <WorkRow key={t.id} t={t} today={today} nameOf={nameOf} />)}
         </ul>
       )}
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body" style={{ color: MUTED }}>
-        {onAddTask && <button type="button" onClick={onAddTask} className={QUIET_LINK} style={{ color: INK }}>Add to-do</button>}
+      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-body text-trs-muted">
+        {onAddTask && <button type="button" onClick={onAddTask} className={cn(QUIET_LINK, 'text-trs-ink')}>Add to-do</button>}
         {onAddTask && threadId && <span aria-hidden>·</span>}
         {threadId && <span className="inline-flex"><AddToCaseControl threadId={threadId} /></span>}
       </p>
@@ -139,7 +135,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
     <>
       <AiRow title="Summary" detail={summary ? `Last read ${summaries[0]?.created_at ? timeAgo(summaries[0].created_at) : 'earlier'}` : 'The thread in a few lines, with a drafted reply'} action={summariesLoading ? 'Summarising…' : summary ? (analysisOpen ? 'Hide' : 'Show') : 'Summarise'}
         onClick={() => { if (!summary) onRefreshSummaries(); else setAnalysisOpen(v => !v) }} disabled={!threadId || summariesLoading}>
-        {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-body leading-[1.5] line-clamp-3" style={{ color: BODY }}>{summary}</p>}
+        {summary && !analysisOpen && <p className="m-0 mt-1.5 pl-[19px] text-body leading-[1.5] line-clamp-3 text-trs-ink-2">{summary}</p>}
         {analysisOpen && (
           <div className="mt-2 pl-[19px]">
             <AiAnalysisPanel summaries={summaries} loading={summariesLoading} threadId={threadId} latestMessageId={latestMessageId} ragSources={ragSources} onRefresh={onRefreshSummaries} />
@@ -151,10 +147,10 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
   )
 
   return (
-    <aside className="h-full flex flex-col min-h-0 bg-white" aria-label="Context" style={{ borderLeft: onClose ? `1px solid ${HAIR}` : undefined }}>
-      <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-3 text-body" style={{ color: MUTED }}>
+    <aside className={cn('h-full flex flex-col min-h-0 bg-white', onClose && 'border-l border-trs-line')} aria-label="Context">
+      <div className="flex-shrink-0 flex items-center justify-between pl-[18px] pr-3 pt-4 pb-3 text-body text-trs-muted">
         <span>Context</span>
-        {onClose && <button type="button" onClick={onClose} title="Close context" aria-label="Close context" className="h-[30px] w-[30px] rounded bg-transparent border-0 cursor-pointer inline-flex items-center justify-center hover:bg-[#f1f2ee]" style={{ color: BODY }}><X size={15} /></button>}
+        {onClose && <Btn level="tertiary" size="xs" onClick={onClose} title="Close context" aria-label="Close context" className="w-8 px-0 text-trs-ink-2"><X size={15} /></Btn>}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-3.5 pb-6">
@@ -187,7 +183,7 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
               <>
                 <Arrow href={`/insurers/${lead.companyId}`}>{lead.companyName ?? 'Insurer'}</Arrow>
                 <br /><Small>{KIND_LABEL[kind ?? ''] ?? 'Company'}{clientNamed ? ` · about ${clientNamed}, not on file` : ' · client not linked'}</Small>
-                {threadId && clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={QUIET_LINK} style={{ color: INK }}>Create {clientNamed} and link</button></>}
+                {threadId && clientNamed && onLinkCompany && <><br /><button type="button" onClick={() => onLinkCompany(threadId, null, clientNamed)} className={cn(QUIET_LINK, 'text-trs-ink')}>Create {clientNamed} and link</button></>}
                 {threadId && <><br /><LinkCompanyPopover threadId={threadId} forClient /></>}
               </>
             ) : (
@@ -228,8 +224,8 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
                     <li key={t.id}>
                       <button type="button" onClick={() => onSelectThread(t.id)} aria-current={on ? 'true' : undefined}
                         className={cn('w-full text-left bg-transparent border-0 border-l-2 border-solid p-0 pl-2 cursor-pointer', on ? 'font-medium border-trs-green' : 'border-transparent')}>
-                        <span className="block text-body truncate" style={{ color: INK }}>{t.subject ?? '(no subject)'}</span>
-                        <span className="block text-small truncate" style={{ color: MUTED }}>{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
+                        <span className="block text-body truncate text-trs-ink">{t.subject ?? '(no subject)'}</span>
+                        <span className="block text-small truncate text-trs-muted">{t.needsReply ? 'Awaiting your reply · ' : ''}{timeAgo(t.last_message_at)}</span>
                       </button>
                     </li>
                   )
@@ -239,12 +235,12 @@ export function ContextRail({ lead, messages, threadId, conversationThreadId, ac
           )}
 
           {/* Status, notes, conversations and draft history: the existing panel, folded. */}
-          <details className="mt-3">
-            <summary className="cursor-pointer text-body list-none [&::-webkit-details-marker]:hidden" style={{ color: INK }}><span className="inline-block w-4 text-trs-subtle" >›</span>Status and notes</summary>
+          <details className="mt-3" onToggle={e => { if (e.currentTarget.open) setStatusOpen(true) }}>
+            <summary className="cursor-pointer text-body list-none [&::-webkit-details-marker]:hidden text-trs-ink"><span className="inline-block w-4 text-trs-subtle" >›</span>Status and notes</summary>
             <section className="mt-2" aria-label="Contact and status">
-              <div style={{ '--ea-context-w': '100%' } as React.CSSProperties}>
-                <EngagementContextPanel lead={lead} messages={messages} threadId={threadId} conversationThreadId={conversationThreadId} activeThreadId={activeThreadId}
-                  onSelectThread={onSelectThread} onStatus={onStatus} onTransfer={onTransfer} onRestoreDraft={onRestoreDraft} />
+              <div className="[--ea-context-w:100%]">
+                {statusOpen && <EngagementContextPanel lead={lead} messages={messages} threadId={threadId} conversationThreadId={conversationThreadId} activeThreadId={activeThreadId}
+                  onSelectThread={onSelectThread} onStatus={onStatus} onTransfer={onTransfer} onRestoreDraft={onRestoreDraft} />}
               </div>
             </section>
           </details>
@@ -267,8 +263,8 @@ function WorkRow({ t, today, nameOf }: { t: BoardTask; today: string; nameOf: (e
   const who = nameOf(t.primary_assignee)?.split(' ')[0] ?? null
   return (
     <li className="flex items-start justify-between gap-2 py-1 text-body">
-      <span className="min-w-0 leading-[1.4]" style={{ color: INK }}>{t.title}</span>
-      <span className="flex-shrink-0 whitespace-nowrap" style={{ color: MUTED }}>{[who, due].filter(Boolean).join(' · ')}</span>
+      <span className="min-w-0 leading-[1.4] text-trs-ink">{t.title}</span>
+      <span className="flex-shrink-0 whitespace-nowrap text-trs-muted">{[who, due].filter(Boolean).join(' · ')}</span>
     </li>
   )
 }

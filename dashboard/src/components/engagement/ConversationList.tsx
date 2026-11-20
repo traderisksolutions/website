@@ -47,12 +47,6 @@ interface ConversationListProps {
   loadError?:     string | null
 }
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const HAIRLINE = '#e6e8e4'
-const FIELD = '#f1f2ee'
-
 const PAD: Record<Density, string> = { comfortable: 'py-4', standard: 'py-3', compact: 'py-2' }
 
 function draftOf(d: DraftRow): NewEmailDraft {
@@ -63,12 +57,12 @@ function SkeletonRows({ n = 6 }: { n?: number }) {
   return (
     <div aria-hidden className="animate-pulse">
       {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-5 py-3" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+        <div key={i} className="grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-5 py-3 border-b border-trs-line">
           <span />
-          <span className="h-[14px] w-[45%] rounded bg-trs-field" />
-          <span className="h-[12px] w-[38px] rounded bg-trs-field" />
-          <span className="col-start-2 col-end-4 mt-1.5 h-[13px] w-[80%] rounded bg-trs-field" />
-          <span className="col-start-2 col-end-4 mt-1.5 h-[12px] w-[30%] rounded bg-trs-field" />
+          <span className="h-3.5 w-[45%] rounded bg-trs-field" />
+          <span className="h-3 w-[38px] rounded bg-trs-field" />
+          <span className="col-start-2 col-end-4 mt-1.5 h-3 w-[80%] rounded bg-trs-field" />
+          <span className="col-start-2 col-end-4 mt-1.5 h-3 w-[30%] rounded bg-trs-field" />
         </div>
       ))}
     </div>
@@ -86,7 +80,7 @@ export function ConversationList({
   onSelect, onRefresh, onOpenDraft, hideHeader, iconOnly, density = 'standard',
   hasMore = false, loadingMore = false, onMore, loadError = null,
 }: ConversationListProps) {
-  const { setCounts, setSearch } = useEngagementNav()
+  const { setCounts, setSearch, seed, setSeed } = useEngagementNav()
   const needsReplyCount = leads.filter(l => leadNeedsReply(l, threadMap[l.id])).length
 
   const [drafts, setDrafts] = useState<DraftRow[]>([])
@@ -98,7 +92,13 @@ export function ConversationList({
       .then(rows => setDrafts(Array.isArray(rows) ? rows : []))
       .finally(() => setDraftsLoading(false))
   }
-  useEffect(loadDrafts, [])
+  // The page brings the drafts with its first response; they are taken once, then read from the API.
+  const seedReady = seed !== undefined
+  useEffect(() => {
+    if (!seedReady) return
+    if (seed?.drafts) { setDrafts(seed.drafts); setSeed(s => s ? { ...s, drafts: null } : s) }
+    else loadDrafts()
+  }, [seedReady]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (activeTab === 'drafts') loadDrafts() }, [activeTab])
   useEffect(() => { setCounts(c => ({ ...c, drafts: drafts.length })) }, [drafts.length, setCounts])
 
@@ -124,12 +124,11 @@ export function ConversationList({
 
   const empty = (text: string, action?: { label: string; onClick: () => void }) => (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <p className="m-0 text-body text-trs-muted" >{text}</p>
+      <p className="m-0 text-body text-trs-muted">{text}</p>
       {action && (
-        <button type="button" onClick={action.onClick}
-          className="h-9 px-3 rounded text-body font-medium bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412] text-trs-ink" >
+        <Btn level="tertiary" size="xs" onClick={action.onClick} className="h-9 border-0 text-trs-ink hover:bg-trs-field">
           {action.label}
-        </button>
+        </Btn>
       )}
     </div>
   )
@@ -137,19 +136,19 @@ export function ConversationList({
   return (
     <div className="flex flex-col h-full min-h-0">
       {!hideHeader && !iconOnly && (
-        <div className="flex-shrink-0 flex items-center justify-between px-4 h-11" style={{ borderBottom: `1px solid ${HAIRLINE}` }}>
+        <div className="flex-shrink-0 flex items-center justify-between px-4 h-11 border-b border-trs-line">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-body font-medium truncate text-trs-ink" >
+            <span className="text-body font-medium truncate text-trs-ink">
               {activeTab === 'drafts' ? 'Drafts' : 'Inbox'}
             </span>
             {!loading && needsReplyCount > 0 && (
-              <span className="text-small tabular-nums flex-shrink-0 text-trs-subtle" >{needsReplyCount} need a reply</span>
+              <span className="text-small tabular-nums flex-shrink-0 text-trs-subtle">{needsReplyCount} need a reply</span>
             )}
           </div>
-          <button type="button" onClick={onRefresh} disabled={refreshing} aria-label="Sync mail" title={refreshing ? 'Syncing…' : 'Sync mail'}
-            className="w-9 h-9 inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] disabled:opacity-50 flex-shrink-0 text-trs-muted" >
+          <Btn level="tertiary" size="xs" onClick={onRefresh} disabled={refreshing} aria-label="Sync mail" title={refreshing ? 'Syncing…' : 'Sync mail'}
+            className="w-9 h-9 px-0 border-0 flex-shrink-0 hover:bg-trs-field">
             <RefreshCw size={14} className={cn(refreshing && 'animate-spin')} />
-          </button>
+          </Btn>
         </div>
       )}
 
@@ -168,23 +167,22 @@ export function ConversationList({
             ) : (
               <div key={d.id} role="listitem" className="relative">
                 <button type="button" onClick={() => onOpenDraft(draftOf(d))} aria-label={`Draft, ${d.subject || 'no subject'}, to ${d.to_email || 'nobody yet'}`}
-                  className={cn('w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-12 bg-white border-0 cursor-pointer transition-colors hover:bg-[#faf9f6]',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]', PAD[density])}
-                  style={{ borderBottom: `1px solid ${HAIRLINE}`, color: INK }}>
+                  className={cn('w-full text-left grid grid-cols-[14px_1fr_auto] gap-x-2 pl-3.5 pr-12 bg-white border-0 border-b border-solid border-trs-line text-trs-ink cursor-pointer transition-colors hover:bg-trs-tint',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-trs-ink', PAD[density])}>
                   <span className="mt-[7px] w-2 h-2 rounded-full" aria-hidden />
                   <span className="min-w-0 text-body font-medium leading-snug truncate">{d.subject || '(no subject)'}</span>
-                  <span className="text-small tabular-nums pt-0.5 whitespace-nowrap text-trs-subtle" >{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
-                  <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-0.5 text-trs-ink-2" >
-                    <b className="font-medium text-trs-ink" >Draft</b> · to {d.to_email || '—'}
+                  <span className="text-small tabular-nums pt-0.5 whitespace-nowrap text-trs-subtle">{new Date(d.created_at).toLocaleDateString('en-SG', { day: 'numeric', month: 'short' })}</span>
+                  <span className="col-start-2 col-end-4 min-w-0 block text-body leading-snug truncate mt-0.5 text-trs-ink-2">
+                    <b className="font-medium text-trs-ink">Draft</b> · to {d.to_email || '—'}
                   </span>
                   {density !== 'compact' && (
-                    <span className="col-start-2 col-end-4 min-w-0 block text-small leading-snug truncate mt-[3px] text-trs-muted" >{(d.body ?? '').slice(0, 80) || 'No message yet'}</span>
+                    <span className="col-start-2 col-end-4 min-w-0 block text-small leading-snug truncate mt-[3px] text-trs-muted">{(d.body ?? '').slice(0, 80) || 'No message yet'}</span>
                   )}
                 </button>
-                <button type="button" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
-                  className="absolute right-2 top-2 w-[30px] h-[30px] inline-flex items-center justify-center rounded bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] hover:text-[#a1242f] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f1412] text-trs-subtle" >
+                <Btn level="tertiary" size="xs" onClick={e => discardDraft(d.id, e)} aria-label="Discard draft" title="Discard draft"
+                  className="absolute right-2 top-2 w-8 px-0 border-0 text-trs-subtle hover:bg-trs-field hover:text-trs-neg">
                   <X size={13} />
-                </button>
+                </Btn>
               </div>
             ))}
           </>

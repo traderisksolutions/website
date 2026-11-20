@@ -472,48 +472,40 @@
   "control": 2
  },
  "src/components/engagement/AddToCaseControl.tsx": {
-  "style": 2,
-  "hex": 3,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ChiefBar.tsx": {
-  "style": 41,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 27
- },
- "src/components/engagement/ContextRail.tsx": {
-  "style": 13,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 1,
-  "control": 4
+  "height": 0,
+  "control": 13
  },
- "src/components/engagement/ConversationList.tsx": {
-  "style": 3,
-  "hex": 5,
+ "src/components/engagement/ContextRail.tsx": {
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 5,
-  "control": 5
+  "height": 0,
+  "control": 3
+ },
+ "src/components/engagement/ConversationList.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 2
  },
  "src/components/engagement/EaLayout.tsx": {
   "style": 1,
   "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
- },
- "src/components/engagement/InlineProgress.tsx": {
-  "style": 2,
-  "hex": 3,
   "font": 0,
   "radius": 0,
   "height": 0,
@@ -528,20 +520,20 @@
   "control": 4
  },
  "src/components/engagement/MessageBlock.tsx": {
-  "style": 17,
-  "hex": 8,
+  "style": 3,
+  "hex": 4,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 9
+  "control": 2
  },
  "src/components/engagement/NewEmailCompose.tsx": {
-  "style": 8,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 2,
-  "control": 7
+  "height": 0,
+  "control": 3
  },
  "src/components/engagement/RecipientAutocomplete.tsx": {
   "style": 0,
@@ -552,28 +544,20 @@
   "control": 1
  },
  "src/components/engagement/ThreadAgentBar.tsx": {
-  "style": 6,
-  "hex": 7,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 5
- },
- "src/components/engagement/ThreadHeader.tsx": {
-  "style": 9,
-  "hex": 6,
-  "font": 0,
-  "radius": 0,
-  "height": 1,
-  "control": 7
+  "control": 1
  },
  "src/components/engagement/ThreadListPane.tsx": {
-  "style": 13,
-  "hex": 7,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
-  "height": 3,
-  "control": 12
+  "height": 0,
+  "control": 2
  },
  "src/components/engagement/ThreadParty.tsx": {
   "style": 3,
@@ -592,28 +576,28 @@
   "control": 3
  },
  "src/components/engagement/ThreadRow.tsx": {
-  "style": 3,
-  "hex": 6,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 2
  },
  "src/components/engagement/ThreadView.tsx": {
-  "style": 19,
-  "hex": 15,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 12
- },
- "src/components/engagement/rail-bits.tsx": {
-  "style": 4,
-  "hex": 8,
+  "style": 0,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 2
+  "control": 8
+ },
+ "src/components/engagement/rail-bits.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 1
  },
  "src/components/group-benefits/InsurerEmailDialog.tsx": {
   "style": 0,

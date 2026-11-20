@@ -3,6 +3,7 @@
 import { useMemo, useState, type MouseEvent } from 'react'
 import { ChevronRight, Paperclip } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { RealMsg } from './types'
 import { fmtWhen, stripQuotedContent, parseAddress, initialOf, formatBytes, fileBadge, splitSignatureHtml, splitSignatureText } from './helpers'
@@ -18,15 +19,13 @@ import { sanitizeEmailHtml, useIsClient } from '@/lib/sanitize-email-html'
  * that open in place.
  */
 
+// Used only by the containers that wrap the rendered email body, which stay as they are.
 const INK = '#0f1412'
-const BODY = '#2a332f'
 const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const DOT = '#8c958f'
 const HAIR = '#e6e8e4'
-const FIELD = '#f1f2ee'
 
-const LINK = 'underline decoration-[#8c958f] underline-offset-[3px] cursor-pointer bg-transparent border-0 p-0 font-[inherit]'
+/** A text button drawn as an underlined word (Btn with the button chrome removed). */
+const LINK = 'h-auto p-0 border-0 rounded-none bg-transparent hover:bg-transparent font-normal underline decoration-trs-subtle underline-offset-[3px]'
 
 // ── Quoted history ─────────────────────────────────────────────────────────────────────────
 
@@ -233,16 +232,16 @@ export function MessageBlock({ msg, defaultOpen, isLatest, newSender, senderName
   }
 
   return (
-    <div style={{ borderBottom: `1px solid ${HAIR}` }}>
-      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} message from ${name}`}
-        className="w-full text-left flex items-center gap-3 py-3 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412] text-body text-trs-muted"
+    <div className="border-b border-trs-line">
+      <Btn level="tertiary" size="xs" onClick={() => setOpen(v => !v)} aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} message from ${name}`}
+        className="w-full h-auto justify-start text-left whitespace-normal gap-3 px-0 py-3 rounded-none border-0 bg-transparent font-normal hover:bg-trs-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-trs-ink text-body text-trs-muted hover:text-trs-muted"
         >
-        <ChevronRight size={14} className={cn('flex-shrink-0 transition-transform', open && 'rotate-90')} style={{ color: DOT }} aria-hidden />
+        <ChevronRight size={14} className={cn('flex-shrink-0 transition-transform text-trs-subtle', open && 'rotate-90')} aria-hidden />
         <span className="font-medium flex-shrink-0 w-[120px] sm:w-[160px] truncate text-trs-ink" >{name}</span>
         <span className={cn('min-w-0 flex-1', open ? 'whitespace-normal' : 'truncate')}>{preview}</span>
         {attCount > 0 && <Paperclip size={12} className="flex-shrink-0 text-trs-subtle" aria-label={`${attCount} attachments`} />}
         <span className="flex-shrink-0 text-small whitespace-nowrap text-trs-subtle" title={fmtWhen(msg.sent_at)}>{fmtWhen(msg.sent_at, false)}</span>
-      </button>
+      </Btn>
       {open && (
         <div className="pb-5 sm:pl-[172px]">
           <p className="m-0 mb-2.5 text-small text-trs-subtle" >
@@ -267,7 +266,7 @@ function Recipients({ msg, toNames, isOut, email }: { msg: RealMsg; toNames: str
     <>
       <p className="m-0 mt-px text-small flex items-center gap-1 min-w-0 text-trs-muted" >
         <span className="truncate">{toNames.length ? `to ${toNames.join(', ')}` : isOut ? 'sent' : 'received'}</span>
-        {any && <><span aria-hidden>·</span><button type="button" onClick={() => setDetails(v => !v)} aria-expanded={details} className={cn(LINK, 'flex-shrink-0 text-small')} style={{ color: MUTED }}>{details ? 'Hide details' : 'Details'}</button></>}
+        {any && <><span aria-hidden>·</span><Btn level="tertiary" size="xs" onClick={() => setDetails(v => !v)} aria-expanded={details} className={cn(LINK, 'flex-shrink-0 text-small text-trs-muted hover:text-trs-muted')}>{details ? 'Hide details' : 'Details'}</Btn></>}
       </p>
       {details && (
         <dl className="m-0 mt-2 grid grid-cols-[44px_1fr] gap-x-2 gap-y-1 text-small">
@@ -328,11 +327,11 @@ function MessageBody({ msg, name, textBody, earlier }: { msg: RealMsg; name: str
         <div className="mt-4 flex items-center gap-2.5 flex-wrap rounded px-3 py-2.5 text-body bg-trs-field text-trs-muted">
           <span>Some repeated formatting and the quoted history are collapsed.</span>
           <span className="flex-1" />
-          <button type="button" onClick={() => setQuotedOpen(v => !v)} aria-expanded={quotedOpen} className={cn(LINK, 'text-body')} style={{ color: INK }}>{quotedOpen ? 'Hide quoted history' : `Show quoted history (${chain.length || 1})`}</button>
-          <button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-body')} style={{ color: INK }}>View original</button>
+          <Btn level="tertiary" size="xs" onClick={() => setQuotedOpen(v => !v)} aria-expanded={quotedOpen} className={cn(LINK, 'text-body text-trs-ink')}>{quotedOpen ? 'Hide quoted history' : `Show quoted history (${chain.length || 1})`}</Btn>
+          <Btn level="tertiary" size="xs" onClick={() => setOriginal(true)} className={cn(LINK, 'text-body text-trs-ink')}>View original</Btn>
         </div>
       ) : (
-        <p className="m-0 mt-3 text-right text-small"><button type="button" onClick={() => setOriginal(true)} className={cn(LINK, 'text-small')} style={{ color: FAINT }}>View original</button></p>
+        <p className="m-0 mt-3 text-right text-small"><Btn level="tertiary" size="xs" onClick={() => setOriginal(true)} className={cn(LINK, 'text-small text-trs-subtle hover:text-trs-subtle')}>View original</Btn></p>
       )}
 
       {quotedOpen && hasQuoted && (
@@ -351,7 +350,7 @@ function QuotedChain({ parts, depth = 0 }: { parts: QuotedPart[]; depth?: number
   const [head, ...rest] = parts
   if (!head) return null
   return (
-    <div className={cn('pl-4', depth > 0 && 'mt-2.5')} style={{ borderLeft: `2px solid ${HAIR}` }} aria-label={depth === 0 ? 'Quoted history' : undefined}>
+    <div className={cn('pl-4 border-l-2 border-trs-line', depth > 0 && 'mt-2.5')} aria-label={depth === 0 ? 'Quoted history' : undefined}>
       <div className="mb-1.5 flex items-baseline gap-2.5 flex-wrap text-small text-trs-muted" >
         {head.name ? <><b className="font-medium text-trs-ink-2" >{head.name}</b>{head.date && <span>{head.date}</span>}</> : <span>{head.header ?? 'Quoted message'}</span>}
       </div>
@@ -365,18 +364,18 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
   return (
     <section className="mt-5" aria-label="Attachments">
       <p className="m-0 mb-2.5 text-body text-trs-muted" ><b className="font-medium text-trs-ink" >Attachments</b> · {list.length}</p>
-      <ul className="m-0 p-0 list-none grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))' }}>
+      <ul className="m-0 p-0 list-none grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))]">
         {list.map(a => {
           const href = `/api/engagement/attachments/${a.id}/download`
           return (
-            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white" style={{ border: `1px solid ${HAIR}` }}>
+            <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white border border-trs-line">
               <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small font-semibold bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
               <span className="min-w-0">
                 <a href={href} target="_blank" rel="noreferrer" className="block text-body font-medium truncate no-underline hover:underline text-trs-ink" >{a.filename}</a>
                 <span className="block mt-0.5 text-small text-trs-subtle" >
                   {formatBytes(a.size_bytes) && <span className="mr-1.5">{formatBytes(a.size_bytes)}</span>}
-                  <a href={href} target="_blank" rel="noreferrer" className={cn(LINK, 'mr-1.5')} style={{ color: INK }}>Preview</a>
-                  <a href={href} download={a.filename} className={LINK} style={{ color: INK }}>Download</a>
+                  <a href={href} target="_blank" rel="noreferrer" className="underline decoration-trs-subtle underline-offset-[3px] cursor-pointer mr-1.5 text-trs-ink">Preview</a>
+                  <a href={href} download={a.filename} className="underline decoration-trs-subtle underline-offset-[3px] cursor-pointer text-trs-ink">Download</a>
                 </span>
               </span>
             </li>
@@ -394,13 +393,13 @@ function OriginalDialog({ open, onClose, msg, name }: { open: boolean; onClose: 
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-[min(960px,calc(100vw-32px))] max-h-[85vh] overflow-y-auto p-0 gap-0">
-        <DialogHeader className="px-6 pt-5 pb-3 pr-14" style={{ borderBottom: `1px solid ${HAIR}` }}>
+        <DialogHeader className="px-6 pt-5 pb-3 pr-14 border-b border-trs-line">
           <DialogTitle className="text-heading font-medium text-trs-ink" >Original message</DialogTitle>
           <p className="m-0 text-body text-trs-muted" >{name} · {fmtWhen(msg.sent_at)}</p>
           {msg.body_html && msg.body_text && (
             <div className="mt-2 flex items-center gap-3 text-body">
-              <button type="button" onClick={() => setMode('html')} aria-pressed={mode === 'html'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'html' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'html' ? INK : MUTED }}>As sent</button>
-              <button type="button" onClick={() => setMode('text')} aria-pressed={mode === 'text'} className={cn('bg-transparent border-0 p-0 cursor-pointer', mode === 'text' ? 'font-medium underline underline-offset-[3px] decoration-[#0f1412]' : '')} style={{ color: mode === 'text' ? INK : MUTED }}>Plain text</button>
+              <Btn level="tertiary" size="xs" onClick={() => setMode('html')} aria-pressed={mode === 'html'} className={cn('h-auto p-0 border-0 bg-transparent hover:bg-transparent text-body', mode === 'html' ? 'font-medium underline underline-offset-[3px] decoration-trs-ink text-trs-ink hover:text-trs-ink' : 'font-normal text-trs-muted hover:text-trs-muted')}>As sent</Btn>
+              <Btn level="tertiary" size="xs" onClick={() => setMode('text')} aria-pressed={mode === 'text'} className={cn('h-auto p-0 border-0 bg-transparent hover:bg-transparent text-body', mode === 'text' ? 'font-medium underline underline-offset-[3px] decoration-trs-ink text-trs-ink hover:text-trs-ink' : 'font-normal text-trs-muted hover:text-trs-muted')}>Plain text</Btn>
             </div>
           )}
         </DialogHeader>

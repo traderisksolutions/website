@@ -5,10 +5,7 @@ import { Loader2 } from 'lucide-react'
 
 type CaseRow = { id: string; name: string; status: string }
 
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-const HAIR = '#e6e8e4'
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-body underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]'
+const LINK = 'bg-transparent border-0 p-0 cursor-pointer text-body text-trs-ink underline underline-offset-[3px] decoration-trs-subtle hover:decoration-trs-ink'
 
 /**
  * Attach the current thread to an open Nexus case, from where a related email is noticed.
@@ -54,24 +51,24 @@ export function AddToCaseControl({ threadId }: { threadId: string | null }) {
   if (!threadId) return null
 
   return (
-    <div ref={ref} className="relative text-body text-trs-muted" >
+    <div ref={ref} className="relative text-body text-trs-muted">
       {linked ? (
         <span>
-          Added to {linked.name} · <a href={`/nexus/cases?case=${linked.id}`} className="underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412] text-trs-ink" >Open in Nexus</a>
+          Added to {linked.name} · <a href={`/nexus/cases?case=${linked.id}`} className="underline underline-offset-[3px] decoration-trs-subtle hover:decoration-trs-ink text-trs-ink">Open in Nexus</a>
         </span>
       ) : (
-        <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="listbox" className={LINK} style={{ color: INK }}>Add to Nexus case</button>
+        <button type="button" onClick={toggle} aria-expanded={open} aria-haspopup="listbox" className={LINK}>Add to Nexus case</button>
       )}
 
       {open && (
-        <div role="listbox" aria-label="Open cases" className="absolute top-full left-0 z-20 mt-1.5 w-64 max-h-64 overflow-y-auto rounded bg-white p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+        <div role="listbox" aria-label="Open cases" className="absolute top-full left-0 z-20 mt-1.5 w-64 max-h-64 overflow-y-auto rounded border border-trs-line bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
           {cases === null ? (
-            <div className="px-2.5 py-2 text-small flex items-center gap-1.5 text-trs-muted" ><Loader2 size={11} className="animate-spin" /> Loading…</div>
+            <div className="px-2.5 py-2 text-small flex items-center gap-1.5 text-trs-muted"><Loader2 size={11} className="animate-spin" /> Loading…</div>
           ) : cases.length === 0 ? (
-            <div className="px-2.5 py-2 text-small text-trs-muted" >No open cases.</div>
+            <div className="px-2.5 py-2 text-small text-trs-muted">No open cases.</div>
           ) : cases.map(c => (
             <button key={c.id} type="button" role="option" aria-selected={false} disabled={busy} onClick={() => add(c)}
-              className="w-full text-left px-2.5 py-1.5 rounded text-body bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] disabled:opacity-50 truncate text-trs-ink" >
+              className="w-full text-left px-2.5 py-1.5 rounded text-body bg-transparent border-0 cursor-pointer hover:bg-trs-tint disabled:opacity-50 truncate text-trs-ink">
               {c.name}
             </button>
           ))}
