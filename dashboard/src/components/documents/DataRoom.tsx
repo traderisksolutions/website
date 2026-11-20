@@ -12,6 +12,7 @@ import { callApi, errText } from '@/components/placement/shared'
 import { DOC_TYPES, docLabel, type DataRoomStatus } from '@/lib/documents/taxonomy'
 import type { PolicyDocument } from '@/lib/documents/store'
 import { fmtDate } from '@/lib/format'
+import { FileButton } from '@/components/filing/FileButton'
 
 type Room = {
   policy: { id: string; label: string | null; insurer: string | null; policy_number: string | null; lifecycle: string; start_date: string | null; end_date: string | null; drive_folder_url: string | null; is_eb: boolean }
@@ -108,10 +109,14 @@ export function DataRoom({ companyId }: { companyId: string }) {
               {policyOptions.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
             </select>
             {['cover_note', 'policy_schedule', 'certificate'].includes(d.doc_type) && <Btn size="xs" level="secondary" disabled={busy === d.id} onClick={() => void newPolicy(d)}>New policy</Btn>}
+            <FileButton documentId={d.id} onFiled={() => void load()} />
             <Btn size="xs" level="tertiary" disabled={busy === d.id} onClick={() => void patch(d, { ignore: true })}>Ignore</Btn>
           </span>
         ) : (
-          <Btn size="xs" level="tertiary" disabled={busy === d.id} onClick={() => void patch(d, { policy_id: null })}>Unlink</Btn>
+          <span className="inline-flex items-center gap-2">
+            <FileButton documentId={d.id} onFiled={() => void load()} />
+            <Btn size="xs" level="tertiary" disabled={busy === d.id} onClick={() => void patch(d, { policy_id: null })}>Unlink</Btn>
+          </span>
         )}
       </RegisterCell>
     </RegisterRow>
