@@ -203,7 +203,11 @@ export function RichEditor({
         if (initialHtml?.trim()) {
           q.clipboard.dangerouslyPasteHTML(0, initialHtml)
         }
-        q.setSelection(q.getLength(), 0)
+        // Place the cursor at the end only if nothing else has focus: the editor loads a moment
+        // after the page, and taking focus then pulled the cursor out of a field being typed in
+        // (the To address became a chip half-way and the rest landed in the body).
+        const active = typeof document !== 'undefined' ? document.activeElement : null
+        if (!active || active === document.body || mountRef.current?.contains(active)) q.setSelection(q.getLength(), 0)
 
         const syncFmt = () => {
           if (!q) return

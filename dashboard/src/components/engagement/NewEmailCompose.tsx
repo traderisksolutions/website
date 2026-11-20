@@ -219,7 +219,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
                 <input
                   id="new-email-to"
                   value={to}
-                  onChange={e => { setTo(e.target.value); toAc.reopen() }}
+                  onChange={e => { setTo(e.target.value.replace(/^mailto:/i, '')); toAc.reopen() }}
                   onKeyDown={e => {
                     if (toAc.onKeyDown(e)) { e.stopPropagation(); return }
                     if (e.key === 'Enter') { e.preventDefault(); setTo(to.trim()); setToDone(Boolean(to.trim())) }
