@@ -302,7 +302,7 @@ Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry
 | --- | --- | --- |
 | G20 Insurer quotes beside engine prices | **Partly done** | An insurer's schedule added on /eb (Insurer pricing) is read and compared beside the brochure columns, figure by figure with source and status. `placement_quotes` from the placement module are not pulled in yet. |
 | G23 Two quotation screens | **Done** | /eb is the one quotation screen (release 1, EB-055); Brochure and Insurer pricing are two modes of it. |
-| G24 Route per insurer | **Not done** | The pricing mode is chosen per quotation, not per insurer; no `routeFor`. Headcount and rate-date rules show as warnings on the column (EB-069). |
+| G24 Route per insurer | **Done (21 Nov)** | `routeFor` (gb/routes.ts): Brochure price or Insurer to quote per house insurer with the reasons, shown as Routes under the census (EB-074). A broker override is not recorded yet. |
 | G25 Upload and read an insurer quotation | **Done** | xlsx, xls, csv and PDF read by code; Read with AI for scans; every figure with source and status (EB-065). |
 | G26 Per-insurer status | **Not done** | ProposalTrack stays per proposal. |
 

@@ -40,6 +40,7 @@ import { EbTiers } from './EbTiers'
 import { EbCompare } from './EbCompare'
 import { ProposalSection } from './ProposalSection'
 import { EbCensusReview, EbOptionalFiles } from './EbCensusReview'
+import { EbRoutes } from './EbRoutes'
 import { fmtMoney0 } from './eb-format'
 
 type Mode = 'brochure' | 'insurer'
@@ -505,6 +506,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
             </Register>
             <p className="m-0 text-small text-trs-muted">{chosen.reduce((a, c) => a + c.employees, 0)} employees in this quotation · spouses and children not counted as headcount</p>
             <EbCensusReview members={members} effectiveDate={effDate} previous={previous} />
+            {chosen.length > 0 && <EbRoutes members={chosen.flatMap(c => c.members)} effectiveDate={effDate} warnings={priced?.warnings} />}
             <div className="flex flex-wrap items-end gap-4">
               <Field label="Policy start date"><Input id="eb-start" type="date" value={effDate} onChange={e => { setEffDate(e.target.value); setPriced(null) }} /></Field>
               <Field label="Basis"><Segmented size="sm" label="Basis" value={basis} onChange={v => { setBasis(v); setPriced(null) }} options={[{ value: 'renewal', label: 'Renewal' }, { value: 'new_business', label: 'New business' }]} /></Field>

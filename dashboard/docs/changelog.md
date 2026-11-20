@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Employment Benefits: a route per insurer
+
+- **Routes** on /eb (`gb/routes.ts`): each house insurer is Brochure price or Insurer to quote, from the package limits, minimum group, underwriting age and rate-card dates, with every reason (EB-074).
+
 ## 2026-11-21 — Employment Benefits › Products: the workbook beside the rate tables
 
 - **Products** (`/eb/products`, a new Employment Benefits tab): the five house products as the workbook holds them, each rate table of the same insurer compared rate by rate (same, with GST, different, only on one side), the largest differences per table, and the brochure folder's read queue (EB-073). Read on the server; no model; no writes.
