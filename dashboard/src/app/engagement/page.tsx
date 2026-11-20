@@ -234,7 +234,8 @@ function EngagementPageInner() {
       const lead = leads.find(l => l.id === selectedId)
       if (lead) void fetchThread(lead.thread_id ?? null, lead.email)
     }
-    const poll = window.setInterval(tick, 20000)
+    // Every minute: new mail is filed by the ingest, not by this tab (was 20s; 20 Nov 2026).
+    const poll = window.setInterval(tick, 60_000)
     document.addEventListener('visibilitychange', tick)
     return () => { window.clearInterval(poll); document.removeEventListener('visibilitychange', tick) }
   }, [selectedId, leads]) // eslint-disable-line react-hooks/exhaustive-deps

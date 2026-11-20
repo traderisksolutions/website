@@ -33,15 +33,16 @@ export function useBoardData() {
 
   useEffect(() => { void load() }, [load])
 
-  // Was a realtime subscription plus a 45s safety poll. Cloud SQL cannot push, so the poll is
-  // now the only mechanism and runs more often to compensate.
+  // The board is every client company with its to-dos: one heavy read. It was re-read every 20s
+  // in every open tab, which kept the database busy for nothing (20 Nov 2026). Now it reloads when
+  // the person comes back to the tab and the copy is over two minutes old; edits here sync at once.
+  const loadedAt = useRef(0)
+  useEffect(() => { if (data) loadedAt.current = Date.now() }, [data])
   useEffect(() => {
-    const tick = () => { if (document.visibilityState === 'visible') void load() }
-    const poll = window.setInterval(tick, 20_000)
-    document.addEventListener('visibilitychange', tick)
+    const back = () => { if (document.visibilityState === 'visible' && Date.now() - loadedAt.current > 120_000) void load() }
+    document.addEventListener('visibilitychange', back)
     return () => {
-      window.clearInterval(poll)
-      document.removeEventListener('visibilitychange', tick)
+      document.removeEventListener('visibilitychange', back)
       if (reloadTimer.current) window.clearTimeout(reloadTimer.current)
     }
   }, [load])

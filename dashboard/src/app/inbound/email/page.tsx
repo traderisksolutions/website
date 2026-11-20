@@ -83,7 +83,7 @@ function InboundLeadsPage() {
 
   useEffect(() => {
     load()
-    const t = setInterval(() => load(), 30_000)
+    const t = setInterval(() => load(), 120_000)
     return () => clearInterval(t)
   }, [load])
 
