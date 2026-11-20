@@ -11,7 +11,10 @@ import { Plus, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls } from '@/components/crm/primitives'
 import { checkStated, customQuoteTotal, type CensusCounts, type ProductRate } from '@/lib/gb/custom-quote'
-import { callApi, errText, selectCls, INK, MUTED, ERROR } from './shared'
+import { Input } from '@/components/ui/input'
+import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { cn } from '@/lib/utils'
+import { callApi, errText, selectCls } from './shared'
 
 type Method = ProductRate['method']
 type Row = { product: string; method: Method; plans: Record<string, string>; rate: string; perThousand: string; totalSa: string }
@@ -109,33 +112,31 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
           <DialogTitle>Insurer rates</DialogTitle>
           <DialogDescription className="sr-only">Per-head or per-S$1,000 rates for a large group, totalled on the census</DialogDescription>
         </DialogHeader>
-        {counts === undefined && <p className="m-0 text-13.5" style={{ color: MUTED }}>Loading…</p>}
-        {counts === null && !error && <p className="m-0 text-13.5" style={{ color: ERROR }}>No census on this line yet. Upload the employee list first.</p>}
+        {counts === undefined && <p className="m-0 text-body text-trs-muted">Loading…</p>}
+        {counts === null && !error && <p className="m-0 text-body text-trs-neg">No census on this line yet. Upload the employee list first.</p>}
         {counts && (
           <div className="flex flex-col gap-4 min-w-0">
-            <div className="overflow-x-auto">
-              <table className="trs-table w-full text-13 border-collapse" style={{ color: INK }}>
-                <thead><tr style={{ color: MUTED }}>
-                  <th className="font-medium py-1 px-3">Plan</th><th className="font-medium py-1 px-3">Employees</th>
-                  <th className="font-medium py-1 px-3">Alone</th><th className="font-medium py-1 px-3">+ spouse</th>
-                  <th className="font-medium py-1 px-3">+ children</th><th className="font-medium py-1 px-3">Family</th>
-                  <th className="font-medium py-1 px-3">Lives</th>
-                </tr></thead>
-                <tbody>{plans.map(p => { const t = counts.tiers[p], l = counts.lives[p]; return (
-                  <tr key={p}><td className="py-1 px-3">{p}</td><td className="py-1 px-3 tabular-nums">{l.employee}</td>
-                    <td className="py-1 px-3 tabular-nums">{t.EO}</td><td className="py-1 px-3 tabular-nums">{t.ES}</td>
-                    <td className="py-1 px-3 tabular-nums">{t.EC}</td><td className="py-1 px-3 tabular-nums">{t.EF}</td>
-                    <td className="py-1 px-3 tabular-nums">{l.employee + l.spouse + l.child}</td></tr>) })}</tbody>
-              </table>
-            </div>
+            <Register label="Census counts" minWidth={560}>
+              <RegisterHead>
+                <RegisterTh>Plan</RegisterTh><RegisterTh>Employees</RegisterTh>
+                <RegisterTh>Alone</RegisterTh><RegisterTh>+ spouse</RegisterTh>
+                <RegisterTh>+ children</RegisterTh><RegisterTh>Family</RegisterTh>
+                <RegisterTh last>Lives</RegisterTh>
+              </RegisterHead>
+              <tbody>{plans.map(p => { const t = counts.tiers[p], l = counts.lives[p]; return (
+                <RegisterRow key={p}><RegisterCell align="left">{p}</RegisterCell><RegisterCell className="tabular-nums">{l.employee}</RegisterCell>
+                  <RegisterCell className="tabular-nums">{t.EO}</RegisterCell><RegisterCell className="tabular-nums">{t.ES}</RegisterCell>
+                  <RegisterCell className="tabular-nums">{t.EC}</RegisterCell><RegisterCell className="tabular-nums">{t.EF}</RegisterCell>
+                  <RegisterCell last className="tabular-nums">{l.employee + l.spouse + l.child}</RegisterCell></RegisterRow>) })}</tbody>
+            </Register>
 
             <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] items-end">
               <Field label="Insurer">
-                <input className={inputCls} list="custom-rate-insurers" value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Income" />
+                <Input className={inputCls} list="custom-rate-insurers" value={insurer} onChange={e => setInsurer(e.target.value)} placeholder="Income" />
                 <datalist id="custom-rate-insurers">{INSURERS.map(i => <option key={i} value={i} />)}</datalist>
               </Field>
               <Field label="Insurer's stated total incl. GST (optional)">
-                <input className={inputCls} inputMode="decimal" value={stated} onChange={e => setStated(e.target.value)} placeholder="To check its arithmetic" />
+                <Input className={inputCls} inputMode="decimal" value={stated} onChange={e => setStated(e.target.value)} placeholder="To check its arithmetic" />
               </Field>
               <div className="flex gap-1.5 pb-0.5">
                 {Object.keys(PRESETS).map(k => <Btn key={k} size="xs" level="tertiary" onClick={() => setRows(PRESETS[k].map(([p, m]) => blank(p, m)))}>{k}</Btn>)}
@@ -153,18 +154,18 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
                   </select>
                   <div className="flex flex-wrap gap-1.5 min-w-0">
                     {(r.method === 'tier' || r.method === 'life') && plans.map(p => (
-                      <input key={p} className={`${inputCls} w-[120px]`} inputMode="decimal" value={r.plans[p] ?? ''} placeholder={`${p}${r.method === 'tier' ? ' alone' : ' employee'}`}
+                      <Input key={p} className={`${inputCls} w-[120px]`} inputMode="decimal" value={r.plans[p] ?? ''} placeholder={`${p}${r.method === 'tier' ? ' alone' : ' employee'}`}
                         aria-label={`${r.product} ${p} rate`} onChange={e => set(i, { plans: { ...r.plans, [p]: e.target.value } })} />
                     ))}
-                    {(r.method === 'per_life' || r.method === 'per_employee') && <input className={`${inputCls} w-[140px]`} inputMode="decimal" value={r.rate} placeholder="Rate" aria-label={`${r.product} rate`} onChange={e => set(i, { rate: e.target.value })} />}
+                    {(r.method === 'per_life' || r.method === 'per_employee') && <Input className={`${inputCls} w-[140px]`} inputMode="decimal" value={r.rate} placeholder="Rate" aria-label={`${r.product} rate`} onChange={e => set(i, { rate: e.target.value })} />}
                     {r.method === 'per_mille' && <>
-                      <input className={`${inputCls} w-[140px]`} inputMode="decimal" value={r.perThousand} placeholder="Per S$1,000" aria-label={`${r.product} rate per S$1,000`} onChange={e => set(i, { perThousand: e.target.value })} />
-                      <input className={`${inputCls} w-[170px]`} inputMode="decimal" value={r.totalSa} placeholder="Total sum assured" aria-label={`${r.product} total sum assured`} onChange={e => set(i, { totalSa: e.target.value })} />
+                      <Input className={`${inputCls} w-[140px]`} inputMode="decimal" value={r.perThousand} placeholder="Per S$1,000" aria-label={`${r.product} rate per S$1,000`} onChange={e => set(i, { perThousand: e.target.value })} />
+                      <Input className={`${inputCls} w-[170px]`} inputMode="decimal" value={r.totalSa} placeholder="Total sum assured" aria-label={`${r.product} total sum assured`} onChange={e => set(i, { totalSa: e.target.value })} />
                     </>}
                   </div>
                   <span className="flex items-center gap-2 justify-end">
-                    <span className="tabular-nums text-13" style={{ color: INK }}>{result?.byProduct[r.product] != null ? sgd(result.byProduct[r.product]) : ''}</span>
-                    <button type="button" aria-label={`Remove ${r.product}`} className="bg-transparent border-0 p-1 cursor-pointer rounded hover:bg-[#eceeea]" style={{ color: MUTED }} onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}><X size={14} /></button>
+                    <span className="tabular-nums text-body text-trs-ink">{result?.byProduct[r.product] != null ? sgd(result.byProduct[r.product]) : ''}</span>
+                    <Btn size="xs" level="tertiary" aria-label={`Remove ${r.product}`} className="h-auto p-1 border-0 text-trs-muted hover:bg-trs-field" onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}><X size={14} /></Btn>
                   </span>
                 </div>
               ))}
@@ -172,22 +173,22 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
             </div>
 
             {result && (
-              <div className="flex flex-wrap gap-x-5 gap-y-1 text-13.5 tabular-nums" style={{ color: INK }}>
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-body tabular-nums text-trs-ink">
                 <span>Net {sgd(result.net)}</span><span>GST {sgd(result.gst)}</span><span className="font-semibold">Total {sgd(result.total)}</span>
-                {result.missing.length > 0 && <span style={{ color: ERROR }}>No rate for {result.missing.join(', ')}</span>}
+                {result.missing.length > 0 && <span className="text-trs-neg">No rate for {result.missing.join(', ')}</span>}
               </div>
             )}
-            {check && <p className="m-0 text-13" style={{ color: check.ok ? MUTED : ERROR }}>{check.ok ? `Stated total matches within S$${Math.abs(check.diff).toFixed(2)}.` : check.note}</p>}
+            {check && <p className={cn('m-0 text-body', check.ok ? 'text-trs-muted' : 'text-trs-neg')}>{check.ok ? `Stated total matches within S$${Math.abs(check.diff).toFixed(2)}.` : check.note}</p>}
 
             <div className="flex flex-wrap gap-2 items-center">
               <Btn level="primary" loading={busy} disabled={busy} onClick={() => void save()}>Add to comparison</Btn>
-              {error && <span className="text-13" style={{ color: ERROR }}>{error}</span>}
-              {notice && <span className="text-13" style={{ color: INK }}>{notice}</span>}
+              {error && <span className="text-body text-trs-neg">{error}</span>}
+              {notice && <span className="text-body text-trs-ink">{notice}</span>}
             </div>
 
             {saved.length > 0 && (
-              <div className="flex flex-col gap-1 text-13" style={{ color: INK }}>
-                <span style={{ color: MUTED }}>Entered on this line</span>
+              <div className="flex flex-col gap-1 text-body text-trs-ink">
+                <span className="text-trs-muted">Entered on this line</span>
                 {saved.map(s => (
                   <div key={s.id} className="flex items-center gap-3">
                     <span className="min-w-[140px]">{s.insurer_name}</span>
@@ -199,7 +200,7 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
             )}
           </div>
         )}
-        {counts === null && error && <p className="m-0 text-13" style={{ color: ERROR }}>{error}</p>}
+        {counts === null && error && <p className="m-0 text-body text-trs-neg">{error}</p>}
       </DialogContent>
     </Dialog>
   )

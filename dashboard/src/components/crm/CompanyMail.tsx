@@ -23,8 +23,6 @@ import { FindThreads, HiddenThreads } from './CompanyThreadList'
  */
 
 type Filter = 'all' | 'reply' | 'rfq' | 'claim' | 'renewal' | 'general'
-const INK = '#0f1412'
-const MUTED = '#4a5550'
 
 type ThreadRow = { id: string; subject: string | null; status: string; last_message_at: string | null; contact_id: string | null }
 
@@ -120,7 +118,7 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
   } : null
 
   return (
-    <div className={cn(fullHeight ? 'h-full flex flex-col px-4 sm:px-6 pt-3' : 'mt-3')} style={{ color: INK }}>
+    <div className={cn(fullHeight ? 'h-full flex flex-col px-4 sm:px-6 pt-3' : 'mt-3', 'text-trs-ink')}>
       <div className={cn('mb-3 flex items-center gap-2 flex-wrap', fullHeight && 'flex-shrink-0')}>
         <Segmented value={filter} onChange={setFilter} options={[
           { value: 'all', label: 'All', count: counts.all }, { value: 'reply', label: 'Awaiting reply', count: counts.reply },
@@ -141,27 +139,27 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
       {(hidden > 0 || threads.length === 0) && <div className={cn('mb-3', fullHeight && 'flex-shrink-0')}><HiddenThreads hidden={hidden} /></div>}
 
       {threads.length > 0 && (
-        <div className={cn('flex gap-4 border-t border-[#e6e8e4]',
+        <div className={cn('flex gap-4 border-t border-trs-line',
           fullHeight ? 'flex-1 min-h-0 items-stretch' : 'items-start')}>
           {/* List */}
-          <div className={cn('min-w-0 md:w-[340px] md:flex-shrink-0 md:border-r md:border-[#e6e8e4] md:pr-4',
+          <div className={cn('min-w-0 md:w-[340px] md:flex-shrink-0 md:border-r md:border-trs-line md:pr-4',
             fullHeight && 'flex flex-col min-h-0',
             selectedId ? 'hidden md:block' : 'w-full')}>
             {visible.length === 0 && <Empty compact>Nothing matches this filter.</Empty>}
             <ul className={cn('m-0 p-0 list-none flex flex-col overflow-y-auto', fullHeight ? 'flex-1 min-h-0' : 'max-h-[70vh]')}>
               {visible.map(t => (
-                <li key={t.id} className={cn('border-b border-[#e6e8e4] last:border-b-0', selectedId === t.id ? 'bg-[#f1f2ee]' : 'hover:bg-[#faf9f6]')}>
+                <li key={t.id} className={cn('border-b border-trs-line last:border-b-0', selectedId === t.id ? 'bg-trs-field' : 'hover:bg-trs-tint')}>
                   <div className="flex items-start gap-2 py-3 px-2">
                     {onCombine && <input type="checkbox" className="mt-1.5 flex-shrink-0" checked={selected.has(t.id)} onChange={() => toggle(t.id)} aria-label={`Select ${threadTitle(t)}`} />}
                     <button onClick={() => openThread(t.id)} className="min-w-0 flex-1 text-left bg-transparent border-0 p-0 cursor-pointer">
-                      <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }} title={t.subject ?? undefined}>{threadTitle(t)}</p>
-                      <p className="text-[12.5px] m-0 mt-1 flex items-center gap-1.5 flex-wrap text-trs-muted">
+                      <p className={cn('text-body m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '', 'text-trs-ink')} title={t.subject ?? undefined}>{threadTitle(t)}</p>
+                      <p className="text-small m-0 mt-1 flex items-center gap-1.5 flex-wrap text-trs-muted">
                         {t.via && <Chip title="Filed under the insurer; names this client">via {t.via.name}</Chip>}
                         {t.needsReply && <Chip>Awaiting reply</Chip>}
                         {t.category && <Chip className="capitalize">{t.category === 'group_benefits' ? 'Group benefits' : t.category}</Chip>}
                         <span className="truncate">{t.contact?.name ?? t.contact?.email ?? 'Unknown'}</span>
                       </p>
-                      <p className="text-[12.5px] m-0 mt-0.5 text-trs-subtle">{t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}</p>
+                      <p className="text-small m-0 mt-0.5 text-trs-subtle">{t.message_count} message{t.message_count === 1 ? '' : 's'} · {fmtRelative(t.last_message_at)}</p>
                     </button>
                   </div>
                 </li>
@@ -173,29 +171,29 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
           <div ref={readerRef} className={cn('min-w-0 flex-1 overflow-y-auto', fullHeight ? 'min-h-0' : 'max-h-[70vh]', selectedId ? 'block' : 'hidden md:block')}>
             {!selectedId && <Empty compact>Choose a conversation.</Empty>}
             {selectedId && loading && <Spinner label="Opening…" />}
-            {selectedId && error && <p className="text-[13px] py-4 m-0 text-trs-neg">{error}</p>}
+            {selectedId && error && <p className="text-body py-4 m-0 text-trs-neg">{error}</p>}
 
             {selectedId && !loading && !error && current && (
               <>
-                <div className="flex items-start justify-between gap-3 pt-3 pb-3 border-b border-[#e6e8e4] sticky top-0 bg-white z-10">
+                <div className="flex items-start justify-between gap-3 pt-3 pb-3 border-b border-trs-line sticky top-0 bg-white z-10">
                   <div className="min-w-0">
-                    <button type="button" onClick={() => setSelectedId(null)} className="md:hidden inline-flex items-center gap-1 text-[13px] bg-transparent border-0 p-0 mb-1 cursor-pointer text-trs-muted">
+                    <Btn size="xs" level="tertiary" onClick={() => setSelectedId(null)} className="md:hidden mb-1">
                       <ArrowLeft size={12} /> All threads
-                    </button>
-                    <p className="text-[16px] font-medium tracking-[-0.01em] m-0 leading-snug text-trs-ink" title={current.subject ?? undefined}>{threadTitle(current)}</p>
-                    <p className="text-[13px] m-0 mt-0.5 text-trs-muted">
+                    </Btn>
+                    <p className="text-heading font-medium tracking-[-0.01em] m-0 leading-snug text-trs-ink" title={current.subject ?? undefined}>{threadTitle(current)}</p>
+                    <p className="text-body m-0 mt-0.5 text-trs-muted">
                       {current.contact?.name ?? current.contact?.email ?? 'Unknown contact'} · {messages?.length ?? 0} message{(messages?.length ?? 0) === 1 ? '' : 's'}
                       {current.caseIds.length > 0 && <> · <Link href={`/nexus/cases?case=${current.caseIds[0]}`} className="underline underline-offset-4 text-trs-ink">in a case</Link></>}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {!composing && <Btn size="sm" level="primary" onClick={() => setComposing(true)}><Reply size={12} /> Reply</Btn>}
-                    <Link href={`/engagement?lead=${current.id}`} title="Open in the full Inbox" className="text-[13px] no-underline hover:underline text-trs-muted">Open in Inbox</Link>
+                    <Link href={`/engagement?lead=${current.id}`} title="Open in the full Inbox" className="text-body no-underline hover:underline text-trs-muted">Open in Inbox</Link>
                   </div>
                 </div>
 
                 {composing && lead && (
-                  <div className="py-3 border-b border-[#e6e8e4]">
+                  <div className="py-3 border-b border-trs-line">
                     <EngagementComposePanel
                       lead={lead}
                       thread={thread ? { id: thread.id, subject: thread.subject, status: thread.status, last_message_at: thread.last_message_at, message_count: messages?.length ?? 0 } : null}

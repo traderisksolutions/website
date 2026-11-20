@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { FilePlus, FileText } from 'lucide-react'
-import { SectionCard, Empty, Spinner, Btn, Chip } from '@/components/crm/primitives'
+import { SectionCard, Empty, Spinner, Btn, Chip, btnClass } from '@/components/crm/primitives'
 import { AppointmentLetterDialog } from '@/components/letters/AppointmentLetterDialog'
 import type { LetterStatus } from '@/lib/letters/appointment'
 import { fmtDate } from '@/lib/format'
@@ -17,11 +17,11 @@ import { NewRoundDialog } from './NewRoundDialog'
 import { ComparisonGrid } from './ComparisonGrid'
 import { IssueDebitNoteDialog } from './IssueDebitNoteDialog'
 import { sharedOn } from '@/lib/placement/compare'
-import { callApi, errText, INK, MUTED, ERROR } from './shared'
+import { callApi, errText } from './shared'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
-/** A button inside the dense grid or the placement line: 22px tall so the row stays 34px. */
-const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-6'
+/** A button inside the dense grid or the placement line: 24px tall so the row stays compact. */
+const ROW_BTN = 'h-6 px-1.5 text-small rounded'
 type RoundTarget = { placementId: string; line: PlacementLine; currentSpec: Spec; currentContactIds: string[]; prefill?: { spec: Spec; source_log_id: string } }
 
 /** The insurer contacts asked in the line's current round. */
@@ -131,15 +131,15 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
           // Still the agent's proposal while nothing has gone to an insurer: Dismiss stands in for Close.
           const proposal = byAgent && p.status === 'open' && positions.every(x => x.dispatches.every(d => d.dispatch.status === 'drafted'))
           return (
-            <div key={p.id} className="py-3 first:pt-0 border-b border-[#e6e8e4] last:border-b-0">
+            <div key={p.id} className="py-3 first:pt-0 border-b border-trs-line last:border-b-0">
               {/* One 24px line: title · status · inception · client thread · origin, actions on the right. */}
-              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-12.5 whitespace-nowrap" style={{ color: MUTED }}>
-                <span className="text-13 font-medium tabular-nums" style={{ color: INK }}>{p.ref}</span>
-                <span className="text-13 font-medium truncate min-w-0" style={{ color: INK }} title={p.title}>· {p.title}</span>
+              <div className="flex items-center gap-x-2 gap-y-1 flex-wrap sm:flex-nowrap min-h-6 text-small whitespace-nowrap text-trs-muted">
+                <span className="text-body font-medium tabular-nums text-trs-ink">{p.ref}</span>
+                <span className="text-body font-medium truncate min-w-0 text-trs-ink" title={p.title}>· {p.title}</span>
                 <span>· Received {fmtDate(p.created_at)}</span>
                 <span>· {STATUS_WORD[p.status]}</span>
                 {p.inception_date && <span>· Inception {fmtDate(p.inception_date)}</span>}
-                {p.client_thread_id && <span>· <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline" style={{ color: INK }}>Client thread</Link></span>}
+                {p.client_thread_id && <span>· <Link href={threadHref(p.client_thread_id) ?? '#'} className="no-underline hover:underline text-trs-ink">Client thread</Link></span>}
                 {byAgent && <span>· Proposed by the agent</span>}
                 {letter && letter.state !== 'none' && (
                   <Chip tone={letter.state === 'signed' ? 'green' : letter.state === 'sent' ? 'amber' : 'neutral'}>
@@ -151,7 +151,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   {letter && letter.state === 'sent' && (
                     <label className="inline-flex">
                       <input type="file" className="hidden" onChange={e => void uploadSigned(p.id, e.target.files)} />
-                      <span className="inline-flex items-center h-[30px] px-3 rounded-6 text-13 font-medium cursor-pointer bg-white text-[#132c1c] shadow-[inset_0_0_0_1.5px_#132c1c] hover:bg-[#e0fcd8]">{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
+                      <span className={btnClass('secondary', 'xs')}>{uploading === p.id ? 'Uploading…' : 'Upload signed letter'}</span>
                     </label>
                   )}
                   {letter && letter.state !== 'signed' && (
@@ -170,7 +170,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
                   {p.status !== 'closed' && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy} onClick={() => patchStatus(p, 'closed')}>{proposal ? 'Dismiss' : 'Close'}</Btn>}
                 </span>
               </div>
-              {errors[p.id] && <p className="text-12.5 m-0 mt-1" style={{ color: ERROR }}>{errors[p.id]}</p>}
+              {errors[p.id] && <p className="text-small m-0 mt-1 text-trs-neg">{errors[p.id]}</p>}
 
               {positions.length === 0 ? <Empty compact>No lines on this placement.</Empty> : positions.map(pos => (
                 <div key={pos.line.id} className="mt-2.5">
@@ -224,10 +224,10 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
   const limit = pos.round?.spec?.limit ?? pos.line.spec?.limit
   const summary = [pos.roundNo > 0 ? `Round ${pos.roundNo}` : 'No round', limit ? `limit ${limit}` : null, `${pos.quotedCount} of ${asked} quoted`].filter(Boolean).join(' · ')
   return (
-    <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-12.5" style={{ color: MUTED }}>
-      <span className="font-medium shrink-0" style={{ color: INK }}>{label}</span>
+    <div className="flex items-center gap-2 min-w-0 min-h-6 mb-1 text-small text-trs-muted">
+      <span className="font-medium shrink-0 text-trs-ink">{label}</span>
       <span className="shrink-0">· {summary}</span>
-      {bind && <span className="shrink-0 px-1.5 rounded-6" style={{ background: '#dcefd2', color: INK }}>{bind}</span>}
+      {bind && <span className="shrink-0 px-1.5 rounded bg-trs-soft text-trs-ink">{bind}</span>}
       {pos.line.next_step && <span className="truncate min-w-0" title={pos.line.next_step}>· {pos.line.next_step}</span>}
       <span className="ml-auto flex items-center gap-1 shrink-0">
         {pos.pendingChange && (
@@ -238,7 +238,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
             title={l.insurer_confirmed_at ? undefined : 'The insurer has not confirmed cover yet'}>Issue debit note</Btn>
         )}
         {!finished && l.status !== 'bound' && <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>}
-        {policyId && <Link href={`/policies/${policyId}`} className="text-12.5 underline underline-offset-[3px]" style={{ color: INK }}>Policy</Link>}
+        {policyId && <Link href={`/policies/${policyId}`} className="text-small underline underline-offset-[3px] text-trs-ink">Policy</Link>}
       </span>
     </div>
   )

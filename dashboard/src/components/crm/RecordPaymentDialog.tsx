@@ -8,9 +8,6 @@ import { CHANNEL_LABEL, type ReceiptChannel } from '@/lib/crm/receipts'
 import type { PaymentDerived } from '@/lib/crm/types'
 
 const CHANNELS: ReceiptChannel[] = ['trs', 'insurer', 'writeoff']
-const INK = '#0f1412'
-const MUTED = '#4a5550'
-
 /**
  * Record what was actually received against one debit note. The whole point of the finance
  * reconciliation: a balance is cleared by entering the payment, never by editing a status.
@@ -105,7 +102,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
           <Field label="How it was settled">
             <div className="flex flex-col gap-1.5 pt-0.5">
               {CHANNELS.map(c => (
-                <label key={c} className="flex items-center gap-2 text-[14px] cursor-pointer text-trs-ink">
+                <label key={c} className="flex items-center gap-2 text-body cursor-pointer text-trs-ink">
                   <input
                     type="radio"
                     name="receipt-channel"
@@ -113,7 +110,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
                     onChange={() => setChannel(c)}
                   />
                   {CHANNEL_LABEL[c]}
-                  {c === 'writeoff' && <span className="text-[13px] text-trs-muted">— clears the balance, counts as nothing collected</span>}
+                  {c === 'writeoff' && <span className="text-body text-trs-muted">— clears the balance, counts as nothing collected</span>}
                 </label>
               ))}
             </div>
@@ -127,7 +124,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
             <textarea className={textareaCls} rows={2} value={memo} onChange={e => setMemo(e.target.value)} />
           </Field>
 
-          <p className="text-[13px] m-0 text-trs-muted">
+          <p className="text-body m-0 text-trs-muted">
             {!Number.isFinite(entered) || entered <= 0
               ? 'Enter an amount greater than zero.'
               : remaining > 0
@@ -137,7 +134,7 @@ export function RecordPaymentDialog({ note, open, onClose, onDone }: {
                   : 'Settles this debit note in full.'}
           </p>
 
-          {error && <p className="text-[13px] m-0 text-trs-neg">{error}</p>}
+          {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

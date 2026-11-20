@@ -6,7 +6,8 @@ import { Tip } from '@/components/Tip'
 import { StatusBadge } from '@/components/status-badge'
 import type { AppStatus } from '@/components/status-badge'
 import { DetailSection, DetailField } from '@/components/detail-section'
-import { textareaCls } from '@/components/crm/primitives'
+import { Btn, btnClass, textareaCls } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { ChannelBadge } from './channel-badge'
 import { StatusDropdown } from './status-dropdown'
 import { fullName, displayName, channelOf, messagePreview, fmtDate } from './helpers'
@@ -18,9 +19,6 @@ interface LeadDetailPanelProps {
   onClose: () => void
   onNotesSave: (id: string, notes: string) => void
 }
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
 
 export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDetailPanelProps) {
   const [copied,    setCopied]    = useState<string | null>(null)
@@ -46,28 +44,28 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
     <div className="flex flex-col h-full text-trs-ink">
 
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2 flex-shrink-0" style={{ borderBottom: '1px solid #e6e8e4' }}>
+      <div className="px-4 pt-4 pb-3 flex items-start justify-between gap-2 flex-shrink-0 border-b border-trs-line">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             <ChannelBadge source={lead.source} />
             <StatusBadge status={lead.status as AppStatus} />
           </div>
-          <p className="text-16 font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
+          <p className="text-heading font-medium tracking-[-0.01em] m-0 leading-tight text-trs-ink">
             {displayName(lead)}
           </p>
           {lead.company && (
-            <p className="text-13 mt-0.5 mb-0 text-trs-muted">{lead.company}</p>
+            <p className="text-body mt-0.5 mb-0 text-trs-muted">{lead.company}</p>
           )}
         </div>
-        <button
-          type="button"
+        <Btn
+          level="tertiary"
+          size="xs"
           onClick={onClose}
           aria-label="Close detail panel"
-          className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-8 hover:bg-[#f1f2ee] transition-colors flex-shrink-0 bg-transparent border-0 cursor-pointer text-trs-muted"
-          
+          className="w-8 px-0 rounded flex-shrink-0 border-0 text-trs-muted hover:bg-trs-field"
         >
           <X size={14} />
-        </button>
+        </Btn>
       </div>
 
       {/* Status */}
@@ -88,30 +86,32 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
         )}
         {lead.email && (
           <DetailField label="Email">
-            <button
-              type="button"
+            <Btn
+              level="tertiary"
+              size="xs"
               onClick={() => copy(lead.email!, 'email')}
               aria-label={`Copy email address: ${lead.email}`}
-              className="flex items-center gap-1.5 max-w-full bg-transparent border-0 p-0 cursor-pointer text-left"
+              className="h-auto justify-start gap-1.5 max-w-full bg-transparent border-0 p-0 font-normal text-left hover:bg-transparent"
             >
               <span className="overflow-hidden text-ellipsis whitespace-nowrap max-w-[200px] block text-trs-ink">
                 {lead.email}
               </span>
               {copyIcon('email')}
-            </button>
+            </Btn>
           </DetailField>
         )}
         {lead.phone && (
           <DetailField label="Phone / WhatsApp">
-            <button
-              type="button"
+            <Btn
+              level="tertiary"
+              size="xs"
               onClick={() => copy(lead.phone!, 'phone')}
               aria-label={`Copy phone: ${lead.phone}`}
-              className="flex items-center gap-1.5 bg-transparent border-0 p-0 cursor-pointer"
+              className="h-auto gap-1.5 bg-transparent border-0 p-0 font-normal hover:bg-transparent"
             >
               <span className="text-trs-ink">{lead.phone}</span>
               {copyIcon('phone')}
-            </button>
+            </Btn>
           </DetailField>
         )}
         {ch === 'whatsapp' && lead.phone && (
@@ -119,8 +119,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
             href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center h-[30px] px-3 rounded-6 text-12.5 font-medium no-underline bg-white hover:bg-[#faf9f6] w-fit"
-            style={{ border: '1px solid #d5d9d4', color: INK }}
+            className={cn(btnClass('secondary', 'xs'), 'mt-1 no-underline w-fit')}
           >
             Open in WhatsApp
           </a>
@@ -134,13 +133,13 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
         {lead.contact_type && <DetailField label="Type">{lead.contact_type}</DetailField>}
         <DetailField label="Source">{lead.source.replace(/_/g, ' ')}</DetailField>
         <DetailField label="Received">{fmtDate(lead.created_at)}</DetailField>
-        {lead.page_url && <DetailField label="Page"><span className="text-12.5 break-all">{lead.page_url}</span></DetailField>}
+        {lead.page_url && <DetailField label="Page"><span className="text-small break-all">{lead.page_url}</span></DetailField>}
       </DetailSection>
 
       {/* Message */}
       {msg && (
         <DetailSection label="Message">
-          <p className="text-13.5 whitespace-pre-wrap leading-[1.6] rounded-12 px-3.5 py-3 m-0 bg-trs-field text-trs-ink-2">
+          <p className="text-body whitespace-pre-wrap leading-[1.6] rounded px-3.5 py-3 m-0 bg-trs-field text-trs-ink-2">
             {msg}
           </p>
         </DetailSection>
@@ -157,7 +156,7 @@ export function LeadDetailPanel({ lead, onStatus, onClose, onNotesSave }: LeadDe
           aria-label="Internal notes for this lead"
           className={textareaCls}
         />
-        <p className="m-0 mt-1.5 text-12 text-trs-subtle">Team only. Saved when the field loses focus.</p>
+        <p className="m-0 mt-1.5 text-small text-trs-subtle">Team only. Saved when the field loses focus.</p>
       </DetailSection>
     </div>
   )

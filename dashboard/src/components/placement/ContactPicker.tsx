@@ -1,14 +1,15 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Spinner } from '@/components/crm/primitives'
+import { Btn, Spinner } from '@/components/crm/primitives'
+import { cn } from '@/lib/utils'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterGroupRow } from '@/components/ui/register'
 import type { InsurerRoute } from '@/lib/placement/store'
 import type { Suggestion } from '@/lib/placement/rank'
-import { callApi, errText, INK, MUTED, ERROR } from './shared'
+import { callApi, errText } from './shared'
 
 const COLS = 3
-const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-[#0f1412]'
+const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-trs-ink'
 
 /**
  * The insurer contacts on file for the product lines, grouped by insurer, each with a checkbox.
@@ -68,14 +69,14 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
 
   if (error) {
     return (
-      <p className="m-0 text-13" style={{ color: ERROR }}>
+      <p className="m-0 text-body text-trs-neg">
         {error}{' '}
-        <button type="button" className="bg-transparent border-0 p-0 underline cursor-pointer text-13" style={{ color: INK }} onClick={() => setAttempt(a => a + 1)}>Retry</button>
+        <Btn size="xs" level="tertiary" className="h-auto p-0 border-0 font-normal underline text-body text-trs-ink hover:bg-transparent" onClick={() => setAttempt(a => a + 1)}>Retry</Btn>
       </p>
     )
   }
   if (!routes || value === null) return <Spinner label="Loading insurer contacts…" />
-  if (routes.length === 0) return <p className="m-0 text-14" style={{ color: MUTED }}>No insurer contact on file for this product line.</p>
+  if (routes.length === 0) return <p className="m-0 text-body text-trs-muted">No insurer contact on file for this product line.</p>
 
   const selected = routes.filter(r => value.has(r.contact_id)).length
   const toggle = (id: string, on: boolean) => { const n = new Set(value); if (on) n.add(id); else n.delete(id); onChange(n) }
@@ -83,7 +84,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 text-13" style={{ color: INK }}>{selected} of {routes.length} contacts selected</p>
+      <p className="m-0 text-body text-trs-ink">{selected} of {routes.length} contacts selected</p>
       <Register label="Insurer contacts" minWidth={480}>
         <RegisterHead>
           <RegisterTh first width={64}>Ask</RegisterTh>
@@ -106,10 +107,10 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
                     aria-label={`Ask ${insurer}`}
                   />
                   {insurer}
-                  <span className="font-normal" style={{ color: MUTED }}>{on} of {rs.length}</span>
+                  <span className="font-normal text-trs-muted">{on} of {rs.length}</span>
                 </label>
                 {products.map(s => (
-                  <span key={s.product.id} className="ml-3 font-normal text-12" style={{ color: s.excluded ? ERROR : MUTED }}>
+                  <span key={s.product.id} className={cn('ml-3 font-normal text-small', s.excluded ? 'text-trs-neg' : 'text-trs-muted')}>
                     {s.product.name}{s.reasons.length ? ` · ${s.reasons.join(' · ')}` : ''}
                   </span>
                 ))}

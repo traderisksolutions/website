@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Btn } from '@/components/crm/primitives'
 import { STATUS_MAP, ALL_STATUSES } from './constants'
 import type { Lead } from './types'
 
@@ -9,9 +11,6 @@ interface StatusDropdownProps {
   lead: Lead
   onChange: (id: string, status: string) => void
 }
-
-const INK = '#0f1412'
-const MUTED = '#4a5550'
 
 /** Status as a neutral chip with a chevron; the label carries the meaning, never a colour. */
 export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
@@ -30,40 +29,39 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
 
   return (
     <div className="relative" ref={ref}>
-      <button
-        type="button"
+      <Btn
+        level="tertiary"
+        size="xs"
         onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Lead status: ${st.label}. Click to change.`}
-        className="inline-flex items-center gap-1 rounded-6 px-2 py-0.5 text-12 font-medium leading-4 border-0 cursor-pointer whitespace-nowrap hover:bg-[#e6e8e4] transition-colors bg-trs-field text-trs-ink-2"
+        className="h-auto gap-1 rounded px-2 py-0.5 text-small font-medium leading-4 border-0 hover:bg-trs-line bg-trs-field text-trs-ink-2 hover:text-trs-ink-2"
       >
         {st.label} <ChevronDown size={11} className="text-trs-muted" />
-      </button>
+      </Btn>
 
       {open && (
         <div
           role="listbox"
           aria-label="Select status"
-          className="absolute top-[calc(100%+4px)] left-0 bg-white rounded-12 z-[100] py-1 min-w-[160px] overflow-hidden"
-          style={{ border: '1px solid #e6e8e4', boxShadow: '0 8px 24px rgba(15,20,18,0.10)' }}
+          className="absolute top-[calc(100%+4px)] left-0 bg-white rounded z-[100] py-1 min-w-[160px] overflow-hidden border border-trs-line shadow-[0_8px_24px_rgba(15,20,18,0.10)]"
         >
           {ALL_STATUSES.map(s => {
             const sc = STATUS_MAP[s]
             const on = lead.status === s
             return (
-              <button
+              <Btn
                 key={s}
-                type="button"
+                level="tertiary"
                 role="option"
                 aria-selected={on}
                 onClick={e => { e.stopPropagation(); onChange(lead.id, s); setOpen(false) }}
-                className="w-full text-left px-3 h-9 text-13.5 bg-transparent border-0 cursor-pointer flex items-center justify-between gap-3 hover:bg-[#faf9f6]"
-                style={{ fontWeight: on ? 500 : 400, color: on ? INK : '#2a332f' }}
+                className={cn('w-full text-left px-3 h-9 rounded-none text-body bg-transparent border-0 justify-between gap-3 hover:bg-trs-tint', on ? 'font-medium text-trs-ink hover:text-trs-ink' : 'font-normal text-trs-ink-2 hover:text-trs-ink-2')}
               >
                 {sc.label}
                 {on && <Check size={13} className="text-trs-ink" aria-hidden />}
-              </button>
+              </Btn>
             )
           })}
         </div>

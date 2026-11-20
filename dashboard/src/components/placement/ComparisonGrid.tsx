@@ -9,7 +9,9 @@ import { fmtDate } from '@/lib/format'
 import { CELL_WORD, lineGrid, lowestByOption, type CellState, type GridCell, type GridInsurer } from '@/lib/placement/grid'
 import type { LinePosition, PlacementQuote } from '@/lib/placement/types'
 import type { PolicyView } from '@/components/policies/types'
-import { callApi, errText, INK, MUTED, ERROR } from './shared'
+import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { callApi, errText } from './shared'
 import { UploadListDialog, SendHrLinkDialog } from '@/components/policies/MembersPanel'
 import { CustomRatesDialog } from './CustomRatesDialog'
 
@@ -106,9 +108,9 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
     <div className="flex flex-col gap-1.5">
       {/* Employment benefits: the census prices every Tier A insurer here, no email needed. */}
       {eb && (
-        <div className="flex items-center gap-1.5 flex-wrap text-12" style={{ color: MUTED }}>
+        <div className="flex items-center gap-1.5 flex-wrap text-small text-trs-muted">
           <span>Employee list</span>
-          <span style={{ color: INK }}>{listIn ? `${pos.engineQuotes.length} insurer${pos.engineQuotes.length === 1 ? '' : 's'} priced from the list` : 'none yet'}</span>
+          <span className="text-trs-ink">{listIn ? `${pos.engineQuotes.length} insurer${pos.engineQuotes.length === 1 ? '' : 's'} priced from the list` : 'none yet'}</span>
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('upload')}>{listIn ? 'Replace census' : 'Upload census'}</Btn>
           <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('hr')}>Send HR a link</Btn>
           {listIn && <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null} onClick={() => setEbDialog('rates')}>Enter insurer rates</Btn>}
@@ -118,20 +120,20 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
         </div>
       )}
       {/* Options toolbar: what the client wants compared, and asking the insurers for the new ones. */}
-      <div className="flex items-center gap-1.5 flex-wrap text-12" style={{ color: MUTED }}>
+      <div className="flex items-center gap-1.5 flex-wrap text-small text-trs-muted">
         <span>Options</span>
         {pos.tiers.length === 0 && <span>none yet · the line as asked</span>}
         {pos.tiers.map(t => (
-          <span key={t.id} className="inline-flex items-center gap-1 h-5 pl-1.5 pr-0.5 rounded-6" style={{ background: t.status === 'proposed' ? '#f1f2ee' : '#eaf1f7', color: INK }}
+          <span key={t.id} className={cn('inline-flex items-center gap-1 h-5 pl-1.5 pr-0.5 rounded text-trs-ink', t.status === 'proposed' ? 'bg-trs-field' : 'bg-trs-info-bg')}
             title={`${t.status === 'proposed' ? 'Not asked yet' : t.status === 'offered' ? 'Offered by an insurer' : `Asked ${fmtDate(t.asked_at)}`} · from ${t.source}`}>
-            {t.label}{t.status === 'proposed' && <span style={{ color: MUTED }}> · new</span>}
-            <button type="button" aria-label={`Drop ${t.label}`} disabled={busy !== null} onClick={() => drop(t.id)}
-              className="bg-transparent border-0 p-0.5 cursor-pointer rounded hover:bg-[#d5d9d4] leading-none" style={{ color: MUTED }}><X size={11} /></button>
+            {t.label}{t.status === 'proposed' && <span className="text-trs-muted"> · new</span>}
+            <Btn size="xs" level="tertiary" aria-label={`Drop ${t.label}`} disabled={busy !== null} onClick={() => drop(t.id)}
+              className="h-auto p-0.5 border-0 leading-none text-trs-muted hover:bg-trs-line-2"><X size={11} /></Btn>
           </span>
         ))}
-        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addOptions() }}
+        <Input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addOptions() }}
           placeholder="Add option: 1M, 2M, S$1,300/head" aria-label="Add options to compare"
-          className="h-5 w-[210px] rounded-6 border border-[#d5d9d4] bg-white px-1.5 text-12 outline-none focus:border-[#0f1412]" style={{ color: INK }} />
+          className="h-5 w-[210px] rounded border-trs-line-2 px-1.5 py-0 text-small text-trs-ink outline-none focus:border-trs-ink" />
         <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null || !draft.trim()} loading={busy === 'add'} onClick={addOptions}>Add</Btn>
         {proposed.length > 0 && (
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} loading={busy === 'ask'} onClick={ask}
@@ -140,10 +142,10 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
           </Btn>
         )}
       </div>
-      {error && <p className="m-0 text-12" style={{ color: ERROR }}>{error}</p>}
+      {error && <p className="m-0 text-small text-trs-neg">{error}</p>}
 
       {grid.insurers.length === 0 ? (
-        <p className="m-0 text-12.5" style={{ color: MUTED }}>No insurer asked yet.</p>
+        <p className="m-0 text-small text-trs-muted">No insurer asked yet.</p>
       ) : (
         <XlGrid label={`${pos.line.label ?? pos.line.product_line} comparison`} minWidth={Math.min(1400, 150 + cols * 96)}>
           <XlHead>
@@ -151,7 +153,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
               <XlTh sticky rowSpan={nOpt > 1 ? 2 : 1} align="left" width={128}>Field</XlTh>
               {grid.insurers.map(ins => (
                 <XlTh key={ins.key} colSpan={nOpt} strong title={[ins.insurer, ins.product].filter(Boolean).join(' · ')}>
-                  {ins.insurer}{ins.product && <span style={{ color: MUTED }}> · {clip(ins.product, 22)}</span>}
+                  {ins.insurer}{ins.product && <span className="text-trs-muted"> · {clip(ins.product, 22)}</span>}
                 </XlTh>
               ))}
             </XlHeadRow>
@@ -164,7 +166,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
           <tbody>
             <XlRow>
               <XlCell label align="left" muted>Contact</XlCell>
-              {grid.insurers.map(ins => perInsurer(ins, i => i.dispatch ? <span style={{ color: MUTED }}>{clip(i.dispatch.dispatch.to_email, 30)}</span> : <span style={{ color: MUTED }}>{i.cells.some(c => c.quote?.source === 'custom_rates') ? 'Rates entered' : 'Rate table'}</span>, ins.dispatch?.dispatch.to_email))}
+              {grid.insurers.map(ins => perInsurer(ins, i => i.dispatch ? <span className="text-trs-muted">{clip(i.dispatch.dispatch.to_email, 30)}</span> : <span className="text-trs-muted">{i.cells.some(c => c.quote?.source === 'custom_rates') ? 'Rates entered' : 'Rate table'}</span>, ins.dispatch?.dispatch.to_email))}
             </XlRow>
             <XlRow>
               <XlCell label align="left" muted>Status</XlCell>
@@ -172,8 +174,8 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
                 <XlCell key={`${ins.key}:${c.option.key}`} fill={STATE_FILL[c.state] ?? null}
                   title={c.state === 'not_asked' ? 'Added after the request went out; ask the insurers to price it' : undefined}>
                   {(c.state === 'drafted' || c.state === 'chase') && ins.dispatch
-                    ? <button type="button" className="underline decoration-dotted underline-offset-4 hover:decoration-solid" style={{ color: INK }}
-                        aria-label={`Open the ${ins.insurer} draft`} onClick={() => onOpenDrafts(ins.dispatch!.dispatch.id)}>{CELL_WORD[c.state]}</button>
+                    ? <Btn size="xs" level="tertiary" className="h-auto p-0 border-0 font-normal text-trs-ink underline decoration-dotted underline-offset-4 hover:decoration-solid hover:bg-transparent"
+                        aria-label={`Open the ${ins.insurer} draft`} onClick={() => onOpenDrafts(ins.dispatch!.dispatch.id)}>{CELL_WORD[c.state]}</Btn>
                     : CELL_WORD[c.state]}
                 </XlCell>
               )))}
@@ -195,7 +197,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
             <XlRow>
               <XlCell label align="left" muted>Thread</XlCell>
               {grid.insurers.map(ins => perInsurer(ins, i => i.dispatch?.threadHref
-                ? <Link href={i.dispatch.threadHref} className="no-underline hover:underline" style={{ color: INK }}>Open</Link>
+                ? <Link href={i.dispatch.threadHref} className="no-underline hover:underline text-trs-ink">Open</Link>
                 : ''))}
             </XlRow>
             <XlRow>

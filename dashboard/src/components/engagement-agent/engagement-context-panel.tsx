@@ -9,19 +9,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { Copy, Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
 import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, DraftHistoryItem } from '@/components/engagement/types'
 import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement/types'
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
 
-const INK = '#0f1412'
-const BODY = '#2a332f'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const HAIR = '#e6e8e4'
-const FIELD = '#f1f2ee'
-const LINK = 'bg-transparent border-0 p-0 cursor-pointer underline underline-offset-[3px] decoration-[#8c958f] hover:decoration-[#0f1412]'
-const INPUT = 'w-full h-9 rounded-7 bg-white px-3 text-13 outline-none focus:border-[#0f1412]'
+// A text link on the button ladder: tertiary Btn with the frame removed.
+const LINK = 'h-auto bg-transparent border-0 p-0 font-normal text-trs-ink underline underline-offset-[3px] decoration-trs-subtle hover:bg-transparent hover:text-trs-ink hover:decoration-trs-ink'
 
 interface EngagementContextPanelProps {
   lead:                 Lead
@@ -47,23 +42,22 @@ export function EngagementContextPanel({
   return (
     <aside
       aria-label="Thread context"
-      className="flex-shrink-0 bg-white flex flex-col min-h-0 overflow-y-auto"
-      style={{ width: 'var(--ea-context-w, 244px)', color: INK }}
+      className="flex-shrink-0 bg-white flex flex-col min-h-0 overflow-y-auto w-[var(--ea-context-w,244px)] text-trs-ink"
     >
       {onCollapse && (
-        <div className="flex-shrink-0 flex items-center justify-between px-4 py-2" style={{ borderBottom: `1px solid ${HAIR}` }}>
-          <span className="text-12 text-trs-muted">Details</span>
-          <button type="button" onClick={onCollapse} title="Collapse panel" aria-label="Collapse panel" className={cn(LINK, 'text-12.5')} style={{ color: INK }}>Collapse</button>
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-trs-line">
+          <span className="text-small text-trs-muted">Details</span>
+          <Btn level="tertiary" size="xs" onClick={onCollapse} title="Collapse panel" aria-label="Collapse panel" className={cn(LINK, 'text-small')}>Collapse</Btn>
         </div>
       )}
 
       {/* Reply state + counts */}
-      <div className="flex-shrink-0 px-4 py-3" style={{ borderBottom: `1px solid ${HAIR}` }}>
-        <p className="m-0 text-13 text-trs-ink-2">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-trs-line">
+        <p className="m-0 text-body text-trs-ink-2">
           {needsReply ? 'Awaiting your reply' : messages.length > 0 ? 'Awaiting client reply' : 'No emails yet'}
         </p>
         {messages.length > 0 && (
-          <dl className="m-0 mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-12.5">
+          <dl className="m-0 mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-small">
             <dt className="text-trs-muted">Emails</dt><dd className="m-0 tabular-nums text-trs-ink">{messages.length}</dd>
             <dt className="text-trs-muted">Days open</dt><dd className="m-0 tabular-nums text-trs-ink">{daysSince(lead.created_at)}</dd>
             {lastInbound?.sent_at && <><dt className="text-trs-muted">Last reply</dt><dd className="m-0 text-trs-ink">{timeAgo(lastInbound.sent_at)}</dd></>}
@@ -145,31 +139,31 @@ function ConversationsSection({
           const active = t.id === activeThreadId
           return (
             <li key={t.id}>
-              <button
-                type="button"
+              <Btn
+                level="tertiary"
+                size="xs"
                 onClick={() => onSelect?.(t.id)}
                 aria-current={active ? 'true' : undefined}
-                className="w-full text-left rounded-10 px-3 py-2 cursor-pointer hover:bg-[#faf9f6]"
-                style={{ border: `1px solid ${active ? INK : HAIR}`, background: active ? FIELD : '#fff' }}
+                className={cn('block w-full h-auto text-left whitespace-normal font-normal rounded px-3 py-2 border hover:bg-trs-tint', active ? 'border-trs-ink bg-trs-field' : 'border-trs-line bg-white')}
               >
                 <span className="flex items-center gap-1.5">
-                  <span className="text-13 font-medium truncate text-trs-ink">{t.party.name}</span>
-                  {t.is_root && <span className="text-12 font-medium rounded-6 px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-ink-2">Client</span>}
-                  <span className="ml-auto text-12 flex-shrink-0 tabular-nums text-trs-subtle">{t.last_message_at ? timeAgo(t.last_message_at) : ''}</span>
+                  <span className="text-body font-medium truncate text-trs-ink">{t.party.name}</span>
+                  {t.is_root && <span className="text-small font-medium rounded px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-ink-2">Client</span>}
+                  <span className="ml-auto text-small flex-shrink-0 tabular-nums text-trs-subtle">{t.last_message_at ? timeAgo(t.last_message_at) : ''}</span>
                 </span>
-                {t.party.company && <span className="block text-12.5 truncate text-trs-muted">{t.party.company}</span>}
-                <span className="block text-12.5 truncate text-trs-muted">
+                {t.party.company && <span className="block text-small truncate text-trs-muted">{t.party.company}</span>}
+                <span className="block text-small truncate text-trs-muted">
                   {t.message_count} message{t.message_count === 1 ? '' : 's'}{t.snippet ? ` · ${t.snippet}` : ''}
                 </span>
-              </button>
+              </Btn>
             </li>
           )
         })}
         {data?.suggest_nexus && (
           <li>
-            <button type="button" onClick={promoteToNexus} disabled={promoting} className={cn(LINK, 'mt-1 text-13 disabled:opacity-60')} style={{ color: INK }}>
+            <Btn level="tertiary" size="xs" onClick={promoteToNexus} disabled={promoting} className={cn(LINK, 'mt-1 text-body disabled:opacity-60')}>
               {promoting ? 'Creating Nexus case…' : `${threads.length} parties · Promote to Nexus`}
-            </button>
+            </Btn>
           </li>
         )}
       </ul>
@@ -199,34 +193,33 @@ function StatusSection({ lead, onStatus }: { lead: Lead; onStatus: (id: string, 
     <AccordionSection title="Status">
       <div className="px-4 pb-3">
         <div className="relative" ref={menuRef}>
-          <button
-            type="button"
+          <Btn
+            level="tertiary"
             onClick={() => setDropdownOpen(v => !v)}
             aria-haspopup="listbox"
             aria-expanded={dropdownOpen}
-            className="w-full flex items-center justify-between px-3 h-9 rounded-8 text-13 cursor-pointer bg-white hover:bg-[#faf9f6]"
-            style={{ border: '1px solid #d5d9d4', color: INK }}
+            className="w-full justify-between px-3 rounded font-normal border border-trs-line-2 bg-white text-trs-ink hover:bg-trs-tint hover:text-trs-ink"
           >
             {st.label}
-            <ChevronDown size={13} className={cn('transition-transform', dropdownOpen && 'rotate-180')} style={{ color: '#8c958f' }} />
-          </button>
+            <ChevronDown size={13} className={cn('transition-transform text-trs-subtle', dropdownOpen && 'rotate-180')} />
+          </Btn>
           {dropdownOpen && (
-            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded-12 z-50 p-1.5" style={{ border: `1px solid ${HAIR}`, boxShadow: '0 12px 32px rgba(15,20,18,0.12)' }}>
+            <div role="listbox" aria-label="Lead status" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white rounded z-50 p-1.5 border border-trs-line shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
               {ALL_STATUSES.map(s => {
                 const sc = STATUS_MAP[s]
                 const on = lead.status === s
                 return (
-                  <button
+                  <Btn
                     key={s}
-                    type="button"
+                    level="tertiary"
+                    size="xs"
                     role="option"
                     aria-selected={on}
                     onClick={() => { onStatus(lead.id, s); setDropdownOpen(false) }}
-                    className={cn('w-full text-left px-2.5 py-1.5 rounded-8 text-13 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6]', on && 'font-medium')}
-                    style={{ color: on ? INK : BODY, background: on ? FIELD : undefined }}
+                    className={cn('w-full justify-start text-left px-2.5 rounded border-0 font-normal hover:bg-trs-tint', on ? 'font-medium text-trs-ink bg-trs-field hover:text-trs-ink' : 'text-trs-ink-2 hover:text-trs-ink-2')}
                   >
                     {sc.label}
-                  </button>
+                  </Btn>
                 )
               })}
             </div>
@@ -257,9 +250,9 @@ function TransferSection({
 
   if (lead.segment === 'existing_client') {
     return (
-      <div className="px-4 py-2.5 text-13" style={{ borderBottom: `1px solid ${HAIR}` }}>
+      <div className="px-4 py-2.5 text-body border-b border-trs-line">
         <span className="block text-trs-ink">Existing client</span>
-        {lead.segment_note && <span className="block mt-0.5 text-12.5 text-trs-muted">{lead.segment_note}</span>}
+        {lead.segment_note && <span className="block mt-0.5 text-small text-trs-muted">{lead.segment_note}</span>}
       </div>
     )
   }
@@ -267,12 +260,12 @@ function TransferSection({
   if (!(EMAIL_SOURCES.has(lead.source) || !!lead.campaign_context)) return null
 
   return (
-    <div className="px-4 py-2.5" style={{ borderBottom: `1px solid ${HAIR}` }}>
+    <div className="px-4 py-2.5 border-b border-trs-line">
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className={cn(LINK, 'text-13')} style={{ color: INK }}>Move to existing client</button>
+        <Btn level="tertiary" size="xs" onClick={() => setOpen(true)} className={cn(LINK, 'text-body')}>Move to existing client</Btn>
       ) : (
         <div className="flex flex-col gap-2">
-          <label className="text-12.5 text-trs-muted">Reason for transfer
+          <Field label="Reason for transfer">
             <input
               autoFocus
               value={note}
@@ -282,17 +275,16 @@ function TransferSection({
                 if (e.key === 'Escape') { setOpen(false); setNote('') }
               }}
               placeholder="Existing marine policy"
-              className={cn(INPUT, 'mt-1')}
-              style={{ border: '1px solid #d5d9d4', color: INK }}
+              className={inputCls}
             />
-          </label>
+          </Field>
           <div className="flex items-center gap-3">
-            <button type="button" onClick={confirm} disabled={saving} className="h-9 px-3.5 rounded-7 text-13 font-medium text-white border-0 cursor-pointer hover:opacity-90 disabled:opacity-50 bg-trs-green">
+            <Btn level="primary" size="xs" onClick={confirm} disabled={saving}>
               {saving ? 'Moving…' : 'Confirm'}
-            </button>
-            <button type="button" onClick={() => { setOpen(false); setNote('') }} className="h-9 px-3 rounded-7 text-13 bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-ink">
+            </Btn>
+            <Btn level="tertiary" size="xs" onClick={() => { setOpen(false); setNote('') }}>
               Cancel
-            </button>
+            </Btn>
           </div>
         </div>
       )}
@@ -318,24 +310,24 @@ function ContactSection({ lead }: { lead: Lead }) {
 
         {lead.email && (
           <div>
-            <dt className="text-12 text-trs-muted">Email</dt>
+            <dt className="text-small text-trs-muted">Email</dt>
             <dd className="m-0">
-              <button type="button" onClick={() => copy(lead.email!, 'email')} title="Copy email" aria-label={copied === 'email' ? 'Copied' : 'Copy email'} className="flex items-start gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
-                <span className="text-13 break-all leading-snug text-trs-ink">{lead.email}</span>
+              <Btn level="tertiary" size="xs" onClick={() => copy(lead.email!, 'email')} title="Copy email" aria-label={copied === 'email' ? 'Copied' : 'Copy email'} className="items-start justify-start gap-1.5 text-left w-full h-auto whitespace-normal font-normal bg-transparent border-0 p-0 hover:bg-transparent">
+                <span className="text-body break-all leading-snug text-trs-ink">{lead.email}</span>
                 <span className="flex-shrink-0 mt-[2px] text-trs-subtle">{copied === 'email' ? <Check size={11} /> : <Copy size={11} />}</span>
-              </button>
+              </Btn>
             </dd>
           </div>
         )}
 
         {lead.phone && (
           <div>
-            <dt className="text-12 text-trs-muted">Phone</dt>
+            <dt className="text-small text-trs-muted">Phone</dt>
             <dd className="m-0">
-              <button type="button" onClick={() => copy(lead.phone!, 'phone')} title="Copy phone" aria-label={copied === 'phone' ? 'Copied' : 'Copy phone'} className="flex items-center gap-1.5 text-left w-full bg-transparent border-0 p-0 cursor-pointer">
-                <span className="text-13 text-trs-ink">{lead.phone}</span>
+              <Btn level="tertiary" size="xs" onClick={() => copy(lead.phone!, 'phone')} title="Copy phone" aria-label={copied === 'phone' ? 'Copied' : 'Copy phone'} className="justify-start gap-1.5 text-left w-full h-auto font-normal bg-transparent border-0 p-0 hover:bg-transparent">
+                <span className="text-body text-trs-ink">{lead.phone}</span>
                 <span className="flex-shrink-0 text-trs-subtle">{copied === 'phone' ? <Check size={11} /> : <Copy size={11} />}</span>
-              </button>
+              </Btn>
             </dd>
           </div>
         )}
@@ -405,10 +397,9 @@ function NotesSection({ lead }: { lead: Lead }) {
           aria-label="Internal notes"
           placeholder="Internal notes. Saved when you leave the field."
           rows={4}
-          className="w-full text-13 leading-[1.6] resize-y rounded-8 px-3 py-2 bg-white outline-none focus:border-[#0f1412] placeholder:text-[#8c958f]"
-          style={{ border: '1px solid #d5d9d4', color: INK }}
+          className={cn(textareaCls, 'leading-[1.6]')}
         />
-        <p className="m-0 mt-1 text-12 min-h-[16px] text-trs-muted" aria-live="polite">
+        <p className="m-0 mt-1 text-small min-h-4 text-trs-muted" aria-live="polite">
           {saved ? 'Saved' : saving ? 'Saving…' : dirty ? 'Not saved yet' : ''}
         </p>
       </div>
@@ -450,16 +441,16 @@ function DraftHistorySection({
   }
 
   return (
-    <div style={{ borderBottom: `1px solid ${HAIR}` }}>
-      <button type="button" onClick={toggle} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-left">
-        <span className="text-13 font-medium text-trs-ink">Draft history</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#8c958f' }} />
-      </button>
+    <div className="border-b border-trs-line">
+      <Btn onClick={toggle} aria-expanded={open} level="tertiary" size="xs" className="w-full h-auto justify-between px-4 py-2.5 rounded-none border-0 font-normal text-left hover:bg-trs-tint">
+        <span className="text-body font-medium text-trs-ink">Draft history</span>
+        <ChevronDown size={13} className={cn('transition-transform text-trs-subtle', open && 'rotate-180')} />
+      </Btn>
 
       {open && (
         <div className="pb-2.5">
-          {loading && <p className="m-0 text-12.5 px-4 pb-2 text-trs-muted">Loading…</p>}
-          {loaded && items.length === 0 && <p className="m-0 text-12.5 px-4 pb-3 text-trs-muted">No drafts yet.</p>}
+          {loading && <p className="m-0 text-small px-4 pb-2 text-trs-muted">Loading…</p>}
+          {loaded && items.length === 0 && <p className="m-0 text-small px-4 pb-3 text-trs-muted">No drafts yet.</p>}
 
           {items.map((item, idx) => {
             const vNum      = items.length - idx
@@ -470,21 +461,21 @@ function DraftHistorySection({
             const snippet   = item.body.replace(/\s+/g, ' ').slice(0, 90)
 
             return (
-              <div key={item.id} className="mx-3 mb-2 rounded-10 px-3 py-2.5" style={{ border: `1px solid ${HAIR}`, background: isCurrent ? '#fff' : '#faf9f6' }}>
-                <p className="m-0 mb-1 flex items-center gap-2 text-12 text-trs-muted">
+              <div key={item.id} className={cn('mx-3 mb-2 rounded px-3 py-2.5 border border-trs-line', isCurrent ? 'bg-white' : 'bg-trs-tint')}>
+                <p className="m-0 mb-1 flex items-center gap-2 text-small text-trs-muted">
                   <span className="text-trs-ink">v{vNum}</span>
                   <span>{typeLabel}</span>
                   <span>{isCurrent ? 'Current' : isSent ? 'Sent' : 'Older'}</span>
                   <span className="ml-auto tabular-nums text-trs-subtle">{timeAgo(item.created_at)}</span>
                 </p>
-                <p className="m-0 mb-2 text-12.5 leading-[1.5] line-clamp-2 text-trs-ink-2">{snippet}{item.body.length > 90 ? '…' : ''}</p>
-                <p className="m-0 flex items-center gap-3 text-12.5">
-                  <button type="button" onClick={() => setPreview(expanded ? null : item.id)} aria-expanded={expanded} className={LINK} style={{ color: INK }}>{expanded ? 'Hide' : 'Preview'}</button>
-                  <button type="button" onClick={() => onRestore(item.body, item.generated_by)} className={LINK} style={{ color: INK }}>{isCurrent ? 'Reload into composer' : 'Load into composer'}</button>
+                <p className="m-0 mb-2 text-small leading-[1.5] line-clamp-2 text-trs-ink-2">{snippet}{item.body.length > 90 ? '…' : ''}</p>
+                <p className="m-0 flex items-center gap-3 text-small">
+                  <Btn level="tertiary" size="xs" onClick={() => setPreview(expanded ? null : item.id)} aria-expanded={expanded} className={cn(LINK, 'text-small')}>{expanded ? 'Hide' : 'Preview'}</Btn>
+                  <Btn level="tertiary" size="xs" onClick={() => onRestore(item.body, item.generated_by)} className={cn(LINK, 'text-small')}>{isCurrent ? 'Reload into composer' : 'Load into composer'}</Btn>
                 </p>
                 {expanded && (
-                  <div className="mt-2 p-2.5 rounded-8 max-h-[180px] overflow-y-auto bg-trs-field">
-                    <pre className="m-0 text-12.5 whitespace-pre-wrap leading-[1.6] font-[inherit] text-trs-ink-2">{item.body}</pre>
+                  <div className="mt-2 p-2.5 rounded max-h-44 overflow-y-auto bg-trs-field">
+                    <pre className="m-0 text-small whitespace-pre-wrap leading-[1.6] font-[inherit] text-trs-ink-2">{item.body}</pre>
                   </div>
                 )}
               </div>
@@ -507,11 +498,11 @@ function AccordionSection({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div style={{ borderBottom: `1px solid ${HAIR}` }}>
-      <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className="w-full flex items-center justify-between px-4 py-2.5 bg-transparent border-0 cursor-pointer hover:bg-[#faf9f6] text-left">
-        <span className="text-13 font-medium text-trs-ink">{title}</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} style={{ color: '#8c958f' }} />
-      </button>
+    <div className="border-b border-trs-line">
+      <Btn onClick={() => setOpen(v => !v)} aria-expanded={open} level="tertiary" size="xs" className="w-full h-auto justify-between px-4 py-2.5 rounded-none border-0 font-normal text-left hover:bg-trs-tint">
+        <span className="text-body font-medium text-trs-ink">{title}</span>
+        <ChevronDown size={13} className={cn('transition-transform text-trs-subtle', open && 'rotate-180')} />
+      </Btn>
       {open && children}
     </div>
   )
@@ -522,8 +513,8 @@ function AccordionSection({
 function CtxField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-12 text-trs-muted">{label}</dt>
-      <dd className="m-0 text-13 break-words leading-snug text-trs-ink">{value}</dd>
+      <dt className="text-small text-trs-muted">{label}</dt>
+      <dd className="m-0 text-body break-words leading-snug text-trs-ink">{value}</dd>
     </div>
   )
 }

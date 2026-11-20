@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import Link from 'next/link'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { SectionCard, Empty, Spinner, Btn, Field, inputCls } from '@/components/crm/primitives'
@@ -11,7 +12,7 @@ import { fmtDate } from '@/lib/format'
 import { productLineLabel } from '@/lib/product-lines'
 import { threadHref } from '@/lib/placement/position'
 import type { PlacementBundle, PlacementRound } from '@/lib/placement/types'
-import { callApi, errText, dialogCls, INK, MUTED, ERROR } from '@/components/placement/shared'
+import { callApi, errText, dialogCls } from '@/components/placement/shared'
 import { XlGrid, XlHead, XlHeadRow, XlTh, XlRow, XlCell } from '@/components/ui/xl-grid'
 import type { DerivedPaymentStatus, PaymentDerived } from '@/lib/crm/types'
 import { MembersPanel } from './MembersPanel'
@@ -23,8 +24,8 @@ const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 
 
 /** Line · Policy no. · Insurer · Premium · Period · Status · Notes · Members · Net */
 const COLS = 12
-/** A button inside the dense grid: 22px tall so the row stays 34px. */
-const ROW_BTN = 'h-[22px] px-1.5 text-12 rounded-6'
+/** A button inside the dense grid: 24px tall so the row stays compact. */
+const ROW_BTN = 'h-6 px-1.5 text-small rounded'
 const PLAN_MAX = 36
 const clip = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s)
 
@@ -134,8 +135,8 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                     row={
                       <>
                         <RegisterCell first primary={line} title={under} />
-                        <RegisterCell title={p.policy_number ?? undefined}><span className="block max-w-[160px] truncate text-13.5 tabular-nums">{p.policy_number ?? '—'}</span></RegisterCell>
-                        <RegisterCell align="left" title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-13.5">{p.insurer ?? '—'}</span></RegisterCell>
+                        <RegisterCell title={p.policy_number ?? undefined}><span className="block max-w-[160px] truncate text-body tabular-nums">{p.policy_number ?? '—'}</span></RegisterCell>
+                        <RegisterCell align="left" title={p.insurer ?? undefined}><span className="block max-w-[170px] truncate text-body">{p.insurer ?? '—'}</span></RegisterCell>
                         <RegisterCell align="right" primary={premium != null ? fmtAmount(premium, p.currency ?? 'SGD') : '—'} title={p.bound_premium == null && p.billed != null ? 'Billed to date; no bound premium on file' : undefined} />
                         <RegisterCell primary={period} />
                         <RegisterCell title="Renewal figures: loss ratio and projection">
@@ -150,12 +151,12 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                           const f = files?.[p.id], doc = bestFile(f), more = (f?.documents.length ?? 0) - 1
                           // No filed document: the newest debit note's PDF in Drive, which sits with the policy papers.
                           const dn = [...dns].sort((a, b) => (b.issue_date ?? '').localeCompare(a.issue_date ?? ''))[0]
-                          const link = 'underline underline-offset-4 text-13.5 whitespace-nowrap'
+                          const link = 'underline underline-offset-4 text-body whitespace-nowrap'
                           return (
                             <RegisterCell align="left" title={doc ? `${doc.title || doc.filename}${more > 0 ? ` · ${more} more in the data room` : ''}` : f?.folder ? 'Drive folder' : undefined}>
-                              {doc ? <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>{FILE_WORD[doc.doc_type] ?? 'Document'} ↗</a>
-                                : dn ? <a href={`/api/debit-notes/${dn.id}/pdf`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: INK }}>Debit note ↗</a>
-                                : f?.folder ? <a href={f.folder} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={link} style={{ color: MUTED }}>Folder ↗</a>
+                              {doc ? <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={`${link} text-trs-ink`}>{FILE_WORD[doc.doc_type] ?? 'Document'} ↗</a>
+                                : dn ? <a href={`/api/debit-notes/${dn.id}/pdf`} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={`${link} text-trs-ink`}>Debit note ↗</a>
+                                : f?.folder ? <a href={f.folder} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} className={`${link} text-trs-muted`}>Folder ↗</a>
                                 : <span className="text-trs-muted">{files === null ? '…' : '—'}</span>}
                             </RegisterCell>
                           )
@@ -170,12 +171,11 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                         <div className="flex items-center gap-2 flex-wrap min-h-6">
                           <span className="flex items-center gap-1" role="tablist">
                             {sections.map(x => (
-                              <button key={x.key} type="button" role="tab" aria-selected={sec === x.key}
+                              <Btn key={x.key} size="xs" level="tertiary" role="tab" aria-selected={sec === x.key}
                                 onClick={e => { e.stopPropagation(); setSection(o => ({ ...o, [p.id]: x.key })) }}
-                                className="h-6 px-2 rounded-6 border-0 cursor-pointer text-12.5"
-                                style={{ background: sec === x.key ? '#e6e8e4' : 'transparent', color: sec === x.key ? INK : MUTED, fontWeight: sec === x.key ? 500 : 400 }}>
+                                className={`h-6 px-2 border-0 text-small ${sec === x.key ? 'bg-trs-line text-trs-ink font-medium' : 'font-normal'}`}>
                                 {x.label}
-                              </button>
+                              </Btn>
                             ))}
                           </span>
                           <span className="ml-auto flex items-center gap-1.5 flex-wrap">
@@ -186,10 +186,10 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                             {canClose && <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy === p.id} onClick={e => { e.stopPropagation(); void setLifecycle(p, 'closed') }}>Close</Btn>}
                           </span>
                         </div>
-                        {errors[p.id] && <p className="text-12.5 m-0 text-trs-neg">{errors[p.id]}</p>}
+                        {errors[p.id] && <p className="text-small m-0 text-trs-neg">{errors[p.id]}</p>}
                         {sec === 'employees' && <MembersPanel policies={[p]} bundle={bundle} onChanged={onChanged} onOpenDrafts={onOpenDrafts ?? (() => {})} />}
                         {sec === 'dns' && <PolicyDebitNotes notes={dns} />}
-                        {sec === 'quotes' && quotes.length === 0 && <span className="text-12.5 text-trs-muted">No quotes on file for this policy.</span>}
+                        {sec === 'quotes' && quotes.length === 0 && <span className="text-small text-trs-muted">No quotes on file for this policy.</span>}
                         {sec === 'quotes' && quotes.length > 0 && (
                           <Register label={`${line} quotes`} minWidth={960} dense>
                             <RegisterHead>
@@ -209,7 +209,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                                 return (
                                   <RegisterRow key={q.id}>
                                     <RegisterCell first primary={q.insurer_name} title={q.insurer_name} />
-                                    <RegisterCell align="left" title={q.plan_label ?? undefined}><span className="text-13 text-trs-muted">{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
+                                    <RegisterCell align="left" title={q.plan_label ?? undefined}><span className="text-body text-trs-muted">{q.plan_label ? clip(q.plan_label, PLAN_MAX) : '—'}</span></RegisterCell>
                                     <RegisterCell align="right" primary={rounds.get(q.round_id)?.round_no ?? '—'} />
                                     <RegisterCell align="right" primary={`${q.premium_amount != null ? fmtAmount(q.premium_amount, q.currency ?? 'SGD') : (q.premium_text ?? '—')}${q.needs_review ? ' · check' : ''}`} />
                                     <RegisterCell primary={q.limit_text ?? '—'} />
@@ -217,12 +217,12 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
                                     <RegisterCell primary={q.source === 'rate_table' ? 'Rate table' : 'Insurer'} />
                                     <RegisterCell>
                                       {q.thread_id
-                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-13 no-underline hover:underline text-trs-ink">Thread</Link>
-                                        : <span className="text-13 text-trs-muted">—</span>}
+                                        ? <Link href={threadHref(q.thread_id) ?? '#'} onClick={e => e.stopPropagation()} className="text-body no-underline hover:underline text-trs-ink">Thread</Link>
+                                        : <span className="text-body text-trs-muted">—</span>}
                                     </RegisterCell>
                                     <RegisterCell last align="right">
                                       {chosen
-                                        ? <span className="text-13 text-trs-ink">Chosen</span>
+                                        ? <span className="text-body text-trs-ink">Chosen</span>
                                         : <Btn size="xs" level="tertiary" className={ROW_BTN} disabled={busy !== null || q.status === 'not_chosen'} loading={busy === q.id} onClick={e => { e.stopPropagation(); void choose(p, q.id) }}>Choose</Btn>}
                                     </RegisterCell>
                                   </RegisterRow>
@@ -248,7 +248,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
 
 /** The debit notes billed under one policy, newest first. */
 function PolicyDebitNotes({ notes }: { notes: PaymentDerived[] }) {
-  if (notes.length === 0) return <span className="text-12.5 text-trs-muted">No debit notes on this policy yet. Raise one from Debit Notes.</span>
+  if (notes.length === 0) return <span className="text-small text-trs-muted">No debit notes on this policy yet. Raise one from Debit Notes.</span>
   const sorted = [...notes].sort((a, b) => b.issue_date.localeCompare(a.issue_date))
   return (
     <XlGrid label="Debit notes" minWidth={860}>
@@ -284,8 +284,8 @@ function PolicyRows({ row, detail, expanded, onToggle, href }: { row: React.Reac
     <>
       <RegisterRow onClick={onToggle} selected={expanded}>{row}</RegisterRow>
       {expanded && (
-        <tr style={{ borderBottom: '1px solid #e6e8e4', background: '#fafafa' }}>
-          <td colSpan={COLS} className="px-[10px] py-2">{detail}<a href={href} className="mt-2 inline-block text-13 underline underline-offset-[3px] text-trs-ink">Open policy</a></td>
+        <tr className="border-b border-trs-line bg-trs-tint">
+          <td colSpan={COLS} className="px-[10px] py-2">{detail}<a href={href} className="mt-2 inline-block text-body underline underline-offset-[3px] text-trs-ink">Open policy</a></td>
         </tr>
       )}
     </>
@@ -325,15 +325,15 @@ function MarkLiveDialog({ policy, onClose, onDone }: { policy: PolicyView | null
           <DialogDescription>{policy ? `${policy.label ?? policy.class_of_insurance ?? 'Policy'}${policy.insurer ? ` · ${policy.insurer}` : ''}` : ''}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">
-          <Field label="Policy number"><input className={inputCls} value={number} onChange={e => setNumber(e.target.value)} /></Field>
+          <Field label="Policy number"><Input className={inputCls} value={number} onChange={e => setNumber(e.target.value)} /></Field>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Field label="Start"><input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
-            <Field label="End"><input className={inputCls} type="date" value={end} onChange={e => setEnd(e.target.value)} /></Field>
+            <Field label="Start"><Input className={inputCls} type="date" value={start} onChange={e => setStart(e.target.value)} /></Field>
+            <Field label="End"><Input className={inputCls} type="date" value={end} onChange={e => setEnd(e.target.value)} /></Field>
           </div>
-          {error && <p className="text-13 m-0 text-trs-neg">{error}</p>}
+          {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>
-            <Btn level="primary" className="h-9 px-4" onClick={save} loading={busy}>Mark live</Btn>
+            <Btn level="primary" onClick={save} loading={busy}>Mark live</Btn>
           </div>
         </div>
       </DialogContent>

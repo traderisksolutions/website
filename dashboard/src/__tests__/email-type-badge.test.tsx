@@ -24,13 +24,13 @@ describe('EmailTypeBadge', () => {
 
   it('renders every type as the same neutral chip (field grey, body text)', () => {
     render(<EmailTypeBadge type="PRICING" />)
-    expect(screen.getByText('Pricing')).toHaveStyle({ color: '#2a332f', background: '#f1f2ee' })
+    expect(screen.getByText('Pricing').className).toMatch(/\bbg-trs-field\b.*\btext-trs-ink-2\b/)
   })
 
   it('carries no per-type colour and no uppercase tracking', () => {
     render(<EmailTypeBadge type="CLAIMS" />)
     const badge = screen.getByText('Claims')
-    expect(badge).toHaveStyle({ color: '#2a332f' })
+    expect(badge.className).toMatch(/\btext-trs-ink-2\b/)
     expect(badge.className).not.toMatch(/uppercase|tracking-wide/)
   })
 })

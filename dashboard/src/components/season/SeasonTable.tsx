@@ -28,8 +28,8 @@ export function SeasonTable({ rows, starting, onStart, onPick, onWishes }: {
   if (!rows.length) return <Empty>No renewals in this view.</Empty>
   return (
     <div className={tableFrame}>
-      <table className="trs-table table-fixed" style={{ minWidth: 1200 }} aria-label="Renewal Season">
-        <colgroup><col style={{ width: '15%' }} /><col /><col style={{ width: 108 }} /><col style={{ width: 124 }} /><col style={{ width: 108 }} /><col style={{ width: 72 }} /><col style={{ width: 92 }} /><col style={{ width: 112 }} /><col style={{ width: 180 }} /></colgroup>
+      <table className="trs-table table-fixed min-w-[1200px]" aria-label="Renewal Season">
+        <colgroup><col className="w-[15%]" /><col /><col className="w-[108px]" /><col className="w-[124px]" /><col className="w-[108px]" /><col className="w-[72px]" /><col className="w-[92px]" /><col className="w-[112px]" /><col className="w-[180px]" /></colgroup>
         <thead><tr><th>Client</th><th>Policy</th><th>Ends</th><th>Stage</th><th>Conversations</th><th>Wish list</th><th>Documents</th><th>Compare</th><th><span className="sr-only">Action</span></th></tr></thead>
         <tbody>
           {rows.map(r => {
@@ -43,16 +43,16 @@ export function SeasonTable({ rows, starting, onStart, onPick, onWishes }: {
                   {r.policy
                     ? <Link href={`/policies/${r.policy.id}`} className={`block truncate ${link}`} title={r.policy.name}>{r.policy.name}</Link>
                     : <Link href={`/today/${c!.id}`} className={`block truncate ${link}`} title={c!.title ?? undefined}>{c!.title ?? 'Renewal case'}</Link>}
-                  {detail && <span className="block truncate text-12 text-trs-muted" title={detail}>{detail}</span>}
+                  {detail && <span className="block truncate text-small text-trs-muted" title={detail}>{detail}</span>}
                 </td>
                 <td className="px-3 whitespace-nowrap tabular-nums">
-                  {r.end_date ? <>{fmtDate(r.end_date)}<span className={`block text-12 ${r.days! < 0 ? 'text-trs-neg' : 'text-trs-muted'}`}>{r.days! < 0 ? `${-r.days!} days ago` : r.days === 0 ? 'today' : `in ${r.days} days`}</span></> : none}
+                  {r.end_date ? <>{fmtDate(r.end_date)}<span className={`block text-small ${r.days! < 0 ? 'text-trs-neg' : 'text-trs-muted'}`}>{r.days! < 0 ? `${-r.days!} days ago` : r.days === 0 ? 'today' : `in ${r.days} days`}</span></> : none}
                 </td>
                 <td className="px-3">{c ? (isStage(c.stage) ? STAGE_LABEL[c.stage] : none) : <span className="text-trs-muted">No case</span>}</td>
                 <td className="px-3 tabular-nums">
-                  {c && r.company_id ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-13.5 ${link}`} aria-label={`Select conversations for ${r.company}, ${c.threads} on the case`} onClick={() => onPick(r)}>{c.threads}</button> : c ? c.threads : none}
+                  {c && r.company_id ? <Btn level="tertiary" size="xs" className="tabular-nums" aria-label={`Select conversations for ${r.company}, ${c.threads} on the case`} onClick={() => onPick(r)}>{c.threads}</Btn> : c ? c.threads : none}
                 </td>
-                <td className="px-3 tabular-nums">{c ? <button type="button" className={`bg-transparent border-0 p-0 cursor-pointer text-13.5 ${link}`} aria-label={`Wish list for ${r.company}, ${c.wishes} on the case`} onClick={() => onWishes(r)}>{c.wishes}</button> : none}</td>
+                <td className="px-3 tabular-nums">{c ? <Btn level="tertiary" size="xs" className="tabular-nums" aria-label={`Wish list for ${r.company}, ${c.wishes} on the case`} onClick={() => onWishes(r)}>{c.wishes}</Btn> : none}</td>
                 <td className="px-3 tabular-nums whitespace-nowrap">{c?.documents ? <Link href={brief!} className={link}>{c.documents.ticked} of {c.documents.required}</Link> : none}</td>
                 <td className="px-3 whitespace-nowrap">{r.compare ? <Link href={r.compare.href} className={link}>{COMPARE_NAME[r.compare.kind]}{r.compare.kind === 'comparison' && c && c.options > 0 ? ` · ${c.options}` : ''}</Link> : none}</td>
                 <td className="px-3">

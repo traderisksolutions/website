@@ -53,8 +53,8 @@ export function NewCompanyDialog({ open, onClose, onCreated, defaultName, defaul
             </Field>
             <Field label="Industry"><input className={inputCls} value={industry} onChange={e => setIndustry(e.target.value)} placeholder="Optional" /></Field>
           </div>
-          <p className="text-[11px] text-muted-foreground m-0">{STAGE_HELP[stage]}</p>
-          {error && <p className="text-[12px] text-destructive m-0">{error}</p>}
+          <p className="text-small text-muted-foreground m-0">{STAGE_HELP[stage]}</p>
+          {error && <p className="text-small text-destructive m-0">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Create company</Btn>
@@ -114,7 +114,7 @@ export function EditCompanyDialog({ open, onClose, company, onSaved }: { open: b
           </div>
           <Field label="Address"><input className={inputCls} value={address} onChange={e => setAddress(e.target.value)} /></Field>
           <Field label="Account notes" hint="Shown to the agent when it drafts replies and briefs."><textarea className={textareaCls} rows={4} value={notes} onChange={e => setNotes(e.target.value)} /></Field>
-          {error && <p className="text-[12px] text-destructive m-0">{error}</p>}
+          {error && <p className="text-small text-destructive m-0">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>
             <Btn type="submit" level="primary" loading={saving}>Save</Btn>

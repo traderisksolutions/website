@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { fmtDate } from '@/lib/format'
 import { productLineLabel } from '@/lib/product-lines'
 import type { CompanyThread } from '@/lib/crm/types'
 import { threadTitle } from '@/lib/crm/subject'
 import type { Placement, PlacementLine, Spec } from '@/lib/placement/types'
-import { callApi, errText, dialogCls, selectCls, ProductLineSelect, SpecFields, INK, MUTED, ERROR } from './shared'
+import { callApi, errText, dialogCls, selectCls, ProductLineSelect, SpecFields } from './shared'
 import { ContactPicker } from './ContactPicker'
 
 type Row = { key: number; product_line: string; label: string; spec: Spec }
@@ -118,8 +119,8 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
 
         {created ? (
           <div className="flex flex-col gap-3">
-            <p className="m-0 text-14" style={{ color: INK }}>Placement created.</p>
-            <p className="m-0 text-14" style={{ color: INK }}>No insurer contact on file for: {created.unrouted.join(', ')}.</p>
+            <p className="m-0 text-body text-trs-ink">Placement created.</p>
+            <p className="m-0 text-body text-trs-ink">No insurer contact on file for: {created.unrouted.join(', ')}.</p>
             <div className="flex justify-end pt-2">
               <Btn level="primary" className="h-9 px-4" onClick={onClose}>Done</Btn>
             </div>
@@ -142,62 +143,62 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Title">
-                <input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder={`Quotes for ${companyName}`} />
+                <Input className={inputCls} value={title} onChange={e => setTitle(e.target.value)} placeholder={`Quotes for ${companyName}`} />
               </Field>
               <Field label="Inception date">
-                <input className={inputCls} type="date" value={inception} onChange={e => setInception(e.target.value)} />
+                <Input className={inputCls} type="date" value={inception} onChange={e => setInception(e.target.value)} />
               </Field>
             </div>
 
             {asks.length > 0 && (
-              <div className="text-13" style={{ color: MUTED }}>
-                <span className="block mb-1" style={{ color: INK }}>Client asks</span>
+              <div className="text-body text-trs-muted">
+                <span className="block mb-1 text-trs-ink">Client asks</span>
                 <ul className="m-0 pl-4">{asks.map((a, i) => <li key={i}>{a}</li>)}</ul>
               </div>
             )}
 
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <span className="text-14 font-medium" style={{ color: INK }}>Lines</span>
+                <span className="text-body font-medium text-trs-ink">Lines</span>
                 <Btn level="tertiary" size="xs" onClick={() => setRows(rs => [...rs, blankRow()])}><Plus size={12} /> Add line</Btn>
               </div>
               {rows.map((r, i) => (
-                <div key={r.key} className="rounded-12 p-3 flex flex-col gap-2.5" style={{ border: '1px solid #e6e8e4' }}>
+                <div key={r.key} className="rounded border border-trs-line p-3 flex flex-col gap-2.5">
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2.5 items-end">
                     <Field label={`Line ${i + 1}`}>
                       <ProductLineSelect value={r.product_line} onChange={slug => setRow(r.key, { product_line: slug, label: r.label || (slug ? productLineLabel(slug) : '') })} />
                     </Field>
                     <Field label="Label">
-                      <input className={inputCls} value={r.label} onChange={e => setRow(r.key, { label: e.target.value })} />
+                      <Input className={inputCls} value={r.label} onChange={e => setRow(r.key, { label: e.target.value })} />
                     </Field>
                     <Btn level="tertiary" size="xs" className="h-9 sm:mb-0" aria-label="Remove line" disabled={rows.length === 1} onClick={() => setRows(rs => rs.filter(x => x.key !== r.key))}>
                       <X size={12} /> Remove
                     </Btn>
                   </div>
                   <SpecFields compact value={r.spec} onChange={spec => setRow(r.key, { spec })} />
-                  {EB_LINES.has(r.product_line) && <p className="m-0 text-13" style={{ color: MUTED }}>Employee list and pricing follow on the Members tab</p>}
+                  {EB_LINES.has(r.product_line) && <p className="m-0 text-body text-trs-muted">Employee list and pricing follow on the Members tab</p>}
                 </div>
               ))}
             </div>
 
-            <label className="flex items-center gap-2 text-14 cursor-pointer" style={{ color: INK }}>
+            <label className="flex items-center gap-2 text-body cursor-pointer text-trs-ink">
               <input type="checkbox" checked={dispatch} onChange={e => setDispatch(e.target.checked)} />
               Prepare the insurer emails now
             </label>
 
             {dispatch && validRows.length > 0 && (
               <div className="flex flex-col gap-3">
-                <span className="text-14 font-medium" style={{ color: INK }}>Insurers to ask</span>
+                <span className="text-body font-medium text-trs-ink">Insurers to ask</span>
                 {validRows.map(r => (
                   <div key={r.key} className="flex flex-col gap-2">
-                    <span className="text-12.5" style={{ color: MUTED }}>Line {rows.indexOf(r) + 1} · {r.label.trim() || productLineLabel(r.product_line)}</span>
+                    <span className="text-small text-trs-muted">Line {rows.indexOf(r) + 1} · {r.label.trim() || productLineLabel(r.product_line)}</span>
                     <ContactPicker productLines={[r.product_line]} companyId={companyId} value={picks[r.key] ?? null} onChange={next => setPick(r.key, next)} />
                   </div>
                 ))}
               </div>
             )}
 
-            {error && <p className="text-13 m-0" style={{ color: ERROR }}>{error}</p>}
+            {error && <p className="text-body m-0 text-trs-neg">{error}</p>}
 
             <div className="flex justify-end gap-2 pt-2">
               <Btn level="tertiary" onClick={onClose} disabled={busy}>Cancel</Btn>

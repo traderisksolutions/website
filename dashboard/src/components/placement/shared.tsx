@@ -1,12 +1,13 @@
 'use client'
 
 import { Field, inputCls } from '@/components/crm/primitives'
+import { Input } from '@/components/ui/input'
 import { groupedProductLines } from '@/lib/product-lines'
 import { SPEC_KEYS, SPEC_LABEL, type Spec } from '@/lib/placement/types'
 
-export const INK = '#0f1412'
-export const MUTED = '#4a5550'
-export const ERROR = '#a1242f'
+export const INK = 'var(--trs-ink)'
+export const MUTED = 'var(--trs-muted)'
+export const ERROR = 'var(--trs-neg)'
 
 export const selectCls = `${inputCls} appearance-none`
 
@@ -45,13 +46,13 @@ export function ProductLineSelect({ value, onChange, className }: { value: strin
 
 /** The seven spec fields in a compact two-column grid. Scope and Notes take the full row. */
 export function SpecFields({ value, onChange, compact }: { value: Spec; onChange: (next: Spec) => void; compact?: boolean }) {
-  const cls = compact ? `${inputCls} h-9 text-13` : inputCls
+  const cls = compact ? `${inputCls} h-9 text-body` : inputCls
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-2.5">
       {SPEC_KEYS.map(k => (
         <div key={k} className={k === 'scope' || k === 'notes' || k === 'extras' ? 'sm:col-span-2' : ''}>
           <Field label={SPEC_LABEL[k]}>
-            <input className={cls} value={value[k] ?? ''} onChange={e => onChange({ ...value, [k]: e.target.value })} />
+            <Input className={cls} value={value[k] ?? ''} onChange={e => onChange({ ...value, [k]: e.target.value })} />
           </Field>
         </div>
       ))}

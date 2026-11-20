@@ -6,11 +6,12 @@
  * the company's data room (Drive: <Company>/Letters/) the first time either is asked for.
  */
 import { useEffect, useMemo, useState } from 'react'
+import { Input } from '@/components/ui/input'
 import { Eye, FileText, ImagePlus, Mail, Paperclip, RotateCcw, X } from 'lucide-react'
 import { RichEditor } from '@/components/RichEditor'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
-import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
+import { callApi, errText } from '@/components/placement/shared'
 import { LOGO_MAX_CHARS, TRS_ADDRESSEE, letterParts, letterProblems, templateHtml } from '@/lib/letters/appointment'
 
 type Saved = { format: 'pdf' | 'docx'; id: string; url: string | null }
@@ -120,31 +121,31 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
           <DialogTitle>Appointment letter</DialogTitle>
           <DialogDescription className="sr-only">Letter of broker appointment, signed by the client on its letterhead</DialogDescription>
         </DialogHeader>
-        {!f && !error && <p className="m-0 text-13.5 text-trs-muted">Loading…</p>}
+        {!f && !error && <p className="m-0 text-body text-trs-muted">Loading…</p>}
         {f && parts && (
           <div className="grid gap-6 md:grid-cols-[340px_minmax(0,1fr)] min-w-0">
             <div className="grid gap-3 content-start min-w-0">
-              <Field label="Client (signs the letter)"><input className={inputCls} value={f.client_name} onChange={set('client_name')} /></Field>
-              <Field label="Re: project or subject (optional)"><input className={inputCls} value={f.project_title} onChange={set('project_title')} placeholder="Proposed residential development at Stevens Road" /></Field>
+              <Field label="Client (signs the letter)"><Input className={inputCls} value={f.client_name} onChange={set('client_name')} /></Field>
+              <Field label="Re: project or subject (optional)"><Input className={inputCls} value={f.project_title} onChange={set('project_title')} placeholder="Proposed residential development at Stevens Road" /></Field>
               <Field label="Insurance programme"><textarea className={textareaCls} rows={3} value={f.programme} onChange={set('programme')} placeholder="insurance policies, or Contractor's All Risks and Public Liability insurance for …" /></Field>
               <Field label="Other entities covered (one per line)"><textarea className={textareaCls} rows={3} value={f.entities} onChange={set('entities')} placeholder="Leave blank for one company" /></Field>
               <Field label="Client letterhead logo (optional)">
                 <div className="flex flex-wrap items-center gap-2">
-                  {f.client_logo && <img src={f.client_logo} alt="Client logo" className="h-9 max-w-[140px] object-contain rounded border border-[#e6e8e4] bg-white p-1" />}
-                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-13 underline underline-offset-2 text-trs-ink">
+                  {f.client_logo && <img src={f.client_logo} alt="Client logo" className="h-9 max-w-[140px] object-contain rounded border border-trs-line bg-white p-1" />}
+                  <label className="inline-flex items-center gap-1.5 cursor-pointer text-body underline underline-offset-2 text-trs-ink">
                     <ImagePlus size={14} /> {f.client_logo ? 'Replace logo' : 'Add logo'}
-                    <input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={pickLogo} />
+                    <Input type="file" accept="image/png,image/jpeg" className="sr-only" onChange={pickLogo} />
                   </label>
                   {f.client_logo && <Btn size="xs" level="tertiary" onClick={() => body('client_logo', null)}><X size={12} /> Remove</Btn>}
                 </div>
               </Field>
               <Field label="Client letterhead address (optional)"><textarea className={textareaCls} rows={3} value={f.client_address} onChange={set('client_address')} placeholder="Leave blank to keep the letterhead space empty" /></Field>
               <Field label="To (addressee)"><textarea className={textareaCls} rows={4} value={f.addressee} onChange={set('addressee')} /></Field>
-              <Field label="Date"><input type="date" className={inputCls} value={f.date} onChange={set('date')} /></Field>
-              <Field label="Signatory name"><input className={inputCls} value={f.signatory_name} onChange={set('signatory_name')} placeholder="Leave blank for the client to fill in" /></Field>
-              <Field label="Designation"><input className={inputCls} value={f.designation} onChange={set('designation')} placeholder="Leave blank for the client to fill in" /></Field>
+              <Field label="Date"><Input type="date" className={inputCls} value={f.date} onChange={set('date')} /></Field>
+              <Field label="Signatory name"><Input className={inputCls} value={f.signatory_name} onChange={set('signatory_name')} placeholder="Leave blank for the client to fill in" /></Field>
+              <Field label="Designation"><Input className={inputCls} value={f.designation} onChange={set('designation')} placeholder="Leave blank for the client to fill in" /></Field>
               <Field label="Letter text">
-                <div className="rounded-8 border border-[#d5d9d4] bg-white min-w-0">
+                <div className="rounded border border-trs-line-2 bg-white min-w-0">
                   <RichEditor key={editorKey} initialHtml={f.body_html ?? templateHtml({ programme: f.programme })} onChange={html => body('body_html', html)} minHeight={170} />
                 </div>
               </Field>
@@ -156,10 +157,10 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
                 <Btn level="secondary" disabled={!!busy || problems.length > 0} loading={busy === 'docx'} onClick={() => void download('docx')}><FileText size={14} /> Download Word</Btn>
                 <Btn level="tertiary" disabled={!!busy || problems.length > 0} loading={busy === 'email'} onClick={() => void draft()}><Mail size={14} /> Draft email to client</Btn>
               </div>
-              {error && <p className="m-0 text-13 text-trs-neg">{error}</p>}
-              {notice && <p className="m-0 text-13 text-trs-ink">{notice}</p>}
+              {error && <p className="m-0 text-body text-trs-neg">{error}</p>}
+              {notice && <p className="m-0 text-body text-trs-ink">{notice}</p>}
               {saved && (
-                <p className="m-0 text-12.5 text-trs-muted">
+                <p className="m-0 text-small text-trs-muted">
                   Filed in the data room under Letters ·{' '}
                   {saved.map(d => <a key={d.id} href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer" className="underline underline-offset-2 mr-2 text-trs-ink">Open {d.format === 'pdf' ? 'PDF' : 'Word'}</a>)}
                 </p>
@@ -167,37 +168,37 @@ export function AppointmentLetterDialog({ open, onClose, companyId, placementId,
             </div>
             {pdfUrl ? (
               <div className="min-w-0 flex flex-col gap-2">
-                <div className="flex justify-between items-center text-12.5 text-trs-muted"><span>The PDF as it will be filed and sent</span><Btn size="xs" level="tertiary" onClick={() => setPdfUrl(null)}>Back to editing view</Btn></div>
-                <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded-10 border border-[#e6e8e4] bg-white" />
+                <div className="flex justify-between items-center text-small text-trs-muted"><span>The PDF as it will be filed and sent</span><Btn size="xs" level="tertiary" onClick={() => setPdfUrl(null)}>Back to editing view</Btn></div>
+                <iframe title="Letter PDF preview" src={pdfUrl} className="w-full min-h-[760px] rounded border border-trs-line bg-white" />
               </div>
             ) : (
-            <div className="min-w-0 rounded-10 border border-[#e6e8e4] bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-13 leading-[1.6] text-trs-ink" aria-label="Letter preview">
-              <div className={`h-[78px] mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded-6 border border-dashed border-[#d5d9d4] items-center justify-center text-12'}`} style={parts.clientLogo || parts.clientAddress.length ? undefined : { color: MUTED }}>
+            <div className="min-w-0 rounded border border-trs-line bg-white shadow-[0_18px_40px_-24px_rgba(19,44,28,0.35)] px-10 pt-8 pb-10 text-body leading-[1.6] text-trs-ink" aria-label="Letter preview">
+              <div className={`h-20 mb-4 flex justify-between items-start gap-4 ${parts.clientLogo || parts.clientAddress.length ? '' : 'rounded border border-dashed border-trs-line-2 items-center justify-center text-small text-trs-muted'}`}>
                 {parts.clientLogo || parts.clientAddress.length
-                  ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-[60px] max-w-[180px] object-contain" /> : <span />}<div className="text-right text-11 leading-[1.45] text-trs-muted">{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
+                  ? <>{parts.clientLogo ? <img src={parts.clientLogo} alt="Client logo" className="max-h-16 max-w-[180px] object-contain" /> : <span />}<div className="text-right text-small leading-[1.45] text-trs-muted">{parts.clientAddress.map(a => <div key={a}>{a}</div>)}</div></>
                   : 'Client letterhead (left blank)'}
               </div>
-              <div className="flex justify-between items-start pb-3 mb-6 border-b border-[#e4e7e3]"><img src="/letters/trs-logo.png" alt="TRS" className="w-[120px]" /><div className="text-right text-11 leading-[1.45] text-trs-muted">Prepared by<br />Trade Risk Solutions Pte. Ltd.</div></div>
+              <div className="flex justify-between items-start pb-3 mb-6 border-b border-trs-line"><img src="/letters/trs-logo.png" alt="TRS" className="w-[120px]" /><div className="text-right text-small leading-[1.45] text-trs-muted">Prepared by<br />Trade Risk Solutions Pte. Ltd.</div></div>
               <div>{parts.addressee.map(a => <div key={a}>{a}</div>)}</div>
               <div className="mt-5">{parts.date}</div>
-              <div className="mt-6 font-semibold text-14">{parts.title}</div>
+              <div className="mt-6 font-semibold text-body">{parts.title}</div>
               {parts.re && <div className="mt-1 font-semibold">Re: {parts.re}</div>}
               {parts.blocks.map((b, i) => (
                 <p key={i} className={b.kind === 'li' ? 'mt-1.5 mb-0 pl-5 -indent-4' : 'mt-3 mb-0'}>
                   {b.kind === 'li' ? `${b.ordered ? `${b.n}.` : '•'} ` : ''}
-                  {b.runs.map((r, j) => <span key={j} style={{ fontWeight: r.b ? 600 : undefined, fontStyle: r.i ? 'italic' : undefined, textDecoration: r.u ? 'underline' : undefined }}>{r.text}</span>)}
+                  {b.runs.map((r, j) => <span key={j} className={[r.b && 'font-semibold', r.i && 'italic', r.u && 'underline'].filter(Boolean).join(' ') || undefined}>{r.text}</span>)}
                 </p>
               ))}
               {parts.entities.length > 0 && <div className="mt-3"><div>List of entities:</div>{parts.entities.map(e => <div key={e} className="pl-5">• {e}</div>)}</div>}
               <p className="mt-3 mb-0">{parts.closing}</p>
-              <div className="mt-14 w-[200px] border-t border-[#0f1412] pt-1">
+              <div className="mt-14 w-[200px] border-t border-trs-ink pt-1">
                 <div>{parts.name}</div><div>{parts.designation}</div><div className="font-semibold">{parts.company}</div>
               </div>
             </div>
             )}
           </div>
         )}
-        {!f && error && <p className="m-0 text-13 text-trs-neg">{error}</p>}
+        {!f && error && <p className="m-0 text-body text-trs-neg">{error}</p>}
       </DialogContent>
     </Dialog>
   )
