@@ -9,7 +9,6 @@
  * files just aren't archived there yet.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH, uploadPdf, signRead, downloadObject, storageKeySegment } from '@/lib/debit-note-storage'
 import { commitDebitNote, attachDebitNoteArchival, type CompanyInput, type ContactInput, type AttachmentFileRef } from '@/lib/debit-note-commit'
 import { renderDebitNotePdf } from '@/lib/debit-note-pdf-server'
@@ -18,6 +17,7 @@ import { archiveDebitNoteToDrive } from '@/lib/gdrive-write'
 import { closeLineForDebitNote } from '@/lib/placement/workflow'
 import { logActivity } from '@/lib/log-activity'
 import { billedFromBundle } from '@/lib/policies/movement-flow'
+import { withStaff } from '@/lib/auth/guard'
 
 type Body = {
   company: CompanyInput
@@ -39,13 +39,9 @@ type Body = {
 
 type MemberFile = { id: string; storage_url: string; original_filename: string | null; doc_type: string | null }
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const body = await req.json() as Body
     if (!body.company || !body.policy?.insurer || !body.debitNote?.lineItems?.length) {
       return NextResponse.json({ error: 'company, policy.insurer and at least one line item are required' }, { status: 400 })
@@ -137,4 +133,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

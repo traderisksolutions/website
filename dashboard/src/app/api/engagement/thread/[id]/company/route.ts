@@ -15,7 +15,6 @@
  * POST /api/companies/domains, by a person, never automatic.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { setClientForThread }        from '@/lib/crm/client-link'
 import { enc, sbTry }                from '@/lib/crm/db'
@@ -25,10 +24,9 @@ import { currentUserEmail }          from '@/lib/crm/auth'
 import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
 import { forgetInboxIndex }          from '@/lib/mail/inbox-index'
 import { outsideDomain }             from '@/lib/mail/inbox-list'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     if (!(await threadVisibleTo(id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
@@ -40,12 +38,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const PATCH = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
     const { companyId, name } = await req.json() as { companyId?: string | null; name?: string | null }
@@ -72,4 +67,4 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

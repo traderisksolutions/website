@@ -1,13 +1,11 @@
 /** GET /api/today/knowledge/:companyId?before=<iso> → the company's knowledge log, newest first. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { loadKnowledge } from '@/lib/today/data'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ companyId: string }> }) => {
   const { companyId } = await params
   const before = req.nextUrl.searchParams.get('before')
   if (before && Number.isNaN(Date.parse(before))) return NextResponse.json({ error: 'before must be a date.' }, { status: 400 })
@@ -18,4 +16,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ comp
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

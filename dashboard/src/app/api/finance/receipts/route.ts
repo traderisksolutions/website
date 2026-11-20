@@ -6,16 +6,13 @@
  * the note looks like afterwards.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
-import { createClient }              from '@/lib/supabase/server'
 import { recordReceipt }             from '@/lib/crm/receipts'
 import type { ReceiptChannel }       from '@/lib/crm/receipts'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const CHANNELS: ReceiptChannel[] = ['trs', 'insurer', 'writeoff']
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, _ctx, { user }) => {
   try {
     const body = await req.json()
     const debitNoteId = String(body.debitNoteId ?? '')
@@ -23,12 +20,8 @@ export async function POST(req: NextRequest) {
 
     const channel = CHANNELS.includes(body.channel) ? (body.channel as ReceiptChannel) : 'trs'
 
-    let recordedBy: string | null = null
-    try {
-      const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      recordedBy = user?.email ?? null
-    } catch { /* a cron caller has no session; the receipt is still valid */ }
+    // A cron caller has no user; the receipt is still valid.
+    const recordedBy = user?.email ?? null
 
     const result = await recordReceipt({
       debitNoteId,
@@ -43,4 +36,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

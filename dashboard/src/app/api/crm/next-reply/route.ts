@@ -8,15 +8,12 @@
  * attachments returned are proposals for the reviewer to attach.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { nextReply } from '@/lib/agents/crm-agent'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 120
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { threadId } = await req.json().catch(() => ({})) as { threadId?: string }
     if (!threadId) return NextResponse.json({ error: 'threadId is required.' }, { status: 400 })
@@ -45,4 +42,4 @@ export async function POST(req: NextRequest) {
     const status = /does not exist|has no company|could not be loaded/.test(msg) ? 400 : 500
     return NextResponse.json({ error: msg }, { status })
   }
-}
+})

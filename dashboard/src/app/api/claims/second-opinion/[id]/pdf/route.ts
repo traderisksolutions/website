@@ -1,16 +1,14 @@
 /** GET /api/claims/second-opinion/[id]/pdf[?download=1] — the saved report as the client PDF. Staff only. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { getClaimIntake } from '@/lib/claim-review/store'
 import { renderClaimReportPdf } from '@/lib/claim-review/report-pdf'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: { params: Promise<{ id: string }> }) => {
   const params = await props.params;
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
   const row = await getClaimIntake(params.id)
   const report = row?.answers.second_opinion
   if (!row || !report) return NextResponse.json({ error: 'No report for this claim yet.' }, { status: 404 })
@@ -24,4 +22,4 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
       'Cache-Control': 'private, no-store',
     },
   })
-}
+})

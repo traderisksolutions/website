@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getNexusRun, getLatestIncompleteNexusRun, previewFromPhase1, previewFromPhase2 } from '@/lib/nexus-run-store'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -9,10 +9,8 @@ type Params = { params: Promise<{ id: string }> }
 // case that hasn't finished) — used to resume the phased-analysis modal after a page
 // reload/reopen, and to poll a phase that's still `_running` server-side even if the
 // browser's original request dropped.
-export async function GET(req: NextRequest, props: Params) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   const caseId = params.id
   const runId = req.nextUrl.searchParams.get('run_id')
@@ -37,4 +35,4 @@ export async function GET(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

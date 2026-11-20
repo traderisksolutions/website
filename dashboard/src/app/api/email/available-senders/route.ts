@@ -1,6 +1,6 @@
 import { NextResponse }  from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 const DEFAULT_OPS_EMAIL = 'operations@trade-risksol.com'
 
@@ -18,11 +18,7 @@ type SharedSenderEntry = { email: string; verified?: boolean }
 // - Shared addresses from app_settings key 'shared_email_senders' (JSON array)
 //   Falls back to legacy 'reply_from_email' if list not configured.
 // - Their own @trade-risksol.com address (only if they've connected their Gmail in Settings)
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const GET = withStaff(async (_req, _ctx, { user }) => {
   const k = process.env.SUPABASE_SERVICE_KEY!
   const h = { apikey: k, Authorization: `Bearer ${k}` }
 
@@ -81,4 +77,4 @@ export async function GET() {
   }
 
   return NextResponse.json(senders)
-}
+}, { error: 'Not authenticated' })

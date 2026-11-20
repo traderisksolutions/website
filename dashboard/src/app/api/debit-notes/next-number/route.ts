@@ -7,19 +7,15 @@
  * will surface an error to retry, same as an explicit historical override does today.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { generateDebitNoteNumber }   from '@/lib/debit-note-commit'
+import { withStaff } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const issueDate = req.nextUrl.searchParams.get('issueDate') || new Date().toISOString().slice(0, 10)
     const debitNoteNo = await generateDebitNoteNumber(issueDate)
     return NextResponse.json({ debitNoteNo })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

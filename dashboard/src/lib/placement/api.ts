@@ -2,7 +2,7 @@
  * Shared pieces for the /api/placements routes: boundary validation and the acting user.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { createClient } from '@/lib/supabase/server'
 import type { Spec } from './types'
 import { normaliseSpec } from './spec'

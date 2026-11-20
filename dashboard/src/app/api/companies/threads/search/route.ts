@@ -4,10 +4,10 @@
  * the client you are looking at.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { sbTry, enc }                from '@/lib/crm/db'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { visibleThreadIds }          from '@/lib/mail/visibility-server'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 type Row = {
   id: string
@@ -18,9 +18,7 @@ type Row = {
   companies: { company_name: string | null } | null
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   const q = (req.nextUrl.searchParams.get('q') ?? '').trim()
   if (q.length < 2) return NextResponse.json({ threads: [] })
   try {
@@ -44,4 +42,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

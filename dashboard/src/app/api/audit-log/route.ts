@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }             from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbHeaders() {
@@ -12,11 +12,7 @@ function sbHeaders() {
 // POST /api/audit-log
 // Body: { action, resource_type?, resource_id?, lead_email?, old_value?, new_value?, metadata? }
 // User identity is always read from the server session — callers cannot spoof identity.
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   let body: {
     action?:        string
     resource_type?: string
@@ -56,15 +52,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false })
   }
   return NextResponse.json({ ok: true })
-}
+}, { error: 'Unauthorized' })
 
 // GET /api/audit-log?limit=500&user=X&action=X&days=30
 // days=30 is the default (last 30 days). Pass days=0 for all-time.
-export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
+export const GET = withStaff(async (req: NextRequest) => {
   const params       = new URL(req.url).searchParams
   const limit        = Math.min(parseInt(params.get('limit') ?? '500'), 1000)
   const filterUser   = params.get('user')
@@ -83,4 +75,4 @@ export async function GET(req: NextRequest) {
   const res  = await fetch(url, { headers: sbHeaders(), cache: 'no-store' })
   const rows = res.ok ? await res.json() : []
   return NextResponse.json(Array.isArray(rows) ? rows : [])
-}
+}, { error: 'Unauthorized' })

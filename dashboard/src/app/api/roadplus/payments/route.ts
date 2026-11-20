@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
 import { parseCalendarDate, parseDocumentDate, ageLastBirthday, todaySGT } from '@/lib/dates/dob'
-
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
+import { withStaff } from '@/lib/auth/guard'
 
 /** The insured person, as captured on the quote form. */
 type Insured = {
@@ -177,9 +171,7 @@ function reconcile(p: PaymentRow, policyNoById: Map<string, string | null>): { r
 // ECICS posts the webhook or the sweep finds the policy, so a payments-only list
 // shows nothing at all until money lands — and hides abandoned checkouts and
 // missed callbacks, which are exactly the rows someone needs to act on.
-export async function GET(req: NextRequest) {
-  if (!(await requireUser()))
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (req: NextRequest) => {
   if (!rpConfigured())
     return NextResponse.json({ configured: false, rows: [] })
 
@@ -305,4 +297,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ configured: true, rows: [], error: String(e) }, { status: 502 })
   }
-}
+}, { error: 'Not authenticated' })

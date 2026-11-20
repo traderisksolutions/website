@@ -9,10 +9,10 @@
  * the loader already writes, so a premium can be traced to the exact file version it came from.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { logActivity } from '@/lib/log-activity'
 import { driveConfigured, listSourceFiles } from '@/lib/gb/drive'
 import { matchSources, toRecorded, type RecordedSource, type TableSources } from '@/lib/gb/sources'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 const sbH = (prefer?: string) => {
@@ -28,9 +28,7 @@ async function tables(): Promise<TableRow[]> {
   return res.ok ? await res.json() as TableRow[] : []
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   if (!driveConfigured()) {
     return NextResponse.json({ configured: false, folderId: null, files: [] })
   }
@@ -41,11 +39,9 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 502 })
   }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   try {
     const { rateTableId, driveFileIds } = await req.json() as { rateTableId?: string; driveFileIds?: string[] }
     if (!rateTableId || !driveFileIds?.length) return NextResponse.json({ error: 'rateTableId and driveFileIds are required' }, { status: 400 })
@@ -68,4 +64,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

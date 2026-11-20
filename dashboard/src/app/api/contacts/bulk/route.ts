@@ -7,9 +7,9 @@
  * Backs the bulk CSV importer on the Active Contacts page.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbH(prefer = 'return=representation') {
@@ -43,12 +43,8 @@ async function loadExisting(emails: string[], phones: string[]): Promise<{ byEma
   return { byEmail, byPhone }
 }
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { mode, rows } = await req.json() as { mode: 'preview' | 'commit'; rows: (Fields & { action?: string; existing_id?: string })[] }
     if (!Array.isArray(rows)) return NextResponse.json({ error: 'rows required' }, { status: 400 })
 
@@ -101,4 +97,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

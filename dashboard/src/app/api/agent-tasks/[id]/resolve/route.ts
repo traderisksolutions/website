@@ -5,17 +5,14 @@
  * files the thread and learns the sender); false closes it as done with the answer on record.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { resolveHuman } from '@/lib/agent-tasks/queue'
 import { sbTry, enc } from '@/lib/crm/db'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to answer agent questions.' }, { status: 401 })
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Unknown task.' }, { status: 400 })
@@ -36,4 +33,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

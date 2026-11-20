@@ -10,20 +10,16 @@
  * referenced where it already is. The read itself is saved only when the broker confirms Review.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
 import { gmailRef, messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import { storeUpload } from '@/lib/storage/drive-upload'
 import { readLastYear } from '@/lib/gb/last-year'
 import { LAST_YEAR_MAX_BYTES as MAX_BYTES, lastYearPart as asPart } from '@/lib/gb/last-year-files'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const POST = withStaff(async (req: NextRequest) => {
   const files: { name: string; mime: string; bytes: Buffer }[] = []
   const keep: { name: string; type: string; raw: Buffer }[] = []
   const refOf = new Map<string, string>()
@@ -64,4 +60,4 @@ export async function POST(req: NextRequest) {
   keep.forEach((k, i) => { if (stored[i]) refOf.set(k.name.trim().toLowerCase(), stored[i]!) })
   const read = { ...out.read, documents: out.read.documents.map(d => ({ ...d, ref: refOf.get(d.file.trim().toLowerCase()) ?? null })) }
   return NextResponse.json({ read, skipped })
-}
+}, { error: 'Not authenticated' })

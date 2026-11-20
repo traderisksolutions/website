@@ -4,14 +4,12 @@
  *   { decision: 'link', companyId } | { decision: 'create', name, domain?, stage? }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { decideLink, type TriageDecision } from '@/lib/crm/triage'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { isStage }                   from '@/lib/crm/stage'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ threadId: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ threadId: string }> }) => {
   const { threadId } = await params
   try {
     const b = await req.json() as { decision?: string; companyId?: string; name?: string; domain?: string | null; stage?: string }
@@ -35,4 +33,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ thr
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

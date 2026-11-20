@@ -6,7 +6,6 @@
  */
 import { resolveInsurerKey } from '@/lib/insurers'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import {
   extractWithDeep, extractWithGemini, parseRatesFromText, judgeExtractions,
@@ -17,6 +16,7 @@ import { diffBenefits } from '@/lib/gb-diff'
 import { documentBytes } from '@/lib/gb/documents'
 import { NEVER_STORED } from '@/lib/storage/attachment-bytes'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
@@ -27,13 +27,9 @@ function sbH(prefer = 'return=minimal') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     // 1. Load the table + PDF.
     const tRes = await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}&select=*&limit=1`, { headers: sbH(), cache: 'no-store' })
     const table = tRes.ok ? (await tRes.json())[0] : null
@@ -168,4 +164,4 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'PATCH', headers: sbH(), body: JSON.stringify({ status: 'draft' }) }).catch(() => {})
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

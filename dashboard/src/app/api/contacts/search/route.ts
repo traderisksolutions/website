@@ -5,8 +5,8 @@
  * Employees are included and flagged so the UI can label them "Team".
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbH() {
@@ -23,12 +23,8 @@ export type ContactSuggestion = {
   is_employee: boolean
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const sp    = new URL(req.url).searchParams
     const q     = (sp.get('q') ?? '').trim()
     const all   = sp.get('all') === '1'   // prefetch the whole list for instant local filtering
@@ -67,4 +63,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

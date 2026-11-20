@@ -6,10 +6,10 @@
  * Code prices; no model is called. Nothing is saved.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import type { Member } from '@/lib/gb-quote'
 import { MAX_CATEGORIES, TIERS, type Design } from '@/lib/gb/eb-quote'
 import { priceDesign } from '@/lib/gb/eb-price'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 60
 
@@ -21,11 +21,7 @@ const designOf = (raw: unknown): Partial<Design> => {
   return out
 }
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const POST = withStaff(async (req: NextRequest) => {
   const body = await req.json().catch(() => ({})) as { effective_date?: string; basis?: string; current_insurer?: string | null; categories?: { name?: string; members?: Member[]; design?: unknown; today?: unknown }[] }
   const cats = Array.isArray(body.categories) ? body.categories : []
   if (!cats.length) return NextResponse.json({ error: 'Choose at least one category.' }, { status: 400 })
@@ -45,4 +41,4 @@ export async function POST(req: NextRequest) {
     categories: cats.map(c => ({ name: String(c.name ?? 'Category').slice(0, 80), members: c.members!, design: designOf(c.design), today: designOf(c.today) })),
   })
   return NextResponse.json(priced)
-}
+}, { error: 'Not authenticated' })

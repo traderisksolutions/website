@@ -16,13 +16,12 @@ import { sweepClientLinks } from '@/lib/crm/client-link'
 import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { applyTpaNotices } from '@/lib/claims/tpa-notices'
 import { runEnrolmentCycles } from '@/lib/clients/enrolment-cycle'
+import { withCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET ?? ''
-  if (!(secret !== '' && req.headers.get('authorization') === `Bearer ${secret}`)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export const GET = withCron(async (req: NextRequest) => {
   try {
     const q = new URL(req.url).searchParams.get('today')
     const today = q && /^\d{4}-\d{2}-\d{2}$/.test(q) ? q : todaySGT()
@@ -40,4 +39,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Unauthorized' })

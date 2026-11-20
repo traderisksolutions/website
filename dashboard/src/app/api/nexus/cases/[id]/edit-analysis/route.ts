@@ -6,10 +6,10 @@
  * the consultant chat's confirm-to-act "edit_analysis" action.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import type { EditOp }               from '@/lib/chat/chat-types'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -95,13 +95,9 @@ function applyOp(sa: Rec, op: EditOp): void {
   if (op.target === 'next_steps') (sa[cfg.field] as Rec[]).forEach((s, idx) => { s.step = idx + 1 })
 }
 
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaff(async (req: NextRequest, props: Params) => {
   const params = await props.params;
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { ops, summary } = await req.json() as { ops?: EditOp[]; summary?: string }
     if (!Array.isArray(ops) || ops.length === 0) return NextResponse.json({ error: 'ops required' }, { status: 400 })
 
@@ -124,4 +120,4 @@ export async function POST(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

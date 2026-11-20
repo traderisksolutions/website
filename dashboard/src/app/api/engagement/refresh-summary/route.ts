@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logGeminiUsage }           from '@/lib/gemini-usage'
 import { fetchAttachmentContext }   from '@/lib/thread-attachment-context'
 import { logError }                 from '@/lib/error-log'
-import { requireStaffOrCron }       from '@/lib/api-auth'
 import { geminiUrl, GEMINI_LITE } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
@@ -19,10 +19,7 @@ function sbHeaders() {
 // POST /api/engagement/refresh-summary
 // Manually trigger AI analysis for a thread. middleware.ts excludes /api/* from the app-wide
 // login gate, so this route self-checks auth via requireStaffOrCron below.
-export async function POST(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   let thread_id: string, message_id: string
   try {
     ;({ thread_id, message_id } = await req.json())
@@ -131,4 +128,4 @@ Return ONLY a valid JSON object. If the email is purely internal (TRS-to-TRS) wi
   }
 
   return NextResponse.json({ ok: true })
-}
+})

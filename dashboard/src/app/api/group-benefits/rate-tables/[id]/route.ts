@@ -6,10 +6,10 @@
  */
 import { resolveInsurerKey } from '@/lib/insurers'
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { bandBounds }                from '@/lib/gb-extract'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 /** The rate-table fields a reviewer may edit. Everything else on the row is set by the system. */
@@ -20,16 +20,10 @@ function sbH(prefer = 'return=minimal') {
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const GET = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const q = (p: string) => fetch(`${SB_URL}/rest/v1/${p}`, { headers: sbH(), cache: 'no-store' }).then(r => r.ok ? r.json() : [])
     const [table, plans, rates, benefits, coverage, judgeRun, runs] = await Promise.all([
       q(`gb_rate_tables?id=eq.${id}&limit=1`),
@@ -55,17 +49,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 type RateIn    = { product_code: string; member_type?: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type PlanIn    = { product_code: string; plan_code: string; plan_name?: string | null; hospital_type?: string | null; beds?: string | null; co_payment?: string | null; renewal_only?: boolean }
 type BenefitIn = { product_code: string; plan_code?: string | null; category?: string | null; benefit_name: string; value_text?: string | null; value_numeric?: number | null; unit?: string | null; notes?: string | null }
 type CoverageIn = { product_title?: string | null; member_type?: string | null; plan_code?: string | null; item_label: string; value_numeric?: number | null; value_text?: string | null; unit?: string | null }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const PATCH = withStaff(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const body = await req.json() as {
       meta?: Record<string, unknown>
       plans?: PlanIn[]; rates?: RateIn[]; benefits?: BenefitIn[]; coverage?: CoverageIn[]
@@ -125,16 +118,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withStaff(async (_req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     await fetch(`${SB_URL}/rest/v1/gb_rate_tables?id=eq.${id}`, { method: 'DELETE', headers: sbH() })
     void logActivity({ action: 'gb.rate_table_deleted', resource_type: 'gb_rate_table', resource_id: id })
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

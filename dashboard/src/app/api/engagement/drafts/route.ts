@@ -8,9 +8,9 @@
  *      required column on ai_drafts — reused here rather than re-derived.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { SB_URL } from '@/lib/sb'
 import { contactIdFor }              from '@/lib/crm/contact-for-email'
+import { withStaff } from '@/lib/auth/guard'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
@@ -21,21 +21,13 @@ function sbH(prefer = 'return=representation') {
 /** Looked up, inserted only when none (contacts has no unique key on email: an upsert fails). */
 const resolveContactId = (email: string) => contactIdFor(email, { source: 'engagement_draft' })
 
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const GET = withStaff(async () => {
   const res = await fetch(`${SB_URL}/rest/v1/ai_drafts?status=eq.draft&select=id,to_email,cc,subject,body,attachments,created_at&order=created_at.desc&limit=100`, { headers: sbH(), cache: 'no-store' })
   return NextResponse.json(res.ok ? await res.json() : [])
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const b = await req.json() as {
       id?: string; toEmail: string; toName?: string; cc?: string
       subject: string; body: string
@@ -67,4 +59,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

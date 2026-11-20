@@ -1,6 +1,5 @@
 /** GET /api/policies/[id]/members → { members, movements, transactions, weekly, position }; POST adds members from a list. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { errorResponse, fail, isUuid } from '@/lib/placement/api'
 import { listMembers, listMovements, policyRow } from '@/lib/policies/members'
 import { listTransactions } from '@/lib/policies/transactions'
@@ -8,12 +7,11 @@ import { listWeeks } from '@/lib/policies/position'
 import { readSpreadsheet } from '@/lib/hr/spreadsheet'
 import { sb } from '@/lib/crm/db'
 import * as store from '@/lib/placement/store'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!isUuid(id)) return fail('Policy id is not valid')
   try {
@@ -28,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return errorResponse(e)
   }
-}
+})
 
 /**
  * POST /api/policies/[id]/members (multipart: file) → { added, already, skipped }
@@ -36,9 +34,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
  * layout the HR reader understands). Adds the people not on file; never removes anyone, so a
  * partial list cannot wipe the roster. Gives existing policies the baseline leavers are matched to.
  */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!isUuid(id)) return fail('Policy id is not valid')
   try {
@@ -70,4 +66,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return errorResponse(e)
   }
-}
+})

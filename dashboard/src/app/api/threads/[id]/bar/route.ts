@@ -6,12 +6,11 @@
  * Nothing here sends: a chaser becomes a draft, and a person sends it through /api/email/send.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
-import { currentUserEmail } from '@/lib/crm/auth'
 import { draftChaser, dismissSuggestion, loadBar, setHold } from '@/lib/chief/bar'
 import { runSuggestion } from '@/lib/chief/suggest'
 import { executePlan, readThread, setStep } from '@/lib/chief/read'
 import { threadVisibleTo, PRIVATE_THREAD } from '@/lib/mail/visibility-server'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 // A suggestion's action can run the group benefits agent (one long model read).
@@ -20,25 +19,21 @@ export const maxDuration = 300
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Thread id is not valid.' }, { status: 400 })
   try {
-    if (!(await threadVisibleTo(id, await currentUserEmail()))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
+    if (!(await threadVisibleTo(id, (user?.email.toLowerCase() ?? null)))) return NextResponse.json(PRIVATE_THREAD, { status: 403 })
     const bar = await loadBar(id)
     if (!bar) return NextResponse.json({ error: 'This thread no longer exists.' }, { status: 404 })
     return NextResponse.json(bar)
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-  const actor = await currentUserEmail()
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }, { user }) => {
+  const actor = user?.email.toLowerCase() ?? null
   if (!actor) return NextResponse.json({ error: 'Sign in to act on this thread.' }, { status: 401 })
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Thread id is not valid.' }, { status: 400 })
@@ -58,4 +53,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 400 })
   }
-}
+})

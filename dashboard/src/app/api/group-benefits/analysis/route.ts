@@ -10,7 +10,6 @@
  * on 20 Nov 2026 with the other old quotation pages; no page calls this route now. No model is called.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
 import { fileEbCompanyFolder } from '@/lib/company-drive'
 import { draftQuotation, DraftError } from '@/lib/gb/draft'
@@ -22,14 +21,11 @@ import { normaliseLastYear } from '@/lib/gb/last-year'
 import { depositEvent } from '@/lib/admin/k/deposit'
 import { sb, sbTry, enc } from '@/lib/crm/db'
 import type { Member } from '@/lib/gb-quote'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
-export async function POST(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   const body = await req.json().catch(() => null) as
     { census?: Member[]; schedule?: Schedule; company_name?: string; company_id?: string | null; effective_date?: string; basis?: string; current_insurer?: string | null; excluded?: string[]; source?: { label: string; href: string } | null; last_year?: unknown; quotation_id?: string | null } | null
   const census = (body?.census ?? []).filter(m => m && typeof m.name === 'string' && m.name.trim())
@@ -72,4 +68,4 @@ export async function POST(req: NextRequest) {
     if (e instanceof DraftError) return NextResponse.json({ error: e.message }, { status: 422 })
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

@@ -3,17 +3,15 @@
  * POST /api/policies/[id]/renewal { action: 'draft' } → { work_item_id, draft_id, to }: the pack as a draft on Today
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { actorEmail } from '@/lib/placement/api'
 import { getRenewalPack } from '@/lib/policies/ledger'
 import { draftRenewalAdvice } from '@/lib/policies/ledger/advice'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 const UUID = /^[0-9a-f-]{36}$/i
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Policy id is not valid' }, { status: 400 })
   const asOf = req.nextUrl.searchParams.get('as_of')
@@ -25,11 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const POST = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Policy id is not valid' }, { status: 400 })
   const body = await req.json().catch(() => null) as { action?: unknown } | null
@@ -40,4 +36,4 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})

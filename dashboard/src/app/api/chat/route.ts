@@ -10,7 +10,6 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { OPUS_MODEL, fetchOpus } from '@/lib/anthropic-models'
-import { createClient }              from '@/lib/supabase/server'
 import { logAnthropicUsage }         from '@/lib/gemini-usage'
 import { logError }                  from '@/lib/error-log'
 import { getCompany, getCompanyThreadIds, sbTry } from '@/lib/crm/db'
@@ -23,6 +22,7 @@ import { listCompanyCases } from '@/lib/crm/cases'
 import { enc } from '@/lib/crm/db'
 import { anthropicKeyGated } from '@/lib/ai-gate'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
@@ -316,12 +316,8 @@ Only cite sources you actually used. Omit the block if none.`
 
 type Block = { type: string; text?: string; id?: string; name?: string; _json?: string; input?: unknown }
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { thread_id, case_id, company_id, message, attachments } = await req.json() as { thread_id?: string; case_id?: string | null; company_id?: string | null; message?: string; attachments?: { filename: string; text: string }[] }
     if (!thread_id || !message?.trim()) return NextResponse.json({ error: 'thread_id and message required' }, { status: 400 })
 
@@ -480,4 +476,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

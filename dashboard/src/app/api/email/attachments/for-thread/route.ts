@@ -8,9 +8,9 @@
  * never RFQ-specific — the reply composer on every thread uses it — so it moved rather than went.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { isNoise } from '@/lib/documents/taxonomy'
 import { gmailRef } from '@/lib/storage/attachment-bytes'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
@@ -20,9 +20,7 @@ function sbH() {
   return { apikey: k, Authorization: `Bearer ${k}` }
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const threadId = new URL(req.url).searchParams.get('thread_id')
     // A thread id goes straight into a PostgREST filter; anything that is not a uuid is refused
@@ -43,4 +41,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})

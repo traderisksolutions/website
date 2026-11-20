@@ -1,15 +1,13 @@
 /** GET /api/companies/misfiled → insurer mail whose subject names a client, grouped by that name; only threads the person may see, `hidden` counts the rest. */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
 import { listMisfiledThreads, groupMisfiled } from '@/lib/crm/misfiled'
 import { listClientCompanies }       from '@/lib/crm/db'
 import { currentUserEmail }          from '@/lib/crm/auth'
 import { visibleThreadIds }          from '@/lib/mail/visibility-server'
 import { splitVisible }              from '@/lib/crm/threads'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     const [all, companies] = await Promise.all([listMisfiledThreads(), listClientCompanies()])
     // Only the threads the signed-in person may see (INB-002); the rest are a count.
@@ -24,4 +22,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

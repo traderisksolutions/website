@@ -8,9 +8,9 @@
  *        → log a client-side interaction (a button press) as the current user.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbH() {
@@ -19,12 +19,8 @@ function sbH() {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }
 }
 
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const url = new URL(req.url)
     const resourceId   = url.searchParams.get('resource_id')
     const resourceType = url.searchParams.get('resource_type')
@@ -44,14 +40,10 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const { action, resource_type, resource_id, metadata } = await req.json() as {
       action?: string; resource_type?: string; resource_id?: string; metadata?: Record<string, unknown>
     }
@@ -62,4 +54,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

@@ -11,9 +11,9 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { logActivity } from '@/lib/log-activity'
 import { DEFAULT_SOUL, VOICE_KEY, invalidateVoice } from '@/lib/voice'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 /** Long enough for a real house style; short enough that it never crowds an agent's task out of
@@ -44,9 +44,7 @@ async function admin(): Promise<{ id: string; email: string } | NextResponse> {
   return { id: user.id, email: user.email ?? '' }
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     const row = await stored()
     const text = row.value?.trim() ? row.value : DEFAULT_SOUL
@@ -54,7 +52,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Server error' }, { status: 500 })
   }
-}
+})
 
 export async function PATCH(req: NextRequest) {
   const who = await admin()

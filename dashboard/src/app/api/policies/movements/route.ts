@@ -8,11 +8,11 @@
  *   to_bill   insurer's note read, TRS note not issued
  *   billed    TRS note issued, waiting for payment
  */
-import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { NextResponse } from 'next/server'
 import { errorResponse } from '@/lib/placement/api'
 import { sbTry } from '@/lib/crm/db'
 import type { PolicyMovement, PolicyTransaction } from '@/lib/policies/types'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,9 +26,7 @@ export type MovementBatch = {
 
 const stageOf = (m: PolicyMovement): MovementStage => (m.status === 'pending' ? 'held' : m.status === 'reported' ? 'to_send' : m.status === 'sent' ? 'insurer' : m.status === 'noted' ? 'to_bill' : 'billed')
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async () => {
   try {
     const ms = await sbTry<PolicyMovement[]>(`policy_movements?status=in.(pending,reported,sent,noted,billed)&select=*&order=created_at.asc&limit=5000`, [])
     const policyIds = [...new Set(ms.map(m => m.policy_id))], companyIds = [...new Set(ms.map(m => m.company_id))], txIds = [...new Set(ms.map(m => m.transaction_id).filter(Boolean))] as string[]
@@ -64,4 +62,4 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return errorResponse(e)
   }
-}
+})

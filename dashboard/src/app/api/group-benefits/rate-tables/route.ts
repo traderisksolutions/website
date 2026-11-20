@@ -6,11 +6,11 @@
  * The PDF lives in Drive (group-benefits/rate-tables/<YYYY-MM>/); source_pdf_url holds its ref.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { isDriveRef }                from '@/lib/storage/attachment-bytes'
 import { storeUpload }               from '@/lib/storage/drive-upload'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 const MAX     = 25 * 1024 * 1024
 
@@ -20,28 +20,18 @@ function sbH(prefer = 'return=representation') {
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
 }
 
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
-}
-
-export async function GET() {
+export const GET = withStaff(async () => {
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     const url = `${SB_URL}/rest/v1/gb_rate_tables?select=id,insurer_id,insurer_name,product_code,product_name,plan_year,effective_date,status,version,source_pdf_name,created_at,approved_at,calculator_filename,rules_status,rules_updated_at,verification:rules->verification&order=created_at.desc&limit=200`
     const res = await fetch(url, { headers: sbH(), cache: 'no-store' })
     return NextResponse.json(res.ok ? await res.json() : [])
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest, _ctx, { user }) => {
   try {
-    const user = await requireUser()
-    if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     let storageUrl: string
     let sourceName: string
 
@@ -82,4 +72,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

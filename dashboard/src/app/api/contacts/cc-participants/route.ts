@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron }        from '@/lib/api-auth'
+import { NextResponse } from 'next/server'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const TRS_DOMAIN = 'trade-risksol.com'
 
@@ -12,10 +12,7 @@ function sbHeaders() {
 
 // GET /api/contacts/cc-participants
 // Returns unique external CC'd email addresses with name + company from contacts table
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async () => {
   try {
     // 1. All distinct CC participants (external only)
     const epRes = await fetch(
@@ -71,4 +68,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

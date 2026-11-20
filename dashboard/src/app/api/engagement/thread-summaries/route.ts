@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 
 function sbHeaders() {
@@ -15,10 +15,7 @@ function sbHeaders() {
 
 // GET /api/engagement/thread-summaries?thread_id=X
 // Returns all stored AI summaries for a thread, newest first.
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   const threadId = new URL(req.url).searchParams.get('thread_id')
   if (!threadId) return NextResponse.json([])
 
@@ -33,15 +30,12 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})
 
 // PATCH /api/engagement/thread-summaries
 // Body: { id: string; draft_reply: string }
 // Saves an edited draft back to the summary row (auto-save from the draft panel).
-export async function PATCH(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const PATCH = withStaffOrCron(async (req: NextRequest) => {
   let id: string, draft_reply: string
   try {
     ;({ id, draft_reply } = await req.json())
@@ -68,4 +62,4 @@ export async function PATCH(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

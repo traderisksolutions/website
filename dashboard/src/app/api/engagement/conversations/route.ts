@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
@@ -9,6 +8,7 @@ import { SB_URL } from '@/lib/sb'
 import { personalMailboxes } from '@/lib/mail/visibility'
 import { inboxIndex, visibleRows } from '@/lib/mail/inbox-index'
 import { inboxPage, parseView, type InboxCounts } from '@/lib/mail/inbox-list'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 const TRS_DOMAIN = 'trade-risksol.com'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -67,10 +67,7 @@ async function readStatus(
   }
 }
 
-export async function GET(req: NextRequest) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
-
+export const GET = withStaffOrCron(async (req: NextRequest) => {
   try {
     const sp = req.nextUrl.searchParams
     // ?paged=1 is the Inbox (20 Nov 2026): one page of 100, newest first, out of every thread the
@@ -368,4 +365,4 @@ export async function GET(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Server error'
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

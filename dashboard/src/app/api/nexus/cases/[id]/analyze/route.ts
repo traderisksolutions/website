@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { logActivity }      from '@/lib/log-activity'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { SB_URL } from '@/lib/sb'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 300
 
 type Params = { params: Promise<{ id: string }> }
 
 // POST /api/nexus/cases/[id]/analyze — run grand analysis for a case
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   try {
     let triggeredBy: string | null = null
@@ -34,13 +32,11 @@ export async function POST(req: NextRequest, props: Params) {
     console.error('[nexus/analyze] error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})
 
 // GET /api/nexus/cases/[id]/analyze — fetch the latest stored analysis
-export async function GET(req: NextRequest, props: Params) {
+export const GET = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
@@ -56,4 +52,4 @@ export async function GET(req: NextRequest, props: Params) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+})

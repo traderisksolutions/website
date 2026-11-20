@@ -18,7 +18,7 @@
  * their access is turning the row off.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { requireStaffOrCron } from '@/lib/auth/guard'
 import { createClient } from '@/lib/supabase/server'
 import { logActivity } from '@/lib/log-activity'
 import { ALLOWED_DOMAIN } from '@/lib/auth/session'

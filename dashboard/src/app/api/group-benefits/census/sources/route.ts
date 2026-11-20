@@ -6,18 +6,15 @@
  *     company, so a renewal starts from what was set last year.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { enc, sbTry } from '@/lib/crm/db'
 import { companyKey } from '@/lib/format'
 import type { Schedule } from '@/lib/gb/current'
+import { withStaff } from '@/lib/auth/guard'
 
 type Att = { id: string; filename: string; size_bytes: number | null; created_at: string; message_id: string; thread_id: string }
 export type CensusSource = { attachment_id: string; filename: string; size: number | null; at: string; subject: string | null; thread_id: string }
 
-export async function GET(req: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+export const GET = withStaff(async (req: NextRequest) => {
   const p = new URL(req.url).searchParams
   const thread = p.get('thread'), company = p.get('company')
   let threadIds: string[] = []
@@ -69,4 +66,4 @@ export async function GET(req: NextRequest) {
     }
   }
   return NextResponse.json({ sources, documents, companyId, companyName, schedule, currentInsurer })
-}
+}, { error: 'Not authenticated' })

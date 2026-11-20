@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysisPhase3, recordFailedNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { getNexusRun, updateNexusRun } from '@/lib/nexus-run-store'
-import { requireStaffOrCron } from '@/lib/api-auth'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const maxDuration = 300 // Vercel maximum; large cases (hundreds of attachments) need it
 
@@ -11,10 +11,8 @@ type Params = { params: Promise<{ id: string }> }
 // Body: { run_id }
 // Phase 3 of 3: Gemini drafts the communication briefs, Opus re-verifies the timeline over
 // the raw corpus, post-processing/id-linking, then the final save to case_analyses.
-export async function POST(req: NextRequest, props: Params) {
+export const POST = withStaffOrCron(async (req: NextRequest, props: Params) => {
   const params = await props.params;
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
 
   const caseId = params.id
   const body = await req.json().catch(() => ({})) as { run_id?: string }
@@ -38,4 +36,4 @@ export async function POST(req: NextRequest, props: Params) {
     await recordFailedNexusAnalysis(caseId, run.triggered_by, Date.now() - new Date(run.created_at).getTime(), msg).catch(() => {})
     return NextResponse.json({ error: msg }, { status: 500 })
   }
-}
+})

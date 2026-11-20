@@ -9,15 +9,13 @@
  * Replaces reading the PDF from the old storage bucket, which no longer holds the brochures.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { driveConfigured, listSourceFiles, downloadSourceFile } from '@/lib/gb/drive'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ fileId: string }> }) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ fileId: string }> }) => {
   if (!driveConfigured()) return NextResponse.json({ error: 'The Drive folder is not configured' }, { status: 503 })
   const { fileId } = await params
   try {
@@ -35,4 +33,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ file
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not read the file' }, { status: 502 })
   }
-}
+})

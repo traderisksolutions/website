@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { resolveCompany }            from '@/lib/debit-note-commit'
 import { SB_URL } from '@/lib/sb'
+import { withStaff } from '@/lib/auth/guard'
 
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')
   return { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json', Prefer: prefer }
-}
-
-async function requireUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
 }
 
 const SELECT = 'id,first_name,last_name,email,phone,company,source,engagement_stage,created_at'
@@ -38,10 +32,8 @@ function shape(c: Record<string, unknown>) {
 //              the insurer-directory person picker (returns real contacts.id).
 //   without  → manually-added contacts (source='manual'), so they surface on the
 //              Active Contacts page (leads / conversations / CC cover the rest).
-export async function GET(req: NextRequest) {
+export const GET = withStaff(async (req: NextRequest) => {
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const q = new URL(req.url).searchParams.get('q')?.trim()
     let url: string
     if (q) {
@@ -57,7 +49,7 @@ export async function GET(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })
 
 // POST /api/contacts → { first_name?, last_name?, email?, phone?, company?, isReferral?, notes? }
 // Manually add a person to Active Contacts. All fields optional, but the contacts
@@ -66,10 +58,8 @@ export async function GET(req: NextRequest) {
 // isReferral: true also logs an inbound_leads row (source='referral') so the referral gets a
 // real, trackable lead record — status lifecycle, shows up in Pipeline — instead of just a bare
 // contacts row with no lead history (Sales Loop v2, Phase 4 / F1).
-export async function POST(req: NextRequest) {
+export const POST = withStaff(async (req: NextRequest) => {
   try {
-    if (!await requireUser()) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-
     const body = await req.json() as {
       first_name?: string; last_name?: string; email?: string; phone?: string; company?: string
       /** The company picked in the shared company field (People › Add contact); skips name resolution. */
@@ -131,4 +121,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
   }
-}
+}, { error: 'Not authenticated' })

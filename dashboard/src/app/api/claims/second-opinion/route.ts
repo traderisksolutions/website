@@ -4,9 +4,9 @@
  *      each reason the insurer gave, save the report on the intake. Staff only.
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { analyseClaim, type UploadedFile } from '@/lib/claim-review/analyse'
 import { getClaimIntake, intakeContext, listClaimIntakes, saveReport } from '@/lib/claim-review/store'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -14,16 +14,12 @@ export const maxDuration = 300
 const MAX_FILES = 8, MAX_BYTES = 4.4 * 1024 * 1024 // Vercel caps a function request body at 4.5 MB
 const TYPES = /^(application\/pdf|image\/(png|jpeg|webp|gif)|text\/plain)$/
 
-export async function GET(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const GET = withStaffOrCron(async () => {
   try { return NextResponse.json({ intakes: await listClaimIntakes() }) }
   catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : 'Could not load' }, { status: 500 }) }
-}
+})
 
-export async function POST(req: NextRequest) {
-  const deny = await requireStaffOrCron(req)
-  if (deny) return deny
+export const POST = withStaffOrCron(async (req: NextRequest) => {
   let form: FormData
   try { form = await req.formData() } catch { return NextResponse.json({ error: 'Send the files as multipart form data.' }, { status: 400 }) }
   const row = await getClaimIntake(String(form.get('intakeId') ?? ''))
@@ -48,4 +44,4 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'The review failed.' }, { status: 502 })
   }
-}
+})

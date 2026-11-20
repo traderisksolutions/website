@@ -4,16 +4,14 @@
  * is the one attached to the draft (POST /api/policies/[id]/renewal { action: 'draft' }).
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { requireStaffOrCron } from '@/lib/api-auth'
 import { buildRenewalReport } from '@/lib/policies/ledger/report'
+import { withStaffOrCron } from '@/lib/auth/guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 const UUID = /^[0-9a-f-]{36}$/i
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const unauthorized = await requireStaffOrCron(req)
-  if (unauthorized) return unauthorized
+export const GET = withStaffOrCron(async (req: NextRequest, { params }: { params: Promise<{ id: string }> }) => {
   const { id } = await params
   if (!UUID.test(id)) return NextResponse.json({ error: 'Policy id is not valid' }, { status: 400 })
   const asOf = req.nextUrl.searchParams.get('as_of')
@@ -28,4 +26,4 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
-}
+})
