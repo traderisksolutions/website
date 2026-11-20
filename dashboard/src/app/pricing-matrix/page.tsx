@@ -6,7 +6,8 @@ import { UploadCloud, Loader2, Mail } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
-import { EbRegister } from '@/components/group-benefits/EbRegister'
+import { EbQuotationRegister } from '@/components/eb/EbQuotationRegister'
+import { PageHeader } from '@/components/page-header'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
 import { shortInsurer, ON_REQUEST_PLANS } from '@/lib/gb/insurer-names'
@@ -15,7 +16,7 @@ import type { CompanyPick } from '@/components/group-benefits/hr/SendLinkDialog'
 import { VERIFICATION, verificationOf } from '@/lib/gb/verification'
 import { uploadToDrive } from '@/lib/upload-attachment'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { Segmented } from '@/components/crm/primitives'
+import { Btn, LinkBtn, Segmented } from '@/components/crm/primitives'
 import { PlanRules } from '@/components/group-benefits/PlanRules'
 
 // Parse a response as JSON, but degrade gracefully if the server returned plain text
@@ -51,6 +52,9 @@ const TAB_LABEL: Record<Tab, string> = { eb: 'Quotations', hrlinks: 'Employee li
  * an older /pricing-matrix that by then held none — no calculators, no rates, no quotes. The empty
  * one was deleted and this one took its name and address; /group-benefits redirects here.
  *
+ * Since 20 Nov 2026 the page is the Quotation register: the quotations kept from /eb (eb_quotations),
+ * each opening its proposal. The older quotations (gb_quotations) keep their /pricing-matrix/quote/<id>
+ * addresses; scripts/eb-reprice-legacy.ts re-prices them into the register on Jarod's go.
  * Since 27 Oct 2026 the Quotes tab is the register of employment-benefits policies across companies
  * (GET /api/eb/policies); "New quotation" opens a placement and lands on the company's Members tab.
  * The engine-by-hand paths below stay reachable under "By hand".
@@ -101,17 +105,11 @@ function PricingMatrix() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
     <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-      <div className="flex items-end justify-between gap-6 flex-wrap">
-        <div className="min-w-0 max-w-[640px]">
-          <h1 className="m-0 text-[36px] font-medium tracking-[-0.03em] leading-[1.08]">Employment Benefits</h1>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* One primary action: + New quotation on the register. Email insurer is secondary; Drive is on each quotation. */}
-          <button onClick={() => setEmailInsurer({ insurer: null })} className="h-9 px-4 rounded-[7px] border border-[#d5d9d4] bg-white text-[#0f1412] text-[14px] font-medium inline-flex items-center gap-2 cursor-pointer hover:bg-[#faf9f6]">
-            <Mail size={16} /> Email insurer
-          </button>
-        </div>
-      </div>
+      {/* Jarod, 20 Nov 2026: the register of quotations kept from /eb. One primary: New quotation. */}
+      <PageHeader title="Quotation register" actions={<>
+        <Btn onClick={() => setEmailInsurer({ insurer: null })}><Mail size={16} /> Email insurer</Btn>
+        <LinkBtn level="primary" href="/eb">New quotation</LinkBtn>
+      </>} />
 
       <div className="mt-8 mb-6">
         <Segmented variant="tabs" size="sm" label="Section" value={tab} onChange={setTab} options={TABS.map(t => ({ value: t, label: TAB_LABEL[t] }))} />
@@ -121,7 +119,7 @@ function PricingMatrix() {
       {tab === 'tables' && (
         <InsurersTab tables={tables} loading={loading} onUpload={() => setShowUpload(true)} onEmail={(insurer, plan) => setEmailInsurer({ insurer, plan })} />
       )}
-      {tab === 'eb' && <EbRegister newHref="/eb" />}
+      {tab === 'eb' && <EbQuotationRegister />}
       {tab === 'hrlinks' && <HrLinksTab openSend={sendFromUrl} initialCompany={hrCompany} initialEffectiveDate={params.get('start')} initialQuotationId={params.get('quote')} onDialogClosed={() => setSendFromUrl(false)} />}
 
       <InsurerEmailDialog open={!!emailInsurer} initialInsurer={emailInsurer?.insurer} initialPlan={emailInsurer?.plan} onClose={() => setEmailInsurer(null)} />

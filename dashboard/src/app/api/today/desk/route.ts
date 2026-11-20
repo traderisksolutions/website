@@ -1,8 +1,9 @@
 /**
  * Today.
- *   GET  /api/today/desk?who=<email|all>              → { rows, owners, me }
+ *   GET  /api/today/desk?who=<email|all>              → { rows, owners, me, who, projects }
  *   POST /api/today/desk { action: 'add', threads }    → puts threads on the signed-in person's list
- *   POST /api/today/desk { action: 'remove', owner, threadIds } → takes them off
+ *   POST /api/today/desk { action: 'remove', owner, threadIds } → takes them off (one thread or a whole client)
+ *   POST /api/today/desk { action: 'project', owner, threadIds, project, note } → puts threads under a project of the client (empty: under the client)
  *   POST /api/today/desk { action: 'read', owner, companyId, threadIds }            → one model read of the row
  *   POST /api/today/desk { action: 'draft', owner, companyId, threadIds, stepIds }  → drafts the ticked emails
  *   POST /api/today/desk { action: 'step', owner, companyId, threadIds, stepId, act: 'discard'|'update'|'done' } → one Read action
@@ -12,8 +13,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireStaffOrCron } from '@/lib/api-auth'
 import { currentUserEmail } from '@/lib/crm/auth'
-import { addItemsFrom } from '@/lib/today/desk'
-import { addThreads, loadDesk, removeThreads } from '@/lib/today/desk-server'
+import { addItemsFrom, projectFrom } from '@/lib/today/desk'
+import { addThreads, loadDesk, removeThreads, setProject } from '@/lib/today/desk-server'
 import { actOnStep, draftRow, readRow } from '@/lib/today/desk-read'
 import { dismissSuggestion } from '@/lib/today/learn-server'
 
@@ -32,8 +33,8 @@ export async function GET(req: NextRequest) {
   const asked = (req.nextUrl.searchParams.get('who') ?? me).toLowerCase()
   const who = asked === 'all' || STAFF.test(asked) ? asked : me
   try {
-    const { rows, owners } = await loadDesk(me, who)
-    return NextResponse.json({ rows, owners, me, who })
+    const { rows, owners, projects } = await loadDesk(me, who)
+    return NextResponse.json({ rows, owners, me, who, projects })
   } catch (e) { return err(e, 500) }
 }
 
@@ -64,6 +65,13 @@ export async function POST(req: NextRequest) {
       // Each person keeps their own list; a colleague's rows are theirs to clear.
       if (owner !== me) return err('Only the owner can take threads off their Today.', 403)
       await removeThreads(owner, threadIds)
+      return NextResponse.json({ ok: true })
+    }
+    if (b?.action === 'project') {
+      if (owner !== me) return err('Only the owner can arrange their Today.', 403)
+      const parsed = projectFrom(b)
+      if ('error' in parsed) return err(parsed.error)
+      await setProject(owner, threadIds, parsed.project, parsed.note)
       return NextResponse.json({ ok: true })
     }
     if (b?.action === 'read') return NextResponse.json({ read: await readRow(owner, companyId, threadIds, me) })

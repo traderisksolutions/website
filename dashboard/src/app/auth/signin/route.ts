@@ -6,7 +6,7 @@ import { ALLOWED_DOMAIN } from '@/lib/auth/session'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const raw = searchParams.get('next')
-  const next = raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/engagement'
+  const next = raw && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/today'
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID ?? ''
   if (!clientId) return NextResponse.redirect(`${origin}/login?error=config`)
   return NextResponse.redirect(authorizeUrl({

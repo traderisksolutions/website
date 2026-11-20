@@ -17,7 +17,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 function LoginCard() {
   const params  = useSearchParams()
   const errorKey = params.get('error')
-  const next    = params.get('next') ?? '/engagement'
+  const next    = params.get('next') ?? '/today'
   const error   = errorKey ? (ERROR_MESSAGES[errorKey] ?? 'Sign-in failed. Please try again.') : null
 
   function signInWithGoogle() {

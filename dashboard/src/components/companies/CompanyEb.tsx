@@ -1,24 +1,29 @@
 'use client'
 
 /**
- * The company's EB tab: its quotations with the premium and the analysis one click away, its
- * employee-benefits policies, and + New EB for this company. Back from the report returns here.
+ * The company's Employment Benefits tab: its quotations kept from /eb (eb_quotations, each opening
+ * its proposal), New quotation for this company (/eb?company=<id>), and its employee-benefits policies.
  */
 import Link from 'next/link'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { Empty, Spinner } from '@/components/crm/primitives'
-import { EbRegister } from '@/components/group-benefits/EbRegister'
+import { Empty, LinkBtn, Spinner } from '@/components/crm/primitives'
+import { EbQuotationRegister } from '@/components/eb/EbQuotationRegister'
 import type { PolicyView } from '@/components/policies/types'
 import { fmtDate } from '@/lib/format'
 
 const MUTED = '#4a5550', INK = '#0f1412'
 
-export function CompanyEb({ companyId, companyName, policies }: { companyId: string; companyName: string; policies: PolicyView[] | null }) {
+export function CompanyEb({ companyId, policies }: { companyId: string; companyName?: string; policies: PolicyView[] | null }) {
   const eb = (policies ?? []).filter(p => p.is_eb || /benefit|medical|hospital|\bghs\b|\bgtl\b|dental|\beb\b/i.test(`${p.class_of_insurance ?? ''} ${p.label ?? ''}`))
-  const newHref = `/pricing-matrix/new?company=${encodeURIComponent(companyName)}&companyId=${companyId}`
   return (
     <div className="flex flex-col gap-8">
-      <EbRegister company={companyName} newHref={newHref} />
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h2 className="m-0 text-[16px] font-medium">Quotations</h2>
+          <span data-same-tab><LinkBtn level="primary" href={`/eb?company=${companyId}`}>New quotation</LinkBtn></span>
+        </div>
+        <EbQuotationRegister companyId={companyId} />
+      </section>
       <section>
         <h2 className="m-0 mb-3 text-[16px] font-medium">Employment benefits policies</h2>
         {!policies ? <Spinner label="Loading…" /> : eb.length === 0 ? <Empty compact>No employee-benefits policy on file.</Empty> : (

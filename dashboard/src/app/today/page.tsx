@@ -19,7 +19,7 @@ import { timeAgo } from '@/lib/format'
 import { emailList, type DeskRow } from '@/lib/today/desk'
 
 type View = 'client' | 'email'
-type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string }
+type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string; projects?: boolean }
 const OLD_PARAMS = ['view', 'bridge', 'level', 'side']
 const firstName = (email: string) => { const f = email.split('@')[0].split(/[._]/)[0]; return f.charAt(0).toUpperCase() + f.slice(1) }
 
@@ -87,7 +87,7 @@ function TodayPage() {
               {rows.map(r => (
                 <ClientRow key={r.key} row={r} me={me} showOwner={desk.who === 'all'} open={open.has(r.key)}
                   onToggle={() => setOpen(o => { const n = new Set(o); if (n.has(r.key)) n.delete(r.key); else n.add(r.key); return n })}
-                  onChange={load} onNotice={setNotice} />
+                  onChange={load} onNotice={setNotice} projectsOn={!!desk.projects} />
               ))}
             </div>
           ) : <ByEmail emails={emails} onDone={done} />}
@@ -132,7 +132,8 @@ function ByEmail({ emails, onDone }: { emails: ReturnType<typeof emailList>; onD
                 )}
                 detail={(
                   <tr><td colSpan={6} className="!text-left !h-auto bg-trs-tint p-3">
-                    <DraftCard draft={d} startEditing onSent={to => { setEditing(null); onDone(`Sent to ${to}.`) }} onDiscarded={() => { setEditing(null); onDone('Email discarded.') }} />
+                    <DraftCard draft={d} startEditing onSent={to => { setEditing(null); onDone(`Sent to ${to}.`) }} onDiscarded={() => { setEditing(null); onDone('Email discarded.') }}
+                      onSaved={onDone} onRedone={m => { setEditing(null); onDone(m) }} />
                   </td></tr>
                 )} />
             ))}

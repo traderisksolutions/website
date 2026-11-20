@@ -41,10 +41,11 @@ export const PLACES: Place[] = [
     { title: 'Admin desk', href: '/companies/portfolio/desk' },
   ] },
   // Jarod, 19 Nov 2026: one home for Employment Benefits. The register of quotations moved here
-  // from Quotes, which no longer carries it.
+  // from Quotes, which no longer carries it. 20 Nov 2026: New quotation · Quotation register
+  // (eb_quotations, at the old /pricing-matrix address) · Brochures.
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
-    { title: 'Quotation', href: '/eb' },
-    { title: 'Quotations', href: '/pricing-matrix' },
+    { title: 'New quotation', href: '/eb' },
+    { title: 'Quotation register', href: '/pricing-matrix' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [

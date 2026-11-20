@@ -85,7 +85,7 @@ export function TopNavbar() {
           </SheetContent>
         </Sheet>
 
-        <Link href="/" className="flex items-baseline gap-2 flex-shrink-0 no-underline hover:opacity-80 transition-opacity mr-3" aria-label="Trade Risk Solutions home">
+        <Link href="/today" className="flex items-baseline gap-2 flex-shrink-0 no-underline hover:opacity-80 transition-opacity mr-3" aria-label="Trade Risk Solutions home">
           <span className="trs-mark-t">TRS</span><span className="trs-mark-c" lang="zh-Hans">保风</span>
         </Link>
 

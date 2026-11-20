@@ -4,6 +4,37 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Today is the home page; Employment Benefits Quotation register
+
+- Home is retired (Jarod, 20 Nov 2026). `/` redirects to `/today`; the logo, sign-in and the login page's default all land on Today. The Home map, its To do list, mail list and canvas (`src/components/home/` except `Board.tsx`) and `/api/today/home` are deleted. `/today/queue` and `/board` stay.
+- Employment Benefits tabs are New quotation (`/eb`), Quotation register (`/pricing-matrix`) and Brochures.
+- The Quotation register reads `eb_quotations`: Company, Effective date, Basis, Products, Version, Status (Draft, or Proposal sent with the day), Updated. A row opens its proposal (`/eb/proposal/<id>`). New quotation is the one primary. `GET /api/eb/quotations` without `company` lists every quotation, newest first, up to 500.
+- The company page's Employment Benefits tab lists that company's `eb_quotations`; New quotation opens `/eb?company=<id>` with the company filled.
+- The older quotations (`gb_quotations`) keep their `/pricing-matrix/quote/<id>/…` addresses. `scripts/eb-reprice-legacy.ts` re-prices them through the /eb builder into `eb_quotations` (dry run by default; `--apply` needs `20261120_eb_quotations_legacy.sql`). Neither the migration nor `--apply` has run.
+- Fix: a census without a category column kept its lives out of the proposal's census (`snapshotFrom` filtered on "Default", the categories are named "All employees"). Both now use `categoryName`.
+
+## 2026-11-20 — Today: find every thread, projects, files, save and redo
+
+- Add email threads also searches participant names and the text of every email, and lists everyone on each thread (Name <email>, +N). Up to 200 rows.
+- An open client row: Remove per thread (asked in place), Set project per thread (new migration `20261120_today_thread_project.sql`, not applied; hidden until it is), threads and emails grouped by project.
+- Email cards: Save (Updated with the time), Discard and redo (one model call; old draft rejected, figures checked), files from the client's threads, from the computer or dropped on the card, Open thread.
+- Folded row: per side whom, project and to-do; blank when nothing waits. Current annual premium on the row when on file.
+
+## 2026-11-19 — Add email threads searches every email in a thread
+
+- A search asks the server, which answers only matching threads from all of them: every word, in any order, in the thread's subject, title, snippet or company, or in any email inside it (subject, sender) or the address of anyone on it. Each result shows the email that matched (`match`), so "Jiaqing" or "Chubb Deluge" finds the thread titled "Awfa — travel insurance quotation".
+
+## 2026-11-19 — operations@: sent mail, every page, read-back
+
+- operations@ now reads its sent mail as well as its inbox, as the personal mailboxes do: the Gmail watch covers INBOX and SENT (from the next daily renewal), the history read keeps both and reads every page, and the fallback reads the last 3 days of both instead of the 25 newest inbox messages.
+- The daily catch-up (`/api/email/ingest?window=1440`) reads every inbox and sent message of the day, not the first 50, ten at a time.
+- `/api/email/ingest?mailbox=operations@trade-risksol.com&days=365` reads operations@ back page by page; `scripts/mailbox-readback.sh` loops it (run by Jarod with his own CRON_SECRET).
+
+## 2026-11-19 — Add email threads searches the email subject
+
+- Today › Add email threads and Policies › Add from emails match the email's own subject as well as the dashboard's title for it, so a word in the subject finds the thread when the title was rewritten.
+- A search of two or more characters also asks `/api/engagement/conversations?q=` for matching threads past the newest 200 (subject, title or snippet), so older threads come back too.
+
 ## 2026-11-19 — Top bar: Today trimmed, Employment Benefits in one place
 
 - Today shows no count beside it, for every account (the `/api/today/count` read is gone from the top bar).

@@ -7,6 +7,7 @@ import { site } from "@/site";
 export const revalidate = 300;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  if (site.holding) return [];
   const paths = [
     "", "/coverage", "/insights", "/industries", "/appetite", "/how-we-work", "/claims", "/about", "/contact", "/complaints", "/privacy",
     ...LINES.map(l => `/coverage/${l.slug}`),

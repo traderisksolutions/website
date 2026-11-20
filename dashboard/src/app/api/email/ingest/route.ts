@@ -266,62 +266,58 @@ async function saveHistoryId(historyId: string) {
   })
 }
 
-// Fetch all INBOX message IDs received in the last N minutes using Gmail search.
-// Used by the manual Refresh button — does not depend on historyId being valid.
+// Every inbox and sent message of the last N minutes, all pages (the daily catch-up and the
+// Refresh button). Does not depend on historyId being valid.
 async function getRecentMessageIds(token: string, sinceMinutes: number): Promise<string[]> {
   const afterEpoch = Math.floor((Date.now() - sinceMinutes * 60_000) / 1000)
-  console.log('[ingest] pulling INBOX emails since', sinceMinutes, 'minutes ago')
-  const res  = await fetch(
-    `${GMAIL_API}/messages?labelIds=INBOX&q=after:${afterEpoch}&maxResults=50`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  )
-  const data = res.ok ? await res.json() : {}
-  const ids: string[] = (data.messages ?? []).map((m: { id: string }) => m.id)
-  console.log('[ingest] recent pull found', ids.length, 'message(s)')
+  const ids: string[] = []
+  let page: string | undefined
+  do {
+    const r = await listSince(token, afterEpoch, page)
+    ids.push(...r.ids)
+    page = r.next ?? undefined
+  } while (page && ids.length < 2000)
+  console.log('[ingest] recent pull found', ids.length, 'message(s) in inbox and sent')
   return ids
 }
 
-// Use Gmail History API to get only new message IDs since the last historyId.
-// Falls back to fetching the 25 most recent INBOX messages if history is unavailable.
+// Use Gmail History API to get only new message IDs since the last historyId: inbox and sent,
+// every page. Falls back to the last 3 days of inbox and sent mail if history is unavailable.
 async function getNewMessageIds(token: string): Promise<string[]> {
   const storedId = await getStoredHistoryId()
 
-  // If we have a valid stored ID, use the History API — processes only new messages
   if (storedId !== '0') {
-    const histRes = await fetch(
-      `${GMAIL_API}/history?startHistoryId=${storedId}&labelId=INBOX`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    )
-    if (histRes.ok) {
-      const histData = await histRes.json()
-      const ids = new Set<string>()
+    const ids = new Set<string>()
+    let page: string | undefined, ok = true
+    do {
+      const histRes = await fetch(
+        `${GMAIL_API}/history?startHistoryId=${storedId}&historyTypes=messageAdded&historyTypes=labelAdded${page ? `&pageToken=${page}` : ''}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!histRes.ok) { ok = false; break }
+      const histData = await histRes.json() as { history?: { messagesAdded?: { message?: { id?: string; labelIds?: string[] } }[]; labelsAdded?: { message?: { id?: string }; labelIds?: string[] }[] }[]; nextPageToken?: string }
       for (const record of histData.history ?? []) {
         for (const added of record.messagesAdded ?? []) {
-          if (added.message?.id) ids.add(added.message.id)
+          const l = added.message?.labelIds ?? []
+          if (added.message?.id && (l.includes('INBOX') || l.includes('SENT')) && !l.includes('SPAM') && !l.includes('DRAFT')) ids.add(added.message.id)
         }
         // Also catch messages that had INBOX label added (forwarded/moved emails)
         for (const labeled of record.labelsAdded ?? []) {
-          if (labeled.labelIds?.includes('INBOX') && labeled.message?.id) {
-            ids.add(labeled.message.id)
-          }
+          if (labeled.labelIds?.includes('INBOX') && labeled.message?.id) ids.add(labeled.message.id)
         }
       }
-      if (ids.size > 0) {
-        console.log('[ingest] history API: found', ids.size, 'new message(s)')
-        return Array.from(ids)
-      }
-      console.log('[ingest] history API returned 0 new messages — using INBOX fallback')
+      page = histData.nextPageToken
+    } while (page)
+    if (ok && ids.size > 0) {
+      console.log('[ingest] history API: found', ids.size, 'new message(s)')
+      return Array.from(ids)
     }
+    if (ok) console.log('[ingest] history API returned 0 new messages — using recent fallback')
   }
 
-  // Fallback: fetch recent INBOX messages (used on first run or if history is stale)
-  console.log('[ingest] fallback: fetching recent INBOX messages')
-  const listRes = await fetch(
-    `${GMAIL_API}/messages?labelIds=INBOX&maxResults=25`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  )
-  const listData = listRes.ok ? await listRes.json() : {}
-  return (listData.messages ?? []).map((m: { id: string }) => m.id)
+  // Fallback (first run, or history stale): the last 3 days of inbox and sent mail.
+  console.log('[ingest] fallback: fetching recent inbox and sent messages')
+  return (await listSince(token, Math.floor(Date.now() / 1000) - 3 * 86_400)).ids
 }
 
 // A recipient asking to stop hearing from us, in whatever words they use — checked against
@@ -938,11 +934,12 @@ export async function GET(req: NextRequest) {
   // sent mail since then; call again with the returned next page until it is null.
   const mailbox = (req.nextUrl.searchParams.get('mailbox') ?? '').toLowerCase()
   if (mailbox) {
-    const m = await getMailbox(mailbox)
-    if (!m || m.status !== 'active') return NextResponse.json({ error: 'Mailbox not connected' }, { status: 404 })
+    // operations@ reads with the shared token, not a connected-mailbox row.
+    const m = mailbox === OPERATIONS_MAILBOX ? null : await getMailbox(mailbox)
+    if (mailbox !== OPERATIONS_MAILBOX && (!m || m.status !== 'active')) return NextResponse.json({ error: 'Mailbox not connected' }, { status: 404 })
     try {
       const days = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('days') ?? '90', 10) || 90, 1), 365)
-      const token = await accessTokenFor(m)
+      const token = m ? await accessTokenFor(m) : await getAccessToken()
       const size = Math.min(Math.max(parseInt(req.nextUrl.searchParams.get('size') ?? '100', 10) || 100, 1), 100)
       const pageToken = req.nextUrl.searchParams.get('page') ?? undefined
       const page = await listSince(token, Math.floor(Date.now() / 1000) - days * 86_400, pageToken, size)
@@ -967,7 +964,12 @@ export async function GET(req: NextRequest) {
       ? await getRecentMessageIds(token, windowMinutes)
       : await getNewMessageIds(token)
     console.log('[ingest:manual] processing', messageIds.length, 'message(s)')
-    const results = await Promise.allSettled(messageIds.map(id => ingestMessage(token, id, origin)))
+    // Ten at a time, stopping short of the 300 s limit; stored messages dedupe on the next run.
+    const results: PromiseSettledResult<string>[] = []
+    const started = Date.now()
+    for (let i = 0; i < messageIds.length && Date.now() - started < 240_000; i += 10) {
+      results.push(...await Promise.allSettled(messageIds.slice(i, i + 10).map(id => ingestMessage(token, id, origin))))
+    }
 
     // Group by outcome. "succeeded" used to mean the promise resolved, which it did even when
     // the message was discarded — so the endpoint reported success while storing nothing.
@@ -977,7 +979,7 @@ export async function GET(req: NextRequest) {
       outcomes[key] = (outcomes[key] ?? 0) + 1
     }
     const stored = outcomes['stored'] ?? 0
-    return NextResponse.json({ ok: true, processed: messageIds.length, stored, outcomes })
+    return NextResponse.json({ ok: true, listed: messageIds.length, processed: results.length, stored, outcomes })
   } catch (e) {
     console.error('[ingest:manual] FATAL:', e)
     return NextResponse.json({ error: String(e) }, { status: 500 })

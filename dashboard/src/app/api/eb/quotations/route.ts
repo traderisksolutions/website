@@ -3,6 +3,7 @@
  *
  * POST { snapshot, company_id?, thread_id? } → { id }   keeps the quotation as /eb shows it
  * GET  ?company=<id> → { quotations }                    a company's quotations, newest first
+ * GET               → { quotations }                    every quotation, newest first, up to 500 (no snapshot)
  *
  * A person only; no model is called.
  */
@@ -10,7 +11,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { errorResponse, fail, gate, isUuid, readBody } from '@/lib/placement/api'
 import { readSnapshot, proposalModel } from '@/lib/gb/eb-proposal'
-import { listForCompany, saveQuotation } from '@/lib/gb/eb-proposal-store'
+import { listAll, listForCompany, saveQuotation } from '@/lib/gb/eb-proposal-store'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -36,12 +37,15 @@ export async function GET(req: NextRequest) {
   const { unauthorized } = await gate(req)
   if (unauthorized) return unauthorized
   const company = req.nextUrl.searchParams.get('company')
+  if (company === null) {
+    try { return NextResponse.json({ quotations: await listAll(500) }) } catch (e) { return errorResponse(e) }
+  }
   if (!isUuid(company)) return fail('company must be an id')
   try {
     const rows = await listForCompany(company)
     return NextResponse.json({ quotations: rows.map(q => {
       const m = proposalModel(q.snapshot)
-      return { id: q.id, version: q.version, created_at: q.created_at, created_by: q.created_by, sent_at: q.sent_at, sent_to: q.sent_to, sent_by: q.sent_by,
+      return { id: q.id, company_id: q.company_id, company_name: q.company_name, basis: q.basis, updated_at: q.updated_at, version: q.version, created_at: q.created_at, created_by: q.created_by, sent_at: q.sent_at, sent_to: q.sent_to, sent_by: q.sent_by,
         effective_date: q.effective_date, products: m.products, totals: m.totals, lowest: m.lowest, lives: m.lives, period: m.period, thread_id: q.thread_id }
     }) })
   } catch (e) {

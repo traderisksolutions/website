@@ -93,6 +93,78 @@ export async function GET(req: NextRequest) {
       const rows: ThreadRow[] = one.ok ? await one.json() : []
       if (Array.isArray(rows) && rows[0]) threads.push(rows[0])
     }
+    // ?q=<words> answers only the threads that match, from all of them, not the newest 200: every
+    // word in the thread's subject, title, snippet or company, or in an email inside it (subject,
+    // sender) or the address or name of anyone on it (as written on the email, or the contact's
+    // name). Each carries `match`, the email that matched, so "Chubb" finds a thread titled
+    // "Awfa — travel insurance". &body=1 also reads the text of every email (a scan of all bodies,
+    // a few seconds; Today › Add email threads asks for it, the Inbox does not).
+    const q = (req.nextUrl.searchParams.get('q') ?? '').replace(/[^\p{L}\p{N}\s&@.\-']/gu, ' ').trim().slice(0, 80)
+    const words = q.toLowerCase().split(/\s+/).filter(w => w.length >= 2)
+    const matchBy = new Map<string, string>()
+    const bodyOf = new Map<string, string>()
+    if (words.length) {
+      const pat = encodeURIComponent(`*${[...words].sort((x, y) => y.length - x.length)[0]}*`)
+      const cols = 'id,subject,display_subject,snippet,last_message_at,contact_id,campaign_context,category,company_id,companies(id,name:company_name,owner_email,kind)'
+      const get = async <T,>(path: string): Promise<T[]> => {
+        const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbHeaders(), cache: 'no-store' })
+        const j = r.ok ? await r.json() : []
+        return Array.isArray(j) ? j : []
+      }
+      const deep = req.nextUrl.searchParams.get('body') === '1'
+      type Contact = { id: string; email: string | null; first_name: string | null; last_name: string | null }
+      const [byThread, byMessage, byPerson, byCompany, byContact, byBody] = await Promise.all([
+        get<ThreadRow>(`email_threads?or=(subject.ilike.${pat},display_subject.ilike.${pat},snippet.ilike.${pat})&select=${cols}&deleted_at=is.null&order=last_message_at.desc&limit=100`),
+        get<{ thread_id: string; subject: string | null; from_address: string | null }>(`email_messages?or=(subject.ilike.${pat},from_address.ilike.${pat})&deleted_at=is.null&select=thread_id,subject,from_address&order=sent_at.desc&limit=300`),
+        get<{ thread_id: string; email: string; name: string | null }>(`email_participants?or=(email.ilike.${pat},name.ilike.${pat})&select=thread_id,email,name&limit=400`),
+        get<{ id: string }>(`companies?company_name=ilike.${pat}&select=id&limit=20`),
+        get<Contact>(`contacts?or=(first_name.ilike.${pat},last_name.ilike.${pat})&select=id,email,first_name,last_name&limit=60`),
+        // Bodies have no text index: no ordering, so the scan stops at the 200th match.
+        deep ? get<{ thread_id: string; from_address: string | null; body_text: string | null }>(`email_messages?body_text=ilike.${pat}&deleted_at=is.null&select=thread_id,from_address,body_text&limit=200`) : Promise.resolve([]),
+      ])
+      // A contact found by name: the threads they are on (as a participant, or the thread's contact).
+      const contactName = (c: Contact) => [c.first_name, c.last_name].filter(Boolean).join(' ')
+      const named = byContact.filter(c => c.email)
+      const [contactParts, contactThreads] = named.length || byContact.length ? await Promise.all([
+        named.length ? get<{ thread_id: string; email: string }>(`email_participants?email=in.(${named.map(c => `"${encodeURIComponent(String(c.email).toLowerCase())}"`).join(',')})&select=thread_id,email&limit=400`) : Promise.resolve([]),
+        get<{ id: string; contact_id: string }>(`email_threads?contact_id=in.(${byContact.map(c => c.id).join(',')})&deleted_at=is.null&select=id,contact_id&limit=200`),
+      ]) : [[], []]
+      // Every matching email's text per thread, to test the other words against.
+      const said = new Map<string, string[]>()
+      const sayOn = (id: string | null | undefined, line: string) => { if (id && line) said.set(id, [...(said.get(id) ?? []), line]) }
+      for (const m of byMessage) sayOn(m.thread_id, [m.from_address, m.subject].filter(Boolean).join(' · '))
+      for (const p of byPerson) sayOn(p.thread_id, p.name ? `${p.name} <${p.email}>` : p.email)
+      const contactByEmail = new Map(named.map(c => [String(c.email).toLowerCase(), c]))
+      for (const p of contactParts) { const c = contactByEmail.get(String(p.email).toLowerCase()); if (c) sayOn(p.thread_id, `${contactName(c)} <${p.email}>`) }
+      const contactById = new Map(byContact.map(c => [c.id, c]))
+      for (const t of contactThreads) { const c = contactById.get(t.contact_id); if (c) sayOn(t.id, `${contactName(c)}${c.email ? ` <${c.email}>` : ''}`) }
+      // A body match: the words are tested against the whole email; the line shown is the passage around the first word.
+      for (const m of byBody) {
+        const text = String(m.body_text ?? '').replace(/\s+/g, ' ')
+        const at = text.toLowerCase().indexOf(words[0])
+        const passage = `${at > 40 ? '…' : ''}${text.slice(Math.max(0, at - 40), Math.max(0, at - 40) + 140).trim()}…`
+        sayOn(m.thread_id, `${m.from_address ?? ''} · ${passage}`)
+        bodyOf.set(m.thread_id, `${bodyOf.get(m.thread_id) ?? ''} ${text.slice(0, 20_000)}`)
+      }
+      const hits = new Map(byThread.map(r => [r.id, r]))
+      const have = new Map(threads.map(t => [t.id, t]))
+      const want = [...said.keys()].filter(id => !hits.has(id) && UUID.test(id))
+      for (const id of want) if (have.has(id)) hits.set(id, have.get(id)!)
+      const fetchIds = want.filter(id => !hits.has(id)).slice(0, 300)
+      for (let i = 0; i < fetchIds.length; i += 50) for (const r of await get<ThreadRow>(`email_threads?id=in.(${fetchIds.slice(i, i + 50).join(',')})&select=${cols}&deleted_at=is.null`)) hits.set(r.id, r)
+      if (byCompany.length) for (const r of await get<ThreadRow>(`email_threads?company_id=in.(${byCompany.map(c => c.id).join(',')})&select=${cols}&deleted_at=is.null&order=last_message_at.desc&limit=100`)) if (!hits.has(r.id)) hits.set(r.id, r)
+      threads = [...hits.values()].filter(t => {
+        const text = [t.subject, t.display_subject, t.snippet, t.companies?.name, ...(said.get(t.id) ?? []), bodyOf.get(t.id)].filter(Boolean).join(' ').toLowerCase()
+        return words.every(w => text.includes(w))
+      }).sort((x, y) => String(y.last_message_at).localeCompare(String(x.last_message_at)))
+      // The deep search can match hundreds of threads (a name in every signature): the newest 200 are read.
+      if (deep) threads = threads.slice(0, 200)
+      for (const t of threads) {
+        const lines = said.get(t.id) ?? []
+        const best = lines.find(l => words.every(w => l.toLowerCase().includes(w))) ?? lines.find(l => l.toLowerCase().includes(words[0])) ?? lines[0]
+        if (best) matchBy.set(t.id, best)
+      }
+    }
     // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
     const viewer = await currentUserEmail()
     const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
@@ -162,6 +234,35 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // 3b. ?people=1: everyone on each thread, by name where the email or a contact gives one
+    //     (Today › Add email threads shows them on each row). Outside TRS first.
+    const people = new Map<string, { name: string | null; email: string }[]>()
+    if (req.nextUrl.searchParams.get('people') === '1' && allThreadIds.length) {
+      const parts: { thread_id: string; email: string | null; name: string | null }[] = []
+      for (let i = 0; i < allThreadIds.length; i += 100) {
+        const r = await fetch(`${SB_URL}/rest/v1/email_participants?thread_id=in.(${allThreadIds.slice(i, i + 100).join(',')})&select=thread_id,email,name&limit=5000`, { headers: sbHeaders(), cache: 'no-store' })
+        const j = r.ok ? await r.json() : []
+        if (Array.isArray(j)) parts.push(...j)
+      }
+      const emails = Array.from(new Set(parts.map(p => String(p.email ?? '').toLowerCase()).filter(e => e.includes('@'))))
+      const known = new Map<string, string>()
+      for (let i = 0; i < emails.length; i += 100) {
+        const r = await fetch(`${SB_URL}/rest/v1/contacts?email=in.(${emails.slice(i, i + 100).map(e => `"${encodeURIComponent(e)}"`).join(',')})&select=email,first_name,last_name`, { headers: sbHeaders(), cache: 'no-store' })
+        const j = r.ok ? await r.json() : []
+        for (const c of (Array.isArray(j) ? j : []) as ContactRow[]) { const n = [c.first_name, c.last_name].filter(Boolean).join(' ').trim(); if (c.email && n) known.set(c.email.toLowerCase(), n) }
+      }
+      for (const p of parts) {
+        const email = String(p.email ?? '').trim().toLowerCase()
+        if (!email.includes('@') || isAutomated(email)) continue
+        const list = people.get(p.thread_id) ?? []
+        const name = (p.name ?? '').replace(/["']/g, '').trim() || known.get(email) || null
+        const cur = list.find(x => x.email === email)
+        if (!cur) list.push({ name, email }); else if (!cur.name && name) cur.name = name
+        people.set(p.thread_id, list)
+      }
+      for (const list of people.values()) list.sort((a, b) => Number(isInternal(a.email)) - Number(isInternal(b.email)))
+    }
+
     // 4. Shape one entry per thread
     const result = threads.flatMap(t => {
       const contact = t.contact_id ? contactMap.get(t.contact_id) : null
@@ -199,6 +300,8 @@ export async function GET(req: NextRequest) {
         subject:          t.subject,
         display_subject:  t.display_subject ?? null,
         snippet:          t.snippet,
+        match:            matchBy.get(t.id) ?? null,
+        participants:     people.get(t.id)?.slice(0, 40) ?? undefined,
         first_name:       contact?.first_name ?? (internalOnly ? 'Trade Risk Solutions' : null),
         last_name:        contact?.last_name  ?? null,
         email,

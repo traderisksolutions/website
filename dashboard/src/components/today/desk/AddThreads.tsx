@@ -8,17 +8,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
-import { Btn, Spinner, inputCls } from '@/components/crm/primitives'
+import { Btn, InlineSpinner, Spinner, inputCls } from '@/components/crm/primitives'
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { callApi, errText } from '@/components/placement/shared'
 import { fmtDay } from '@/lib/format'
-import type { DeskSide } from '@/lib/today/desk'
+import { participantsLine, type DeskSide, type Participant } from '@/lib/today/desk'
 import type { Suggestion } from '@/lib/today/learn-server'
 
-type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null }
+type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[] }
 type Pick = { side: DeskSide; client: CompanyPick }
 
 const subjectOf = (c: Conv) => c.display_subject || c.subject || '(no subject)'
+/** Every word of the search, in any order. */
+const hasWords = (xs: (string | null | undefined)[], t: string) => { const text = xs.filter(Boolean).join(' ').toLowerCase(); return t.split(/\s+/).every(w => text.includes(w)) }
 const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || 'Unknown sender'
 const selCls = 'h-9 rounded-[8px] border border-trs-line-2 bg-white px-2 text-[13.5px] text-trs-ink'
 
@@ -46,17 +48,36 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [addedHere, setAddedHere] = useState(0)
 
   useEffect(() => { void (async () => {
-    const r = await fetch('/api/engagement/conversations', { cache: 'no-store' })
+    const r = await fetch('/api/engagement/conversations?people=1', { cache: 'no-store' })
     const j = await r.json().catch(() => [])
     setConvs(Array.isArray(j) ? j : [])
   })() }, [])
+  // The server's search of every thread and every email in it, fetched once typing pauses.
+  // Names, every address and the text of every email are searched (body=1: a few seconds).
+  const [found, setFound] = useState<Conv[]>([])
+  const [searching, setSearching] = useState(false)
+  useEffect(() => {
+    const t = q.trim()
+    if (t.length < 2) { setFound([]); setSearching(false); return }
+    const ctl = new AbortController()
+    const timer = setTimeout(() => {
+      setSearching(true)
+      fetch(`/api/engagement/conversations?q=${encodeURIComponent(t)}&body=1&people=1`, { cache: 'no-store', signal: ctl.signal })
+        .then(r => r.json()).then(j => { setFound(Array.isArray(j) ? j : []); setSearching(false) }).catch(() => {})
+    }, 350)
+    return () => { clearTimeout(timer); ctl.abort() }
+  }, [q])
 
   const nameOf = useMemo(() => new Map((convs ?? []).filter(c => c.companyId && c.companyName).map(c => [c.companyId!, c.companyName!])), [convs])
   const shown = useMemo(() => {
     const t = q.trim().toLowerCase()
-    return (convs ?? []).filter(c => !taken.has(c.thread_id))
-      .filter(c => !t || [subjectOf(c), senderOf(c), c.email, c.companyName, c.snippet].filter(Boolean).join(' ').toLowerCase().includes(t)).slice(0, 80)
-  }, [convs, q, taken])
+    // The server's matches first (they carry the email that matched), then the newest threads.
+    const seen = new Set(found.map(c => c.thread_id))
+    const all = [...found, ...(convs ?? []).filter(c => !seen.has(c.thread_id))]
+      .sort((a, b) => String(b.last_message_at ?? b.created_at).localeCompare(String(a.last_message_at ?? a.created_at)))
+    return all.filter(c => !taken.has(c.thread_id))
+      .filter(c => !t || seen.has(c.thread_id) || hasWords([subjectOf(c), c.subject, senderOf(c), c.email, c.companyName, c.snippet, ...(c.participants ?? []).flatMap(p => [p.name, p.email])], t)).slice(0, 200)
+  }, [convs, found, q, taken])
 
   function toggle(c: Conv) {
     setPicked(p => {
@@ -114,7 +135,8 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
               </div>
             </section>
           )}
-          <input type="search" aria-label="Search threads" placeholder="Search subject, sender or company" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          <input type="search" aria-label="Search threads" placeholder="Search subject, people, company or email text" value={q} onChange={e => setQ(e.target.value)} className={inputCls} autoFocus />
+          {searching && <InlineSpinner label="Searching every email…" />}
           <div className="min-h-0 flex-1 overflow-auto rounded-[10px] border border-trs-line-2">
             {!convs ? <Spinner label="Loading threads…" /> : shown.length === 0 ? <p className="m-0 p-6 text-center text-[13.5px] text-trs-muted">No threads match.</p> : (
               <table className="trs-table min-w-[760px]">
@@ -128,6 +150,8 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-[12px] text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
+                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-[12px] text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
+                          {c.match && q.trim() && <div className="text-[12px] text-trs-subtle">Matched: {c.match}</div>}
                         </td>
                         <td className="font-mono text-[12px] text-trs-muted">{fmtDay(c.last_message_at ?? c.created_at)}</td>
                         <td className="!text-left">{p ? <CompanyField label="" value={p.client} onChange={v => set(c.thread_id, x => ({ ...x, client: v }))} listId={`client-${c.thread_id}`} /> : <span className="text-[12.5px] text-trs-subtle">{c.companyKind === 'insurer' ? '' : c.companyName ?? ''}</span>}</td>

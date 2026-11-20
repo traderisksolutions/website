@@ -3,7 +3,7 @@
  * model is called.
  *
  *   saveQuotation(s, meta, actor)   keeps a quotation from /eb, with the benefit rows of its plans
- *   loadQuotation(id) / listForCompany(companyId)
+ *   loadQuotation(id) / listForCompany(companyId) / listAll()
  *   keepProposalPdf(q, actor)       renders the PDF and keeps it in the Shared Drive
  *   ensureDraft(q, actor)           the email draft on the client thread, the PDF attached
  *   markSent(q, actor, to)          the proposal went: the row, the Working on line and the log
@@ -21,9 +21,9 @@ type Row = Record<string, any>
 export type EbQuotationRow = {
   id: string; company_id: string | null; company_name: string; thread_id: string | null; effective_date: string | null; basis: string | null
   products: string[]; snapshot: Snapshot; version: number; proposal_ref: string | null; proposal_name: string | null; draft_id: string | null
-  sent_at: string | null; sent_by: string | null; sent_to: string | null; created_by: string | null; created_at: string
+  sent_at: string | null; sent_by: string | null; sent_to: string | null; created_by: string | null; created_at: string; updated_at: string | null
 }
-const COLS = 'id,company_id,company_name,thread_id,effective_date,basis,products,snapshot,version,proposal_ref,proposal_name,draft_id,sent_at,sent_by,sent_to,created_by,created_at'
+const COLS = 'id,company_id,company_name,thread_id,effective_date,basis,products,snapshot,version,proposal_ref,proposal_name,draft_id,sent_at,sent_by,sent_to,created_by,created_at,updated_at'
 const EB_LINES = ['employee_benefits', 'group_health']
 
 /** Benefit rows of the chosen plans, per category, from the house workbook. */
@@ -71,6 +71,15 @@ export async function loadQuotation(id: string): Promise<EbQuotationRow | null> 
 
 export async function listForCompany(companyId: string): Promise<EbQuotationRow[]> {
   return sbTry<EbQuotationRow[]>(`eb_quotations?company_id=eq.${enc(companyId)}&select=${COLS}&order=created_at.desc&limit=20`, [])
+}
+
+/** One register row: the quotation without its snapshot. */
+export type EbRegisterRow = Pick<EbQuotationRow, 'id' | 'company_id' | 'company_name' | 'effective_date' | 'basis' | 'products' | 'version' | 'sent_at' | 'sent_to' | 'created_at' | 'updated_at'>
+const REGISTER_COLS = 'id,company_id,company_name,effective_date,basis,products,version,sent_at,sent_to,created_at,updated_at'
+
+/** Every quotation, newest first, without the snapshots (the Quotation register). */
+export async function listAll(limit = 500): Promise<EbRegisterRow[]> {
+  return sb<EbRegisterRow[]>(`eb_quotations?select=${REGISTER_COLS}&order=created_at.desc&limit=${Math.min(Math.max(1, limit), 500)}`)
 }
 
 const today = () => new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10)
