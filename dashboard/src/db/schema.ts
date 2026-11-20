@@ -848,7 +848,7 @@ export const companyFacts = pgTable("company_facts", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
 	index("company_facts_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")).where(sql`(superseded_by IS NULL)`),
-	index("company_facts_group_idx").using("btree", table.groupId.asc().nullsLast().op("uuid_ops"), table.topic.asc().nullsLast().op("uuid_ops")).where(sql`(superseded_by IS NULL)`),
+	index("company_facts_group_idx").using("btree", table.groupId.asc().nullsLast().op("text_ops"), table.topic.asc().nullsLast().op("text_ops")).where(sql`(superseded_by IS NULL)`),
 	uniqueIndex("company_facts_once").using("btree", sql`company_id`, sql`key`, sql`value`, sql`COALESCE(source_id, ''::text)`),
 	foreignKey({
 			columns: [table.companyId],
@@ -3819,7 +3819,7 @@ export const placementQuotes = pgTable("placement_quotes", {
 	readBy: text("read_by"),
 }, (table): PgTableExtraConfigValue[] => [
 	uniqueIndex("placement_quotes_capture_key").using("btree", sql`COALESCE(source_document_id, source_message_id)`, sql`insurer_name`, sql`COALESCE(product_line, ''::text)`, sql`COALESCE(tier_label, ''::text)`).where(sql`((dispatch_id IS NULL) AND (source_message_id IS NOT NULL))`),
-	index("placement_quotes_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")).where(sql`(company_id IS NOT NULL)`),
+	index("placement_quotes_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("uuid_ops")).where(sql`(company_id IS NOT NULL)`),
 	index("placement_quotes_dispatch_idx").using("btree", table.dispatchId.asc().nullsLast().op("uuid_ops")),
 	index("placement_quotes_insurer_company_idx").using("btree", table.insurerCompanyId.asc().nullsLast().op("uuid_ops")).where(sql`(insurer_company_id IS NOT NULL)`),
 	index("placement_quotes_line_idx").using("btree", table.lineId.asc().nullsLast().op("uuid_ops")),
@@ -4298,11 +4298,18 @@ export const pmBenefitTerms = pgTable("pm_benefit_terms", {
 		}).onDelete("set null"),
 ]);
 
-export const policyLines = pgTable("policy_lines", {
-	code: text().primaryKey().notNull(),
-	name: text().notNull(),
-	sort: integer().default(0).notNull(),
-});
+export const policyLineAliases = pgTable("policy_line_aliases", {
+	spelling: text().primaryKey().notNull(),
+	lineCode: text("line_code").notNull(),
+	confirmedBy: text("confirmed_by"),
+	confirmedAt: timestamp("confirmed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.lineCode],
+			foreignColumns: [policyLines.code],
+			name: "policy_line_aliases_line_code_fkey"
+		}),
+]);
 
 export const policyPositionWeekly = pgTable("policy_position_weekly", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -4339,24 +4346,6 @@ export const ragThreadDrafts = pgTable("rag_thread_drafts", {
 	content: text().notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 });
-
-export const ragDraftSources = pgTable("rag_draft_sources", {
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	id: bigint({ mode: "number" }).primaryKey().notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	draftId: bigint("draft_id", { mode: "number" }),
-	fileId: text("file_id"),
-	fileName: text("file_name"),
-	chunkIndex: integer("chunk_index"),
-	similarity: doublePrecision(),
-	content: text(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.draftId],
-			foreignColumns: [ragThreadDrafts.id],
-			name: "rag_draft_sources_draft_id_fkey"
-		}).onDelete("set null"),
-]);
 
 export const promptExamples = pgTable("prompt_examples", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -4566,16 +4555,27 @@ export const policyDocuments = pgTable("policy_documents", {
 	uploadedBy: text("uploaded_by"),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	lineCode: text("line_code"),
+	planYear: text("plan_year"),
+	filedBy: text("filed_by"),
+	filedAt: timestamp("filed_at", { withTimezone: true, mode: 'string' }),
 }, (table): PgTableExtraConfigValue[] => [
-	index("policy_documents_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.receivedAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("policy_documents_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.receivedAt.desc().nullsFirst().op("uuid_ops")),
+	index("policy_documents_filed_by_idx").using("btree", table.filedBy.asc().nullsLast().op("text_ops")).where(sql`(filed_by IS NOT NULL)`),
+	index("policy_documents_line_year_idx").using("btree", table.lineCode.asc().nullsLast().op("text_ops"), table.planYear.asc().nullsLast().op("text_ops")).where(sql`(status = 'filed'::text)`),
 	index("policy_documents_policy_idx").using("btree", table.policyId.asc().nullsLast().op("uuid_ops")),
-	index("policy_documents_sha_idx").using("btree", table.companyId.asc().nullsLast().op("text_ops"), table.sha256.asc().nullsLast().op("text_ops")),
+	index("policy_documents_sha_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops"), table.sha256.asc().nullsLast().op("text_ops")),
 	index("policy_documents_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")).where(sql`(status = ANY (ARRAY['unfiled'::text, 'failed'::text]))`),
 	foreignKey({
 			columns: [table.companyId],
 			foreignColumns: [companies.id],
 			name: "policy_documents_company_id_fkey"
 		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.lineCode],
+			foreignColumns: [policyLines.code],
+			name: "policy_documents_line_code_fkey"
+		}),
 	foreignKey({
 			columns: [table.policyId],
 			foreignColumns: [policies.id],
@@ -4586,6 +4586,12 @@ export const policyDocuments = pgTable("policy_documents", {
 	check("policy_documents_source_check", sql`source = ANY (ARRAY['email'::text, 'upload'::text, 'generated'::text])`),
 	check("policy_documents_status_check", sql`status = ANY (ARRAY['unfiled'::text, 'filed'::text, 'failed'::text, 'ignored'::text])`),
 ]);
+
+export const policyLines = pgTable("policy_lines", {
+	code: text().primaryKey().notNull(),
+	name: text().notNull(),
+	sort: integer().default(0).notNull(),
+});
 
 export const salesAudience = pgTable("sales_audience", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -4781,12 +4787,6 @@ export const salesEvents = pgTable("sales_events", {
 	check("sales_events_kind_check", sql`kind = ANY (ARRAY['approved'::text, 'rejected'::text, 'edited'::text, 'reopened'::text, 'marked_replied'::text, 'email_lookup'::text, 'email_found'::text, 'email_verified'::text, 'email_not_found'::text, 'contact_added'::text, 'send_claimed'::text, 'sent'::text, 'send_failed'::text, 'dry_run'::text, 'unsubscribed'::text, 'bounced'::text, 'intake'::text])`),
 ]);
 
-export const systemConfig = pgTable("system_config", {
-	key: text().primaryKey().notNull(),
-	value: text().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-});
-
 export const salesCampaignSteps = pgTable("sales_campaign_steps", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	campaignId: uuid("campaign_id").notNull(),
@@ -4832,6 +4832,13 @@ export const salesSends = pgTable("sales_sends", {
 	check("sales_sends_status_check", sql`status = ANY (ARRAY['sent'::text, 'failed'::text])`),
 ]);
 
+export const schemaMigrations = pgTable("schema_migrations", {
+	name: text().primaryKey().notNull(),
+	appliedAt: timestamp("applied_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	checksum: text(),
+	baseline: boolean().default(false).notNull(),
+});
+
 export const siteIntakes = pgTable("site_intakes", {
 	id: uuid().primaryKey().notNull(),
 	siteId: uuid("site_id").notNull(),
@@ -4875,6 +4882,14 @@ export const siteIntakes = pgTable("site_intakes", {
 	check("site_intakes_status_check", sql`status = ANY (ARRAY['partial'::text, 'submitted'::text, 'contacted'::text, 'met'::text, 'quoted'::text, 'won'::text, 'lost'::text])`),
 ]);
 
+export const staffDepartures = pgTable("staff_departures", {
+	email: text().primaryKey().notNull(),
+	leftOn: date("left_on").notNull(),
+	handedTo: text("handed_to"),
+	notedBy: text("noted_by"),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+});
+
 export const threadFilingReview = pgTable("thread_filing_review", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	threadId: uuid("thread_id").notNull(),
@@ -4910,13 +4925,56 @@ export const threadFilingReview = pgTable("thread_filing_review", {
 	check("thread_filing_review_status_check", sql`status = ANY (ARRAY['pending'::text, 'accepted'::text, 'rejected'::text])`),
 ]);
 
-export const staffDepartures = pgTable("staff_departures", {
-	email: text().primaryKey().notNull(),
-	leftOn: date("left_on").notNull(),
-	handedTo: text("handed_to"),
-	notedBy: text("noted_by"),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+export const systemConfig = pgTable("system_config", {
+	key: text().primaryKey().notNull(),
+	value: text().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 });
+
+export const rfqRequests = pgTable("rfq_requests", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	caseId: uuid("case_id").notNull(),
+	clientThreadId: uuid("client_thread_id"),
+	clientMessageId: uuid("client_message_id"),
+	productLine: text("product_line").notNull(),
+	insuredName: text("insured_name"),
+	summary: text(),
+	keyDetails: text("key_details"),
+	status: text().default('open').notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
+	wonDispatchId: uuid("won_dispatch_id"),
+	wonInsurer: text("won_insurer"),
+	boundPremium: text("bound_premium"),
+	effectiveDate: date("effective_date"),
+	policyNumber: text("policy_number"),
+	outcomeReason: text("outcome_reason"),
+	decidedAt: timestamp("decided_at", { withTimezone: true, mode: 'string' }),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.caseId],
+			foreignColumns: [cases.id],
+			name: "rfq_requests_case_id_fkey"
+		}).onDelete("set null"),
+	foreignKey({
+			columns: [table.wonDispatchId],
+			foreignColumns: [rfqDispatches.id],
+			name: "rfq_requests_won_dispatch_id_fkey"
+		}).onDelete("set null"),
+]);
+
+export const threadVectors = pgTable("thread_vectors", {
+	threadId: uuid("thread_id").primaryKey().notNull(),
+	model: text().notNull(),
+	textHash: text("text_hash").notNull(),
+	embedding: vector({ dimensions: 384 }).notNull(),
+	embeddedAt: timestamp("embedded_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.threadId],
+			foreignColumns: [emailThreads.id],
+			name: "thread_vectors_thread_id_fkey"
+		}).onDelete("cascade"),
+]);
 
 export const threadInsurers = pgTable("thread_insurers", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
@@ -4954,62 +5012,6 @@ export const threadInsurers = pgTable("thread_insurers", {
 	unique("thread_insurers_thread_id_insurer_company_id_key").on(table.insurerCompanyId, table.threadId),
 	check("thread_insurers_policy_status_check", sql`policy_status = ANY (ARRAY['none'::text, 'suggested'::text, 'confirmed'::text, 'not_a_policy'::text])`),
 	check("thread_insurers_via_check", sql`via = ANY (ARRAY['sender_domain'::text, 'subject'::text, 'broker'::text])`),
-]);
-
-export const rfqRequests = pgTable("rfq_requests", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	caseId: uuid("case_id").notNull(),
-	clientThreadId: uuid("client_thread_id"),
-	clientMessageId: uuid("client_message_id"),
-	productLine: text("product_line").notNull(),
-	insuredName: text("insured_name"),
-	summary: text(),
-	keyDetails: text("key_details"),
-	status: text().default('open').notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
-	wonDispatchId: uuid("won_dispatch_id"),
-	wonInsurer: text("won_insurer"),
-	boundPremium: text("bound_premium"),
-	effectiveDate: date("effective_date"),
-	policyNumber: text("policy_number"),
-	outcomeReason: text("outcome_reason"),
-	decidedAt: timestamp("decided_at", { withTimezone: true, mode: 'string' }),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.caseId],
-			foreignColumns: [cases.id],
-			name: "rfq_requests_case_id_fkey"
-		}).onDelete("set null"),
-	foreignKey({
-			columns: [table.wonDispatchId],
-			foreignColumns: [rfqDispatches.id],
-			name: "rfq_requests_won_dispatch_id_fkey"
-		}).onDelete("set null"),
-]);
-
-export const threadSearch = pgTable("thread_search", {
-	threadId: uuid("thread_id").primaryKey().notNull(),
-	companyId: uuid("company_id"),
-	mailboxes: text().array().default([""]).notNull(),
-	subject: text().default('').notNull(),
-	people: text().default('').notNull(),
-	attachments: text().default('').notNull(),
-	body: text().default('').notNull(),
-	lastMessageAt: timestamp("last_message_at", { withTimezone: true, mode: 'string' }),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	names: text().generatedAlwaysAs(sql`((((subject || ' '::text) || people) || ' '::text) || attachments)`),
-	// TODO: failed to parse database type 'tsvector'
-	doc: tsvector("doc").generatedAlwaysAs(sql`to_tsvector('simple'::regconfig, ((((((subject || ' '::text) || people) || ' '::text) || attachments) || ' '::text) || body))`),
-}, (table): PgTableExtraConfigValue[] => [
-	index("thread_search_company").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
-	index("thread_search_doc_gin").using("gin", table.doc.asc().nullsLast().op("tsvector_ops")),
-	index("thread_search_last").using("btree", table.lastMessageAt.desc().nullsLast().op("timestamptz_ops")),
-	index("thread_search_names_trgm").using("gin", table.names.asc().nullsLast().op("gin_trgm_ops")),
-	foreignKey({
-			columns: [table.threadId],
-			foreignColumns: [emailThreads.id],
-			name: "thread_search_thread_id_fkey"
-		}).onDelete("cascade"),
 ]);
 
 export const todayDismissals = pgTable("today_dismissals", {
@@ -5215,50 +5217,6 @@ export const workItemComparisons = pgTable("work_item_comparisons", {
 		}).onDelete("cascade"),
 ]);
 
-export const workItemDocuments = pgTable("work_item_documents", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	workItemId: uuid("work_item_id").notNull(),
-	kind: text().notNull(),
-	status: text().default('needed').notNull(),
-	owedBy: text("owed_by").default('client').notNull(),
-	basis: text(),
-	dueOn: date("due_on"),
-	requestedAt: timestamp("requested_at", { withTimezone: true, mode: 'string' }),
-	receivedAt: timestamp("received_at", { withTimezone: true, mode: 'string' }),
-	messageId: uuid("message_id"),
-	filename: text(),
-	waivedBy: text("waived_by"),
-	note: text(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("work_item_documents_open_idx").using("btree", table.status.asc().nullsLast().op("text_ops")).where(sql`(status = ANY (ARRAY['needed'::text, 'requested'::text]))`),
-	foreignKey({
-			columns: [table.workItemId],
-			foreignColumns: [workItems.id],
-			name: "work_item_documents_work_item_id_fkey"
-		}).onDelete("cascade"),
-	unique("work_item_documents_work_item_id_kind_key").on(table.kind, table.workItemId),
-	check("work_item_documents_owed_by_check", sql`owed_by = ANY (ARRAY['client'::text, 'insurer'::text, 'trs'::text, 'partner'::text])`),
-	check("work_item_documents_status_check", sql`status = ANY (ARRAY['needed'::text, 'requested'::text, 'received'::text, 'waived'::text])`),
-]);
-
-export const workItemEvents = pgTable("work_item_events", {
-	id: uuid().defaultRandom().primaryKey().notNull(),
-	workItemId: uuid("work_item_id").notNull(),
-	kind: text().notNull(),
-	actor: text().notNull(),
-	detail: jsonb().default({}).notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	index("work_item_events_item_idx").using("btree", table.workItemId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
-	foreignKey({
-			columns: [table.workItemId],
-			foreignColumns: [workItems.id],
-			name: "work_item_events_work_item_id_fkey"
-		}).onDelete("cascade"),
-]);
-
 export const threadSummaries = pgTable("thread_summaries", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	threadId: uuid("thread_id"),
@@ -5281,17 +5239,28 @@ export const threadSummaries = pgTable("thread_summaries", {
 		}).onDelete("set null"),
 ]);
 
-export const threadVectors = pgTable("thread_vectors", {
+export const threadSearch = pgTable("thread_search", {
 	threadId: uuid("thread_id").primaryKey().notNull(),
-	model: text().notNull(),
-	textHash: text("text_hash").notNull(),
-	embedding: vector({ dimensions: 384 }).notNull(),
-	embeddedAt: timestamp("embedded_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	companyId: uuid("company_id"),
+	mailboxes: text().array().default([""]).notNull(),
+	subject: text().default('').notNull(),
+	people: text().default('').notNull(),
+	attachments: text().default('').notNull(),
+	body: text().default('').notNull(),
+	lastMessageAt: timestamp("last_message_at", { withTimezone: true, mode: 'string' }),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	names: text().generatedAlwaysAs(sql`((((subject || ' '::text) || people) || ' '::text) || attachments)`),
+	// TODO: failed to parse database type 'tsvector'
+	doc: tsvector("doc").generatedAlwaysAs(sql`to_tsvector('simple'::regconfig, ((((((subject || ' '::text) || people) || ' '::text) || attachments) || ' '::text) || body))`),
 }, (table): PgTableExtraConfigValue[] => [
+	index("thread_search_company").using("btree", table.companyId.asc().nullsLast().op("uuid_ops")),
+	index("thread_search_doc_gin").using("gin", table.doc.asc().nullsLast().op("tsvector_ops")),
+	index("thread_search_last").using("btree", table.lastMessageAt.desc().nullsLast().op("timestamptz_ops")),
+	index("thread_search_names_trgm").using("gin", table.names.asc().nullsLast().op("gin_trgm_ops")),
 	foreignKey({
 			columns: [table.threadId],
 			foreignColumns: [emailThreads.id],
-			name: "thread_vectors_thread_id_fkey"
+			name: "thread_search_thread_id_fkey"
 		}).onDelete("cascade"),
 ]);
 
@@ -5340,6 +5309,50 @@ export const workItemNotes = pgTable("work_item_notes", {
 	check("work_item_notes_need_check", sql`(need IS NULL) OR (need = ANY (ARRAY['must'::text, 'nice'::text]))`),
 	check("work_item_notes_section_check", sql`section = ANY (ARRAY['client_said'::text, 'insurer_said'::text, 'wish'::text, 'risk'::text, 'success_factor'::text, 'open_question'::text, 'next_step'::text, 'decision'::text, 'handover'::text])`),
 	check("work_item_notes_status_check", sql`status = ANY (ARRAY['current'::text, 'superseded'::text, 'rejected'::text])`),
+]);
+
+export const workItemDocuments = pgTable("work_item_documents", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	workItemId: uuid("work_item_id").notNull(),
+	kind: text().notNull(),
+	status: text().default('needed').notNull(),
+	owedBy: text("owed_by").default('client').notNull(),
+	basis: text(),
+	dueOn: date("due_on"),
+	requestedAt: timestamp("requested_at", { withTimezone: true, mode: 'string' }),
+	receivedAt: timestamp("received_at", { withTimezone: true, mode: 'string' }),
+	messageId: uuid("message_id"),
+	filename: text(),
+	waivedBy: text("waived_by"),
+	note: text(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("work_item_documents_open_idx").using("btree", table.status.asc().nullsLast().op("text_ops")).where(sql`(status = ANY (ARRAY['needed'::text, 'requested'::text]))`),
+	foreignKey({
+			columns: [table.workItemId],
+			foreignColumns: [workItems.id],
+			name: "work_item_documents_work_item_id_fkey"
+		}).onDelete("cascade"),
+	unique("work_item_documents_work_item_id_kind_key").on(table.kind, table.workItemId),
+	check("work_item_documents_owed_by_check", sql`owed_by = ANY (ARRAY['client'::text, 'insurer'::text, 'trs'::text, 'partner'::text])`),
+	check("work_item_documents_status_check", sql`status = ANY (ARRAY['needed'::text, 'requested'::text, 'received'::text, 'waived'::text])`),
+]);
+
+export const workItemEvents = pgTable("work_item_events", {
+	id: uuid().defaultRandom().primaryKey().notNull(),
+	workItemId: uuid("work_item_id").notNull(),
+	kind: text().notNull(),
+	actor: text().notNull(),
+	detail: jsonb().default({}).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	index("work_item_events_item_idx").using("btree", table.workItemId.asc().nullsLast().op("timestamptz_ops"), table.createdAt.desc().nullsFirst().op("timestamptz_ops")),
+	foreignKey({
+			columns: [table.workItemId],
+			foreignColumns: [workItems.id],
+			name: "work_item_events_work_item_id_fkey"
+		}).onDelete("cascade"),
 ]);
 
 export const workItems = pgTable("work_items", {
@@ -5491,17 +5504,22 @@ export const debitNoteBundles = pgTable("debit_note_bundles", {
 	check("debit_note_bundles_source_check", sql`source = ANY (ARRAY['manual_upload'::text, 'onedrive'::text, 'policy_movement'::text, 'insurer_invoice'::text])`),
 ]);
 
-export const policyLineAliases = pgTable("policy_line_aliases", {
-	spelling: text().primaryKey().notNull(),
-	lineCode: text("line_code").notNull(),
-	confirmedBy: text("confirmed_by"),
-	confirmedAt: timestamp("confirmed_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+export const ragDraftSources = pgTable("rag_draft_sources", {
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	id: bigint({ mode: "number" }).primaryKey().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	draftId: bigint("draft_id", { mode: "number" }),
+	fileId: text("file_id"),
+	fileName: text("file_name"),
+	chunkIndex: integer("chunk_index"),
+	similarity: doublePrecision(),
+	content: text(),
 }, (table): PgTableExtraConfigValue[] => [
 	foreignKey({
-			columns: [table.lineCode],
-			foreignColumns: [policyLines.code],
-			name: "policy_line_aliases_line_code_fkey"
-		}),
+			columns: [table.draftId],
+			foreignColumns: [ragThreadDrafts.id],
+			name: "rag_draft_sources_draft_id_fkey"
+		}).onDelete("set null"),
 ]);
 
 export const agentCursors = pgTable("agent_cursors", {
@@ -5533,6 +5551,25 @@ export const emailThreadAliases = pgTable("email_thread_aliases", {
 	primaryKey({ columns: [table.gmailThreadId, table.mailbox], name: "email_thread_aliases_pkey"}),
 ]);
 
+export const workItemReads = pgTable("work_item_reads", {
+	workItemId: uuid("work_item_id").notNull(),
+	agent: text().notNull(),
+	messageId: uuid("message_id").notNull(),
+	readAt: timestamp("read_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table): PgTableExtraConfigValue[] => [
+	foreignKey({
+			columns: [table.messageId],
+			foreignColumns: [emailMessages.id],
+			name: "work_item_reads_message_id_fkey"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.workItemId],
+			foreignColumns: [workItems.id],
+			name: "work_item_reads_work_item_id_fkey"
+		}).onDelete("cascade"),
+	primaryKey({ columns: [table.agent, table.messageId, table.workItemId], name: "work_item_reads_pkey"}),
+]);
+
 export const workItemThreadExcluded = pgTable("work_item_thread_excluded", {
 	workItemId: uuid("work_item_id").notNull(),
 	threadId: uuid("thread_id").notNull(),
@@ -5551,25 +5588,6 @@ export const workItemThreadExcluded = pgTable("work_item_thread_excluded", {
 			name: "work_item_thread_excluded_work_item_id_fkey"
 		}).onDelete("cascade"),
 	primaryKey({ columns: [table.threadId, table.workItemId], name: "work_item_thread_excluded_pkey"}),
-]);
-
-export const workItemReads = pgTable("work_item_reads", {
-	workItemId: uuid("work_item_id").notNull(),
-	agent: text().notNull(),
-	messageId: uuid("message_id").notNull(),
-	readAt: timestamp("read_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-}, (table): PgTableExtraConfigValue[] => [
-	foreignKey({
-			columns: [table.messageId],
-			foreignColumns: [emailMessages.id],
-			name: "work_item_reads_message_id_fkey"
-		}).onDelete("cascade"),
-	foreignKey({
-			columns: [table.workItemId],
-			foreignColumns: [workItems.id],
-			name: "work_item_reads_work_item_id_fkey"
-		}).onDelete("cascade"),
-	primaryKey({ columns: [table.agent, table.messageId, table.workItemId], name: "work_item_reads_pkey"}),
 ]);
 
 export const insurerProductContacts = pgTable("insurer_product_contacts", {
