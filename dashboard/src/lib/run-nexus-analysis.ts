@@ -27,8 +27,8 @@ import { OPUS_MODEL, fetchOpus } from './anthropic-models'
 import { xlsxSheetsAsText } from '@/lib/xlsx-text'
 import { attachmentRefBytes, isDriveRef } from '@/lib/storage/attachment-bytes'
 import { anthropicKeyGated, modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL          = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 // Model ids come from one place so an env override actually takes effect here too.
 // Reading the whole case is the quality-critical step, so it runs on the Pro tier; Flash drafts.
 const GEMINI_EXTRACT_MODEL = GEMINI_PRO_MODEL

@@ -20,10 +20,10 @@ import { extractComputationRules }   from '@/lib/gb/rules-extract'
 import { internalHeaders }        from '@/lib/api-gate/internal'
 import { documentBytes }             from '@/lib/gb/documents'
 import { NEVER_STORED }              from '@/lib/storage/attachment-bytes'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 120
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

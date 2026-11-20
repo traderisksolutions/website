@@ -8,7 +8,7 @@ import { Spinner, Btn, Segmented, inputCls } from '@/components/crm/primitives'
 import { PageHeader } from '@/components/page-header'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { RecordPaymentDialog } from '@/components/crm/RecordPaymentDialog'
-import { fmtMoney, fmtDate } from '@/lib/crm/format'
+import { fmtMoney, fmtDate } from '@/lib/format'
 import { CHANNEL_LABEL, type Receipt } from '@/lib/crm/receipts'
 import type { PaymentDerived, PaymentSummary, DerivedPaymentStatus } from '@/lib/crm/types'
 

@@ -5,7 +5,7 @@
  */
 import { sbTry, inChunks, enc, displayNameFromAddress, bareEmail } from './db'
 import type { ActivityEvent, CaseRow, PaymentDerived, QuoteRow } from './types'
-import { fmtMoney } from './format'
+import { fmtMoney } from '@/lib/format'
 import { threadTitle, cleanSubject } from './subject'
 
 type MsgRow = { id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_address: string | null; subject: string | null; sent_at: string }

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty, inputCls } from '@/components/crm/primitives'
 import { CompanySearchSelect } from '@/components/crm/CompanySearchSelect'
 import { ReferralReview } from '@/components/crm/ReferralReview'
-import { fmtRelative } from '@/lib/crm/format'
+import { fmtRelative } from '@/lib/format'
 import { COMPANY_KINDS, type CompanyKind, type LinkSuggestion } from '@/lib/crm/types'
 import type { ReferralRow } from '@/lib/crm/referral-review'
 

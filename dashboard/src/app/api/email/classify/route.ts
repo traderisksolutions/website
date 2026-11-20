@@ -19,8 +19,8 @@ import { internalHeaders } from '@/lib/api-gate/internal'
 import { shouldAutoPlace, AUTO_PLACE_CONFIDENCE } from '@/lib/placement/auto'
 import { titleThreadIfNeeded } from '@/lib/crm/thread-title'
 import { modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = geminiUrl(GEMINI_LITE)
 
 const CATEGORIES = ['group_benefits', 'rfq', 'claim', 'renewal', 'general', 'other'] as const

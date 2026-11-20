@@ -22,10 +22,10 @@ import { rankPeople } from '@/lib/crm/people'
 import { listCompanyCases } from '@/lib/crm/cases'
 import { enc } from '@/lib/crm/db'
 import { anthropicKeyGated } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 300
 
-const SB_URL        = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

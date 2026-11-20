@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { MoreHorizontal } from 'lucide-react'
 import { Btn, Spinner, Empty, textareaCls } from '@/components/crm/primitives'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
-import { fmtDateTime } from '@/lib/crm/format'
+import { fmtDateTime } from '@/lib/format'
 import type { AgentTask } from '@/lib/agent-tasks/queue'
 
 const AGENT: Record<string, string> = {

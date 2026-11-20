@@ -8,7 +8,7 @@ import { sbTry, inChunks, getCompanyThreadIds, bareEmail, displayNameFromAddress
 import { listCompanyThreads } from './threads'
 import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
-import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from './format'
+import { fmtMoney, fmtDate, fmtRelative, todaySGT, daysBetween } from '@/lib/format'
 import { STAGE_LABEL } from './types'
 import { threadTitle, cleanSubject } from './subject'
 import type { Alert, Company, CompanyOverview, LeftOff, PaymentSummary } from './types'

@@ -4,7 +4,7 @@ import { UrlFilters } from '@/components/ui/url-filters'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { Chip } from '@/components/crm/primitives'
 import { sbTry, enc } from '@/lib/crm/db'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import { docLabel } from '@/lib/documents/taxonomy'
 
 export const dynamic = 'force-dynamic'

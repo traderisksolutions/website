@@ -4,7 +4,7 @@
  * summary and next action, and which Nexus cases the thread already sits in.
  */
 import { sbTry, inChunks, getCompanyThreadIds } from './db'
-import { personName } from './format'
+import { personName } from '@/lib/format'
 import type { CompanyThread } from './types'
 
 type ThreadRow = {

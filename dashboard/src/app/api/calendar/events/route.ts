@@ -18,7 +18,7 @@ import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
-import { todaySGT }                  from '@/lib/crm/format'
+import { todaySGT }                  from '@/lib/format'
 
 /** Days-before-end_date for each renewal warning, plus 0 for the end date itself ("D-Day"). Order
  *  matters only for readability — events are independently date-filtered below. Not exported: a

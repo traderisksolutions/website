@@ -7,7 +7,7 @@ import { SectionCard, Btn, Chip, Empty, Spinner } from './primitives'
 import { NexusSummary } from './NexusSummary'
 import { CaseThreadPicker } from './CaseThreadPicker'
 import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysisModal'
-import { fmtRelative, fmtDate } from '@/lib/crm/format'
+import { fmtRelative, fmtDate } from '@/lib/format'
 import type { AiBrief, CaseRow, Company, CompanyThread, Person, Stage } from '@/lib/crm/types'
 
 const INK = '#0f1412'

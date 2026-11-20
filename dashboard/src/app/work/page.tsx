@@ -14,6 +14,7 @@ import { PageHeader } from '@/components/page-header'
 import { ReviewList, useReview } from './review'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import type { WorkItem, Lane } from '@/lib/casework/queue'
+import { createClient } from '@/lib/supabase/client'
 
 type Staff = { email: string; name: string }
 type Who = 'mine' | 'unowned' | 'all'
@@ -50,7 +51,7 @@ export default function WorkPage() {
     callApi<{ items: WorkItem[]; staff: Staff[] }>('/api/work').then(d => { setItems(d.items); setStaff(d.staff) }).catch(e => setError(errText(e)))
   }, [])
   useEffect(() => { load() }, [load])
-  useEffect(() => { callApi<{ user?: { email?: string } | null }>('/api/auth/me').then(d => setMe(d.user?.email?.toLowerCase() ?? null)).catch(() => setMe(null)) }, [])
+  useEffect(() => { void createClient().auth.getUser().then(({ data }) => setMe(data.user?.email?.toLowerCase() ?? null)) }, [])
 
   const byWho = useMemo(() => (items ?? []).filter(i =>
     who === 'all' ? true : who === 'mine' ? i.owner_email === me : (!i.owner_email || i.owner_left)), [items, who, me])

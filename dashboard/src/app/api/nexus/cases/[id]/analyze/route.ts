@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runNexusAnalysis } from '@/lib/run-nexus-analysis'
 import { logActivity }      from '@/lib/log-activity'
 import { requireStaffOrCron } from '@/lib/api-auth'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 300
 
@@ -41,7 +42,6 @@ export async function GET(req: NextRequest, props: Params) {
   const unauthorized = await requireStaffOrCron(req)
   if (unauthorized) return unauthorized
 
-  const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) return NextResponse.json({ error: 'SUPABASE_SERVICE_KEY not set' }, { status: 500 })
   const h = { apikey: k, Authorization: `Bearer ${k}`, 'Content-Type': 'application/json' }

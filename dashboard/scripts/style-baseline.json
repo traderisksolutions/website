@@ -241,7 +241,7 @@
  },
  "src/app/layout.tsx": {
   "style": 1,
-  "hex": 5,
+  "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
@@ -614,14 +614,6 @@
   "radius": 0,
   "height": 0,
   "control": 9
- },
- "src/components/Tip.tsx": {
-  "style": 1,
-  "hex": 1,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 0
  },
  "src/components/app-shell.tsx": {
   "style": 1,
@@ -1182,22 +1174,6 @@
   "radius": 4,
   "height": 0,
   "control": 3
- },
- "src/components/engagement-agent/engagement-status-badge.tsx": {
-  "style": 1,
-  "hex": 2,
-  "font": 2,
-  "radius": 1,
-  "height": 0,
-  "control": 0
- },
- "src/components/engagement-agent/engagement-thread-row.tsx": {
-  "style": 9,
-  "hex": 7,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 2
  },
  "src/components/engagement-agent/evaluation-summary.tsx": {
   "style": 3,

@@ -8,7 +8,7 @@ import { requireStaffOrCron }        from '@/lib/api-auth'
 import { listCompanySummaries, summariseAll } from '@/lib/crm/aggregates'
 import { sbTry, inChunks, isInternal, isAutomated, bareEmail, displayNameFromAddress } from '@/lib/crm/db'
 import { derivePayment }             from '@/lib/crm/payments'
-import { todaySGT, addDays }         from '@/lib/crm/format'
+import { todaySGT, addDays }         from '@/lib/format'
 import type { DebitNoteRow } from '@/lib/crm/types'
 import { threadTitle }               from '@/lib/crm/subject'
 

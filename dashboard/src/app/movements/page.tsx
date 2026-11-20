@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { Btn, Chip, Segmented, Spinner, Empty } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import type { MovementBatch, MovementStage } from '@/app/api/policies/movements/route'
 import { money } from '@/lib/format'
 

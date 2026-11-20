@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Sparkles, RefreshCw, Brain } from 'lucide-react'
 import { SectionCard, Btn, Empty } from './primitives'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import { STAGE_LABEL, type AiBrief, type Company, type Person, type Stage } from '@/lib/crm/types'
 
 const INK = '#0f1412'

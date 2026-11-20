@@ -3,7 +3,7 @@ import { buildReminderDraft } from '@/lib/crm/reminder'
 import { derivePayment } from '@/lib/crm/payments'
 import { parseJsonLoose } from '@/lib/crm/ai'
 import { normalizeCompany, emailDomain, bareEmail, displayNameFromAddress, isAutomated } from '@/lib/crm/db'
-import { fmtMoney, daysBetween, addDays, fmtRelative } from '@/lib/crm/format'
+import { fmtMoney, daysBetween, addDays, fmtRelative } from '@/lib/format'
 import type { Company, DebitNoteRow } from '@/lib/crm/types'
 
 const company: Company = normalizeCompany({ id: 'c1', company_name: 'Propelo Aviation Pte Ltd', created_at: '2026-07-30' })

@@ -8,7 +8,7 @@
 import { sbTry, normalizeCompany, type Json } from '@/lib/crm/db'
 import { listStaff, type StaffMember } from '@/lib/crm/staff'
 import { listCompanyThreads }        from '@/lib/crm/threads'
-import { fmtDate }                   from '@/lib/crm/format'
+import { fmtDate }                   from '@/lib/format'
 import { listCompanyPolicies }       from '@/lib/policies/spine'
 import { companyReviewQueue }        from '@/lib/policies/queue'
 import { loadBundle }                from '@/lib/placement/store'

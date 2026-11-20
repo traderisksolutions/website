@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { Chip, Empty, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { fmtAmount } from '@/components/policies/types'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import { callApi, errText } from '@/components/placement/shared'
 import type { CompanyRenewalRow } from '@/lib/policies/ledger'
 

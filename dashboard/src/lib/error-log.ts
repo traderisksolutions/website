@@ -1,4 +1,4 @@
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
+import { SB_URL } from '@/lib/sb'
 
 export interface ErrorLogEntry {
   source:        string                       // 'gemini' | 'anthropic' | 'roadplus' | 'supabase' | ...

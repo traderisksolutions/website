@@ -13,6 +13,7 @@ import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shar
 import type { ClaimDetail } from '@/lib/admin/b/register'
 import { bucketOf as bucket, type RegisterRow, type Bucket } from '@/lib/admin/b/register-view'
 import { WebsiteForms } from './website-forms'
+import { createClient } from '@/lib/supabase/client'
 
 type View = Bucket | 'forms'
 type Who = 'mine' | 'all'
@@ -56,7 +57,7 @@ export default function ClaimsPage() {
     callApi<{ claims: RegisterRow[] }>('/api/claims/register').then(d => { setRows(d.claims); setError(null) }).catch(e => setError(errText(e)))
   }, [])
   useEffect(() => { load() }, [load])
-  useEffect(() => { callApi<{ user?: { email?: string } | null }>('/api/auth/me').then(d => setMe(d.user?.email?.toLowerCase() ?? null)).catch(() => setMe(null)) }, [])
+  useEffect(() => { void createClient().auth.getUser().then(({ data }) => setMe(data.user?.email?.toLowerCase() ?? null)) }, [])
   // ?company=<id> (the company page, the thread rail) and ?policy=<number> (the policy page) narrow the register to that client or policy, every status.
   const [scope, setScope] = useState<{ company: string | null; policy: string | null }>({ company: null, policy: null })
   useEffect(() => {

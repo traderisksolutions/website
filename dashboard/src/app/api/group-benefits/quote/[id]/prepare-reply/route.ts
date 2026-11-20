@@ -10,10 +10,10 @@ import { createClient }              from '@/lib/supabase/server'
 import { buildExportData, buildInsurerCsv, buildInsurerXlsx, safeFileStem } from '@/lib/gb-export'
 import { logActivity }               from '@/lib/log-activity'
 import { storeUpload }               from '@/lib/storage/drive-upload'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 120
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

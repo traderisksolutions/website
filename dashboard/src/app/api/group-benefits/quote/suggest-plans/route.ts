@@ -10,10 +10,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient }              from '@/lib/supabase/server'
 import { suggestPlanMatch }          from '@/lib/gb-plan-match'
 import type { MatchProduct }         from '@/lib/gb-plan-match'
+import { SB_URL } from '@/lib/sb'
 
 export const maxDuration = 60
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

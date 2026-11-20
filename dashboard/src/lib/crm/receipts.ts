@@ -10,7 +10,7 @@
  * only thing lost until the migration lands is the receipt history and the ability to undo.
  */
 import { sb, sbTry, enc } from './db'
-import { todaySGT } from './format'
+import { todaySGT } from '@/lib/format'
 import type { DebitNoteRow } from './types'
 
 export type ReceiptChannel = 'trs' | 'insurer' | 'writeoff'

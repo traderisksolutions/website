@@ -7,8 +7,8 @@ import { mapInboundTopicToProductLine } from '@/lib/inbound-topic-mapping'
 import { logError } from '@/lib/error-log'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent'
 const EMBED_URL  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent'
 

@@ -13,7 +13,7 @@ import { Paperclip } from 'lucide-react'
 import { Btn, Chip, Empty, Segmented, Spinner } from '@/components/crm/primitives'
 import { ThreadModal } from '@/components/engagement/ThreadModal'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
-import { fmtDate } from '@/lib/crm/format'
+import { fmtDate } from '@/lib/format'
 import type { CompanyNexusView, NexusMessage, Party } from '@/lib/nexus/company-view'
 
 type Filter = 'all' | 'client' | 'insurer'

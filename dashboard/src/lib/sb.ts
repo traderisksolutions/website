@@ -1,7 +1,8 @@
 // Shared Supabase server-side helpers
 // Used by all /api/outbound/* routes
 
-export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
+/** The PostgREST address. Required at start-up (src/lib/env.ts); never a hard-coded fallback. */
+export const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
 
 export function sbHeaders(prefer = 'return=minimal'): Record<string, string> {
   const k = process.env.SUPABASE_SERVICE_KEY

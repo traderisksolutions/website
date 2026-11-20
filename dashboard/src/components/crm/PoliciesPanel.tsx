@@ -3,7 +3,7 @@
 import { looksLikeEndorsement, findMasterPolicy } from '@/lib/policies/endorsement'
 import { SectionCard, Empty } from './primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
-import { fmtDate, fmtRelative, fmtMoney } from '@/lib/crm/format'
+import { fmtDate, fmtRelative, fmtMoney } from '@/lib/format'
 
 const INK = '#0f1412'
 const MUTED = '#4a5550'

@@ -11,8 +11,8 @@ import { logActivity }               from '@/lib/log-activity'
 import { fileEbCompanyFolder }       from '@/lib/company-drive'
 import { createQuotation, QuotationInputError, type QuotationInput } from '@/lib/gb/quotation'
 import { loadAnalysisSummaries } from '@/lib/gb/analysis'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 function sbH(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY
   if (!k) throw new Error('SUPABASE_SERVICE_KEY not set')

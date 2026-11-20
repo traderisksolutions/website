@@ -10,7 +10,6 @@
  * - Type-specific instructions matching GDrive quality
  */
 
-const SB_URL      = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const GEMINI_URL  = geminiUrl(GEMINI_FLASH)
 // The one-word classifier below runs on Lite. Flash-tier 3.6 spends its first ~9 output
 // tokens thinking, so a 12-token budget returned empty text with finishReason MAX_TOKENS
@@ -26,6 +25,7 @@ import { EMAIL_TYPE_BASE_INSTRUCTIONS } from '@/lib/email-surface-instructions'
 import { geminiUrl, GEMINI_FLASH, GEMINI_LITE, GEMINI_EMBED } from '@/lib/gemini-models'
 import { withVoice, voiceInstruction } from '@/lib/voice'
 import { modelKey } from '@/lib/ai-gate'
+import { SB_URL } from '@/lib/sb'
 
 function sbHeaders(prefer = 'return=minimal') {
   const k = process.env.SUPABASE_SERVICE_KEY

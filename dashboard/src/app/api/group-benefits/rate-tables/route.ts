@@ -10,8 +10,8 @@ import { createClient }              from '@/lib/supabase/server'
 import { logActivity }               from '@/lib/log-activity'
 import { isDriveRef }                from '@/lib/storage/attachment-bytes'
 import { storeUpload }               from '@/lib/storage/drive-upload'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL  = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const MAX     = 25 * 1024 * 1024
 
 function sbH(prefer = 'return=representation') {

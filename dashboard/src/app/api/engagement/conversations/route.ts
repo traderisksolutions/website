@@ -5,8 +5,8 @@ import { lastRealMessage } from '@/lib/threads/waiting'
 import { chaseDueOn } from '@/lib/admin/b/cadence'
 import { currentUserEmail } from '@/lib/crm/auth'
 import { mailboxesByThread, visibleThreadIds } from '@/lib/mail/visibility-server'
+import { SB_URL } from '@/lib/sb'
 
-const SB_URL     = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 const TRS_DOMAIN = 'trade-risksol.com'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

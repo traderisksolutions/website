@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { logActivity }               from '@/lib/log-activity'
 import { requireStaffOrCron }        from '@/lib/api-auth'
+import { SB_URL } from '@/lib/sb'
 
 // POST /api/engagement/conversation/promote
 // Body: { thread_id: string, name?: string }
@@ -9,7 +10,6 @@ import { requireStaffOrCron }        from '@/lib/api-auth'
 // party, others → other). Idempotent-ish: if any thread in the group is already in a case,
 // returns that case instead of creating a duplicate.
 
-const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://trs-api-335840130686.asia-southeast1.run.app'
 
 function sbHeaders(prefer = 'return=representation') {
   const k = process.env.SUPABASE_SERVICE_KEY

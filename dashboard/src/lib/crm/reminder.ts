@@ -2,7 +2,7 @@
  * Payment reminder drafting. Pure text assembly — the draft opens in the Engagement composer,
  * where staff edit and send it. Nothing is sent from here.
  */
-import { fmtMoney, fmtDate } from './format'
+import { fmtMoney, fmtDate } from '@/lib/format'
 import type { Company, PaymentDerived } from './types'
 
 export interface ReminderDraft {
