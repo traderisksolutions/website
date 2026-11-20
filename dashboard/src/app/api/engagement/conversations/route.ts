@@ -180,15 +180,18 @@ export async function GET(req: NextRequest) {
         if (best) matchBy.set(t.id, best)
       }
     }
-    // A thread read only from a colleague's own mailbox is theirs (src/lib/mail/visibility.ts): not listed to anyone else.
+    // Every thread is listed for everyone (Jarod, 20 Nov 2026); a colleague's private thread is marked below.
     const viewer = await currentUserEmail()
+    let openIds: Set<string> | null = null
     let page: { total: number; counts: InboxCounts; nextOffset: number | null; offset: number; mailboxes: string[] } | null = null
     if (paged) {
       const fresh = sp.get('fresh') === '1'
-      const rows = await visibleRows(await inboxIndex(fresh), viewer, fresh)
+      // Every row is paged and counted; the rows the viewer may open (visibility.ts) mark the rest private.
+      const rows = await inboxIndex(fresh)
+      openIds = new Set((await visibleRows(rows, viewer, fresh)).map(r => r.id))
       const offset = Math.max(0, Number(sp.get('offset') ?? 0) || 0)
       const p = inboxPage(rows, { view: parseView(sp.get('view')), mailbox: (sp.get('mailbox') ?? 'all').toLowerCase(), matched: words.length ? new Set(threads.map(t => t.id)) : null, offset })
-      // A deep link to a thread beyond this page: added to the first page when the viewer may see it.
+      // A deep link to a thread beyond this page: added to the first page.
       const ids = [...p.ids]
       if (offset === 0 && include && UUID.test(include) && !ids.includes(include) && rows.some(r => r.id === include)) ids.push(include)
       const have = new Map(threads.map(t => [t.id, t]))
@@ -204,7 +207,7 @@ export async function GET(req: NextRequest) {
     // Everyone at TRS sees every thread in the list (Jarod, 20 Nov 2026); a thread read only from a
     // colleague's own mailbox is marked with its owner and opens only for those it is visible to.
     // Its email text (snippet, the matched passage) is withheld from the others.
-    const ok = await visibleThreadIds(threads.map(t => t.id), viewer)
+    const ok = openIds ?? await visibleThreadIds(threads.map(t => t.id), viewer)
     const owners = await ownersOf(threads.filter(t => !ok.has(t.id)).map(t => t.id))
     const boxes = await mailboxesByThread(threads.map(t => t.id))
     const answer = (rows: unknown[]) => NextResponse.json(page ? { rows, ...page } : rows)

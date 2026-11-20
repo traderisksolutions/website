@@ -43,7 +43,8 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
   const rowCls = cn('relative w-full text-left border-0 cursor-pointer transition-colors',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0f1412]',
     PAD[density], isActive ? 'bg-[#f1f2ee]' : 'bg-white hover:bg-[#faf9f6]')
-  const label = `${name}, ${subject}${needs ? ', needs your reply' : ''}`
+  const holder = lead.private ? `In ${(lead.private.owner ?? 'a colleague').split(/[\s,]+/)[0]}’s inbox` : null
+  const label = `${name}, ${subject}${needs ? ', needs your reply' : ''}${holder ? `, ${holder}` : ''}`
   const bar = isActive && <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: INK }} aria-hidden />
   const dot = <span data-dot className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: needs ? INK : 'transparent' }} aria-hidden />
 
@@ -53,6 +54,7 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
       {bar}{dot}
       <span className="w-[112px] flex-shrink-0 text-[13px] font-medium truncate">{name}</span>
       <span className="flex-1 min-w-0 text-[13px] truncate" style={{ color: BODY }}>{subject}</span>
+      {holder && <span className="flex-shrink-0 text-xs text-trs-warn">{holder}</span>}
       <span className="text-[11.5px] tabular-nums whitespace-nowrap flex-shrink-0" style={{ color: FAINT }}>{timeAgo(timestamp)}</span>
     </button>
   )
@@ -65,6 +67,7 @@ export function ThreadRow({ lead, isActive, threadState, onClick, density = 'sta
       <span className="min-w-0 flex items-baseline gap-1.5 leading-snug">
         <span className="min-w-0 text-[13.5px] font-medium truncate">{name}</span>
         {density === 'standard' && type && <span className="flex-shrink-0 text-[11.5px]" style={{ color: MUTED }}>{type}</span>}
+        {holder && <span className="flex-shrink-0 text-xs text-trs-warn">{holder}</span>}
       </span>
       <span className="text-[11.5px] tabular-nums whitespace-nowrap" style={{ color: FAINT }}>{timeAgo(timestamp)}</span>
       <span className="col-start-2 col-end-4 min-w-0 block text-[13px] leading-snug truncate mt-px" style={{ color: BODY }} title={lead.subject ?? undefined}>

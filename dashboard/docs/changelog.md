@@ -12,6 +12,7 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 - **Client rows:** load first; facts after (Renews, Current insurer and premium, Stage, Waiting on); an open row reads Documents, Insurers, Timeline and links on open (TOD-052, TOD-053).
 - **Projects and parties:** suggested projects from repeated names in a client's subjects, confirmed by the owner; parties per project (TOD-054).
 - **Condense:** per client or project, labelled facts (Client asked, TRS promised, Owed by, Next step), each date and figure checked against the text read; kept with the threads' state. The Read returns the same facts in place of summary sentences (TOD-055; feature `today_condense`).
+- **Inbox:** the paged list includes colleagues' private threads, marked with the owner, counted, opening the modal; a file link on such a thread answers 403 (INB-053, INB-054).
 - **Old drafts:** older drafts repeating the same ask to the same person on the same thread are greyed with Discard only (TOD-056).
 
 ## 2026-11-20 — Every thread listed for everyone; client links by rule; no joined threads; Read in plain steps
