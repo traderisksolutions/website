@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { SourceFilesTab } from '@/components/group-benefits/SourceFilesTab'
 import { HrLinksTab } from '@/components/group-benefits/hr/HrLinksTab'
 import { EbQuotationRegister } from '@/components/eb/EbQuotationRegister'
+import { WorkbookReload } from '@/components/eb/WorkbookReload'
 import { PageHeader } from '@/components/page-header'
 import { InsurerEmailDialog, loadInsurerContacts, contactsFor, ContactLines, type InsurerContact } from '@/components/group-benefits/InsurerEmailDialog'
 import { InsurerContactsDialog } from '@/components/group-benefits/InsurerContactsDialog'
@@ -98,7 +99,8 @@ function PricingMatrix() {
     if (!(asked === 'quote' || params.get('thread') || hrLinkId)) return
     const q = new URLSearchParams()
     for (const k of ['company', 'companyId', 'thread', 'hrLink']) { const v = params.get(k); if (v) q.set(k, v) }
-    router.replace(`/pricing-matrix/new${q.size ? `?${q}` : ''}`)
+    if (q.get('companyId')) { q.set('company', q.get('companyId')!); q.delete('companyId') } else q.delete('company')
+    router.replace(`/eb${q.size ? `?${q}` : ''}`)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
 
@@ -163,6 +165,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
 
   return (
     <div className="flex flex-col gap-10">
+      <WorkbookReload />
       <section>
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <h2 className={h2}>Priced here · {tables.length}</h2>

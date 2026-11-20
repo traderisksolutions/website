@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Employment Benefits review: safety, reopen, wording
+
+- Email to client: when the send went but recording it failed, the page says "Sent, but not marked sent." with Try again; a proposal whose email has gone never offers Email to client again, checked on the server too (EB-056).
+- The old New quotation is retired: `/pricing-matrix/new` and `/pricing-matrix/company/<id>` redirect to `/eb` and the company's Employment Benefits tab; `/eb` takes `?hrLink` and `?quotation` (EB-055).
+- Edit quotation on a proposal reopens it on `/eb`; Save updates it in place until its proposal is sent, then keeps a new version; Save then Prepare keeps one version (EB-057).
+- House workbook: Reload workbook on Quotation register › Insurers, and an automatic re-import when the Drive file is newer than the saved copy (EB-058).
+
 ## 2026-11-20 — "Since you were away" removed
 
 - The strip under the top bar and its API (`/api/housekeeping/since`) are removed (Jarod, 20 Nov 2026). The filing agent still files mail; its actions stay in the activity log.

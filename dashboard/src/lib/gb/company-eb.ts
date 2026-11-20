@@ -15,7 +15,7 @@ export function ebHref(company: { id: string; name: string }, quotations: Quotat
   const newest = key ? quotations.filter(q => companyKey(q.company_name) === key).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] : undefined
   return newest
     ? `/pricing-matrix/quote/${newest.id}/compare`
-    : `/pricing-matrix/new?company=${encodeURIComponent(company.name)}&companyId=${encodeURIComponent(company.id)}`
+    : `/eb?company=${encodeURIComponent(company.id)}`
 }
 
 /** The company's Employment Benefits address, or null when the company is not on file. */

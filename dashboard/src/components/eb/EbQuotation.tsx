@@ -25,10 +25,12 @@ import type { SheetRead } from '@/lib/gb/census-parse'
 import type { LastYear } from '@/lib/gb/last-year'
 import { applyRules } from '@/lib/gb/plan-pairs'
 import { ProposalSection } from './ProposalSection'
+import type { CensusLife, EditState } from '@/lib/gb/eb-proposal'
 import { categoryTotal, censusCategories, lastYearNet, lowerTier, MAX_CATEGORIES, startDesign, TIERS, todayFromLastYear, type CensusCategory, type CoverKey, type Design, type Priced, type PricedCategory } from '@/lib/gb/eb-quote'
 
 type Source = { attachment_id: string; filename: string; at: string; subject: string | null }
 type Picks = Record<string, Record<string, Record<CoverKey, string>>>   // category → product → cover → plan
+type Reopened = { quotation?: { id: string; company_id: string | null; company_name: string; version: number }; edit: EditState | null; census?: CensusLife[]; products: string[]; effectiveDate: string; basis: 'renewal' | 'new_business'; picks: Picks }
 
 const INK = '#0f1412', MUTED = '#4a5550', SUBTLE = '#8c958f', LINE = '#e6e8e4', LINE2 = '#d5d9d4', BAND = '#f0f2ee', FIELD = '#f1f2ee', GREEN = '#132c1c', SOFT = '#edf7e8', TODAY = '#f3f7f4', UP = '#1d6b3f', DOWN = '#a3361f'
 const INSURERS = ['', 'QBE (Steadfast MCare+)', 'Raffles Health (RCC Enhanced III)', 'Income (FlexCare)', 'Singlife (MyBenefits Plus)', 'AIA (Flexi Vital Care Plus)', 'Other insurer']
@@ -64,7 +66,7 @@ function Against({ v, today }: { v: number | null; today: number | null }) {
   return <span style={{ color: d < 0 ? UP : DOWN }}>S${f0(Math.abs(d))} {d < 0 ? 'less' : 'more'}</span>
 }
 
-export function EbQuotation({ threadId, companyId = null }: { threadId: string | null; companyId?: string | null }) {
+export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quotationId = null }: { threadId: string | null; companyId?: string | null; hrLinkId?: string | null; quotationId?: string | null }) {
   // ?company=<id> (the company page's New quotation): the name and its files arrive with the sources.
   const [pick, setPick] = useState<CompanyPick>({ id: companyId, name: '' })
   const [sources, setSources] = useState<Source[]>([])
@@ -87,7 +89,11 @@ export function EbQuotation({ threadId, companyId = null }: { threadId: string |
   const [docIds, setDocIds] = useState<string[]>([])
   const [readingPolicy, setReadingPolicy] = useState(false)
   const [lastYear, setLastYear] = useState<LastYear | null>(null)
-  const [lyToday, setLyToday] = useState<Record<string, Partial<Design>>>({})
+  // The kept quotation this page saves to: the reopened one, or the one Save quotation kept. Saving again updates it in place.
+  const [savedId, setSavedId] = useState<string | null>(null)
+  const [initialInclude, setInitialInclude] = useState<string[] | null>(null)
+  const [autoPrice, setAutoPrice] = useState<Picks | null>(null)
+  const keepDesigns = useRef(false)
 
   useEffect(() => {
     if (!threadId && !pick.id) return
@@ -117,15 +123,80 @@ export function EbQuotation({ threadId, companyId = null }: { threadId: string |
     lastCompany.current = key
   }, [pick.id, pick.name])
   const lyNet = lastYearNet(lastYear)
+  // Last year's policy laid over the census: today's cover per category.
+  const lyToday = useMemo(() => (lastYear && cats.length ? todayFromLastYear(lastYear, cats.map(c => c.name)) : {}), [lastYear, cats])
 
-  // Last year's policy laid over the census: today's cover per category, and the design restarted from it.
+  // A new read of last year's policy restarts the design from it; a reopened quotation keeps its own.
   useEffect(() => {
-    if (!lastYear || !cats.length) { setLyToday({}); return }
-    const t = todayFromLastYear(lastYear, cats.map(c => c.name))
-    setLyToday(t)
-    setDesigns(d => ({ ...d, ...Object.fromEntries(cats.filter(c => t[c.name]).map(c => [c.name, startDesign({ ...c.today, ...t[c.name] })])) }))
+    if (keepDesigns.current) { keepDesigns.current = false; return }
+    if (!lastYear || !cats.length) return
+    setDesigns(d => ({ ...d, ...Object.fromEntries(cats.filter(c => lyToday[c.name]).map(c => [c.name, startDesign({ ...c.today, ...lyToday[c.name] })])) }))
     setPriced(null)
-  }, [lastYear, cats])
+  }, [lastYear, cats, lyToday])
+
+  // An HR link: the census is the list HR submitted on it.
+  useEffect(() => {
+    if (!hrLinkId) return
+    let cancelled = false
+    fetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' })
+      .then(async r => ({ ok: r.ok, status: r.status, d: await r.json().catch(() => ({})) as { census?: Member[]; company?: { id: string | null; name: string | null }; effective_date?: string | null; reference?: string; error?: string } }))
+      .then(({ ok, status, d }) => {
+        if (cancelled) return
+        if (!ok || !d.census?.length) { setError(d.error ?? `The list from the HR link could not be loaded (${status}).`); return }
+        if (d.company?.name) setPick(p => (p.name ? p : { id: d.company!.id ?? null, name: d.company!.name! }))
+        if (d.effective_date) setEffDate(d.effective_date.slice(0, 10))
+        takeCensus(`HR link ${d.reference ?? ''}`.trim(), d.census)
+      }).catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'The list from the HR link could not be loaded.') })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hrLinkId])
+
+  // A kept quotation reopened (Edit quotation): its census, categories, design, insurers and last year's policy, then priced again.
+  useEffect(() => {
+    if (!quotationId) return
+    let cancelled = false
+    fetch(`/api/eb/quotations/${quotationId}?edit=1`, { cache: 'no-store' }).then(async r => {
+      const d = await r.json().catch(() => ({})) as Reopened & { error?: string }
+      if (cancelled) return
+      if (!r.ok || !d.quotation) { setError(d.error ?? `The quotation could not be opened (${r.status}).`); return }
+      const e = d.edit
+      const ms: Member[] = e?.members ?? (d.census ?? []).map(m => ({ name: m.name, category: m.category, relationship: m.relationship, dob: m.dob, age: m.age, occupation_class: m.occupation }))
+      if (!ms.length) { setError('This quotation has no census to reopen.'); return }
+      const read = censusCategories(ms)
+      keepDesigns.current = !!e?.lastYear
+      setPick({ id: d.quotation.company_id, name: d.quotation.company_name })
+      setEffDate(d.effectiveDate); setBasis(d.basis)
+      setCurrent(e?.current ?? '')
+      setLastYear(e?.lastYear ?? null)
+      setFile({ name: `Census on V${d.quotation.version}` })
+      setMembers(ms)
+      setIncluded(e?.included?.length ? e.included : Object.keys(d.picks))
+      setDesigns(Object.fromEntries(read.map(c => [c.name, { ...startDesign(c.today), ...(e?.designs?.[c.name] ?? {}) }])))
+      setInitialInclude(d.products)
+      setSavedId(d.quotation.id)
+      setAutoPrice(d.picks)
+    }).catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'The quotation could not be opened.') })
+    return () => { cancelled = true }
+  }, [quotationId])
+
+  useEffect(() => {
+    if (!autoPrice || !members || !chosen.length) return
+    const keep = autoPrice
+    setAutoPrice(null)
+    void generate(keep)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPrice, members, chosen.length])
+
+  // What a kept quotation needs to be reopened here.
+  const editState = useMemo<EditState | null>(() => members ? { members, included, designs: Object.fromEntries(included.map(n => [n, designs[n] ?? {}])), current, lastYear } : null, [members, included, designs, current, lastYear])
+
+  /** A census read in full (an HR link's list): every category, the first four ticked. */
+  function takeCensus(name: string, ms: Member[]) {
+    const read = censusCategories(ms)
+    setFile({ name }); setMembers(ms); setPriced(null)
+    setIncluded(read.slice(0, MAX_CATEGORIES).map(c => c.name))
+    setDesigns(Object.fromEntries(read.map(c => [c.name, startDesign(c.today)])))
+  }
 
   async function readPolicy() {
     setReadingPolicy(true); setError(null)
@@ -173,7 +244,7 @@ export function EbQuotation({ threadId, companyId = null }: { threadId: string |
   }
   function setTier(cat: string, key: CoverKey, tier: number) { setPriced(null); setDesigns(d => ({ ...d, [cat]: { ...d[cat], [key]: tier } })) }
 
-  async function generate() {
+  async function generate(keep?: Picks) {
     setBusy(true); setError(null)
     try {
       const res = await fetch('/api/eb/price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
@@ -183,7 +254,9 @@ export function EbQuotation({ threadId, companyId = null }: { threadId: string |
       const d = await res.json().catch(() => ({})) as Priced & { error?: string }
       if (!res.ok || !d.categories) { setError(d.error ?? `The premiums were not worked out (${res.status}).`); return }
       setPriced(d)
-      setPicks(Object.fromEntries(d.categories.map(c => [c.name, Object.fromEntries(d.products.map(p => [p, Object.fromEntries(TIERS.map(t => [t.key, c.products[p][t.key].pick]))]))])) as Picks)
+      // A reopened quotation keeps the plans it was saved with, where the product still sells them.
+      const kept = (c: PricedCategory, p: string, k: CoverKey) => { const v = keep?.[c.name]?.[p]?.[k]; return v != null && (v === '' || c.products[p][k].options.some(o => o.plan === v)) ? v : c.products[p][k].pick }
+      setPicks(Object.fromEntries(d.categories.map(c => [c.name, Object.fromEntries(d.products.map(p => [p, Object.fromEntries(TIERS.map(t => [t.key, kept(c, p, t.key)]))]))])) as Picks)
       requestAnimationFrame(() => document.getElementById('eb-premiums')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
     } catch (e) { setError(e instanceof Error ? e.message : 'The premiums were not worked out.') }
     finally { setBusy(false) }
@@ -341,7 +414,9 @@ export function EbQuotation({ threadId, companyId = null }: { threadId: string |
 
       {busy && !priced && <Spinner label="Pricing every product…" />}
       {priced && <Premiums priced={priced} picks={picks} onChoose={choose} lastYearTotal={chosen.length === cats.length ? lyNet : null} />}
-      {priced && members && <ProposalSection priced={priced} picks={picks} members={members} company={pick.name} companyId={pick.id} threadId={threadId} effectiveDate={effDate} basis={basis} />}
+      {priced && members && <ProposalSection priced={priced} picks={picks} members={members} company={pick.name} companyId={pick.id} threadId={threadId} effectiveDate={effDate} basis={basis}
+        savedId={savedId} onSaved={setSavedId} initialInclude={initialInclude}
+        edit={editState!} />}
     </div>
   )
 }

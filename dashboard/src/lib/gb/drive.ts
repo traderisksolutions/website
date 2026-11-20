@@ -120,3 +120,12 @@ export async function downloadSourceFile(driveFileId: string): Promise<Buffer> {
   if (!res.ok) throw new Error(`Drive download failed: ${res.status}`)
   return Buffer.from(await res.arrayBuffer())
 }
+
+/** A Drive file's last change, one call. Null when it cannot be read. */
+export async function fileModifiedTime(driveFileId: string): Promise<string | null> {
+  const res = await fetch(`${DRIVE}/files/${encodeURIComponent(driveFileId)}?fields=modifiedTime&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${await token()}` }, cache: 'no-store' })
+  if (!res.ok) return null
+  const d = await res.json().catch(() => ({})) as { modifiedTime?: string }
+  return d.modifiedTime ?? null
+}

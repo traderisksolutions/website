@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { errorResponse, fail, gate, isUuid, readBody } from '@/lib/placement/api'
-import { ensureDraft, loadQuotation, saveDraft } from '@/lib/gb/eb-proposal-store'
+import { draftSent, ensureDraft, loadQuotation, saveDraft } from '@/lib/gb/eb-proposal-store'
 import { lookupStaff } from '@/lib/auth/users'
 
 export const runtime = 'nodejs'
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const q = await loadQuotation(id)
     if (!q) return fail('Quotation not found', 404)
     if (q.sent_at) return fail('This proposal has been sent. Prepare a new one from the quotation.', 409)
+    if (await draftSent(q)) return NextResponse.json({ error: 'Sent, but not marked sent.', sent: true }, { status: 409 })
     const staff = await lookupStaff(actor).catch(() => null)
     const d = await ensureDraft(q, { email: actor, name: staff?.name ?? null }, to)
     if ('error' in d) return fail(d.error, d.status)

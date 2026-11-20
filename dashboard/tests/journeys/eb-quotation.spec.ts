@@ -76,3 +76,21 @@ test('changing the company clears the census read for the last one', async ({ pa
   await company.fill('Zzq Journey Second Co')
   await expect(page.getByRole('table', { name: 'Census' })).toHaveCount(0)
 })
+
+test('a proposal reopens as Edit quotation with its census and insurers; a sent one never offers Email to client (EB-055, EB-056)', async ({ page }) => {
+  test.setTimeout(120_000)
+  await openClean(page, '/pricing-matrix')
+  const first = page.getByRole('table', { name: 'Quotation register' }).locator('tbody a').first()
+  test.skip(!(await first.count()), 'no kept quotation')
+  await first.click()
+  await expect(page).toHaveURL(/\/eb\/proposal\/[0-9a-f-]{36}$/)
+  const id = page.url().split('/').pop()!
+  await expect(page.getByRole('button', { name: 'Back' })).toHaveCount(0)
+  const sent = await page.getByText(/· sent /).count()
+  if (sent) await expect(page.getByRole('link', { name: 'Email to client' })).toHaveCount(0)
+  await page.getByRole('link', { name: 'Edit quotation' }).click()
+  await expect(page).toHaveURL(new RegExp(`/eb\\?quotation=${id}`))
+  await expect(page.getByRole('heading', { name: 'Edit quotation', level: 1 })).toBeVisible()
+  await expect(page.getByRole('table', { name: 'Census' })).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByRole('table', { name: 'Insurers in the proposal' })).toBeVisible({ timeout: 60_000 })
+})

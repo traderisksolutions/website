@@ -14,6 +14,6 @@ describe('ebHref', () => {
   })
   it('opens New quotation for the company when it has no quotation', () => {
     expect(ebHref(co, [{ id: 'x', company_name: 'Empyrion DC', created_at: '2026-11-14T00:00:00Z' }]))
-      .toBe('/pricing-matrix/new?company=OUE%20Limited&companyId=c1')
+      .toBe('/eb?company=c1')
   })
 })

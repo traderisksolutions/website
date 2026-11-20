@@ -53,15 +53,40 @@ export async function benefitRows(s: Snapshot): Promise<Record<string, BenefitRo
   return out
 }
 
-export async function saveQuotation(s: Snapshot, meta: { company_id: string | null; thread_id: string | null }, actor: string): Promise<EbQuotationRow> {
+/** Whether the proposal's email has gone: the row says so, or its draft is marked sent (the send went but /sent did not land). */
+export async function draftSent(q: Pick<EbQuotationRow, 'draft_id' | 'sent_at'>): Promise<boolean> {
+  if (q.sent_at) return true
+  if (!q.draft_id) return false
+  const [d] = await sbTry<{ status: string }[]>(`ai_drafts?id=eq.${enc(q.draft_id)}&select=status&limit=1`, [])
+  return d?.status === 'sent'
+}
+
+/**
+ * Keeps a quotation. With `id` (a reopened or already saved quotation) the same row is updated in
+ * place, unless its proposal has gone: then a new version is kept. An unsent email drafted from the
+ * old figures is set aside, so the next Email to client is written from the new ones.
+ */
+export async function saveQuotation(s: Snapshot, meta: { company_id: string | null; thread_id: string | null; id?: string | null }, actor: string): Promise<EbQuotationRow & { updated: boolean }> {
   const benefits = await benefitRows(s).catch(() => ({}))
-  const prior = await sbTry<Row[]>(meta.company_id ? `eb_quotations?company_id=eq.${enc(meta.company_id)}&select=id` : `eb_quotations?company_name=eq.${enc(s.company)}&select=id`, [])
+  const at = new Date().toISOString()
+  const was = meta.id ? await loadQuotation(meta.id) : null
+  if (was && !(await draftSent(was))) {
+    if (was.draft_id) await sbTry(`ai_drafts?id=eq.${enc(was.draft_id)}&status=neq.sent`, null, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ status: 'superseded' }) })
+    const [row] = await sb<EbQuotationRow[]>(`eb_quotations?id=eq.${enc(was.id)}`, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify({
+      company_id: meta.company_id ?? was.company_id, company_name: s.company, thread_id: meta.thread_id ?? was.thread_id, effective_date: s.effectiveDate, basis: s.basis,
+      products: s.products, snapshot: { ...s, benefits }, draft_id: null, proposal_ref: null, proposal_name: null, updated_at: at,
+    }) })
+    void logActivity({ action: 'gb.eb_quotation_updated', resource_type: 'eb_quotation', resource_id: was.id, new_value: { company: s.company, products: s.products }, metadata: { by: actor, version: was.version } })
+    return { ...row, updated: true }
+  }
+  const companyId = meta.company_id ?? was?.company_id ?? null
+  const prior = await sbTry<Row[]>(companyId ? `eb_quotations?company_id=eq.${enc(companyId)}&select=id` : `eb_quotations?company_name=eq.${enc(s.company)}&select=id`, [])
   const [row] = await sb<EbQuotationRow[]>('eb_quotations', { method: 'POST', headers: { Prefer: 'return=representation' }, body: JSON.stringify({
-    company_id: meta.company_id, company_name: s.company, thread_id: meta.thread_id, effective_date: s.effectiveDate, basis: s.basis,
+    company_id: companyId, company_name: s.company, thread_id: meta.thread_id ?? was?.thread_id ?? null, effective_date: s.effectiveDate, basis: s.basis,
     products: s.products, snapshot: { ...s, benefits }, version: prior.length + 1, created_by: actor,
   }) })
-  void logActivity({ action: 'gb.eb_quotation_saved', resource_type: 'eb_quotation', resource_id: row.id, new_value: { company: s.company, products: s.products }, metadata: { by: actor } })
-  return row
+  void logActivity({ action: 'gb.eb_quotation_saved', resource_type: 'eb_quotation', resource_id: row.id, new_value: { company: s.company, products: s.products }, metadata: { by: actor, ...(was ? { revises: was.id } : {}) } })
+  return { ...row, updated: false }
 }
 
 export async function loadQuotation(id: string): Promise<EbQuotationRow | null> {
@@ -114,7 +139,8 @@ async function contactFor(email: string, name: string | null, company: string): 
 export async function ensureDraft(q: EbQuotationRow, actor: { email: string; name: string | null }, to?: string | null): Promise<ProposalDraft | { error: string; status: number }> {
   if (q.draft_id) {
     const [d] = await sbTry<Row[]>(`ai_drafts?id=eq.${enc(q.draft_id)}&select=id,status,to_email,cc,subject,body,context_used,attachments,thread_id&limit=1`, [])
-    if (d && d.status !== 'sent' && d.attachments?.[0]) {
+    if (d?.status === 'sent') return { error: 'This proposal’s email has gone. Mark it sent on the proposal.', status: 409 }
+    if (d && !['superseded', 'rejected', 'discarded', 'archived'].includes(d.status) && d.attachments?.[0]) {
       return { draftId: d.id, to: d.to_email ?? '', cc: d.cc ? String(d.cc).split(/,\s*/).filter(Boolean) : [], subject: d.subject ?? '', html: d.context_used?.body_html ?? d.body ?? '', attachment: d.attachments[0], threadId: d.thread_id ?? null }
     }
   }

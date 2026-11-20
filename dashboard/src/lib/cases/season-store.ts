@@ -71,7 +71,7 @@ export async function loadSeason(today = seasonToday()): Promise<SeasonView> {
       // The client's latest quotation that carries a census, as Today › Coming up finds it.
       const q = key.length >= 3 ? quotations.find(x => normCompany(x.company_name) === key) : undefined
       if (q && packs.has(q.id)) return { kind: 'compare_cover', href: `/pricing-matrix/quote/${q.id}/compare` }
-      return r.company_id ? { kind: 'new_quotation', href: `/pricing-matrix/new?company=${enc(r.company)}&companyId=${r.company_id}` } : null
+      return r.company_id ? { kind: 'new_quotation', href: `/eb?company=${r.company_id}` } : null
     }
     // Any other line is compared by hand on its case.
     return r.case ? { kind: 'comparison', href: `/today/${r.case.id}?section=comparison` } : null

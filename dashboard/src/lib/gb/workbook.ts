@@ -6,6 +6,11 @@
  * brochures; the workbook is how TRS keeps them. It lives in the Pricing Matrix Drive folder
  * (_TRS workbooks) and is read into app_settings `gb_workbook` by importWorkbook.
  *
+ * The saved copy carries the Drive file's modifiedTime and the import time (file.modifiedAt,
+ * file.readAt). freshWorkbook re-imports when the Drive file changed since (checked at most every
+ * 10 minutes, one Drive call); a person's Reload workbook (POST /api/eb/workbook) re-imports the
+ * newest file in the folder. No model is called.
+ *
  * parseWorkbook is pure; tested in src/__tests__/gb-workbook.test.ts.
  */
 import * as XLSX from 'xlsx'
@@ -57,6 +62,30 @@ export function parseWorkbook(buf: Buffer, file: Omit<Workbook['file'], 'readAt'
 
 const KEY = 'gb_workbook'
 let cache: { at: number; wb: Workbook } | null = null
+let checked = 0
+
+/** Whether the Drive file changed after the saved copy was taken. Pure. */
+export function isStale(file: Workbook['file'], driveModified: string | null): boolean {
+  if (!driveModified) return false
+  const saved = Date.parse(file.modifiedAt ?? '') || Date.parse(file.readAt) || 0
+  return Date.parse(driveModified) > saved
+}
+
+/**
+ * The saved workbook, re-imported first when its Drive file changed since it was saved (checked at
+ * most every 10 minutes) or when none is saved. A failed check keeps the saved copy.
+ */
+export async function freshWorkbook(): Promise<Workbook | null> {
+  const wb = await loadWorkbook()
+  if (!wb) return importWorkbook().catch(() => null)
+  if (!wb.file.driveFileId || Date.now() - checked < 10 * 60_000) return wb
+  checked = Date.now()
+  try {
+    const { fileModifiedTime } = await import('./drive')
+    if (isStale(wb.file, await fileModifiedTime(wb.file.driveFileId))) return await importWorkbook()
+  } catch { /* the saved copy stands */ }
+  return wb
+}
 
 export async function loadWorkbook(): Promise<Workbook | null> {
   if (cache && Date.now() - cache.at < 10 * 60_000) return cache.wb
@@ -77,5 +106,6 @@ export async function importWorkbook(): Promise<Workbook> {
   const wb = parseWorkbook(await downloadSourceFile(f.driveFileId), { name: f.filename, driveFileId: f.driveFileId, modifiedAt: f.modifiedAt })
   await sb('app_settings?on_conflict=key', { method: 'POST', headers: { Prefer: 'return=minimal,resolution=merge-duplicates' }, body: JSON.stringify([{ key: KEY, value: JSON.stringify(wb), updated_at: new Date().toISOString() }]) })
   cache = { at: Date.now(), wb }
+  checked = Date.now()
   return wb
 }

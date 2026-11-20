@@ -1,29 +1,20 @@
-'use client'
-
 /**
- * Quotes › Employment Benefits › New quotation. Its own address, so Back and the breadcrumbs return
- * to where it was opened: the register, a company's Employment Benefits tab, a thread, Today.
- * ?company=<name>&companyId=<id> fills the company; ?thread=<id> lists that thread's files first;
- * ?hrLink=<id> takes the census HR submitted on that link.
+ * The old New quotation (retired 20 Nov 2026): every link lands on /eb, the one quotation screen.
+ * ?companyId=<id> (or a company id in ?company) fills the company; ?thread and ?hrLink carry over.
+ * A company named without an id is dropped: /eb fills the company from its id only.
  */
-import { Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { NewEb } from '@/components/group-benefits/NewEb'
-import { Breadcrumbs } from '@/components/nav/Breadcrumbs'
+import { redirect } from 'next/navigation'
 
-export default function NewQuotationPage() {
-  return <Suspense fallback={null}><NewQuotation /></Suspense>
-}
+export const dynamic = 'force-dynamic'
 
-function NewQuotation() {
-  const p = useSearchParams()
-  return (
-    <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white" style={{ color: '#0f1412' }}>
-      <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-8 pb-20">
-        <Breadcrumbs className="mb-4" current={{ label: 'New quotation', href: '/pricing-matrix/new' }} fallback={{ label: 'Employment Benefits', href: '/pricing-matrix' }} />
-        <h1 className="m-0 mb-6 text-[32px] font-medium tracking-[-0.03em] leading-[1.1]">New quotation</h1>
-        <NewEb initialCompany={p.get('company') ?? undefined} initialCompanyId={p.get('companyId')} threadId={p.get('thread')} hrLinkId={p.get('hrLink')} />
-      </div>
-    </div>
-  )
+const UUID = /^[0-9a-f-]{36}$/i
+
+export default async function OldNewQuotation({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const p = await searchParams
+  const one = (k: string) => { const v = p[k]; return typeof v === 'string' ? v : Array.isArray(v) ? v[0] : undefined }
+  const q = new URLSearchParams()
+  const company = [one('companyId'), one('company')].find(v => v && UUID.test(v))
+  if (company) q.set('company', company)
+  for (const k of ['thread', 'hrLink']) { const v = one(k); if (v && /^[\w-]{1,80}$/.test(v)) q.set(k, v) }
+  redirect(`/eb${q.size ? `?${q}` : ''}`)
 }

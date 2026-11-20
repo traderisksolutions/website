@@ -13,8 +13,9 @@
  * No model is called anywhere here: every figure is the pricing engine's.
  */
 import { longDate, sgd } from './report-model'
-import { categoryName, TIERS, type CoverKey, type Priced } from './eb-quote'
+import { categoryName, MAX_CATEGORIES, TIERS, type CoverKey, type Design, type Priced } from './eb-quote'
 import type { Member } from '@/lib/gb-quote'
+import { normaliseLastYear, type LastYear } from './last-year'
 
 export type CoverCell = { plan: string; words: string; premium: number | null; locked: boolean }
 export type SnapshotCategory = { name: string; employees: number; lives: number; covers: Record<CoverKey, Record<string, CoverCell>> }
@@ -30,7 +31,11 @@ export type Snapshot = {
   /** Benefit rows of the chosen plans, per category, filled on the server from the house workbook. */
   benefits?: Record<string, BenefitRow[]>
   workbook: string | null
+  /** What /eb needs to reopen the quotation (/eb?quotation=<id>): the census, the categories priced, the design, the current insurer, last year's policy. */
+  edit?: EditState
 }
+
+export type EditState = { members: Member[]; included: string[]; designs: Record<string, Partial<Design>>; current: string; lastYear: LastYear | null }
 
 export const COVER_KEYS: CoverKey[] = TIERS.map(t => t.key)
 export const COVER_NAME: Record<CoverKey, string> = Object.fromEntries(TIERS.map(t => [t.key, t.cover])) as Record<CoverKey, string>
@@ -40,6 +45,7 @@ type Picks = Record<string, Record<string, Record<CoverKey, string>>>   // categ
 /** The quotation as /eb shows it, for the insurers ticked, in the page's product order. */
 export function snapshotFrom(input: {
   priced: Priced; picks: Picks; products: string[]; company: string; effectiveDate: string; basis: 'renewal' | 'new_business'; members: Member[]; categories: string[]
+  edit?: EditState
 }): Snapshot {
   const products = input.priced.products.filter(p => input.products.includes(p))
   const categories = input.priced.categories.filter(c => input.categories.includes(c.name)).map(c => ({
@@ -55,7 +61,33 @@ export function snapshotFrom(input: {
   const members = input.members.filter(m => input.categories.includes(categoryName(m))).map(m => ({
     name: m.name, category: categoryName(m), relationship: m.relationship, dob: m.dob ?? null, occupation: m.occupation_class ?? null, age: m.age ?? null,
   }))
-  return { company: input.company, effectiveDate: input.effectiveDate, basis: input.basis, products, categories, members, workbook: input.priced.workbook?.name ?? null }
+  return { company: input.company, effectiveDate: input.effectiveDate, basis: input.basis, products, categories, members, workbook: input.priced.workbook?.name ?? null, ...(input.edit ? { edit: input.edit } : {}) }
+}
+
+/** The reopen state from a request body or a kept snapshot, bounded. Null when it is not one. */
+export function readEdit(raw: unknown): EditState | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const members: Member[] = (Array.isArray(r.members) ? r.members.slice(0, 5000) : []).flatMap(m => {
+    const o = (m ?? {}) as Record<string, unknown>
+    if (!str(o.name, 120) && !str(o.dob, 20) && num(o.age) == null) return []
+    const plans: Record<string, string> = {}
+    if (o.plans && typeof o.plans === 'object') for (const [k, v] of Object.entries(o.plans as Record<string, unknown>).slice(0, 12)) { const x = str(v, 60); if (x) plans[str(k, 12)] = x }
+    return [{
+      name: str(o.name, 120), category: str(o.category, 80), relationship: str(o.relationship, 40) || 'self',
+      dob: str(o.dob, 20) || null, age: num(o.age), occupation_class: str(o.occupation_class, 20) || null, work_pass: str(o.work_pass, 40) || null,
+      entity: str(o.entity, 80) || null, plans, salary: num(o.salary),
+    }]
+  })
+  if (!members.length) return null
+  const included = (Array.isArray(r.included) ? r.included : []).map(x => str(x, 80)).filter(Boolean).slice(0, MAX_CATEGORIES)
+  const designs: Record<string, Partial<Design>> = {}
+  if (r.designs && typeof r.designs === 'object') for (const [name, d] of Object.entries(r.designs as Record<string, unknown>).slice(0, 40)) {
+    const out: Partial<Design> = {}
+    for (const t of TIERS) { const v = (d as Record<string, unknown> | null)?.[t.key]; if (Number.isInteger(v) && (v as number) >= 0 && (v as number) < t.tiers.length) out[t.key] = v as number }
+    designs[str(name, 80)] = out
+  }
+  return { members, included, designs, current: str(r.current, 80), lastYear: r.lastYear && typeof r.lastYear === 'object' ? normaliseLastYear(r.lastYear) : null }
 }
 
 const str = (v: unknown, n = 200) => (typeof v === 'string' ? v.slice(0, n) : '')
@@ -83,7 +115,8 @@ export function readSnapshot(raw: unknown): Snapshot | null {
     const o = (m ?? {}) as Record<string, unknown>
     return { name: str(o.name, 120), category: str(o.category, 80), relationship: str(o.relationship, 40), dob: str(o.dob, 20) || null, occupation: str(o.occupation, 20) || null, age: num(o.age) }
   })
-  return { company: str(r.company), effectiveDate: str(r.effectiveDate, 10), basis: r.basis === 'new_business' ? 'new_business' : 'renewal', products, categories, members, workbook: str(r.workbook, 160) || null }
+  const edit = readEdit(r.edit)
+  return { company: str(r.company), effectiveDate: str(r.effectiveDate, 10), basis: r.basis === 'new_business' ? 'new_business' : 'renewal', products, categories, members, workbook: str(r.workbook, 160) || null, ...(edit ? { edit } : {}) }
 }
 
 export type ProposalModel = {

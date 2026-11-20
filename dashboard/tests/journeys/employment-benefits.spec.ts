@@ -55,13 +55,15 @@ test('company page has an Employment Benefits tab: its quotations and New quotat
   await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/, { timeout: 30_000 })
 })
 
-test('a link with the company opens New quotation with it filled, older links included', async ({ page }) => {
+test('the old New quotation and company links land on /eb and the company tab (EB-055)', async ({ page }) => {
   const id = await companyId(page, 'OUE')
   await openClean(page, `/pricing-matrix/new?company=OUE&companyId=${id}`)
-  await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/)
+  await expect(page).toHaveURL(new RegExp(`/eb\\?company=${id}`))
+  await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/, { timeout: 30_000 })
   await openClean(page, `/pricing-matrix?tab=quote&company=OUE&companyId=${id}`)
-  await expect(page).toHaveURL(/\/pricing-matrix\/new\?company=OUE/)
-  await expect(page.getByRole('combobox', { name: 'Company' })).toHaveValue(/OUE/)
+  await expect(page).toHaveURL(new RegExp(`/eb\\?company=${id}`))
+  await openClean(page, `/pricing-matrix/company/${id}`)
+  await expect(page).toHaveURL(new RegExp(`/companies/${id}\\?tab=eb`))
 })
 
 test('a quotation opens Compare cover: today and the five products, every cover, Back to the list', async ({ page }) => {

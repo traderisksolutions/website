@@ -46,7 +46,7 @@ export default async function PolicyPage({ params, searchParams }: { params: Pro
           {policy.company_id && <>
             {' · '}<Link href={`/debit-notes?company_id=${policy.company_id}`} className="text-trs-ink no-underline hover:underline">Debit notes</Link>
             {' · '}<Link href={`/claims?company=${policy.company_id}${policy.policy_number ? `&policy=${encodeURIComponent(policy.policy_number)}` : ''}`} className="text-trs-ink no-underline hover:underline">Claims</Link>
-            {isEb(policy) && <>{' · '}<Link href={`/pricing-matrix/company/${policy.company_id}`} className="text-trs-ink no-underline hover:underline">Employment Benefits</Link></>}
+            {isEb(policy) && <>{' · '}<Link href={`/companies/${policy.company_id}?tab=eb`} className="text-trs-ink no-underline hover:underline">Employment Benefits</Link></>}
           </>}
         </>}
         actions={tab === 'renewal' ? <><ReportLink policyId={policy.id} /><RenewalAdviceButton policyId={policy.id} /></> : undefined}
