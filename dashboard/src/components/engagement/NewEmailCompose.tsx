@@ -126,7 +126,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
       // self-referential (draft vs itself) and produce no learning signal.
       const draftRes = await fetch('/api/nexus/draft-create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: null, body: initial.body, email_type: 'NEXUS', to_email: to.trim() }),
+        body: JSON.stringify({ thread_id: null, body: body.trim() ? body : initial.body, email_type: 'NEXUS', to_email: to.trim() }),
       })
       const draftData = await draftRes.json()
       if (!draftRes.ok || !draftData.draftId) throw new Error(draftData.error || 'Could not prepare the draft')
