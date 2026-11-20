@@ -71,20 +71,21 @@ export async function premiums(companyIds: readonly string[]): Promise<Map<strin
   return out
 }
 
-/** The rows on Today for one person, or for everyone. Threads the viewer may not open are listed, marked `private`, their drafts without text. */
+/** The rows on Today for one person, or for everyone: only threads the viewer may open (the developer account opens all). */
 export async function loadDesk(viewer: string, who: string): Promise<{ rows: DeskRow[]; owners: string[]; projects: boolean }> {
   const { rows: all, projects } = await openList()
   const owners = Array.from(new Set(all.map(r => String(r.owner_email)))).sort()
   const mine = who === 'all' ? all : all.filter(r => r.owner_email === who)
   if (!mine.length) return { rows: [], owners, projects }
-  // Ring-fence (Jarod, 20 Nov 2026): every row and what is outstanding shows to everyone; a thread
-  // the viewer may not open is marked with whose inbox holds it, and its drafts carry no text.
+  // Each person sees their own mail and the team's; a colleague's private thread is not listed, and
+  // only the developer account sees every thread (Jarod, 20 Nov 2026, replacing the ring-fence).
   const allIds = Array.from(new Set(mine.map(r => r.thread_id as string)))
   const [visible, boxes] = await Promise.all([visibleThreadIds(allIds, viewer), mailboxesByThread(allIds)])
   const holders = await ownersOf(allIds.filter(id => !visible.has(id))).catch(() => new Map<string, string>())
   const privateOf = (id: string) => privateInbox(boxes.get(id) ?? [], holders.get(id))
-  const listed = mine
-  const ids = allIds
+  const listed = mine.filter(r => visible.has(r.thread_id as string))
+  const ids = allIds.filter(id => visible.has(id))
+  if (!ids.length) return { rows: [], owners, projects }
 
   const [threads, msgs, insurers] = await Promise.all([
     sbTry<Row[]>(`email_threads?id=in.${inList(ids)}&select=id,subject,display_subject,company_id,last_message_at`, []),
@@ -122,7 +123,7 @@ export async function loadDesk(viewer: string, who: string): Promise<{ rows: Des
   const emails = Array.from(new Set(shaped.map(x => x.r.to).filter(Boolean)))
   const people = emails.length ? await sbTry<Row[]>(`contacts?email=in.${inList(emails)}&select=email,first_name,last_name&limit=500`, []) : []
   const personBy = new Map(people.map(c => [String(c.email).toLowerCase(), nameOf(c)]))
-  const drafts: DeskDraft[] = shaped.map(({ d, r, ctx, anchor }) => ({
+  const drafts: DeskDraft[] = shaped.filter(({ d, anchor }) => visible.has(d.thread_id ?? anchor ?? '')).map(({ d, r, ctx, anchor }) => ({
     id: d.id, side: sideOfAddress(r.to, domains), threadId: d.thread_id ?? null, anchorThreadId: anchor,
     to: r.to, person: personBy.get(r.to) ?? null, cc: r.cc.join(', '), subject: d.subject ?? '', body: d.body ?? '',
     label: ctx.kind === 'bar_chaser' ? 'Chaser' : ctx.kind === 'read_step' ? String(ctx.title ?? 'Next step') : LABEL[d.email_type as string] ?? 'Email',

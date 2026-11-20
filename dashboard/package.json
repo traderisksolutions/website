@@ -18,7 +18,9 @@
     "db:baseline": "node scripts/check-db-drift.mjs --update",
     "db:types": "node scripts/gen-db-types.mjs",
     "journeys": "playwright test",
-    "embed:run": "gcloud run jobs execute thread-embed --region asia-southeast1 --project trs-ai-project --account developer@trade-risksol.com --wait"
+    "embed:run": "gcloud run jobs execute thread-embed --region asia-southeast1 --project trs-ai-project --account developer@trade-risksol.com --wait",
+    "db:pull": "node scripts/db-pull.mjs",
+    "db:migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.16",
@@ -34,6 +36,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.13",
+    "drizzle-orm": "0.45.2",
     "exceljs": "^4.4.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.400.0",
@@ -53,6 +56,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.6",
     "@playwright/test": "1.64.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -62,6 +66,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
     "autoprefixer": "^10.0.1",
+    "drizzle-kit": "0.31.10",
     "eslint": "^8",
     "eslint-config-next": "15.5.28",
     "jsdom": "^29.1.1",

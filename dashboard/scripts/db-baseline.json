@@ -3,10 +3,6 @@
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/admin/backfill-message-ids/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/app/api/agent-tasks/approvals/route.ts": {
   "sb": 2,
   "fetch": 1
@@ -99,14 +95,6 @@
   "sb": 1,
   "fetch": 0
  },
- "src/app/api/contacts/bulk/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/contacts/cc-participants/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
  "src/app/api/contacts/route.ts": {
   "sb": 0,
   "fetch": 4
@@ -187,14 +175,6 @@
   "sb": 0,
   "fetch": 3
  },
- "src/app/api/email/classify/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
- "src/app/api/email/health/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/email/ingest/route.ts": {
   "sb": 0,
   "fetch": 33
@@ -257,10 +237,6 @@
  },
  "src/app/api/forms/route.ts": {
   "sb": 7,
-  "fetch": 0
- },
- "src/app/api/group-benefits/analysis/route.ts": {
-  "sb": 2,
   "fetch": 0
  },
  "src/app/api/group-benefits/census/read/route.ts": {
@@ -395,10 +371,6 @@
   "sb": 0,
   "fetch": 4
  },
- "src/app/api/nexus/companies/[id]/case/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/app/api/nexus/draft-create/route.ts": {
   "sb": 0,
   "fetch": 2
@@ -457,10 +429,6 @@
  },
  "src/app/api/policies/[id]/movements/request/route.ts": {
   "sb": 1,
-  "fetch": 0
- },
- "src/app/api/policies/[id]/renewal/calendar/route.ts": {
-  "sb": 2,
   "fetch": 0
  },
  "src/app/api/policies/[id]/route.ts": {
@@ -861,10 +829,6 @@
  },
  "src/lib/crm/thread-referral.ts": {
   "sb": 6,
-  "fetch": 0
- },
- "src/lib/crm/thread-title.ts": {
-  "sb": 4,
   "fetch": 0
  },
  "src/lib/crm/threads.ts": {

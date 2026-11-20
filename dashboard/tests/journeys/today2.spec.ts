@@ -1,6 +1,6 @@
 /**
  * Today 2.0 (20 Nov 2026): the logo opens Today, Today is off the bar, Calendar is a view on Today,
- * ⌘K finds email, and a colleague's private thread opens the ring-fence modal. Read-only: nothing
+ * ⌘K finds email; a colleague's private thread is not listed (20 Nov 2026). Read-only: nothing
  * is added, condensed, sent or copied to anyone.
  */
 import { test, expect } from '@playwright/test'
@@ -40,17 +40,11 @@ test('INB-050 Spotlight finds a thread by a sender’s name', async ({ page }) =
   await page.keyboard.press('Escape')
 })
 
-test('TOD-051 a colleague’s private thread on Everyone’s Today opens the ring-fence modal', async ({ page }) => {
+test('TOD-051 a colleague’s private thread is not listed on Everyone’s Today (the journey user is not the developer account)', async ({ page }) => {
   await openClean(page, '/today?who=all')
   await page.getByRole('button', { name: /^Whose Today: / }).click()
   await page.getByRole('menuitemradio', { name: 'Everyone' }).click()
   await page.getByRole('button', { name: 'Unfurl all' }).click().catch(() => {})
-  const locked = page.locator('button[title$="’s inbox"]').first()
-  test.skip(!(await locked.count()), 'No colleague’s private thread on Today for this user.')
-  await locked.click()
-  const modal = page.getByRole('dialog', { name: /^This email lives in .+’s inbox\.$/ })
-  await expect(modal).toBeVisible()
-  await expect(modal.getByRole('button', { name: /^Ask / })).toBeVisible()
-  await modal.getByRole('button', { name: 'Close' }).first().click()
-  await expect(modal).toBeHidden()
+  // Jarod, 20 Nov 2026: own mail and the team's only; the ring-fence listing is gone.
+  await expect(page.locator('button[title$="’s inbox"]')).toHaveCount(0)
 })

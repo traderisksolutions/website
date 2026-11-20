@@ -98,3 +98,10 @@ Tests for the folders that price, file and send and have none: `crm` (resolve, a
 | 4 Giants | 3 days | medium: nexus and ingest run every night |
 | 5 Layout | 1 day | low |
 | 6 Tests | 3 days | none |
+
+## Schema in code. Started 21 Nov 2026
+
+- `src/db/schema.ts` and `src/db/relations.ts` are generated from the live schema: 208 tables, 2 views, 328 foreign keys. `~/trs-dn-migration/schema-snapshot.sh` takes a read-only schema dump; `npm run db:pull -- <dump>` loads it into PGlite and runs `drizzle-kit pull`. Do not edit the generated files.
+- `public.schema_migrations` is the ledger. `npm run db:migrate` lists the files in `supabase/migrations` it has not recorded; `--apply` runs them through `apply-sql.sh`, each in a transaction with its ledger row. Applying needs the owner's go.
+- The 163 files before 21 Nov are recorded once as the baseline (`--baseline --apply`). New files take today's date as a prefix; the runner refuses a pending file that sorts before the newest applied one.
+- Runtime queries still go through PostgREST. Drizzle queries need a direct connection, which Vercel does not have (the Cloud Run move).
