@@ -59,7 +59,17 @@ export function CompanyThreadList({ companyId, onOpen }: {
           </table>
         </div>
       )}
-      {data.hidden > 0 && <p className="m-0 text-[13px] text-trs-muted">{data.hidden === 1 ? '1 thread in a colleague’s mailbox' : `${data.hidden} threads in colleagues’ mailboxes`}</p>}
+      <HiddenThreads hidden={data.hidden} />
     </section>
+  )
+}
+
+/** The count of threads in colleagues' mailboxes (never listed) and the mail rule (INB-002). */
+export function HiddenThreads({ hidden }: { hidden: number }) {
+  return (
+    <div className="text-[13px] text-trs-muted">
+      {hidden > 0 && <p className="m-0">{hidden} more in colleagues’ mailboxes</p>}
+      <p className="m-0">Mail you see: own inbox and Operations, plus threads you are on.</p>
+    </div>
   )
 }

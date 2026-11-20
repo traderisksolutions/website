@@ -12,6 +12,7 @@ import { extractEmail } from '@/components/engagement/helpers'
 import type { Lead, RealMsg } from '@/components/engagement/types'
 import type { CompanyThread } from '@/lib/crm/types'
 import { threadTitle } from '@/lib/crm/subject'
+import { HiddenThreads } from './CompanyThreadList'
 
 /**
  * Reading and answering this company's mail without leaving its page.
@@ -27,7 +28,9 @@ const MUTED = '#4a5550'
 
 type ThreadRow = { id: string; subject: string | null; status: string; last_message_at: string | null; contact_id: string | null }
 
-export function CompanyMail({ threads, companyId, companyName, onCombine, onRefresh, fullHeight, openId }: {
+export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCombine, onRefresh, fullHeight, openId }: {
+  /** Threads in colleagues' mailboxes: counted, never listed (INB-002). */
+  hidden?: number
   threads: CompanyThread[]
   companyId: string
   companyName: string
@@ -135,6 +138,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
       </div>
 
       {threads.length === 0 && <Empty>No threads are filed under this company yet.</Empty>}
+      {(hidden > 0 || threads.length === 0) && <div className={cn('mb-3', fullHeight && 'flex-shrink-0')}><HiddenThreads hidden={hidden} /></div>}
 
       {threads.length > 0 && (
         <div className={cn('flex gap-4 border-t border-[#e6e8e4]',
@@ -152,6 +156,7 @@ export function CompanyMail({ threads, companyId, companyName, onCombine, onRefr
                     <button onClick={() => openThread(t.id)} className="min-w-0 flex-1 text-left bg-transparent border-0 p-0 cursor-pointer">
                       <p className={cn('text-[14px] m-0 line-clamp-2', selectedId === t.id ? 'font-medium' : '')} style={{ color: INK }} title={t.subject ?? undefined}>{threadTitle(t)}</p>
                       <p className="text-[12.5px] m-0 mt-1 flex items-center gap-1.5 flex-wrap" style={{ color: MUTED }}>
+                        {t.via && <Chip title="Filed under the insurer; names this client">via {t.via.name}</Chip>}
                         {t.needsReply && <Chip>Awaiting reply</Chip>}
                         {t.category && <Chip className="capitalize">{t.category === 'group_benefits' ? 'Group benefits' : t.category}</Chip>}
                         <span className="truncate">{t.contact?.name ?? t.contact?.email ?? 'Unknown'}</span>

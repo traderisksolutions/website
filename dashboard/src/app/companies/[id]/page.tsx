@@ -149,7 +149,8 @@ function CompanyWorkspace() {
     return () => { live = false }
   }, [id])
 
-  const loadThreads = useCallback(() => j<{ threads: CompanyThread[] }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => setThreads(r.threads)), [id, j])
+  const [threadsHidden, setThreadsHidden] = useState(0)
+  const loadThreads = useCallback(() => j<{ threads: CompanyThread[]; hidden?: number }>(`/api/companies/${id}/threads`, { threads: [] }).then(r => { setThreads(r.threads); setThreadsHidden(r.hidden ?? 0) }), [id, j])
   // A thread filed under an insurer that names this client is not in the reader's list: it opens in the Inbox.
   const openThread = (threadId: string) => { if (threads?.some(t => t.id === threadId)) setThreadView('reader', threadId); else router.push(`/engagement?thread=${threadId}`) }
   const loadCases = useCallback(() => j<{ cases: CaseRow[] }>(`/api/companies/${id}/cases`, { cases: [] }).then(r => setCases(r.cases)), [id, j])
@@ -294,7 +295,7 @@ function CompanyWorkspace() {
           {threadView === 'list'
             ? <div className="h-full overflow-y-auto px-4 sm:px-6 py-4"><CompanyThreadList companyId={id} onOpen={openThread} /></div>
             : threads
-              ? <CompanyMail threads={threads} companyId={id} companyName={company.name} fullHeight openId={openThreadId} onRefresh={() => { setThreads(null); void loadThreads() }} />
+              ? <CompanyMail threads={threads} hidden={threadsHidden} companyId={id} companyName={company.name} fullHeight openId={openThreadId} onRefresh={() => { setThreads(null); void loadThreads() }} />
               : <Spinner label="Loading conversations…" />}
         </div>
         {drafts}

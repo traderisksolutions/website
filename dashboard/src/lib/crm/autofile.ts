@@ -49,7 +49,8 @@ export interface DomainEvidence {
   /** Other outside domains copied on the same threads, with how often. */
   alsoOn: { domain: string; threads: number }[]
   /** Subject and opening line per thread, so a person can read the queue without leaving it. */
-  previews: { subject: string | null; snippet: string | null; date: string | null }[]
+  /** threadId is set where the thread is known, so a person's list can drop a colleague's private one. */
+  previews: { subject: string | null; snippet: string | null; date: string | null; threadId?: string }[]
   /** Who opened the conversation: mail from them, against mail TRS sent them. */
   inbound: number
   outbound: number

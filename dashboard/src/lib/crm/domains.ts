@@ -23,7 +23,7 @@ export interface DomainCandidate {
   /** Other outside domains copied on the same threads. */
   alsoOn: { domain: string; threads: number }[]
   /** Subject and opening line per thread. */
-  previews: { subject: string | null; snippet: string | null; date: string | null }[]
+  previews: { subject: string | null; snippet: string | null; date: string | null; threadId?: string }[]
   inbound: number
   outbound: number
   handledBy: string[]
@@ -90,7 +90,7 @@ export async function collectUnclaimedDomains(): Promise<DomainEvidence[]> {
         ev.threadIds.push(t.id)
         ev.inbound += msgs.filter(m => m.direction === 'inbound').length
         ev.outbound += msgs.filter(m => m.direction === 'outbound').length
-        if (ev.previews.length < 8) ev.previews.push({ subject: t.subject ?? null, snippet: t.snippet ?? null, date: t.last_message_at ?? null })
+        if (ev.previews.length < 8) ev.previews.push({ subject: t.subject ?? null, snippet: t.snippet ?? null, date: t.last_message_at ?? null, threadId: t.id })
       }
       if (t.subject && ev.subjects.length < 8 && !ev.subjects.includes(t.subject)) ev.subjects.push(t.subject)
       for (const r of rows) {
