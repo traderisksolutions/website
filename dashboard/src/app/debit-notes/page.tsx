@@ -118,7 +118,7 @@ function ColumnHeader({
       className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-4', last && 'pr-6')}>
       <span className={cn('group inline-flex items-center gap-1 h-11', right && 'flex-row-reverse')}>
         <Btn level="tertiary" size="xs" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
-          className={cn('h-auto p-0 border-0 font-normal text-body hover:bg-transparent', right && 'flex-row-reverse', isSorted ? 'font-medium text-trs-ink' : 'text-trs-muted')}>
+          className={cn('h-auto p-0 border-0 text-small font-semibold hover:bg-transparent', right && 'flex-row-reverse', isSorted ? 'text-trs-ink' : 'text-trs-muted')}>
           {col.label}
           <SortIcon size={13} className={cn(isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
         </Btn>

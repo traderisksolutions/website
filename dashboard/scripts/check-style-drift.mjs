@@ -12,7 +12,8 @@
 //            (not counted in the shared parts: src/components/ui and crm/primitives.tsx)
 // against scripts/style-baseline.json. A file above its count, or a new file with any, fails.
 // Counts only go down. A line that must keep one (a PDF renderer, a chart library's prop) carries
-// `drift-ok: <reason>` and is not counted.
+// `drift-ok: <reason>` and is not counted. PDF templates (@react-pdf/renderer) are not screen code: they
+// take style objects only, so they are not counted.
 //
 //   node scripts/check-style-drift.mjs                 check (part of npm run check)
 //   node scripts/check-style-drift.mjs --update        rewrite the whole baseline (say so in the commit)
@@ -37,7 +38,7 @@ function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name)
     if (statSync(p).isDirectory()) { if (name !== '__tests__' && name !== 'node_modules') walk(p, out) }
-    else if (name.endsWith('.tsx') && !name.endsWith('.test.tsx')) out.push(relative(ROOT, p))
+    else if (name.endsWith('.tsx') && !name.endsWith('.test.tsx') && !readFileSync(p, 'utf8').includes('@react-pdf/renderer')) out.push(relative(ROOT, p))
   }
   return out
 }
