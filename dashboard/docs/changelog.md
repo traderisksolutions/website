@@ -4,6 +4,16 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-20 — Employment Benefits 2.0: pricing, tiers, compare
+
+Built from Jarod's approved design on /eb (New quotation). No model prices anything; a model reads documents only on a person's button.
+
+- Step 1 Pricing: Brochure pricing or Insurer pricing; company centred; columns Census, Last year's policy and premium and Insurer pricing schedules, each with Add box, Added and From <company>'s email (only threads the person may see). Census PDFs read by code, Read with AI as the fallback (gb_census_read). Insurer schedules (xlsx, xls, csv, PDF) read by code into premium per cover with source and status; Read with AI fallback (gb_schedule_read) checked against the file's text (EB-063 to EB-065).
+- Step 2 Same tier and Lower tier by rule: ward and beds, then the same limit and basis, else the next lower, never higher; one plan lower per cover; reason per cell (EB-066).
+- Step 3 Compare: Current only from a premium or debit note read; plan lists per column priced by code; copies at the right with their difference; census against brochure flags; Total a year, Per employee; Excel (EB-067). The proposal carries copies and insurer schedules (EB-068).
+- Pricing by TRS EB Package Calculator V1.5: term life, critical illness and EAP; AIA accident and term life employee and dependant rates; occupation class never assumed; GP inside specialist at Singlife and AIA; major medical ties; dependants per insurer; limit basis per plan; headcount and rate-date warnings; the workbook's worked example to the cent on the medical covers (EB-069). Plan rules gain code defaults at read time (EB-070).
+- New shared parts in src/components/ui: choice-card, add-box, select-box, icon-button (IconBtn, Checkbox), compare-table.
+
 ## 2026-11-20 — Old quotations deleted
 
 Jarod: "After migrating the quotations > delete the old quotations and pages." 16 of the 21 gb_quotations were re-priced into eb_quotations (legacy_gb_id); the 5 without a census stay in gb_quotations as an archive. No database row or table changed.

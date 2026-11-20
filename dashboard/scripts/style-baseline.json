@@ -1015,14 +1015,6 @@
   "height": 1,
   "control": 4
  },
- "src/components/eb/EbQuotation.tsx": {
-  "style": 72,
-  "hex": 18,
-  "font": 43,
-  "radius": 11,
-  "height": 1,
-  "control": 13
- },
  "src/components/eb/EbQuotationRegister.tsx": {
   "style": 0,
   "hex": 0,
@@ -1030,14 +1022,6 @@
   "radius": 0,
   "height": 0,
   "control": 1
- },
- "src/components/eb/ProposalSection.tsx": {
-  "style": 2,
-  "hex": 2,
-  "font": 5,
-  "radius": 0,
-  "height": 0,
-  "control": 2
  },
  "src/components/eb/ProposalTrack.tsx": {
   "style": 1,

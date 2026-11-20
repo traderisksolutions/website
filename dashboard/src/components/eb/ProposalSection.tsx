@@ -1,53 +1,54 @@
 'use client'
 
 /**
- * Proposal, under Total on /eb (Jarod, 19 Nov 2026): tick the insurers that go to the client, keep
- * the quotation, then open the proposal (/eb/proposal/<id>). The checks are the ones the proposal
- * page and the email page show (src/lib/gb/eb-proposal.ts). No model is called.
+ * Proposal, under Compare on /eb (Jarod, 19 Nov 2026; columns 20 Nov 2026): tick the columns that
+ * go to the client (copies and insurer schedules included), keep the quotation, then open the
+ * proposal (/eb/proposal/<id>). Excel downloads the Compare table. The checks are the ones the
+ * proposal page and the email page show (src/lib/gb/eb-proposal.ts). No model is called.
  *
  * One quotation per page (20 Nov 2026): the first Save keeps it, every later Save or Prepare updates
  * the same row (`savedId`), and Prepare after an unchanged Save only opens the proposal. A quotation
  * whose proposal has gone is kept as a new version by the server.
  */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Btn } from '@/components/crm/primitives'
-import { tableFrame } from '@/components/cases/shared'
+import { Checkbox } from '@/components/ui/icon-button'
+import { Register, RegisterCell, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
 import type { Member } from '@/lib/gb-quote'
-import { categoryTotal, type CoverKey, type Priced } from '@/lib/gb/eb-quote'
-import { proposalChecks, snapshotFrom, type EditState } from '@/lib/gb/eb-proposal'
+import { compareSheet, type CompareModel, type EbColumn } from '@/lib/gb/eb-compare'
+import { proposalChecks, snapshotFromCompare, type EditState } from '@/lib/gb/eb-proposal'
+import { fmtMoney0 } from './eb-format'
 
-type Picks = Record<string, Record<string, Record<CoverKey, string>>>
-const f0 = (n: number) => Math.round(n).toLocaleString('en-SG')
-
-export function ProposalSection({ priced, picks, members, company, companyId, threadId, effectiveDate, basis, savedId, onSaved, initialInclude, edit }: {
-  priced: Priced; picks: Picks; members: Member[]; company: string; companyId: string | null; threadId: string | null
-  effectiveDate: string; basis: 'renewal' | 'new_business'
+export function ProposalSection({ model, cols, members, company, companyId, threadId, effectiveDate, basis, workbook, savedId, onSaved, initialInclude, edit }: {
+  model: CompareModel; cols: EbColumn[]; members: Member[]; company: string; companyId: string | null; threadId: string | null
+  effectiveDate: string; basis: 'renewal' | 'new_business'; workbook: string | null
   savedId: string | null; onSaved: (id: string) => void; initialInclude: string[] | null; edit: EditState
 }) {
   const router = useRouter()
-  const [include, setInclude] = useState<string[]>(initialInclude?.length ? priced.products.filter(p => initialInclude.includes(p)) : priced.products)
-  const [busy, setBusy] = useState<'save' | 'prepare' | null>(null)
+  const labels = model.columns.map(c => c.label)
+  const [include, setInclude] = useState<string[]>(initialInclude?.length ? labels.filter(l => initialInclude.includes(l)) : labels)
+  // A column added after the first render (a copy, a schedule) is ticked; one taken away drops out.
+  const key0 = labels.join('|')
+  const [seen, setSeen] = useState(labels)
+  useEffect(() => {
+    setInclude(cur => [...labels.filter(l => cur.includes(l) || !seen.includes(l))])
+    setSeen(labels)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key0])
+  const [busy, setBusy] = useState<'save' | 'prepare' | 'excel' | null>(null)
   const [saved, setSaved] = useState<{ version: number; at: string; key: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const totals = useMemo(() => priced.products.map(p => priced.categories.reduce((a, c) => a + categoryTotal(c, p, picks[c.name]?.[p] ?? ({} as Record<CoverKey, string>)), 0)), [priced, picks])
-  const lowest = useMemo(() => {
-    const on = priced.products.map((p, i) => ({ p, t: totals[i] })).filter(x => include.includes(x.p) && x.t > 0)
-    return on.length ? on.reduce((a, b) => (b.t < a.t ? b : a)).p : null
-  }, [priced, totals, include])
-  const snapshot = useMemo(() => snapshotFrom({ priced, picks, products: include, company: company.trim(), effectiveDate, basis, members, categories: priced.categories.map(c => c.name), edit }), [priced, picks, include, company, effectiveDate, basis, members, edit])
+  const on = model.columns.filter(c => include.includes(c.label) && c.total > 0)
+  const lowest = on.length ? on.reduce((a, b) => (b.total < a.total ? b : a)).label : null
+  const snapshot = useMemo(() => snapshotFromCompare({ model, cols, include, company: company.trim(), effectiveDate, basis, members, workbook, edit }), [model, cols, include, company, effectiveDate, basis, members, workbook, edit])
   const key = useMemo(() => JSON.stringify(snapshot), [snapshot])
-  // Checks per insurer: one row's flags are the covers chosen there but priced at S$0 or not at all.
-  const flagsFor = (p: string) => {
-    const one = proposalChecks({ ...snapshot, products: [p] })
-    return one.filter(c => c.kind === 'warn' && c.label !== 'Census').map(c => c.label)
-  }
+  const flagsFor = (label: string) => proposalChecks({ ...snapshot, products: [label] }).filter(c => c.kind === 'warn' && c.label !== 'Census').map(c => c.label)
   const census = proposalChecks(snapshot).find(c => c.label === 'Census')
 
   async function keep(then: 'save' | 'prepare') {
     if (!company.trim()) { setError('Name the company first.'); return }
-    // Saved and unchanged since: Prepare opens the proposal without keeping a second copy.
     if (then === 'prepare' && savedId && saved?.key === key) { router.push(`/eb/proposal/${savedId}`); return }
     setBusy(then); setError(null)
     try {
@@ -64,41 +65,50 @@ export function ProposalSection({ priced, picks, members, company, companyId, th
     }
   }
 
-  const toggle = (p: string) => setInclude(cur => (cur.includes(p) ? cur.filter(x => x !== p) : priced.products.filter(x => x === p || cur.includes(x))))
+  async function excel() {
+    setBusy('excel'); setError(null)
+    try {
+      const res = await fetch('/api/eb/compare/xlsx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ company, rows: compareSheet(model, { company, effectiveDate }) }) })
+      if (!res.ok) { const d = await res.json().catch(() => ({})) as { error?: string }; setError(d.error ?? `The Excel file was not made (${res.status}).`); return }
+      const url = URL.createObjectURL(await res.blob())
+      const a = document.createElement('a')
+      a.href = url; a.download = (res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1]) ?? 'Compare.xlsx'
+      a.click(); URL.revokeObjectURL(url)
+    } catch (e) { setError(e instanceof Error ? e.message : 'The Excel file was not made.') } finally { setBusy(null) }
+  }
+
+  const toggle = (l: string) => setInclude(cur => (cur.includes(l) ? cur.filter(x => x !== l) : labels.filter(x => x === l || cur.includes(x))))
   return (
     <section id="eb-proposal" className="flex flex-col gap-3" aria-labelledby="eb-proposal-h">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="eb-proposal-h" className="m-0 text-[17px] font-semibold">Proposal</h2>
-        <span className="text-[12.5px] text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
+        <h2 id="eb-proposal-h" className="m-0 text-lg font-semibold">Proposal</h2>
+        <span className="text-xs text-trs-muted">{saved ? `Saved V${saved.version} at ${saved.at}` : 'Not saved'}</span>
       </div>
-      <div className={tableFrame}>
-        <table className="trs-table" style={{ minWidth: 640 }} aria-label="Insurers in the proposal">
-          <thead><tr><th>Insurer</th><th>Include</th><th>Premium a year</th><th>Checks</th></tr></thead>
-          <tbody>
-            {priced.products.map((p, i) => {
-              const flags = flagsFor(p)
-              const on = include.includes(p)
-              return (
-                <tr key={p}>
-                  <td className="cell-left px-3">{p}</td>
-                  <td className="px-3"><input type="checkbox" checked={on} onChange={() => toggle(p)} aria-label={`Include ${p}`} className="h-4 w-4 accent-[#132c1c] cursor-pointer" /></td>
-                  <td className={`px-3 tabular-nums${on && lowest === p ? ' cell-best' : ''}`} style={{ color: on ? undefined : '#8c958f' }}>{f0(totals[i])}</td>
-                  <td className="cell-left px-3 text-[12.5px]">
-                    {flags.length
-                      ? <span className="inline-flex items-center gap-1.5 text-trs-warn"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-trs-subtle" />{flags.join(', ')}: priced at S$0 or not priced</span>
-                      : <span className="text-trs-muted">—</span>}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-      {census?.kind === 'warn' && <p className="m-0 text-[12.5px] text-trs-warn">{census.text}</p>}
-      {error && <p className="m-0 text-[13.5px] text-trs-neg" role="alert">{error}</p>}
+      <Register label="Insurers in the proposal" minWidth={640}>
+        <RegisterHead><RegisterTh first>Insurer</RegisterTh><RegisterTh>Include</RegisterTh><RegisterTh>Premium a year</RegisterTh><RegisterTh last>Checks</RegisterTh></RegisterHead>
+        <tbody>
+          {model.columns.map(c => {
+            const flags = flagsFor(c.label)
+            const ticked = include.includes(c.label)
+            return (
+              <RegisterRow key={c.id}>
+                <RegisterCell first primary={c.label} secondary={c.source} />
+                <RegisterCell><Checkbox checked={ticked} onChange={() => toggle(c.label)} label={`Include ${c.label}`} /></RegisterCell>
+                <RegisterCell className={ticked && lowest === c.label ? 'cell-best' : undefined}><span className={ticked ? 'text-trs-ink' : 'text-trs-subtle'}>{fmtMoney0(c.total)}</span></RegisterCell>
+                <RegisterCell last align="left">
+                  {flags.length ? <span className="text-xs text-trs-warn">{flags.join(', ')}: priced at S$0 or not priced</span> : <span className="text-trs-muted">—</span>}
+                </RegisterCell>
+              </RegisterRow>
+            )
+          })}
+        </tbody>
+      </Register>
+      {census?.kind === 'warn' && <p className="m-0 text-xs text-trs-warn">{census.text}</p>}
+      {error && <p className="m-0 text-sm text-trs-neg" role="alert">{error}</p>}
       <div className="flex flex-wrap justify-end gap-2">
+        <Btn loading={busy === 'excel'} disabled={!!busy} onClick={() => void excel()}>Excel</Btn>
         <Btn loading={busy === 'save'} disabled={!!busy || !include.length} onClick={() => void keep('save')}>Save quotation</Btn>
-        <Btn level="primary" loading={busy === 'prepare'} disabled={!!busy || !include.length} onClick={() => void keep('prepare')}>{`Prepare proposal · ${include.length} insurer${include.length === 1 ? '' : 's'}`}</Btn>
+        <Btn level="primary" loading={busy === 'prepare'} disabled={!!busy || !include.length} onClick={() => void keep('prepare')}>{`Prepare proposal · ${include.length} ${include.length === 1 ? 'column' : 'columns'}`}</Btn>
       </div>
     </section>
   )

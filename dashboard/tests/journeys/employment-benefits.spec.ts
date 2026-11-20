@@ -31,7 +31,7 @@ test('New quotation on the register opens the quotation page: company, census an
   await expect(page).toHaveURL(/\/eb$/)
   await expect(page.getByRole('heading', { name: 'Employment Benefits', level: 1 })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Census' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: "Last year's policy and premium" })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^Last year.s policy and premium$/ })).toBeVisible()
   const company = page.getByRole('combobox', { name: 'Company' })
   await expect(company).toBeVisible()
   await company.fill('Zzq Journey Test Co')
