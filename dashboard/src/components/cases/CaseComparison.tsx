@@ -18,7 +18,8 @@ import {
 } from '@/lib/cases/compare'
 import type { CompareAnswer } from '@/app/api/work/[id]/compare/route'
 import { WishListDialog } from './WishListDialog'
-import { headingCls, selectCls, tableFrame } from './shared'
+import { headingCls, selectCls } from './shared'
+import { Register } from '@/components/ui/register'
 
 /** What a person typed and has not saved, by case: it survives a look at another section. */
 const drafts = new Map<string, Comparison>()
@@ -151,9 +152,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <h2 className={headingCls}>Options · {offered(c)}</h2>
           <Btn size="xs" disabled={working || c.options.length >= OPTIONS_MAX} onClick={addOption}>Add option</Btn>
         </div>
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: 700 }} aria-label="Options">
-            <colgroup><col style={{ width: 160 }} /><col style={{ width: 170 }} /><col /><col style={{ width: 176 }} /></colgroup>
+        <Register label="Options" minWidth={700} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col className="w-[160px]" /><col className="w-[170px]" /><col /><col className="w-[176px]" /></colgroup>
             <thead><tr><th>Option</th><th>Insurer</th><th>Source document</th><th><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>
               {c.options.map(o => {
@@ -185,8 +185,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 )
               })}
             </tbody>
-          </table>
-        </div>
+          </Register>
       </div>
 
       <div className="flex flex-col gap-2 min-w-0">
@@ -194,9 +193,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <h2 className={headingCls}>Policy terms</h2>
           <Btn size="xs" disabled={working || c.rows.length >= ROWS_MAX} onClick={addRow}>Add term</Btn>
         </div>
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: gridWidth }} aria-label="Policy terms">
-            <colgroup><col style={{ width: 200 }} />{c.options.map(o => <col key={o.id} />)}<col style={{ width: 44 }} /></colgroup>
+        <Register label="Policy terms" minWidth={gridWidth} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col className="w-[200px]" />{c.options.map(o => <col key={o.id} />)}<col className="w-[44px]" /></colgroup>
             <thead><tr><th>Term</th>{c.options.map(o => <th key={o.id}>{optionName(o)}</th>)}<th><span className="sr-only">Remove</span></th></tr></thead>
             <tbody>
               {terms.map(r => (
@@ -208,7 +206,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                     </td>
                   ))}
                   <td className="px-1 py-1.5 text-center">
-                    <button type="button" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="h-7 w-7 rounded-6 border-0 bg-transparent text-16 leading-none text-trs-muted cursor-pointer hover:bg-trs-field hover:text-trs-ink">×</button>
+                    <Btn level="tertiary" size="xs" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="w-8 px-0 text-heading leading-none">×</Btn>
                   </td>
                 </tr>
               ))}
@@ -225,8 +223,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                 </tr>
               )}
             </tbody>
-          </table>
-        </div>
+          </Register>
       </div>
 
       <div className="flex flex-col gap-2 min-w-0">
@@ -235,9 +232,8 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
           <Btn size="xs" disabled={working} onClick={() => setWishing(true)}>Edit wish list</Btn>
         </div>
         {wishes.length === 0 ? <Empty compact>No wishes on the case.</Empty> : (
-          <div className={tableFrame}>
-            <table className="trs-table table-fixed" style={{ minWidth: 380 + c.options.length * 160 }} aria-label="Client wish list by option">
-              <colgroup><col /><col style={{ width: 120 }} />{c.options.map(o => <col key={o.id} style={{ width: 160 }} />)}</colgroup>
+          <Register label="Client wish list by option" minWidth={380 + c.options.length * 160} dense={false} className="[&_table]:table-fixed">
+              <colgroup><col /><col className="w-[120px]" />{c.options.map(o => <col key={o.id} className="w-[160px]" />)}</colgroup>
               <thead><tr><th>Wish</th><th>Need</th>{c.options.map(o => <th key={o.id}>{o.name}</th>)}</tr></thead>
               <tbody>
                 {wishes.map(w => (
@@ -261,8 +257,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                   </tr>
                 )}
               </tbody>
-            </table>
-          </div>
+            </Register>
         )}
       </div>
 

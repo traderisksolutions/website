@@ -12,14 +12,6 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
 
-const INK   = '#0f1412'
-const BODY  = '#2a332f'
-const MUTED = '#4a5550'
-const FAINT = '#6f7a74'
-const DOT   = '#8c958f'
-const HAIR  = '#e6e8e4'
-const FIELD = '#f1f2ee'
-
 type PhaseStatus = 'pending' | 'running' | 'done' | 'failed'
 
 type Phase1Preview = { stakeholders: number; timelineEvents: number; openQuestions: number; missingItems: number; caseSummary: string }
@@ -181,22 +173,20 @@ export function NexusPhasedAnalysisModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(15,20,18,0.4)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(15,20,18,0.4)]"
       onClick={anyRunning ? undefined : onClose}
     >
       <div
-        className="bg-white rounded-16 w-full max-w-[600px] flex flex-col overflow-hidden max-h-[calc(90vh/var(--ui-zoom))]"
-        style={{ boxShadow: 'var(--shadow-modal)', color: INK }}
+        className="bg-white rounded w-full max-w-[600px] flex flex-col overflow-hidden max-h-[calc(90vh/var(--ui-zoom))] shadow-[var(--shadow-modal)] text-trs-ink"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-label="Run analysis"
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-20 font-medium tracking-[-0.02em] text-trs-ink">Run analysis</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="w-[30px] h-[30px] inline-flex items-center justify-center rounded-full bg-transparent border-0 cursor-pointer hover:bg-[#f1f2ee] text-trs-muted">
+          <h2 className="m-0 text-heading font-medium tracking-[-0.02em] text-trs-ink">Run analysis</h2>
+          <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0 rounded-full">
             <X size={15} />
-          </button>
+          </Btn>
         </div>
 
         <div className="px-6 pb-6 flex flex-col gap-3 overflow-y-auto">
@@ -209,7 +199,7 @@ export function NexusPhasedAnalysisModal({
               )}
 
               {phases.map(p => (
-                <div key={p.n} className="flex flex-col gap-2.5 rounded-16 p-4" style={{ border: `1px solid ${HAIR}` }}>
+                <div key={p.n} className="flex flex-col gap-2.5 rounded p-4 border border-trs-line">
                   <div className="flex items-center gap-3 flex-wrap">
                     <PhaseIcon status={p.status} />
                     <span className="text-14 font-medium flex-1 min-w-[200px] text-trs-ink">Phase {p.n}. {p.label}</span>
@@ -259,7 +249,7 @@ export function NexusPhasedAnalysisModal({
               ))}
 
               {error && (
-                <p className="m-0 rounded-12 px-4 py-3 text-13.5 leading-[1.5] bg-trs-field text-trs-ink-2">{error}</p>
+                <p className="m-0 rounded px-4 py-3 text-13.5 leading-[1.5] bg-trs-field text-trs-ink-2">{error}</p>
               )}
 
               {phase3Status === 'done' && (
@@ -280,8 +270,7 @@ function PhaseIcon({ status }: { status: PhaseStatus }) {
   if (status === 'running') return <Loader2 size={16} className="animate-spin flex-shrink-0 text-trs-muted" aria-label="Running" />
   return (
     <span
-      className="w-4 h-4 rounded-full flex-shrink-0 inline-flex items-center justify-center"
-      style={{ border: `2px solid ${status === 'done' ? INK : DOT}`, background: status === 'done' ? INK : 'transparent' }}
+      className={`w-4 h-4 rounded-full flex-shrink-0 inline-flex items-center justify-center border-2 ${status === 'done' ? 'border-trs-ink bg-trs-ink' : 'border-trs-subtle bg-transparent'}`}
       aria-hidden
     />
   )
@@ -311,8 +300,8 @@ function PhaseProgress({ seconds, model, role }: { seconds: number; model: strin
 
   return (
     <div className="pl-7 flex flex-col gap-1.5" role="status" aria-live="polite">
-      <div className="h-[3px] rounded-full overflow-hidden bg-trs-line">
-        <div className="h-full rounded-full transition-[width] duration-300 ease-out" style={{ width: `${pct}%`, background: INK }} />
+      <div className="h-0.5 rounded-full overflow-hidden bg-trs-line">
+        <div className="h-full rounded-full transition-[width] duration-300 ease-out bg-trs-ink" style={{ width: `${pct}%` }} />{/* drift-ok: width from elapsed time */}
       </div>
       <p className="m-0 text-13 text-trs-muted">
         {model} · {role} · <span className="tabular-nums">{elapsed}s</span>

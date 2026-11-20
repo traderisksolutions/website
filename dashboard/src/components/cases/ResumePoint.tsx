@@ -11,7 +11,8 @@ import { callApi, errText } from '@/components/placement/shared'
 import { DASH, fmtDateTime } from '@/lib/format'
 import { actorName } from '@/lib/cases/names'
 import type { CaseMemory } from '@/lib/cases/memory-store'
-import { headingCls, ReadNewButton, tableFrame } from './shared'
+import { Register } from '@/components/ui/register'
+import { headingCls, ReadNewButton } from './shared'
 
 export function ResumePoint({ id, onChanged, onNotice, onError }: {
   id: string
@@ -50,8 +51,7 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
           <ReadNewButton id={id} unread={memory.new_emails} onError={onError}
             onDone={notice => { onNotice(notice); onChanged(); load().then(setMemory).catch(e => onError(errText(e))) }} />
         </div>
-        <div className={tableFrame}>
-          <table className="trs-table" aria-label="Resume point">
+        <Register label="Resume point" minWidth={0} dense={false}>
             <thead><tr><th className="w-[124px] sm:w-[150px]">Item</th><th>Detail</th></tr></thead>
             <tbody>
               {rows.map(([item, detail]) => (
@@ -61,13 +61,11 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Register>
       </div>
       <div className="flex flex-col gap-2 min-w-0">
         <h2 className={headingCls}>Agents</h2>
-        <div className={tableFrame}>
-          <table className="trs-table" style={{ minWidth: 520 }} aria-label="Agents">
+        <Register label="Agents" minWidth={520} dense={false}>
             <thead><tr><th>Agent</th><th>Last read</th><th>Emails read</th><th>Unread</th><th>Notes kept</th></tr></thead>
             <tbody>
               {memory.agents.map(a => (
@@ -80,8 +78,7 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Register>
       </div>
     </section>
   )

@@ -312,12 +312,12 @@
   "control": 14
  },
  "src/app/nexus/cases/page.tsx": {
-  "style": 103,
-  "hex": 22,
+  "style": 0,
+  "hex": 5,
   "font": 0,
   "radius": 0,
-  "height": 16,
-  "control": 59
+  "height": 2,
+  "control": 9
  },
  "src/app/pricing-matrix/[id]/page.tsx": {
   "style": 8,
@@ -512,63 +512,47 @@
   "control": 7
  },
  "src/components/cases/CaseBrief.tsx": {
-  "style": 1,
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 3
+ },
+ "src/components/cases/CaseBriefTables.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 4
  },
- "src/components/cases/CaseBriefTables.tsx": {
-  "style": 15,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 7
- },
  "src/components/cases/CaseComparison.tsx": {
-  "style": 10,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 13
+  "control": 9
  },
  "src/components/cases/CaseConversation.tsx": {
-  "style": 4,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 2
- },
- "src/components/cases/CaseRounds.tsx": {
-  "style": 15,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 7
- },
- "src/components/cases/CaseSourcesPanel.tsx": {
-  "style": 3,
-  "hex": 0,
-  "font": 0,
-  "radius": 0,
-  "height": 0,
-  "control": 5
- },
- "src/components/cases/MoveThreadDialog.tsx": {
-  "style": 1,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
   "control": 1
  },
- "src/components/cases/ResumePoint.tsx": {
-  "style": 1,
+ "src/components/cases/CaseRounds.tsx": {
+  "style": 0,
+  "hex": 0,
+  "font": 0,
+  "radius": 0,
+  "height": 0,
+  "control": 4
+ },
+ "src/components/cases/CaseSourcesPanel.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
@@ -584,12 +568,12 @@
   "control": 1
  },
  "src/components/cases/WishListDialog.tsx": {
-  "style": 3,
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 3
+  "control": 2
  },
  "src/components/chat/chat-empty-state.tsx": {
   "style": 0,
@@ -1367,21 +1351,13 @@
   "height": 6,
   "control": 6
  },
- "src/components/nexus/FollowUpsLedger.tsx": {
-  "style": 1,
+ "src/components/nexus/NexusPhasedAnalysisModal.tsx": {
+  "style": 0,
   "hex": 0,
   "font": 0,
   "radius": 0,
   "height": 0,
-  "control": 0
- },
- "src/components/nexus/NexusPhasedAnalysisModal.tsx": {
-  "style": 5,
-  "hex": 7,
-  "font": 0,
-  "radius": 0,
-  "height": 2,
-  "control": 2
+  "control": 1
  },
  "src/components/page-header.tsx": {
   "style": 0,

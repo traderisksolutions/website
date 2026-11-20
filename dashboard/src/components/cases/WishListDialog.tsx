@@ -12,7 +12,8 @@ import { callApi, errText } from '@/components/placement/shared'
 import { actorName } from '@/lib/cases/names'
 import { NEEDS, NEED_NAME, isNeed, type Need } from '@/lib/cases/compare'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
-import { selectCls, tableFrame } from './shared'
+import { Register } from '@/components/ui/register'
+import { selectCls } from './shared'
 
 const WISH = 'wish'
 const wishesOf = (m: CaseMemory) => m.sections.find(s => s.section === WISH)?.notes ?? []
@@ -72,9 +73,8 @@ export function WishListDialog({ caseId, title, onClose, onChanged }: {
         </DialogHeader>
         <div className="flex flex-col gap-3 min-w-0">
           {!memory ? (error ? null : <Spinner label="Loading the wish list…" />) : wishes.length === 0 ? <Empty compact>No wishes on the case.</Empty> : (
-            <div className={tableFrame}>
-              <table className="trs-table table-fixed min-w-[400px] sm:min-w-[560px]" aria-label="Client wish list">
-                <colgroup><col /><col style={{ width: 150 }} /><col className="hidden sm:table-column" style={{ width: 130 }} /><col style={{ width: 96 }} /></colgroup>
+            <Register label="Client wish list" minWidth={400} dense={false} className="[&_table]:table-fixed sm:[&_table]:!min-w-[560px]">
+                <colgroup><col /><col className="w-[150px]" /><col className="hidden sm:table-column w-[130px]" /><col className="w-[96px]" /></colgroup>
                 <thead><tr><th>Wish</th><th>Need</th><th className="hidden sm:table-cell">By</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>
                   {wishes.map(n => (
@@ -86,8 +86,7 @@ export function WishListDialog({ caseId, title, onClose, onChanged }: {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
+            </Register>
           )}
           {memory && (
             <form className="flex flex-wrap items-center gap-2 min-w-0" onSubmit={e => { e.preventDefault(); void add() }}>

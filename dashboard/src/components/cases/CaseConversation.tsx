@@ -13,7 +13,8 @@ import type { Said } from '@/lib/cases/sources'
 import type { CaseSources } from '@/lib/cases/sources-store'
 import type { CaseMemory } from '@/lib/cases/memory-store'
 import { actorName } from '@/lib/cases/names'
-import { count, headingCls, ReadNewButton, tableFrame } from './shared'
+import { Register } from '@/components/ui/register'
+import { count, headingCls, ReadNewButton } from './shared'
 
 const SIDES = [{ key: 'client', name: 'Client' }, { key: 'insurer', name: 'Insurer' }] as const
 /** An email's words without the blank lines between them. */
@@ -48,9 +49,8 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
     <div key={name} className="flex flex-col gap-2 min-w-0">
       <h2 className={headingCls}>{name} · {count(rows.length, 'message')}</h2>
       {rows.length === 0 ? <Empty compact>No messages on this side.</Empty> : (
-        <div className={tableFrame}>
-          <table className="trs-table table-fixed" style={{ minWidth: 720 }} aria-label={`${name} messages`}>
-            <colgroup><col style={{ width: 108 }} /><col style={{ width: 180 }} /><col /><col style={{ width: '18%' }} /></colgroup>
+        <Register label={`${name} messages`} minWidth={720} dense={false} className="[&_table]:table-fixed">
+            <colgroup><col className="w-[108px]" /><col className="w-[180px]" /><col /><col className="w-[18%]" /></colgroup>
             <thead><tr><th>Date</th><th>From</th><th>Message</th><th>Files</th></tr></thead>
             <tbody>
               {rows.map(m => (
@@ -73,8 +73,7 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+        </Register>
       )}
     </div>
   )
