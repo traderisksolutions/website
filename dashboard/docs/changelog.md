@@ -4,6 +4,13 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Filing: one Drive tree, the File button, the record
+
+- **Drive tree** (`src/lib/filing/tree.ts`): `<Group>/<Line>/<Plan year · Insurer>/Census|Policy|Billing|Quotes|Claims|Other`, `To sort`, `Letters`. Data-room filing (`documents/drive.ts`, the endorsement debit-note filer) writes it; one folder per insurer however spelled. Company Drive and the Employment Benefits folder open at the group.
+- **Record**: `policy_documents` gains `line_code`, `plan_year`, `filed_by`, `filed_at` (`20261121_tree_filing.sql`, applied with the runner).
+- **File button** (`src/components/filing`): suggestion and filing at `/api/filing`; company from the placement or the client the thread is about, never an insurer; private threads refused; no model call. Mounted after the Inbox and company-page releases.
+- **Move script** (`scripts/move-filed-to-tree.ts`): dry run, then `--apply`; 4,126 filed documents, nothing deleted, undo log. Journeys FIL-001, FIL-002. Docs: `docs/filing.md`.
+
 ## 2026-11-20 — Renewals release 2: Pipeline, Forecast, a renewal's page
 
 - **Top bar:** Renewals after Clients, tabs Pipeline · Forecast · To fix. Clients loses Portfolio and Admin desk; Others loses Second opinion and Documents; the Quotation register tab points to `/eb/quotations` (NAV-002).

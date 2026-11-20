@@ -54,12 +54,12 @@ export async function syncNotesSent(now = new Date()): Promise<number> {
     const [dn] = await sbTry<Row[]>(`debit_notes?id=eq.${enc(t.debit_note_id)}&select=id,debit_note_no,pdf_storage_url,drive_folder_url,insurer,issue_date&limit=1`, [])
     if (!dn || dn.drive_folder_url || !dn.pdf_storage_url) continue
     try {
-      const [policy] = await sbTry<Row[]>(`policies?id=eq.${enc(t.policy_id)}&select=id,label,class_of_insurance,insurer,policy_number,start_date,drive_folder_url,company_id&limit=1`, [])
+      const [policy] = await sbTry<Row[]>(`policies?id=eq.${enc(t.policy_id)}&select=id,label,class_of_insurance,insurer,policy_number,start_date,drive_folder_url,company_id,line_code,is_eb,product_line&limit=1`, [])
       const [company] = await sbTry<Row[]>(`companies?id=eq.${enc(item.company_id)}&select=company_name&limit=1`, [])
       const bytes = await downloadObject(dn.pdf_storage_url)
       const r = await fileToDrive({
         companyName: await groupFolderName(item.company_id, company?.company_name ?? 'Unnamed company'),
-        policy: policy ? { id: policy.id, label: policy.label ?? null, class_of_insurance: policy.class_of_insurance ?? null, insurer: policy.insurer ?? null, policy_number: policy.policy_number ?? null, start_date: policy.start_date ?? null, drive_folder_url: policy.drive_folder_url ?? null } : null,
+        policy: policy ? { id: policy.id, label: policy.label ?? null, class_of_insurance: policy.class_of_insurance ?? null, insurer: policy.insurer ?? null, policy_number: policy.policy_number ?? null, start_date: policy.start_date ?? null, drive_folder_url: policy.drive_folder_url ?? null, line_code: policy.line_code ?? null, is_eb: !!policy.is_eb, product_line: policy.product_line ?? null } : null,
         doc: { doc_type: 'trs_debit_note', filename: `${dn.debit_note_no}.pdf`, received_at: d.sent_at ?? now.toISOString(), insurer_name: dn.insurer ?? null, mime_type: 'application/pdf' },
       }, bytes)
       if (policy && r.policyFolderUrl && !policy.drive_folder_url) await sb(`policies?id=eq.${enc(policy.id)}`, { method: 'PATCH', headers: { Prefer: 'return=minimal' }, body: JSON.stringify({ drive_folder_url: r.policyFolderUrl }) })

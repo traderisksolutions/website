@@ -1,7 +1,8 @@
 /**
- * One Drive folder per company — the same folder debit notes already archive into
- * (GDRIVE_DEBIT_NOTES_ROOT_FOLDER_ID / <company name>). Employment benefits paperwork goes in an
- * "Employment Benefits" folder inside it, so every company's documents sit under one folder.
+ * One Drive folder per client group — the same folder debit notes already archive into
+ * (GDRIVE_DEBIT_NOTES_ROOT_FOLDER_ID / <group name>). Employment benefits paperwork goes in an
+ * "Employment Benefits" folder inside it: the Employment Benefits line of the one filing tree
+ * (src/lib/filing/tree.ts), so a group's documents sit under one folder.
  *
  * Keyed on the company name, matched case-insensitively by findOrCreateFolder, exactly as the
  * debit-note archive does, so both land in the same folder.
@@ -9,6 +10,7 @@
 import { waitUntil } from '@vercel/functions'
 import { getDriveWriteToken, findOrCreateFolder, getFolderWebLink, rootFolderId } from '@/lib/gdrive-write'
 import { logError } from '@/lib/error-log'
+import { groupFolderName } from '@/lib/documents/drive'
 
 export const EB_SUBFOLDER = 'Employment Benefits'
 
@@ -32,9 +34,11 @@ export function ebSourceFolderUrl(): string | null {
  * Every new employment benefits company gets its folder: called when a quote or an HR link is
  * created. Runs after the response (waitUntil) and never fails the request; a Drive error is logged.
  */
-export function fileEbCompanyFolder(companyName: string | null | undefined): void {
+export function fileEbCompanyFolder(companyName: string | null | undefined, companyId?: string | null): void {
   const name = (companyName ?? '').trim()
   if (!name || name === 'Untitled quote') return
-  waitUntil(ensureCompanyFolder(name, EB_SUBFOLDER).then(() => undefined).catch(e =>
+  // A group's entities share the group's folder (documents/drive.ts groupFolderName).
+  const folder = companyId ? groupFolderName(companyId, name) : Promise.resolve(name)
+  waitUntil(folder.then(f => ensureCompanyFolder(f, EB_SUBFOLDER)).then(() => undefined).catch(e =>
     logError({ source: 'gdrive', feature: 'eb_company_folder', message: e instanceof Error ? e.message : String(e), metadata: { company: name } })))
 }

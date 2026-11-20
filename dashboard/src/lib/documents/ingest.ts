@@ -12,6 +12,7 @@ import { createHash } from 'node:crypto'
 import { logError } from '@/lib/error-log'
 import { isNoise, classifyByName } from './taxonomy'
 import { matchPolicy, readDocument, type DocRead } from './classify'
+import { lineOfFiling, planYearOf, type FilingPolicy } from '@/lib/filing/tree'
 import { attachmentBytes, fileToDrive, moveDriveFile, groupFolderName } from './drive'
 import { messageAttachmentBytes } from '@/lib/storage/attachment-bytes'
 import * as store from './store'
@@ -19,6 +20,11 @@ import type { PolicyDocument } from './store'
 import { aiBlocked } from '@/lib/ai-gate'
 
 const needsReview = (r: DocRead, policyId: string | null) => !policyId || r.confidence < 0.6
+
+/** The record's filing fields: the line and plan year the folder names, who filed it and when. */
+function filedUnder(policy: FilingPolicy | null, by: string | null): Partial<PolicyDocument> {
+  return { line_code: policy ? lineOfFiling(policy) : null, plan_year: policy ? planYearOf(policy.start_date) : null, filed_by: by, filed_at: new Date().toISOString() }
+}
 
 /** One email attachment into the data room. Returns the row (existing or new). */
 export async function ingestAttachment(attachmentId: string, opts: { file?: boolean; bytes?: Buffer } = {}): Promise<PolicyDocument | null> {
@@ -52,7 +58,7 @@ export async function ingestAttachment(attachmentId: string, opts: { file?: bool
 }
 
 /** Files (or re-files) a row in Drive. Bytes come from the caller (upload) or from Gmail. */
-export async function fileDocument(doc: PolicyDocument, bytes?: Buffer): Promise<PolicyDocument> {
+export async function fileDocument(doc: PolicyDocument, bytes?: Buffer, by: string | null = null): Promise<PolicyDocument> {
   if (!doc.company_id) return doc
   try {
     const company = await store.company(doc.company_id)
@@ -75,7 +81,7 @@ export async function fileDocument(doc: PolicyDocument, bytes?: Buffer): Promise
     const policy = doc.policy_id ? await store.policy(doc.policy_id) : null
     const r = await fileToDrive({ companyName: await groupFolderName(doc.company_id, company.name), policy, doc }, data)
     if (policy && r.policyFolderUrl) await store.patchPolicyFolder(policy.id, r.policyFolderUrl)
-    return (await store.patchDocument(doc.id, { sha256: sha, drive_file_id: r.fileId, drive_url: r.url, status: 'filed', error: null, size_bytes: doc.size_bytes ?? data.length })) ?? doc
+    return (await store.patchDocument(doc.id, { sha256: sha, drive_file_id: r.fileId, drive_url: r.url, status: 'filed', error: null, size_bytes: doc.size_bytes ?? data.length, ...filedUnder(policy, by) })) ?? doc
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     void logError({ source: 'gdrive', feature: 'data_room_file', message, metadata: { document_id: doc.id } })
@@ -101,13 +107,13 @@ export async function uploadDocument(u: {
 }
 
 /** A broker corrects the type or the policy; the Drive file moves with it. */
-export async function updateDocument(id: string, patch: { doc_type?: string; policy_id?: string | null; company_id?: string; status?: 'ignored' | 'unfiled' }): Promise<PolicyDocument | null> {
+export async function updateDocument(id: string, patch: { doc_type?: string; policy_id?: string | null; company_id?: string; status?: 'ignored' | 'unfiled' }, by: string | null = null): Promise<PolicyDocument | null> {
   const doc = await store.documentById(id)
   if (!doc) return null
   const next = await store.patchDocument(id, { ...patch, classified_by: patch.doc_type ? 'broker' : doc.classified_by, needs_review: false })
   if (!next) return null
   if (next.status === 'ignored') return next
-  if (!next.drive_file_id) return next.company_id ? fileDocument(next) : next
+  if (!next.drive_file_id) return next.company_id ? fileDocument(next, undefined, by) : next
   const moved = patch.doc_type !== undefined || patch.policy_id !== undefined || patch.company_id !== undefined
   if (!moved || !next.company_id) return next
   try {
@@ -115,6 +121,7 @@ export async function updateDocument(id: string, patch: { doc_type?: string; pol
     const policy = next.policy_id ? await store.policy(next.policy_id) : null
     const r = await moveDriveFile(next.drive_file_id, { companyName: await groupFolderName(next.company_id, company?.name ?? 'Unnamed company'), policy, doc: next })
     if (policy && r.policyFolderUrl) await store.patchPolicyFolder(policy.id, r.policyFolderUrl)
+    return (await store.patchDocument(id, { error: null, ...filedUnder(policy, by) })) ?? next
   } catch (e) {
     return store.patchDocument(id, { error: e instanceof Error ? e.message.slice(0, 500) : String(e) })
   }

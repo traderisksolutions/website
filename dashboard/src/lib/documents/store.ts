@@ -36,6 +36,11 @@ export type PolicyDocument = {
   needs_review: boolean
   error: string | null
   uploaded_by: string | null
+  /** Filing (20261121_filing.sql): the line and plan year it was filed under, and the person who pressed File (null: by rule). */
+  line_code?: string | null
+  plan_year?: string | null
+  filed_by?: string | null
+  filed_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -75,12 +80,12 @@ export async function company(id: string): Promise<CompanyRow | null> {
 }
 
 export const companyPolicies = (companyId: string) =>
-  sbTry<(PolicyCandidate & { company_id: string; is_eb: boolean; product_line: string | null; drive_folder_url: string | null; premium: number | null; status: string | null })[]>(
-    `policies?company_id=eq.${enc(companyId)}&select=id,company_id,policy_number,cover_note_no,insurer,class_of_insurance,label,start_date,end_date,lifecycle,is_eb,product_line,drive_folder_url,premium,status&order=start_date.desc.nullslast`, [])
+  sbTry<(PolicyCandidate & { company_id: string; is_eb: boolean; product_line: string | null; line_code: string | null; drive_folder_url: string | null; premium: number | null; status: string | null })[]>(
+    `policies?company_id=eq.${enc(companyId)}&select=id,company_id,policy_number,cover_note_no,insurer,class_of_insurance,label,start_date,end_date,lifecycle,is_eb,product_line,line_code,drive_folder_url,premium,status&order=start_date.desc.nullslast`, [])
 
 export const policy = async (id: string) =>
-  (await sbTry<(PolicyCandidate & { company_id: string | null; is_eb: boolean; product_line: string | null; drive_folder_url: string | null })[]>(
-    `policies?id=eq.${enc(id)}&select=id,company_id,policy_number,cover_note_no,insurer,class_of_insurance,label,start_date,end_date,lifecycle,is_eb,product_line,drive_folder_url&limit=1`, []))[0] ?? null
+  (await sbTry<(PolicyCandidate & { company_id: string | null; is_eb: boolean; product_line: string | null; line_code: string | null; drive_folder_url: string | null })[]>(
+    `policies?id=eq.${enc(id)}&select=id,company_id,policy_number,cover_note_no,insurer,class_of_insurance,label,start_date,end_date,lifecycle,is_eb,product_line,line_code,drive_folder_url&limit=1`, []))[0] ?? null
 
 export const documentById = async (id: string) =>
   (await sbTry<PolicyDocument[]>(`policy_documents?id=eq.${enc(id)}&select=${DOC_COLS}&limit=1`, []))[0] ?? null

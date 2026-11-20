@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const { link, token } = await createLink(input, who)
-    fileEbCompanyFolder(link.company_name)
+    fileEbCompanyFolder(link.company_name, link.company_id)
     try {
       await sendLinkEmail(link, token, who)
       return json({ link, url: linkUrl(token) })

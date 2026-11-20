@@ -1,7 +1,7 @@
 /**
- * Files a data-room document in Drive:
+ * Files a data-room document in Drive, in the one tree for every line (src/lib/filing/tree.ts):
  *
- *   <root>/<Group>/Policies/<2026–27 Goods in Transit · Great Eastern>/<Cover>/<file>
+ *   <root>/<Group>/<Line>/<2026–27 · Great Eastern>/<Census|Policy|Billing|Quotes|Claims|Other>/<file>
  *   <root>/<Group>/To sort/<file>                         (no policy yet)
  *
  * <Group> is the top of the client's group (companies.parent_id), so every entity of a group
@@ -13,7 +13,8 @@
  */
 import { getDriveWriteToken, findOrCreateFolder, getFolderWebLink, rootFolderId, uploadFileToDrive, folderIdFromUrl } from '@/lib/gdrive-write'
 import { getGmailToken } from '@/lib/gmail-send'
-import { docGroup, documentFileName, policyFolderName } from './taxonomy'
+import { documentFileName } from './taxonomy'
+import { filingPath } from '@/lib/filing/tree'
 import { sbTry, enc } from '@/lib/crm/db'
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -56,53 +57,45 @@ export async function attachmentBytes(gmailMessageId: string, filename: string):
 
 export type FileTarget = {
   companyName: string
-  policy: { id: string; label: string | null; class_of_insurance: string | null; insurer: string | null; policy_number: string | null; start_date: string | null; drive_folder_url: string | null } | null
+  policy: { id: string; label: string | null; class_of_insurance: string | null; insurer: string | null; policy_number: string | null; start_date: string | null; drive_folder_url: string | null; line_code?: string | null; is_eb?: boolean | null; product_line?: string | null } | null
   doc: { doc_type: string; filename: string; received_at: string | null; insurer_name: string | null; mime_type: string | null }
 }
 
-/** Uploads the bytes; returns the file, its link, and the policy folder's link when one was made. */
+/** Creates (or finds) every folder of the document's path; returns the last one and the policy's plan-year folder. */
+async function ensurePath(t: FileTarget, token: string): Promise<{ parent: string; policyFolderUrl: string | null }> {
+  const segments = filingPath({ group: t.companyName, policy: t.policy, docType: t.doc.doc_type })
+  let parent = rootFolderId()
+  let policyFolderUrl: string | null = null
+  for (const [i, name] of segments.entries()) {
+    parent = await findOrCreateFolder(name, parent, token)
+    // <Group>/<Line>/<Plan year · Insurer>: the policy's folder, linked from the policy.
+    if (t.policy && i === 2 && folderIdFromUrl(t.policy.drive_folder_url) !== parent) policyFolderUrl = await getFolderWebLink(parent, token)
+  }
+  return { parent, policyFolderUrl }
+}
+
+/** Uploads the bytes; returns the file, its link, and the policy folder's link when it changed. */
 export async function fileToDrive(t: FileTarget, bytes: Buffer): Promise<{ fileId: string; url: string; policyFolderUrl: string | null }> {
   const token = await getDriveWriteToken()
-  const companyId = await findOrCreateFolder(t.companyName.trim(), rootFolderId(), token)
-  let parent: string
-  let policyFolderUrl: string | null = null
-  if (t.policy) {
-    let policyFolder = folderIdFromUrl(t.policy.drive_folder_url)
-    if (!policyFolder) {
-      const policies = await findOrCreateFolder('Policies', companyId, token)
-      policyFolder = await findOrCreateFolder(policyFolderName(t.policy), policies, token)
-      policyFolderUrl = await getFolderWebLink(policyFolder, token)
-    }
-    parent = await findOrCreateFolder(docGroup(t.doc.doc_type), policyFolder, token)
-  } else {
-    parent = await findOrCreateFolder(t.doc.doc_type === 'broker_appointment' ? 'Letters' : 'To sort', companyId, token)
-  }
+  const { parent, policyFolderUrl } = await ensurePath(t, token)
   const fileId = await uploadFileToDrive(documentFileName(t.doc), t.doc.mime_type || 'application/octet-stream', bytes, parent, token)
   return { fileId, url: `https://drive.google.com/file/d/${fileId}/view`, policyFolderUrl }
 }
 
-/** Moves a filed document to another folder (a broker re-sorted it). */
-export async function moveDriveFile(fileId: string, t: Omit<FileTarget, 'doc'> & { doc: FileTarget['doc'] }): Promise<{ policyFolderUrl: string | null }> {
+/** Moves a filed document to the folder its company, policy and type now name. Same file id, same link. */
+export async function moveDriveFile(fileId: string, t: FileTarget): Promise<{ policyFolderUrl: string | null; moved: boolean; from: string[]; to: string }> {
   const token = await getDriveWriteToken()
-  const companyId = await findOrCreateFolder(t.companyName.trim(), rootFolderId(), token)
-  let parent: string
-  let policyFolderUrl: string | null = null
-  if (t.policy) {
-    let policyFolder = folderIdFromUrl(t.policy.drive_folder_url)
-    if (!policyFolder) {
-      const policies = await findOrCreateFolder('Policies', companyId, token)
-      policyFolder = await findOrCreateFolder(policyFolderName(t.policy), policies, token)
-      policyFolderUrl = await getFolderWebLink(policyFolder, token)
-    }
-    parent = await findOrCreateFolder(docGroup(t.doc.doc_type), policyFolder, token)
-  } else {
-    parent = await findOrCreateFolder('To sort', companyId, token)
-  }
-  const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } })
-  const oldParents = meta.ok ? ((await meta.json()) as { parents?: string[] }).parents ?? [] : []
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${parent}&removeParents=${oldParents.join(',')}&supportsAllDrives=true`, {
-    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: documentFileName(t.doc) }),
+  const { parent, policyFolderUrl } = await ensurePath(t, token)
+  const meta = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?fields=parents,name&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!meta.ok) throw new Error(`Drive file ${meta.status}: ${(await meta.text()).slice(0, 200)}`)
+  const m = (await meta.json()) as { parents?: string[]; name?: string }
+  const oldParents = (m.parents ?? []).filter(p => p !== parent)
+  const name = documentFileName(t.doc)
+  if (!oldParents.length && m.name === name) return { policyFolderUrl, moved: false, from: [], to: parent }
+  const move = oldParents.length ? `&addParents=${parent}&removeParents=${oldParents.join(',')}` : ''
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?supportsAllDrives=true${move}`, {
+    method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ name }),
   })
   if (!res.ok) throw new Error(`Drive move failed: ${(await res.text()).slice(0, 200)}`)
-  return { policyFolderUrl }
+  return { policyFolderUrl, moved: true, from: oldParents, to: parent }
 }

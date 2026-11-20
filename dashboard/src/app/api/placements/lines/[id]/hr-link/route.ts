@@ -50,7 +50,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     input.message = (typeof b.message === 'string' && b.message.trim()) || defaultMessage(input)
     const { link, token } = await createLink(input, { email: actor })
-    fileEbCompanyFolder(company.company_name)
+    fileEbCompanyFolder(company.company_name, company.id)
     await store.log({ company_id: company.id, placement_id: placement.id, line_id: line.id, kind: 'sent', actor,
       text: `Employee list requested from ${link.recipient_name} (${link.recipient_email}), link ${link.reference}`, detail: { hr_link_id: link.id } })
     await store.patch('placement_lines', `id=eq.${line.id}`, { next_step: `Waiting for the employee list from ${link.recipient_name}` })
