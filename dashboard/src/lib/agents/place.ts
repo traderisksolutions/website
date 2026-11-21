@@ -108,7 +108,7 @@ export async function loadAgent(id: string): Promise<AgentDetail | null> {
 
 // ── Instructions and Knowledge ─────────────────────────────────────────────────────────────────
 
-export type KnowledgeRow = { key: KnowledgeKey; title: string; kind: 'text' | 'drive'; version: number | null; savedAt: string | null; readers: string[]; driveUrl: string | null }
+export type KnowledgeRow = { key: KnowledgeKey; title: string; kind: 'text' | 'panel' | 'drive'; version: number | null; savedAt: string | null; readers: string[]; driveUrl: string | null }
 
 const driveFolder = () => { const id = process.env.GOOGLE_TRS_DRIVE_FOLDER_ID; return id ? `https://drive.google.com/drive/folders/${id}` : null }
 
@@ -116,7 +116,7 @@ export async function loadKnowledge(): Promise<KnowledgeRow[]> {
   const docs = await inForce().catch(() => new Map<string, DocVersion>())
   return KNOWLEDGE.map(k => {
     const d = docs.get(docKeyOfKnowledge(k.key))
-    const readers = k.key === 'tone' ? ['Every agent'] : (Object.keys(AGENT_KNOWLEDGE) as AgentId8[]).filter(a => AGENT_KNOWLEDGE[a].includes(k.key)).map(a => FLOWS[a].name)
+    const readers = k.key === 'tone' ? ['Every writing agent'] : (Object.keys(AGENT_KNOWLEDGE) as AgentId8[]).filter(a => AGENT_KNOWLEDGE[a].includes(k.key)).map(a => FLOWS[a].name)
     return { key: k.key, title: k.title, kind: k.kind, version: d?.version ?? null, savedAt: d?.created_at ?? null, readers, driveUrl: k.kind === 'drive' ? driveFolder() : null }
   })
 }

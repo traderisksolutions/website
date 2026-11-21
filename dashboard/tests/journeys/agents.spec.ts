@@ -36,3 +36,15 @@ test('AGT-003 Instructions and Knowledge: an agent shows its instructions with v
   await openClean(page, '/agents/knowledge/tone')
   await expect(page.getByRole('textbox', { name: 'Text' })).toBeVisible()
 })
+
+test('AGT-004 the Agents group left Settings: Tone of voice, Renewal method, Client forms and Document checklists open in AI Agents › Knowledge; old Settings links forward', async ({ page }) => {
+  await openClean(page, '/settings')
+  const nav = page.getByRole('navigation', { name: 'Settings sections' })
+  await expect(nav).toBeVisible({ timeout: 30_000 })
+  for (const gone of ['Tone of voice', 'Renewal method', 'Client forms', 'Document checklists']) await expect(nav.getByRole('button', { name: gone })).toHaveCount(0)
+  await page.goto('/settings?section=renewal_method')
+  await expect(page).toHaveURL(/\/agents\/knowledge\/renewal/, { timeout: 30_000 })
+  await expect(page.getByRole('textbox', { name: 'Renewal method' })).toBeVisible({ timeout: 30_000 })
+  await openClean(page, '/agents/knowledge/tone')
+  await expect(page.getByRole('heading', { name: 'Tone of voice', level: 1 })).toBeVisible()
+})

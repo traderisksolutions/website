@@ -92,7 +92,7 @@ export function CaseDocuments({ view, staff, busy, onOpenThread, onCheck, onLine
           {PRODUCT_LINES.map(p => <option key={p.slug} value={p.slug}>{p.label}</option>)}
         </select>
       </div>
-      {!checklist || checklist.rows.length === 0 ? <Empty compact>No document on the checklist. <Link href="/settings?section=checklists" className="text-trs-ink underline">Settings › Document checklists</Link></Empty> : (
+      {!checklist || checklist.rows.length === 0 ? <Empty compact>No document on the checklist. <Link href="/agents/knowledge/checklists" className="text-trs-ink underline">AI Agents › Document checklists</Link></Empty> : (
           <Register label="Documents" minWidth={940} dense={false} className="[&_table]:table-fixed">
               <colgroup><col className="w-[22%]" /><col className="w-[96px]" /><col className="w-[118px]" /><col /><col className="w-[150px]" /><col className="w-[252px]" /></colgroup>
               <thead><tr><th>Document</th><th>Need</th><th>Status</th><th>File</th><th>By</th><th><span className="sr-only">Action</span></th></tr></thead>

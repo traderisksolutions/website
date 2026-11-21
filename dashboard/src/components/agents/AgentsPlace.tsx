@@ -17,6 +17,7 @@ import { NODE_KIND, type NodeKind } from '@/lib/agents/flows'
 import type { AgentDetail, AgentSummary, KnowledgeRow, Place, Tally } from '@/lib/agents/place'
 import { DRAFTS, type DocVersion } from '@/lib/agents/knowledge'
 import { DocEditor } from './DocEditor'
+import { KnowledgePanel } from './KnowledgePanel'
 import Link from 'next/link'
 
 const sgd = (n: number) => n.toFixed(2)
@@ -185,7 +186,7 @@ export function AgentPage({ a, docs }: { a: AgentDetail; docs: { instructions: D
       ) : tab === 'instructions' ? (
         <>
           <DocEditor docKey={`agent:${a.id}`} title="Instructions and guardrails" versions={docs.instructions} draft={DRAFTS[`agent:${a.id}`] ?? ''} />
-          <p className="m-0 text-small text-trs-muted">{`Every agent also reads Tone of voice${docs.knowledge.find(k => k.key === 'tone')?.version ? ` (version ${docs.knowledge.find(k => k.key === 'tone')!.version})` : ' once saved'}. `}<Link href="/agents/knowledge/tone" className="text-trs-ink underline underline-offset-4">Edit</Link></p>
+          <p className="m-0 text-small text-trs-muted">Writing agents also read Tone of voice. <Link href="/agents/knowledge/tone" className="text-trs-ink underline underline-offset-4">Edit</Link></p>
         </>
       ) : tab === 'knowledge' ? <KnowledgeTable rows={docs.knowledge} /> : <Functions a={a} cost />}
     </PageFrame>
@@ -236,7 +237,7 @@ export function KnowledgeTable({ rows, readers = false }: { rows: KnowledgeRow[]
             <RegisterCell first primary={k.title} align="left" />
             <RegisterCell>{k.kind === 'drive' ? <Chip tone="blue">Drive folder</Chip> : <Chip>Text</Chip>}</RegisterCell>
             {readers && <RegisterCell nowrap={false}><span className="inline-flex flex-wrap justify-center gap-1">{k.readers.map(r => <Chip key={r}>{r}</Chip>)}</span></RegisterCell>}
-            <RegisterCell>{k.kind === 'drive' ? '–' : k.version ? `Version ${k.version}` : 'Not saved'}</RegisterCell>
+            <RegisterCell>{k.kind === 'text' ? (k.version ? `Version ${k.version}` : 'Not saved') : '–'}</RegisterCell>
             <RegisterCell last>
               {k.kind === 'drive'
                 ? (k.driveUrl ? <a href={k.driveUrl} target="_blank" rel="noreferrer" className="text-small text-trs-ink underline underline-offset-4">Open folder</a> : '–')
@@ -262,8 +263,10 @@ export function KnowledgeDoc({ k, versions }: { k: KnowledgeRow; versions: DocVe
   return (
     <PageFrame>
       <Breadcrumbs current={{ label: k.title, href: `/agents/knowledge/${k.key}` }} fallback={{ label: 'Knowledge', href: '/agents/knowledge' }} />
-      <PageHeader title={k.title} meta={k.key === 'tone' ? 'Read by every agent, on calls that write prose' : `Read by ${k.readers.join(', ')}`} />
-      <DocEditor docKey={`kn:${k.key}`} title="Text" versions={versions} draft={DRAFTS[`kn:${k.key}`] ?? ''} />
+      <PageHeader title={k.title} meta={`Read by ${k.readers.join(', ')}`} />
+      {k.kind === 'panel'
+        ? <KnowledgePanel panel={k.key as 'tone' | 'renewal' | 'forms' | 'checklists'} />
+        : <DocEditor docKey={`kn:${k.key}`} title="Text" versions={versions} draft={DRAFTS[`kn:${k.key}`] ?? ''} />}
     </PageFrame>
   )
 }

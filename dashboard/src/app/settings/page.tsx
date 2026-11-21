@@ -6,10 +6,6 @@ import { cn } from '@/lib/utils'
 import { Btn, btnClass } from '@/components/crm/primitives'
 import SignaturePanel from '@/components/SignaturePanel'
 import { TeamTable } from '@/components/settings/TeamTable'
-import { VoicePanel } from '@/components/settings/VoicePanel'
-import { RenewalMethodPanel } from '@/components/settings/RenewalMethodPanel'
-import { ClientFormsPanel } from '@/components/settings/ClientFormsPanel'
-import { ChecklistPanel } from '@/components/settings/ChecklistPanel'
 import { disconnectGmail, myProfile } from './actions'
 
 /**
@@ -20,17 +16,16 @@ import { disconnectGmail, myProfile } from './actions'
 // Insurers, RFQ, Email templates and How it works were removed on 2 Oct 2026. Insurers now live
 // under Companies → Insurers, where every distinct insurer already had a company record; the RFQ
 // flow and its templates were retired everywhere, not only here.
-type Section = 'profile' | 'team' | 'signatures' | 'voice' | 'renewal_method' | 'client_forms' | 'checklists'
-const SECTIONS: { key: Section; label: string; group: 'you' | 'team' | 'agents' }[] = [
+// Jarod, 21 Nov 2026: the Agents group (Tone of voice, Renewal method, Client forms, Document
+// checklists) moved to AI Agents › Knowledge; its old addresses forward there.
+type Section = 'profile' | 'team' | 'signatures'
+const SECTIONS: { key: Section; label: string; group: 'you' | 'team' }[] = [
   { key: 'profile',    label: 'Your profile',   group: 'you' },
   { key: 'signatures', label: 'Signatures',     group: 'you' },
   { key: 'team',       label: 'Team',           group: 'team' },
-  { key: 'voice',      label: 'Tone of voice',  group: 'agents' },
-  { key: 'renewal_method', label: 'Renewal method', group: 'agents' },
-  { key: 'client_forms', label: 'Client forms', group: 'agents' },
-  { key: 'checklists', label: 'Document checklists', group: 'agents' },
 ]
-const GROUP_LABEL = { you: 'You', team: 'Team', agents: 'Agents' } as const
+const GROUP_LABEL = { you: 'You', team: 'Team' } as const
+const MOVED: Record<string, string> = { voice: 'tone', renewal_method: 'renewal', client_forms: 'forms', checklists: 'checklists' }
 
 interface Profile { id: string; email?: string | null; is_admin: boolean; gmail_email: string | null }
 const ERROR_MSGS: Record<string, string> = {
@@ -47,6 +42,8 @@ export default function SettingsPage() {
 function SettingsInner() {
   const router = useRouter()
   const params = useSearchParams()
+  const moved = MOVED[params.get('section') ?? '']
+  useEffect(() => { if (moved) router.replace(`/agents/knowledge/${moved}`) }, [moved, router])
   const section = (SECTIONS.some(s => s.key === params.get('section')) ? params.get('section') : 'profile') as Section
   const setSection = (s: Section) => router.replace(`/settings${s === 'profile' ? '' : `?section=${s}`}`, { scroll: false })
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -62,7 +59,7 @@ function SettingsInner() {
         <div className="mt-10 grid gap-10 md:grid-cols-[220px_minmax(0,1fr)]">
           {/* Internal nav */}
           <nav aria-label="Settings sections" className="md:sticky md:top-20 self-start">
-            {(['you', 'team', 'agents'] as const).map(g => (
+            {(['you', 'team'] as const).map(g => (
               <div key={g} className="mb-5">
                 <p className="m-0 mb-1.5 px-3 text-small font-semibold text-trs-subtle">{GROUP_LABEL[g]}</p>
                 <ul className="m-0 p-0 list-none flex md:flex-col gap-0.5 overflow-x-auto">
@@ -89,10 +86,6 @@ function SettingsInner() {
             {section === 'profile' && <ProfileSection profile={profile} onChange={loadProfile} />}
             {section === 'team' && <TeamTable />}
             {section === 'signatures' && <SignaturePanel profile={profile} />}
-            {section === 'voice' && <VoicePanel isAdmin={!!profile?.is_admin} />}
-            {section === 'renewal_method' && <RenewalMethodPanel isAdmin={!!profile?.is_admin} />}
-            {section === 'client_forms' && <ClientFormsPanel isAdmin={!!profile?.is_admin} />}
-            {section === 'checklists' && <ChecklistPanel />}
           </section>
         </div>
       </div>

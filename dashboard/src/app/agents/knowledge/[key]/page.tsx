@@ -14,6 +14,6 @@ export default async function KnowledgeText({ params }: { params: Promise<{ key:
   if (!user?.email) redirect(`/login?next=${encodeURIComponent(`/agents/knowledge/${key}`)}`)
   if (!isKnowledgeKey(key)) notFound()
   const k = (await loadKnowledge()).find(r => r.key === key)
-  if (!k || k.kind !== 'text') notFound()
-  return <KnowledgeDoc k={k} versions={await history(`kn:${key}`).catch(() => [])} />
+  if (!k || k.kind === 'drive') notFound()
+  return <KnowledgeDoc k={k} versions={k.kind === 'text' ? await history(`kn:${key}`).catch(() => []) : []} />
 }

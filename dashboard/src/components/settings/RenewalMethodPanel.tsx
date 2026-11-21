@@ -62,7 +62,7 @@ export function RenewalMethodPanel({ isAdmin }: { isAdmin: boolean }) {
         <aside className="flex flex-col gap-4 text-body min-w-0">
           <div>
             <h3 className="m-0 mb-2 text-body font-semibold text-trs-ink">What the rules read</h3>
-            <dl className="m-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 [&_dd]:m-0 [&_dd]:text-right [&_dd]:tabular-nums">
+            <dl className="m-0 grid grid-cols-[minmax(9rem,1fr)_minmax(0,1fr)] gap-x-3 gap-y-2 [&_dd]:m-0 [&_dd]:text-right [&_dd]:tabular-nums [&_dd]:break-words">
               <dt>Hold below loss ratio</dt><dd>{pct(p.holdBelow)}</dd>
               <dt>Increase above loss ratio</dt><dd>{pct(p.increaseAbove)}</dd>
               <dt>Exposure change that adjusts</dt><dd>{pct(p.exposureShift)}</dd>

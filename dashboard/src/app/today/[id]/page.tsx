@@ -321,7 +321,7 @@ function Review() {
             {isStage(item.stage) && <InfoRow label="Stage">{STAGE_LABEL[item.stage]} <Small>· {STAGES.indexOf(item.stage) + 1} of {STAGES.length}</Small></InfoRow>}
             {item.renewal_flow && (
               <InfoRow label="Renewal flow">
-                <span title={FLOW_TIP[item.renewal_flow as RenewalFlow] ?? 'How the renewal flow is chosen'}><Arrow href="/settings?section=renewal_method">{FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow}</Arrow></span>
+                <span title={FLOW_TIP[item.renewal_flow as RenewalFlow] ?? 'How the renewal flow is chosen'}><Arrow href="/agents/knowledge/renewal">{FLOW_LABEL[item.renewal_flow as RenewalFlow] ?? item.renewal_flow}</Arrow></span>
               </InfoRow>
             )}
             {item.deadline && <InfoRow label="Due"><span className="tabular-nums text-trs-warn">{fmtDate(item.deadline)}</span></InfoRow>}

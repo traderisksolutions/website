@@ -4,10 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
-## 2026-11-21 — AI Agents: instructions and knowledge the agents read
+## 2026-11-21 — AI Agents: instructions and knowledge
 
-- **Instructions** per agent and **Knowledge** texts (Tone of voice for every agent; renewal method, client forms, document checklists, insurer contacts, policy register) saved as versions in `agent_documents` (`20261121_x_agent_documents.sql`), with View and Restore (AGT-003).
-- **The model call carries them**: `callGemini` adds the agent's saved instructions and knowledge after its own prompt, Tone of voice only on prose calls, and logs the versions used. Nothing changes until a text is saved; the suggested drafts are not sent.
+- **Instructions** per agent and two **Knowledge** texts (insurer contacts and appetite, policy register) saved as versions in `agent_documents` (`20261121_x_agent_documents.sql`), with View and Restore. `callGemini` adds an agent's saved instructions and its knowledge texts after its own prompt and logs the versions used; nothing changes until a text is saved (AGT-003).
+- **Settings › Agents moved** to AI Agents › Knowledge: Tone of voice, Renewal method, Client forms and Document checklists keep their stores and panels; old Settings links forward. The Renewal method side column no longer wraps one word per line (AGT-004).
 
 ## 2026-11-21 — AI Agents, monitoring
 

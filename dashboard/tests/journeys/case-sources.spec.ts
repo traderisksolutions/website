@@ -200,8 +200,8 @@ test('CSE-020 a claim shows the brief and its files without a document checklist
   await expect(panel.getByRole('heading', { name: /^Files · \d+$/ })).toBeVisible()
 })
 
-test('CSE-021 Settings › Document checklists holds the basic list and one per line; Add document asks for its name, its need and how it is found', async ({ page }) => {
-  await openClean(page, '/settings?section=checklists')
+test('CSE-021 AI Agents › Knowledge › Document checklists holds the basic list and one per line; Add document asks for its name, its need and how it is found', async ({ page }) => {
+  await openClean(page, '/agents/knowledge/checklists')
   const eb = page.getByRole('region', { name: 'Employment Benefits', exact: true })
   await expect(eb).toBeVisible({ timeout: 30_000 })
   await expect(eb.locator('thead th')).toHaveText(['Document', 'Need', 'Found by', 'File name says', 'Action'])
