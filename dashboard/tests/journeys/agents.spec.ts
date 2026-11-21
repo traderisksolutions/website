@@ -31,9 +31,11 @@ test('AGT-003 Instructions and Knowledge: an agent shows its instructions with v
   const t = page.getByRole('table', { name: 'Knowledge' })
   await expect(t).toBeVisible({ timeout: 30_000 })
   await expect(t.locator('tbody tr')).toHaveCount(8)
-  await expect(t.getByRole('row', { name: /Tone of voice.*Every agent/ })).toBeVisible()
+  await expect(t.getByRole('row', { name: /Tone of voice.*Every writing agent/ })).toBeVisible()
   await expect(t.getByRole('row', { name: /Tone of voice/ }).getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/agents/knowledge/tone')
   await openClean(page, '/agents/knowledge/tone')
+  await expect(page.getByRole('textbox', { name: 'Tone of voice' })).toBeVisible({ timeout: 30_000 })
+  await openClean(page, '/agents/knowledge/insurers')
   await expect(page.getByRole('textbox', { name: 'Text' })).toBeVisible()
 })
 
