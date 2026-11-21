@@ -12,6 +12,7 @@
  * one place, and every call is attributed to an agent on the spend page whether or not the caller
  * remembered to log it.
  */
+import { guidanceFor } from './agents/documents'
 import { geminiUrl } from './gemini-models'
 import { agentKey, type AgentId } from './ai-agents'
 import { aiBlocked } from './ai-gate'
@@ -79,11 +80,17 @@ export async function callGemini(opts: CallOptions): Promise<CallResult> {
     }
   }
 
+  // The agent's saved instructions and knowledge follow the call's own system prompt (AI Agents ›
+  // Instructions and Knowledge); the versions used go on the usage log.
+  const guidance = await guidanceFor(opts.agent, !!opts.json)
+  const system = [opts.system, guidance.text].filter(Boolean).join('\n\n') || undefined
+  if (Object.keys(guidance.versions).length) opts = { ...opts, metadata: { ...opts.metadata, guidance: guidance.versions } }
+
   try {
     const res = await fetch(`${geminiUrl(opts.model)}?key=${key}`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(240_000),
       body: JSON.stringify({
-        ...(opts.system ? { systemInstruction: { parts: [{ text: opts.system }] } } : {}),
+        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
         contents: [{ parts: opts.parts }],
         generationConfig: {
           temperature: opts.temperature ?? 0,

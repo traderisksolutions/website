@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { staffUser } from '@/lib/auth/guard'
-import { loadAgent } from '@/lib/agents/place'
+import { loadAgent, loadAgentDocs } from '@/lib/agents/place'
 import { AgentPage } from '@/components/agents/AgentsPlace'
 
 export const dynamic = 'force-dynamic'
@@ -12,5 +12,5 @@ export default async function Agent({ params }: { params: Promise<{ id: string }
   if (!user?.email) redirect(`/login?next=${encodeURIComponent(`/agents/${id}`)}`)
   const a = await loadAgent(id)
   if (!a) notFound()
-  return <AgentPage a={a} />
+  return <AgentPage a={a} docs={await loadAgentDocs(a.id)} />
 }

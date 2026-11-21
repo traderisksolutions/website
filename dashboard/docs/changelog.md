@@ -4,6 +4,11 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — AI Agents: instructions and knowledge the agents read
+
+- **Instructions** per agent and **Knowledge** texts (Tone of voice for every agent; renewal method, client forms, document checklists, insurer contacts, policy register) saved as versions in `agent_documents` (`20261121_x_agent_documents.sql`), with View and Restore (AGT-003).
+- **The model call carries them**: `callGemini` adds the agent's saved instructions and knowledge after its own prompt, Tone of voice only on prose calls, and logs the versions used. Nothing changes until a text is saved; the suggested drafts are not sent.
+
 ## 2026-11-21 — AI Agents, monitoring
 
 - **AI Agents** on the top bar (Agents · Usage), read on the server from the usage log: each agent's source pages, model, key (own, shared or missing), status, runs, failures and S$; an agent's workflow, runs a day and functions; usage by agent and model (AGT-001, AGT-002). AI spend moves from the avatar menu to AI Agents › Usage. Instructions and Knowledge (versioned text) follow once the agents read them.

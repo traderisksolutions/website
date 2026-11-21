@@ -80,6 +80,7 @@ export const PLACES: Place[] = [
   { label: 'AI Agents', href: '/agents', icon: Cpu, tabs: [
     { title: 'Agents', href: '/agents' },
     { title: 'Usage', href: '/agents/usage' },
+    { title: 'Knowledge', href: '/agents/knowledge' },
   ] },
 ]
 

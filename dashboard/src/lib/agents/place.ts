@@ -8,6 +8,8 @@ import { AGENTS, agentKeyStatus, agentOfFeature, type AgentId } from '@/lib/ai-a
 import { housekeepingOn } from '@/lib/housekeeping-switch'
 import { manualMode } from '@/lib/ai-gate'
 import { FLOWS, type Flow } from './flows'
+import { history, inForce } from './documents'
+import { AGENT_KNOWLEDGE, KNOWLEDGE, docKeyOfAgent, docKeyOfKnowledge, type DocVersion, type KnowledgeKey } from './knowledge'
 
 export const SGD_PER_USD = 1.35
 const DAYS = 30
@@ -102,4 +104,24 @@ export async function loadAgent(id: string): Promise<AgentDetail | null> {
     fns.set(k, e)
   }
   return { ...summary(aid, mine, cut), flow: FLOWS[aid], days, functions: [...fns.values()].sort((a, b) => b.calls - a.calls) }
+}
+
+// ── Instructions and Knowledge ─────────────────────────────────────────────────────────────────
+
+export type KnowledgeRow = { key: KnowledgeKey; title: string; kind: 'text' | 'drive'; version: number | null; savedAt: string | null; readers: string[]; driveUrl: string | null }
+
+const driveFolder = () => { const id = process.env.GOOGLE_TRS_DRIVE_FOLDER_ID; return id ? `https://drive.google.com/drive/folders/${id}` : null }
+
+export async function loadKnowledge(): Promise<KnowledgeRow[]> {
+  const docs = await inForce().catch(() => new Map<string, DocVersion>())
+  return KNOWLEDGE.map(k => {
+    const d = docs.get(docKeyOfKnowledge(k.key))
+    const readers = k.key === 'tone' ? ['Every agent'] : (Object.keys(AGENT_KNOWLEDGE) as AgentId8[]).filter(a => AGENT_KNOWLEDGE[a].includes(k.key)).map(a => FLOWS[a].name)
+    return { key: k.key, title: k.title, kind: k.kind, version: d?.version ?? null, savedAt: d?.created_at ?? null, readers, driveUrl: k.kind === 'drive' ? driveFolder() : null }
+  })
+}
+
+export async function loadAgentDocs(agent: AgentId8): Promise<{ instructions: DocVersion[]; knowledge: KnowledgeRow[] }> {
+  const [instructions, knowledge] = await Promise.all([history(docKeyOfAgent(agent)).catch(() => [] as DocVersion[]), loadKnowledge()])
+  return { instructions, knowledge: knowledge.filter(k => k.key === 'tone' || AGENT_KNOWLEDGE[agent].includes(k.key)) }
 }
