@@ -12,6 +12,7 @@ import { useEngagementNav } from '@/providers/engagement-nav-provider'
 import { useConfirm } from '@/components/ui/confirm'
 import { Btn } from '@/components/crm/primitives'
 import type { EngagementTab } from '@/providers/engagement-nav-provider'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /** One saved threadless "new compose" draft — shape returned by GET /api/engagement/drafts. */
 export type DraftRow = {
@@ -87,7 +88,7 @@ export function ConversationList({
   const [draftsLoading, setDraftsLoading] = useState(false)
   const loadDrafts = () => {
     setDraftsLoading(true)
-    fetch('/api/engagement/drafts', { cache: 'no-store' })
+    inboxFetch('/api/engagement/drafts', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then(rows => setDrafts(Array.isArray(rows) ? rows : []))
       .finally(() => setDraftsLoading(false))
@@ -118,7 +119,7 @@ export function ConversationList({
   async function discardDraft(id: string, e: MouseEvent) {
     e.stopPropagation()
     if (!(await confirmBox({ title: 'Discard this draft?', body: 'It comes off Drafts. Nothing has been sent.', action: 'Discard', danger: true }))) return
-    await fetch(`/api/engagement/drafts/${id}`, { method: 'DELETE' })
+    await inboxFetch(`/api/engagement/drafts/${id}`, { method: 'DELETE' })
     loadDrafts()
   }
 

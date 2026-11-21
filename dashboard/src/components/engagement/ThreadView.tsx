@@ -23,6 +23,7 @@ import { plainToHtml } from '@/components/RichEditor'
 import { Btn, Field, inputCls, textareaCls } from '@/components/crm/primitives'
 import { addBoardTask, removeBoardTask } from '@/app/companies/actions'
 import { unwrap } from '@/lib/action-result'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /**
  * The message workspace. Header (subject, who, state), the thread in order with the newest
@@ -176,7 +177,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
     if (!isOverriding) { setOverrideState(null); return }
     let cancelled = false
     setOverrideState(prev => prev ?? { loading: true, thread: null, messages: [], error: null })
-    fetch(`/api/engagement/thread?thread_id=${encodeURIComponent(activeThreadId!)}`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/thread?thread_id=${encodeURIComponent(activeThreadId!)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(d => { if (!cancelled) setOverrideState({ loading: false, thread: d.thread ?? null, messages: Array.isArray(d.messages) ? d.messages : [], error: null }) })
       .catch(() => { if (!cancelled) setOverrideState({ loading: false, thread: null, messages: [], error: 'Failed to load conversation' }) })
@@ -267,7 +268,7 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
     if (kept) setSummaries(kept)
     else {
       setSummariesLoading(true)
-      fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+      inboxFetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
         .then(r => r.json()).then(data => setSummaries(Array.isArray(data) ? data : [])).catch(() => setSummaries([])).finally(() => setSummariesLoading(false))
     }
     log({ action: 'thread.viewed', resource_type: 'thread', resource_id: threadId, metadata: { contact: lead.email, subject: lead.subject } })
@@ -291,15 +292,15 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
   async function handleDelete() {
     setDeleting(true)
-    try { if (threadId) await fetch(`/api/engagement/thread?thread_id=${encodeURIComponent(threadId)}`, { method: 'DELETE' }); onDelete(lead.id) }
+    try { if (threadId) await inboxFetch(`/api/engagement/thread?thread_id=${encodeURIComponent(threadId)}`, { method: 'DELETE' }); onDelete(lead.id) }
     finally { setDeleting(false) }
   }
 
   async function runAnalysis(): Promise<void> {
     if (!threadId) return
     setAnalyzing(true)
-    try { await fetch('/api/engagement/refresh-summary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thread_id: threadId, message_id: latestMessageId }) }) } catch { /* ignore */ }
-    try { const data = await fetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' }).then(r => r.json()); setSummaries(Array.isArray(data) ? data : []) } catch { setSummaries([]) }
+    try { await inboxFetch('/api/engagement/refresh-summary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ thread_id: threadId, message_id: latestMessageId }) }) } catch { /* ignore */ }
+    try { const data = await inboxFetch(`/api/engagement/thread-summaries?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' }).then(r => r.json()); setSummaries(Array.isArray(data) ? data : []) } catch { setSummaries([]) }
     finally { setAnalyzing(false) }
   }
 

@@ -15,6 +15,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
 import { cn } from '@/lib/utils'
 import { fmtDateTime } from '@/lib/format'
 import { LINES, rowsFrom, type Part, type Row } from '@/lib/placement/line-library'
+import { placementsFetch } from '@/lib/placement/fetch'
 
 type Current = { body: string; edited_by: string | null; created_at: string | null }
 type Version = { id: string; part: Part; body: string; edited_by: string; created_at: string }
@@ -35,13 +36,13 @@ export function LinesLibrary() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
-    const r = await fetch(`/api/placements/line-texts?line=${key}`, { cache: 'no-store' }); const j = await r.json().catch(() => ({}))
+    const r = await placementsFetch(`/api/placements/line-texts?line=${key}`, { cache: 'no-store' }); const j = await r.json().catch(() => ({}))
     if (!r.ok) setError(j.error ?? 'Could not load this line'); else { setError(null); setData(j) }
   }, [key])
   useEffect(() => { setData(null); void load() }, [load])
 
   const save: Save = async (part, body) => {
-    const r = await fetch('/api/placements/line-texts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line: key, part, body }) })
+    const r = await placementsFetch('/api/placements/line-texts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ line: key, part, body }) })
     const j = await r.json().catch(() => ({}))
     if (!r.ok) return j.error ?? 'Could not save'
     await load()

@@ -7,7 +7,7 @@
  * not a client at all (insurer, lawyer, adjuster, newsletter). Staff accept or reject. Nothing
  * is created and nothing is linked from an AI proposal until a person confirms it.
  */
-import { sb, sbTry, inChunks, enc, listClientCompanies, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS } from './db'
+import { sb, sbTry, inChunks, enc, listClientCompanies, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS, sbAll } from './db'
 import { geminiJson } from './ai'
 import { GEMINI_LITE } from '@/lib/gemini-models'
 import { personName } from '@/lib/format'
@@ -62,7 +62,7 @@ export async function listUnlinkedThreads(): Promise<UnlinkedThread[]> {
   // A thread whose suggestion was accepted as "not a client" is handled — keep it out of the queue.
   const visible = threads.filter(t => { const s = sugByThread.get(t.id); return !(s && s.status === 'accepted' && s.verdict === 'not_client') })
   const ids = visible.map(t => t.id)
-  const parts = ids.length ? await inChunks(ids, 100, c => sbTry<Participant[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name,role`, [])) : []
+  const parts = ids.length ? await inChunks(ids, 100, c => sbAll<Participant>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name,role`)) : []
   const byThread = new Map<string, Map<string, string | null>>()
   for (const p of parts) {
     const email = (p.email ?? '').toLowerCase().trim()

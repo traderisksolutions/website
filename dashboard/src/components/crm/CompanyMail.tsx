@@ -13,6 +13,7 @@ import type { Lead, RealMsg } from '@/components/engagement/types'
 import type { CompanyThread } from '@/lib/crm/types'
 import { threadTitle } from '@/lib/crm/subject'
 import { FindThreads, HiddenThreads } from './CompanyThreadList'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /**
  * Reading and answering this company's mail without leaving its page.
@@ -77,7 +78,7 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
   const openThread = useCallback(async (id: string) => {
     setSelectedId(id); setLoading(true); setError(null); setComposing(false)
     try {
-      const res = await fetch(`/api/engagement/thread?thread_id=${id}`, { cache: 'no-store' })
+      const res = await inboxFetch(`/api/engagement/thread?thread_id=${id}`, { cache: 'no-store' })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? 'Could not open this conversation.')
       setThread(d.thread ?? null)

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Spinner } from '@/components/crm/primitives'
 import { MessageBlock } from './MessageBlock'
 import type { RealMsg, ThreadState } from './types'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 export function ThreadModal({ threadId, onClose }: { threadId: string | null; onClose: () => void }) {
   const [state, setState] = useState<Pick<ThreadState, 'thread' | 'messages' | 'error'> | null>(null)
@@ -19,7 +20,7 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
     if (!threadId) return
     let cancelled = false
     setState(null)
-    fetch(`/api/engagement/thread?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/thread?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then(d => { if (!cancelled) setState({ thread: d.thread ?? null, messages: Array.isArray(d.messages) ? d.messages : [], error: null }) })
       .catch(() => { if (!cancelled) setState({ thread: null, messages: [], error: 'The thread could not be loaded.' }) })

@@ -5,10 +5,11 @@
  * Throws when nothing was stored.
  */
 import type { UploadFolder } from '@/lib/storage/drive-upload'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 export async function uploadToDrive(file: File, folder: UploadFolder = 'email-uploads'): Promise<string> {
   const type = file.type || 'application/octet-stream'
-  const uu = await fetch('/api/email/attachments/upload-url', {
+  const uu = await inboxFetch('/api/email/attachments/upload-url', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ filename: file.name, mime_type: type, size: file.size, folder }),
   })

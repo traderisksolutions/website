@@ -10,6 +10,7 @@ import { fmtDate } from '@/lib/format'
 import { threadHref } from '@/lib/placement/position'
 import { dueTone, statusOf, SNOOZE_DAYS, type OwnerParty, type View } from '@/lib/nexus/rules'
 import type { LedgerRow } from '@/lib/nexus/ledger'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 /** The due date's colour: red overdue, amber within two days, ink otherwise. */
 const DUE_TONE = { overdue: 'text-trs-neg font-medium', soon: 'text-trs-warn font-medium', none: 'text-trs-ink' } as const
@@ -65,7 +66,7 @@ export function FollowUpsLedger() {
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
-    try { setData(await callApi<Ledger>(`/api/nexus/follow-ups?view=${view}${mine ? '&mine=1' : ''}`)) }
+    try { setData(await callApi<Ledger>(`/api/nexus/follow-ups?view=${view}${mine ? '&mine=1' : ''}`, { via: nexusFetch })) }
     catch (e) { setError(errText(e)) }
     finally { setLoading(false) }
   }, [view, mine])
@@ -75,7 +76,7 @@ export function FollowUpsLedger() {
 
   async function patch(r: LedgerRow, body: Record<string, unknown>, done: string) {
     setBusy(r.id); setNote(null); setError(null)
-    try { await callApi(`/api/nexus/follow-ups/${r.id}`, { method: 'PATCH', body }); setNote(done); await load() }
+    try { await callApi(`/api/nexus/follow-ups/${r.id}`, { method: 'PATCH', body, via: nexusFetch }); setNote(done); await load() }
     catch (e) { setError(errText(e)) }
     finally { setBusy(null) }
   }
@@ -83,7 +84,7 @@ export function FollowUpsLedger() {
   async function chase(ids: string[] | 'all') {
     setBusy(ids === 'all' ? 'all' : ids[0]); setNote(null); setError(null)
     try {
-      const res = await callApi<ChaseReply>('/api/nexus/follow-ups/chases', { method: 'POST', body: ids === 'all' ? { all: true, mine } : { ids } })
+      const res = await callApi<ChaseReply>('/api/nexus/follow-ups/chases', { method: 'POST', via: nexusFetch, body: ids === 'all' ? { all: true, mine } : { ids } })
       const skipped = res.results.filter(x => x.skipped)
       const reasons = [...new Set(skipped.map(x => x.skipped))].slice(0, 3).join('; ')
       setNote(`${res.drafted} ${res.drafted === 1 ? 'chase' : 'chases'} drafted to Drafts to approve.${skipped.length ? ` ${skipped.length} skipped: ${reasons}.` : ''}`)

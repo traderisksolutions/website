@@ -5,7 +5,7 @@
  * in well under a second and it scales linearly.
  */
 import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
-import { sbTry, inChunks, listCompaniesByKind, isInternal, isAutomated } from './db'
+import { sbTry, inChunks, listCompaniesByKind, isInternal, isAutomated, sbAll } from './db'
 import { derivePayment, summarizePayments } from './payments'
 import { suggestStage } from './stage'
 import type { Company, CompanySummaryRow, DebitNoteRow } from './types'
@@ -33,13 +33,13 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
   const ids = companies.map(c => c.id)
 
   const [contacts, junction, threadsDirect, debitNotes, customers, cases, pmQuotes] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<ContactRow[]>(`contacts?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
-    inChunks(ids, 100, c => sbTry<JunctionRow[]>(`company_contacts?company_id=in.(${c.join(',')})&select=company_id,contact_id`, [])),
-    inChunks(ids, 100, c => sbTry<ThreadRow[]>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`, [])),
-    inChunks(ids, 100, c => sbTry<DebitNoteRow[]>(`debit_notes?company_id=in.(${c.join(',')})&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at`, [])),
-    inChunks(ids, 100, c => sbTry<CustomerRow[]>(`customers?company_id=in.(${c.join(',')})&select=company_id,policies(end_date,status)`, [])),
-    inChunks(ids, 100, c => sbTry<CaseRow[]>(`cases?company_id=in.(${c.join(',')})&select=id,company_id`, [])),
-    inChunks(ids, 100, c => sbTry<PmRow[]>(`pm_quotations?company_id=in.(${c.join(',')})&select=company_id,created_at`, [])),
+    inChunks(ids, 100, c => sbAll<ContactRow>(`contacts?company_id=in.(${c.join(',')})&select=id,company_id`)),
+    inChunks(ids, 100, c => sbAll<JunctionRow>(`company_contacts?company_id=in.(${c.join(',')})&select=company_id,contact_id`)),
+    inChunks(ids, 100, c => sbAll<ThreadRow>(`email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`)),
+    inChunks(ids, 100, c => sbAll<DebitNoteRow>(`debit_notes?company_id=in.(${c.join(',')})&select=id,company_id,contact_id,policy_id,debit_note_no,issue_date,payment_due_date,currency,gross_amount,net_amount,commission,paid_amount,paid_direct_amount,status,paid_direct_status,pay_direct_to_insurer,insurer,event_type,drive_folder_url,updated_at`)),
+    inChunks(ids, 100, c => sbAll<CustomerRow>(`customers?company_id=in.(${c.join(',')})&select=company_id,policies(end_date,status)`)),
+    inChunks(ids, 100, c => sbAll<CaseRow>(`cases?company_id=in.(${c.join(',')})&select=id,company_id`)),
+    inChunks(ids, 100, c => sbAll<PmRow>(`pm_quotations?company_id=in.(${c.join(',')})&select=company_id,created_at`)),
   ])
 
   // Contact → company map (direct FK first, junction as fallback) so threads that only carry a
@@ -50,7 +50,7 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
   const contactIds = Array.from(companyByContact.keys())
 
   const threadsViaContact = contactIds.length
-    ? await inChunks(contactIds, 100, c => sbTry<ThreadRow[]>(`email_threads?contact_id=in.(${c.join(',')})&company_id=is.null&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`, []))
+    ? await inChunks(contactIds, 100, c => sbAll<ThreadRow>(`email_threads?contact_id=in.(${c.join(',')})&company_id=is.null&deleted_at=is.null&select=id,company_id,contact_id,last_message_at,status&limit=2000`))
     : []
   const threads = new Map<string, ThreadRow & { companyId: string }>()
   for (const t of threadsDirect) if (t.company_id) threads.set(t.id, { ...t, companyId: t.company_id })
@@ -61,7 +61,7 @@ export async function listCompanySummaries(opts: ListOptions = {}): Promise<Comp
 
   const threadIds = Array.from(threads.keys())
   const messages = threadIds.length
-    ? await inChunks(threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,sent_at,from_address&order=sent_at.desc`, []))
+    ? await inChunks(threadIds, 100, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,sent_at,from_address&order=sent_at.desc`))
     : []
   const lastMsg = new Map<string, MsgRow>()
   for (const m of messages) if (!lastMsg.has(m.thread_id)) lastMsg.set(m.thread_id, m)

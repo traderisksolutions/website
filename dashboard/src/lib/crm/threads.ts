@@ -6,7 +6,7 @@
  * Privacy (INB-002): a list read for a person passes `viewer`, and a colleague's private thread is
  * dropped and only counted (`hidden`). A cron or the server's own reads pass no viewer.
  */
-import { sbTry, inChunks, enc, getCompanyThreadIds } from './db'
+import { sbTry, inChunks, enc, getCompanyThreadIds, sbAll } from './db'
 import { personName } from '@/lib/format'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 import { waitingOn } from './waiting-on'
@@ -39,7 +39,7 @@ export async function insurerThreadsFor(companyId: string, exclude: ReadonlySet<
   const insurerIds = Array.from(new Set(keep.map(l => l.insurer_company_id).filter((x): x is string => !!x)))
   const names = new Map<string, string>()
   if (insurerIds.length) {
-    const rows = await inChunks(insurerIds, 100, c => sbTry<{ id: string; company_name: string | null }[]>(`companies?id=in.(${c.join(',')})&select=id,company_name`, []))
+    const rows = await inChunks(insurerIds, 100, c => sbAll<{ id: string; company_name: string | null }>(`companies?id=in.(${c.join(',')})&select=id,company_name`))
     for (const r of rows) names.set(r.id, r.company_name ?? 'Insurer')
   }
   const out = new Map<string, { id: string; name: string }>()
@@ -53,10 +53,10 @@ export async function listCompanyThreads(companyId: string, threadIds?: string[]
   if (ids.length === 0) return []
 
   const [threads, messages, summaries, caseLinks] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<ThreadRow[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=${THREAD_SELECT}`, [])),
-    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at,from_address,subject&order=sent_at.desc`, [])),
-    inChunks(ids, 100, c => sbTry<SummaryRow[]>(`thread_summaries?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,summary,next_action,created_at&order=created_at.desc`, [])),
-    inChunks(ids, 100, c => sbTry<CaseLink[]>(`case_threads?thread_id=in.(${c.join(',')})&select=thread_id,case_id`, [])),
+    inChunks(ids, 100, c => sbAll<ThreadRow>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=${THREAD_SELECT}`)),
+    inChunks(ids, 100, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at,from_address,subject&order=sent_at.desc`)),
+    inChunks(ids, 100, c => sbAll<SummaryRow>(`thread_summaries?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,summary,next_action,created_at&order=created_at.desc`)),
+    inChunks(ids, 100, c => sbAll<CaseLink>(`case_threads?thread_id=in.(${c.join(',')})&select=thread_id,case_id`)),
   ])
 
   const lastDir = new Map<string, MsgRow>()
@@ -123,8 +123,8 @@ export async function waitingByThread(ids: readonly string[], viaInsurer: Readon
   const out = new Map<string, ReturnType<typeof waitingOn>>()
   if (!ids.length) return out
   const [rows, msgs] = await Promise.all([
-    inChunks([...ids], 100, c => sbTry<{ id: string; status: string | null }[]>(`email_threads?id=in.(${c.join(',')})&select=id,status`, [])),
-    inChunks([...ids], 50, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at,from_address,subject&order=sent_at.asc&limit=5000`, [])),
+    inChunks([...ids], 100, c => sbAll<{ id: string; status: string | null }>(`email_threads?id=in.(${c.join(',')})&select=id,status`)),
+    inChunks([...ids], 50, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at,from_address,subject&order=sent_at.asc&limit=5000`)),
   ])
   const byThread = new Map<string, MsgRow[]>()
   for (const m of msgs) byThread.set(m.thread_id, [...(byThread.get(m.thread_id) ?? []), m])

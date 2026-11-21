@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { displayName, messagePreview } from './helpers'
 import type { Lead } from './types'
 import { listSignatures } from '@/app/settings/actions'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 // ── Types local to the reply workflow ─────────────────────────────────────────
 
@@ -71,7 +72,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
   // Load senders + signatures once on mount
   useEffect(() => {
     Promise.all([
-      fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []),
+      inboxFetch('/api/email/available-senders').then(r => r.ok ? r.json() : []),
       listSignatures().then(r => r.ok ? r.data : []),
     ]).then(([senderRows, sigRows]: [InboundSender[], InboundSigOption[]]) => {
       const ss = Array.isArray(senderRows) ? senderRows : []
@@ -93,7 +94,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
     if (!lead.ai_draft_id || !lead.email) return
     hasLoadedRef.current = true
     setGenerating(true)
-    fetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
+    inboxFetch(`/api/inbound/auto-draft?leadId=${lead.id}`)
       .then(r => r.ok ? r.json() : null)
       .then((d: { content: string | null; draftId: string | null } | null) => {
         if (d?.content) {
@@ -109,7 +110,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
   async function generateDraft() {
     setGenerating(true); setSendError(null)
     try {
-      const res  = await fetch('/api/inbound/auto-draft', {
+      const res  = await inboxFetch('/api/inbound/auto-draft', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId: lead.id, force: true }),
       })
@@ -131,7 +132,7 @@ export function InlineReplyRow({ lead, onStatus, onCollapse }: InlineReplyRowPro
     if (!lead.email || !finalHtml.replace(/<[^>]+>/g, '').trim()) return
     setSending(true); setSendError(null)
     try {
-      const res  = await fetch('/api/inbound/reply', {
+      const res  = await inboxFetch('/api/inbound/reply', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           leadId: lead.id, name: displayName(lead), email: lead.email,

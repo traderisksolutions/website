@@ -18,6 +18,7 @@ import { ComparisonGrid } from './ComparisonGrid'
 import { IssueDebitNoteDialog } from './IssueDebitNoteDialog'
 import { sharedOn } from '@/lib/placement/compare'
 import { callApi, errText } from './shared'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const STATUS_WORD: Record<PlacementStatus, string> = { open: 'Open', presented: 'Presented', bound: 'Bound', closed: 'Closed' }
 /** A button inside the dense grid or the placement line: 24px tall so the row stays compact. */
@@ -84,7 +85,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
   async function patchStatus(p: Placement, status: PlacementStatus) {
     setBusyFor(p.id); setErr(p.id, null)
     try {
-      await callApi(`/api/placements/${p.id}`, { method: 'PATCH', body: { status } })
+      await callPlacements(`/api/placements/${p.id}`, { method: 'PATCH', body: { status } })
       onChanged()
     } catch (e) {
       setErr(p.id, errText(e))
@@ -100,7 +101,7 @@ export function PlacementPanel({ companyId, companyName, threads, data, policies
     try {
       const all = emailable(positions)
       const ticked = all.filter(q => !leftOut.has(q.id)).map(q => q.id)
-      await callApi<{ draftId: string }>(`/api/placements/${p.id}/client-draft`, { method: 'POST', body: ticked.length === all.length ? {} : { quote_ids: ticked } })
+      await callPlacements<{ draftId: string }>(`/api/placements/${p.id}/client-draft`, { method: 'POST', body: ticked.length === all.length ? {} : { quote_ids: ticked } })
       onChanged()
       onOpenDrafts()
     } catch (e) {

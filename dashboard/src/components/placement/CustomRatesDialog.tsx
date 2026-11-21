@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { cn } from '@/lib/utils'
 import { callApi, errText, selectCls } from './shared'
+import { callPlacements } from '@/lib/placement/fetch'
 
 type Method = ProductRate['method']
 type Row = { product: string; method: Method; plans: Record<string, string>; rate: string; perThousand: string; totalSa: string }
@@ -73,7 +74,7 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
-  const load = () => callApi<{ counts: CensusCounts | null; quotes: Saved[] }>(`/api/placements/lines/${lineId}/custom-quote`)
+  const load = () => callPlacements<{ counts: CensusCounts | null; quotes: Saved[] }>(`/api/placements/lines/${lineId}/custom-quote`)
     .then(r => { setCounts(r.counts); setSaved(r.quotes) }).catch(e => { setCounts(null); setError(errText(e)) })
   useEffect(() => {
     if (!open) return
@@ -95,7 +96,7 @@ export function CustomRatesDialog({ open, lineId, onClose, onDone }: { open: boo
     if (result?.missing.length) { setError(`No rate for ${result.missing.join(', ')}.`); return }
     setBusy(true); setError(null); setNotice(null)
     try {
-      await callApi(`/api/placements/lines/${lineId}/custom-quote`, { method: 'POST', body: { insurer_name: insurer.trim(), stated_total: statedN, rates: rates.map(r =>
+      await callPlacements(`/api/placements/lines/${lineId}/custom-quote`, { method: 'POST', body: { insurer_name: insurer.trim(), stated_total: statedN, rates: rates.map(r =>
         r.method === 'per_mille' ? { product: r.product, method: r.method, rate_per_thousand: r.ratePerThousand, total_sum_assured: r.totalSumAssured }
         : r.method === 'tier' || r.method === 'life' ? { product: r.product, method: r.method, rates: r.rates }
         : { product: r.product, method: r.method, rate: r.rate }) } })

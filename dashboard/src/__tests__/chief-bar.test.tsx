@@ -7,6 +7,23 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { ChiefBar } from '@/components/engagement/ChiefBar'
 import type { Bar } from '@/lib/chief/bar'
 
+// The bar's Inbox and Placements calls go through server actions (src/lib/placement/fetch.ts); in the test
+// they go to the stubbed fetch below, with the same paths and bodies.
+vi.mock('@/lib/inbox/fetch', async () => {
+  const { callApi } = await import('@/components/placement/shared')
+  return {
+    inboxFetch: (url: string, init?: RequestInit) => fetch(url, init),
+    callInbox: (url: string, init?: { method?: string; body?: unknown }) => callApi(url, init),
+  }
+})
+vi.mock('@/lib/placement/fetch', async () => {
+  const { callApi } = await import('@/components/placement/shared')
+  return {
+    placementsFetch: (url: string, init?: RequestInit) => fetch(url, init),
+    callPlacements: (url: string, init?: { method?: string; body?: unknown }) => callApi(url, init),
+  }
+})
+
 const base: Bar = {
   threadId: 't1', companyId: 'c1', today: '2026-11-06', autoReply: null, drafts: [], enquiry: null, caseItem: null, hold: null,
   state: { kind: 'waiting', person: 'Serene Tan', email: 'serene@client.example', side: 'client', sentAt: '2026-11-06T04:29:00Z', chaseDue: '2026-11-13', workingDaysLeft: 4, overdue: false, snoozed: false },

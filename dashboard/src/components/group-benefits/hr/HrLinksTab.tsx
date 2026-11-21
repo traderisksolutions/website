@@ -9,6 +9,7 @@ import type { HrLink } from '@/lib/hr/types'
 import { SendLinkDialog, type CompanyPick } from './SendLinkDialog'
 import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkDetailResponse, type HrLinkRow, type HrLinksListResponse } from './labels'
 import type { EbPolicyRow } from '@/app/api/eb/policies/route'
+import { placementsFetch } from '@/lib/placement/fetch'
 
 
 /**
@@ -50,7 +51,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
       const dd = await dr.json().catch(() => ({})) as HrLinkDetailResponse
       const submissionId = dd.submission?.status === 'submitted' ? dd.submission.id : null
       if (!dr.ok || !submissionId) { setError(dd.error ?? 'The link has no submitted list yet.'); return }
-      const pr = await fetch(`/api/placements/lines/${policy.placement_line_id}/price`, {
+      const pr = await placementsFetch(`/api/placements/lines/${policy.placement_line_id}/price`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ submission_id: submissionId }),
       })
       const pd = await pr.json().catch(() => ({})) as { error?: string; quotes?: unknown[] }

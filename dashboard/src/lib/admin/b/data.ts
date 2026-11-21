@@ -6,7 +6,7 @@
  * Reads of columns added by the 31 Oct and 1 Nov migrations go through sbTry, so a deploy that
  * lands before the migration degrades to fewer facts instead of failing.
  */
-import { sb, sbTry, enc, inChunks, bareEmail, isInternal, emailDomain } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, bareEmail, isInternal, emailDomain, sbAll } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
 import type { MailLine } from './claim-read'
 import type { CaseMail, ScopedContact } from './router'
@@ -73,10 +73,10 @@ export async function loadCaseData(workItemId: string): Promise<CaseData | null>
   })
   const ins = await insurerDomains()
   const insSet = new Set(ins)
-  const msgs = await inChunks(ids, 30, c => sbTry<Row[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,from_address,body_text,sent_at&order=sent_at.asc`, []))
-  const people = await inChunks(ids, 30, c => sbTry<Row[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=message_id,email,role`, []))
-  const atts = await inChunks(ids, 30, c => sbTry<Row[]>(`email_attachments?thread_id=in.(${c.join(',')})&select=message_id,filename,mime_type,storage_url,created_at`, []))
-  const rebuilt = await inChunks(ids, 30, c => sbTry<Row[]>(`rebuilt_messages?thread_id=in.(${c.join(',')})&select=*&order=position.asc`, []))
+  const msgs = await inChunks(ids, 30, c => sbAll<Row>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,from_address,body_text,sent_at&order=sent_at.asc`))
+  const people = await inChunks(ids, 30, c => sbAll<Row>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=message_id,email,role`))
+  const atts = await inChunks(ids, 30, c => sbAll<Row>(`email_attachments?thread_id=in.(${c.join(',')})&select=message_id,filename,mime_type,storage_url,created_at`))
+  const rebuilt = await inChunks(ids, 30, c => sbAll<Row>(`rebuilt_messages?thread_id=in.(${c.join(',')})&select=*&order=position.asc`))
 
   const files: CaseFile[] = atts.filter(a => a.filename).map(a => ({ filename: a.filename, mime_type: a.mime_type, storage_url: a.storage_url, received_at: msgs.find(m => m.id === a.message_id)?.sent_at ?? a.created_at ?? null, message_id: a.message_id }))
   const messages: CaseMessage[] = [

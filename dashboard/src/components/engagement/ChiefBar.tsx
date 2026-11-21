@@ -19,6 +19,8 @@ import { Btn, LinkBtn, inputCls, textareaCls } from '@/components/crm/primitives
 import { cn } from '@/lib/utils'
 import { ActionItem, AiRow, Buttons, Group } from './rail-bits'
 import { firstPaintKey, takeFirstPaint } from './first-paint'
+import { callPlacements } from '@/lib/placement/fetch'
+import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 /** The shared field at rail height (32, the rail's button height). */
@@ -61,7 +63,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const [elsewhere, setElsewhere] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    try { setBar(await callApi<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
+    try { setBar(await callInbox<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
   }, [threadId])
 
   // The open thread's bar comes with the page on first paint (first-paint.ts); every other read is the API's.
@@ -72,7 +74,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   }, [load, refreshKey, threadId])
   useEffect(() => { onOpenChange?.(open !== null) }, [open, onOpenChange])
   useEffect(() => {
-    fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
+    inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
       if (Array.isArray(rows) && rows.length) setFrom(rows.find(r => r.type === 'personal')?.email ?? rows[0].email)
     }).catch(() => {})
   }, [])
@@ -81,7 +83,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     setBusy(label); setError(null)
     try { await fn(); await load() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  const post = (body: unknown) => callApi<{ draftId?: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body })
+  const post = (body: unknown) => callInbox<{ draftId?: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body })
 
   const chaser = () => run('chaser', async () => { const r = await post({ action: 'chaser' }); if (r.draftId) setOpen(r.draftId) })
   const reply = () => run('reply', async () => {
@@ -90,7 +92,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     if (r.draftId) setOpen(r.draftId)
   })
   const prepare = () => run('prepare', async () => {
-    const r = await callApi<{ status: string; placement_id?: string; client_thread_id?: string | null }>('/api/placements/auto', { method: 'POST', body: { thread_id: threadId } })
+    const r = await callPlacements<{ status: string; placement_id?: string; client_thread_id?: string | null }>('/api/placements/auto', { method: 'POST', body: { thread_id: threadId } })
     if (r.status === 'no_lines') throw new Error('No policy found in this email. Open Quotes to set it up.')
     if (r.status === 'no_company' || r.status === 'no_request') throw new Error('Link this thread to a client first.')
     // An open placement for this client already exists. On this thread the reload shows it; on another, link there.
@@ -100,7 +102,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const noAction = () => run('none', async () => { await post({ action: 'no_action' }) })
   const clear = () => run('clear', async () => { await post({ action: 'clear' }) })
   const suggest = (key: string) => run(key, async () => {
-    const r = await callApi<{ quotationId: string; summary: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body: { action: 'suggest', key } })
+    const r = await callInbox<{ quotationId: string; summary: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body: { action: 'suggest', key } })
     setOutcome(o => ({ ...o, [key]: r }))
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
@@ -281,7 +283,7 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
   }
   async function discard() {
     setBusy('discard'); setError(null)
-    try { await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId: draft.id, status: 'rejected' } }); onDone() }
+    try { await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId: draft.id, status: 'rejected' } }); onDone() }
     catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
 
@@ -330,9 +332,9 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
     const t = textOf(r)
     setPhases(p => ({ ...p, [dispatchId]: 'sending' }))
     try {
-      await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: t.body } })
+      await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: t.body } })
       const sent = await mail(draftId, to, t.subject, emailReadyHtml(draftBodyToHtml(t.body)), from, r.attachments)
-      await callApi('/api/placements/dispatches/sent', { method: 'POST', body: { draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null, rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? t.subject } })
+      await callPlacements('/api/placements/dispatches/sent', { method: 'POST', body: { draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null, rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? t.subject } })
       setPhases(p => ({ ...p, [dispatchId]: 'sent' }))
       return true
     } catch (e) {
@@ -346,7 +348,7 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
   async function sendRequest(r: BarRequest) {
     const t = textOf(r)
     if (r.recipients.length === 1) { await sendOne(r.draftId, r.recipients[0].dispatchId, r.recipients[0].email, r); return }
-    const { clones } = await callApi<{ clones: { draft_id: string; dispatch_id: string; to_email: string }[] }>(`/api/placements/drafts/${r.draftId}/fanout`, { method: 'POST', body: { subject: t.subject, body: t.body } })
+    const { clones } = await callPlacements<{ clones: { draft_id: string; dispatch_id: string; to_email: string }[] }>(`/api/placements/drafts/${r.draftId}/fanout`, { method: 'POST', body: { subject: t.subject, body: t.body } })
     for (const c of clones) await sendOne(c.draft_id, c.dispatch_id, c.to_email, r)
   }
 
@@ -359,7 +361,7 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
 
   async function removeInsurer(dispatchId: string) {
     setError(null)
-    try { await callApi(`/api/placements/dispatches/${dispatchId}`, { method: 'PATCH', body: { status: 'withdrawn' } }); await reload() } catch (e) { setError(errText(e)) }
+    try { await callPlacements(`/api/placements/dispatches/${dispatchId}`, { method: 'PATCH', body: { status: 'withdrawn' } }); await reload() } catch (e) { setError(errText(e)) }
   }
 
   const ready = enquiry.requests.filter(r => r.recipients.length > 0)

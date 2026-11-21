@@ -12,8 +12,9 @@ export const ERROR = 'var(--trs-neg)'
 export const selectCls = `${inputCls} appearance-none`
 
 /** fetch + JSON with the route's `{ error }` surfaced as an Error. */
-export async function callApi<T>(url: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await fetch(url, {
+export async function callApi<T>(url: string, init?: { method?: string; body?: unknown; via?: (url: string, init: RequestInit) => Promise<Response> }): Promise<T> {
+  // `via` sends the call through an area's server action (nexusFetch…) instead of the network.
+  const res = await (init?.via ?? fetch)(url, {
     method: init?.method ?? 'GET',
     headers: init?.body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
     body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,

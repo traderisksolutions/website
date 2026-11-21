@@ -8,6 +8,7 @@ import { describeChanges, specDiff } from '@/lib/placement/spec'
 import type { PlacementLine, RoundReason, Spec } from '@/lib/placement/types'
 import { callApi, errText, dialogCls, selectCls, SpecFields } from './shared'
 import { ContactPicker } from './ContactPicker'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const REASONS: { value: Exclude<RoundReason, 'initial'>; label: string }[] = [
   { value: 'client_change', label: 'Client change' },
@@ -57,7 +58,7 @@ export function NewRoundDialog({ open, onClose, placementId, line, currentSpec, 
   async function save() {
     setBusy(true); setError(null)
     try {
-      const d = await callApi<{ unrouted?: string[] }>(`/api/placements/${placementId}/rounds`, {
+      const d = await callPlacements<{ unrouted?: string[] }>(`/api/placements/${placementId}/rounds`, {
         method: 'POST',
         body: {
           line_id: line.id,

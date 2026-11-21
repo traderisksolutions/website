@@ -3,7 +3,7 @@
  * cases and stage changes — newest first. Read-only; each source keeps its
  * own table, this just lines them up.
  */
-import { sbTry, inChunks, enc, displayNameFromAddress, bareEmail } from './db'
+import { sbTry, inChunks, enc, displayNameFromAddress, bareEmail, sbAll } from './db'
 import type { ActivityEvent, CaseRow, PaymentDerived, QuoteRow } from './types'
 import { fmtMoney } from '@/lib/format'
 import { threadTitle, cleanSubject } from './subject'
@@ -25,14 +25,14 @@ export interface ActivityInputs {
 export async function buildActivity(companyId: string, input: ActivityInputs, limit = 80): Promise<ActivityEvent[]> {
   const [messages, audit, drafts, threads] = await Promise.all([
     input.threadIds.length
-      ? inChunks(input.threadIds, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=${limit}`, []))
+      ? inChunks(input.threadIds, 100, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,subject,sent_at&order=sent_at.desc&limit=${limit}`))
       : Promise.resolve([] as MsgRow[]),
     sbTry<AuditRow[]>(`audit_logs?resource_type=eq.company&resource_id=eq.${enc(companyId)}&select=id,action,created_at,user_name,old_value,new_value&order=created_at.desc&limit=40`, []),
     input.threadIds.length
       ? inChunks(input.threadIds, 100, c => sbTry<DraftRow[]>(`ai_drafts?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,status,generated_by,email_type,subject,created_at,sent_at&order=created_at.desc&limit=40`, []))
       : Promise.resolve([] as DraftRow[]),
     input.threadIds.length
-      ? inChunks(input.threadIds, 100, c => sbTry<ThreadTitleRow[]>(`email_threads?id=in.(${c.join(',')})&select=id,subject,display_subject`, []))
+      ? inChunks(input.threadIds, 100, c => sbAll<ThreadTitleRow>(`email_threads?id=in.(${c.join(',')})&select=id,subject,display_subject`))
       : Promise.resolve([] as ThreadTitleRow[]),
   ])
   const titleByThread = new Map(threads.map(t => [t.id, threadTitle(t)]))

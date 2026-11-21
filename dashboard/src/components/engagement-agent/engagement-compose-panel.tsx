@@ -25,6 +25,7 @@ import {
 import { Btn, Segmented } from '@/components/crm/primitives'
 import { useConfirm } from '@/components/ui/confirm'
 import { listSignatures } from '@/app/settings/actions'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 interface EngagementComposePanelProps {
   lead:              Lead
@@ -174,7 +175,7 @@ export function EngagementComposePanel({
     listSignatures().then(r => r.ok ? r.data : []).then((rows: SigOption[]) => {
       setSignatures(Array.isArray(rows) ? rows : [])
     }).catch(() => {})
-    fetch('/api/email/available-senders').then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
+    inboxFetch('/api/email/available-senders').then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
       if (Array.isArray(rows) && rows.length > 0) {
         setSenders(rows)
         setSelectedFrom(rows[0].email)
@@ -204,7 +205,7 @@ export function EngagementComposePanel({
     const tid = thread?.id
     if (!tid) return
     let ok = true
-    fetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+    inboxFetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then((rows: Att[]) => { if (ok) setThreadFiles(Array.isArray(rows) ? rows : []) })
       .catch(() => {})
@@ -250,7 +251,7 @@ export function EngagementComposePanel({
     if (!tid || sent) return
     let current = true
     setAiDraftChecked(false)
-    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/draft?thread_id=${encodeURIComponent(tid)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then((rows: { id: string; body: string }[]) => {
         if (!current) return
@@ -306,7 +307,7 @@ export function EngagementComposePanel({
     try {
       let activeDraftId = draftId
       if (!activeDraftId) {
-        const createRes = await fetch('/api/engagement/draft', {
+        const createRes = await inboxFetch('/api/engagement/draft', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             // Use the To field as the recipient — the lead may have no email even when a
@@ -322,7 +323,7 @@ export function EngagementComposePanel({
         setDraftId(activeDraftId)
       }
 
-      await fetch('/api/engagement/draft', {
+      await inboxFetch('/api/engagement/draft', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ draftId: activeDraftId, status: 'approved', content: plainText }),
       })

@@ -1,3 +1,4 @@
+import { sbAll } from '@/lib/crm/db'
 /**
  * TPA claim notices, read by rule (Client 360 phase 3, 14 Nov 2026). Integrated Health Plans
  * (claims@ihp.com.sg) sends the same two notices for every claim it handles, to the member with
@@ -52,7 +53,7 @@ export async function applyTpaNotices(since: string, opts: { dryRun?: boolean } 
     `email_messages?from_address=ilike.*ihp.com.sg*&sent_at=gte.${enc(since)}&deleted_at=is.null&select=id,thread_id,from_address,subject,body_text,sent_at&order=sent_at.asc&limit=2000`, [])
   const notices = msgs.map(m => ({ m, n: readTpaNotice(m.from_address, m.subject, m.body_text) })).filter((x): x is { m: typeof msgs[number]; n: TpaNotice } => !!x.n)
   const refs = [...new Set(notices.flatMap(x => x.n.refs))]
-  const claims = await inChunks(refs, 80, c => sbTry<{ id: string; insurer_ref: string | null; stage: ClaimStage }[]>(`claims?insurer_ref=in.(${c.map(enc).join(',')})&select=id,insurer_ref,stage`, []))
+  const claims = await inChunks(refs, 80, c => sbAll<{ id: string; insurer_ref: string | null; stage: ClaimStage }>(`claims?insurer_ref=in.(${c.map(enc).join(',')})&select=id,insurer_ref,stage`))
   const byRef = new Map(claims.map(c => [String(c.insurer_ref).toUpperCase(), c]))
   let moved = 0, created = 0
   const planned: Record<string, unknown>[] = []

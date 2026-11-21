@@ -64,20 +64,12 @@
   "fetch": 2
  },
  "src/app/api/eb/policies/route.ts": {
-  "sb": 5,
+  "sb": 1,
   "fetch": 0
  },
  "src/app/api/eb/quotations/[id]/sent/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/email/attachments/for-thread/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/email/available-senders/route.ts": {
-  "sb": 0,
-  "fetch": 3
  },
  "src/app/api/email/ingest/route.ts": {
   "sb": 0,
@@ -90,46 +82,6 @@
  "src/app/api/engagement/attachments/[id]/download/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/engagement/conversation/promote/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
- "src/app/api/engagement/conversation/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/engagement/draft/route.ts": {
-  "sb": 0,
-  "fetch": 19
- },
- "src/app/api/engagement/drafts/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/engagement/drafts/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/engagement/refresh-summary/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/engagement/thread-summaries/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/engagement/thread/[id]/company/route.ts": {
-  "sb": 2,
-  "fetch": 1
- },
- "src/app/api/engagement/thread/[id]/party/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/engagement/thread/route.ts": {
-  "sb": 0,
-  "fetch": 5
  },
  "src/app/api/followups/route.ts": {
   "sb": 7,
@@ -179,18 +131,6 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/inbound/auto-draft/route.ts": {
-  "sb": 0,
-  "fetch": 10
- },
- "src/app/api/inbound/reply/route.ts": {
-  "sb": 0,
-  "fetch": 9
- },
- "src/app/api/leads/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
  "src/app/api/letters/appointment/route.ts": {
   "sb": 7,
   "fetch": 0
@@ -202,98 +142,6 @@
  "src/app/api/nexus/attachments/extract/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/nexus/cases/[id]/analyze/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/nexus/cases/[id]/company/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/nexus/cases/[id]/edit-analysis/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/cases/[id]/rescan-reanalyze/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/nexus/cases/[id]/restore-analysis/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/cases/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 9
- },
- "src/app/api/nexus/cases/[id]/runs/[runId]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/nexus/cases/[id]/runs/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/nexus/cases/[id]/suggest/route.ts": {
-  "sb": 0,
-  "fetch": 8
- },
- "src/app/api/nexus/cases/[id]/threads/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
- "src/app/api/nexus/cases/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/nexus/draft-create/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/follow-ups/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/nexus/step-draft/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
- "src/app/api/placements/[id]/log/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/auto/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/dispatches/[id]/quote/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/dispatches/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/line-texts/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/placements/lines/[id]/request/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/placements/lines/[id]/route.ts": {
-  "sb": 6,
-  "fetch": 0
- },
- "src/app/api/placements/prefill/route.ts": {
-  "sb": 1,
-  "fetch": 0
  },
  "src/app/api/policies/[id]/members/route.ts": {
   "sb": 1,
@@ -336,7 +184,7 @@
   "fetch": 0
  },
  "src/lib/admin/a/intake.ts": {
-  "sb": 31,
+  "sb": 29,
   "fetch": 0
  },
  "src/lib/admin/a/knowledge.ts": {
@@ -364,7 +212,7 @@
   "fetch": 0
  },
  "src/lib/admin/b/data.ts": {
-  "sb": 25,
+  "sb": 21,
   "fetch": 0
  },
  "src/lib/admin/b/documents/store.ts": {
@@ -428,11 +276,11 @@
   "fetch": 0
  },
  "src/lib/admin/k/ask-server.ts": {
-  "sb": 9,
+  "sb": 8,
   "fetch": 0
  },
  "src/lib/admin/k/deposit.ts": {
-  "sb": 14,
+  "sb": 5,
   "fetch": 0
  },
  "src/lib/admin/k/retrieve.ts": {
@@ -472,7 +320,7 @@
   "fetch": 0
  },
  "src/lib/analytics/autonomy/compute.ts": {
-  "sb": 9,
+  "sb": 3,
   "fetch": 0
  },
  "src/lib/api-gate/verify.ts": {
@@ -528,11 +376,11 @@
   "fetch": 0
  },
  "src/lib/cases/rounds-store.ts": {
-  "sb": 5,
+  "sb": 3,
   "fetch": 0
  },
  "src/lib/cases/sources-store.ts": {
-  "sb": 39,
+  "sb": 35,
   "fetch": 0
  },
  "src/lib/cases/sync.ts": {
@@ -544,7 +392,7 @@
   "fetch": 0
  },
  "src/lib/casework/run.ts": {
-  "sb": 27,
+  "sb": 21,
   "fetch": 0
  },
  "src/lib/chief/bar.ts": {
@@ -564,7 +412,7 @@
   "fetch": 0
  },
  "src/lib/claims/tpa-notices.ts": {
-  "sb": 6,
+  "sb": 5,
   "fetch": 0
  },
  "src/lib/clients/admin-desk-load.ts": {
@@ -572,11 +420,11 @@
   "fetch": 0
  },
  "src/lib/clients/enrolment-cycle.ts": {
-  "sb": 6,
+  "sb": 4,
   "fetch": 0
  },
  "src/lib/clients/people.ts": {
-  "sb": 4,
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/clients/portfolio-load.ts": {
@@ -584,27 +432,23 @@
   "fetch": 0
  },
  "src/lib/crm/activity.ts": {
-  "sb": 4,
-  "fetch": 0
- },
- "src/lib/crm/aggregates.ts": {
-  "sb": 9,
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/crm/autofile.ts": {
-  "sb": 21,
+  "sb": 20,
   "fetch": 0
  },
  "src/lib/crm/board.ts": {
-  "sb": 13,
-  "fetch": 0
+  "sb": 11,
+  "fetch": 1
  },
  "src/lib/crm/brief.ts": {
   "sb": 1,
   "fetch": 0
  },
  "src/lib/crm/cases.ts": {
-  "sb": 5,
+  "sb": 1,
   "fetch": 0
  },
  "src/lib/crm/client-link.ts": {
@@ -619,16 +463,12 @@
   "sb": 2,
   "fetch": 0
  },
- "src/lib/crm/context.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/lib/crm/domains.ts": {
-  "sb": 9,
+  "sb": 6,
   "fetch": 0
  },
  "src/lib/crm/find-threads-server.ts": {
-  "sb": 3,
+  "sb": 2,
   "fetch": 0
  },
  "src/lib/crm/identity.ts": {
@@ -652,7 +492,7 @@
   "fetch": 0
  },
  "src/lib/crm/people.ts": {
-  "sb": 5,
+  "sb": 1,
   "fetch": 0
  },
  "src/lib/crm/quotes.ts": {
@@ -664,11 +504,11 @@
   "fetch": 0
  },
  "src/lib/crm/referral-review.ts": {
-  "sb": 4,
+  "sb": 3,
   "fetch": 0
  },
  "src/lib/crm/resolve.ts": {
-  "sb": 23,
+  "sb": 21,
   "fetch": 0
  },
  "src/lib/crm/signature.ts": {
@@ -684,11 +524,11 @@
   "fetch": 0
  },
  "src/lib/crm/threads.ts": {
-  "sb": 8,
+  "sb": 1,
   "fetch": 0
  },
  "src/lib/crm/triage.ts": {
-  "sb": 17,
+  "sb": 16,
   "fetch": 0
  },
  "src/lib/customer-profile.ts": {
@@ -827,6 +667,66 @@
   "sb": 19,
   "fetch": 0
  },
+ "src/lib/inbox/handlers/email-attachments-for-thread.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/email-available-senders.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-conversation-promote.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/inbox/handlers/engagement-conversation.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/inbox/handlers/engagement-draft.ts": {
+  "sb": 0,
+  "fetch": 19
+ },
+ "src/lib/inbox/handlers/engagement-drafts-id.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/engagement-drafts.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-refresh-summary.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-thread-id-company.ts": {
+  "sb": 2,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/engagement-thread-id-party.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/inbox/handlers/engagement-thread-summaries.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/inbox/handlers/engagement-thread.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/lib/inbox/handlers/inbound-auto-draft.ts": {
+  "sb": 0,
+  "fetch": 10
+ },
+ "src/lib/inbox/handlers/inbound-reply.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/lib/inbox/handlers/leads.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
  "src/lib/insurer-products.ts": {
   "sb": 16,
   "fetch": 0
@@ -920,8 +820,64 @@
   "fetch": 0
  },
  "src/lib/nexus/company-view.ts": {
-  "sb": 15,
+  "sb": 10,
   "fetch": 0
+ },
+ "src/lib/nexus/handlers/cases-id-analyze.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/nexus/handlers/cases-id-company.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/nexus/handlers/cases-id-edit-analysis.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/cases-id-rescan-reanalyze.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/nexus/handlers/cases-id-restore-analysis.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/cases-id-runs-runId.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/nexus/handlers/cases-id-runs.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/nexus/handlers/cases-id-suggest.ts": {
+  "sb": 0,
+  "fetch": 8
+ },
+ "src/lib/nexus/handlers/cases-id-threads.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/nexus/handlers/cases-id.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/lib/nexus/handlers/cases.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/nexus/handlers/draft-create.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/follow-ups-id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/nexus/handlers/step-draft.ts": {
+  "sb": 0,
+  "fetch": 5
  },
  "src/lib/nexus/ledger.ts": {
   "sb": 2,
@@ -936,7 +892,7 @@
   "fetch": 0
  },
  "src/lib/placement/adopt.ts": {
-  "sb": 11,
+  "sb": 9,
   "fetch": 0
  },
  "src/lib/placement/auto-attach.ts": {
@@ -949,6 +905,42 @@
  },
  "src/lib/placement/eb.ts": {
   "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/auto.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/dispatches-id-quote.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/dispatches-id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/id-log.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/line-texts.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/lines-id-request.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/lines-id.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/prefill.ts": {
+  "sb": 1,
   "fetch": 0
  },
  "src/lib/placement/quote-read.ts": {

@@ -22,6 +22,7 @@ import { AppointmentLetterPanel } from '@/components/letters/AppointmentLetterPa
 import { fmtDate, fmtDateTime, num } from '@/lib/format'
 import { CLIENT_STAGES, INSURER_STAGES, REQUEST_TYPES, daysTo } from '@/lib/placement/working'
 import { missingItems, requestBody, type RequestItem } from '@/lib/placement/request'
+import { placementsFetch } from '@/lib/placement/fetch'
 
 type Route = { contact_id: string; insurer: string; name: string | null; email: string; picked: boolean }
 type File = { filename: string; mime_type?: string; storage_url: string }
@@ -63,7 +64,7 @@ export function PolicyWorking({ lineId }: { lineId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [drawer, setDrawer] = useState<string | null | false>(false)
   const load = useCallback(async () => {
-    const r = await fetch(`/api/placements/lines/${lineId}`, { cache: 'no-store' }); const j = await r.json().catch(() => ({}))
+    const r = await placementsFetch(`/api/placements/lines/${lineId}`, { cache: 'no-store' }); const j = await r.json().catch(() => ({}))
     if (!r.ok) setError(j.error ?? 'Could not load this policy'); else setCtx(j)
   }, [lineId])
   useEffect(() => { void load() }, [load])
@@ -110,7 +111,7 @@ function ClientDraftButton({ placementId, onDrafted }: { placementId: string; on
   return <span className="inline-flex flex-col items-end">
     <Btn level="primary" loading={busy} onClick={async () => {
       setBusy(true); setErr(null)
-      const r = await fetch(`/api/placements/${placementId}/client-draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const r = await placementsFetch(`/api/placements/${placementId}/client-draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       const j = await r.json().catch(() => ({})); setBusy(false)
       if (!r.ok) setErr(j.error ?? 'Could not draft'); else onDrafted(j.draftId ?? null)
     }}>Draft to client</Btn>
@@ -179,7 +180,7 @@ function RequestTab({ ctx, onDone, onReview }: { ctx: Ctx; onDone: () => Promise
 
   async function create() {
     setBusy(true); setNote(null)
-    const r = await fetch(`/api/placements/lines/${ctx.line.id}/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    const r = await placementsFetch(`/api/placements/lines/${ctx.line.id}/request`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       items: items.map(i => ({ key: i.key, value: i.value, included: i.included })), contact_ids: to, subject, body, attachments: files.map(f => ({ storage_url: f.storage_url })) }) })
     const j = await r.json().catch(() => ({})); setBusy(false)
     if (!r.ok) { setNote(<span className="text-trs-neg">{j.error ?? 'Could not create the drafts'}</span>); return }
@@ -304,7 +305,7 @@ function RecordReply({ dispatches, onClose, onSaved }: { dispatches: Dispatch[];
           {err && <div className="text-body text-trs-neg">{err}</div>}
           <div className="flex justify-end gap-2 pt-2"><Btn onClick={onClose}>Cancel</Btn><Btn level="primary" loading={busy} onClick={async () => {
             setBusy(true); setErr(null)
-            const r = await fetch(`/api/placements/dispatches/${d}/quote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) })
+            const r = await placementsFetch(`/api/placements/dispatches/${d}/quote`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) })
             const j = await r.json().catch(() => ({})); setBusy(false)
             if (!r.ok) setErr(j.error ?? 'Could not save'); else onSaved(`${dispatches.find(x => x.id === d)?.insurer} quoted ${f.premium}`)
           }}>Save to table</Btn></div>

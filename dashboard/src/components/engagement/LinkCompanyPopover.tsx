@@ -8,6 +8,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { Btn, InlineSpinner, inputCls } from '@/components/crm/primitives'
 import { decideDomainThreads } from '@/app/companies/triage/actions'
 import { createCompany, searchCompanies } from '@/app/companies/actions'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 type CompanySuggestion = { id: string; name: string; domain: string | null }
 type Pick = { id: string | null; name: string }
@@ -61,7 +62,7 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
   // The thread's outside domain and the unfiled threads that share it: read when an unfiled thread's picker opens.
   useEffect(() => {
     if (!open || forClient || domain) return
-    fetch(`/api/engagement/thread/${threadId}/company`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/thread/${threadId}/company`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then((d: { domain: string | null; unfiled: number } | null) => setDomain(d ?? { domain: null, unfiled: 0 }))
       .catch(() => setDomain({ domain: null, unfiled: 0 }))

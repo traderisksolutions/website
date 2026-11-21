@@ -17,6 +17,8 @@ import { callApi, errText } from './shared'
 import { companyDrafts } from '@/app/companies/[id]/actions'
 import { movementsSent } from '@/app/policies/actions'
 import { unwrap } from '@/lib/action-result'
+import { callPlacements } from '@/lib/placement/fetch'
+import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 const LAYOUT_KEY = 'trs.drafts.layout'
@@ -106,7 +108,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   const [from, setFrom] = useState(OPS_EMAIL)
   useEffect(() => {
     if (!open) return
-    fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
+    inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: Sender[]) => {
       if (!Array.isArray(rows) || rows.length === 0) return
       setSenders(rows)
       setFrom(rows.find(r => r.type === 'personal')?.email ?? rows[0].email)
@@ -161,7 +163,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   useEffect(() => {
     if (!open || !selectedThread || threadFiles[selectedThread]) return
     let ok = true
-    fetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(selectedThread)}`, { cache: 'no-store' })
+    inboxFetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(selectedThread)}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then((rows: Att[]) => { if (ok) setThreadFiles(m => ({ ...m, [selectedThread]: Array.isArray(rows) ? rows : [] })) })
       .catch(() => {})
@@ -202,7 +204,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
 
   /** The three-step send for one draft id: approve, mail, then file the thread where the kind needs it. */
   async function sendDraft(draftId: string, item: Pick<Item, 'kind' | 'subject' | 'html' | 'cc' | 'attachments'>, toEmail: string | null): Promise<void> {
-    await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: htmlToDraftText(item.html) } })
+    await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: htmlToDraftText(item.html) } })
     const cc = ccList(item.cc)
     const sent = await callApi<{ ok: boolean; gmailMessageId?: string | null; gmailThreadId?: string | null; rfc822MessageId?: string | null; fromEmail?: string | null; subject?: string | null }>('/api/email/send', {
       method: 'POST',
@@ -215,10 +217,10 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
       draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null,
       rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? item.subject,
     }
-    if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
+    if (item.kind === 'request') await callPlacements('/api/placements/dispatches/sent', { method: 'POST', body: ids })
     if (item.kind === 'movement') unwrap(await movementsSent(ids))
-    if (item.kind === 'client') await callApi('/api/placements/shares/sent', { method: 'POST', body: ids })
-    if (item.kind === 'confirm') await callApi('/api/placements/confirm/sent', { method: 'POST', body: ids })
+    if (item.kind === 'client') await callPlacements('/api/placements/shares/sent', { method: 'POST', body: ids })
+    if (item.kind === 'confirm') await callPlacements('/api/placements/confirm/sent', { method: 'POST', body: ids })
   }
 
   /** A single-recipient draft (chase, client, movement, or a request already fanned out). */
@@ -249,7 +251,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
     setItem(item.draft.id, { state: { phase: 'sending' }, recipients: Object.fromEntries(item.dispatches.map(d => [d.id, { phase: 'queued' }])) })
     let clones: FanoutClone[]
     try {
-      clones = (await callApi<{ clones: FanoutClone[] }>(`/api/placements/drafts/${item.draft.id}/fanout`, { method: 'POST', body: { subject: item.subject, body: htmlToDraftText(item.html) } })).clones
+      clones = (await callPlacements<{ clones: FanoutClone[] }>(`/api/placements/drafts/${item.draft.id}/fanout`, { method: 'POST', body: { subject: item.subject, body: htmlToDraftText(item.html) } })).clones
     } catch (e) {
       setItem(item.draft.id, { state: { phase: 'error', message: errText(e) }, recipients: {} })
       onChanged()
@@ -301,7 +303,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   async function discard(item: Item) {
     setItem(item.draft.id, { state: { phase: 'sending' } })
     try {
-      await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId: item.draft.id, status: 'rejected' } })
+      await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId: item.draft.id, status: 'rejected' } })
       await load()
       onChanged()
     } catch (e) {

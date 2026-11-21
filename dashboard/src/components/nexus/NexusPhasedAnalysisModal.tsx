@@ -11,6 +11,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { Btn, Chip, textareaCls } from '@/components/crm/primitives'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 type PhaseStatus = 'pending' | 'running' | 'done' | 'failed'
 
@@ -72,7 +73,7 @@ export function NexusPhasedAnalysisModal({
   // On open: resume an in-progress run for this case, if one exists.
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/nexus/cases/${caseId}/analyze/run-status`, { cache: 'no-store' })
+    nexusFetch(`/api/nexus/cases/${caseId}/analyze/run-status`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : { run: null })
       .then((data: { run: RunSnapshot | null }) => {
         if (cancelled || !data.run) return
@@ -94,7 +95,7 @@ export function NexusPhasedAnalysisModal({
     if (!anyRunning) return
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/nexus/cases/${caseId}/analyze/run-status?run_id=${runId}`, { cache: 'no-store' })
+        const res = await nexusFetch(`/api/nexus/cases/${caseId}/analyze/run-status?run_id=${runId}`, { cache: 'no-store' })
         if (!res.ok) return
         const data: { run: RunSnapshot | null } = await res.json()
         if (data.run) applyRunSnapshot(data.run)
@@ -106,7 +107,7 @@ export function NexusPhasedAnalysisModal({
   const startPhase1 = useCallback(async () => {
     setPhase1Status('running'); setError(null)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}/analyze/phase1`, {
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}/analyze/phase1`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           triggered_by: userEmail,
@@ -128,7 +129,7 @@ export function NexusPhasedAnalysisModal({
     if (!runId) return
     setPhase2Status('running'); setError(null)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}/analyze/phase2`, {
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}/analyze/phase2`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ run_id: runId, ...(instructions.trim() ? { instructions: instructions.trim() } : {}) }),
       })
@@ -146,7 +147,7 @@ export function NexusPhasedAnalysisModal({
     if (!runId) return
     setPhase3Status('running'); setError(null)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}/analyze/phase3`, {
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}/analyze/phase3`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ run_id: runId }),
       })

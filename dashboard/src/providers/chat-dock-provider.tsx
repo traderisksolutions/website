@@ -9,6 +9,7 @@ import {
   appendUserMessage, appendAssistantMessage, saveDraft, setThreadStatus, upsertChatUiState, updateMessageMeta,
   listThreads, createThread, setThreadTitle, deleteMessage, renameThreadTitle,
 } from '@/lib/supabase/chat-queries'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 interface ChatDockContextValue {
   state:         ChatDockState
@@ -77,7 +78,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     const caseId = routeScope.caseId
     if (!caseId || routeScope.companyId) return
     let cancelled = false
-    fetch(`/api/nexus/cases/${caseId}/company`, { cache: 'no-store' })
+    nexusFetch(`/api/nexus/cases/${caseId}/company`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .catch(() => null)
       .then(d => {
@@ -354,19 +355,19 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     try {
       if (action.type === 'reanalyze' && caseId) {
         startedCaseId = caseId; notifyAnalysisStarted(caseId)
-        await fetch(`/api/nexus/cases/${caseId}/analyze`, {
+        await nexusFetch(`/api/nexus/cases/${caseId}/analyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ instructions: action.instructions }),
         })
       } else if (action.type === 'rescan_reanalyze' && caseId) {
         // One step: re-extract the document(s), then re-run so Mission Control repopulates.
         startedCaseId = caseId; notifyAnalysisStarted(caseId)
-        await fetch(`/api/nexus/cases/${caseId}/rescan-reanalyze`, {
+        await nexusFetch(`/api/nexus/cases/${caseId}/rescan-reanalyze`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ filename: action.filename, all_pending: action.all_pending, instructions: action.instructions }),
         })
       } else if (action.type === 'edit_analysis' && caseId) {
-        const res = await fetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
+        const res = await nexusFetch(`/api/nexus/cases/${caseId}/edit-analysis`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ops: action.ops, summary: action.summary }),
         })
@@ -384,7 +385,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         let body    = action.body ?? ''
         let threadId: string | null | undefined = action.thread_id
         if (action.intent || !body) {
-          const res = await fetch('/api/nexus/step-draft', {
+          const res = await nexusFetch('/api/nexus/step-draft', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               case_id: caseId,
@@ -399,7 +400,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         if (!body.trim()) throw new Error('Could not draft the email — try again.')
         if (threadId) {
           // Attach this conversation to the case so the reply flows back into Nexus.
-          if (caseId) await fetch(`/api/nexus/cases/${caseId}/threads`, {
+          if (caseId) await nexusFetch(`/api/nexus/cases/${caseId}/threads`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ thread_id: threadId, party_type: 'other' }),
           }).catch(() => {})
@@ -415,7 +416,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
         }
         await navigator.clipboard.writeText(body).catch(() => {})
       } else if (action.type === 'edit_case' && caseId) {
-        await fetch(`/api/nexus/cases/${caseId}`, {
+        await nexusFetch(`/api/nexus/cases/${caseId}`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(action.patch),
         })
@@ -439,7 +440,7 @@ export function ChatDockProvider({ children }: { children: React.ReactNode }) {
     const caseId = stateRef.current.caseId
     if (!snapshot || !caseId) return
     try {
-      await fetch(`/api/nexus/cases/${caseId}/restore-analysis`, {
+      await nexusFetch(`/api/nexus/cases/${caseId}/restore-analysis`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ snapshot }),
       })

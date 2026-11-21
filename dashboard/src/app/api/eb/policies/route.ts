@@ -5,7 +5,7 @@
  */
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { enc, inChunks, sbTry } from '@/lib/crm/db'
+import { enc, inChunks, sbTry, sbAll } from '@/lib/crm/db'
 import { isPolicyLifecycle, LIFECYCLE_LABEL, type PolicyLifecycle, type PolicyRow } from '@/lib/policies/types'
 import { fail, gate } from '@/lib/placement/api'
 
@@ -48,10 +48,10 @@ export async function GET(req: NextRequest) {
   const policyIds = policies.map(p => p.id)
   const lineIds = [...new Set(policies.map(p => p.placement_line_id).filter((x): x is string => !!x))]
   const [companies, members, lines, quotes] = await Promise.all([
-    inChunks(companyIds, 100, ids => sbTry<{ id: string; company_name: string }[]>(`companies?id=in.(${ids.join(',')})&select=id,company_name`, [])),
-    inChunks(policyIds, 100, ids => sbTry<{ policy_id: string }[]>(`policy_members?policy_id=in.(${ids.join(',')})&status=eq.active&select=policy_id&limit=50000`, [])),
-    inChunks(lineIds, 100, ids => sbTry<LineRow[]>(`placement_lines?id=in.(${ids.join(',')})&select=id,placement_id,label,census_submission_id,updated_at`, [])),
-    inChunks(lineIds, 100, ids => sbTry<QuoteRow[]>(`placement_quotes?line_id=in.(${ids.join(',')})&status=neq.superseded&select=line_id,source,status,created_at`, [])),
+    inChunks(companyIds, 100, ids => sbAll<{ id: string; company_name: string }>(`companies?id=in.(${ids.join(',')})&select=id,company_name`)),
+    inChunks(policyIds, 100, ids => sbAll<{ policy_id: string }>(`policy_members?policy_id=in.(${ids.join(',')})&status=eq.active&select=policy_id&limit=50000`)),
+    inChunks(lineIds, 100, ids => sbAll<LineRow>(`placement_lines?id=in.(${ids.join(',')})&select=id,placement_id,label,census_submission_id,updated_at`)),
+    inChunks(lineIds, 100, ids => sbAll<QuoteRow>(`placement_quotes?line_id=in.(${ids.join(',')})&status=neq.superseded&select=line_id,source,status,created_at`)),
   ])
   const companyName = new Map(companies.map(c => [c.id, c.company_name]))
   const activeCount = new Map<string, number>()

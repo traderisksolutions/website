@@ -15,6 +15,7 @@ import { CompanyField, type CompanyPick } from '@/components/group-benefits/Comp
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import { REQUEST_TYPES, type RequestType } from '@/lib/placement/working'
 import { fmtDay } from '@/lib/format'
+import { placementsFetch } from '@/lib/placement/fetch'
 
 type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string }
 type Row = { product_line: string; request_type: RequestType | ''; existing: boolean; renewal_date: string; previous_premium: string; fromRegister: boolean }
@@ -83,7 +84,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
 
   async function prefill(i: number, k: number, product_line: string, companyId: string | null) {
     if (!companyId || !product_line) return
-    const r = await fetch(`/api/placements/prefill?company_id=${companyId}&product_line=${encodeURIComponent(product_line)}`, { cache: 'no-store' })
+    const r = await placementsFetch(`/api/placements/prefill?company_id=${companyId}&product_line=${encodeURIComponent(product_line)}`, { cache: 'no-store' })
     const j = await r.json().catch(() => ({}))
     if (j.existing) setRow(i, k, row => ({ ...row, existing: true, renewal_date: j.renewal_date?.slice(0, 10) ?? '', previous_premium: j.previous_premium != null ? String(j.previous_premium) : '', fromRegister: true }))
   }
@@ -96,7 +97,7 @@ export function AddFromEmails({ company, taken, onClose, onAdded }: {
     const lineIds: string[] = [], cos: string[] = []
     try {
       for (const b of blocks) {
-        const res = await fetch('/api/placements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        const res = await placementsFetch('/api/placements', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
           company_id: b.client.id, client_thread_id: b.thread.thread_id, title: subjectOf(b.thread), dispatch: false,
           lines: b.rows.map(r => ({ product_line: r.product_line, request_type: r.request_type, existing: r.existing,
             ...(r.existing && r.renewal_date ? { renewal_date: r.renewal_date } : {}),

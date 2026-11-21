@@ -7,7 +7,7 @@
  * with a figure that is not on file. Nothing from another business is loaded, and nothing from a
  * thread in a colleague's own mailbox.
  */
-import { enc, inChunks, sbTry } from '@/lib/crm/db'
+import { enc, inChunks, sbTry, sbAll } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { callGemini } from '@/lib/ai-call'
 import { GEMINI_DEEP } from '@/lib/gemini-models'
@@ -38,7 +38,7 @@ export async function askAboutClient(id: string, rawQuestion: unknown, viewer: s
   // A thread in a colleague's own mailbox stays theirs (src/lib/mail/visibility.ts): its entries,
   // requests and the facts read from its emails are left out of the context.
   const factMsgs = facts.filter(f => f.source_kind === 'email' && f.source_id).map(f => f.source_id as string)
-  const msgThread = new Map((await inChunks([...new Set(factMsgs)], 80, c => sbTry<Row[]>(`email_messages?id=in.(${c.join(',')})&select=id,thread_id`, []))).map(m => [m.id as string, m.thread_id as string]))
+  const msgThread = new Map((await inChunks([...new Set(factMsgs)], 80, c => sbAll<Row>(`email_messages?id=in.(${c.join(',')})&select=id,thread_id`))).map(m => [m.id as string, m.thread_id as string]))
   const threadIds = [...new Set([...threads.map(t => t.thread_id as string), ...msgThread.values()])]
   const visible = await visibleThreadIds(threadIds, viewer)
   const seen = (t: string | null | undefined) => !t || visible.has(t)

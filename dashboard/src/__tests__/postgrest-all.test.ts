@@ -35,6 +35,12 @@ describe('fetchAllRows', () => {
     expect(rows.map(r => r.n)).toEqual(Array.from({ length: 2_300 }, (_, i) => i))
   })
 
+  it('orders by the given key on a table without an id', async () => {
+    const f = server(12); vi.stubGlobal('fetch', f)
+    await fetchAllRows('https://db.invalid/rest/v1/t?select=n', {}, { key: 'thread_id,work_item_id' })
+    expect(new URL(f.mock.calls[0][0] as string).searchParams.get('order')).toBe('thread_id,work_item_id')
+  })
+
   it('reads a single short page once', async () => {
     const f = server(12); vi.stubGlobal('fetch', f)
     expect((await fetchAllRows('https://db.invalid/rest/v1/t?select=n', {})).length).toBe(12)

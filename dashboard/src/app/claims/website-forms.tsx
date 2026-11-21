@@ -9,9 +9,10 @@ import { Copy, Check, RefreshCw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Btn, Chip, Segmented, btnClass } from '@/components/crm/primitives'
 import { timeAgo } from '@/lib/format'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 async function fetchLeads(): Promise<Lead[]> {
-  const res = await fetch('/api/leads', { cache: 'no-store' })
+  const res = await inboxFetch('/api/leads', { cache: 'no-store' })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
     throw new Error(body.error || `HTTP ${res.status}`)
@@ -21,7 +22,7 @@ async function fetchLeads(): Promise<Lead[]> {
 }
 
 async function patchStatus(id: string, status: string) {
-  await fetch('/api/leads', {
+  await inboxFetch('/api/leads', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, status }),

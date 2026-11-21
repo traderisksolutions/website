@@ -10,6 +10,10 @@ import { releaseVersion } from '@/lib/version'
 // The wordmark: Archivo extended, as on the website.
 const mark  = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' })
 
+// Server actions take their time limit from the page they run on. The chat dock on every page starts
+// Nexus analyses (300 s routes until 21 Nov 2026), so every page allows 300 s.
+export const maxDuration = 300
+
 export const metadata: Metadata = {
   title:       'TRS Dashboard',
   description: 'Trade Risk Solutions — Internal Dashboard',

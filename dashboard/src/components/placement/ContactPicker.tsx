@@ -7,6 +7,7 @@ import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, Register
 import type { InsurerRoute } from '@/lib/placement/store'
 import type { Suggestion } from '@/lib/placement/rank'
 import { callApi, errText } from './shared'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const COLS = 3
 const checkboxCls = 'h-3.5 w-3.5 cursor-pointer accent-trs-ink'
@@ -41,7 +42,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
     const q = new URLSearchParams({ product_lines: key })
     if (tier) q.set('tier', tier)
     if (companyId) q.set('company_id', companyId)
-    callApi<{ routes: InsurerRoute[]; suggestions?: Record<string, Suggestion[]> }>(`/api/placements/routes?${q}`)
+    callPlacements<{ routes: InsurerRoute[]; suggestions?: Record<string, Suggestion[]> }>(`/api/placements/routes?${q}`)
       .then(d => { if (live) { setRoutes(d.routes); setSuggestions(Object.values(d.suggestions ?? {}).flat()) } })
       .catch(e => { if (live) setError(errText(e)) })
     return () => { live = false }

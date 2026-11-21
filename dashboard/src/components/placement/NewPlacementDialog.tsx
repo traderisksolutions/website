@@ -12,6 +12,7 @@ import { threadTitle } from '@/lib/crm/subject'
 import type { Placement, PlacementLine, Spec } from '@/lib/placement/types'
 import { callApi, errText, dialogCls, selectCls, ProductLineSelect, SpecFields } from './shared'
 import { ContactPicker } from './ContactPicker'
+import { callPlacements } from '@/lib/placement/fetch'
 
 type Row = { key: number; product_line: string; label: string; spec: Spec }
 type Proposal = { title: string; inception_date: string | null; lines: { product_line: string; label: string; spec: Spec }[]; client_asks: string[] }
@@ -65,7 +66,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
     if (!threadId) return
     setReading(true); setError(null)
     try {
-      const d = await callApi<{ proposal: Proposal | null }>('/api/placements/propose', { method: 'POST', body: { thread_id: threadId } })
+      const d = await callPlacements<{ proposal: Proposal | null }>('/api/placements/propose', { method: 'POST', body: { thread_id: threadId } })
       if (!d.proposal || d.proposal.lines.length === 0) { setError('Nothing to quote was read from that thread.'); return }
       setRows(d.proposal.lines.map(l => ({ key: seq++, product_line: l.product_line, label: l.label || productLineLabel(l.product_line), spec: l.spec ?? {} })))
       if (d.proposal.title) setTitle(d.proposal.title)
@@ -85,7 +86,7 @@ export function NewPlacementDialog({ open, onClose, companyId, companyName, thre
     if (validRows.length === 0) { setError('Add at least one line.'); return }
     setBusy(true); setError(null)
     try {
-      const d = await callApi<{ placement: Placement; lines: PlacementLine[]; dispatched: unknown; unrouted?: string[] }>('/api/placements', {
+      const d = await callPlacements<{ placement: Placement; lines: PlacementLine[]; dispatched: unknown; unrouted?: string[] }>('/api/placements', {
         method: 'POST',
         body: {
           company_id: companyId,

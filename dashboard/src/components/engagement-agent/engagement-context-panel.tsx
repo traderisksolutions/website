@@ -14,6 +14,7 @@ import { useAuditLog } from '@/hooks/useAuditLog'
 import type { Lead, RealMsg, DraftHistoryItem } from '@/components/engagement/types'
 import { STATUS_MAP, ALL_STATUSES, EMAIL_SOURCES } from '@/components/engagement/types'
 import { fullName, timeAgo, daysSince } from '@/components/engagement/helpers'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 // A text link on the button ladder: tertiary Btn with the frame removed.
 const LINK = 'h-auto bg-transparent border-0 p-0 font-normal text-trs-ink underline underline-offset-[3px] decoration-trs-subtle hover:bg-transparent hover:text-trs-ink hover:decoration-trs-ink'
@@ -108,7 +109,7 @@ function ConversationsSection({
     if (!anchorThreadId) { setData(null); return }
     let cancelled = false
     setPromoting(false)
-    fetch(`/api/engagement/conversation?thread_id=${encodeURIComponent(anchorThreadId)}`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/conversation?thread_id=${encodeURIComponent(anchorThreadId)}`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (!cancelled) setData(d && Array.isArray(d.threads) ? d : null) })
       .catch(() => { if (!cancelled) setData(null) })
@@ -119,7 +120,7 @@ function ConversationsSection({
     if (!anchorThreadId || promoting) return
     setPromoting(true)
     try {
-      const res = await fetch('/api/engagement/conversation/promote', {
+      const res = await inboxFetch('/api/engagement/conversation/promote', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ thread_id: anchorThreadId }),
       })
@@ -372,7 +373,7 @@ function NotesSection({ lead }: { lead: Lead }) {
     if (!dirty) return
     setSaving(true)
     try {
-      await fetch('/api/leads', {
+      await inboxFetch('/api/leads', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: lead.id, notes: text }),
       })
@@ -423,7 +424,7 @@ function DraftHistorySection({
   function loadHistory() {
     if (loaded || loading) return
     setLoading(true)
-    fetch(`/api/engagement/draft?thread_id=${encodeURIComponent(threadId)}&history=true`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/draft?thread_id=${encodeURIComponent(threadId)}&history=true`, { cache: 'no-store' })
       .then(r => r.ok ? r.json() : [])
       .then((rows: DraftHistoryItem[]) => setItems(Array.isArray(rows) ? rows : []))
       .catch(() => {})

@@ -10,6 +10,7 @@ import { NexusPhasedAnalysisModal } from '@/components/nexus/NexusPhasedAnalysis
 import { fmtRelative, fmtDate } from '@/lib/format'
 import type { AiBrief, CaseRow, Company, CompanyThread, Person, Stage } from '@/lib/crm/types'
 import { createCase } from '@/app/companies/[id]/actions'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 /**
  * Nexus for one company: the whole-relationship summary, the cases already opened, and a picker
@@ -50,7 +51,7 @@ export function CompanyNexus({ company, threads, cases, stakeholders, summarySta
   const loadAnalysis = useCallback(async (caseId: string) => {
     if (caseId in analyses) return
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}`, { cache: 'no-store' })
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}`, { cache: 'no-store' })
       const d = await res.json()
       setAnalyses(prev => ({ ...prev, [caseId]: res.ok ? (d.analysis ?? null) : null }))
     } catch { setAnalyses(prev => ({ ...prev, [caseId]: null })) }
