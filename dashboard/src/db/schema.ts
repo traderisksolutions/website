@@ -1259,6 +1259,7 @@ export const emailAttachments = pgTable("email_attachments", {
 	parsedAt: timestamp("parsed_at", { withTimezone: true, mode: 'string' }),
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow(),
 	storageUrl: text("storage_url"),
+	driveFileId: text("drive_file_id"),
 }, (table): PgTableExtraConfigValue[] => [
 	uniqueIndex("email_attachments_msg_filename_key").using("btree", table.messageId.asc().nullsLast().op("text_ops"), table.filename.asc().nullsLast().op("text_ops")),
 ]);

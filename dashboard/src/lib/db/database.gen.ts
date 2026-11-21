@@ -2612,6 +2612,7 @@ export type Database = {
           parsed_at: string | null
           created_at: string | null
           storage_url: string | null
+          drive_file_id: string | null
         }
         Insert: {
           id?: string
@@ -2626,6 +2627,7 @@ export type Database = {
           parsed_at?: string | null
           created_at?: string | null
           storage_url?: string | null
+          drive_file_id?: string | null
         }
         Update: {
           id?: string
@@ -2640,6 +2642,7 @@ export type Database = {
           parsed_at?: string | null
           created_at?: string | null
           storage_url?: string | null
+          drive_file_id?: string | null
         }
         Relationships: [
         ]

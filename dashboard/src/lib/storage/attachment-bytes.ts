@@ -14,6 +14,7 @@
 import { getDriveWriteToken } from '@/lib/gdrive-write'
 import { gmailTokenForMessage } from '@/lib/gmail/mailboxes'
 import { enc, sbTry } from '@/lib/crm/db'
+import { db, one } from '@/lib/db/client'
 
 export const NEVER_STORED = 'This file was never stored; upload it again'
 
@@ -41,11 +42,41 @@ function findPart(p: Part | undefined, filename: string): Part | null {
   return null
 }
 
+async function driveBytes(id: string): Promise<Buffer | null> {
+  const token = await getDriveWriteToken()
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } })
+  return r.ok ? Buffer.from(await r.arrayBuffer()) : null
+}
+
+/** Files above this are fetched from Gmail each time rather than copied. */
+const COPY_LIMIT = 25 * 1024 * 1024
+
 /**
- * The bytes of one file on a stored message, fetched again from Gmail with the token of the
- * mailbox the message was read from (a Gmail id is only valid in its own mailbox).
+ * The bytes of one file on a stored message. The first time, fetched from Gmail with the token of
+ * the mailbox the message was read from (a Gmail id is only valid in its own mailbox) and copied to
+ * the Shared Drive (email_attachments.drive_file_id); after that, read from the copy, and Gmail is
+ * not asked again (Jarod, 21 Nov 2026). Before the column exists, every read goes to Gmail as before.
  */
 export async function messageAttachmentBytes(messageDbId: string, filename: string): Promise<Buffer | null> {
+  type Row = { id: string; drive_file_id: string | null; mime_type: string | null }
+  const row: Row | null = await one<Row>('Attachment', db().from('email_attachments').select('id,drive_file_id,mime_type').eq('message_id', messageDbId).eq('filename', filename).maybeSingle()).catch(() => null)
+  if (row?.drive_file_id) {
+    const copy = await driveBytes(row.drive_file_id).catch(() => null)
+    if (copy?.length) return copy
+  }
+  const bytes = await gmailAttachmentBytes(messageDbId, filename)
+  if (bytes?.length && row && !row.drive_file_id && bytes.length <= COPY_LIMIT) {
+    // Best effort: a failed copy leaves the next read on Gmail, as before.
+    try {
+      const { storeUpload } = await import('./drive-upload')   // drive-upload imports this file
+      const ref = await storeUpload('email-attachments', filename, row.mime_type || 'application/octet-stream', bytes)
+      await db().from('email_attachments').update({ drive_file_id: driveIdOf(ref) }).eq('id', row.id).is('drive_file_id', null)
+    } catch (e) { console.warn('[attachments] Drive copy failed', e instanceof Error ? e.message : e) }
+  }
+  return bytes
+}
+
+async function gmailAttachmentBytes(messageDbId: string, filename: string): Promise<Buffer | null> {
   const t = await gmailTokenForMessage(messageDbId)
   if (!t) return null
   const h = { Authorization: `Bearer ${t.token}` }
@@ -70,11 +101,7 @@ async function viaAttachmentRow(filter: string): Promise<Buffer | null> {
 
 export async function attachmentRefBytes(ref: string): Promise<Buffer | null> {
   if (!ref) return null
-  if (isDriveRef(ref)) {
-    const token = await getDriveWriteToken()
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(driveIdOf(ref))}?alt=media&supportsAllDrives=true`, { headers: { Authorization: `Bearer ${token}` } })
-    return r.ok ? Buffer.from(await r.arrayBuffer()) : null
-  }
+  if (isDriveRef(ref)) return driveBytes(driveIdOf(ref))
   if (ref.startsWith('gmail:')) return viaAttachmentRow(`id=eq.${enc(ref.slice(6))}`)
   if (/^https?:\/\//.test(ref)) {
     if (isDeadStorageUrl(ref)) return null
