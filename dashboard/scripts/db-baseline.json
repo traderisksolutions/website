@@ -444,8 +444,8 @@
   "fetch": 0
  },
  "src/lib/crm/board.ts": {
-  "sb": 13,
-  "fetch": 0
+  "sb": 12,
+  "fetch": 1
  },
  "src/lib/crm/brief.ts": {
   "sb": 1,
