@@ -8,12 +8,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { Btn, btnClass } from '@/components/crm/primitives'
-import { PLACES, ACCOUNT_LINKS, HOME_LINKS, locate, pathMatches } from './nav-sections'
+import { PLACES, ACCOUNT_LINKS, HOME_LINKS, RECORD_LINKS, locate, pathMatches } from './nav-sections'
 import { Spotlight } from './Spotlight'
 
 /** Every page by name for ⌘K: Today and Calendar (the logo's), each place's tabs, the avatar's. */
 const JUMP_PAGES = [
   ...HOME_LINKS,
+  ...RECORD_LINKS,
   ...PLACES.flatMap(p => p.tabs.map(t => ({ label: t.title === p.label ? p.label : `${p.label} · ${t.title}`, href: t.href }))),
   ...ACCOUNT_LINKS.map(l => ({ label: l.title, href: l.href })),
 ]

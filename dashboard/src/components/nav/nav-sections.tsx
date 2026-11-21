@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
-  Building2, Inbox, Table2, LayoutGrid, Megaphone,
+  Building2, Inbox, Table2, Megaphone,
   Settings, AlertTriangle, Cpu, HeartPulse, RefreshCw } from 'lucide-react'
 
 export type PlaceTab = { title: string; href: string }
@@ -63,16 +63,8 @@ export const PLACES: Place[] = [
   { label: 'RoadPlus', href: '/roadplus', icon: Table2, tabs: [
     { title: 'RoadPlus', href: '/roadplus' },
   ] },
-  // Others (19 Nov 2026): Claims, Policies, Finance and Documents in one place. 20 Nov 2026:
-  // Second opinion and Documents are tabs inside Claims, not here.
-  { label: 'Others', href: '/claims', icon: LayoutGrid, tabs: [
-    { title: 'Claims', href: '/claims' },
-    { title: 'Policies', href: '/policies' },
-    { title: 'Member movements', href: '/movements' },
-    { title: 'Receipts', href: '/finance' },
-    { title: 'Debit notes', href: '/debit-notes' },
-    { title: 'Lines', href: '/lines' },
-  ] },
+  // Jarod, 21 Nov 2026: Others is off the bar (Claims, Policies, Member movements, Receipts,
+  // Debit notes, Lines). The data and the pages stay; a company's page and ⌘K still open them.
   // Marketing (19 Nov 2026, was Growth): one tab per website. Each website's page links to its
   // articles, enquiries, newsletter and Search Console, which keep their ?site= pages.
   { label: 'Marketing', href: WEBSITES[0].href, icon: Megaphone, tabs: WEBSITES },
@@ -88,6 +80,16 @@ export const PLACES: Place[] = [
 export const HOME_LINKS: { label: string; href: string }[] = [
   { label: 'Today', href: '/today' },
   { label: 'Calendar', href: '/today?calendar=1' },
+]
+
+/** The registers that left the bar with Others (21 Nov 2026): listed for ⌘K only. */
+export const RECORD_LINKS: { label: string; href: string }[] = [
+  { label: 'Claims', href: '/claims' },
+  { label: 'Policies', href: '/policies' },
+  { label: 'Member movements', href: '/movements' },
+  { label: 'Receipts', href: '/finance' },
+  { label: 'Debit notes', href: '/debit-notes' },
+  { label: 'Lines', href: '/lines' },
 ]
 
 /** Under the avatar: settings and the admin views checked rarely. */
