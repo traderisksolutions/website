@@ -4249,8 +4249,10 @@ export const policyDocuments = pgTable("policy_documents", {
 	planYear: text("plan_year"),
 	filedBy: text("filed_by"),
 	filedAt: timestamp("filed_at", { withTimezone: true, mode: 'string' }),
+	externalItemId: text("external_item_id"),
 }, (table): PgTableExtraConfigValue[] => [
-	index("policy_documents_company_idx").using("btree", table.companyId.asc().nullsLast().op("timestamptz_ops"), table.receivedAt.desc().nullsFirst().op("timestamptz_ops")),
+	index("policy_documents_company_idx").using("btree", table.companyId.asc().nullsLast().op("uuid_ops"), table.receivedAt.desc().nullsFirst().op("timestamptz_ops")),
+	uniqueIndex("policy_documents_external_item_key").using("btree", table.externalItemId.asc().nullsLast().op("text_ops")).where(sql`(external_item_id IS NOT NULL)`),
 	index("policy_documents_filed_by_idx").using("btree", table.filedBy.asc().nullsLast().op("text_ops")).where(sql`(filed_by IS NOT NULL)`),
 	index("policy_documents_line_year_idx").using("btree", table.lineCode.asc().nullsLast().op("text_ops"), table.planYear.asc().nullsLast().op("text_ops")).where(sql`(status = 'filed'::text)`),
 	index("policy_documents_policy_idx").using("btree", table.policyId.asc().nullsLast().op("uuid_ops")),
@@ -4273,7 +4275,7 @@ export const policyDocuments = pgTable("policy_documents", {
 		}).onDelete("set null"),
 	unique("policy_documents_email_attachment_id_key").on(table.emailAttachmentId),
 	check("policy_documents_classified_by_check", sql`classified_by = ANY (ARRAY['rule'::text, 'agent'::text, 'broker'::text])`),
-	check("policy_documents_source_check", sql`source = ANY (ARRAY['email'::text, 'upload'::text, 'generated'::text])`),
+	check("policy_documents_source_check", sql`source = ANY (ARRAY['email'::text, 'upload'::text, 'generated'::text, 'onedrive'::text])`),
 	check("policy_documents_status_check", sql`status = ANY (ARRAY['unfiled'::text, 'filed'::text, 'failed'::text, 'ignored'::text])`),
 ]);
 
@@ -4727,9 +4729,9 @@ export const salesCampaigns = pgTable("sales_campaigns", {
 	createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table): PgTableExtraConfigValue[] => [
+	check("sales_campaigns_status_check", sql`status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text])`),
 	check("sales_campaigns_daily_new_check", sql`(daily_new >= 0) AND (daily_new <= 100)`),
 	check("sales_campaigns_first_touch_check", sql`first_touch = ANY (ARRAY['template'::text, 'personal_draft'::text])`),
-	check("sales_campaigns_status_check", sql`status = ANY (ARRAY['draft'::text, 'active'::text, 'paused'::text, 'completed'::text])`),
 ]);
 
 export const salesEvents = pgTable("sales_events", {

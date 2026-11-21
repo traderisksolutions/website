@@ -275,6 +275,13 @@ Copy: say what something is and what it waits on. Name the person or insurer, gi
 
 Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry in `docs/changelog.md`, deploy only on Jarod's "ok deploy".
 
+### P7 status (21 Nov 2026)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G8 Microsoft folder watch | **Built, switched off** | src/lib/microsoft: client-credentials Graph app, delta read of one folder, files into the data room and the Drive tree. Needs MS_GRAPH=on, MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_WATCH_DRIVE_ID (and MS_WATCH_FOLDER), and a schedule (docs/expenses.md). Not tested against a real tenant. |
+| G7 Drive drop folder | Not done | |
+
 ### P6 status (21 Nov 2026, EB-076)
 
 | Gap | Status | What exists |
