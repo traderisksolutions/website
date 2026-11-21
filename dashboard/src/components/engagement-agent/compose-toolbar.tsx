@@ -188,7 +188,7 @@ export function FieldRow({ label, htmlFor, children, right, className }: {
 /** A small text control at the end of a row (Bcc, Cc): 24px, no fill until hover. */
 export function RowTextButton({ children, onClick, label }: { children: ReactNode; onClick: () => void; label?: string }) {
   return (
-    <Btn level="tertiary" size="xs" onClick={onClick} aria-label={label} className="h-6 px-1.5 border-0 text-small font-normal text-trs-muted hover:bg-trs-field">
+    <Btn level="tertiary" size="xs" onClick={onClick} aria-label={label} className="h-6 px-1.5 border-0 text-small text-trs-muted hover:bg-trs-field">
       {children}
     </Btn>
   )
@@ -247,7 +247,7 @@ export function QuietSelect({ label, value, onChange, children, className }: {
 /** Attachment chip in the tray under the editor. */
 export function AttachmentChip({ name, onRemove, meta }: { name: string; onRemove?: () => void; meta?: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 h-7 rounded bg-trs-field pl-2.5 pr-1.5 text-small max-w-full text-trs-ink-2">
+    <span className="inline-flex items-center gap-1.5 h-7 rounded bg-trs-field pl-2.5 pr-1.5 text-small max-w-full text-trs-muted">
       <span className="truncate max-w-[220px]">{name}</span>
       {meta && <span className="text-trs-subtle">{meta}</span>}
       {onRemove && (

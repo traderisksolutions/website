@@ -47,7 +47,7 @@ export function DraftProvenancePanel({
         className="justify-between w-full h-auto text-left bg-transparent border-0 p-0 font-normal hover:bg-transparent"
       >
         <span className="flex items-center gap-1.5">
-          <span className="text-small font-medium text-trs-ink-2">How this draft was made</span>
+          <span className="text-small text-trs-muted">How this draft was made</span>
           {!open && (
             <span className="text-small tabular-nums text-trs-subtle">
               {signalCount} signal{signalCount !== 1 ? 's' : ''}

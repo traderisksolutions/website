@@ -769,3 +769,10 @@ table.trs-table td.cell-best { background-color: var(--trs-mint); }
 .main-content :is(div, section):has(> table):not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) *) {
   border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
 }
+
+/* ── Field labels are centred over their field (Jarod, 21 Nov 2026), everywhere: the shared Field
+   and every hand-built <label> whose first line is its text and which holds a text control.
+   Checkbox and radio labels (control first, text after) are not touched. ── */
+.main-content label:has(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"]) > span:first-child:not(:has(input, select, textarea)) {
+  display: block; text-align: center;
+}

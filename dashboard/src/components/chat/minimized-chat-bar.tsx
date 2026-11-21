@@ -11,7 +11,7 @@ export function MinimizedChatBar({ title, onRestore, onClose }: { title: string;
         <span className="w-6 h-6 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
           <Sparkles size={13} className="text-primary" />
         </span>
-        <span className="text-small font-semibold text-trs-ink truncate">{title}</span>
+        <span className="text-small text-trs-muted truncate">{title}</span>
       </Btn>
       <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close chat"
         className="w-8 px-0 flex-shrink-0">

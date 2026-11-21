@@ -166,7 +166,7 @@ function Generate() {
         </div>
       </div>
 
-      <h2 className="m-0 mb-3 text-heading font-medium">Recent runs</h2>
+      <h2 className="m-0 mb-3 text-heading font-semibold">Recent runs</h2>
       <Register label="Runs" minWidth={900} className={cn(loading && 'opacity-60')}>
         <RegisterHead>
           <RegisterTh first hint="When the run was started, Singapore time">Started</RegisterTh>

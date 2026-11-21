@@ -242,7 +242,7 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
                 size="xs"
                 role="tab"
                 onClick={() => setTab(t.key)}
-                className="px-2.5 border-0 font-normal text-small flex-shrink-0 hover:bg-trs-field"
+                className="px-2.5 border-0 text-small flex-shrink-0 hover:bg-trs-field"
               >
                 {t.label}
               </Btn>
@@ -287,7 +287,7 @@ export function CompanyWorkspace({ id, initial }: { id: string; initial: Company
             return { value: t.key, label: t.label, count: n !== null && n > 0 ? n : undefined }
           })} />
           <DropdownMenu modal={false}>
-            <DropdownMenuTrigger type="button" className="inline-flex h-8 items-center gap-1 rounded border border-trs-line-2 bg-white px-3 text-small font-medium text-trs-ink cursor-pointer hover:bg-trs-tint">More <ChevronDown size={13} /></DropdownMenuTrigger>
+            <DropdownMenuTrigger type="button" className="inline-flex h-8 items-center gap-1 rounded border border-trs-line-2 bg-white px-3 text-small text-trs-muted cursor-pointer hover:bg-trs-tint">More <ChevronDown size={13} /></DropdownMenuTrigger>
             <DropdownMenuContent align="start" sideOffset={6} className="w-56 rounded border-trs-line bg-white p-1.5 shadow-[0_12px_32px_rgba(15,20,18,0.12)]">
               {MORE_TABS.map(t => { const n = countFor(t.key); return (
                 <DropdownMenuItem key={t.key} onSelect={() => setTab(t.key)} className="flex justify-between px-3 py-2 rounded text-body cursor-pointer text-trs-ink data-[highlighted]:bg-trs-tint">

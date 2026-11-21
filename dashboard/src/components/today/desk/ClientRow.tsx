@@ -204,12 +204,12 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
           {read && (
             <div className="md:pl-[42px] py-3 flex flex-col gap-2">
               <div className="flex flex-wrap items-baseline gap-2">
-                <span className="inline-flex items-center gap-1.5 text-small font-semibold text-trs-green"><Sparkles size={13} /> Read</span>
+                <span className="inline-flex items-center gap-1.5 text-small text-trs-green"><Sparkles size={13} /> Read</span>
                 <span className="text-small text-trs-muted">{timeAgo(read.at)} by {first(read.by)}</span>
               </div>
               {read.steps.length > 0 && (
                 <div className="mt-1 flex flex-col gap-1">
-                  <span className="text-small font-semibold text-trs-ink">Suggested</span>
+                  <span className="text-small text-trs-muted">Suggested</span>
                   <ul className="m-0 p-0 list-none flex flex-col gap-1">
                     {read.steps.map(s => (
                       <li key={s.id} className="flex items-start gap-2 text-body">

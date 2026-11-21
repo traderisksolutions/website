@@ -120,7 +120,7 @@ function Schedule() {
           <Tonight plan={data.tonight} cadence={data.cadence} site={data.site} when={next!.label} siteKey={siteKey} />
 
           <div className="h-12" />
-          <h2 className="m-0 mb-3.5 text-heading font-medium">Nights</h2>
+          <h2 className="m-0 mb-3.5 text-heading font-semibold">Nights</h2>
           <Nights groups={data.nights} siteKey={siteKey} />
         </div>
       )}
@@ -140,7 +140,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
   const Term = ({ part, children, title }: { part: Part; children: React.ReactNode; title?: string }) => (
     <Btn level="tertiary" className={partCls} title={title ?? 'Change'} disabled={busy} onClick={() => setEditing(part)}>{children}</Btn>
   )
-  const controlCls = 'inline-block align-baseline h-9 rounded border border-trs-ink bg-white px-2.5 text-heading font-medium outline-none'
+  const controlCls = 'inline-block align-baseline h-9 rounded border border-trs-ink bg-white px-2.5 text-heading font-semibold outline-none'
 
   function commitCount() {
     const v = Math.max(0, Math.min(12, Math.floor(Number(count)) || 0))
@@ -166,7 +166,7 @@ function Sentence({ cadence, site, busy, onSave }: { cadence: Cadence; site: Sit
 
   return (
     <>
-      <p className="m-0 text-heading sm:text-title font-normal leading-[1.7] max-w-[920px] text-trs-ink-2 [text-wrap:balance]">
+      <p className="m-0 text-heading sm:text-title font-semibold leading-[1.7] max-w-[920px] text-trs-ink-2 [text-wrap:balance]">
         {cadence.count === 0
           ? <>Nightly writing is off. Set {countControl} of articles to start.</>
           : <>Every night at {time}, write {countControl} {cadence.count === 1 ? 'article' : 'articles'} of about {lengthControl} on the prompts ticked in the latest analysis, then {postControl} to {site.domain}{site.blog_base_path}.</>}
@@ -202,7 +202,7 @@ function Tonight({ plan, cadence, site, when, siteKey }: { plan: TonightPlan; ca
   return (
     <div className="grid gap-x-7 gap-y-4 max-w-[980px] grid-cols-1 sm:grid-cols-[200px_minmax(0,1fr)]">
       <div className="text-body pt-[3px] text-trs-muted">
-        <b className="block text-heading font-medium text-trs-ink">Tonight</b>
+        <b className="block text-heading font-semibold text-trs-ink">Tonight</b>
         {when}
       </div>
       <ol className="list-none m-0 p-0 flex flex-col">
@@ -252,7 +252,7 @@ function Nights({ groups, siteKey }: { groups: NightGroup[]; siteKey: string | n
           <span className="tabular-nums text-trs-muted">{i === 0 ? g.label : ''}</span>
           <span className="font-medium min-w-0">
             <Link href={withSite(r.article_id ? `/marketing/articles/${r.article_id}` : `/marketing/generate/runs/${r.run_id}`, siteKey)} className="no-underline hover:underline underline-offset-2 block truncate text-trs-ink">{r.title}</Link>
-            <small className="block font-normal text-small mt-0.5 truncate text-trs-muted">{r.detail}</small>
+            <small className="block text-small mt-0.5 truncate text-trs-muted">{r.detail}</small>
           </span>
           <span><Chip>{r.status}</Chip></span>
           <span className="tabular-nums sm:text-right text-trs-muted">{usd(r.cost_usd)}</span>

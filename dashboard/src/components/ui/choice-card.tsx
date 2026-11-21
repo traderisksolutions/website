@@ -18,7 +18,7 @@ export function ChoiceCard({ pressed, onClick, title, line, aside, children, cla
           <span className="block text-heading font-semibold leading-snug">{title}</span>
           {line && <span className="block text-body text-trs-ink-2">{line}</span>}
         </span>
-        {aside && <span className="shrink-0 text-small leading-relaxed text-trs-ink-2 sm:text-right">{aside}</span>}
+        {aside && <span className="shrink-0 text-small leading-relaxed text-trs-muted sm:text-right">{aside}</span>}
       </span>
       {children}
     </button>

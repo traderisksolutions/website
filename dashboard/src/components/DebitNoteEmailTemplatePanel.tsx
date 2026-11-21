@@ -72,12 +72,12 @@ export default function DebitNoteEmailTemplatePanel() {
         ) : (
           <>
             <div className="flex flex-col gap-1.5">
-              <label className="text-small font-medium text-trs-ink">Subject</label>
+              <label className="text-small text-trs-muted">Subject</label>
               <Input value={tpl.subject} onChange={e => setTpl({ ...tpl, subject: e.target.value })} />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-small font-medium text-trs-ink">Body</label>
+              <label className="text-small text-trs-muted">Body</label>
               <textarea
                 value={tpl.body}
                 onChange={e => setTpl({ ...tpl, body: e.target.value })}
@@ -106,7 +106,7 @@ export default function DebitNoteEmailTemplatePanel() {
 
             <div className="flex items-center gap-3">
               <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save template'}</Button>
-              {saved && <span className="text-small text-trs-ink font-medium">Saved ✓</span>}
+              {saved && <span className="text-small text-trs-muted">Saved ✓</span>}
             </div>
           </>
         )}

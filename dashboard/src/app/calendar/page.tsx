@@ -209,7 +209,7 @@ export default function CalendarPage() {
             {/* Desktop / tablet month grid */}
             <div className="hidden sm:block">
               <div className="grid grid-cols-7 border-b border-trs-line">
-                {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-small font-medium text-trs-muted" >{w}</div>)}
+                {WEEKDAYS.map(w => <div key={w} className="text-center py-2 text-small text-trs-muted" >{w}</div>)}
               </div>
               <div className="grid grid-cols-7">
                 {cells.map((d, i) => {
@@ -232,7 +232,7 @@ export default function CalendarPage() {
                           </span>
                           <div className="flex flex-col gap-0.5">
                             {visible.map(e => (
-                              <span key={e.id} className="flex items-center gap-1.5 rounded px-1.5 py-[3px] text-small font-medium leading-none bg-trs-field text-trs-ink-2" title={eventKind(e)}>
+                              <span key={e.id} className="flex items-center gap-1.5 rounded px-1.5 py-[3px] text-small leading-none bg-trs-field text-trs-muted" title={eventKind(e)}>
                                 <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', eventDot(e))} aria-hidden />
                                 <span className="truncate">{e.companyName ?? eventKind(e)}</span>
                               </span>
@@ -251,7 +251,7 @@ export default function CalendarPage() {
 
             {/* Mobile agenda list */}
             <div className="sm:hidden flex flex-col">
-              {daysWithEvents.length === 0 && <p className="py-16 text-center text-heading m-0 text-trs-muted" >Nothing due this month.</p>}
+              {daysWithEvents.length === 0 && <p className="py-16 text-center text-body m-0 text-trs-muted" >Nothing due this month.</p>}
               {daysWithEvents.map(key => {
                 const d = fromISODate(key)
                 const dayEvents = byDay.get(key)!
@@ -268,7 +268,7 @@ export default function CalendarPage() {
             </div>
 
             {events.length === 0 && (
-              <p className="hidden sm:block py-16 text-center text-heading m-0 text-trs-muted" >Nothing due this month.</p>
+              <p className="hidden sm:block py-16 text-center text-body m-0 text-trs-muted" >Nothing due this month.</p>
             )}
 
             {/* Legend: two dots, kinds in words. */}

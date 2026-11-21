@@ -36,7 +36,7 @@ export function StatusDropdown({ lead, onChange }: StatusDropdownProps) {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={`Lead status: ${st.label}. Click to change.`}
-        className="h-auto gap-1 rounded px-2 py-0.5 text-small font-medium leading-4 border-0 hover:bg-trs-line bg-trs-field text-trs-ink-2 hover:text-trs-ink-2"
+        className="h-auto gap-1 rounded px-2 py-0.5 text-small leading-4 border-0 hover:bg-trs-line bg-trs-field text-trs-muted hover:text-trs-ink-2"
       >
         {st.label} <ChevronDown size={11} className="text-trs-muted" />
       </Btn>

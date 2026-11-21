@@ -81,11 +81,11 @@ function Canvas({ a, sel, onSel }: { a: AgentDetail; sel: number; onSel: (i: num
           <button key={i} type="button" onClick={() => onSel(i)} aria-pressed={sel === i} /* drift-ok: a canvas node is a positioned card, not a form control */
             className={`absolute w-[150px] rounded-xl border-[1.5px] bg-white px-3 py-2.5 text-left ${sel === i ? 'border-trs-green ring-[3px] ring-trs-mint' : 'border-trs-line hover:border-trs-subtle'} ${a.status === 'Off' ? 'opacity-50' : ''}`}
             style={{ left: pos[i].x, top: pos[i].y }} /* drift-ok: node position from the flow */>
-            <span className="flex items-center gap-1.5 text-small font-semibold uppercase tracking-[0.06em] text-trs-muted">
+            <span className="flex items-center gap-1.5 text-small uppercase tracking-[0.06em] text-trs-muted">
               <span aria-hidden className={`inline-grid size-5 place-items-center rounded text-small text-white ${KIND_CLASS[n.kind]}`}>{KIND_MARK[n.kind]}</span>{NODE_KIND[n.kind]}
             </span>
-            <span className="mt-0.5 block text-small font-semibold leading-tight text-trs-ink">{n.title}</span>
-            {n.detail && <span className="mt-1 block text-small text-trs-ink-2">{n.detail}</span>}
+            <span className="mt-0.5 block text-small leading-tight text-trs-muted">{n.title}</span>
+            {n.detail && <span className="mt-1 block text-small text-trs-muted">{n.detail}</span>}
           </button>
         ))}
       </div>
@@ -111,7 +111,7 @@ function RunsChart({ a }: { a: AgentDetail }) {
         })}
         <line x1={0} x2={W} y1={H} y2={H} className="stroke-trs-line" />
       </svg>
-      <figcaption className="mt-2 flex gap-4 text-small text-trs-ink-2">
+      <figcaption className="mt-2 flex gap-4 text-small text-trs-muted">
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-trs-green" />Answered</span>
         <span className="inline-flex items-center gap-1.5"><span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-trs-neg" />Failed</span>
       </figcaption>
@@ -171,7 +171,7 @@ export function AgentPage({ a }: { a: AgentDetail }) {
             </div>
           </div>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-            <section className="flex flex-col gap-2" aria-label="Runs a day"><h2 className="m-0 text-heading font-medium">Runs a day</h2><RunsChart a={a} /></section>
+            <section className="flex flex-col gap-2" aria-label="Runs a day"><h2 className="m-0 text-heading font-semibold">Runs a day</h2><RunsChart a={a} /></section>
             <Register label="Last 30 days" minWidth={320}>
               <RegisterHead><RegisterTh first>Last 30 days</RegisterTh><RegisterTh>Now</RegisterTh><RegisterTh last>Before</RegisterTh></RegisterHead>
               <tbody>{measures.map(m => <RegisterRow key={m[0]}><RegisterCell first primary={m[0]} align="left" /><RegisterCell>{m[1]}</RegisterCell><RegisterCell last><span className="text-trs-muted">{m[2]}</span></RegisterCell></RegisterRow>)}</tbody>

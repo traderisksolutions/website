@@ -23,7 +23,7 @@ type Save = (part: Part, body: unknown) => Promise<string | null>
 
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
   <section className="flex min-w-0 flex-col overflow-hidden rounded border border-trs-line-2 bg-white">
-    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-body font-semibold">{title}</h3><span className="flex items-center gap-2 text-small font-normal text-trs-muted">{meta}</span></header>
+    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-body font-semibold">{title}</h3><span className="flex items-center gap-2 text-small text-trs-muted">{meta}</span></header>
     {children}
   </section>
 )

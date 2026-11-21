@@ -29,7 +29,7 @@ export function HrModal({ open, onClose, title, children, className, width = 680
           )}
           style={{ width: `min(calc(100% - 32px), ${width}px)` }} /* drift-ok: width from the caller */>
           <div className="flex items-center justify-between gap-4 px-6 pt-6 pb-3">
-            <DialogPrimitive.Title className="m-0 text-heading font-medium leading-tight">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="m-0 text-heading font-semibold leading-tight">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close aria-label="Close"
               className="inline-flex h-8 w-8 items-center justify-center rounded-full border-0 bg-transparent cursor-pointer hover:bg-trs-field text-trs-muted" >
               <X size={16} />

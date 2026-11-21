@@ -91,7 +91,7 @@ export default function ClaimsPage() {
   return (
     <div className="w-full min-w-0 px-4 md:px-8 py-6 max-w-[1200px] mx-auto text-trs-ink">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h1 className="m-0 text-title font-medium">Claims</h1>
+        <h1 className="m-0 text-title font-semibold">Claims</h1>
         <div className="flex flex-wrap gap-2">
           <Btn level="secondary" onClick={() => setNewOpen(o => !o)}>New claim</Btn>
         </div>
@@ -190,7 +190,7 @@ function NewClaim({ onDone, onCancel }: { onDone: (id: string) => void; onCancel
   }
   return (
     <div className="rounded bg-white p-4 mb-4 flex flex-col gap-3 shadow-[var(--card-shadow)]">
-      <h2 className="m-0 text-heading font-medium">New claim</h2>
+      <h2 className="m-0 text-heading font-semibold">New claim</h2>
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="Claim"><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Worker hand injury" /></Field>
         <Field label="Insurer"><Input value={insurer} onChange={e => setInsurer(e.target.value)} /></Field>
@@ -222,7 +222,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
     <section className="rounded bg-white p-4 md:p-5 flex flex-col gap-5 shadow-[var(--card-shadow)]" aria-label="Claim">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex flex-col gap-2">
-          <h2 className="m-0 text-heading font-medium leading-tight">{r.title}</h2>
+          <h2 className="m-0 text-heading font-semibold leading-tight">{r.title}</h2>
           <div className="flex flex-wrap gap-1.5">
             <Chip tone={st.tone}>{st.label}</Chip>
             {r.client && <Chip>{r.client}</Chip>}

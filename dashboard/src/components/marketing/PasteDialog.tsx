@@ -32,7 +32,7 @@ export function PasteDialog({ open, onOpenChange, siteKey, defaultSection, marke
     <Dialog open={open} onOpenChange={v => { if (!busy) { onOpenChange(v); if (!v) setError(null) } }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-heading font-medium text-trs-ink">Paste text</DialogTitle>
+          <DialogTitle className="text-heading font-semibold text-trs-ink">Paste text</DialogTitle>
           <DialogDescription className="text-body text-trs-muted">Each line starting with a single # becomes its own entry; no headings means one entry. Everything is saved as a draft to verify.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">

@@ -204,13 +204,13 @@ export default function GbReviewPage() {
 
       <div className="flex items-end justify-between gap-6 mb-8 flex-wrap">
         <div className="min-w-0">
-          <h1 className="m-0 text-title font-medium leading-[1.08] truncate">{insurerLabel}</h1>
+          <h1 className="m-0 text-title font-semibold leading-[1.08] truncate">{insurerLabel}</h1>
           <p className="m-0 text-body mt-2 truncate tabular-nums text-trs-muted" >
             {STATUS_WORD[status] ?? status} · {VERIFICATION[ver.status].label} · {t.plan_year ? `${t.plan_year} · ` : ''}age {t.age_basis === 'last_birthday' ? 'last' : 'next'} birthday · {byProduct.size} product{byProduct.size === 1 ? '' : 's'} · {rates.length} rates
           </p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0">
-          {dirty && <span className="text-small font-medium text-trs-ink-2 mr-2">Unsaved changes</span>}
+          {dirty && <span className="text-small text-trs-muted mr-2">Unsaved changes</span>}
           {msg && !dirty && <span className={cn('text-small mr-2', /fail/i.test(msg) ? 'text-trs-neg' : 'text-trs-ink-2')}>{msg}</span>}
           {/* One document button and one menu. Status sits in the line under the name. */}
           {brochure
@@ -327,7 +327,7 @@ export default function GbReviewPage() {
         const cur = Math.max(0, STAGES.findIndex(s => s.key === stage))
         return (
           <div className="rounded border border-trs-line bg-trs-tint px-4 py-3.5">
-            <p className="text-small font-semibold text-trs-ink-2 mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
+            <p className="text-small text-trs-muted mb-2.5">Extracting the rate matrix — this can take up to a minute…</p>
             <div className="flex flex-col gap-1.5">
               {STAGES.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2 text-small">
@@ -374,7 +374,7 @@ export default function GbReviewPage() {
           {/* Wording changes vs the last approved version (Sales Loop v2, Phase 6c) — only ever
               non-empty on a re-extraction, since there's nothing to diff against the first time. */}
           {(d.wordingDiff?.length ?? 0) > 0 && (
-            <div className="rounded px-4 py-3 mb-5 text-small bg-trs-tint border border-trs-line text-trs-ink-2">
+            <div className="rounded px-4 py-3 mb-5 text-small bg-trs-tint border border-trs-line text-trs-muted">
               <p className="font-semibold mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> {d.wordingDiff!.length} benefit term{d.wordingDiff!.length === 1 ? '' : 's'} changed since the last approved version</p>
               <ul className="flex flex-col gap-0.5">
                 {d.wordingDiff!.map((w, i) => (
@@ -416,7 +416,7 @@ export default function GbReviewPage() {
                                 {editable ? (
                                   <span className="inline-flex items-center gap-1 justify-center">
                                     <Input defaultValue={plan} key={plan} onBlur={e => renamePlan(product, mt, plan, e.target.value.trim())}
-                                      className="h-auto w-24 text-center text-small font-medium px-2 py-1 border-transparent focus-visible:border-trs-ink !text-trs-ink" />
+                                      className="h-auto w-24 text-center text-small px-2 py-1 border-transparent focus-visible:border-trs-ink !text-trs-muted" />
                                     <Btn level="tertiary" onClick={() => deletePlan(product, mt, plan)} title="Remove plan" className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-trs-subtle hover:text-trs-neg"><X size={12} /></Btn>
                                   </span>
                                 ) : plan}
@@ -431,7 +431,7 @@ export default function GbReviewPage() {
                               <td className="pl-4 whitespace-nowrap">
                                 {editable
                                   ? <Input defaultValue={band} key={band} onBlur={e => renameBand(product, mt, band, e.target.value.trim())}
-                                      className="h-auto w-28 text-small font-medium px-2 py-0.5 border-transparent hover:border-border focus-visible:border-trs-ink" />
+                                      className="h-auto w-28 text-small px-2 py-0.5 border-transparent hover:border-border focus-visible:border-trs-ink" />
                                   : <span className="font-medium text-foreground/70">{band}</span>}
                               </td>
                               {plans.map(plan => {
@@ -455,7 +455,7 @@ export default function GbReviewPage() {
                           ))}
                           {editable && (
                             <tr><td colSpan={plans.length + 2} className="pl-4">
-                              <Btn level="tertiary" onClick={() => addBand(product, mt, plans, bands)} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add age band</Btn>
+                              <Btn level="tertiary" onClick={() => addBand(product, mt, plans, bands)} className="h-auto px-0 py-1 border-0 gap-1 text-small text-trs-muted hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add age band</Btn>
                             </td></tr>
                           )}
                         </tbody>
@@ -468,7 +468,7 @@ export default function GbReviewPage() {
           ))}
 
           {editable && (
-            <Btn level="tertiary" onClick={addProduct} className="h-auto px-0 py-0 border-0 gap-1.5 font-medium text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</Btn>
+            <Btn level="tertiary" onClick={addProduct} className="h-auto px-0 py-0 border-0 gap-1.5 text-small text-trs-muted hover:bg-transparent hover:text-trs-ink hover:opacity-80 mb-8"><Plus size={13} /> Add product / matrix</Btn>
           )}
 
           {/* Coverage / sum assured */}
@@ -498,7 +498,7 @@ export default function GbReviewPage() {
                         <td className="text-right pr-4 tabular-nums font-medium">{c.value_numeric != null ? c.value_numeric.toLocaleString('en-SG') : c.value_text}{c.unit ? ` ${c.unit}` : ''}</td>
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={6} className="pl-4"><Btn level="tertiary" onClick={addCoverage} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add coverage row</Btn></td></tr>}
+                    {editable && <tr><td colSpan={6} className="pl-4"><Btn level="tertiary" onClick={addCoverage} className="h-auto px-0 py-1 border-0 gap-1 text-small text-trs-muted hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add coverage row</Btn></td></tr>}
                   </tbody>
               </Register>
             </section>
@@ -532,7 +532,7 @@ export default function GbReviewPage() {
                         {editable && <td className="pr-2 text-right"><Btn level="tertiary" onClick={() => setBenefits(prev => prev.filter((_, j) => j !== i))} className="h-auto w-auto p-0 border-0 bg-transparent hover:bg-transparent text-muted-foreground/30 hover:text-trs-neg"><Trash2 size={12} /></Btn></td>}
                       </tr>
                     ))}
-                    {editable && <tr><td colSpan={4} className="pl-4"><Btn level="tertiary" onClick={addBenefit} className="h-auto px-0 py-1 border-0 gap-1 font-normal text-small text-trs-ink hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add benefit row</Btn></td></tr>}
+                    {editable && <tr><td colSpan={4} className="pl-4"><Btn level="tertiary" onClick={addBenefit} className="h-auto px-0 py-1 border-0 gap-1 text-small text-trs-muted hover:bg-transparent hover:text-trs-ink hover:opacity-80"><Plus size={12} /> Add benefit row</Btn></td></tr>}
                   </tbody>
               </Register>
             </section>

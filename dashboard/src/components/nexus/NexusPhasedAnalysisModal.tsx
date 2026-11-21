@@ -183,7 +183,7 @@ export function NexusPhasedAnalysisModal({
         aria-label="Run analysis"
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-heading font-medium text-trs-ink">Run analysis</h2>
+          <h2 className="m-0 text-heading font-semibold text-trs-ink">Run analysis</h2>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0 rounded-full">
             <X size={15} />
           </Btn>

@@ -144,7 +144,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
                   <RichEditor initialHtml={draft.html} onChange={setHtml} minHeight={360} borderless />
                 </div>
                 <div className="flex items-center gap-3 border-b border-trs-line py-3">
-                  <span className="inline-flex h-10 w-8 items-end justify-center rounded border border-trs-line-2 pb-1 text-small font-medium text-trs-neg" aria-hidden>PDF</span>
+                  <span className="inline-flex h-10 w-8 items-end justify-center rounded border border-trs-line-2 pb-1 text-small text-trs-neg" aria-hidden>PDF</span>
                   <span className="min-w-0"><span className="block text-body font-medium break-words">{draft.attachment.filename}</span><span className="block text-small text-trs-muted">PDF</span></span>
                 </div>
               </div>

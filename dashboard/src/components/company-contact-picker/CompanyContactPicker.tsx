@@ -234,7 +234,7 @@ export function CompanyContactPicker({ value, onChange, className, hideContact, 
       )}
 
       {notice && <p className="m-0 text-small text-trs-muted">{notice}</p>}
-      {error && <p role="alert" className="m-0 text-small text-trs-ink-2">{error}</p>}
+      {error && <p role="alert" className="m-0 text-small text-trs-muted">{error}</p>}
     </div>
   )
 }

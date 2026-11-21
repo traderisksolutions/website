@@ -22,7 +22,7 @@ export const MAIN = btnClass('primary', 'xs')
 
 /** A group's name: a plain section label, no pill and no fill. */
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={cn('m-0 mb-2 text-small font-semibold text-trs-muted', className)}>{children}</h3>
+  return <h3 className={cn('m-0 mb-2 text-small text-trs-muted', className)}>{children}</h3>
 }
 
 export function Group({ label, children, ariaLabel }: { label: string; children: React.ReactNode; ariaLabel?: string }) {

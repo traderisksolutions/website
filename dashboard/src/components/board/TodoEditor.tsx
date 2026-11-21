@@ -34,7 +34,7 @@ function personTone(email: string): string {
 }
 export function PersonTag({ email, staff, size = 'sm' }: { email: string; staff: Map<string, StaffMember>; size?: 'sm' | 'md' }) {
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded font-medium whitespace-nowrap text-small', size === 'sm' ? 'h-5 px-1.5' : 'h-6 px-2', personTone(email))} title={staff.get(email)?.name ?? email}>
+    <span className={cn('inline-flex items-center gap-1 rounded whitespace-nowrap text-small', size === 'sm' ? 'h-5 px-1.5' : 'h-6 px-2', personTone(email))} title={staff.get(email)?.name ?? email}>
       <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden />{firstNameOf(email, staff)}
     </span>
   )

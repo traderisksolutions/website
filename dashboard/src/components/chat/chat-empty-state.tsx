@@ -41,7 +41,7 @@ export function ChatEmptyState({ onPick }: { caseAware?: boolean; onPick: (promp
         </Btn>
         {prompts.map((p, i) => (
           <Btn key={i} onClick={() => onPick(p)} level="tertiary"
-            className="h-auto justify-start whitespace-normal text-left text-small font-normal border-trs-line bg-white px-3 py-2 text-trs-ink-2 hover:border-trs-green">
+            className="h-auto justify-start whitespace-normal text-left text-small border-trs-line bg-white px-3 py-2 text-trs-muted hover:border-trs-green">
             {p}
           </Btn>
         ))}

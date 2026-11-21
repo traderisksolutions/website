@@ -11,7 +11,7 @@ import { unwrap } from '@/lib/action-result'
 import { addContact, editProduct, makeDefaultContact, removeContact } from '@/app/insurers/actions'
 
 const cell = 'h-8 w-full rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink outline-none focus:border-trs-ink placeholder:text-trs-subtle'
-const label = 'text-small font-medium text-trs-muted'
+const label = 'text-small text-trs-muted'
 const splitList = (s: string) => s.split(/[,;\n]/).map(x => x.trim()).filter(Boolean)
 
 /**

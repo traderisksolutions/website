@@ -65,7 +65,7 @@ export function ProductLibrary({ data, error }: { data: Library | null; error: s
       {tables.filter(({ t }) => t.differTotal > 0).map(({ product, t }) => (
         <section key={t.id} className="flex flex-col gap-2" aria-label={`Differences: ${product}, ${tableName(t)}`}>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="m-0 text-heading font-medium">{`${product} · ${tableName(t)}`}</h2>
+            <h2 className="m-0 text-heading font-semibold">{`${product} · ${tableName(t)}`}</h2>
             <span className="text-small text-trs-muted">{`${t.differTotal} of ${t.comparison.compared} different${t.differTotal > t.comparison.differ.length ? ` · largest ${t.comparison.differ.length}` : ''} · S$ a year`}</span>
           </div>
           <Register label={`Differences: ${product}, ${tableName(t)}`} minWidth={900} maxHeight="420px">
@@ -93,7 +93,7 @@ export function ProductLibrary({ data, error }: { data: Library | null; error: s
       ))}
 
       <section className="flex flex-col gap-2" aria-label="Read queue">
-        <h2 className="m-0 text-heading font-medium">Read queue</h2>
+        <h2 className="m-0 text-heading font-semibold">Read queue</h2>
         {!data.queue.configured ? <p className="m-0 text-body text-trs-muted">Brochure folder not connected.</p>
           : data.queue.error ? <p className="m-0 text-body text-trs-neg" role="alert">{data.queue.error}</p>
           : queue.length === 0 ? <p className="m-0 text-body text-trs-muted">Every file in the brochure folder is read.</p>

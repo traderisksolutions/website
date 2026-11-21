@@ -67,7 +67,7 @@ export default function InsurerThreadsPage() {
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
         <Breadcrumbs current={{ label: data.insurer.company_name, href: `/insurers/${data.insurer.id}` }} fallback={{ label: 'Insurers', href: '/insurers' }} />
-        <h1 className="m-0 mt-3 text-title leading-[1.15]">{data.insurer.company_name}</h1>
+        <h1 className="m-0 mt-3 text-title leading-[1.15] font-semibold">{data.insurer.company_name}</h1>
         <div className="mt-2 text-body text-trs-muted">{data.rows.length} threads{data.insurer.domain ? ` · ${data.insurer.domain}` : ''}</div>
         <div className="mt-6 mb-4">
           <Segmented<View> value={view} onChange={setView} options={[

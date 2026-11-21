@@ -200,7 +200,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
     >
           {/* ── Header: New email · Draft saved · From · Close ── */}
           <div className="flex items-center gap-2 px-[var(--re-gutter)] h-12 flex-shrink-0 border-b border-trs-line">
-            <h1 className="m-0 text-heading font-medium text-trs-ink">New email</h1>
+            <h1 className="m-0 text-heading font-semibold text-trs-ink">New email</h1>
             <span className="flex-1" />
             {savedState && <span className="text-small mr-1 text-trs-subtle" role="status">{savedState}</span>}
             {senders.length > 0 && (

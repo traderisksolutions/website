@@ -120,8 +120,8 @@ function Article() {
                 </div>
               ) : (
                 <article>
-                  <h1 className="m-0 mb-1 text-title font-medium leading-[1.15]">{form.title}</h1>
-                  {form.excerpt && <p className="m-0 mb-4 text-heading text-trs-muted">{form.excerpt}</p>}
+                  <h1 className="m-0 mb-1 text-title font-semibold leading-[1.15]">{form.title}</h1>
+                  {form.excerpt && <p className="m-0 mb-4 text-body text-trs-muted">{form.excerpt}</p>}
                   <Prose html={html} />
                 </article>
               )}

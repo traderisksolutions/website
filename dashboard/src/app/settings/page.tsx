@@ -57,14 +57,14 @@ function SettingsInner() {
   return (
     <div className="min-h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] bg-white text-trs-ink">
       <div className="mx-auto max-w-[1200px] px-6 sm:px-12 pt-12 pb-20">
-        <h1 className="m-0 text-title font-medium leading-[1.08]">Settings</h1>
+        <h1 className="m-0 text-title font-semibold leading-[1.08]">Settings</h1>
 
         <div className="mt-10 grid gap-10 md:grid-cols-[220px_minmax(0,1fr)]">
           {/* Internal nav */}
           <nav aria-label="Settings sections" className="md:sticky md:top-20 self-start">
             {(['you', 'team', 'agents'] as const).map(g => (
               <div key={g} className="mb-5">
-                <p className="m-0 mb-1.5 px-3 text-small font-semibold text-trs-subtle">{GROUP_LABEL[g]}</p>
+                <p className="m-0 mb-1.5 px-3 text-small text-trs-subtle">{GROUP_LABEL[g]}</p>
                 <ul className="m-0 p-0 list-none flex md:flex-col gap-0.5 overflow-x-auto">
                   {SECTIONS.filter(s => s.group === g).map(s => {
                     const on = section === s.key
@@ -85,7 +85,7 @@ function SettingsInner() {
 
           {/* Section */}
           <section className="min-w-0" aria-label={active.label}>
-            <h2 className="m-0 text-title font-medium">{active.label}</h2>
+            <h2 className="m-0 text-title font-semibold">{active.label}</h2>
             {section === 'profile' && <ProfileSection profile={profile} onChange={loadProfile} />}
             {section === 'team' && <TeamTable />}
             {section === 'signatures' && <SignaturePanel profile={profile} />}
@@ -139,7 +139,7 @@ function ProfileSection({ profile, onChange }: { profile: Profile | null; onChan
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded border border-trs-line px-6 py-5">
-      <h3 className="m-0 mb-3 text-heading font-medium text-trs-ink">{title}</h3>
+      <h3 className="m-0 mb-3 text-heading font-semibold text-trs-ink">{title}</h3>
       {children}
     </div>
   )

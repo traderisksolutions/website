@@ -53,7 +53,7 @@ export function DeclinesRegister({ q, line }: { q: string; line: string }) {
           {list.length === 0 && <RegisterEmpty colSpan={6}>No declines match.</RegisterEmpty>}
           {byInsurer.flatMap(([name, ds]) => ds.map((r, i) => (
             <RegisterRow key={r.id}>
-              <RegisterCell first>{i === 0 ? <span className="font-medium">{name}<span className="block text-small font-normal text-trs-muted">{ds.length} declined</span></span> : null}</RegisterCell>
+              <RegisterCell first>{i === 0 ? <span className="font-medium">{name}<span className="block text-small text-trs-muted">{ds.length} declined</span></span> : null}</RegisterCell>
               <RegisterCell>{day(r.declined_on)}</RegisterCell>
               <RegisterCell>{r.line ?? '–'}</RegisterCell>
               <RegisterCell align="left" title={r.quote ?? undefined}>

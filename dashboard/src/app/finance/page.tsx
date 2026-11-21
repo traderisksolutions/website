@@ -124,7 +124,7 @@ export default function FinancePage() {
               </label>
             </div>
 
-            <h2 className="m-0 mt-8 mb-3 text-heading font-medium">{view === 'open' ? 'Waiting to be collected' : 'Every debit note'}</h2>
+            <h2 className="m-0 mt-8 mb-3 text-heading font-semibold">{view === 'open' ? 'Waiting to be collected' : 'Every debit note'}</h2>
 
             <Register label={view === 'open' ? 'Debit notes waiting to be collected' : 'Every debit note'} minWidth={820}>
               <RegisterHead>

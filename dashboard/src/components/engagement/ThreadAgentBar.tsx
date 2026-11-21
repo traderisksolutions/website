@@ -188,7 +188,7 @@ export function ThreadAgentResults({ agent }: { agent: ThreadAgent }) {
       {answer && (
         <div className="mt-3 space-y-2.5 pb-1">
           {answer.warning && (
-            <p className="rounded px-3 py-2 text-small leading-[1.6] border border-trs-ink text-trs-ink">
+            <p className="rounded px-3 py-2 text-small leading-[1.6] border border-trs-ink text-trs-muted">
               {answer.warning}
             </p>
           )}

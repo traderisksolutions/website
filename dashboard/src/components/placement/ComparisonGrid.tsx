@@ -133,7 +133,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
         ))}
         <Input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addOptions() }}
           placeholder="Add option: 1M, 2M, S$1,300/head" aria-label="Add options to compare"
-          className="h-5 w-[210px] rounded border-trs-line-2 px-1.5 py-0 text-small text-trs-ink outline-none focus:border-trs-ink" />
+          className="h-5 w-[210px] rounded border-trs-line-2 px-1.5 py-0 text-small text-trs-muted outline-none focus:border-trs-ink" />
         <Btn size="xs" level="tertiary" className={XL_BTN} disabled={busy !== null || !draft.trim()} loading={busy === 'add'} onClick={addOptions}>Add</Btn>
         {proposed.length > 0 && (
           <Btn size="xs" level="secondary" className={XL_BTN} disabled={busy !== null} loading={busy === 'ask'} onClick={ask}

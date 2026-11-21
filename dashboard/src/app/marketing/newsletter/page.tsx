@@ -76,7 +76,7 @@ function Newsletter() {
           {open && <IssueEditor key={open.id} issue={open} articles={data.articles} senderReady={data.sender.ready} onClose={() => setOpenId(null)} onChanged={load} />}
 
           <section className="grid gap-3">
-            <h2 className="m-0 text-heading font-medium">Issues</h2>
+            <h2 className="m-0 text-heading font-semibold">Issues</h2>
             <Register label="Issues" minWidth={720}>
               <RegisterHead>
                 <RegisterTh first>Subject</RegisterTh>
@@ -103,7 +103,7 @@ function Newsletter() {
           <Sender site={data.site} ready={data.sender.ready} pendingUnsent={data.subscribers.filter(s => s.status === 'pending' && !s.confirm_sent_at).length} post={post} onChanged={load} />
 
           <section className="grid gap-3">
-            <h2 className="m-0 text-heading font-medium">Subscribers</h2>
+            <h2 className="m-0 text-heading font-semibold">Subscribers</h2>
             <Register label="Subscribers" minWidth={720} maxHeight="560px">
               <RegisterHead>
                 <RegisterTh first>Email</RegisterTh>
@@ -145,7 +145,7 @@ function Sender({ site, ready, pendingUnsent, post, onChanged }: { site: Payload
   }
   return (
     <section className="grid gap-3">
-      <h2 className="m-0 text-heading font-medium">Sender</h2>
+      <h2 className="m-0 text-heading font-semibold">Sender</h2>
       <div className="grid gap-3 max-w-[640px]">
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-small text-trs-muted">Sender email
@@ -217,7 +217,7 @@ function IssueEditor({ issue, articles, senderReady, onClose, onChanged }: { iss
   return (
     <section className="grid gap-5 rounded p-6 border border-trs-line" aria-label="Issue">
       <div className="flex items-start justify-between gap-4 flex-wrap">
-        <h2 className="m-0 text-heading font-medium">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
+        <h2 className="m-0 text-heading font-semibold">{draft ? 'Draft issue' : STATUS[issue.status]}</h2>
         <Btn level="tertiary" onClick={onClose}>Close</Btn>
       </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

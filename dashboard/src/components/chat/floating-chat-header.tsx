@@ -42,7 +42,7 @@ export function FloatingChatHeader({
               onBlur={commit}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commit() } else if (e.key === 'Escape') setEditing(false) }}
               aria-label="Rename chat"
-              className="h-7 text-small font-semibold px-1.5 py-0.5 leading-tight"
+              className="h-7 text-small px-1.5 py-0.5 leading-tight"
             />
           ) : editable ? (
             <Btn
@@ -50,12 +50,12 @@ export function FloatingChatHeader({
               size="xs"
               onClick={() => setEditing(true)}
               title="Rename chat"
-              className="h-auto p-0 border-0 bg-transparent hover:bg-transparent text-small font-semibold text-trs-ink leading-tight truncate block max-w-full text-left hover:text-trs-green"
+              className="h-auto p-0 border-0 bg-transparent hover:bg-transparent text-small text-trs-muted leading-tight truncate block max-w-full text-left hover:text-trs-green"
             >
               {title}
             </Btn>
           ) : (
-            <p className="text-small font-semibold text-trs-ink leading-tight truncate">{title}</p>
+            <p className="text-small text-trs-muted leading-tight truncate">{title}</p>
           )}
           {subtitle && !editing && <p className="text-small text-trs-muted leading-tight truncate">{subtitle}</p>}
         </div>

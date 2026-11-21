@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils'
 
 const PROSE = [
   'text-body leading-[1.65] text-[#0f1412] max-w-[720px]',
-  '[&_h1]:text-title [&_h1]:font-medium [&_h1]: [&_h1]:mt-0 [&_h1]:mb-3',
-  '[&_h2]:text-heading [&_h2]:font-medium [&_h2]: [&_h2]:mt-8 [&_h2]:mb-2',
-  '[&_h3]:text-heading [&_h3]:font-medium [&_h3]:mt-6 [&_h3]:mb-1.5',
+  '[&_h1]:text-title [&_h1]:font-semibold [&_h1]: [&_h1]:mt-0 [&_h1]:mb-3',
+  '[&_h2]:text-heading [&_h2]:font-semibold [&_h2]: [&_h2]:mt-8 [&_h2]:mb-2',
+  '[&_h3]:text-heading [&_h3]:font-semibold [&_h3]:mt-6 [&_h3]:mb-1.5',
   '[&_p]:my-3 [&_ul]:my-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-1',
   '[&_blockquote]:my-4 [&_blockquote]:border-l-2 [&_blockquote]:border-[#0f1412] [&_blockquote]:pl-4 [&_blockquote]:text-[#4a5550]',
   '[&_a]:underline [&_a]:underline-offset-2 [&_strong]:font-medium',

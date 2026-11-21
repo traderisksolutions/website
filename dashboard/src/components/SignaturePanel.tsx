@@ -53,7 +53,7 @@ function isAllowedEmail(e: string) {
 
 function TypeBadge({ type }: { type: 'personal' | 'shared' }) {
   return (
-    <span className={cn('self-start flex-shrink-0 rounded-full border px-[7px] py-0.5 text-small font-semibold',
+    <span className={cn('self-start flex-shrink-0 rounded-full border px-[7px] py-0.5 text-small',
       type === 'personal' ? 'bg-trs-info-bg text-trs-info border-trs-info/20' : 'bg-trs-field text-trs-muted border-trs-line')}>
       {type === 'personal' ? 'You · Gmail' : 'Shared'}
     </span>
@@ -64,7 +64,7 @@ function SigPreview({ sig }: { sig: UserSignature }) {
   const parts = [sig.title, sig.phone, sig.email].filter(Boolean)
   return (
     <div>
-      <p className="m-0 text-small font-medium text-trs-ink">{sig.name}</p>
+      <p className="m-0 text-small text-trs-muted">{sig.name}</p>
       {parts.length > 0 && (
         <p className="m-0 mt-0.5 text-small text-trs-subtle">{parts.join(' · ')}</p>
       )}
@@ -75,8 +75,8 @@ function SigPreview({ sig }: { sig: UserSignature }) {
   )
 }
 
-const FORM_INPUT = 'h-8 px-2.5 py-1.5 text-small text-trs-ink-2'
-const FORM_LABEL = 'block mb-1 text-small font-semibold   text-trs-subtle'
+const FORM_INPUT = 'h-8 px-2.5 py-1.5 text-small text-trs-muted'
+const FORM_LABEL = 'block mb-1 text-small text-trs-subtle'
 
 function InlineForm({
   sendingEmail,
@@ -107,7 +107,7 @@ function InlineForm({
 
   return (
     <div className="px-5 py-3.5 bg-trs-tint border-t border-trs-line">
-      <p className="m-0 mb-3 text-small font-medium text-trs-subtle">
+      <p className="m-0 mb-3 text-small text-trs-subtle">
         Signature for <strong className="text-trs-ink-2">{sendingEmail}</strong>
       </p>
       <div className="grid grid-cols-3 gap-2.5 mb-2.5">
@@ -313,7 +313,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const TH = 'px-5 py-2 text-left text-small font-semibold   text-trs-subtle bg-trs-tint border-b border-trs-line'
+  const TH = 'px-5 py-2 text-left text-small text-trs-subtle bg-trs-tint border-b border-trs-line'
 
   return (
     <div className="rounded border border-trs-line overflow-hidden bg-white">
@@ -359,7 +359,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
                 <div className={cn('grid grid-cols-[1fr_1.6fr_auto] border-b border-trs-line transition-colors', isExpanded ? 'bg-trs-soft' : 'bg-white')}>
                   {/* From address */}
                   <div className="px-5 py-3 flex flex-col gap-1 justify-center">
-                    <span className="text-small text-trs-ink-2 font-mono break-all">{row.email}</span>
+                    <span className="text-small text-trs-muted font-mono break-all">{row.email}</span>
                     <TypeBadge type={row.type} />
                   </div>
 
@@ -450,7 +450,7 @@ export default function SignaturePanel({ profile }: { profile: Profile | null })
       {/* Add shared alias — admin only */}
       {isAdmin && (
         <div className={cn('px-5 py-3.5 bg-trs-tint', addressRows.length > 0 && 'border-t border-trs-line')}>
-          <p className="m-0 mb-2 text-small font-semibold text-trs-subtle">
+          <p className="m-0 mb-2 text-small text-trs-subtle">
             Add Shared Address
           </p>
           <div className="flex gap-2 items-start max-w-[480px]">

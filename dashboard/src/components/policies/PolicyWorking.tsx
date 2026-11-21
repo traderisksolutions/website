@@ -51,7 +51,7 @@ function Track({ list, at }: { list: readonly (readonly [string, string])[]; at:
 }
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
   <section className="flex min-w-0 flex-col overflow-hidden rounded border border-trs-line-2 bg-white">
-    <header className="flex h-11 items-center justify-between border-b border-trs-line px-4 text-body font-semibold text-trs-ink">{title}<span className="text-small font-normal text-trs-muted">{meta}</span></header>
+    <header className="flex h-11 items-center justify-between border-b border-trs-line px-4 text-body font-semibold text-trs-ink">{title}<span className="text-small text-trs-muted">{meta}</span></header>
     {children}
   </section>
 )
@@ -150,7 +150,7 @@ function Overview({ ctx, onTab }: { ctx: Ctx; onTab: (t: Tab) => void }) {
         <Card title={`Documents · ${ctx.files.length}`} meta="From the client thread">
           <div className="flex flex-wrap gap-2 px-4 py-3">
             {ctx.files.length === 0 && <span className="text-body text-trs-muted">No files on the thread.</span>}
-            {ctx.files.map(f => <a key={f.storage_url} href={f.storage_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded border border-trs-line-2 bg-trs-tint px-2 text-small text-trs-ink no-underline"><FileTag name={f.filename} />{f.filename}</a>)}
+            {ctx.files.map(f => <a key={f.storage_url} href={f.storage_url} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-2 rounded border border-trs-line-2 bg-trs-tint px-2 text-small text-trs-muted no-underline"><FileTag name={f.filename} />{f.filename}</a>)}
           </div>
         </Card>
       </div>
@@ -158,7 +158,7 @@ function Overview({ ctx, onTab }: { ctx: Ctx; onTab: (t: Tab) => void }) {
   )
 }
 
-const FileTag = ({ name }: { name: string }) => <span className="rounded bg-trs-neg px-1 py-[2px] text-small font-semibold text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
+const FileTag = ({ name }: { name: string }) => <span className="rounded bg-trs-neg px-1 py-[2px] text-small text-white">{(name.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}</span>
 
 function RequestTab({ ctx, onDone, onReview }: { ctx: Ctx; onDone: () => Promise<void>; onReview: (id: string | null) => void }) {
   const [items, setItems] = useState<RequestItem[]>(ctx.items)

@@ -120,7 +120,7 @@ function ColumnHeader({
       className={cn('py-0 font-normal whitespace-nowrap', right ? 'text-right' : 'text-left', first ? 'sticky left-0 z-30 bg-white pl-6 pr-4 shadow-[inset_-1px_0_0_var(--trs-line)]' : 'px-4', last && 'pr-6')}>
       <span className={cn('group inline-flex items-center gap-1 h-11', right && 'flex-row-reverse')}>
         <Btn level="tertiary" size="xs" onClick={() => onSort(col.key)} title={`Sort by ${col.label.toLowerCase()}`}
-          className={cn('h-auto p-0 border-0 text-small font-semibold hover:bg-transparent', right && 'flex-row-reverse', isSorted ? 'text-trs-ink' : 'text-trs-muted')}>
+          className={cn('h-auto p-0 border-0 text-small hover:bg-transparent', right && 'flex-row-reverse', isSorted ? 'text-trs-ink' : 'text-trs-muted')}>
           {col.label}
           <SortIcon size={13} className={cn(isSorted ? 'opacity-100' : 'opacity-0 group-hover:opacity-60')} aria-hidden />
         </Btn>
@@ -478,8 +478,8 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               <DetailField label="Company"><span className="">{detail.companies?.name ?? '—'}</span></DetailField>
               {!editing && detail.event_type === 'endorsement' && (
                 <div className="mb-3 rounded border border-trs-line bg-trs-canvas px-2.5 py-1.5">
-                  <p className="text-small font-medium text-trs-ink-2">Mid-term endorsement</p>
-                  <p className="text-small text-trs-ink-2">Effective {fmtDate(detail.endorsement_effective_date)}</p>
+                  <p className="text-small text-trs-muted">Mid-term endorsement</p>
+                  <p className="text-small text-trs-muted">Effective {fmtDate(detail.endorsement_effective_date)}</p>
                 </div>
               )}
               {editing && form ? (
@@ -559,7 +559,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                       <Btn level="tertiary" size="xs" onClick={() => removeLineItem(i)} className="w-8 px-0 flex-none"><X size={14} /></Btn>
                     </div>
                   ))}
-                  <Btn level="tertiary" size="xs" onClick={addLineItem} className="self-start px-0 border-0 text-small text-trs-ink hover:bg-transparent hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</Btn>
+                  <Btn level="tertiary" size="xs" onClick={addLineItem} className="self-start px-0 border-0 text-small text-trs-muted hover:bg-transparent hover:underline mt-1 mb-3"><PlusCircle size={13} /> Add line item</Btn>
 
                   {/* Fee rebate toggle — sits above the price row it nets against */}
                   <label className="flex flex-col gap-1 text-small text-muted-foreground mb-2 max-w-[220px]">
@@ -629,7 +629,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
               <p className="text-small text-muted-foreground mb-2.5">Not all of the premium always goes to the insurer directly — tag which channel(s) apply and track each independently for accounting.</p>
               <div className="flex flex-col gap-3">
                 <div className="rounded border border-trs-line p-2.5">
-                  <label className="flex items-center gap-2 text-small font-medium mb-2 cursor-pointer">
+                  <label className="flex items-center gap-2 text-small mb-2 cursor-pointer">
                     <input type="checkbox" checked={payDirectToInsurer} onChange={e => setPayDirectToInsurer(e.target.checked)} className="accent-trs-green" />
                     (a) Direct to insurer
                   </label>
@@ -643,7 +643,7 @@ function DebitNoteDrawer({ id, onClose, onSaved }: { id: string; onClose: () => 
                   </div>
                 </div>
                 <div className="rounded border border-trs-line p-2.5">
-                  <label className="flex items-center gap-2 text-small font-medium mb-2 cursor-pointer">
+                  <label className="flex items-center gap-2 text-small mb-2 cursor-pointer">
                     <input type="checkbox" checked={payToTrsOps} onChange={e => setPayToTrsOps(e.target.checked)} className="accent-trs-green" />
                     (b) Pay to TRS
                   </label>

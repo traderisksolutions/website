@@ -50,7 +50,7 @@ export function EbInsurers({ id }: { id: string }) {
 
   return (
     <section className="flex flex-col gap-3" aria-label="Insurers">
-      <h2 className="m-0 text-heading font-medium">Insurers</h2>
+      <h2 className="m-0 text-heading font-semibold">Insurers</h2>
       {error && <p className="m-0 text-body text-trs-neg" role="alert">{error}</p>}
       <Register label="Insurers" minWidth={1000}>
         <RegisterHead>

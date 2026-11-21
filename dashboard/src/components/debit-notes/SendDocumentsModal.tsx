@@ -102,7 +102,7 @@ export function SendDocumentsModal({ target, onClose }: { target: SendDocumentsT
             </label>
           ))}
         </div>
-        {error && <p className="text-small text-trs-ink-2">{error}</p>}
+        {error && <p className="text-small text-trs-muted">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="ghost" size="sm" onClick={onClose}>Cancel</Button>
           <Button size="sm" onClick={send} disabled={sending || checked.size === 0}>

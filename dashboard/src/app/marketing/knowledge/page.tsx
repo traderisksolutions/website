@@ -23,7 +23,7 @@ const BOX = 'block w-full m-0 rounded border px-5 py-[18px] min-h-[520px] font-m
 const SECONDARY_LINK = cn(btnClass('secondary', 'xs'), 'no-underline')
 
 /** A word that acts, inside a line of text: the tertiary button with no box. */
-const LINK_BTN = 'h-auto px-0 border-0 font-normal text-small text-trs-muted hover:bg-transparent hover:text-trs-muted hover:underline'
+const LINK_BTN = 'h-auto px-0 border-0 text-small text-trs-muted hover:bg-transparent hover:text-trs-muted hover:underline'
 
 const author = (email: string | null | undefined) => (email ? email.split('@')[0] : 'unknown')
 

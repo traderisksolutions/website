@@ -110,7 +110,7 @@ export function XlCell({ children, align = 'center', fill, label, colSpan, title
 export function XlBand({ children, colSpan }: { children: React.ReactNode; colSpan: number }) {
   return (
     <tr>
-      <td colSpan={colSpan} className={cn('h-8 px-2.5 text-left font-medium text-small bg-trs-tint text-trs-ink-2', edge)}>{children}</td>
+      <td colSpan={colSpan} className={cn('h-8 px-2.5 text-left text-small bg-trs-tint text-trs-muted', edge)}>{children}</td>
     </tr>
   )
 }

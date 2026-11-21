@@ -47,7 +47,7 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
   return (
     <div className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
       {!isUser && (
-        <span className="flex items-center gap-1 text-small font-semibold text-muted-foreground/60">
+        <span className="flex items-center gap-1 text-small text-muted-foreground/60">
           <Sparkles size={10} className="text-primary" /> Consultant
         </span>
       )}
@@ -99,20 +99,20 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
       {action && (
         done ? (
           message.metadata_json?.action_undone ? (
-            <span className="flex items-center gap-1 text-small font-medium text-muted-foreground/60"><Undo2 size={11} /> Undone</span>
+            <span className="flex items-center gap-1 text-small text-muted-foreground/60"><Undo2 size={11} /> Undone</span>
           ) : (action.type === 'edit_analysis' && message.metadata_json?.action_undo && onUndo) ? (
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-small font-medium text-emerald-600"><Check size={11} /> Applied</span>
-              <Btn level="tertiary" size="xs" onClick={() => onUndo(message)} className="h-auto px-1 py-0 gap-1 text-small font-normal"><Undo2 size={10} /> Undo</Btn>
+              <span className="flex items-center gap-1 text-small text-emerald-600"><Check size={11} /> Applied</span>
+              <Btn level="tertiary" size="xs" onClick={() => onUndo(message)} className="h-auto px-1 py-0 gap-1 text-small"><Undo2 size={10} /> Undo</Btn>
             </div>
           ) : (
-            <span className="flex items-center gap-1 text-small font-medium text-emerald-600"><Check size={11} /> Done</span>
+            <span className="flex items-center gap-1 text-small text-emerald-600"><Check size={11} /> Done</span>
           )
         ) : (
           <div className="flex flex-col gap-1.5 max-w-[86%]">
             {action.type === 'edit_analysis' && action.ops?.length > 0 && (
               <div className="rounded border border-[--border-subtle] bg-muted/30 px-2.5 py-2 flex flex-col gap-1">
-                <span className="text-small font-semibold text-muted-foreground/55">Will change</span>
+                <span className="text-small text-muted-foreground/55">Will change</span>
                 <ul className="flex flex-col gap-0.5">
                   {action.ops.map((op, i) => (
                     <li key={i} className="text-small text-foreground/75 flex gap-1.5"><span className="text-muted-foreground/40 mt-[1px]">•</span><span>{opText(op)}</span></li>
@@ -138,7 +138,7 @@ export function ChatMessageItem({ message, confirming, onConfirm, onUndo, onRege
 
       {onRegenerate && (
         <Btn level="tertiary" size="xs" onClick={onRegenerate}
-          className="h-auto px-1 py-0 gap-1 text-small font-normal">
+          className="h-auto px-1 py-0 gap-1 text-small">
           <RotateCcw size={10} /> Regenerate
         </Btn>
       )}

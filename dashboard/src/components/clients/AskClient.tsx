@@ -30,7 +30,7 @@ export function AskClient({ companyId }: { companyId: string }) {
 
   return (
     <section className="mb-4 min-w-0" aria-label="Ask about this client">
-      <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted">Ask about this client</h2>
+      <h2 className="m-0 mb-2 text-small text-trs-muted">Ask about this client</h2>
       <form className="flex gap-2 max-w-[760px]" onSubmit={e => { e.preventDefault(); void ask() }}>
         <Input value={q} onChange={e => setQ(e.target.value)} maxLength={500} aria-label="Question about this client" placeholder="What did they pay for WICA last year, and what was claimed?"
           className="flex-1 min-w-0" />

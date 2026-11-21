@@ -110,7 +110,7 @@ export function ContactPicker({ productLines, tier, value, onChange, preferIds, 
                   <span className="font-normal text-trs-muted">{on} of {rs.length}</span>
                 </label>
                 {products.map(s => (
-                  <span key={s.product.id} className={cn('ml-3 font-normal text-small', s.excluded ? 'text-trs-neg' : 'text-trs-muted')}>
+                  <span key={s.product.id} className={cn('ml-3 text-small', s.excluded ? 'text-trs-neg' : 'text-trs-muted')}>
                     {s.product.name}{s.reasons.length ? ` · ${s.reasons.join(' · ')}` : ''}
                   </span>
                 ))}

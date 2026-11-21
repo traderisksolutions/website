@@ -10,7 +10,7 @@ export function DetailSection({ label, children, className }: DetailSectionProps
   return (
     <div className={cn('px-4 pt-5 pb-3', className)}>
       {label && (
-        <p className="m-0 text-small font-medium mb-2.5 text-trs-muted">
+        <p className="m-0 text-small mb-2.5 text-trs-muted">
           {label}
         </p>
       )}

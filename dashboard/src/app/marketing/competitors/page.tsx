@@ -146,7 +146,7 @@ function Competitors() {
 function Ask({ question, hint, children, small }: { question: string; hint: string; children: React.ReactNode; small?: boolean }) {
   return (
     <div className="max-w-[760px]">
-      <p className={cn('m-0 font-medium  leading-[1.25] [text-wrap:balance]', small ? 'text-heading mb-3.5' : 'text-title mb-[18px]')}>
+      <p className={cn('m-0 font-medium  leading-[1.25] [text-wrap:balance]', small ? 'text-heading mb-3.5 font-semibold' : 'text-title mb-[18px] font-semibold')}>
         {question}
         <small className="block text-body font-normal mt-1.5 text-trs-muted">{hint}</small>
       </p>
@@ -156,7 +156,7 @@ function Ask({ question, hint, children, small }: { question: string; hint: stri
 }
 
 /** The ask's underlined field: the shared Input with only a 2px ink rule under it. */
-const ASK_FIELD = 'flex-1 min-w-0 h-auto border-x-0 border-t-0 border-b-2 border-trs-ink rounded-none bg-transparent px-0 pt-2 pb-2.5 text-heading text-trs-ink focus-visible:border-trs-ink placeholder:text-trs-subtle'
+const ASK_FIELD = 'flex-1 min-w-0 h-auto border-x-0 border-t-0 border-b-2 border-trs-ink rounded-none bg-transparent px-0 pt-2 pb-2.5 text-body text-trs-ink focus-visible:border-trs-ink placeholder:text-trs-subtle'
 
 function RegisterFoot({ colSpan, left, right }: { colSpan: number; left: React.ReactNode; right?: React.ReactNode }) {
   return (
@@ -308,7 +308,7 @@ function HistoryTab({ analyses, siteName }: { analyses: GeoAnalysis[]; siteName:
             <span className="tabular-nums text-trs-muted">{fmtWhen(a.completed_at ?? a.created_at)}</span>
             <span className="font-medium min-w-0">
               Analysis v{a.version}{status && <> <Chip className="ml-1.5 align-middle">{status}</Chip></>}
-              <small className="block font-normal text-small mt-0.5 break-words text-trs-muted">{detail}</small>
+              <small className="block text-small mt-0.5 break-words text-trs-muted">{detail}</small>
             </span>
             <span className="text-trs-muted">{modelLabel(a.model)}</span>
             <span className="tabular-nums sm:text-right text-trs-muted">{usd(a.cost_usd)}</span>

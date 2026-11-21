@@ -431,11 +431,11 @@ export function ThreadView({ lead, threadState, onStatus, onTransfer, onDelete, 
 
           {/* One affordance back down: the draft while it is open, the newest message otherwise. */}
           {!loading && composerOpen && composerOffscreen ? (
-            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer border border-trs-line-2 text-trs-ink">
+            <button type="button" onClick={() => scrollToComposer(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small cursor-pointer border border-trs-line-2 text-trs-muted">
               <ArrowDown size={13} /> Draft
             </button>
           ) : !composerOpen && showScrollToLatest ? (
-            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small font-medium cursor-pointer border border-trs-line-2 text-trs-ink">
+            <button type="button" onClick={() => scrollToBottom(true)} className="absolute bottom-4 right-6 z-10 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-white text-small cursor-pointer border border-trs-line-2 text-trs-muted">
               <ArrowDown size={13} /> Latest message
             </button>
           ) : null}
@@ -485,7 +485,7 @@ function TaskFromEmail({ lead, team, subject, onClose, onCreated }: { lead: Lead
     <div className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[12vh] bg-[rgba(15,20,18,0.4)]" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
       <div role="dialog" aria-modal="true" aria-labelledby="task-from-email" className="w-full max-w-[520px] rounded bg-white p-6 border border-trs-line shadow-[0_16px_40px_rgba(15,20,18,0.14)] text-trs-ink">
         <div className="flex items-start justify-between gap-3 mb-4">
-          <div><h2 id="task-from-email" className="m-0 text-heading font-medium">New to-do</h2><p className="m-0 mt-0.5 text-body text-trs-muted" >{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
+          <div><h2 id="task-from-email" className="m-0 text-heading font-semibold">New to-do</h2><p className="m-0 mt-0.5 text-body text-trs-muted" >{lead.companyId ? `For ${lead.companyName ?? 'the company'}` : threadId ? <>No company · <LinkCompanyPopover threadId={threadId} /></> : 'No company'}</p></div>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" title="Close" className="w-8 px-0"><X size={16} /></Btn>
         </div>
         <div className="flex flex-col gap-3">

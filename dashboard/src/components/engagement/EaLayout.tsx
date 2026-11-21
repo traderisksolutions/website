@@ -199,7 +199,7 @@ export function EaWorkspaceEmptyState({
         'bg-white',
       )}
     >
-      <p className="m-0 px-8 text-center text-heading text-trs-muted" >{body || title}</p>
+      <p className="m-0 px-8 text-center text-body text-trs-muted" >{body || title}</p>
     </div>
   )
 }

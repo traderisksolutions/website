@@ -84,7 +84,7 @@ export function TopNavbar() {
               </div>
             </nav>
             <div className="flex items-center gap-2.5 px-4 py-3 border-t border-trs-line flex-shrink-0">
-              <span className="w-7 h-7 rounded-full bg-trs-green text-white flex items-center justify-center text-small font-semibold flex-shrink-0">{userEmail ? userEmail[0].toUpperCase() : '?'}</span>
+              <span className="w-7 h-7 rounded-full bg-trs-green text-white flex items-center justify-center text-small flex-shrink-0">{userEmail ? userEmail[0].toUpperCase() : '?'}</span>
               <span className="text-small flex-1 truncate text-trs-muted">{userEmail ?? '—'}</span>
               <Btn size="xs" level="tertiary" onClick={signOut} title="Sign out" aria-label="Sign out" className="w-8 px-0 border-0 hover:bg-trs-canvas"><LogOut size={14} /></Btn>
             </div>
@@ -173,7 +173,7 @@ function AccountMenu({ email, pathname, onSignOut }: { email: string | null; pat
     <div ref={ref} className="relative">
       <Btn level="tertiary" onClick={() => setOpen(v => !v)} aria-label="Account menu" aria-expanded={open}
         className={cn('h-auto gap-2 rounded-full p-0.5 md:pr-2 border-0 font-normal hover:bg-trs-canvas', onAccountPage ? 'bg-trs-select-bg' : 'bg-transparent')}>
-        <span className="w-8 h-8 rounded-full inline-flex items-center justify-center text-small font-semibold text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
+        <span className="w-8 h-8 rounded-full inline-flex items-center justify-center text-small text-white bg-trs-green">{email ? email[0].toUpperCase() : '?'}</span>
         <span className="hidden md:block text-body max-w-[160px] truncate text-trs-muted">{email ?? '—'}</span>
       </Btn>
       {open && (

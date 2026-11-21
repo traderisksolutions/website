@@ -70,7 +70,7 @@ export function EngagementMessageCard({ msg, defaultOpen, isLatest, onOpen }: En
       {bodyHtml ? (
         <div className={cn('email-html-body break-words max-w-full overflow-x-auto', !isLatest && 'is-earlier')} dangerouslySetInnerHTML={{ __html: bodyHtml }} />
       ) : (
-        <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', isLatest ? 'text-heading' : 'text-body', 'text-trs-ink')}>
+        <div className={cn('whitespace-pre-wrap break-words leading-[1.6]', isLatest ? 'text-heading font-semibold' : 'text-body', 'text-trs-ink')}>
           {showFull ? fullBody : stripped}
         </div>
       )}
@@ -170,7 +170,7 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
           const href = `/api/engagement/attachments/${a.id}/download`
           return (
             <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white border border-trs-line">
-              <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small font-semibold bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
+              <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small bg-trs-field text-trs-muted" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
               <span className="min-w-0">
                 <a href={href} target="_blank" rel="noreferrer" className="block text-body font-medium truncate no-underline hover:underline text-trs-ink">{a.filename}</a>
                 <span className="block mt-0.5 text-small text-trs-subtle">

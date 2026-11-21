@@ -212,7 +212,7 @@ function DotRow({ children, className }: { children: React.ReactNode; className?
 /** A party chip: the category's soft field, ink text. Category, not state. */
 function PartyChip({ party, className }: { party: string; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center rounded px-2 py-0.5 text-small font-medium whitespace-nowrap leading-4 text-trs-ink-2', partyField(party), className)}>
+    <span className={cn('inline-flex items-center rounded px-2 py-0.5 text-small whitespace-nowrap leading-4 text-trs-muted', partyField(party), className)}>
       {partyLabel(party)}
     </span>
   )
@@ -220,12 +220,12 @@ function PartyChip({ party, className }: { party: string; className?: string }) 
 
 /** A chip that sits on a grey field: white fill, ink text. */
 function WhiteChip({ children }: { children: React.ReactNode }) {
-  return <span className="inline-flex items-center rounded bg-white px-2 py-0.5 text-small font-medium whitespace-nowrap leading-4 text-trs-ink-2">{children}</span>
+  return <span className="inline-flex items-center rounded bg-white px-2 py-0.5 text-small whitespace-nowrap leading-4 text-trs-muted">{children}</span>
 }
 
 /** A small muted label above a group of rows (13px, sentence case). */
 function GroupLabel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn('m-0 text-small font-medium text-trs-muted', className)}>{children}</p>
+  return <p className={cn('m-0 text-small text-trs-muted', className)}>{children}</p>
 }
 
 /** A full-width row that opens and closes a section: the tertiary button, sized to its content. */
@@ -373,7 +373,7 @@ export default function NexusPage() {
     <div className="flex flex-col overflow-hidden bg-white h-[calc(100vh/var(--ui-zoom)-var(--top-nav-h))] text-trs-ink">
       {/* ── Header ── */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5 flex-shrink-0 bg-white border-b border-trs-line">
-        <h1 className="m-0 text-title font-medium leading-none text-trs-ink">Case review</h1>
+        <h1 className="m-0 text-title font-semibold leading-none text-trs-ink">Case review</h1>
         <Btn level="primary" onClick={() => setCreateOpen(true)}>
           New case
         </Btn>
@@ -526,7 +526,7 @@ function CreateCaseModal({ onCreate, onClose, prefillCompany }: {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3">
-          <h2 className="m-0 text-heading font-medium text-trs-ink">New case</h2>
+          <h2 className="m-0 text-heading font-semibold text-trs-ink">New case</h2>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0">
             <X size={15} />
           </Btn>
@@ -988,11 +988,11 @@ function MissionHeader({
                 onBlur={onSaveTitle}
                 autoFocus
                 aria-label="Case name"
-                className={cn(inputCls, 'text-heading font-medium h-11 max-w-[520px]')}
+                className={cn(inputCls, 'text-heading font-semibold h-11 max-w-[520px]')}
               />
             ) : (
               <>
-                <h2 className="m-0 text-heading font-medium truncate text-trs-ink">{caseData.name}</h2>
+                <h2 className="m-0 text-heading font-semibold truncate text-trs-ink">{caseData.name}</h2>
                 <Btn level="tertiary" size="xs" onClick={onStartEditTitle} title="Rename case" aria-label="Rename case" className="flex-shrink-0 w-8 px-0 text-trs-subtle">
                   <Pencil size={13} strokeWidth={2} />
                 </Btn>
@@ -1330,7 +1330,7 @@ function SectionLabel({
 }) {
   return (
     <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-      <h2 className="m-0 text-heading font-medium leading-tight text-trs-ink">
+      <h2 className="m-0 text-heading font-semibold leading-tight text-trs-ink">
         {title}
         {count !== undefined && <span className="ml-2 text-body font-normal tabular-nums text-trs-subtle">{count}</span>}
       </h2>
@@ -1361,7 +1361,7 @@ function CitationChip({ id, citations }: { id: string; citations: V1Citation[] }
   const label = c.label.length > 18 ? c.label.slice(0, 18) + '…' : c.label
   // v1.1: cited facts resolve to a real message/attachment → link to the source thread.
   const href = c.thread_id ? `/engagement?lead=${c.thread_id}` : null
-  const cls = 'inline-flex items-center rounded px-1.5 py-0.5 text-small font-medium align-middle no-underline whitespace-nowrap bg-trs-field text-trs-ink-2'
+  const cls = 'inline-flex items-center rounded px-1.5 py-0.5 text-small align-middle no-underline whitespace-nowrap bg-trs-field text-trs-muted'
   if (href) return (
     <a href={href} onClick={e => e.stopPropagation()} title={`${c.excerpt ?? c.label}. Opens the source.`} className={cn(cls, 'hover:underline')}>
       {label}
@@ -1423,7 +1423,7 @@ function ExecBriefCard({ analysis, sa }: { analysis: CaseAnalysis; sa: NexusAnal
             <div className="flex flex-wrap gap-3">
               {pendingRows.map(([party, item]) => (
                 <div key={party} className={cn('flex flex-col gap-1 px-4 py-3 rounded flex-1 min-w-[200px]', partyField(party))}>
-                  <span className="text-small font-medium text-trs-muted">{partyLabel(party)}</span>
+                  <span className="text-small text-trs-muted">{partyLabel(party)}</span>
                   <p className="m-0 text-body leading-[1.5] text-trs-ink-2">{item as string}</p>
                 </div>
               ))}
@@ -1568,7 +1568,7 @@ function StakeholderMapSection({
               {sortedGroups.map(([g, rs]) => (
                 <Fragment key={g}>
                   <tr>
-                    <td colSpan={4} className="cell-left text-small font-medium text-trs-muted">
+                    <td colSpan={4} className="cell-left text-small text-trs-muted">
                       {partyLabel(g)} <span className="tabular-nums text-trs-subtle">{rs.length}</span>
                     </td>
                   </tr>
@@ -2530,7 +2530,7 @@ function RunHistoryView({
               {run.run_status === 'failed' && run.error_message && (
                 <div className="mb-2.5 px-4 py-3 rounded bg-trs-field">
                   <GroupLabel className="mb-1">Error</GroupLabel>
-                  <p className="m-0 text-small font-mono leading-[1.5] break-all text-trs-ink-2">{run.error_message}</p>
+                  <p className="m-0 text-small font-mono leading-[1.5] break-all text-trs-muted">{run.error_message}</p>
                 </div>
               )}
 
@@ -2556,7 +2556,7 @@ function RunHistoryView({
             {/* Raw JSON viewer */}
             {isExpanded && rawJson[run.id] && (
               <div className="border-t border-trs-line bg-trs-tint">
-                <pre className="m-0 px-5 py-3 text-small leading-relaxed overflow-x-auto max-h-96 font-mono text-trs-ink-2">
+                <pre className="m-0 px-5 py-3 text-small leading-relaxed overflow-x-auto max-h-96 font-mono text-trs-muted">
                   {rawJson[run.id]}
                 </pre>
               </div>
@@ -2596,7 +2596,7 @@ function AnalysisMetadataCard({ meta }: { meta: AnalysisMetadata }) {
         onClick={() => setOpen(v => !v)}
         className={cn(ROW_TOGGLE, 'gap-3 px-5 py-3.5 hover:bg-transparent')}
       >
-        <span className="text-heading font-medium text-trs-ink">
+        <span className="text-heading font-semibold text-trs-ink">
           Analysis metadata
           {(meta.truncation_flags?.length ?? 0) > 0 && (
             <span className="ml-2 text-body font-normal tabular-nums text-trs-subtle">{meta.truncation_flags.length} flag{meta.truncation_flags.length > 1 ? 's' : ''}</span>
@@ -2713,7 +2713,7 @@ function ThreadsOverviewCard({
             {threads.slice(0, 5).map(ct => {
               const name = ct.thread?.contact ? contactName(ct.thread.contact) : ct.party_label ?? ct.party_type
               return (
-                <span key={ct.id} className={cn('inline-flex items-center rounded px-2 py-0.5 text-small font-medium whitespace-nowrap leading-4 text-trs-ink-2', partyField(ct.party_type))}>
+                <span key={ct.id} className={cn('inline-flex items-center rounded px-2 py-0.5 text-small whitespace-nowrap leading-4 text-trs-muted', partyField(ct.party_type))}>
                   {name.length > 16 ? name.slice(0, 16) + '…' : name}
                 </span>
               )
@@ -2904,12 +2904,12 @@ function AttachmentCoverageCard({
         <div className="flex items-center gap-6 flex-wrap">
           <dl className="m-0 flex items-center gap-6">
             <div>
-              <dd className="m-0 text-title font-medium tabular-nums leading-none text-trs-ink">{ext}</dd>
+              <dd className="m-0 text-title font-semibold tabular-nums leading-none text-trs-ink">{ext}</dd>
               <dt className="m-0 text-small mt-1 text-trs-muted">Extracted</dt>
             </div>
             {pendingThreads.length > 0 && (
               <div>
-                <dd className="m-0 text-title font-medium tabular-nums leading-none text-trs-ink">{pendingThreads.length}</dd>
+                <dd className="m-0 text-title font-semibold tabular-nums leading-none text-trs-ink">{pendingThreads.length}</dd>
                 <dt className="m-0 text-small mt-1 text-trs-muted">Pending</dt>
               </div>
             )}
@@ -3469,7 +3469,7 @@ function ThreadLinkerModal({
 
   const groupRow = (label: string, count?: number) => (
     <tr>
-      <td colSpan={5} className="cell-left text-small font-medium text-trs-muted">
+      <td colSpan={5} className="cell-left text-small text-trs-muted">
         {label}{count !== undefined && <span className="ml-1.5 tabular-nums text-trs-subtle">{count}</span>}
       </td>
     </tr>
@@ -3556,7 +3556,7 @@ function ThreadLinkerModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-4 flex-shrink-0">
-          <h2 className="m-0 text-heading font-medium text-trs-ink">Link threads</h2>
+          <h2 className="m-0 text-heading font-semibold text-trs-ink">Link threads</h2>
           <Btn level="tertiary" size="xs" onClick={onClose} aria-label="Close" className="w-8 px-0">
             <X size={15} />
           </Btn>

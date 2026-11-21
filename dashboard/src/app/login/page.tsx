@@ -32,9 +32,9 @@ function LoginCard() {
         {/* Wordmark */}
         <div className="mb-8 text-center">
           <div className="inline-flex items-center justify-center rounded mb-4 w-12 h-12 bg-trs-ink">
-            <span className="text-white text-heading font-medium">TRS</span>
+            <span className="text-white text-heading font-semibold">TRS</span>
           </div>
-          <h1 className="m-0 text-title font-medium leading-tight text-trs-ink">
+          <h1 className="m-0 text-title font-semibold leading-tight text-trs-ink">
             Trade Risk Solutions
           </h1>
           <p className="m-0 mt-1.5 text-body text-trs-muted">Internal dashboard</p>

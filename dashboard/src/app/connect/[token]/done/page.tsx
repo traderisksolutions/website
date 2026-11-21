@@ -19,7 +19,7 @@ export default function DonePage() {
     return (
       <div className="hrc-done">
         <div className="hrc-tick" aria-hidden>✓</div>
-        <h1 className="text-title">Received. Thank you{submission?.submitted_by_name ? `, ${submission.submitted_by_name}` : ''}.</h1>
+        <h1 className="text-title font-semibold">Received. Thank you{submission?.submitted_by_name ? `, ${submission.submitted_by_name}` : ''}.</h1>
         <p className="hrc-sub">
           {submission ? `${countLine(submission.employee_count, submission.dependant_count)} for reference ${link.reference} were sent to Trade Risk Solutions${submission.consent_at ? ` at ${fmtStamp(submission.consent_at)}` : ''}.` : `The list for reference ${link.reference} was sent to Trade Risk Solutions.`}
           {' '}A copy of this confirmation has been emailed to you. Trade Risk Solutions will be in touch with the quotations.

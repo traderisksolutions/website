@@ -143,7 +143,7 @@ function EmailPreview({ company, recipientName, recipientEmail, cc, message, eff
         {cc.trim() && <div>Cc: {cc.trim()}</div>}
         <div>Subject: Employee list for {shortCompany}&apos;s group benefits quotation · ref GB-{new Date().getFullYear()}-NNNN</div>
       </div>
-      <div className="text-small font-semibold mb-3 text-trs-green" >TRADE RISK SOLUTIONS <span className="font-normal text-trs-muted" >· Reference GB-{new Date().getFullYear()}-NNNN</span></div>
+      <div className="text-small mb-3 text-trs-green" >TRADE RISK SOLUTIONS <span className="font-normal text-trs-muted" >· Reference GB-{new Date().getFullYear()}-NNNN</span></div>
       {message.split(/\n{2,}/).map((p, i) => <p key={i} className="m-0 mb-3 whitespace-pre-wrap">{p}</p>)}
       <p className="m-0 mb-1 font-medium text-trs-ink" >What we ask for</p>
       <ul className="m-0 mb-3 pl-5">

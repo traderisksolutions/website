@@ -381,7 +381,7 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
               <ul className="m-0 mt-1 p-0 list-none flex flex-col gap-1">
                 {r.recipients.map(p => (
                   <li key={p.dispatchId} className="flex items-start justify-between gap-2">
-                    <span className="min-w-0 text-small text-trs-ink-2">
+                    <span className="min-w-0 text-small text-trs-muted">
                       <span className="block truncate">{p.person ? `${p.person} · ` : ''}{p.insurer}</span>
                       <span className="block truncate text-trs-muted">{p.email || 'No address on file'}</span>
                     </span>

@@ -62,7 +62,7 @@ export function RetrievalSourcesPanel({ sources, gdocNames, generatedBy }: Retri
             <div key={s.file_name} className="flex items-start gap-1.5 px-2 py-1.5 bg-trs-field rounded">
               <FileText size={9} strokeWidth={2} className="text-trs-subtle mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-small font-medium text-trs-ink-2 truncate m-0 leading-snug">
+                <p className="text-small text-trs-muted truncate m-0 leading-snug">
                   {s.file_name}
                 </p>
                 <p className="text-small text-trs-subtle m-0">
@@ -79,7 +79,7 @@ export function RetrievalSourcesPanel({ sources, gdocNames, generatedBy }: Retri
           {gdocNames.map((name, i) => (
             <div key={i} className="flex items-center gap-1.5 px-2 py-1.5 bg-trs-field rounded">
               <FileText size={9} strokeWidth={2} className="text-trs-subtle flex-shrink-0" />
-              <p className="text-small text-trs-ink-2 truncate m-0">{name}</p>
+              <p className="text-small text-trs-muted truncate m-0">{name}</p>
             </div>
           ))}
         </div>

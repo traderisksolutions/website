@@ -124,7 +124,7 @@ function InboundLeadsPage() {
       <div className="flex-shrink-0 px-6 sm:px-12 pt-10">
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-title font-medium leading-[1.08]">Inbound leads</h1>
+            <h1 className="m-0 text-title font-semibold leading-[1.08]">Inbound leads</h1>
             <p className="m-0 mt-2 text-body text-trs-muted">
               {loading ? 'Loading…' : `${leads.length} lead${leads.length !== 1 ? 's' : ''} from website forms, email and WhatsApp · ${totalNew} new`}
             </p>
@@ -192,11 +192,11 @@ function InboundLeadsPage() {
               ))}
             </div>
           ) : error ? (
-            <p className="py-16 text-center text-heading m-0 text-trs-muted">
-              {error} <Btn level="tertiary" size="xs" onClick={() => load(true)} className="h-auto px-0 border-0 font-normal underline text-heading text-trs-ink hover:bg-transparent">Retry</Btn>
+            <p className="py-16 text-center text-body m-0 text-trs-muted">
+              {error} <Btn level="tertiary" size="xs" onClick={() => load(true)} className="h-auto px-0 border-0 font-semibold underline text-heading text-trs-ink hover:bg-transparent">Retry</Btn>
             </p>
           ) : filtered.length === 0 ? (
-            <p className="py-16 text-center text-heading m-0 text-trs-muted">
+            <p className="py-16 text-center text-body m-0 text-trs-muted">
               {search ? `No leads match “${search}”.` : 'No leads yet.'}
             </p>
           ) : (
