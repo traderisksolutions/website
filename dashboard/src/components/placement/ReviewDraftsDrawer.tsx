@@ -17,6 +17,7 @@ import { callApi, errText } from './shared'
 import { companyDrafts } from '@/app/companies/[id]/actions'
 import { movementsSent } from '@/app/policies/actions'
 import { unwrap } from '@/lib/action-result'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 const LAYOUT_KEY = 'trs.drafts.layout'
@@ -215,10 +216,10 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
       draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null,
       rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? item.subject,
     }
-    if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
+    if (item.kind === 'request') await callPlacements('/api/placements/dispatches/sent', { method: 'POST', body: ids })
     if (item.kind === 'movement') unwrap(await movementsSent(ids))
-    if (item.kind === 'client') await callApi('/api/placements/shares/sent', { method: 'POST', body: ids })
-    if (item.kind === 'confirm') await callApi('/api/placements/confirm/sent', { method: 'POST', body: ids })
+    if (item.kind === 'client') await callPlacements('/api/placements/shares/sent', { method: 'POST', body: ids })
+    if (item.kind === 'confirm') await callPlacements('/api/placements/confirm/sent', { method: 'POST', body: ids })
   }
 
   /** A single-recipient draft (chase, client, movement, or a request already fanned out). */
@@ -249,7 +250,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
     setItem(item.draft.id, { state: { phase: 'sending' }, recipients: Object.fromEntries(item.dispatches.map(d => [d.id, { phase: 'queued' }])) })
     let clones: FanoutClone[]
     try {
-      clones = (await callApi<{ clones: FanoutClone[] }>(`/api/placements/drafts/${item.draft.id}/fanout`, { method: 'POST', body: { subject: item.subject, body: htmlToDraftText(item.html) } })).clones
+      clones = (await callPlacements<{ clones: FanoutClone[] }>(`/api/placements/drafts/${item.draft.id}/fanout`, { method: 'POST', body: { subject: item.subject, body: htmlToDraftText(item.html) } })).clones
     } catch (e) {
       setItem(item.draft.id, { state: { phase: 'error', message: errText(e) }, recipients: {} })
       onChanged()

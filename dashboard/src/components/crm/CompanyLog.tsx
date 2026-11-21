@@ -9,6 +9,7 @@ import { threadHref } from '@/lib/placement/position'
 import { callApi, errText } from '@/components/placement/shared'
 import type { ActivityEvent, ActivityKind } from '@/lib/crm/types'
 import type { LogKind, Placement, PlacementBundle } from '@/lib/placement/types'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const PAGE = 100
 
@@ -54,7 +55,7 @@ export function CompanyLog({ bundle, events, onChanged }: {
     if (!target || !text.trim()) return
     setBusy(true); setError(null)
     try {
-      await callApi(`/api/placements/${target.id}/log`, { method: 'POST', body: { kind, text: text.trim() } })
+      await callPlacements(`/api/placements/${target.id}/log`, { method: 'POST', body: { kind, text: text.trim() } })
       setText('')
       onChanged()
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }

@@ -17,6 +17,7 @@ import { fmtDate, num, fmtDateTime } from '@/lib/format'
 import { CLIENT_STAGES, INSURER_STAGES, REQUEST_TYPES, daysTo, type ClientStage, type InsurerStage } from '@/lib/placement/working'
 import { AddFromEmails } from './AddFromEmails'
 import { working } from '@/app/policies/actions'
+import { placementsFetch } from '@/lib/placement/fetch'
 
 export type WorkingRow = {
   line_id: string; placement_id: string; policy_id: string | null; company_id: string; company_name: string
@@ -73,7 +74,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
   }, [rows, company])
 
   async function patch(r: WorkingRow, body: Record<string, unknown>, words: string) {
-    const res = await fetch(`/api/placements/lines/${r.line_id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    const res = await placementsFetch(`/api/placements/lines/${r.line_id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     if (!res.ok) { const j = await res.json().catch(() => ({})); setNote(<span className="text-trs-neg">{j.error ?? 'Could not save'}</span>); return false }
     setNote(<span className="text-trs-pos">✓ Saved · {words} · {fmtDateTime(new Date().toISOString())}</span>)
     await load(); return true
@@ -139,7 +140,7 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
     setAdding(null); setOpen(o => ({ ...o, ...Object.fromEntries(cos.map(c => [c, true])) })); await load()
     setNote(<span className="inline-flex items-center gap-3"><span className="text-trs-pos">✓ Added {n} {n === 1 ? 'policy' : 'policies'} · {fmtDateTime(new Date().toISOString())}</span>
       <Btn level="tertiary" size="xs" onClick={async () => {
-        await Promise.all(lineIds.map(id => fetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
+        await Promise.all(lineIds.map(id => placementsFetch(`/api/placements/lines/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'dropped' }) })))
         setNote(<span className="text-trs-muted">Undone · {n} {n === 1 ? 'policy' : 'policies'} taken off the list</span>); await load()
       }}>Undo</Btn></span>)
   }

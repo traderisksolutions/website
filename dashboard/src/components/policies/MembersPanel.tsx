@@ -18,6 +18,7 @@ import {
 } from './types'
 import { unwrap } from '@/lib/action-result'
 import { addMovement, addTransaction, billTransaction, requestEndorsement } from '@/app/policies/actions'
+import { callPlacements } from '@/lib/placement/fetch'
 
 const QUOTING = new Set(['quoting', 'presented'])
 
@@ -334,7 +335,7 @@ function AskTierCDialog({ open, lineId, productLine, onClose, onDone }: {
   async function draft() {
     setBusy(true); setError(null)
     try {
-      const d = await callApi<{ dispatches: unknown[]; drafts: number; unrouted: string[] }>(`/api/placements/lines/${lineId}/tier-c`, { method: 'POST', body: { contact_ids: picks ? [...picks] : undefined } })
+      const d = await callPlacements<{ dispatches: unknown[]; drafts: number; unrouted: string[] }>(`/api/placements/lines/${lineId}/tier-c`, { method: 'POST', body: { contact_ids: picks ? [...picks] : undefined } })
       onDone(Array.isArray(d.unrouted) ? d.unrouted : [])
       onClose()
     } catch (e) { setError(errText(e)); setBusy(false) }
@@ -381,7 +382,7 @@ export function UploadListDialog({ open, lineId, onClose, onDone }: { open: bool
       const census = read.census ?? []
       if (census.length === 0) throw new Error('No employees were read from that file.')
       setBusy('pricing')
-      const priced = await callApi<{ quotation_id: string; quotes: unknown[]; partial: boolean; notes: string[] }>(`/api/placements/lines/${lineId}/price`, { method: 'POST', body: { census, basis } })
+      const priced = await callPlacements<{ quotation_id: string; quotes: unknown[]; partial: boolean; notes: string[] }>(`/api/placements/lines/${lineId}/price`, { method: 'POST', body: { census, basis } })
       const r = { count: census.length, issues: (read.issues ?? []).map(String), quotes: priced.quotes?.length ?? 0, partial: !!priced.partial, notes: priced.notes ?? [] }
       setResult(r)
       onDone({ count: r.count, quotes: r.quotes })
@@ -445,7 +446,7 @@ export function SendHrLinkDialog({ open, lineId, onClose, onDone }: { open: bool
     if (cc.trim() && !EMAIL_OK(cc)) { setError('Copy email is not a valid address.'); return }
     setBusy(true); setError(null)
     try {
-      const d = await callApi<{ link: unknown; url: string; mailError?: string }>(`/api/placements/lines/${lineId}/hr-link`, {
+      const d = await callPlacements<{ link: unknown; url: string; mailError?: string }>(`/api/placements/lines/${lineId}/hr-link`, {
         method: 'POST', body: { recipient_name: name.trim(), recipient_email: email.trim(), cc_email: cc.trim() || undefined, message: message.trim() || undefined },
       })
       setSent({ url: d.url, mailError: d.mailError })

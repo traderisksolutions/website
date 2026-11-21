@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { callApi, errText } from './shared'
 import { UploadListDialog, SendHrLinkDialog } from '@/components/policies/MembersPanel'
 import { CustomRatesDialog } from './CustomRatesDialog'
+import { callPlacements } from '@/lib/placement/fetch'
 
 /** Lines the employment-benefits rate engine prices from an employee list. */
 const EB_LINES = new Set(['employee_benefits', 'group_health'])
@@ -79,7 +80,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
     setBusy(key); setError(null)
     try { await fn(); onChanged(); after?.() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  const tiersApi = (body: Record<string, unknown>) => callApi(`/api/placements/lines/${lineId}/tiers`, { method: 'POST', body })
+  const tiersApi = (body: Record<string, unknown>) => callPlacements(`/api/placements/lines/${lineId}/tiers`, { method: 'POST', body })
   const addOptions = () => {
     const labels = draft.split(/[,;]/).map(s => s.trim()).filter(Boolean)
     if (labels.length === 0) return
@@ -88,7 +89,7 @@ export function ComparisonGrid({ pos, policy, shared, leftOut, onToggleEmail, on
   const ask = () => run('ask', () => tiersApi({ ask: true }), onOpenDrafts)
   const drop = (tierId: string) => run(tierId, () => tiersApi({ drop: [tierId] }))
   // The client chose it: the confirmation to that insurer is drafted; sending it binds the policy.
-  const pick = (quoteId: string) => run(quoteId, () => callApi<{ draftId: string | null }>(`/api/placements/quotes/${quoteId}/pick`, { method: 'POST' }), onOpenDrafts)
+  const pick = (quoteId: string) => run(quoteId, () => callPlacements<{ draftId: string | null }>(`/api/placements/quotes/${quoteId}/pick`, { method: 'POST' }), onOpenDrafts)
   const bound = pos.line.status === 'bound' || pos.line.status === 'done'
 
   const nOpt = grid.options.length

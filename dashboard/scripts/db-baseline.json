@@ -203,42 +203,6 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/placements/[id]/log/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/auto/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/dispatches/[id]/quote/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/dispatches/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/placements/line-texts/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/placements/lines/[id]/request/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/placements/lines/[id]/route.ts": {
-  "sb": 6,
-  "fetch": 0
- },
- "src/app/api/placements/prefill/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/app/api/policies/[id]/members/route.ts": {
   "sb": 1,
   "fetch": 0
@@ -949,6 +913,42 @@
  },
  "src/lib/placement/eb.ts": {
   "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/auto.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/dispatches-id-quote.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/dispatches-id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/id-log.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/line-texts.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/lines-id-request.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/lines-id.ts": {
+  "sb": 6,
+  "fetch": 0
+ },
+ "src/lib/placement/handlers/prefill.ts": {
+  "sb": 1,
   "fetch": 0
  },
  "src/lib/placement/quote-read.ts": {
