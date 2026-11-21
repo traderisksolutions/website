@@ -15,6 +15,8 @@ import type { PlacementBundle, PlacementDispatch } from '@/lib/placement/types'
 import type { PolicyMovement, PolicyView } from '@/components/policies/types'
 import { callApi, errText } from './shared'
 import { companyDrafts } from '@/app/companies/[id]/actions'
+import { movementsSent } from '@/app/policies/actions'
+import { unwrap } from '@/lib/action-result'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 const LAYOUT_KEY = 'trs.drafts.layout'
@@ -214,7 +216,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
       rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? item.subject,
     }
     if (item.kind === 'request') await callApi('/api/placements/dispatches/sent', { method: 'POST', body: ids })
-    if (item.kind === 'movement') await callApi('/api/policies/movements/sent', { method: 'POST', body: ids })
+    if (item.kind === 'movement') unwrap(await movementsSent(ids))
     if (item.kind === 'client') await callApi('/api/placements/shares/sent', { method: 'POST', body: ids })
     if (item.kind === 'confirm') await callApi('/api/placements/confirm/sent', { method: 'POST', body: ids })
   }

@@ -4,7 +4,7 @@
  * Policies › Working on (19 Nov 2026, the Workbench revamp): one row per client with the number of
  * policies TRS is working on; opening a client lists them, each linked to its email thread, with
  * Existing, renewal, previous premium and the two stages a person can set. Add from emails puts new
- * ones on the list; Remove asks first. Reads /api/placements/working; writes /api/placements/lines/[id].
+ * ones on the list; Remove asks first. Reads working() (src/app/policies/actions.ts); writes /api/placements/lines/[id].
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -16,6 +16,7 @@ import { useConfirm } from '@/components/ui/confirm'
 import { fmtDate, num, fmtDateTime } from '@/lib/format'
 import { CLIENT_STAGES, INSURER_STAGES, REQUEST_TYPES, daysTo, type ClientStage, type InsurerStage } from '@/lib/placement/working'
 import { AddFromEmails } from './AddFromEmails'
+import { working } from '@/app/policies/actions'
 
 export type WorkingRow = {
   line_id: string; placement_id: string; policy_id: string | null; company_id: string; company_name: string
@@ -59,10 +60,9 @@ export function WorkingOn({ filters, company }: { filters?: React.ReactNode; com
   const confirm = useConfirm()
 
   const load = useCallback(async () => {
-    const r = await fetch('/api/placements/working', { cache: 'no-store' })
-    const j = await r.json().catch(() => ({}))
-    if (!r.ok) { setError(j.error ?? 'Could not load the policies being worked on'); return }
-    setRows(j.rows); setError(null)
+    const r = await working()
+    if (!r.ok) { setError(r.error); return }
+    setRows(r.data.rows as typeof rows); setError(null)
   }, [])
   useEffect(() => { void load() }, [load])
 

@@ -17,6 +17,8 @@ import { bucketOf as bucket, type RegisterRow, type Bucket } from '@/lib/admin/b
 import { WebsiteForms } from './website-forms'
 import { createClient } from '@/lib/supabase/client'
 import { ClaimsTabs } from '@/components/claims/ClaimsTabs'
+import { unwrap } from '@/lib/action-result'
+import { claim, claimAction, claimsRegister, openClaim } from './actions'
 
 type View = Bucket | 'forms'
 type Who = 'mine' | 'all'
@@ -57,7 +59,7 @@ export default function ClaimsPage() {
   const detailRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(() => {
-    callApi<{ claims: RegisterRow[] }>('/api/claims/register').then(d => { setRows(d.claims); setError(null) }).catch(e => setError(errText(e)))
+    claimsRegister().then(unwrap).then(claims => { setRows(claims as unknown as RegisterRow[]); setError(null) }).catch(e => setError(errText(e)))
   }, [])
   useEffect(() => { load() }, [load])
   useEffect(() => { void createClient().auth.getUser().then(({ data }) => setMe(data.user?.email?.toLowerCase() ?? null)) }, [])
@@ -183,7 +185,7 @@ function NewClaim({ onDone, onCancel }: { onDone: (id: string) => void; onCancel
   const [err, setErr] = useState<string | null>(null)
   async function save() {
     setBusy(true); setErr(null)
-    try { const { id } = await callApi<{ id: string }>('/api/claims/register', { method: 'POST', body: { title, insurer_name: insurer, policy_number: policy } }); onDone(id) }
+    try { const { id } = unwrap(await openClaim({ title, insurer_name: insurer, policy_number: policy })); onDone(id) }
     catch (e) { setErr(errText(e)) } finally { setBusy(false) }
   }
   return (
@@ -207,7 +209,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
   const [d, setD] = useState<ClaimDetail | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [outcome, setOutcome] = useState(false)
-  const load = useCallback(() => { setErr(null); callApi<ClaimDetail>(`/api/claims/${id}`).then(setD).catch(e => setErr(errText(e))) }, [id])
+  const load = useCallback(() => { setErr(null); claim(id).then(unwrap).then(d => setD(d as unknown as ClaimDetail)).catch(e => setErr(errText(e))) }, [id])
   useEffect(() => { setD(null); setOutcome(false); load() }, [load])
 
   if (err) return <p className="m-0 text-body text-trs-neg">{err}</p>
@@ -235,7 +237,7 @@ function Detail({ id, onChanged, onError }: { id: string; onChanged: (msg: strin
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Btn level="tertiary" onClick={() => void callApi(`/api/claims/${id}`, { method: 'POST', body: { action: 'refresh' } }).then(() => onChanged('Re-read queued.')).catch(e => onError(errText(e)))}>Re-read</Btn>
+          <Btn level="tertiary" onClick={() => void claimAction(id, { action: 'refresh' }).then(unwrap).then(() => onChanged('Re-read queued.')).catch(e => onError(errText(e)))}>Re-read</Btn>
           {!r.closed && <Btn level="secondary" onClick={() => setOutcome(o => !o)}>Record outcome</Btn>}
         </div>
       </div>
@@ -323,7 +325,7 @@ function Outcome({ id, onDone }: { id: string; onDone: () => void }) {
   const [err, setErr] = useState<string | null>(null)
   async function save() {
     setBusy(true); setErr(null)
-    try { await callApi(`/api/claims/${id}`, { method: 'POST', body: { action: 'outcome', stage, amount_settled: stage === 'settled' ? amount : null } }); onDone() }
+    try { unwrap(await claimAction(id, { action: 'outcome', stage, amount_settled: stage === 'settled' ? amount : null })); onDone() }
     catch (e) { setErr(errText(e)) } finally { setBusy(false) }
   }
   return (

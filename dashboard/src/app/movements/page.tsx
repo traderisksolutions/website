@@ -11,8 +11,10 @@ import { Btn, Chip, Segmented, Spinner, Empty } from '@/components/crm/primitive
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
 import { callApi, errText, INK, MUTED, ERROR } from '@/components/placement/shared'
 import { fmtDate } from '@/lib/format'
-import type { MovementBatch, MovementStage } from '@/app/api/policies/movements/route'
+import type { MovementBatch, MovementStage } from '@/lib/policies/movement-batches'
 import { money } from '@/lib/format'
+import { unwrap } from '@/lib/action-result'
+import { billTransaction, movements } from '@/app/policies/actions'
 
 const STAGE: Record<MovementStage, string> = { held: 'Awaiting date', to_send: 'To send', insurer: 'With insurer', to_bill: 'To bill', billed: 'Awaiting payment' }
 const counts = (b: MovementBatch) => [b.joins ? `+${b.joins}` : null, b.leaves ? `−${b.leaves}` : null, b.changes ? `${b.changes} change${b.changes === 1 ? '' : 's'}` : null].filter(Boolean).join('  ')
@@ -25,7 +27,7 @@ export default function MovementsPage() {
   const [notice, setNotice] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    callApi<{ batches: MovementBatch[] }>('/api/policies/movements').then(d => setRows(d.batches)).catch(e => setError(errText(e)))
+    movements().then(unwrap).then(d => setRows(d.batches)).catch(e => setError(errText(e)))
   }, [])
   useEffect(() => { load() }, [load])
 
@@ -33,7 +35,7 @@ export default function MovementsPage() {
     if (!b.transaction_id) return
     setBusy(b.key); setError(null); setNotice(null)
     try {
-      await callApi(`/api/policies/transactions/${b.transaction_id}/bill`, { method: 'POST', body: {} })
+      unwrap(await billTransaction(b.transaction_id!))
       setNotice(`${b.company_name}: the insurer note is in Debit notes for review.`)
       load()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }

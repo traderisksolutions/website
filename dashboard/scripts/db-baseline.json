@@ -47,14 +47,6 @@
   "sb": 4,
   "fetch": 16
  },
- "src/app/api/claims/[id]/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/claims/register/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
  "src/app/api/companies/threads/search/route.ts": {
   "sb": 1,
   "fetch": 0
@@ -327,24 +319,8 @@
   "sb": 1,
   "fetch": 0
  },
- "src/app/api/placements/working/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/app/api/policies/[id]/members/route.ts": {
   "sb": 1,
-  "fetch": 0
- },
- "src/app/api/policies/[id]/movements/request/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/policies/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/policies/movements/route.ts": {
-  "sb": 4,
   "fetch": 0
  },
  "src/app/api/public/hr/[token]/submit/route.ts": {
@@ -1011,6 +987,10 @@
   "sb": 7,
   "fetch": 0
  },
+ "src/lib/placement/working-rows.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
  "src/lib/policies/expire.ts": {
   "sb": 2,
   "fetch": 0
@@ -1029,6 +1009,10 @@
  },
  "src/lib/policies/members.ts": {
   "sb": 10,
+  "fetch": 0
+ },
+ "src/lib/policies/movement-batches.ts": {
+  "sb": 4,
   "fetch": 0
  },
  "src/lib/policies/movement-flow.ts": {

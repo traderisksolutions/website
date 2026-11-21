@@ -18,6 +18,8 @@ import type { DerivedPaymentStatus, PaymentDerived } from '@/lib/crm/types'
 import { MembersPanel } from './MembersPanel'
 import { fmtAmount, lifecycleWord, type PolicyView, type SpineQuote } from './types'
 import { byRenewal, renewsIn } from '@/lib/companies/policy-order'
+import { unwrap } from '@/lib/action-result'
+import { choosePolicy, updatePolicy } from '@/app/policies/actions'
 
 type Section = 'quotes' | 'employees' | 'dns'
 const PAY_WORD: Record<DerivedPaymentStatus, string> = { paid: 'Paid', partial: 'Part paid', unpaid: 'Unpaid', overdue: 'Overdue' }
@@ -75,7 +77,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
   async function choose(p: PolicyView, quoteId: string) {
     setBusy(quoteId); setErr(p.id, null)
     try {
-      await callApi(`/api/policies/${p.id}/choose`, { method: 'POST', body: { quote_id: quoteId } })
+      unwrap(await choosePolicy(p.id, quoteId))
       onChanged()
     } catch (e) { setErr(p.id, errText(e)) } finally { setBusy(null) }
   }
@@ -83,7 +85,7 @@ export function PoliciesRegister({ policies, bundle, onChanged, title = 'Policie
   async function setLifecycle(p: PolicyView, lifecycle: 'closed' | 'declined') {
     setBusy(p.id); setErr(p.id, null)
     try {
-      await callApi(`/api/policies/${p.id}`, { method: 'PATCH', body: { lifecycle } })
+      unwrap(await updatePolicy(p.id, { lifecycle }))
       onChanged()
     } catch (e) { setErr(p.id, errText(e)) } finally { setBusy(null) }
   }
@@ -311,7 +313,7 @@ function MarkLiveDialog({ policy, onClose, onDone }: { policy: PolicyView | null
     if (!number.trim() || !start || !end) { setError('Policy number, start and end are required.'); return }
     setBusy(true); setError(null)
     try {
-      await callApi(`/api/policies/${policy.id}`, { method: 'PATCH', body: { lifecycle: 'live', policy_number: number.trim(), start_date: start, end_date: end } })
+      unwrap(await updatePolicy(policy.id, { lifecycle: 'live', policy_number: number.trim(), start_date: start, end_date: end }))
       onDone()
       onClose()
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
