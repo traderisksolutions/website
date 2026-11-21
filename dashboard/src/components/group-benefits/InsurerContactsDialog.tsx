@@ -12,6 +12,7 @@ import { normInsurer } from '@/lib/insurers'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
 import { contactsFor, loadInsurerContacts, type InsurerContact, type InsurerOption } from './InsurerEmailDialog'
+import { ebFetch } from '@/lib/gb/fetch'
 
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
@@ -49,7 +50,7 @@ export function InsurerContactsDialog({ open, insurer, onClose, onChanged }: {
   async function call(method: 'POST' | 'PATCH' | 'DELETE', body: Record<string, unknown>, tag: string) {
     setBusy(tag); setError(null)
     try {
-      const res = await fetch('/api/group-benefits/insurer-contacts', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      const res = await ebFetch('/api/group-benefits/insurer-contacts', { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const d = await res.json().catch(() => ({})) as { error?: string }
       if (!res.ok) { setError(d.error ?? `Not saved (${res.status}).`); return false }
       await load(); onChanged()

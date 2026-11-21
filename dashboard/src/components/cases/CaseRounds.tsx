@@ -20,6 +20,7 @@ import type { CaseRoundsView } from '@/lib/cases/rounds-store'
 import type { StepDrafted, StepsRun } from '@/lib/cases/rounds-draft'
 import { count, headingCls, subjectBtn } from './shared'
 import { Register } from '@/components/ui/register'
+import { callWork } from '@/lib/work/fetch'
 
 const STATE_TONE: Record<ChainState, StageTone> = { to_ask: 'amber', asked: 'neutral', heard: 'neutral', replied: 'amber', sent: 'green', declined: 'red' }
 const OUTSIDE: Writer[] = ['client', 'insurer']
@@ -42,7 +43,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
   const [busy, setBusy] = useState<string | null>(null)
   const [round, setRound] = useState<number | null>(null)
 
-  const load = useCallback(() => callApi<CaseRoundsView>(`/api/work/${id}/rounds`), [id])
+  const load = useCallback(() => callWork<CaseRoundsView>(`/api/work/${id}/rounds`), [id])
   useEffect(() => {
     setView(null); setFailed(null); setRound(null)
     load().then(setView).catch(e => setFailed(errText(e)))
@@ -54,7 +55,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
   async function draft(s: Step) {
     setBusy(s.id); onError(null)
     try {
-      const d = await callApi<CaseRoundsView & { made: StepDrafted }>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'draft', step: s.id } })
+      const d = await callWork<CaseRoundsView & { made: StepDrafted }>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'draft', step: s.id } })
       setView(d)
       onNotice(d.made.existing ? 'This step already has a draft. It is on Overview.' : `Draft to ${d.made.to} written. It is on Overview.`)
       onChanged()
@@ -63,7 +64,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
   async function run() {
     setBusy('run'); onError(null)
     try {
-      const d = await callApi<CaseRoundsView & { ran: StepsRun }>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'run' } })
+      const d = await callWork<CaseRoundsView & { ran: StepsRun }>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'run' } })
       setView(d)
       const { made, existing, skipped } = d.ran
       if (made || existing) onNotice([made ? `${count(made, 'draft')} written` : null, existing ? `${existing} already drafted` : null].filter(Boolean).join(', ') + '. On Overview.')
@@ -75,7 +76,7 @@ export function CaseRounds({ id, onOpenThread, onOpenDraft, onChanged, onNotice,
     const [by, move] = value === 'rule' ? [null, null] : value.split(':')
     setBusy(m.message_id); onError(null)
     try {
-      setView(await callApi<CaseRoundsView>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'move', message_id: m.message_id, by, move } }))
+      setView(await callWork<CaseRoundsView>(`/api/work/${id}/rounds`, { method: 'POST', body: { action: 'move', message_id: m.message_id, by, move } }))
       onNotice(by ? 'Email type set.' : 'Email handed back to the rule.')
       onChanged()
     } catch (e) { onError(errText(e)) } finally { setBusy(null) }

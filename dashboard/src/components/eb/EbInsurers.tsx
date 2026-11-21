@@ -13,6 +13,7 @@ import { SelectBox } from '@/components/ui/select-box'
 import { fmtDate } from '@/lib/format'
 import { INSURER_STATUSES, STAMP, STATUS_LABEL, type InsurerStatus, type TrackedInsurer } from '@/lib/gb/insurer-track'
 import type { PlacementQuote } from '@/lib/gb/insurer-track-store'
+import { ebFetch } from '@/lib/gb/fetch'
 
 const ROUTE_LABEL = { brochure: 'Brochure price', quote: 'Insurer to quote' } as const
 
@@ -25,7 +26,7 @@ export function EbInsurers({ id }: { id: string }) {
 
   const load = useCallback(async () => {
     try {
-      const r = await fetch(`/api/eb/quotations/${id}/insurers`, { cache: 'no-store' })
+      const r = await ebFetch(`/api/eb/quotations/${id}/insurers`, { cache: 'no-store' })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setError(d.error ?? `The insurers could not be read (${r.status}).`); return }
       setRows(d.insurers); setQuotes(d.placementQuotes ?? []); setError(null)
@@ -36,7 +37,7 @@ export function EbInsurers({ id }: { id: string }) {
   async function save(insurer: string, body: Record<string, unknown>) {
     setBusy(insurer); setError(null)
     try {
-      const r = await fetch(`/api/eb/quotations/${id}/insurers`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ insurer, ...body }) })
+      const r = await ebFetch(`/api/eb/quotations/${id}/insurers`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ insurer, ...body }) })
       const d = await r.json().catch(() => ({}))
       if (!r.ok) { setError(d.error ?? `Not saved (${r.status}).`); return false }
       setRows(cur => cur?.map(x => x.insurer === insurer ? d.insurer : x) ?? cur)

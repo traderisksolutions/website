@@ -42,11 +42,12 @@ test('TOD-043 links from the retired case list land on Today; /today/queue is go
 })
 
 test('TOD-044 Today that fails to load says so and offers Retry', async ({ page }) => {
-  await page.route('**/api/today/desk?*', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
-  await page.route('**/api/today/desk', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
-  await openClean(page, '/today')
-  await expect(page.getByRole('alert').getByText(/Today did not load/)).toBeVisible()
-  await page.unroute('**/api/today/desk?*'); await page.unroute('**/api/today/desk')
+  // Today's reads are a server action (21 Nov 2026): every action call fails until the route is lifted.
+  const fail = (r: import('@playwright/test').Route) => r.request().headers()['next-action'] ? r.fulfill({ status: 500, body: 'Test failure' }) : r.continue()
+  await page.route('**/today**', fail)
+  await page.goto('/today')
+  await expect(page.getByRole('alert').getByText(/Today did not load/)).toBeVisible({ timeout: 30_000 })
+  await page.unroute('**/today**', fail)
   await page.getByRole('button', { name: 'Retry' }).click()
   await expect(page.getByRole('radiogroup', { name: 'View' })).toBeVisible({ timeout: 30_000 })
 })

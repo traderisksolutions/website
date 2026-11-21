@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, RefreshCw, Loader2 } from 'lucide-react'
 import { Btn, btnClass } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell } from '@/components/ui/register'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Row = {
   driveFileId: string; insurer: string; planYear: string | null; filename: string; kind: string
@@ -40,7 +41,7 @@ export function SourceFilesTab() {
   async function load() {
     setBusy(true)
     try {
-      const r = await fetch('/api/group-benefits/sources', { cache: 'no-store' })
+      const r = await ebFetch('/api/group-benefits/sources', { cache: 'no-store' })
       setD(await r.json())
     } catch { setD({ configured: true, folderId: null, files: [], error: 'Could not reach the source folder.' }) }
     finally { setBusy(false) }

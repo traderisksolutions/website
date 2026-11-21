@@ -16,10 +16,11 @@ import {
   CELL_MAX, CURRENT, LABEL_MAX, METS, MET_NAME, NAME_MAX, NEED_NAME, OPTIONS_MAX, PREMIUM, REASON_MAX, ROWS_MAX,
   byNeed, changeText, isMet, offered, premiumLines, wishCounts, type CompareOption, type Comparison, type Met,
 } from '@/lib/cases/compare'
-import type { CompareAnswer } from '@/app/api/work/[id]/compare/route'
+import type { CompareAnswer } from '@/lib/work/handlers/id-compare'
 import { WishListDialog } from './WishListDialog'
 import { headingCls, selectCls } from './shared'
 import { Register } from '@/components/ui/register'
+import { callWork } from '@/lib/work/fetch'
 
 /** What a person typed and has not saved, by case: it survives a look at another section. */
 const drafts = new Map<string, Comparison>()
@@ -46,7 +47,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
 
   useEffect(() => {
     setView(null); setC(null); setFailed(null)
-    callApi<CompareAnswer>(`/api/work/${id}/compare`).then(v => {
+    callWork<CompareAnswer>(`/api/work/${id}/compare`).then(v => {
       const draft = drafts.get(id)
       setView(v); setC(draft ?? v.comparison); setDirty(!!draft)
     }).catch(e => setFailed(errText(e)))
@@ -90,7 +91,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
   async function save() {
     setBusy('save'); onError(null)
     try {
-      const v = await callApi<CompareAnswer>(`/api/work/${id}/compare`, { method: 'PUT', body: { comparison: c } })
+      const v = await callWork<CompareAnswer>(`/api/work/${id}/compare`, { method: 'PUT', body: { comparison: c } })
       drafts.delete(id)
       setView(v); setC(v.comparison); setDirty(false)
       onNotice('Comparison saved.')
@@ -119,7 +120,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
   async function closeWishes() {
     setWishing(false)
     try {
-      const v = await callApi<CompareAnswer>(`/api/work/${id}/compare`)
+      const v = await callWork<CompareAnswer>(`/api/work/${id}/compare`)
       setView(now => (now ? { ...now, wishes: v.wishes } : v))
       onChanged()
     } catch (e) { onError(errText(e)) }

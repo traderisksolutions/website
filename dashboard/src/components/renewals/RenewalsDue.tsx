@@ -14,13 +14,14 @@ import { fmtDate } from '@/lib/format'
 import { taskName } from '@/lib/renewals/pipeline'
 import type { DueTask } from '@/lib/renewals/pipeline-store'
 import { ownerName } from './bits'
+import { callRenewals } from '@/lib/renewals/fetch'
 
 export function RenewalsDue({ who }: { who: string }) {
   const router = useRouter()
   const [due, setDue] = useState<{ today: string; tasks: DueTask[] } | null>(null)
   useEffect(() => {
     if (!who) return
-    callApi<{ tables: boolean; today: string; tasks: DueTask[] }>(`/api/renewals/tasks?who=${encodeURIComponent(who)}`)
+    callRenewals<{ tables: boolean; today: string; tasks: DueTask[] }>(`/api/renewals/tasks?who=${encodeURIComponent(who)}`)
       .then(d => setDue(d.tables ? d : null)).catch(() => setDue(null))
   }, [who])
   if (!due?.tasks.length) return null

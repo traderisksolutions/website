@@ -17,6 +17,7 @@ import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { normInsurer } from '@/lib/insurers'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { HrModal } from './hr/HrModal'
+import { ebFetch } from '@/lib/gb/fetch'
 
 const EMAIL_OK = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
@@ -27,7 +28,7 @@ export type EbInsurer = { insurer: string; insurer_company_id: string }
 export type InsurerContactsResponse = { insurers?: InsurerOption[]; contacts?: InsurerContact[]; eb_insurers?: EbInsurer[]; error?: string }
 
 export async function loadInsurerContacts(): Promise<{ insurers: InsurerOption[]; contacts: InsurerContact[]; eb_insurers: EbInsurer[] }> {
-  const res = await fetch('/api/group-benefits/insurer-contacts', { cache: 'no-store' })
+  const res = await ebFetch('/api/group-benefits/insurer-contacts', { cache: 'no-store' })
   const d = await res.json().catch(() => ({})) as InsurerContactsResponse
   if (!res.ok) throw new Error(d.error ?? `Could not load insurer contacts (${res.status})`)
   return { insurers: d.insurers ?? [], contacts: d.contacts ?? [], eb_insurers: d.eb_insurers ?? [] }
@@ -129,7 +130,7 @@ export function InsurerEmailDialog({ open, onClose, initialInsurer, initialPlan,
     if (!EMAIL_OK(newEmail)) { setError('Email is not a valid address.'); return }
     setSaving(true); setError(null)
     try {
-      const res = await fetch('/api/group-benefits/insurer-contacts', {
+      const res = await ebFetch('/api/group-benefits/insurer-contacts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ insurer_company_id: insurer.id, name: newName.trim(), email: newEmail.trim() }),
       })

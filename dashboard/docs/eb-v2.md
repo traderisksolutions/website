@@ -275,6 +275,20 @@ Copy: say what something is and what it waits on. Name the person or insurer, gi
 
 Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry in `docs/changelog.md`, deploy only on Jarod's "ok deploy".
 
+### P7 status (21 Nov 2026)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G8 Microsoft folder watch | **Built, switched off** | src/lib/microsoft: client-credentials Graph app, delta read of one folder, files into the data room and the Drive tree. Needs MS_GRAPH=on, MS_TENANT_ID, MS_CLIENT_ID, MS_CLIENT_SECRET, MS_WATCH_DRIVE_ID (and MS_WATCH_FOLDER), and a schedule (docs/expenses.md). Not tested against a real tenant. |
+| G7 Drive drop folder | Not done | |
+
+### P6 status (21 Nov 2026, EB-076)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G27 Bill audit, movements, claims | **First cut** | Employment Benefits › After binding. 21 Nov: 43 EB policies; 2 have a quotation or policy premium to check the bill against (41 have neither); 64 movement lists on 18 policies, 2 followed by an endorsement note within 60 days; 196 claims, a loss ratio on 15 policies. Member-level bill audit (people billed after leaving) needs the insurer's member listing read per bill: not built. |
+| G28 Insurer templates | Not done | |
+
 ### P3 status (21 Nov 2026, branch eb-library-2026-11-21, EB-073)
 
 | Gap | Status | What exists |

@@ -15,7 +15,7 @@ import { Btn, LinkBtn, Chip, Segmented, Spinner } from '@/components/crm/primiti
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { fmtDate } from '@/lib/format'
 import { shortInsurer } from '@/lib/gb/insurer-names'
-import type { EbRenewalRow } from '@/app/api/today/eb-renewals/route'
+import type { EbRenewalRow } from '@/lib/today/handlers/eb-renewals'
 import { cn } from '@/lib/utils'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
@@ -23,6 +23,7 @@ import type { CalendarEvent } from '@/lib/calendar/events-server'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
 import { useCalendarEmbedded } from '@/components/calendar/embed'
 import { events as loadEvents } from './actions'
+import { todayFetch } from '@/lib/today/fetch'
 
 // Dot fills as token classes.
 const INK = 'bg-trs-ink'
@@ -121,7 +122,7 @@ export default function CalendarPage() {
   // Employment Benefits renewals: read once, on the first visit to the tab or to count it.
   useEffect(() => {
     setEbError(null)
-    fetch('/api/today/eb-renewals', { cache: 'no-store' })
+    todayFetch('/api/today/eb-renewals', { cache: 'no-store' })
       .then(async r => {
         const d = await r.json().catch(() => ({})) as { rows?: EbRenewalRow[]; error?: string }
         if (!r.ok || !Array.isArray(d.rows)) throw new Error(d.error ?? `Error ${r.status}`)

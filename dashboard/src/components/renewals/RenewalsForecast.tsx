@@ -16,6 +16,7 @@ import { money } from '@/lib/format'
 import { LINES } from '@/lib/renewals/lines'
 import { barLabel, forecast, monthName, pct, type ForecastItem, type ForecastMonth, type Sums } from '@/lib/renewals/forecast'
 import { ownerName } from './bits'
+import { callRenewals } from '@/lib/renewals/fetch'
 
 type View = { tables: boolean; today: string; items: ForecastItem[]; owners: string[]; notOpened: number }
 const ALL = ''
@@ -26,7 +27,7 @@ export function RenewalsForecast() {
   const [error, setError] = useState<string | null>(null)
   const [line, setLine] = useState(ALL)
   const [owner, setOwner] = useState(ALL)
-  useEffect(() => { callApi<View>('/api/renewals/forecast').then(setView).catch(e => setError(errText(e))) }, [])
+  useEffect(() => { callRenewals<View>('/api/renewals/forecast').then(setView).catch(e => setError(errText(e))) }, [])
   const fc = useMemo(() => (view ? forecast(view.items, view.today, { line, owner }) : null), [view, line, owner])
 
   return (

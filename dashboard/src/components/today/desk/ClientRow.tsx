@@ -25,6 +25,7 @@ import { DraftCard } from './DraftCard'
 import { OpenThread, ThreadTitle } from './PrivateThread'
 import { CondensedFacts, FactsLine, PartiesLine, RowDetailBlocks, SuggestedProjects } from './RowSubstance'
 import { InlineConfirm } from './InlineConfirm'
+import { callToday } from '@/lib/today/fetch'
 
 const SIDE_LABEL: Record<DeskSide, string> = { client: 'To client', insurer: 'To insurer' }
 const first = (s: string) => s.split(/[\s@]/)[0]
@@ -60,7 +61,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   const threadKey = ids.join(',') + '|' + row.threads.map(t => t.project ?? '').join(',')
   const loadDetail = useCallback(() => {
     setDetailLoading(true); setDetailError(null)
-    callApi<RowDetail>('/api/today/desk/detail', { method: 'POST', body: { owner: row.owner, companyId: row.companyId, threadIds: threadKey.split('|')[0].split(',') } })
+    callToday<RowDetail>('/api/today/desk/detail', { method: 'POST', body: { owner: row.owner, companyId: row.companyId, threadIds: threadKey.split('|')[0].split(',') } })
       .then(setDetail).catch(e => setDetailError(errText(e))).finally(() => setDetailLoading(false))
   }, [row.owner, row.companyId, threadKey])
   useEffect(() => { if (open) loadDetail() }, [open, loadDetail])
@@ -68,14 +69,14 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   async function condense(project: string | null, threadIds: string[]) {
     setBusy(`condense:${project ?? ''}`); setError(null)
     try {
-      const r = await callApi<{ condensed: Condensed }>('/api/today/desk', { method: 'POST', body: { action: 'condense', ...base, project, projectThreadIds: threadIds } })
+      const r = await callToday<{ condensed: Condensed }>('/api/today/desk', { method: 'POST', body: { action: 'condense', ...base, project, projectThreadIds: threadIds } })
       setDetail(d => d && ({ ...d, projects: d.projects.map(p => ((p.project ?? '').toLowerCase() === (project ?? '').toLowerCase() ? { ...p, condensed: { ...r.condensed, stale: false } } : p)) }))
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function confirmProject(name: string, threadIds: string[]) {
     setBusy(`suggest:${name}`); setError(null)
     try {
-      await callApi('/api/today/desk', { method: 'POST', body: { action: 'project', owner: row.owner, companyId: row.companyId, threadIds, project: name, note: '' } })
+      await callToday('/api/today/desk', { method: 'POST', body: { action: 'project', owner: row.owner, companyId: row.companyId, threadIds, project: name, note: '' } })
       onNotice(`${threadIds.length} thread${threadIds.length === 1 ? '' : 's'} moved to ${name}.`); onChange()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
@@ -83,7 +84,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   async function doRead() {
     setBusy('read'); setError(null)
     try {
-      const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'read', ...base } })
+      const r = await callToday<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'read', ...base } })
       setRead(r.read)
       setTicked(new Set(r.read.steps.filter(s => s.kind === 'email' && s.status === 'proposed').map(s => s.id)))
       // The Read's facts are kept as the client's state: shown in State, not as sentences.
@@ -93,7 +94,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
   async function doDraft() {
     setBusy('draft'); setError(null)
     try {
-      const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'draft', ...base, stepIds: [...ticked] } })
+      const r = await callToday<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'draft', ...base, stepIds: [...ticked] } })
       setRead(r.read); setTicked(new Set()); onChange()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
@@ -103,7 +104,7 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
     if (act === 'discard' && !(await confirm({ title: `Discard the email to ${draft?.person ?? draft?.to ?? 'this person'}?`, body: 'It will not be sent. The thread stays on Today.', action: 'Discard', danger: true }))) return
     setBusy(`step:${stepId}`); setError(null)
     try {
-      const r = await callApi<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'step', ...base, stepId, act } })
+      const r = await callToday<{ read: ReadPlan }>('/api/today/desk', { method: 'POST', body: { action: 'step', ...base, stepId, act } })
       setRead(r.read)
       if (act !== 'done') { onNotice(act === 'discard' ? 'Email discarded.' : `Email to ${draft?.person ?? draft?.to ?? 'the person'} updated. Check it below, then Send.`); onChange() }
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
@@ -112,18 +113,18 @@ export function ClientRow({ row, open, onToggle, showOwner, me, onChange, onNoti
     const n = row.drafts.length
     if (!(await confirm({ title: `Remove ${row.companyName}?`, body: `${row.threads.length} thread${row.threads.length === 1 ? '' : 's'}${n ? ` and ${n} unsent email${n === 1 ? '' : 's'}` : ''} leave your Today. The threads and drafts stay in the Inbox.`, action: 'Remove', danger: true }))) return
     setBusy('remove'); setError(null)
-    try { await callApi('/api/today/desk', { method: 'POST', body: { action: 'remove', ...base } }); onNotice(`${row.companyName} removed from Today.`); onChange() }
+    try { await callToday('/api/today/desk', { method: 'POST', body: { action: 'remove', ...base } }); onNotice(`${row.companyName} removed from Today.`); onChange() }
     catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function removeThread(t: DeskThread) {
     setBusy(`thread:${t.threadId}`); setError(null)
-    try { await callApi('/api/today/desk', { method: 'POST', body: { action: 'remove', owner: row.owner, companyId: row.companyId, threadIds: [t.threadId] } }); onNotice(`${t.subject} removed from Today.`); onChange() }
+    try { await callToday('/api/today/desk', { method: 'POST', body: { action: 'remove', owner: row.owner, companyId: row.companyId, threadIds: [t.threadId] } }); onNotice(`${t.subject} removed from Today.`); onChange() }
     catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function saveProject(t: DeskThread, project: string, note: string) {
     setBusy(`project:${t.threadId}`); setError(null)
     try {
-      await callApi('/api/today/desk', { method: 'POST', body: { action: 'project', owner: row.owner, companyId: row.companyId, threadIds: [t.threadId], project, note } })
+      await callToday('/api/today/desk', { method: 'POST', body: { action: 'project', owner: row.owner, companyId: row.companyId, threadIds: [t.threadId], project, note } })
       onNotice(project.trim() ? `${t.subject} moved to ${project.trim()}.` : `${t.subject} moved under ${row.companyName}.`); onChange()
       return true
     } catch (e) { setError(errText(e)); return false } finally { setBusy(null) }

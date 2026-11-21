@@ -53,6 +53,8 @@ export const PLACES: Place[] = [
     { title: 'Quotation register', href: '/eb/quotations' },
     // 21 Nov 2026: Products, the workbook beside the rate tables (docs/eb-v2.md P3).
     { title: 'Products', href: '/eb/products' },
+    // 21 Nov 2026: After binding, bills, movements and claims per EB policy (docs/eb-v2.md P6).
+    { title: 'After binding', href: '/eb/after-binding' },
     { title: 'Brochures', href: '/brochures' },
   ] },
   { label: 'Inbox', href: '/engagement', icon: Inbox, tabs: [

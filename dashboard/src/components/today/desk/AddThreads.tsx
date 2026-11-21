@@ -19,6 +19,7 @@ import type { Conversation } from '@/lib/mail/conversations'
 import type { Suggestion } from '@/lib/today/learn-server'
 import type { SearchAnswer } from '@/lib/search/query'
 import { inboxFetch } from '@/lib/inbox/fetch'
+import { callToday } from '@/lib/today/fetch'
 
 type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[]; private?: { owner: string | null } }
 /** `via`: the conversation picked inside a thread that holds more than one; its side was set from it. */
@@ -52,13 +53,13 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
   const [acting, setActing] = useState<string | null>(null)
 
   useEffect(() => {
-    callApi<{ suggestions: Suggestion[] }>('/api/today/desk/suggest').then(r => setSuggested(r.suggestions)).catch(() => setSuggested([]))
+    callToday<{ suggestions: Suggestion[] }>('/api/today/desk/suggest').then(r => setSuggested(r.suggestions)).catch(() => setSuggested([]))
   }, [])
   async function takeSuggestion(g: Suggestion, act: 'add' | 'dismiss') {
     setActing(`${act}:${g.threadId}`); setError(null)
     try {
-      if (act === 'add') await callApi('/api/today/desk', { method: 'POST', body: { action: 'add', threads: [{ threadId: g.threadId, side: g.side, companyId: g.companyId }] } })
-      else await callApi('/api/today/desk', { method: 'POST', body: { action: 'dismiss', threadId: g.threadId } })
+      if (act === 'add') await callToday('/api/today/desk', { method: 'POST', body: { action: 'add', threads: [{ threadId: g.threadId, side: g.side, companyId: g.companyId }] } })
+      else await callToday('/api/today/desk', { method: 'POST', body: { action: 'dismiss', threadId: g.threadId } })
       setSuggested(list => (list ?? []).filter(x => x.threadId !== g.threadId))
       if (act === 'add') setAddedHere(n => n + 1)
     } catch (e) { setError(errText(e)) } finally { setActing(null) }
@@ -129,7 +130,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
     setBusy(true); setError(null)
     try {
       const threads = [...picked].map(([threadId, p]) => ({ threadId, side: p.side, companyId: p.client.id }))
-      const r = await callApi<{ added: number }>('/api/today/desk', { method: 'POST', body: { action: 'add', threads } })
+      const r = await callToday<{ added: number }>('/api/today/desk', { method: 'POST', body: { action: 'add', threads } })
       onAdded(r.added + addedHere)
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }

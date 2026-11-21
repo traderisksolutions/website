@@ -17,6 +17,7 @@ import { SelectBox } from '@/components/ui/select-box'
 import { Register } from '@/components/ui/register'
 import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
 import { insurers as insurersList } from '@/app/insurers/actions'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type Plan    = { product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }
@@ -64,7 +65,7 @@ export default function GbReviewPage() {
   const [snapshot, setSnapshot] = useState('')     // serialized state at load, to detect unsaved edits
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
+    const res = await ebFetch(`/api/group-benefits/rate-tables/${id}`, { cache: 'no-store' })
     if (!res.ok) return
     const data: Detail = await res.json()
     setD(data); setRates(data.rates); setBenefits(data.benefits); setCoverage(data.coverage ?? [])
@@ -110,12 +111,12 @@ export default function GbReviewPage() {
   async function reExtract() {
     triggered.current = true
     setStatus('extracting')
-    await fetch(`/api/group-benefits/rate-tables/${id}/extract`, { method: 'POST' }).catch(() => {})
+    await ebFetch(`/api/group-benefits/rate-tables/${id}/extract`, { method: 'POST' }).catch(() => {})
     load()
   }
   async function del() {
     if (!(await confirmBox({ title: 'Delete this rate table?', body: 'Its extraction goes with it. This cannot be undone.', action: 'Delete', danger: true }))) return
-    await fetch(`/api/group-benefits/rate-tables/${id}`, { method: 'DELETE' })
+    await ebFetch(`/api/group-benefits/rate-tables/${id}`, { method: 'DELETE' })
     router.push('/eb/quotations')
   }
 
@@ -162,13 +163,13 @@ export default function GbReviewPage() {
         plan_year:      meta.plan_year ? Number(meta.plan_year) : null,
         effective_date: meta.effective_date || null,
       }
-      const saveRes = await fetch(`/api/group-benefits/rate-tables/${id}`, {
+      const saveRes = await ebFetch(`/api/group-benefits/rate-tables/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rates, benefits, coverage, meta: metaPayload }),
       })
       if (!saveRes.ok) { setMsg((await saveRes.json().catch(() => ({}))).error ?? 'Save failed'); return }
       if (approveAfter) {
-        const ap = await fetch(`/api/group-benefits/rate-tables/${id}/approve`, { method: 'POST' })
+        const ap = await ebFetch(`/api/group-benefits/rate-tables/${id}/approve`, { method: 'POST' })
         if (!ap.ok) { setMsg('Approve failed'); return }
         router.push('/eb/quotations')
         return

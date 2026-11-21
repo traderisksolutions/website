@@ -15,10 +15,11 @@ import { DASH, fmtDay } from '@/lib/format'
 import { actorName, senderName } from '@/lib/cases/names'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
 import type { CheckAction, CheckRow } from '@/lib/cases/brief-store'
-import type { CaseBriefAnswer } from '@/app/api/work/[id]/brief/route'
+import type { CaseBriefAnswer } from '@/lib/work/handlers/id-brief'
 import { BriefTable, CaseDocuments, CaseFiles } from './CaseBriefTables'
 import { Register } from '@/components/ui/register'
 import { subjectBtn } from './shared'
+import { callWork } from '@/lib/work/fetch'
 
 type Tab = 'brief' | 'current' | 'aside'
 const CHECK_NOTICE: Record<CheckAction, string> = { confirm: 'Document confirmed.', not_needed: 'Document marked not needed.', reject: 'Finding turned down.', clear: 'Call undone.' }
@@ -41,7 +42,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   const [text, setText] = useState('')
   const [addError, setAddError] = useState<string | null>(null)
 
-  const load = useCallback(() => Promise.all([callApi<CaseMemory>(`/api/work/${id}/memory`), callApi<CaseBriefAnswer>(`/api/work/${id}/brief`)]), [id])
+  const load = useCallback(() => Promise.all([callWork<CaseMemory>(`/api/work/${id}/memory`), callWork<CaseBriefAnswer>(`/api/work/${id}/brief`)]), [id])
   useEffect(() => {
     setMemory(null); setBrief(null); setFailed(null)
     load().then(([m, b]) => { setMemory(m); setBrief(b) }).catch(e => setFailed(errText(e)))
@@ -66,12 +67,12 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   }
 
   /** The brief is built from the notes: a change to a note is read back into it. */
-  const rebrief = () => callApi<CaseBriefAnswer>(`/api/work/${id}/brief`).then(setBrief).catch(e => onError(errText(e)))
+  const rebrief = () => callWork<CaseBriefAnswer>(`/api/work/${id}/brief`).then(setBrief).catch(e => onError(errText(e)))
 
   async function check(body: { action: CheckAction; item_id: string } | { action: 'line'; line: string | null }, key: string, notice: string) {
     setBusy(key); onError(null)
     try {
-      const d = await callApi<{ brief: CaseBriefAnswer }>(`/api/work/${id}/brief`, { method: 'POST', body })
+      const d = await callWork<{ brief: CaseBriefAnswer }>(`/api/work/${id}/brief`, { method: 'POST', body })
       setBrief(d.brief)
       onNotice(notice)
       onChanged()
@@ -83,7 +84,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   async function mark(n: Note, action: 'reject' | 'restore') {
     setBusy(n.id); onError(null)
     try {
-      const d = await callApi<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action, note_id: n.id } })
+      const d = await callWork<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action, note_id: n.id } })
       setMemory(d.memory)
       void rebrief()
       onNotice(action === 'reject' ? 'Note set aside.' : 'Note restored to the brief.')
@@ -94,7 +95,7 @@ export function CaseBrief({ id, onOpenThread, onChanged, onNotice, onError }: {
   async function add() {
     setBusy('add'); setAddError(null)
     try {
-      const d = await callApi<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action: 'note', section: section || memory!.sections[0]?.section, text } })
+      const d = await callWork<{ memory: CaseMemory }>(`/api/work/${id}/memory`, { method: 'POST', body: { action: 'note', section: section || memory!.sections[0]?.section, text } })
       setMemory(d.memory); setAdding(false); setText('')
       void rebrief()
       onNotice('Note added to the brief.')

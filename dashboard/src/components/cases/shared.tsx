@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { Btn, type BtnLevel } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
+import { callWork } from '@/lib/work/fetch'
 
 export const CASE_SECTIONS = [
   { value: 'overview', label: 'Overview' },
@@ -39,7 +40,7 @@ export function ReadNewButton({ id, unread, level = 'secondary', onDone, onError
   async function read() {
     setBusy(true); onError(null)
     try {
-      const d = await callApi<{ notes: number; read: number }>(`/api/work/${id}/read`, { method: 'POST', body: {} })
+      const d = await callWork<{ notes: number; read: number }>(`/api/work/${id}/read`, { method: 'POST', body: {} })
       onDone(`${count(d.notes, 'note')} kept, ${count(d.read, 'email')} read.`)
     } catch (e) { onError(errText(e)) } finally { setBusy(false) }
   }

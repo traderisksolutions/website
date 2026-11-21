@@ -8249,6 +8249,7 @@ export type Database = {
           plan_year: string | null
           filed_by: string | null
           filed_at: string | null
+          external_item_id: string | null
         }
         Insert: {
           id?: string
@@ -8288,6 +8289,7 @@ export type Database = {
           plan_year?: string | null
           filed_by?: string | null
           filed_at?: string | null
+          external_item_id?: string | null
         }
         Update: {
           id?: string
@@ -8327,6 +8329,7 @@ export type Database = {
           plan_year?: string | null
           filed_by?: string | null
           filed_at?: string | null
+          external_item_id?: string | null
         }
         Relationships: [
           { foreignKeyName: "policy_documents_company_id_fkey"; columns: ["company_id"]; isOneToOne: false; referencedRelation: "companies"; referencedColumns: ["id"] },

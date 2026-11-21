@@ -9,6 +9,7 @@ import { ConversationList } from './ConversationList'
 import type { Density } from './ThreadRow'
 import { useViewerEmail } from '@/lib/supabase/client'
 import { seesAllMail } from '@/lib/mail/visibility'
+import { todayFetch } from '@/lib/today/fetch'
 
 /**
  * Unified Mail Navigator. Header (Inbox, the true total, Compose), the Mailbox pill and the mail
@@ -60,7 +61,7 @@ export function ThreadListPane({ collapsible = false }: { collapsible?: boolean 
     // The page brings the names with its first response when the list has a personal mailbox.
     if (!personal.length || !seedReady) return
     if (seed?.staffNames) { setStaffNames(seed.staffNames); return }
-    fetch('/api/today/edit-options', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+    todayFetch('/api/today/edit-options', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
       .then((d: { staff?: { email: string; name: string }[] } | null) => { if (d?.staff) setStaffNames(Object.fromEntries(d.staff.map(s => [s.email.toLowerCase(), s.name]))) })
       .catch(() => {})
   }, [personal.length, seedReady, seed?.staffNames])

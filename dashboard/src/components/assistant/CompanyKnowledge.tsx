@@ -13,6 +13,7 @@ import { ThreadModal, fmtWhen } from './shared'
 import type { NextStep } from '@/lib/today/data'
 import { BusinessNumbers } from '@/components/clients/BusinessNumbers'
 import { AskClient } from '@/components/clients/AskClient'
+import { callToday } from '@/lib/today/fetch'
 
 type Entry = {
   id: string; occurred_at: string; kind: string; title: string; summary: string | null; party: string | null
@@ -42,7 +43,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
   const page = useCallback(async (before: string | null) => {
     setBusy(true)
     try {
-      const d = await callApi<{ entries: Entry[]; next: string | null; next_steps?: NextStep[] }>(`/api/today/knowledge/${companyId}${before ? `?before=${encodeURIComponent(before)}` : ''}`)
+      const d = await callToday<{ entries: Entry[]; next: string | null; next_steps?: NextStep[] }>(`/api/today/knowledge/${companyId}${before ? `?before=${encodeURIComponent(before)}` : ''}`)
       setEntries(e => before ? [...(e ?? []), ...d.entries] : d.entries); setNext(d.next)
       if (!before) setSteps(d.next_steps ?? [])
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }

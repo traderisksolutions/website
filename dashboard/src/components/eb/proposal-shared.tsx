@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
 import type { ProposalCheck, ProposalModel } from '@/lib/gb/eb-proposal'
+import { ebFetch } from '@/lib/gb/fetch'
 
 export type QuotationView = {
   quotation: { id: string; company_id: string | null; company_name: string; thread_id: string | null; version: number; draft_id: string | null; sent_at: string | null; sent_to: string | null; created_at: string; products: string[]; draft_sent: boolean }
@@ -19,7 +20,7 @@ export function useQuotation(id: string) {
   const [error, setError] = useState<string | null>(null)
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`/api/eb/quotations/${id}`, { cache: 'no-store' })
+      const res = await ebFetch(`/api/eb/quotations/${id}`, { cache: 'no-store' })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) { setError(d.error ?? `The quotation could not be read (${res.status}).`); return }
       setView(d as QuotationView)
@@ -61,7 +62,7 @@ export function MarkSent({ id, onDone }: { id: string; onDone: () => void }) {
   async function retry() {
     setBusy(true); setError(null)
     try {
-      const res = await fetch(`/api/eb/quotations/${id}/sent`, { method: 'POST' })
+      const res = await ebFetch(`/api/eb/quotations/${id}/sent`, { method: 'POST' })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) { setError(d.error ?? `Not marked sent (${res.status}).`); return }
       onDone()

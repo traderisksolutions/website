@@ -10,6 +10,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
 import { allowedPlans, type PlanRule } from '@/lib/gb/plan-pairs'
 import { fmtDate } from '@/lib/format'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Data = { rules: PlanRule[]; updatedBy: string | null; updatedAt: string | null; plans: Record<string, Record<string, string[]>>; products: string[]; covers: string[] }
 const cell = 'h-9 w-full rounded border border-trs-line bg-white px-2 text-body text-trs-ink'
@@ -21,7 +22,7 @@ export function PlanRules() {
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/group-benefits/plan-rules', { cache: 'no-store' }).then(async r => {
+    ebFetch('/api/group-benefits/plan-rules', { cache: 'no-store' }).then(async r => {
       const j = await r.json().catch(() => ({}))
       if (!r.ok) { setMsg(j.error ?? `Plan rules could not load (${r.status})`); return }
       setData(j); setRules(j.rules)
@@ -35,7 +36,7 @@ export function PlanRules() {
   async function save() {
     setBusy(true); setMsg(null)
     try {
-      const r = await fetch('/api/group-benefits/plan-rules', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules }) })
+      const r = await ebFetch('/api/group-benefits/plan-rules', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules }) })
       const j = await r.json().catch(() => ({}))
       if (!r.ok) throw new Error(j.error ?? `Not saved (${r.status})`)
       setData(d => d && { ...d, ...j }); setRules(j.rules); setMsg('Saved. New quotations use these rules.')

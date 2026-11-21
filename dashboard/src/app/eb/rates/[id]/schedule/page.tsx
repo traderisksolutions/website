@@ -19,6 +19,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Loader2, RefreshCw, Check, X } from 'lucide-react'
 import { Btn } from '@/components/crm/primitives'
 import { Register } from '@/components/ui/register'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Candidate = {
   id: string; product_code: string; plan_code: string | null; canon_benefit: string
@@ -45,7 +46,7 @@ export default function SchedulePage() {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const res = await fetch(`/api/group-benefits/rate-tables/${id}/schedule`, { cache: 'no-store' })
+    const res = await ebFetch(`/api/group-benefits/rate-tables/${id}/schedule`, { cache: 'no-store' })
     const j = await res.json()
     if (res.ok) setD(j as Payload); else setError(j.error ?? 'Could not load')
   }, [id])
@@ -54,7 +55,7 @@ export default function SchedulePage() {
   async function scan() {
     setBusy('scan'); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/rate-tables/${id}/schedule`, { method: 'POST' })
+      const res = await ebFetch(`/api/group-benefits/rate-tables/${id}/schedule`, { method: 'POST' })
       const j = await res.json()
       if (!res.ok) setError(j.error ?? 'Scan failed')
       await load()
@@ -64,7 +65,7 @@ export default function SchedulePage() {
   async function decide(decision: 'accepted' | 'rejected', candidateIds?: string[]) {
     setBusy(decision); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/rate-tables/${id}/schedule`, {
+      const res = await ebFetch(`/api/group-benefits/rate-tables/${id}/schedule`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ decision, candidateIds }),
       })

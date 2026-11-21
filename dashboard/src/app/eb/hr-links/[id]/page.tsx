@@ -12,6 +12,7 @@ import {
   CHIP, EVENT_LABEL, MIGRATION_PENDING_LINE, RELATIONSHIP_LABEL, SOURCE_LABEL,
   eventSentence, fmtDate, fmtDateTime, fmtDob, linkIsOpen, linkStatusWord, type HrLinkDetailResponse,
 } from '@/components/group-benefits/hr/labels'
+import { ebFetch } from '@/lib/gb/fetch'
 
 
 type ListRow = {
@@ -56,7 +57,7 @@ export default function HrLinkPage() {
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/hr-links/${id}`, { cache: 'no-store' })
+      const res = await ebFetch(`/api/group-benefits/hr-links/${id}`, { cache: 'no-store' })
       const d = await res.json().catch(() => ({})) as HrLinkDetailResponse
       if (d.migrationPending) { setPending(true); return }
       if (!res.ok || !d.link) { setError(d.error ?? (res.status === 404 ? 'This link does not exist.' : `Could not load the link (${res.status}).`)); return }
@@ -71,7 +72,7 @@ export default function HrLinkPage() {
     setConfirmClose(false)
     setBusy(kind); setNotice(null); setError(null)
     try {
-      const res = await fetch(`/api/group-benefits/hr-links/${id}/${kind}`, { method: 'POST' })
+      const res = await ebFetch(`/api/group-benefits/hr-links/${id}/${kind}`, { method: 'POST' })
       const d = await res.json().catch(() => ({})) as { error?: string; mailError?: string }
       if (!res.ok) { setError(d.error ?? `Could not ${kind === 'resend' ? 'resend' : 'close'} (${res.status}).`); return }
       setNotice(kind === 'resend'

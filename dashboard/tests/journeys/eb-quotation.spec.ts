@@ -171,18 +171,14 @@ test('EB-071 a census read on /eb shows its checks by code: duplicates, ages, re
   for (const row of ['Same person twice', 'Child over 25', 'No date of birth or age']) await expect(checks.getByRole('row', { name: new RegExp(row) })).toBeVisible()
 })
 
-test('EB-072 the census column offers the data room\'s typed member lists for the client; the scheme file answers', async ({ page }) => {
+test('EB-072 the census column offers the data room\'s typed member lists for the client', async ({ page }) => {
   const [d] = await dbRows<{ company_id: string; email_attachment_id: string }>('policy_documents?doc_type=eq.member_list&email_attachment_id=not.is.null&company_id=not.is.null&status=neq.ignored&select=company_id,email_attachment_id&order=received_at.desc.nullslast&limit=1')
   test.skip(!d, 'no member list in the data room')
-  const res = await page.request.get(`/api/group-benefits/census/sources?company=${d.company_id}`)
-  expect(res.status()).toBe(200)
-  const s = await res.json() as { sources: { attachment_id: string }[]; optional: unknown[] }
-  expect(Array.isArray(s.optional)).toBe(true)
-  // Offered unless the thread is a colleague's private one, or a same-named file is already listed.
-  expect(s.sources.length).toBeGreaterThan(0)
-  const scheme = await page.request.get(`/api/eb/scheme?company=${d.company_id}`)
-  expect(scheme.status()).toBe(200)
-  expect(typeof (await scheme.json()).tables).toBe('boolean')
+  // The EB routes became one server action (21 Nov 2026): the page shows what they answer.
+  await openClean(page, `/eb?company=${d.company_id}`)
+  const census = page.getByRole('region', { name: 'Census' })
+  await expect(census).toBeVisible({ timeout: 60_000 })
+  await expect(census.getByRole('button', { name: 'Add', exact: true }).first()).toBeVisible({ timeout: 60_000 })
 })
 
 test('EB-074 Routes: each house insurer is Brochure price or Insurer to quote, with why', async ({ page }) => {

@@ -20,6 +20,7 @@ import { Checks, MarkSent, PdfPreview, useQuotation } from '@/components/eb/prop
 import { CommissionCheck, type CommissionState } from '@/components/email/CommissionCheck'
 import type { ProposalCheck } from '@/lib/gb/eb-proposal'
 import { inboxFetch } from '@/lib/inbox/fetch'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Draft = { draftId: string; to: string; cc: string[]; subject: string; html: string; attachment: { filename: string; mime_type: string; storage_url: string }; threadId: string | null }
 type Sender = { email: string; label: string; type: 'shared' | 'personal' }
@@ -51,7 +52,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
   async function prepare(toAddress?: string) {
     setBusy('draft'); setError(null)
     try {
-      const res = await fetch(`/api/eb/quotations/${id}/draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toAddress ? { to: toAddress } : {}) })
+      const res = await ebFetch(`/api/eb/quotations/${id}/draft`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(toAddress ? { to: toAddress } : {}) })
       const d = await res.json().catch(() => ({}))
       if (res.status === 409 && d.sent) { setUnmarked(true); return }
       if (res.status === 409 && /client/i.test(d.error ?? '')) { setNeedTo(true); return }
@@ -80,7 +81,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
     if (!EMAIL.test(to.trim())) { setError('To must be one email address.'); return }
     setBusy('save'); setError(null); setNotice(null)
     try {
-      const res = await fetch(`/api/eb/quotations/${id}/draft`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: to.trim(), cc: splitCc(cc), subject, html }) })
+      const res = await ebFetch(`/api/eb/quotations/${id}/draft`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: to.trim(), cc: splitCc(cc), subject, html }) })
       const d = await res.json().catch(() => ({}))
       if (!res.ok) { setError(d.error ?? 'The draft was not saved.'); return }
       setNotice('Draft saved on the client’s thread.')
@@ -102,7 +103,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
       const d = await res.json().catch(() => ({}))
       if (!res.ok) { setError(d.error ?? `The email was not sent (${res.status}).`); return }
       // The email went. Recording it is a separate call; when it fails, say so and offer only Try again.
-      const marked = await fetch(`/api/eb/quotations/${id}/sent`, { method: 'POST' }).then(r => r.ok).catch(() => false)
+      const marked = await ebFetch(`/api/eb/quotations/${id}/sent`, { method: 'POST' }).then(r => r.ok).catch(() => false)
       if (!marked) { setUnmarked(true); return }
       router.push(q?.company_id ? `/companies/${q.company_id}?tab=working&sent=proposal` : `/eb/proposal/${id}`)
     } catch (e) { setError(e instanceof Error ? e.message : 'The email was not sent.') } finally { setBusy(null) }
