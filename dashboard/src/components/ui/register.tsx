@@ -109,9 +109,9 @@ export function RegisterCell({ primary, secondary, children, align = 'center', f
         first && cn('relative z-10', selected ? 'bg-trs-mint' : 'bg-white'), cellPad(dense, first, last), className)}>
       {first && selected && <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-trs-green" aria-hidden />}
       {/* A block with a real max width, so the identity column cannot grow the table past its card in auto layout. */}
-      {/* No data column grows past 360px: one long value widened a column to 1,000px and pushed the
+      {/* No data column grows past 280px: one long value widened a column to 1,000px and pushed the
           table into a sideways scroll (Policies, 21 Nov 2026). Long text truncates; the cell's title keeps it. */}
-      <div className={cn('min-w-0 max-w-full', !first && 'max-w-[360px]', !first && nowrap && 'truncate', !first && align !== 'left' && 'mx-auto')} style={first ? { width } : undefined} /* drift-ok: identity width set by the caller */>
+      <div className={cn('min-w-0 max-w-full', !first && 'max-w-[280px]', !first && nowrap && 'truncate', !first && align !== 'left' && 'mx-auto')} style={first ? { width } : undefined} /* drift-ok: identity width set by the caller */>
         {primary !== undefined && (
           <span className={cn('block leading-tight', first ? 'text-body font-medium truncate' : 'text-body tabular-nums', 'text-trs-ink')}>{primary}</span>
         )}
