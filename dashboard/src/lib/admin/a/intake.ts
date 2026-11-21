@@ -10,7 +10,7 @@
  *                       A group with no ledger yet gets the full read.
  */
 import { createHash } from 'node:crypto'
-import { sb, sbTry, enc, inChunks, isInternal, isAutomated, bareEmail } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, isInternal, isAutomated, bareEmail, sbAll } from '@/lib/crm/db'
 import { enqueue, hold, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import { workCompany } from '@/lib/casework/run'
 import { readHistory, type HistoryMessage } from './history'
@@ -81,14 +81,14 @@ async function candidates(opts: { companyIds: string[]; refItemIds: string[]; pe
   if (opts.people.length) {
     const parts = await sbTry<Row[]>(`email_participants?email=in.(${opts.people.slice(0, 20).map(p => `"${p}"`).join(',')})&deleted_at=is.null&select=thread_id&order=created_at.desc&limit=400`, [])
     const threadIds = Array.from(new Set(parts.map(p => p.thread_id as string)))
-    const links = await inChunks(threadIds, 60, chunk => sbTry<Row[]>(`work_item_threads?thread_id=in.(${chunk.join(',')})&select=work_item_id`, []))
+    const links = await inChunks(threadIds, 60, chunk => sbAll<Row>(`work_item_threads?thread_id=in.(${chunk.join(',')})&select=work_item_id`, 'thread_id,work_item_id'))
     for (const l of links) ids.add(l.work_item_id)
   }
   const list = Array.from(ids).slice(0, 40)
   if (!list.length) return []
   const items = await sbTry<Row[]>(`work_items?id=in.(${list.join(',')})&closed_at=is.null&select=id,case_type,company_id,title,policy_number,policy_id,last_activity_at,work_item_threads(thread_id,email_threads(subject)),claims(insurer_ref,policy_number),companies(company_name)`, [])
   const threadIds = items.flatMap(i => (i.work_item_threads ?? []).map((t: Row) => t.thread_id as string))
-  const people = await inChunks(threadIds, 60, chunk => sbTry<Row[]>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=thread_id,email`, []))
+  const people = await inChunks(threadIds, 60, chunk => sbAll<Row>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=thread_id,email`))
   const peopleBy = new Map<string, Set<string>>()
   for (const p of people) { const e = String(p.email ?? '').toLowerCase(); if (!e || isInternal(e)) continue; peopleBy.set(p.thread_id, (peopleBy.get(p.thread_id) ?? new Set()).add(e)) }
   return items.map(i => {

@@ -4,7 +4,7 @@
  * the party who wrote it. Beside it the open follow-ups on those threads and the latest case
  * analysis (stage, scenarios with probability, next steps). Read only.
  */
-import { sbTry, inChunks } from '@/lib/crm/db'
+import { sbTry, inChunks, sbAll } from '@/lib/crm/db'
 import { threadTitle } from '@/lib/crm/subject'
 import { shortInsurer } from '@/lib/gb/insurer-names'
 import { normCompany } from '@/lib/gb/intake'
@@ -60,13 +60,13 @@ export async function loadCompanyNexus(companyId: string, limit = 400): Promise<
   // A row whose "client" is the insurer itself was filed from the insurer's side and counts as unknown too.
   const loose = (await sbTry<{ thread_id: string; insurer_company_id: string; client_company_id: string | null }[]>('thread_insurers?select=thread_id,insurer_company_id,client_company_id&limit=5000', []))
     .filter(r => !r.client_company_id || r.client_company_id === r.insurer_company_id)
-  const subjects = new Map((await inChunks([...new Set(loose.map(r => r.thread_id))], 80, ids => sbTry<{ id: string; subject: string | null }[]>(`email_threads?id=in.(${ids.join(',')})&select=id,subject`, [])))
+  const subjects = new Map((await inChunks([...new Set(loose.map(r => r.thread_id))], 80, ids => sbAll<{ id: string; subject: string | null }>(`email_threads?id=in.(${ids.join(',')})&select=id,subject`)))
     .map(t => [t.id, t.subject ?? '']))
   for (const r of loose) if (subjectNames(subjects.get(r.thread_id) ?? '', co.company_name)) filed.push({ thread_id: r.thread_id, insurer_company_id: r.insurer_company_id })
   const filedIds = [...new Set(filed.map(f => f.thread_id))].filter(id => !own.some(t => t.id === id))
   const filedThreads = await inChunks(filedIds, 80, ids => sbTry<typeof own>(`email_threads?id=in.(${ids.join(',')})&deleted_at=is.null&select=id,subject,display_subject,last_message_at`, []))
   const insurerIds = [...new Set(filed.map(f => f.insurer_company_id))]
-  const insurers = new Map((await inChunks(insurerIds, 80, ids => sbTry<{ id: string; company_name: string; domains: string[] | null }[]>(`companies?id=in.(${ids.join(',')})&select=id,company_name,domains`, [])))
+  const insurers = new Map((await inChunks(insurerIds, 80, ids => sbAll<{ id: string; company_name: string; domains: string[] | null }>(`companies?id=in.(${ids.join(',')})&select=id,company_name,domains`)))
     .map(c => [c.id, c]))
   const insurerOfThread = new Map(filed.map(f => [f.thread_id, insurers.get(f.insurer_company_id)]))
   const clientDomains = new Set((co.domains ?? []).map(d => d.toLowerCase()))
@@ -98,7 +98,7 @@ export async function loadCompanyNexus(companyId: string, limit = 400): Promise<
     return { id: t.id, title: threadTitle(t), kind, insurer: ins ? shortInsurer(ins.company_name) : null, last_message_at: t.last_message_at, messages: countBy.get(t.id) ?? 0 }
   })
 
-  const follow_ups = (await inChunks(threadIds, 80, ids => sbTry<NexusFollowUp[]>(`follow_ups?thread_id=in.(${ids.join(',')})&status=eq.open&select=id,owner_party,counterparty_name,what,due_at,status,thread_id`, [])))
+  const follow_ups = (await inChunks(threadIds, 80, ids => sbAll<NexusFollowUp>(`follow_ups?thread_id=in.(${ids.join(',')})&status=eq.open&select=id,owner_party,counterparty_name,what,due_at,status,thread_id`)))
     .sort((a, b) => (a.due_at ?? '9').localeCompare(b.due_at ?? '9'))
 
   return { company: { id: co.id, name: co.company_name, kind: co.kind }, threads, messages, follow_ups, analysis: await latestAnalysis(companyId) }
@@ -142,8 +142,8 @@ export async function ensureCompanyCase(companyId: string, sbWrite: <T>(path: st
 export async function clientsForThreads(threadIds: string[]): Promise<Map<string, { id: string; name: string }>> {
   const out = new Map<string, { id: string; name: string }>()
   if (threadIds.length === 0) return out
-  const threads = await inChunks(threadIds, 80, ids => sbTry<{ id: string; subject: string | null; company_id: string | null }[]>(`email_threads?id=in.(${ids.join(',')})&select=id,subject,company_id`, []))
-  const filings = await inChunks(threadIds, 80, ids => sbTry<{ thread_id: string; client_company_id: string | null; insurer_company_id: string }[]>(`thread_insurers?thread_id=in.(${ids.join(',')})&select=thread_id,client_company_id,insurer_company_id`, []))
+  const threads = await inChunks(threadIds, 80, ids => sbAll<{ id: string; subject: string | null; company_id: string | null }>(`email_threads?id=in.(${ids.join(',')})&select=id,subject,company_id`))
+  const filings = await inChunks(threadIds, 80, ids => sbAll<{ thread_id: string; client_company_id: string | null; insurer_company_id: string }>(`thread_insurers?thread_id=in.(${ids.join(',')})&select=thread_id,client_company_id,insurer_company_id`))
   const clients = await sbTry<{ id: string; company_name: string }[]>('companies?kind=eq.client&select=id,company_name&limit=5000', [])
   const byId = new Map(clients.map(c => [c.id, c]))
   for (const t of threads) {

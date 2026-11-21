@@ -1,3 +1,4 @@
+import { sbAll } from '@/lib/crm/db'
 /**
  * Enrolment cycles, by rule (Client 360 phase 3, 14 Nov 2026). A top client sends its joiners and
  * leavers to the insurer on a cycle (the largest: monthly, HR straight to the insurer's eligibility
@@ -100,8 +101,8 @@ export async function runEnrolmentCycles(opts: { today?: string; dryRun?: boolea
       const threads = (await sbTry<{ thread_id: string; title: string }[]>(`company_ledger?group_id=eq.${enc(b.id)}&kind=in.(email_in,email_out)&thread_id=not.is.null&select=thread_id,title&limit=3000`, []))
         .filter(t => cycleKey(t.title) === key)
       const ids = [...new Set(threads.map(t => t.thread_id))]
-      const rows = await inChunks(ids, 60, ch => sbTry<{ id: string; thread_id: string; direction: string; from_address: string | null; sent_at: string; has_attachments: boolean | null; subject: string | null; body_text: string | null }[]>(`email_messages?thread_id=in.(${ch.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,sent_at,has_attachments,subject,body_text`, []))
-      const parts = await inChunks(rows.map(r => r.id), 80, ch => sbTry<{ message_id: string; email: string }[]>(`email_participants?message_id=in.(${ch.join(',')})&deleted_at=is.null&select=message_id,email`, []))
+      const rows = await inChunks(ids, 60, ch => sbAll<{ id: string; thread_id: string; direction: string; from_address: string | null; sent_at: string; has_attachments: boolean | null; subject: string | null; body_text: string | null }>(`email_messages?thread_id=in.(${ch.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,sent_at,has_attachments,subject,body_text`))
+      const parts = await inChunks(rows.map(r => r.id), 80, ch => sbAll<{ message_id: string; email: string }>(`email_participants?message_id=in.(${ch.join(',')})&deleted_at=is.null&select=message_id,email`))
       const to = new Map<string, string[]>()
       for (const p of parts) to.set(p.message_id, [...(to.get(p.message_id) ?? []), p.email.toLowerCase()])
       const msgs: CycleMessage[] = rows.map(r => ({ id: r.id, thread_id: r.thread_id, direction: r.direction, from: bareEmail(r.from_address), sent_at: r.sent_at, has_attachments: !!r.has_attachments, subject: r.subject ?? '', body: r.body_text ?? '', to: to.get(r.id) ?? [] }))

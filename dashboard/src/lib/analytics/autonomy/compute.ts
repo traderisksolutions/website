@@ -5,7 +5,7 @@
  * sent in the same window, classifies each message and matches it to a draft, then upserts.
  * Idempotent: a row is replaced by its message id, so a recompute of the last 3 days is safe.
  */
-import { sb, sbTry, enc, inChunks, isInternal, bareEmail } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, isInternal, bareEmail, sbAll } from '@/lib/crm/db'
 import { classify, withMailboxRule, AGENT_MAILBOX, type ClassifyInput } from './classify'
 import { matchOrigin, type DraftCandidate } from './origin'
 import type { OriginRow } from './metrics'
@@ -37,13 +37,13 @@ export async function computeWindow(from: string, to: string, opts: { write: boo
   const threadIds = Array.from(new Set(outgoing.map(m => m.thread_id as string).filter(Boolean)))
 
   const [parts, atts, threads, companies] = await Promise.all([
-    inChunks(ids, 40, c => sbTry<Row[]>(`email_participants?message_id=in.(${c.join(',')})&deleted_at=is.null&select=message_id,email,role`, [])),
-    inChunks(ids, 40, c => sbTry<Row[]>(`email_attachments?message_id=in.(${c.join(',')})&select=message_id,filename,mime_type`, [])),
-    inChunks(threadIds, 40, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&select=id,company_id,category`, [])),
+    inChunks(ids, 40, c => sbAll<Row>(`email_participants?message_id=in.(${c.join(',')})&deleted_at=is.null&select=message_id,email,role`)),
+    inChunks(ids, 40, c => sbAll<Row>(`email_attachments?message_id=in.(${c.join(',')})&select=message_id,filename,mime_type`)),
+    inChunks(threadIds, 40, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&select=id,company_id,category`)),
     all('companies', 'id,company_name,kind,domain,domains'),
   ])
   // The message just before each outgoing one, so a short reply to a client's question reads as one.
-  const prev = await inChunks(threadIds, 40, c => sbTry<Row[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&sent_at=gte.${enc(new Date(Date.parse(from) - 30 * 86_400_000).toISOString())}&sent_at=lt.${enc(to)}&select=id,thread_id,direction,sent_at&order=sent_at.asc`, []))
+  const prev = await inChunks(threadIds, 40, c => sbAll<Row>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&sent_at=gte.${enc(new Date(Date.parse(from) - 30 * 86_400_000).toISOString())}&sent_at=lt.${enc(to)}&select=id,thread_id,direction,sent_at&order=sent_at.asc`))
   const byThread = new Map<string, Row[]>()
   for (const p of prev) byThread.set(p.thread_id, [...(byThread.get(p.thread_id) ?? []), p])
 
@@ -63,7 +63,7 @@ export async function computeWindow(from: string, to: string, opts: { write: boo
   // Who approved: a draft sent from the agents' mailbox is attributed to the person who pressed
   // send on its case, read from the case's own event, when the draft belongs to a case.
   const itemIds = Array.from(new Set(drafts.map(d => d.work_item_id as string).filter(Boolean)))
-  const sentEvents = await inChunks(itemIds, 40, c => sbTry<Row[]>(`work_item_events?work_item_id=in.(${c.join(',')})&kind=eq.sent&select=work_item_id,actor,created_at&order=created_at.asc`, []))
+  const sentEvents = await inChunks(itemIds, 40, c => sbAll<Row>(`work_item_events?work_item_id=in.(${c.join(',')})&kind=eq.sent&select=work_item_id,actor,created_at&order=created_at.asc`))
   const approverByItem = new Map<string, string>()
   for (const e of sentEvents) approverByItem.set(e.work_item_id, String(e.actor).toLowerCase())
   const draftById = new Map(drafts.map(d => [d.id as string, d]))
@@ -120,6 +120,6 @@ export async function loadRows(days: number): Promise<OriginRow[]> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString()
   const rows = await all(`outbound_origin?sent_at=gte.${enc(since)}`, 'message_id,thread_id,company_id,sender,sent_at,origin,draft_id,edit_share,work_class,work_sub,tier,side,words,attachments,effort,side_channel', 'message_id')
   const companyIds = Array.from(new Set(rows.map(r => r.company_id).filter(Boolean)))
-  const names = new Map((await inChunks(companyIds as string[], 40, c => sbTry<Row[]>(`companies?id=in.(${c.join(',')})&select=id,company_name`, []))).map(c => [c.id, c.company_name]))
+  const names = new Map((await inChunks(companyIds as string[], 40, c => sbAll<Row>(`companies?id=in.(${c.join(',')})&select=id,company_name`))).map(c => [c.id, c.company_name]))
   return rows.map(r => ({ ...r, company_name: r.company_id ? names.get(r.company_id) ?? null : null, edit_share: r.edit_share == null ? null : Number(r.edit_share) })) as OriginRow[]
 }

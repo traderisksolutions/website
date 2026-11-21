@@ -12,7 +12,7 @@
  * A thread in a colleague's mailbox is counted, never shown: no subject, no text (mail/visibility.ts).
  * A person's pick is a work_item_threads row with joined_by = 'person'; the case worker never moves it.
  */
-import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, sbAll } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { partyOf } from '@/lib/admin/k/shape'
 import { displayName } from '@/lib/insurers'
@@ -49,7 +49,7 @@ export async function caseRow(workItemId: string): Promise<Row> {
 }
 
 const threadsById = (ids: string[]) =>
-  inChunks(Array.from(new Set(ids)), 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=${THREAD_COLS}`, []))
+  inChunks(Array.from(new Set(ids)), 80, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=${THREAD_COLS}`))
 
 /** A client's threads: filed under it, or filed under an insurer or partner and naming it. */
 async function clientThreads(companyId: string): Promise<{ rows: Row[]; named: Set<string> }> {
@@ -159,7 +159,7 @@ export async function loadSources(workItemId: string, viewer: string | null, tod
   // Proposals come only from the client's own threads the viewer may see.
   const taken = new Set([...links.map(l => l.thread_id as string), ...off])
   const pool = client.rows.filter(t => visible.has(t.id) && !taken.has(t.id))
-  const held = await inChunks(pool.map(t => t.id as string), 80, c => sbTry<Row[]>(`work_item_threads?thread_id=in.(${c.join(',')})&select=thread_id,work_items(id,title)`, []))
+  const held = await inChunks(pool.map(t => t.id as string), 80, c => sbAll<Row>(`work_item_threads?thread_id=in.(${c.join(',')})&select=thread_id,work_items(id,title)`, 'thread_id,work_item_id'))
   const onCase = new Map<string, { id: string; title: string | null }>()
   for (const h of held) if (h.work_items && h.work_items.id !== workItemId) onCase.set(h.thread_id, { id: h.work_items.id, title: h.work_items.title ?? null })
   const candidates: Candidate[] = pool.map(t => ({
@@ -304,7 +304,7 @@ export async function labelThreadsByRule(threadIds: readonly string[]): Promise<
   const out = { labelled: 0, kept: 0, changed: 0 }
   if (!ids.length) return out
   const dir = await directory()
-  const threads = await inChunks(ids, 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,company_id,label,label_rule,label_by`, []))
+  const threads = await inChunks(ids, 80, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,company_id,label,label_rule,label_by`))
   const [senders, files] = await Promise.all([
     inChunks(ids, 10, c => sbTry<Row[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,from_address&order=sent_at.asc&limit=1000`, [])),
     inChunks(ids, 10, c => sbTry<Row[]>(`email_attachments?thread_id=in.(${c.join(',')})&select=message_id,filename&limit=1000`, [])),
@@ -318,7 +318,7 @@ export async function labelThreadsByRule(threadIds: readonly string[]): Promise<
     byThread.set(m.thread_id, [...(byThread.get(m.thread_id) ?? []), { party: partyOf(m.from_address, dir.domainKind), attachments: names.get(m.id) ?? [] }])
   }
   // The first email's own words: read only for the label, never stored.
-  const bodies = await inChunks(Array.from(first.values()), 15, c => sbTry<Row[]>(`email_messages?id=in.(${c.join(',')})&select=id,body_text`, []))
+  const bodies = await inChunks(Array.from(first.values()), 15, c => sbAll<Row>(`email_messages?id=in.(${c.join(',')})&select=id,body_text`))
   const opening = new Map(bodies.map(b => [b.id as string, ownText(b.body_text)]))
   const now = new Date().toISOString()
   for (const t of threads) {

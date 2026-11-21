@@ -8,6 +8,7 @@
  *             information) until the migration has been applied on the hosted database.
  */
 import { SB_URL, sbHeaders } from '@/lib/sb'
+import { fetchAllRows } from '@/lib/postgrest-all'
 import type { Company, CompanyKind, Stage } from './types'
 import { STAGES, COMPANY_KINDS } from './types'
 
@@ -29,6 +30,16 @@ export async function sb<T = Json[]>(path: string, init?: RequestInit): Promise<
 
 export async function sbTry<T>(path: string, fallback: T, init?: RequestInit): Promise<T> {
   try { return await sb<T>(path, init) } catch { return fallback }
+}
+
+/**
+ * Every row a read matches, past the API's silent 1,000-row cap; [] when the read fails, as sbTry.
+ * For one-to-many reads (messages, participants, threads per parent): a chunk of 100 parents can
+ * hold more than 1,000 rows, and sbTry returned the first 1,000 without a word (21 Nov 2026: the
+ * Companies board missed 485 threads). `key` orders tables without an id column.
+ */
+export async function sbAll<T>(path: string, key?: string): Promise<T[]> {
+  try { return await fetchAllRows<T>(`${SB_URL}/rest/v1/${path}`, sbHeaders(), { key }) } catch { return [] }
 }
 
 /**

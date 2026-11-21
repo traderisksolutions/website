@@ -13,7 +13,7 @@
  */
 import { callGemini } from '@/lib/ai-call'
 import { GEMINI_LITE } from '@/lib/gemini-models'
-import { sb, sbTry, enc, inChunks, isInternal } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, isInternal, sbAll } from '@/lib/crm/db'
 import { latestText } from '@/lib/nexus/reader'
 import { companyCore, getCompanyIndex, matchByName } from '@/lib/crm/resolve'
 import { twinOf, personsCaseRow } from './clean'
@@ -79,9 +79,9 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   // moved, plus the open items' threads, so the whole client is not re-read for every email.
   const focus = opts.focusThreadIds ? opts.focusThreadIds.filter(Boolean) : null
   const own = only
-    ? await inChunks(only.threadIds.filter(Boolean), 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`, []))
+    ? await inChunks(only.threadIds.filter(Boolean), 80, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`))
     : focus
-      ? (focus.length ? await sbTry<Row[]>(`email_threads?id=in.(${focus.slice(0, MAX_THREADS).join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`, []) : [])
+      ? (focus.length ? await sbAll<Row>(`email_threads?id=in.(${focus.slice(0, MAX_THREADS).join(',')})&deleted_at=is.null&select=id,subject,company_id,last_message_at,label`) : [])
       : await sbTry<Row[]>(`email_threads?company_id=eq.${enc(companyId)}&deleted_at=is.null&last_message_at=gte.${enc(since)}&select=id,subject,company_id,last_message_at,label&order=last_message_at.desc&limit=${MAX_THREADS}`, [])
   // Open items already on these threads, whoever they are filed under (a partner's mail opens
   // cases under the end client), so the reader updates them instead of opening duplicates.
@@ -118,12 +118,12 @@ export async function loadCase(companyId: string, today = new Date().toISOString
   if (threads.length === 0) return null
   const ids = threads.map(t => t.id as string)
 
-  const messages = await inChunks(ids, 30, chunk => sbTry<Row[]>(`email_messages?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,body_text,sent_at&order=sent_at.asc`, []))
-  const attachments = await inChunks(ids, 30, chunk => sbTry<Row[]>(`email_attachments?thread_id=in.(${chunk.join(',')})&select=message_id,thread_id,filename,mime_type,storage_url`, []))
+  const messages = await inChunks(ids, 30, chunk => sbAll<Row>(`email_messages?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,body_text,sent_at&order=sent_at.asc`))
+  const attachments = await inChunks(ids, 30, chunk => sbAll<Row>(`email_attachments?thread_id=in.(${chunk.join(',')})&select=message_id,thread_id,filename,mime_type,storage_url`))
   // Recipients live here, not in the message row: without them a reply has nobody to go to.
-  const people = await inChunks(ids, 30, chunk => sbTry<Row[]>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=message_id,email,role`, []))
+  const people = await inChunks(ids, 30, chunk => sbAll<Row>(`email_participants?thread_id=in.(${chunk.join(',')})&deleted_at=is.null&select=message_id,email,role`))
   // Messages TRS never received, rebuilt from forwards and quoted history (src/lib/admin/a/intake.ts).
-  const rebuilt = await inChunks(ids, 30, chunk => sbTry<Row[]>(`rebuilt_messages?thread_id=in.(${chunk.join(',')})&select=thread_id,origin,from_address,to_addresses,cc_addresses,sent_at,sent_at_text,subject,body_text,attachments_named,trs_copied&order=position.asc`, []))
+  const rebuilt = await inChunks(ids, 30, chunk => sbAll<Row>(`rebuilt_messages?thread_id=in.(${chunk.join(',')})&select=thread_id,origin,from_address,to_addresses,cc_addresses,sent_at,sent_at_text,subject,body_text,attachments_named,trs_copied&order=position.asc`))
   const peopleBy = new Map<string, Row[]>()
   for (const p of people) peopleBy.set(p.message_id, [...(peopleBy.get(p.message_id) ?? []), p])
   const staff = (await sbTry<Row[]>('contacts?is_employee=eq.true&select=email', [])).map(r => String(r.email).toLowerCase())

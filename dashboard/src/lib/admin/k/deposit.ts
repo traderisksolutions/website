@@ -9,7 +9,7 @@
  * Other code calls depositEvent() directly. Writes are idempotent on (source_table, source_id,
  * company_id), so a re-run or the backfill never duplicates.
  */
-import { sb, sbTry, enc, inChunks } from '@/lib/crm/db'
+import { sb, sbTry, enc, inChunks, sbAll } from '@/lib/crm/db'
 import { enqueue, skip, type AgentTask } from '@/lib/agent-tasks/queue'
 import {
   emailDraft, rebuiltDraft, documentDraft, policyDrafts, debitNoteDraft, claimDraft, caseEventDraft, quotationDraft, placementDraft, factReadable,
@@ -57,9 +57,9 @@ export async function threadInfo(threadIds: string[], dir: Directory): Promise<M
   const out = new Map<string, ThreadInfo>()
   if (!ids.length) return out
   const [threads, ins, wit] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&select=id,company_id`, [])),
-    inChunks(ids, 100, c => sbTry<Row[]>(`thread_insurers?thread_id=in.(${c.join(',')})&select=thread_id,insurer_company_id,client_company_id,policy_id,policy_status`, [])),
-    inChunks(ids, 100, c => sbTry<Row[]>(`work_item_threads?thread_id=in.(${c.join(',')})&select=thread_id,work_item_id,work_items(company_id,policy_id)`, [])),
+    inChunks(ids, 100, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&select=id,company_id`)),
+    inChunks(ids, 100, c => sbAll<Row>(`thread_insurers?thread_id=in.(${c.join(',')})&select=thread_id,insurer_company_id,client_company_id,policy_id,policy_status`)),
+    inChunks(ids, 100, c => sbAll<Row>(`work_item_threads?thread_id=in.(${c.join(',')})&select=thread_id,work_item_id,work_items(company_id,policy_id)`, 'thread_id,work_item_id')),
   ])
   const get = (id: string) => { if (!out.has(id)) out.set(id, { companies: new Set(), threadKind: null, policyId: null, workItemId: null }); return out.get(id)! }
   for (const t of threads) { const i = get(t.id); if (t.company_id && dir.byId.has(t.company_id)) { i.companies.add(t.company_id); i.threadKind = dir.byId.get(t.company_id)?.kind ?? null } }
@@ -99,8 +99,8 @@ export async function messageTargets(messages: Row[], dir: Directory): Promise<{
   const info = await threadInfo(messages.map(m => m.thread_id), dir)
   const ids = messages.map(m => m.id as string)
   const [docs, rebuilt] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<Row[]>(`policy_documents?message_id=in.(${c.join(',')})&drive_url=not.is.null&select=message_id,filename,drive_url`, [])),
-    inChunks(ids, 100, c => sbTry<Row[]>(`rebuilt_messages?source_message_id=in.(${c.join(',')})&select=*`, [])),
+    inChunks(ids, 100, c => sbAll<Row>(`policy_documents?message_id=in.(${c.join(',')})&drive_url=not.is.null&select=message_id,filename,drive_url`)),
+    inChunks(ids, 100, c => sbAll<Row>(`rebuilt_messages?source_message_id=in.(${c.join(',')})&select=*`)),
   ])
   const docsBy = new Map<string, Row[]>()
   for (const d of docs) docsBy.set(d.message_id, [...(docsBy.get(d.message_id) ?? []), d])
@@ -124,7 +124,7 @@ export async function messageTargets(messages: Row[], dir: Directory): Promise<{
 
 export async function depositMessages(messageIds: string[]): Promise<{ written: number; unfiled: string[]; targets: Target[] }> {
   const dir = await directory()
-  const messages = await inChunks(messageIds, 50, c => sbTry<Row[]>(`email_messages?id=in.(${c.join(',')})&deleted_at=is.null&select=${MSG_COLS}`, []))
+  const messages = await inChunks(messageIds, 50, c => sbAll<Row>(`email_messages?id=in.(${c.join(',')})&deleted_at=is.null&select=${MSG_COLS}`))
   const { targets, unfiled } = await messageTargets(messages, dir)
   // Each email re-labels its thread by rule, code only (src/lib/cases/labels.ts): an insurer's
   // quotation file turns a quotation request into a quote received. A person's label stands.
@@ -152,11 +152,11 @@ export async function eventTargets(table: Exclude<DepositTable, 'email_messages'
     for (const r of rows) { const i = info.get(r.thread_id); if (i) for (const c of i.companies) out.push({ draft: rebuiltDraft(r, { domainKind: dir.domainKind, threadKind: i.threadKind }), company_id: c }) }
   } else if (table === 'policy_documents') {
     const pids = Array.from(new Set(rows.map(r => r.policy_id).filter(Boolean)))
-    const pol = new Map((await inChunks(pids, 100, c => sbTry<Row[]>(`policies?id=in.(${c.join(',')})&select=id,drive_folder_url`, []))).map(p => [p.id, p]))
+    const pol = new Map((await inChunks(pids, 100, c => sbAll<Row>(`policies?id=in.(${c.join(',')})&select=id,drive_folder_url`))).map(p => [p.id, p]))
     for (const d of rows) if (d.company_id && dir.byId.has(d.company_id)) out.push({ draft: documentDraft(d, pol.get(d.policy_id)), company_id: d.company_id })
   } else if (table === 'policies') {
     // A policy belongs to its holder and to every insured entity on it.
-    const ins = await inChunks(rows.map(r => r.id), 100, c => sbTry<Row[]>(`policy_insureds?policy_id=in.(${c.join(',')})&select=policy_id,company_id`, []))
+    const ins = await inChunks(rows.map(r => r.id), 100, c => sbAll<Row>(`policy_insureds?policy_id=in.(${c.join(',')})&select=policy_id,company_id`, 'policy_id,company_id'))
     const insBy = new Map<string, string[]>()
     for (const i of ins) insBy.set(i.policy_id, [...(insBy.get(i.policy_id) ?? []), i.company_id])
     for (const p of rows) {
@@ -177,7 +177,7 @@ export async function eventTargets(table: Exclude<DepositTable, 'email_messages'
     for (const q of rows) { const hit = byKey.get(companyKey(q.company_name)); if (hit?.length === 1) out.push({ draft: quotationDraft(q), company_id: hit[0] }) }
   } else if (table === 'work_item_events') {
     const wids = Array.from(new Set(rows.map(r => r.work_item_id)))
-    const items = new Map((await inChunks(wids, 100, c => sbTry<Row[]>(`work_items?id=in.(${c.join(',')})&select=id,company_id,title,policy_id`, []))).map(w => [w.id, w]))
+    const items = new Map((await inChunks(wids, 100, c => sbAll<Row>(`work_items?id=in.(${c.join(',')})&select=id,company_id,title,policy_id`))).map(w => [w.id, w]))
     for (const e of rows) { const w = items.get(e.work_item_id); if (w?.company_id && dir.byId.has(w.company_id)) out.push({ draft: caseEventDraft(e, w), company_id: w.company_id }) }
   }
   return out

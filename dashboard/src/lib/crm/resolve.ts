@@ -15,7 +15,7 @@
  * deliberately cautious: never a public mailbox, never an insurer or our own domain, never a
  * domain another company already claims, and only after it has been seen on two separate threads.
  */
-import { sbTry, inChunks, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, TRS_DOMAINS, normalizeCompany } from './db'
+import { sbTry, inChunks, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, TRS_DOMAINS, normalizeCompany, sbAll } from './db'
 import { aliasKey, loadAliases, recordAlias } from './identity'
 import type { Company } from './types'
 
@@ -385,7 +385,7 @@ export async function sweepCompanyLinks(opts: { dryRun?: boolean } = {}): Promis
   const open = threads.filter(t => !skip.has(t.id))
 
   const partRows = open.length
-    ? await inChunks(open.map(t => t.id), 100, c => sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`, []))
+    ? await inChunks(open.map(t => t.id), 100, c => sbAll<PartRow>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`))
     : []
   const partsByThread = new Map<string, string[]>()
   for (const p of partRows) partsByThread.set(p.thread_id, [...(partsByThread.get(p.thread_id) ?? []), p.email])
@@ -408,7 +408,7 @@ export async function sweepCompanyLinks(opts: { dryRun?: boolean } = {}): Promis
   // Learn domains from what the first pass linked, plus what was already linked before today.
   const already = await sbTry<ThreadRow[]>(`email_threads?company_id=not.is.null&deleted_at=is.null&select=${THREAD_SELECT}&limit=2000`, [])
   const alreadyParts = already.length
-    ? await inChunks(already.map(t => t.id), 100, c => sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`, []))
+    ? await inChunks(already.map(t => t.id), 100, c => sbAll<PartRow>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`))
     : []
   for (const p of alreadyParts) partsByThread.set(p.thread_id, [...(partsByThread.get(p.thread_id) ?? []), p.email])
 

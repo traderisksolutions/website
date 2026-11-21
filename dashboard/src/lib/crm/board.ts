@@ -8,7 +8,7 @@
  * The board's rows come from the same roll-up the companies list uses, so what a row says
  * about awaiting replies, past-due money and renewals is exactly what the company page says.
  */
-import { sb, sbTry, enc, inChunks } from './db'
+import { sb, sbTry, enc, inChunks, sbAll } from './db'
 import { SB_URL, sbHeaders } from '@/lib/sb'
 import { fetchAllRows } from '@/lib/postgrest-all'
 import { listCompanySummaries } from './aggregates'
@@ -88,7 +88,7 @@ export async function listBoard(): Promise<BoardPayload> {
     // Every row of each chunk: one chunk of busy clients passed the API's silent 1,000-row cap and
     // their category counts came back short (21 Nov 2026).
     ids.length ? inChunks(ids, 100, c => fetchAllRows<CatRow>(`${SB_URL}/rest/v1/email_threads?company_id=in.(${c.join(',')})&deleted_at=is.null&status=eq.active&select=company_id,category`, sbHeaders()).catch(() => [] as CatRow[])) : Promise.resolve([] as CatRow[]),
-    taskIds.length ? inChunks(taskIds, 100, c => sbTry<{ task_id: string }[]>(`board_comments?task_id=in.(${c.join(',')})&select=task_id`, [])) : Promise.resolve([] as { task_id: string }[]),
+    taskIds.length ? inChunks(taskIds, 100, c => sbAll<{ task_id: string }>(`board_comments?task_id=in.(${c.join(',')})&select=task_id`)) : Promise.resolve([] as { task_id: string }[]),
   ])
   const catsByCompany = new Map<string, Record<string, number>>()
   for (const r of cats) {

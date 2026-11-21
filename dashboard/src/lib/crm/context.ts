@@ -3,7 +3,7 @@
  * rendered as plain text for a prompt. The same object feeds the brief, the next-action
  * extraction and the company chat, so they never disagree about the facts.
  */
-import { sbTry, inChunks, getCompanyThreadIds, bareEmail } from './db'
+import { sbTry, inChunks, getCompanyThreadIds, bareEmail, sbAll } from './db'
 import { listCompanyThreads } from './threads'
 import { rankPeople } from './people'
 import { loadCompanyPayments } from './payments-server'
@@ -47,7 +47,7 @@ export async function buildCompanyContext(company: Company, opts: { withExcerpts
   if (opts.withExcerpts !== false) {
     const recent = threads.slice(0, RECENT_THREADS).map(t => t.id)
     const msgs = recent.length
-      ? await inChunks(recent, 50, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,sent_at,body_text&order=sent_at.desc&limit=${RECENT_THREADS * MSGS_PER_THREAD * 2}`, []))
+      ? await inChunks(recent, 50, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,sent_at,body_text&order=sent_at.desc&limit=${RECENT_THREADS * MSGS_PER_THREAD * 2}`))
       : []
     for (const m of msgs) {
       const arr = excerpts.get(m.thread_id) ?? []

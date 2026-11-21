@@ -7,7 +7,7 @@
  * Rounds are worked out on every read. Only a person's calls are stored, as case events of kind
  * "move", the latest per email winning.
  */
-import { sb, sbTry, enc, emailDomain, bareEmail, inChunks } from '@/lib/crm/db'
+import { sb, sbTry, enc, emailDomain, bareEmail, inChunks, sbAll } from '@/lib/crm/db'
 import { directory } from '@/lib/admin/k/deposit'
 import { displayName, matchInsurer, type InsurerCompany } from '@/lib/insurers'
 import { indexNames, type NameIndex } from '@/lib/crm/party-read'
@@ -66,8 +66,8 @@ export async function caseMail(workItemId: string, viewer: string | null): Promi
     caseMessages(ids),
     directory(),
     referralTags(ids),
-    inChunks(ids, 80, c => sbTry<Row[]>(`email_threads?id=in.(${c.join(',')})&select=id,subject,company_id`, [])),
-    sbTry<Row[]>(`work_item_events?work_item_id=eq.${enc(workItemId)}&kind=in.(move,source_side)&select=kind,detail,created_at&order=created_at.asc&limit=2000`, []),
+    inChunks(ids, 80, c => sbAll<Row>(`email_threads?id=in.(${c.join(',')})&select=id,subject,company_id`)),
+    sbAll<Row>(`work_item_events?work_item_id=eq.${enc(workItemId)}&kind=in.(move,source_side)&select=kind,detail,created_at&order=created_at.asc&limit=2000`),
   ])
   const byDomain = new Map<string, Row>()
   // Insurers first, as the directory's own domain map reads them.

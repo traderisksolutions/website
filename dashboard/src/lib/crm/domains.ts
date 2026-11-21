@@ -7,7 +7,7 @@
  * choice is usually one click: this is that company, or this is a new one, or this is nobody we
  * need to track.
  */
-import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany } from './db'
+import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, normalizeCompany, sbAll } from './db'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey } from './identity'
 import { classifyDomains, createCompany, attachDomain, blankEvidence, type DomainEvidence, type DomainGuess } from './autofile'
 import type { Company, CompanyKind } from './types'
@@ -56,8 +56,8 @@ export async function collectUnclaimedDomains(): Promise<DomainEvidence[]> {
 
   const ids = open.map(t => t.id)
   const [parts, messages] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name,role`, [])),
-    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,sent_at&limit=4000`, [])),
+    inChunks(ids, 100, c => sbAll<PartRow>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name,role`)),
+    inChunks(ids, 100, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,direction,from_address,sent_at&limit=4000`)),
   ])
   const byThread = new Map<string, PartRow[]>()
   for (const p of parts) byThread.set(p.thread_id, [...(byThread.get(p.thread_id) ?? []), p])
@@ -164,7 +164,7 @@ export async function threadsOnDomain(domain: string): Promise<string[]> {
   if (unfiled.length === 0) return []
   const ids = unfiled.map(t => t.id)
   const parts = await inChunks(ids, 100, c =>
-    sbTry<{ thread_id: string; email: string }[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`, []))
+    sbAll<{ thread_id: string; email: string }>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email`))
   const hit = new Set<string>()
   for (const p of parts) if (emailDomain(p.email) === d) hit.add(p.thread_id)
   return Array.from(hit)

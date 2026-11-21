@@ -23,7 +23,7 @@
  *
  * Only threads carrying nothing but personal or excluded addresses are left for a person.
  */
-import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, NOT_A_CLIENT_DOMAINS, normalizeCompany } from './db'
+import { sb, sbTry, inChunks, enc, emailDomain, isInternal, isAutomated, PUBLIC_EMAIL_DOMAINS, NOT_A_CLIENT_DOMAINS, normalizeCompany, sbAll } from './db'
 import { buildCompanyIndex, matchByName, companyCore, domainSuitsName, domainMatchesName, type CompanyIndex } from './resolve'
 import { buildIdentityIndex, matchName, loadAliases, recordAlias, aliasKey, type IdentityIndex } from './identity'
 import { geminiJson } from './ai'
@@ -333,7 +333,7 @@ export async function autofile(opts: { dryRun?: boolean; maxDomains?: number } =
   const open = threads.filter(t => !skip.has(t.id))
 
   const parts = open.length
-    ? await inChunks(open.map(t => t.id), 100, c => sbTry<PartRow[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name`, []))
+    ? await inChunks(open.map(t => t.id), 100, c => sbAll<PartRow>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,email,name`))
     : []
   const partsByThread = new Map<string, PartRow[]>()
   for (const p of parts) partsByThread.set(p.thread_id, [...(partsByThread.get(p.thread_id) ?? []), p])

@@ -6,7 +6,7 @@
  * The top scorer on the client side is marked primary. Insurer and TRS addresses that show up
  * on the same threads are kept but labelled, so the page can show "also on these threads".
  */
-import { sbTry, inChunks, getCompanyThreadIds, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS } from './db'
+import { sbTry, inChunks, getCompanyThreadIds, isInternal, isAutomated, emailDomain, PUBLIC_EMAIL_DOMAINS, sbAll } from './db'
 import { personName } from '@/lib/format'
 import type { Company, Person, PersonParty } from './types'
 
@@ -29,11 +29,11 @@ export async function rankPeople(company: Company, threadIds?: string[]): Promis
   if (ids.length === 0) return { people: [], primary: null, observedDomains: [] }
 
   const [participants, messages, threadCats, insurerEmails, companyContacts] = await Promise.all([
-    inChunks(ids, 100, c => sbTry<Participant[]>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,message_id,email,name,role,contact_id`, [])),
-    inChunks(ids, 100, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at`, [])),
-    inChunks(ids, 100, c => sbTry<ThreadCat[]>(`email_threads?id=in.(${c.join(',')})&select=id,category`, [])),
+    inChunks(ids, 100, c => sbAll<Participant>(`email_participants?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=thread_id,message_id,email,name,role,contact_id`)),
+    inChunks(ids, 100, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,sent_at`)),
+    inChunks(ids, 100, c => sbAll<ThreadCat>(`email_threads?id=in.(${c.join(',')})&select=id,category`)),
     // insurer_contacts is a link table into contacts (20260707); its own email column is gone.
-    sbTry<{ contacts: { email: string | null } | null }[]>(`insurer_contacts?select=contacts(email)`, []),
+    sbAll<{ contacts: { email: string | null } | null }>(`insurer_contacts?select=contacts(email)`),
     sbTry<ContactRow[]>(`contacts?company_id=eq.${company.id}&select=id,email,first_name,last_name,company_id,title`, []),
   ])
 

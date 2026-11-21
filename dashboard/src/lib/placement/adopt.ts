@@ -14,7 +14,7 @@
  *
  * Nothing here sends.
  */
-import { sbTry, inChunks } from '@/lib/crm/db'
+import { sbTry, inChunks, sbAll } from '@/lib/crm/db'
 import * as store from './store'
 import { createPlacement, handleInbound } from './workflow'
 import { nextChaseAt } from './position'
@@ -72,11 +72,11 @@ export async function priorInsurerThreads(client: { thread: ThreadRow; clientNam
   const filings = await sbTry<{ thread_id: string; insurer_company_id: string }[]>('thread_insurers?select=thread_id,insurer_company_id&limit=5000', [])
   const held = new Set((await sbTry<{ thread_id: string | null }[]>('placement_dispatches?thread_id=not.is.null&select=thread_id&limit=20000', [])).map(d => d.thread_id))
   const ids = [...new Set(filings.map(f => f.thread_id))].filter(id => id !== client.thread.id && !held.has(id))
-  const threads = await inChunks(ids, 80, c => sbTry<ThreadRow[]>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,gmail_thread_id,company_id,created_at`, []))
+  const threads = await inChunks(ids, 80, c => sbAll<ThreadRow>(`email_threads?id=in.(${c.join(',')})&deleted_at=is.null&select=id,subject,gmail_thread_id,company_id,created_at`))
   const insurers = new Map((await sbTry<{ id: string; company_name: string }[]>('companies?kind=eq.insurer&select=id,company_name&limit=2000', [])).map(c => [c.id, c.company_name]))
   const start = client.thread.created_at
   const near = threads.filter(t => { const g = Date.parse(t.created_at) - Date.parse(start); return g >= -BEFORE_MS - 30 * day && g <= AFTER_MS })
-  const msgs = await inChunks(near.map(t => t.id), 60, c => sbTry<MsgRow[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,sent_at&order=sent_at.asc`, []))
+  const msgs = await inChunks(near.map(t => t.id), 60, c => sbAll<MsgRow>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address,sent_at&order=sent_at.asc`))
   const out: PriorThread[] = []
   for (const t of near) {
     const f = filings.find(x => x.thread_id === t.id)!

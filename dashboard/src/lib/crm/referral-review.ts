@@ -10,7 +10,7 @@
  * "Reads as" counts the emails written in a referral's voice and in the market's (party-read.ts)
  * on the referral's five latest threads. No model is called. A subject from a colleague's mailbox is withheld.
  */
-import { sbTry, inChunks, isAutomated, isInternal } from './db'
+import { sbTry, inChunks, isAutomated, isInternal, sbAll } from './db'
 import { voiceOf } from './party-read'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 
@@ -88,7 +88,7 @@ export async function referralReview(viewer: string | null): Promise<ReferralRow
   const read = threads.filter(t => { const n = taken.get(t.company_id) ?? 0; taken.set(t.company_id, n + 1); return n < VOICE_THREADS }).map(t => t.id)
   // Who wrote on every thread; the words of the latest threads only, which is most of the weight.
   const [mail, bodies, visible] = await Promise.all([
-    inChunks(ids, 60, c => sbTry<{ id: string; thread_id: string; direction: string | null; from_address: string | null }[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address&limit=5000`, [])),
+    inChunks(ids, 60, c => sbAll<{ id: string; thread_id: string; direction: string | null; from_address: string | null }>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&select=id,thread_id,direction,from_address&limit=5000`)),
     Promise.all(chunks(read, 10).map(c => sbTry<{ id: string; body_text: string | null }[]>(`email_messages?thread_id=in.(${c.join(',')})&deleted_at=is.null&direction=eq.inbound&select=id,body_text&limit=1000`, []))),
     visibleThreadIds(ids, viewer),
   ])

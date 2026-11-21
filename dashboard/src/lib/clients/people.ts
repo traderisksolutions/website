@@ -3,7 +3,7 @@
  * threads. Built from the contacts table (not leads and the newest inbox threads). Thread counts
  * are of threads the signed-in person may see (INB-002); the latest one opens in the Inbox.
  */
-import { sbTry, inChunks, isInternal } from '@/lib/crm/db'
+import { sbTry, inChunks, isInternal, sbAll } from '@/lib/crm/db'
 import { visibleThreadIds } from '@/lib/mail/visibility-server'
 
 export type PersonRow = {
@@ -46,8 +46,8 @@ export async function listPeople(viewer: string | null): Promise<PersonRow[]> {
   const companyIds = Array.from(new Set([...contacts.map(c => c.company_id), ...links.map(l => l.company_id)].filter((x): x is string => !!x)))
   const ids = contacts.map(c => c.id)
   const [companies, threads] = await Promise.all([
-    inChunks(companyIds, 100, c => sbTry<{ id: string; company_name: string | null }[]>(`companies?id=in.(${c.join(',')})&select=id,company_name`, [])),
-    inChunks(ids, 100, c => sbTry<Thread[]>(`email_threads?contact_id=in.(${c.join(',')})&deleted_at=is.null&select=id,contact_id,last_message_at&limit=5000`, [])),
+    inChunks(companyIds, 100, c => sbAll<{ id: string; company_name: string | null }>(`companies?id=in.(${c.join(',')})&select=id,company_name`)),
+    inChunks(ids, 100, c => sbAll<Thread>(`email_threads?contact_id=in.(${c.join(',')})&deleted_at=is.null&select=id,contact_id,last_message_at&limit=5000`)),
   ])
   const visible = await visibleThreadIds(threads.map(t => t.id), viewer)
   return buildPeople(contacts, new Map(companies.map(c => [c.id, c.company_name ?? 'Company'])), junction, threads.filter(t => visible.has(t.id)))

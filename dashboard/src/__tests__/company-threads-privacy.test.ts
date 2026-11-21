@@ -27,6 +27,7 @@ vi.mock('@/lib/crm/db', async importOriginal => {
     ...real,
     sb: vi.fn(async (path: string) => route(path)),
     sbTry: vi.fn(async (path: string) => route(path)),
+    sbAll: vi.fn(async (path: string) => route(path)),
     getCompanyThreadIds: vi.fn(async () => OWN),
   }
 })

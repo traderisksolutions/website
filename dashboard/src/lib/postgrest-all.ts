@@ -12,12 +12,14 @@
  */
 export const PAGE = 1000
 
-export async function fetchAllRows<T>(url: string, headers: Record<string, string>, opts?: { maxRows?: number }): Promise<T[]> {
+export async function fetchAllRows<T>(url: string, headers: Record<string, string>, opts?: { maxRows?: number; key?: string }): Promise<T[]> {
   const u = new URL(url)
   u.searchParams.delete('limit')
   u.searchParams.delete('offset')
   const order = u.searchParams.get('order')
-  u.searchParams.set('order', order ? (/(^|,)id(\.|,|$)/.test(order) ? order : `${order},id`) : 'id')
+  // `key` is the unique column list for tables without an id (join tables: 'thread_id,work_item_id').
+  if (opts?.key) u.searchParams.set('order', order ? `${order},${opts.key}` : opts.key)
+  else u.searchParams.set('order', order ? (/(^|,)id(\.|,|$)/.test(order) ? order : `${order},id`) : 'id')
   const max = opts?.maxRows ?? 200_000
   const pageUrl = (offset: number) => {
     const p = new URL(u)
