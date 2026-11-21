@@ -6,7 +6,7 @@
 import { db, rows } from '@/lib/db/client'
 import { loadWorkbook, PRODUCTS, type Workbook } from './workbook'
 import { compareRates, productOfTable, type Comparison, type TableRate } from './library'
-import { driveConfigured, listSourceFiles } from './drive'
+import { driveConfigured, listSourceFiles, type SourceFile } from './drive'
 import { matchSources, type RecordedSource, type SourceRow } from './sources'
 
 export type LibraryTable = { id: string; insurer: string | null; planYear: number | null; effectiveDate: string | null; source: string | null; status: string | null; comparison: Comparison; differTotal: number }
@@ -32,10 +32,12 @@ async function tableRates(id: string): Promise<TableRate[]> {
   }
 }
 
-async function readQueue(tables: { id: string; insurer_name: string | null; rules: unknown }[]): Promise<Library['queue']> {
-  if (!driveConfigured()) return { configured: false, notRead: [], changed: [], error: null }
+async function readQueue(tables: { id: string; insurer_name: string | null; rules: unknown }[], listing: Promise<{ f: SourceFile[] } | { e: unknown }> | null): Promise<Library['queue']> {
+  if (!listing) return { configured: false, notRead: [], changed: [], error: null }
   try {
-    const files = await listSourceFiles()
+    const got = await listing
+    if ('e' in got) throw got.e
+    const files = got.f
     const rowsOut = matchSources(files, tables.map(t => ({ rateTableId: t.id, insurerName: t.insurer_name, sources: ((t.rules as { sources?: RecordedSource[] } | null)?.sources ?? []) })))
     return { configured: true, notRead: rowsOut.filter(r => r.status === 'not_read'), changed: rowsOut.filter(r => r.status === 'changed'), error: null }
   } catch (e) {
@@ -44,10 +46,13 @@ async function readQueue(tables: { id: string; insurer_name: string | null; rule
 }
 
 export async function loadLibrary(): Promise<Library> {
+  // The Drive listing (the slowest read) starts with the others; each table's rates are read at once.
+  const files = driveConfigured() ? listSourceFiles().then(f => ({ f }), (e: unknown) => ({ e })) : null
   const [wb, tables] = await Promise.all([
     loadWorkbook(),
     rows('Rate tables', db().from('gb_rate_tables').select('id,insurer_name,plan_year,effective_date,source_pdf_name,status,rules').order('plan_year', { ascending: false })),
   ])
+  const rates = new Map(await Promise.all(tables.map(async t => [t.id, await tableRates(t.id)] as const)))
   const products: LibraryProduct[] = []
   for (const product of PRODUCTS) {
     const mine = wb?.rates.filter(r => r.insurer === product) ?? []
@@ -57,11 +62,11 @@ export async function loadLibrary(): Promise<Library> {
     const own = tables.filter(t => productOfTable(t.insurer_name) === product)
     const compared: LibraryTable[] = []
     for (const t of own) {
-      const c = compareRates(product, wb?.rates ?? [], await tableRates(t.id))
+      const c = compareRates(product, wb?.rates ?? [], rates.get(t.id) ?? [])
       compared.push({ id: t.id, insurer: t.insurer_name, planYear: t.plan_year, effectiveDate: t.effective_date, source: t.source_pdf_name, status: t.status, comparison: { ...c, differ: c.differ.slice(0, SHOWN) }, differTotal: c.differ.length })
     }
     products.push({ product, covers, rates: mine.length, benefits: wb?.benefits.filter(b => b.insurer === product).length ?? 0, tables: compared })
   }
   const others = tables.filter(t => !productOfTable(t.insurer_name)).map(t => ({ id: t.id, insurer: t.insurer_name, planYear: t.plan_year, source: t.source_pdf_name }))
-  return { workbook: wb?.file ?? null, products, others, queue: await readQueue(tables) }
+  return { workbook: wb?.file ?? null, products, others, queue: await readQueue(tables, files) }
 }

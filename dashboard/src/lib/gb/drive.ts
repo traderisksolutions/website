@@ -77,16 +77,14 @@ export async function listSourceFiles(rootId = process.env.GOOGLE_TRS_DRIVE_FOLD
     kind: kindOf(f.name, f.mimeType, insurer), bytes: f.size ? Number(f.size) : null,
     md5: f.md5Checksum ?? null, modifiedAt: f.modifiedTime ?? null, webViewLink: f.webViewLink ?? null,
   })
-  const out: SourceFile[] = []
-  for (const ins of (await children(rootId)).filter(x => x.mimeType === FOLDER_MIME)) {
-    for (const item of await children(ins.id)) {
-      if (item.mimeType === FOLDER_MIME) {
-        for (const f of (await children(item.id)).filter(x => x.mimeType !== FOLDER_MIME)) out.push(toFile(f, ins.name, item.name))
-      } else {
-        out.push(toFile(item, ins.name, null))
-      }
-    }
-  }
+  // Each level's folders are opened at once (21 Nov 2026: one folder after another took 9 s for 16 files).
+  const insurers = (await children(rootId)).filter(x => x.mimeType === FOLDER_MIME)
+  const out = (await Promise.all(insurers.map(async ins => {
+    const items = await children(ins.id)
+    const inYears = await Promise.all(items.filter(i => i.mimeType === FOLDER_MIME).map(async y =>
+      (await children(y.id)).filter(x => x.mimeType !== FOLDER_MIME).map(f => toFile(f, ins.name, y.name))))
+    return [...items.filter(i => i.mimeType !== FOLDER_MIME).map(f => toFile(f, ins.name, null)), ...inYears.flat()]
+  }))).flat()
   return out.sort((a, b) => a.insurer.localeCompare(b.insurer) || (b.planYear ?? '').localeCompare(a.planYear ?? '') || a.filename.localeCompare(b.filename))
 }
 

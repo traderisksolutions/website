@@ -130,3 +130,12 @@ export async function mergeCompanyInto(loserId: string, winnerId: string) {
     return r
   })
 }
+
+/** Every queue in one call: the browser runs server actions one at a time, so five separate reads
+ *  queued for 7 s on arrival (21 Nov 2026). Each keeps its own result, so one failure shows alone. */
+export async function triageQueues() {
+  const [domains, threads, dups, misfiled, referrals] = await Promise.all([
+    unknownDomains({ read: false }), unfiledThreads(), duplicateCompanies(), misfiledThreads(), referralRows(),
+  ])
+  return { domains, threads, dups, misfiled, referrals }
+}

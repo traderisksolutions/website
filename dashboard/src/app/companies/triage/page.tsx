@@ -16,7 +16,7 @@ import { timeAgo as fmtRelative } from '@/lib/format'
 import { COMPANY_KINDS, type CompanyKind, type LinkSuggestion } from '@/lib/crm/types'
 import type { ReferralRow } from '@/lib/crm/referral-review'
 import { unwrap } from '@/lib/action-result'
-import { decideDomainThreads, decideThread, duplicateCompanies, mergeCompanyInto, misfiledThreads, referralRows, unfiledThreads, unknownDomains, type DomainDecision, type ThreadDecision } from './actions'
+import { decideDomainThreads, decideThread, duplicateCompanies, mergeCompanyInto, misfiledThreads, referralRows, triageQueues, unfiledThreads, unknownDomains, type DomainDecision, type ThreadDecision } from './actions'
 
 /**
  * Unfiled threads (/companies/triage): mail with no company yet, as registers. Domains to decide,
@@ -68,44 +68,49 @@ export default function TriagePage() {
   const [error, setError] = useState<string | null>(null)
   const confirm = useConfirm()
 
-  const loadDomains = useCallback(async (read = false) => {
+  const loadDomains = useCallback(async (read = false, pre?: ReturnType<typeof unknownDomains>) => {
     setDomains(null)
     try {
-      const d = unwrap(await unknownDomains({ read }))
+      const d = unwrap(await (pre ?? unknownDomains({ read })))
       setDomains(d.domains); setCompanies(d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load domains.'); setDomains([]) }
   }, [])
 
-  const loadThreads = useCallback(async () => {
+  const loadThreads = useCallback(async (pre?: ReturnType<typeof unfiledThreads>) => {
     try {
-      const d = unwrap(await unfiledThreads())
+      const d = unwrap(await (pre ?? unfiledThreads()))
       setThreads(d.threads); setHidden(h => ({ ...h, threads: d.hidden }))
       setCompanies(prev => prev.length ? prev : d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load the leftover threads.'); setThreads([]) }
   }, [])
 
-  const loadDups = useCallback(async () => {
+  const loadDups = useCallback(async (pre?: ReturnType<typeof duplicateCompanies>) => {
     try {
-      setDups(unwrap(await duplicateCompanies()))
+      setDups(unwrap(await (pre ?? duplicateCompanies())))
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not compare companies.'); setDups([]) }
   }, [])
 
-  const loadMisfiled = useCallback(async () => {
+  const loadMisfiled = useCallback(async (pre?: ReturnType<typeof misfiledThreads>) => {
     setMisfiled(null)
     try {
-      const d = unwrap(await misfiledThreads())
+      const d = unwrap(await (pre ?? misfiledThreads()))
       setMisfiled(d.groups); setHidden(h => ({ ...h, insurer: d.hidden })); setCompanies(d.companies)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not read insurer mail.'); setMisfiled([]) }
   }, [])
 
-  const loadReferrals = useCallback(async () => {
+  const loadReferrals = useCallback(async (pre?: ReturnType<typeof referralRows>) => {
     try {
-      setReferrals(unwrap(await referralRows()).rows)
+      setReferrals(unwrap(await (pre ?? referralRows())).rows)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load the referrals.'); setReferrals([]) }
   }, [])
 
   // Every queue loads on arrival, not when its tab is opened, so the counts on the tabs are true.
-  useEffect(() => { loadDomains(); loadThreads(); loadDups(); loadMisfiled(); loadReferrals() }, [loadDomains, loadThreads, loadDups, loadMisfiled, loadReferrals])
+  // One action for all five (actions run one at a time from the browser).
+  useEffect(() => {
+    const all = triageQueues()
+    loadDomains(false, all.then(a => a.domains)); loadThreads(all.then(a => a.threads)); loadDups(all.then(a => a.dups))
+    loadMisfiled(all.then(a => a.misfiled)); loadReferrals(all.then(a => a.referrals))
+  }, [loadDomains, loadThreads, loadDups, loadMisfiled, loadReferrals])
 
   async function decideDomain(domain: string, body: Omit<DomainDecision, 'domain'>) {
     setRunning(domain); setError(null)
