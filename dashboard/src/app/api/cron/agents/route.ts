@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/agents — daily (vercel.json "40 2 * * *") and after each mail ingest. Drains the
+ * GET /api/cron/agents — every 10 minutes 07:00–22:00 SGT (Cloud Scheduler agents-drain) and after each mail ingest. Drains the
  * agent_tasks queue for up to 4 minutes. ?agent=intake limits it to one agent.
  * Bearer CRON_SECRET, like the other crons.
  */

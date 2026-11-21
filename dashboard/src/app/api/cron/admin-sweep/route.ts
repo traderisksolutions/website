@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/admin-sweep — daily (vercel.json "10 1 * * *", 09:10 SGT). Opens the renewal records due
+ * GET /api/cron/admin-sweep — hourly 07:00–22:00 SGT (Cloud Scheduler admin-sweep). Opens the renewal records due
  * (openDueRenewals), queues the day's renewals, chases and claims sync, trims old agent_tasks and error_logs, then drains the Phase B agents for up to 4 minutes. Every
  * draft waits on /work for a person. ?today=YYYY-MM-DD replays a day.
  * Bearer CRON_SECRET, like the other crons.

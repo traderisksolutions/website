@@ -3,7 +3,7 @@
  *
  * Recomputes outbound_origin for the last `days` of outgoing mail (default 3), so late ingests
  * and drafts sent after their message was stored are counted. Meant for a daily cron
- * (vercel.json: add "/api/analytics/autonomy/recompute" at a quiet hour). Bearer CRON_SECRET or
+ * (Cloud Scheduler autonomy-recompute, 03:30 UTC). Bearer CRON_SECRET or
  * a signed-in staff member, like the other crons.
  */
 import { NextRequest, NextResponse } from 'next/server'

@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/data-room — daily at 10:00 SGT (vercel.json "0 2 * * *" is taken by gsc-sync, so
+ * GET /api/cron/data-room — daily at 10:00 SGT (Cloud Scheduler: "0 2 * * *" UTC is taken by gsc-sync, so
  * "45 2 * * *"). Files every attachment from the last 3 days the extractor did not hand over, and
  * retries Drive failures. Bearer CRON_SECRET, like the other crons. ?all=1&batch=N backfills.
  */

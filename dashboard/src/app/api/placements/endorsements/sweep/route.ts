@@ -1,5 +1,5 @@
 /**
- * GET /api/placements/endorsements/sweep — daily (vercel.json "5 1 * * *", 09:05 SGT). Queues the
+ * GET /api/placements/endorsements/sweep — daily (Cloud Scheduler endorsements-sweep "5 1 * * *" UTC, 09:05 SGT). Queues the
  * loop's daily work (sync approved batches, close the batches whose window ended, chase quiet
  * insurers) and drains the eb_movements agent for up to 4 minutes. ?today=YYYY-MM-DD replays a day.
  * Bearer CRON_SECRET, like the other crons; a signed-in staff member may run it too.

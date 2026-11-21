@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/policy-position — Monday 01:30 SGT (vercel.json "30 17 * * 0").
+ * GET /api/cron/policy-position — Monday 01:30 SGT (Cloud Scheduler policy-position "30 17 * * 0" UTC).
  * Writes last week's line (pax, joins, leaves, billed, credited, net) for every live EB policy.
  * Bearer CRON_SECRET, like the other crons.
  */

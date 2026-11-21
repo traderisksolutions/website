@@ -16,47 +16,5 @@
     "src/app/api/placements/endorsements/sweep/route.ts": {
       "memory": 1024
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/gmail-watch",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/email/ingest?window=1440",
-      "schedule": "0 1 * * *"
-    },
-    {
-      "path": "/api/cron/sales-enrich",
-      "schedule": "30 0 * * *"
-    },
-    {
-      "path": "/api/cron/gsc-sync",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/policy-position",
-      "schedule": "30 17 * * 0"
-    },
-    {
-      "path": "/api/cron/data-room",
-      "schedule": "45 2 * * *"
-    },
-    {
-      "path": "/api/cron/agents",
-      "schedule": "40 2 * * *"
-    },
-    {
-      "path": "/api/cron/admin-sweep",
-      "schedule": "10 1 * * *"
-    },
-    {
-      "path": "/api/placements/endorsements/sweep",
-      "schedule": "5 1 * * *"
-    },
-    {
-      "path": "/api/analytics/autonomy/recompute?days=3",
-      "schedule": "30 3 * * *"
-    }
-  ]
+  }
 }
