@@ -8,6 +8,7 @@ import { Loader2, Search, RefreshCw, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/Tip'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
+import * as rp from './actions'
 
 /** How often the open Purchases tab re-queries for new transactions. */
 const POLL_MS = 20_000
@@ -244,8 +245,8 @@ export default function RoadplusReconPage() {
     appliedQuery.current = q
     if (!opts.quiet) setPLoading(true)
     try {
-      const res = await fetch(`/api/roadplus/payments${q ? `?q=${encodeURIComponent(q)}` : ''}`, { cache: 'no-store' })
-      const data = await res.json()
+      const r = await rp.payments(q || null)
+      const data = (r.ok ? r.data : { configured: true, rows: [], error: r.error }) as { configured?: boolean; rows?: Payment[]; summary?: PaymentSummary | null; error?: string }
       const rows: Payment[] = data.rows ?? []
       setConfigured(data.configured !== false)
       setPayments(rows)
@@ -294,8 +295,8 @@ export default function RoadplusReconPage() {
   const runReconcile = useCallback(async () => {
     setRecon({ running: true })
     try {
-      const res = await fetch('/api/roadplus/reconcile', { method: 'POST' })
-      const d = await res.json()
+      const r = await rp.reconcileNow()
+      const d = (r.ok ? r.data : { configured: true, ok: false, error: r.error }) as { configured?: boolean; ok?: boolean; error?: string } & Record<string, unknown>
       if (d.configured === false)
         setRecon({ running: false, msg: 'Not configured. Set ROADPLUS_SITE_URL and the reconcile secret.' })
       else if (d.ok === false)
@@ -319,13 +320,8 @@ export default function RoadplusReconPage() {
     setJSearched(true)
     try {
       const term = q.trim()
-      const param = term
-        ? term.toUpperCase().startsWith('RP-')
-          ? `ref=${encodeURIComponent(term)}`
-          : `policy_id=${encodeURIComponent(term)}`
-        : ''
-      const res = await fetch(`/api/roadplus/journey${param ? `?${param}` : ''}`, { cache: 'no-store' })
-      const data = await res.json()
+      const r = await rp.journey(term ? (term.toUpperCase().startsWith('RP-') ? { ref: term } : { policy_id: term }) : {})
+      const data = (r.ok ? r.data : { configured: true, rows: [] }) as { configured?: boolean; rows?: JourneyEvent[] }
       setConfigured(data.configured !== false)
       setJourney(data.rows ?? [])
     } finally {
@@ -339,8 +335,8 @@ export default function RoadplusReconPage() {
   const loadAnalytics = useCallback(async () => {
     setALoading(true)
     try {
-      const res = await fetch('/api/roadplus/analytics', { cache: 'no-store' })
-      const d: AnalyticsData = await res.json()
+      const r = await rp.analytics()
+      const d = (r.ok ? r.data : { configured: true, error: r.error }) as AnalyticsData
       setConfigured(d.configured !== false)
       setAnalytics(d)
     } finally {

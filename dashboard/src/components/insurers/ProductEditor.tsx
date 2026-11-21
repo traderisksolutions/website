@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 import { PRODUCT_LINES } from '@/lib/product-lines'
 import type { InsurerProduct } from '@/lib/placement/rank'
 import { callApi, errText } from '@/components/placement/shared'
+import { unwrap } from '@/lib/action-result'
+import { addContact, editProduct, makeDefaultContact, removeContact } from '@/app/insurers/actions'
 
 const cell = 'h-8 w-full rounded border border-trs-line-2 bg-white px-2 text-body text-trs-ink outline-none focus:border-trs-ink placeholder:text-trs-subtle'
 const label = 'text-small font-medium text-trs-muted'
@@ -40,17 +42,17 @@ export function ProductEditor({ product, onSaved, onClose }: {
     try { onSaved((await fn()).product) } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }
   const num = (s: string) => s.trim() === '' ? null : Number(s.replace(/[^0-9.]/g, ''))
-  const save = () => run(() => callApi(`/api/insurers/products/${id}`, { method: 'PATCH', body: {
+  const save = () => run(async () => unwrap(await editProduct(id, {
     name, product_line: line, accepts: splitList(accepts), declines: splitList(declines), min_premium: num(minPremium), max_lives: num(maxLives), notes: notes.trim() || null,
-  } }))
-  const setStatus = (status: 'active' | 'paused') => run(() => callApi(`/api/insurers/products/${id}`, { method: 'PATCH', body: { status } }))
+  })))
+  const setStatus = (status: 'active' | 'paused') => run(async () => unwrap(await editProduct(id, { status })))
   const addPerson = () => run(async () => {
-    const r = await callApi<{ product: InsurerProduct }>(`/api/insurers/products/${id}/contacts`, { method: 'POST', body: { email: email.trim(), name: person.trim() || null } })
+    const r = unwrap(await addContact(id, { email: email.trim(), name: person.trim() || null }))
     setEmail(''); setPerson('')
     return r
   })
-  const makeDefault = (contactId: string) => run(() => callApi(`/api/insurers/products/${id}/contacts`, { method: 'PATCH', body: { contact_id: contactId } }))
-  const remove = (contactId: string) => run(() => callApi(`/api/insurers/products/${id}/contacts`, { method: 'DELETE', body: { contact_id: contactId } }))
+  const makeDefault = (contactId: string) => run(async () => unwrap(await makeDefaultContact(id, contactId)))
+  const remove = (contactId: string) => run(async () => unwrap(await removeContact(id, contactId)))
 
   return (
     <div className="px-4 py-3 flex flex-col gap-3 bg-trs-tint text-trs-ink">

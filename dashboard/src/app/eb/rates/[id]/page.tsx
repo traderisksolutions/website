@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { SelectBox } from '@/components/ui/select-box'
 import { Register } from '@/components/ui/register'
 import { matchInsurer, type InsurerCompany } from '@/lib/insurers'
+import { insurers as insurersList } from '@/app/insurers/actions'
 
 type Rate    = { id?: string; product_code: string; member_type: string | null; plan_code: string; band_label: string; age_min: number | null; age_max: number | null; premium: number; renewal_only?: boolean }
 type Plan    = { product_code: string; plan_code: string; plan_name: string | null; hospital_type: string | null; beds: string | null; co_payment: string | null }
@@ -81,7 +82,7 @@ export default function GbReviewPage() {
     setSnapshot(JSON.stringify({ r: data.rates, b: data.benefits, c: data.coverage ?? [], m }))
   }, [id])
 
-  useEffect(() => { fetch('/api/insurers', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then(rows => setInsurers(Array.isArray(rows) ? rows : [])).catch(() => {}) }, [])
+  useEffect(() => { insurersList().then(r => setInsurers(r.ok ? r.data as typeof insurers : [])).catch(() => {}) }, [])
   // Which company this table belongs to, read from its stored name — the stored insurer_id is a
   // key into the legacy table, not a company id.
   const insurerCompanyId = meta.insurer_company_id || matchInsurer(meta.insurer_name, insurers)?.id || ''

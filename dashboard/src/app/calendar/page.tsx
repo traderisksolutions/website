@@ -3,7 +3,7 @@
 /**
  * Calendar: the month's renewals, payments and case steps (Month), and every Employment Benefits
  * policy ending between 30 days ago and 120 days out (?view=eb), each with Open census
- * (/eb?company=<id>). Read from /api/calendar/events and /api/today/eb-renewals.
+ * (/eb?company=<id>). Read by the events action (./actions.ts) and /api/today/eb-renewals.
  */
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/page-header'
@@ -19,9 +19,10 @@ import type { EbRenewalRow } from '@/app/api/today/eb-renewals/route'
 import { cn } from '@/lib/utils'
 import { openEngagementCompose } from '@/lib/engagement-handoff'
 import { nowSGT, todaySGT } from '@/lib/sgt-time'
-import type { CalendarEvent } from '@/app/api/calendar/events/route'
+import type { CalendarEvent } from '@/lib/calendar/events-server'
 import { RENEWAL_WINDOWS, inRenewalWindow, type RenewalWindow } from '@/lib/crm/renewal'
 import { useCalendarEmbedded } from '@/components/calendar/embed'
+import { events as loadEvents } from './actions'
 
 // Dot fills as token classes.
 const INK = 'bg-trs-ink'
@@ -107,10 +108,10 @@ export default function CalendarPage() {
     const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1)
     const monthEnd   = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0)
     setLoading(true); setError(null)
-    fetch(`/api/calendar/events?from=${toISODate(monthStart)}&to=${toISODate(monthEnd)}`, { cache: 'no-store' })
-      .then(async r => {
-        if (!r.ok) { const d = await r.json().catch(() => ({})) as { error?: string }; throw new Error(d.error ?? `Error ${r.status}`) }
-        return r.json() as Promise<CalendarEvent[]>
+    loadEvents(toISODate(monthStart), toISODate(monthEnd))
+      .then(r => {
+        if (!r.ok) throw new Error(r.error)
+        return r.data as CalendarEvent[]
       })
       .then(rows => setAllEvents(Array.isArray(rows) ? rows : []))
       .catch(e => { setAllEvents([]); setError(e instanceof Error ? e.message : String(e)) })

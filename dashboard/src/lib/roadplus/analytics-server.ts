@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server'
+// Moved unchanged from GET /api/roadplus/analytics (21 Nov 2026) for the RoadPlus action.
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
-import { withStaff } from '@/lib/auth/guard'
 
 type Quote = { journey_id: string | null; visitor_id: string | null; session_id: string | null; status: string | null; geo_area: string | null; policy_type: string | null }
 type Event = { journey_id: string | null; step: string | null; status: string | null }
@@ -8,9 +7,9 @@ type Event = { journey_id: string | null; step: string | null; status: string | 
 const FUNNEL_STEPS = ['quote_open', 'premium', 'finalize', 'payment_redirect', 'policy_issued']
 
 // GET /api/roadplus/analytics → no-login behaviour analytics from the roadplus DB.
-export const GET = withStaff(async () => {
+export async function roadplusAnalytics() {
   if (!rpConfigured())
-    return NextResponse.json({ configured: false })
+    return ({ configured: false })
 
   try {
     const [quotes, events] = await Promise.all([
@@ -64,7 +63,7 @@ export const GET = withStaff(async () => {
     const paid = stepJourneys.payment_redirect.size
     const issued = stepJourneys.policy_issued.size
 
-    return NextResponse.json({
+    return ({
       configured: true,
       totals: {
         visitors: visitors.size,
@@ -88,6 +87,6 @@ export const GET = withStaff(async () => {
       failures,
     })
   } catch (e) {
-    return NextResponse.json({ configured: true, error: String(e) }, { status: 502 })
+    return { configured: true, error: String(e) }
   }
-}, { error: 'Not authenticated' })
+}

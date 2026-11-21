@@ -11,6 +11,8 @@ import type { InsurerProduct, ProductStats } from '@/lib/placement/rank'
 import { callApi, errText } from '@/components/placement/shared'
 import { DeclinesRegister } from './DeclinesRegister'
 import { num } from '@/lib/format'
+import { unwrap } from '@/lib/action-result'
+import { addInsurer, addProduct, products } from '@/app/insurers/actions'
 
 type Row = InsurerProduct & { stats: ProductStats }
 type Insurer = { id: string; name: string; domain: string | null }
@@ -41,7 +43,7 @@ export function InsurersDirectory({ embedded = false }: { embedded?: boolean }) 
   const load = useCallback(async () => {
     setError(null)
     try {
-      const d = await callApi<{ insurers: Insurer[]; products: Row[] }>('/api/insurers/products')
+      const d = unwrap(await products()) as unknown as { insurers: Insurer[]; products: Row[] }
       setRows(d.products); setInsurers(d.insurers)
     } catch (e) { setError(errText(e)); setRows([]) }
   }, [])
@@ -181,8 +183,8 @@ function AddBar({ mode, insurers, defaultLine, onClose, onInsurer, onProduct }: 
   async function submit() {
     setBusy(true); setError(null)
     try {
-      if (mode === 'insurer') onInsurer(await callApi('/api/insurers', { method: 'POST', body: { name, domain: domain || null } }))
-      else onProduct((await callApi<{ product: InsurerProduct }>('/api/insurers/products', { method: 'POST', body: { insurer_company_id: insurerId, product_line: line, name } })).product)
+      if (mode === 'insurer') onInsurer(unwrap(await addInsurer(name, domain || null)) as never)
+      else onProduct(unwrap(await addProduct({ insurer_company_id: insurerId, product_line: line, name })).product as InsurerProduct)
       setName('')
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }

@@ -4,7 +4,7 @@
 // (clients + employees). Shared by the To field and the CC/BCC chip inputs.
 
 import { useEffect, useRef, useState } from 'react'
-import type { ContactSuggestion } from '@/app/api/contacts/search/route'
+import { contactSuggestions, type ContactSuggestion } from '@/app/contacts/actions'
 
 // Contact list is prefetched once and cached in-module so suggestions filter locally —
 // instant from the very first character, no per-keystroke network round-trip.
@@ -15,8 +15,8 @@ const CACHE_TTL = 5 * 60_000
 function loadAllContacts(): Promise<ContactSuggestion[]> {
   if (CACHE && Date.now() - CACHE.at < CACHE_TTL) return Promise.resolve(CACHE.rows)
   if (!INFLIGHT) {
-    INFLIGHT = fetch('/api/contacts/search?all=1', { cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : []))
+    INFLIGHT = contactSuggestions({ all: true })
+      .then(r => (r.ok ? r.data : []))
       .then((rows: ContactSuggestion[]) => {
         const list = Array.isArray(rows) ? rows : []
         CACHE = { at: Date.now(), rows: list }
@@ -65,16 +65,16 @@ function useContactSearch(query: string): ContactSuggestion[] {
       // Nothing matched locally — the contact may be beyond the prefetch cap; back it up
       // with a server query so large contact sets still resolve.
       if (local.length === 0 && q.length >= 2) {
-        fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
-          .then(r => (r.ok ? r.json() : []))
+        contactSuggestions({ q })
+          .then(r => (r.ok ? r.data : []))
           .then((x: ContactSuggestion[]) => { if (alive && Array.isArray(x) && x.length) setResults(x) })
           .catch(() => {})
       }
       return () => { alive = false }
     }
     // Cache still loading — fall back to a server query for this keystroke.
-    fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`, { cache: 'no-store' })
-      .then(r => (r.ok ? r.json() : []))
+    contactSuggestions({ q })
+      .then(r => (r.ok ? r.data : []))
       .then((x: ContactSuggestion[]) => { if (alive) setResults(Array.isArray(x) ? x : []) })
       .catch(() => {})
     return () => { alive = false }

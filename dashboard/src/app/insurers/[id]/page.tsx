@@ -12,6 +12,8 @@ import { Btn, Chip, Segmented, Spinner, inputCls } from '@/components/crm/primit
 import { cn } from '@/lib/utils'
 import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, RegisterTh } from '@/components/ui/register'
 import { callApi, errText, ERROR, INK, MUTED } from '@/components/placement/shared'
+import { unwrap } from '@/lib/action-result'
+import { insurerThreads, setThreadPolicy } from '../actions'
 
 type Row = {
   id: string; thread_id: string; subject: string; via: string; policy_id: string | null
@@ -37,7 +39,7 @@ export default function InsurerThreadsPage() {
   const [busy, setBusy] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    try { setData(await callApi<Data>(`/api/insurers/${id}/threads`)); setError(null) } catch (e) { setError(errText(e)) }
+    try { setData(unwrap(await insurerThreads(id)) as unknown as Data); setError(null) } catch (e) { setError(errText(e)) }
   }, [id])
   useEffect(() => { void load() }, [load])
 
@@ -52,7 +54,7 @@ export default function InsurerThreadsPage() {
 
   async function save(r: Row, body: Record<string, unknown>) {
     setBusy(r.id)
-    try { await callApi(`/api/thread-insurers/${r.id}`, { method: 'PATCH', body }); await load() }
+    try { unwrap(await setThreadPolicy(r.id, body)); await load() }
     catch (e) { setError(errText(e)) }
     finally { setBusy(null) }
   }

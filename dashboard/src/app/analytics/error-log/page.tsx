@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { RefreshCw, ChevronDown, ChevronRight } from 'lucide-react'
 import { Btn, Chip, Segmented } from '@/components/crm/primitives'
 import { timeAgo } from '@/lib/format'
+import { errorLog } from '../actions'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -100,10 +101,8 @@ export default function ErrorLogPage() {
   const load = useCallback(async (spinner = false) => {
     if (spinner) setRefreshing(true)
     try {
-      const params = new URLSearchParams({ limit: '500', days: String(days) })
-      if (filterSource) params.set('source', filterSource)
-      const res  = await fetch(`/api/analytics/error-log?${params}`, { cache: 'no-store' })
-      const data = res.ok ? await res.json() : []
+      const r = await errorLog({ limit: 500, days, source: filterSource || null })
+      const data = (r.ok ? r.data : []) as unknown as LogRow[]
       setLogs(Array.isArray(data) ? data : [])
     } finally { setLoading(false); setRefreshing(false) }
   }, [filterSource, days])

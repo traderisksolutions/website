@@ -1,3 +1,4 @@
+// Moved unchanged from GET /api/calendar/events (21 Nov 2026) for the calendar action.
 /**
  * GET /api/calendar/events?from=YYYY-MM-DD&to=YYYY-MM-DD&companyId=<uuid>
  * Two event categories for the visible month, merged into one list:
@@ -15,10 +16,8 @@
  * Refetch only when the visible month changes (caller's job).
  */
 import { withoutEndorsementDuplicates } from '@/lib/policies/endorsement'
-import { NextRequest, NextResponse } from 'next/server'
 import { SB_URL, sbH }               from '@/lib/debit-note-storage'
 import { todaySGT }                  from '@/lib/format'
-import { withStaff } from '@/lib/auth/guard'
 
 /** Days-before-end_date for each renewal warning, plus 0 for the end date itself ("D-Day"). Order
  *  matters only for readability — events are independently date-filtered below. Not exported: a
@@ -90,12 +89,12 @@ function addDays(isoDate: string, days: number): string {
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
 
-export const GET = withStaff(async (req: NextRequest) => {
+export async function calendarEvents(p: { from?: string | null; to?: string | null; companyId?: string | null }) {
   try {
-    const from = req.nextUrl.searchParams.get('from')
-    const to   = req.nextUrl.searchParams.get('to')
-    if (!from || !to) return NextResponse.json({ error: 'from and to required' }, { status: 400 })
-    const companyId = req.nextUrl.searchParams.get('companyId')
+    const from = (p.from ?? null)
+    const to   = (p.to ?? null)
+    if (!from || !to) throw new Error('from and to required')
+    const companyId = (p.companyId ?? null)
 
     // A milestone lands in [from,to] only if end_date is in [from, to + 60d] (the largest
     // warning window) — widen the policy fetch accordingly, then filter precisely in JS below.
@@ -218,8 +217,8 @@ export const GET = withStaff(async (req: NextRequest) => {
       ...stepEvents,
     ]
 
-    return NextResponse.json(events)
+    return (events)
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+    throw new Error(String(e))
   }
-}, { error: 'Not authenticated' })
+}

@@ -2,7 +2,7 @@
 
 /**
  * People: every contact on file outside TRS (the contacts table), with the company each belongs to
- * and their threads (GET /api/contacts/people). A row's company opens the company page; its thread
+ * and their threads (the people action). A row's company opens the company page; its thread
  * count opens the latest thread in the Inbox. Add contact files a person under a company.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { CompanyField, type CompanyPick } from '@/components/group-benefits/CompanyField'
 import { fmtDate, DASH } from '@/lib/format'
 import type { PersonRow } from '@/lib/clients/people'
+import { createContact, people as loadPeople } from './actions'
 
 const MUTED = 'var(--trs-muted)'
 
@@ -34,10 +35,9 @@ export default function PeoplePage() {
   const load = useCallback(async () => {
     setError(null)
     try {
-      const res = await fetch('/api/contacts/people', { cache: 'no-store' })
-      const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? 'Could not load people.')
-      setPeople(d.people)
+      const r = await loadPeople()
+      if (!r.ok) throw new Error(r.error)
+      setPeople(r.data.people)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not load people.'); setPeople([]) }
   }, [])
   useEffect(() => { void load() }, [load])
@@ -115,9 +115,8 @@ function AddContactDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
   async function save() {
     setSaving(true); setError(null)
     try {
-      const res = await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, company: company.id ? company.name : undefined, company_id: company.id ?? undefined }) })
-      if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? 'Could not save.'); return }
+      const r = await createContact({ ...form, company: company.id ? company.name : undefined, company_id: company.id ?? undefined })
+      if (!r.ok) { setError(r.error); return }
       onSaved(); onOpenChange(false)
     } finally { setSaving(false) }
   }

@@ -1,7 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+// Moved unchanged from GET /api/roadplus/payments (21 Nov 2026) for the RoadPlus action.
 import { rpConfigured, rpGet } from '@/lib/roadplus-db'
 import { parseCalendarDate, parseDocumentDate, ageLastBirthday, todaySGT } from '@/lib/dates/dob'
-import { withStaff } from '@/lib/auth/guard'
 
 /** The insured person, as captured on the quote form. */
 type Insured = {
@@ -171,12 +170,12 @@ function reconcile(p: PaymentRow, policyNoById: Map<string, string | null>): { r
 // ECICS posts the webhook or the sweep finds the policy, so a payments-only list
 // shows nothing at all until money lands — and hides abandoned checkouts and
 // missed callbacks, which are exactly the rows someone needs to act on.
-export const GET = withStaff(async (req: NextRequest) => {
+export async function roadplusPayments(p: { q?: string | null; limit?: string | null }) {
   if (!rpConfigured())
-    return NextResponse.json({ configured: false, rows: [] })
+    return ({ configured: false, rows: [] })
 
-  const q = req.nextUrl.searchParams.get('q')?.trim()
-  const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') ?? 500), 1000)
+  const q = (p.q ?? null)?.trim()
+  const limit = Math.min(Number((p.limit ?? null) ?? 500), 1000)
 
   // The person and the cover live on the quote, not the payment — so both halves
   // of the list embed the same quote facts and the insured's details.
@@ -293,8 +292,8 @@ export const GET = withStaff(async (req: NextRequest) => {
       awaitingPayment: unpaidRows.length,
     }
 
-    return NextResponse.json({ configured: true, rows, summary })
+    return ({ configured: true, rows, summary })
   } catch (e) {
-    return NextResponse.json({ configured: true, rows: [], error: String(e) }, { status: 502 })
+    return { configured: true, rows: [], error: String(e) }
   }
-}, { error: 'Not authenticated' })
+}

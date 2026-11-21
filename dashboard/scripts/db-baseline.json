@@ -15,10 +15,6 @@
   "sb": 0,
   "fetch": 3
  },
- "src/app/api/analytics/error-log/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
  "src/app/api/audit-log/route.ts": {
   "sb": 0,
   "fetch": 2
@@ -35,10 +31,6 @@
   "sb": 6,
   "fetch": 0
  },
- "src/app/api/calendar/events/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
  "src/app/api/chat/messages/route.ts": {
   "sb": 0,
   "fetch": 1
@@ -50,14 +42,6 @@
  "src/app/api/companies/threads/search/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/contacts/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/contacts/search/route.ts": {
-  "sb": 0,
-  "fetch": 1
  },
  "src/app/api/cron/gmail-watch/route.ts": {
   "sb": 0,
@@ -203,14 +187,6 @@
   "sb": 0,
   "fetch": 9
  },
- "src/app/api/insurers/[id]/threads/route.ts": {
-  "sb": 5,
-  "fetch": 0
- },
- "src/app/api/insurers/declines/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/app/api/leads/route.ts": {
   "sb": 0,
   "fetch": 6
@@ -329,10 +305,6 @@
  },
  "src/app/api/public/sales/unsubscribe/route.ts": {
   "sb": 6,
-  "fetch": 0
- },
- "src/app/api/thread-insurers/[id]/route.ts": {
-  "sb": 3,
   "fetch": 0
  },
  "src/app/api/today/desk/detail/route.ts": {
@@ -526,6 +498,10 @@
  "src/lib/autonomy/send.ts": {
   "sb": 15,
   "fetch": 0
+ },
+ "src/lib/calendar/events-server.ts": {
+  "sb": 0,
+  "fetch": 5
  },
  "src/lib/cases/brief-store.ts": {
   "sb": 23,

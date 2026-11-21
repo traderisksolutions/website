@@ -70,7 +70,8 @@ test('TOD-047 Calendar › Employment Benefits renewals: each renewal names its 
 })
 
 test('TOD-048 a calendar that fails to load says so and offers Retry, not an empty month', async ({ page }) => {
-  await page.route('**/api/calendar/events?*', r => r.fulfill({ status: 500, json: { error: 'Test failure' } }))
+  // The month is read by a server action: a POST to the page with a next-action header. Fail that.
+  await page.route('**/calendar*', r => r.request().method() === 'POST' && r.request().headers()['next-action'] ? r.fulfill({ status: 500, body: 'Test failure' }) : r.continue())
   await openClean(page, '/calendar')
   await expect(page.getByRole('alert').getByText(/The calendar did not load/)).toBeVisible()
   await expect(page.getByText('Nothing due this month.')).toHaveCount(0)

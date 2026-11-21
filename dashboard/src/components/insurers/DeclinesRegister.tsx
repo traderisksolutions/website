@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { Btn, Chip, Spinner } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { callApi, errText } from '@/components/placement/shared'
+import { unwrap } from '@/lib/action-result'
+import { declines } from '@/app/insurers/actions'
 
 type Decline = { id: string; insurer_company_id: string | null; insurer_name: string; kind: string; line: string | null; risk: string | null; reason: string | null; quote: string | null; client_name: string | null; declined_on: string | null; thread_id: string | null; source: string }
 const KIND: Record<string, { label: string; tone: 'neutral' | 'amber' | 'red' | 'blue' }> = { appetite: { label: 'Appetite', tone: 'red' }, blocked: { label: 'Another broker first', tone: 'amber' }, onboarding: { label: 'TRS not onboarded', tone: 'blue' }, other: { label: 'Other', tone: 'neutral' } }
@@ -20,7 +22,7 @@ export function DeclinesRegister({ q, line }: { q: string; line: string }) {
   const [rows, setRows] = useState<Decline[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [kind, setKind] = useState('')
-  useEffect(() => { callApi<{ declines: Decline[] }>('/api/insurers/declines').then(d => setRows(d.declines)).catch(e => { setError(errText(e)); setRows([]) }) }, [])
+  useEffect(() => { declines().then(unwrap).then(d => setRows(d.declines as unknown as Decline[])).catch(e => { setError(errText(e)); setRows([]) }) }, [])
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase()
     const terms = line ? (LINE_TERMS[line] ?? [line]) : null
