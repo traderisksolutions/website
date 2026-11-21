@@ -48,6 +48,9 @@ test('FIL-003 an Inbox attachment opens File to Drive with company, type, policy
   const [live] = await dbRows<{ id: string }>(`email_threads?id=eq.${a.thread_id}&deleted_at=is.null&select=id`)
   test.skip(!live, 'the thread is deleted')
   await page.goto(`/engagement?lead=${a.thread_id}`)
+  // Count the folded messages only once the thread has drawn; before, the count was 0 and the
+  // attachment on an older message never showed (21 Nov 2026).
+  await expect(page.getByRole('article', { name: /^Message from/ }).first()).toBeVisible({ timeout: 60_000 })
   const left = page.getByRole('button', { name: /^Expand message from/ })
   for (let n = await left.count(); n > 0; n--) await left.first().click()
   const chip = page.getByRole('region', { name: 'Attachments' }).getByRole('button', { name: 'File to Drive' }).first()
