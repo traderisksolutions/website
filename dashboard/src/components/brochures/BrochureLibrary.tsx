@@ -51,7 +51,7 @@ export function BrochureLibrary() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
       <PageHeader title="Brochures"
         meta={<span className="text-body text-trs-muted">{data ? `${new Set(data.rows.map(r => r.product.toLowerCase())).size} products · ${data.rows.length} versions` : ' '}</span>}
         actions={<>
@@ -125,7 +125,7 @@ export function VersionPage({ rowKey }: { rowKey: string | null }) {
   const row = rowKey ? data?.rows.find(r => r.key === rowKey) ?? null : null
   const title = rowKey ? (row ? `${row.product} ${row.version}` : 'Edit version') : 'Add version'
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[760px]">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[760px]">
       <Breadcrumbs current={{ label: title, href: rowKey ? `/brochures/edit?key=${encodeURIComponent(rowKey)}` : '/brochures/new' }} fallback={{ label: 'Brochures', href: '/brochures' }} />
       <PageHeader title={title} />
       {error && <div className="text-body text-trs-neg">{error}</div>}

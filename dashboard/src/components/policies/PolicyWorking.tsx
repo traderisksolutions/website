@@ -76,7 +76,7 @@ export function PolicyWorking({ lineId }: { lineId: string }) {
   const type = word(REQUEST_TYPES, l.request_type)
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
       <Breadcrumbs current={{ label: `${ctx.company.name} · ${ctx.label}`, href: `/policies/working/${lineId}` }} fallback={{ label: 'Policies', href: '/policies' }} />
       <PageHeader title={`${ctx.label}${type ? ` · ${type}` : ''}`}
         meta={<span className="flex flex-wrap gap-x-5 gap-y-1 text-body">

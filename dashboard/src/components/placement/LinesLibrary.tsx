@@ -49,7 +49,7 @@ export function LinesLibrary() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
       <PageHeader title="Lines" meta={<span className="text-body text-trs-muted">{LINES.length} lines · starting text from the 19 Nov 2026 mail study</span>} />
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Lines" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">

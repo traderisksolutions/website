@@ -12,7 +12,7 @@ export function PageFrame({ children, width = 'wide', className }: {
   className?: string
 }) {
   return (
-    <div className={cn('flex min-w-0 flex-col gap-5 px-4 py-6 sm:px-6 lg:px-10', width === 'read' ? 'max-w-[1200px]' : 'max-w-[1440px]', className)}>
+    <div className={cn('mx-auto flex w-full min-w-0 flex-col gap-5 px-4 py-6 sm:px-6 lg:px-10', width === 'read' ? 'max-w-[1200px]' : 'max-w-[1440px]', className)}>
       {children}
     </div>
   )
