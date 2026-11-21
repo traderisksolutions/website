@@ -33,7 +33,7 @@ export function DocEditor({ docKey, title, versions, draft }: { docKey: string; 
     <section className="flex flex-col gap-3" aria-label={title}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="m-0 text-heading font-medium">{title}</h2>
+          <h2 className="m-0 text-heading font-semibold">{title}</h2>
           <div className="text-small text-trs-muted">{current ? `Version ${current.version} · ${fmtDateTime(current.created_at)} · ${current.created_by}` : 'Not saved · not read by the agents'}</div>
         </div>
         <div className="flex gap-2">
