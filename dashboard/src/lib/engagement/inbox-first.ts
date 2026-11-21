@@ -16,7 +16,7 @@ import { readThread } from '@/lib/mail/thread-read'
 import { threadVisibleTo } from '@/lib/mail/visibility-server'
 import { loadBar, type Bar } from '@/lib/chief/bar'
 import { threadReferral, type ThreadReferral } from '@/lib/crm/thread-referral'
-import { companyCard, type CompanyCard } from '@/lib/engagement/company-card'
+import type { CompanyCard } from '@/lib/engagement/company-card'
 import { listStaff, type StaffMember } from '@/lib/crm/staff'
 import { editOptions } from '@/lib/today/data'
 import { EMAIL_SOURCES, ENGAGED_STATUSES, type Lead, type StoredSummary, type ThreadState } from '@/components/engagement/types'
@@ -100,11 +100,18 @@ export async function inboxFirst(viewer: string | null, link: string | null): Pr
   // The default pill: Operations, or every mailbox for the developer account (Jarod, 20 Nov 2026).
   const sp = new URLSearchParams({ paged: '1', offset: '0', view: 'all', mailbox: seesAllMail(viewer) ? 'all' : 'operations' })
   if (include) sp.set('include', include)
-  const [list, formLeads, drafts, staff] = await Promise.all([
+  // List first (21 Nov 2026): the first screen carries the list, counts and mailbox names; the
+  // selected thread, its rail and company cards load in the browser a moment later, so the list
+  // no longer waits for them. A deep link's thread was started alongside the list and comes with it.
+  const [list, formLeads, drafts, staff, staffNames] = await Promise.all([
     inboxConversations(sp, viewer),
     soft(engagedFormLeads(), []),
     soft(newEmailDrafts(), null),
     soft(listStaff(), []),
+    // The Mailbox pill names the personal mailboxes the developer account sees.
+    seesAllMail(viewer)
+      ? soft(editOptions({}).then(o => Object.fromEntries(o.staff.map(s => [s.email.toLowerCase(), s.name]))), null)
+      : Promise.resolve(null),
   ])
   const page = list.page!
   const threads = list.rows.map(r => ({ ...r, source: 'thread' as const }))
@@ -113,24 +120,12 @@ export async function inboxFirst(viewer: string | null, link: string | null): Pr
   const all = [...formLeads, ...threads]
   const linked = include ? all.find(l => l.id === include || l.thread_id === include) : undefined
   const newest = [...all].filter(l => !l.private).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-  const byId = new Map<string, Lead>()
-  for (const r of [...threads, ...formLeads]) byId.set(r.id, r)
   const selectedId = linked?.id ?? newest?.id ?? null
-  const lead = selectedId ? byId.get(selectedId) ?? null : null
-
-  const counterparty = lead?.companyKind === 'insurer' || lead?.companyKind === 'partner'
-  const cardIds = Array.from(new Set([lead?.companyId, counterparty ? lead?.clientCompanyId : null].filter((x): x is string => !!x)))
+  const lead = linked ?? null
   const tid = lead?.thread_id ?? null
   const reuse = linkedThread && tid === linkedThread.id ? linkedThread : null
-  const [thread, rail, cardList, staffNames] = await Promise.all([
-    lead && (tid || lead.email) ? (reuse?.state ?? threadState(tid, lead.email, viewer)) : Promise.resolve(null),
-    tid ? (reuse?.rail ?? soft(railFirst(tid, viewer), null)) : Promise.resolve(null),
-    Promise.all(cardIds.map(id => soft(companyCard(id).then(c => [id, c] as const), null))),
-    // The Mailbox pill names its personal mailboxes; it shows only when the list has one.
-    page.mailboxes.length
-      ? soft(editOptions({}).then(o => Object.fromEntries(o.staff.map(s => [s.email.toLowerCase(), s.name]))), null)
-      : Promise.resolve(null),
-  ])
+  const [thread, rail] = reuse ? await Promise.all([reuse.state, reuse.rail]) : [null, null]
+  const cardList: (readonly [string, CompanyCard] | null)[] = []
   return {
     rows: threads, page, formLeads, drafts, staffNames, team: { me: viewer, staff },
     selectedId, deepLinked: !!linked, thread, rail,

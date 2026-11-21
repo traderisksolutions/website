@@ -25,12 +25,24 @@ function match(pattern: string, path: string): Record<string, string> | null {
   return params
 }
 
+/**
+ * The route a path reaches. As Next.js does, a fixed segment wins over [id], so
+ * /placements/line-texts is not read as a placement id (21 Nov 2026: alphabetical order sent seven
+ * paths to their [id] neighbour).
+ */
+export function pickRoute(table: RouteTable, pathname: string): { r: RouteTable[number]; params: Record<string, string> } | null {
+  const dynamicCount = (p: string) => (p.match(/\[\w+\]/g) ?? []).length
+  const hit = table.map(r => ({ r, params: match(r.pattern, pathname) })).filter(x => x.params)
+    .sort((a, b) => dynamicCount(a.r.pattern) - dynamicCount(b.r.pattern))[0]
+  return hit ? { r: hit.r, params: hit.params! } : null
+}
+
 export async function runRoute(table: RouteTable, url: string, method: string, body: string | null): Promise<GatewayAnswer> {
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost'
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
   const full = new URL(url, `${proto}://${host}`)
-  const found = table.map(r => ({ r, params: match(r.pattern, full.pathname) })).find(x => x.params)
+  const found = pickRoute(table, full.pathname)
   if (!found) return { status: 404, body: JSON.stringify({ error: 'Not found' }), type: 'application/json' }
   const mod = await found.r.load()
   const handler = mod[method.toUpperCase()] as Handler | undefined
