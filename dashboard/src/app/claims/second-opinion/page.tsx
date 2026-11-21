@@ -73,7 +73,7 @@ export default function ClaimSecondOpinionPage() {
 
   return (
     <div className="mx-auto max-w-[1280px] px-6 py-8">
-      <h1 className="m-0 text-title font-medium text-trs-ink">Claims</h1>
+      <h1 className="m-0 text-title font-semibold text-trs-ink">Claims</h1>
       <div className="mt-4"><ClaimsTabs /></div>
       <p className="mt-1 text-body text-trs-muted">corpcover.com requests · PDF due {SLA_H} hours after the documents arrive</p>
 

@@ -206,7 +206,7 @@ export function CaseComparison({ id, onOpenThread, onChanged, onNotice, onError 
                     </td>
                   ))}
                   <td className="px-1 py-1.5 text-center">
-                    <Btn level="tertiary" size="xs" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="w-8 px-0 text-heading leading-none">×</Btn>
+                    <Btn level="tertiary" size="xs" disabled={working} onClick={() => removeRow(r.id)} aria-label={`Remove term ${r.label || 'without a name'}`} className="w-8 px-0 text-heading leading-none font-semibold">×</Btn>
                   </td>
                 </tr>
               ))}

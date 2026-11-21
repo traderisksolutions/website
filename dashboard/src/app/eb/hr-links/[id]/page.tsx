@@ -110,7 +110,7 @@ export default function HrLinkPage() {
         <>
           <div className="mb-8">
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h1 className="m-0 text-title font-medium leading-[1.08]">{link.company_name}</h1>
+              <h1 className="m-0 text-title font-semibold leading-[1.08]">{link.company_name}</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <Btn level="secondary" onClick={() => act('resend')} loading={busy === 'resend'} disabled={busy !== null || link.status === 'submitted'}>Resend</Btn>
                 <Btn level="secondary" onClick={() => setConfirmClose(true)} loading={busy === 'close'} disabled={busy !== null || !linkIsOpen(link)}>Close link</Btn>
@@ -132,7 +132,7 @@ export default function HrLinkPage() {
 
           <section className="mb-10">
             <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-              <h2 className="m-0 text-heading font-medium">Received list</h2>
+              <h2 className="m-0 text-heading font-semibold">Received list</h2>
               {submission && (
                 <span className="text-body tabular-nums text-trs-muted" >
                   {submitted ? 'Submitted' : 'Draft, not submitted'}
@@ -182,7 +182,7 @@ export default function HrLinkPage() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-heading font-medium">Link {link.reference}</h2>
+            <h2 className="m-0 mb-3 text-heading font-semibold">Link {link.reference}</h2>
             {events.length === 0 ? (
               <p className="m-0 text-body text-trs-muted" >Sent {fmtDateTime(link.sent_at)}.</p>
             ) : (

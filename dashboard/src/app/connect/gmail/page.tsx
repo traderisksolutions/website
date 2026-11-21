@@ -22,7 +22,7 @@ export default async function ConnectGmail({ searchParams }: { searchParams: Pro
     <main className="min-h-screen flex items-center justify-center px-4 bg-trs-tint text-trs-ink">
       <div className="w-full max-w-[460px] bg-white rounded border border-trs-line p-8">
         <div className="text-body mb-3 text-trs-muted">Trade Risk Solutions</div>
-        <h1 className="m-0 text-title font-medium">Gmail access: read only</h1>
+        <h1 className="m-0 text-title font-semibold">Gmail access: read only</h1>
         {connected ? (
           <p className="mt-4 mb-0 text-body leading-[1.6]">{connected} is connected, read only. The TRS dashboard can read this mailbox. It cannot send, change or delete any email.</p>
         ) : (

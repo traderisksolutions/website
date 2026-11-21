@@ -20,7 +20,7 @@ const DAY = 86_400_000
 const ago = (iso: string | null) => (iso ? Math.max(0, Math.round((Date.now() - Date.parse(iso)) / DAY)) : null)
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`
 
-const Label = ({ children }: { children: React.ReactNode }) => <span className="text-small font-semibold text-trs-muted">{children}</span>
+const Label = ({ children }: { children: React.ReactNode }) => <span className="text-small text-trs-muted">{children}</span>
 
 /** Renews, Current, Stage, Waiting on: each shown only when known. */
 export function FactsLine({ facts, waiting }: { facts: RowFacts | null | undefined; waiting: WaitingOn | null }) {

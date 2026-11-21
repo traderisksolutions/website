@@ -529,7 +529,7 @@ export function ReviewDraftsDrawer({ companyId, open, focus, onClose, onChanged,
   // ── Shell ────────────────────────────────────────────────────────────────────────────────────
   const header = (
     <header className="flex items-center gap-2 px-4 sm:px-5 h-14 flex-shrink-0 border-b border-trs-line">
-      <h2 className="m-0 text-heading font-medium text-trs-ink">Drafts to approve</h2>
+      <h2 className="m-0 text-heading font-semibold text-trs-ink">Drafts to approve</h2>
       <span className="text-body tabular-nums text-trs-muted">{items ? pending.length : ''}</span>
       <div className="ml-auto flex items-center gap-1.5">
         <Btn level="secondary" size="xs" onClick={() => void sendAll()} loading={sendingAll} disabled={!items || pending.length === 0}>Send all</Btn>

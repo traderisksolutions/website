@@ -759,8 +759,20 @@ table.trs-table td.cell-best { background-color: var(--trs-mint); }
 .main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody td.cell-left { text-align: left; }
 .main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr:nth-child(even) > td { background-color: transparent; }
 .main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr:hover > td { background-color: var(--trs-tint); }
+/* The frozen first column (Register's identity cell, .sticky) stays opaque: the rows above set
+   every cell transparent, and a transparent frozen cell lets the scrolled columns show through it. */
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) :is(td, th).sticky { background-color: #ffffff; }
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr:hover > td.sticky { background-color: var(--trs-tint); }
+.main-content table:not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) table) tbody tr[aria-selected="true"] > td.sticky { background-color: var(--trs-mint); }
 /* No outer box: the element that directly holds a table (its scroll wrapper) draws no border,
    corner or shadow, so every table reads as the open ledger. Email bodies and editors excluded. */
 .main-content :is(div, section):has(> table):not(:where(.email-html-body, .trs-re, .ql-editor, .ProseMirror, [data-raw-html]) *) {
   border: 0 !important; border-radius: 0 !important; box-shadow: none !important;
+}
+
+/* ── Field labels are centred over their field (Jarod, 21 Nov 2026), everywhere: the shared Field
+   and every hand-built <label> whose first line is its text and which holds a text control.
+   Checkbox and radio labels (control first, text after) are not touched. ── */
+.main-content label:has(input:not([type="checkbox"]):not([type="radio"]), select, textarea, [role="combobox"]) > span:first-child:not(:has(input, select, textarea)) {
+  display: block; text-align: center;
 }

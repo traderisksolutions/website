@@ -71,13 +71,13 @@ function RowDetail({ row }: { row: LogRow }) {
         </p>
       )}
       <p className="m-0 mb-1 text-small text-trs-muted">Full message</p>
-      <pre className="m-0 px-3 py-2 rounded text-small leading-relaxed whitespace-pre-wrap break-all max-h-64 overflow-y-auto bg-trs-field text-trs-ink">
+      <pre className="m-0 px-3 py-2 rounded text-small leading-relaxed whitespace-pre-wrap break-all max-h-64 overflow-y-auto bg-trs-field text-trs-muted">
         {row.message}
       </pre>
       {row.metadata && Object.keys(row.metadata).length > 0 && (
         <>
           <p className="m-0 mt-3 mb-1 text-small text-trs-muted">Metadata</p>
-          <pre className="m-0 px-3 py-2 rounded text-small leading-relaxed whitespace-pre-wrap break-all max-h-52 overflow-y-auto bg-trs-field text-trs-ink">
+          <pre className="m-0 px-3 py-2 rounded text-small leading-relaxed whitespace-pre-wrap break-all max-h-52 overflow-y-auto bg-trs-field text-trs-muted">
             {JSON.stringify(row.metadata, null, 2)}
           </pre>
         </>
@@ -133,7 +133,7 @@ export default function ErrorLogPage() {
         {/* ── Header ─────────────────────────────────────────────────────────── */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-title font-medium leading-[1.08]">Error log</h1>
+            <h1 className="m-0 text-title font-semibold leading-[1.08]">Error log</h1>
             <p className="m-0 mt-2 text-body text-trs-muted">
               {loading ? 'Loading…' : `${logs.length} error${logs.length !== 1 ? 's' : ''} · ${periodLabel} · refreshes every 30 seconds`}
             </p>

@@ -17,13 +17,13 @@ export function CompanyEb({ companyId, policies }: { companyId: string; companyN
     <div className="flex flex-col gap-8">
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <h2 className="m-0 text-heading font-medium">Quotations</h2>
+          <h2 className="m-0 text-heading font-semibold">Quotations</h2>
           <span data-same-tab><LinkBtn level="primary" href={`/eb?company=${companyId}`}>New quotation</LinkBtn></span>
         </div>
         <EbQuotationRegister companyId={companyId} />
       </section>
       <section>
-        <h2 className="m-0 mb-3 text-heading font-medium">Employment benefits policies</h2>
+        <h2 className="m-0 mb-3 text-heading font-semibold">Employment benefits policies</h2>
         {!policies ? <Spinner label="Loading…" /> : eb.length === 0 ? <Empty compact>No employee-benefits policy on file.</Empty> : (
           <Register label="Employment benefits policies" minWidth={640}>
             <RegisterHead>

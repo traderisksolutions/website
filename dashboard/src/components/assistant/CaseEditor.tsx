@@ -134,7 +134,7 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
       <div className="flex flex-wrap items-center gap-1.5 text-small text-trs-muted">
         {files.length ? 'Attached' : 'No attachments'}
         {files.map(f => (
-          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-6 text-small text-trs-ink">
+          <span key={f} className="inline-flex items-center gap-1 rounded-full border border-trs-line bg-trs-canvas pl-2 pr-1 h-6 text-small text-trs-muted">
             <span className="max-w-[220px] truncate">{f}</span>
             <Btn level="tertiary" aria-label={`Remove ${f}`} disabled={busy} onClick={() => void apply(files.filter(x => x !== f), [])} className="w-4 h-4 p-0 rounded-full border-0 text-small leading-none text-trs-muted hover:bg-transparent hover:text-trs-neg">×</Btn>
           </span>

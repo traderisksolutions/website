@@ -414,7 +414,7 @@ export function EngagementComposePanel({
               />
             </>
           ) : (
-            <h3 className="m-0 text-heading font-medium text-trs-ink">Reply</h3>
+            <h3 className="m-0 text-heading font-semibold text-trs-ink">Reply</h3>
           )}
           {/* No draft autosave exists in this panel — drafts are written on send — so no "Saved" state is shown. */}
           <span className="flex-1" />
@@ -480,7 +480,7 @@ export function EngagementComposePanel({
           <div className="px-[var(--re-gutter)] pt-2 flex flex-wrap items-center gap-1.5 flex-shrink-0">
             <span className="text-small mr-0.5 text-trs-muted">Drafted from</span>
             {contextUsed.map((c, i) => (
-              <span key={i} className="text-small font-medium px-2 py-0.5 rounded bg-trs-field text-trs-ink-2">{c}</span>
+              <span key={i} className="text-small px-2 py-0.5 rounded bg-trs-field text-trs-muted">{c}</span>
             ))}
           </div>
         )}
@@ -620,7 +620,7 @@ export function EngagementComposePanel({
                 onClick={() => setErrorOpen(v => !v)}
                 title="Show the full error"
                 aria-expanded={errorOpen}
-                className="block h-auto text-small font-normal max-w-[360px] truncate bg-transparent border-0 p-0 text-left text-trs-ink-2 underline decoration-dotted underline-offset-2 hover:bg-transparent hover:text-trs-ink-2"
+                className="block h-auto text-small max-w-[360px] truncate bg-transparent border-0 p-0 text-left text-trs-muted underline decoration-dotted underline-offset-2 hover:bg-transparent hover:text-trs-ink-2"
               >
                 {error}
               </Btn>
@@ -629,11 +629,11 @@ export function EngagementComposePanel({
                   <div className="mb-1.5 flex items-center justify-between gap-2">
                     <span className="text-small text-trs-muted">Error detail</span>
                     <div className="flex items-center gap-2">
-                      <Btn level="tertiary" size="xs" onClick={() => navigator.clipboard?.writeText(error)} className="h-auto text-small bg-transparent border-0 p-0 text-trs-ink hover:bg-transparent hover:text-trs-ink hover:underline">Copy</Btn>
+                      <Btn level="tertiary" size="xs" onClick={() => navigator.clipboard?.writeText(error)} className="h-auto text-small bg-transparent border-0 p-0 text-trs-muted hover:bg-transparent hover:text-trs-ink hover:underline">Copy</Btn>
                       <Btn level="tertiary" size="xs" onClick={() => setErrorOpen(false)} aria-label="Close error detail" className="h-auto bg-transparent border-0 p-0 text-trs-muted hover:bg-transparent"><X size={12} strokeWidth={2} /></Btn>
                     </div>
                   </div>
-                  <div className="whitespace-pre-wrap break-words text-small text-trs-ink-2">{error}</div>
+                  <div className="whitespace-pre-wrap break-words text-small text-trs-muted">{error}</div>
                 </div>
               )}
             </div>

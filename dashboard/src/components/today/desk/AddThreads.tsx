@@ -144,7 +144,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
           <DialogPrimitive.Title className="m-0 pr-10 text-title font-semibold text-trs-ink">Add email threads</DialogPrimitive.Title>
           {suggested && suggested.length > 0 && (
             <section aria-label="Suggested" className="flex flex-col gap-1.5">
-              <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-small font-semibold text-trs-green">Suggested · {suggested.length}</span>
+              <span className="self-start rounded-full bg-trs-mint px-2.5 py-[2px] text-small text-trs-green">Suggested · {suggested.length}</span>
               <Register label="Suggested threads" minWidth={760} maxHeight="220px">
                   <thead><tr><th>Thread</th><th className="w-[160px]">Client</th><th className="w-[90px]">Side</th><th className="w-[240px]">Reason</th><th className="w-[150px]">Action</th></tr></thead>
                   <tbody>
@@ -153,7 +153,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="cell-left !text-left"><div className="font-medium text-trs-ink">{g.subject}</div><div className="text-small text-trs-muted">{fmtDay(g.lastAt)}</div></td>
                         <td>{g.companyName ?? '—'}</td>
                         <td>{g.side === 'insurer' ? 'Insurer' : 'Client'}</td>
-                        <td className="!text-left text-small text-trs-ink-2">{g.reason}</td>
+                        <td className="!text-left text-small text-trs-muted">{g.reason}</td>
                         <td>
                           <span className="inline-flex gap-1.5">
                             <Btn size="xs" level="tertiary" onClick={() => takeSuggestion(g, 'dismiss')} loading={acting === `dismiss:${g.threadId}`} disabled={!!acting}>Dismiss</Btn>
@@ -181,9 +181,9 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                         <td className="cell-left !text-left">
                           <div className="font-medium text-trs-ink">{subjectOf(c)}</div>
                           <div className="text-small text-trs-muted">{senderOf(c)}{c.companyName ? ` · ${c.companyName}` : ''}</div>
-                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-small text-trs-ink-2" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
+                          {c.participants && c.participants.length > 0 && (() => { const p = participantsLine(c.participants); return <div className="text-small text-trs-muted" title={p.full}>{p.text}{p.more ? ` +${p.more}` : ''}</div> })()}
                           {c.match && q.trim() && <div className="text-small text-trs-subtle">Matched: {c.match}</div>}
-                          {c.private && <div className="text-small font-medium text-trs-warn">In {c.private.owner ? `${c.private.owner.split(/\s+/)[0]}’s` : 'a colleague’s'} inbox</div>}
+                          {c.private && <div className="text-small text-trs-warn">In {c.private.owner ? `${c.private.owner.split(/\s+/)[0]}’s` : 'a colleague’s'} inbox</div>}
                           {c.conversations && c.conversations.length > 1 && (
                             <ul aria-label="Conversations in this thread" className="m-0 mt-1.5 flex list-none flex-col gap-1 p-0">
                               {c.conversations.map(v => {
@@ -193,7 +193,7 @@ export function AddThreads({ taken, onClose, onAdded }: { taken: Set<string>; on
                                   <li key={v.subject}>
                                     <Btn size="xs" level={on ? 'primary' : 'secondary'} onClick={() => pickConversation(c, v)} aria-pressed={on} className="w-full justify-start gap-2 text-left">
                                       <span className={`min-w-0 flex-1 truncate ${hit || on ? 'font-medium' : ''}`} title={v.subject}>{v.subject}</span>
-                                      <span className="shrink-0 text-small font-normal opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
+                                      <span className="shrink-0 text-small opacity-80">{[v.people[0], v.insurer].filter(Boolean).join(' · ')}{v.people.length > 1 ? ` +${v.people.length - 1}` : ''} · {v.count} email{v.count === 1 ? '' : 's'} · {fmtDay(v.last)}</span>
                                       <span className="w-14 shrink-0 text-right font-medium">{v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
                                     </Btn>
                                   </li>

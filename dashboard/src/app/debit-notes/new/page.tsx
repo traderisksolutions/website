@@ -123,7 +123,7 @@ export default function NewDebitNotePage() {
   return (
     <div className="w-full min-w-0 max-w-[1100px] mx-auto px-6 sm:px-12 pt-10 pb-20 text-trs-ink">
       <Breadcrumbs className="mb-4" current={{ label: 'New debit note', href: '/debit-notes/new' }} fallback={{ label: 'Debit notes', href: '/debit-notes' }} />
-      <h1 className="m-0 text-title font-medium leading-[1.08] text-trs-ink mb-2">Generate a new debit note</h1>
+      <h1 className="m-0 text-title font-semibold leading-[1.08] text-trs-ink mb-2">Generate a new debit note</h1>
       <p className="m-0 text-body text-trs-muted mb-6 max-w-[72ch]">
         A new renewal or new-business event is 2 files from the insurer: the tax invoice
         addressed to the client, and the commission statement addressed to TRS. Upload both — AI
@@ -159,7 +159,7 @@ export default function NewDebitNotePage() {
                 size="xs"
                 onClick={() => cancelBundle(b.id)}
                 disabled={cancelling === b.id}
-                className="flex-shrink-0 h-auto px-0 border-0 text-small text-trs-ink-2 hover:bg-transparent hover:underline"
+                className="flex-shrink-0 h-auto px-0 border-0 text-small text-trs-muted hover:bg-transparent hover:underline"
               >
                 {cancelling === b.id ? 'Cancelling…' : 'Cancel'}
               </Btn>
@@ -168,7 +168,7 @@ export default function NewDebitNotePage() {
         </div>
       )}
 
-      <h2 className="m-0 text-heading font-medium mb-3">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
+      <h2 className="m-0 text-heading font-semibold mb-3">Review queue {needsReview.length > 0 && `(${needsReview.length})`}</h2>
       {loadingBundles ? (
         <p className="text-small text-trs-muted">Loading…</p>
       ) : needsReview.length === 0 ? (
@@ -450,7 +450,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       <div className="rounded p-6 flex flex-col items-center gap-3 text-center bg-trs-pos-bg">
         <div className="w-10 h-10 rounded-full bg-trs-field flex items-center justify-center"><CheckCircle2 size={20} className="text-trs-ink" /></div>
         <p className="text-body font-semibold">Debit Note {approved.debitNoteNo} generated</p>
-        <p className="text-small text-trs-ink -mt-1.5">
+        <p className="text-small text-trs-muted -mt-1.5">
           This debit note and its documents are now saved in your Debit Notes records
           {approved.driveFolderUrl ? (
             <> and <a href={approved.driveFolderUrl} target="_blank" rel="noreferrer" className="underline hover:no-underline">archived to Google Drive</a>.</>
@@ -461,7 +461,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           <a href={approved.downloadUrl} target="_blank" rel="noreferrer" className="inline-flex"><Button variant="outline" size="sm"><Download size={13} className="mr-1.5" /> Download PDF</Button></a>
           <Button size="sm" onClick={openSend} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Send size={13} className="mr-1.5" />} Send documents</Button>
         </div>
-        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-small text-trs-ink hover:underline">
+        <Link href={`/debit-notes?open=${approved.debitNoteId}`} className="text-small text-trs-muted hover:underline">
           View {approved.debitNoteNo} in Debit Notes →
         </Link>
         <Link href="/debit-notes" className="text-small text-trs-muted hover:text-trs-ink">Done</Link>
@@ -635,7 +635,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
           data shape), so this never drifts from the real output. Updates on any field change,
           including currency (the bank/PayNow-vs-wire block at the bottom changes with it). */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-small font-medium text-trs-muted">Preview</span>
+        <span className="text-small text-trs-muted">Preview</span>
         <div className="h-[600px] rounded border border-trs-line overflow-hidden bg-trs-canvas">
           <DebitNotePreviewPanel
             data={previewData}
@@ -648,7 +648,7 @@ function BundleReviewCard({ bundle, onResolved }: { bundle: Bundle; onResolved: 
       {err && <p className="text-small text-trs-neg">{err}</p>}
 
       <div className="flex items-center justify-end gap-2">
-        {saved && <span className="text-small text-trs-ink mr-auto">Draft saved</span>}
+        {saved && <span className="text-small text-trs-muted mr-auto">Draft saved</span>}
         <Button variant="ghost" size="sm" onClick={reject} disabled={busy || saving}><XCircle size={13} className="mr-1.5" /> Reject</Button>
         <Button variant="outline" size="sm" onClick={saveDraft} disabled={busy || saving}>
           {saving ? <Loader2 size={13} className="animate-spin mr-1.5" /> : <Save size={13} className="mr-1.5" />} Save draft

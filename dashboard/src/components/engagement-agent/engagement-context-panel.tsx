@@ -148,7 +148,7 @@ function ConversationsSection({
               >
                 <span className="flex items-center gap-1.5">
                   <span className="text-body font-medium truncate text-trs-ink">{t.party.name}</span>
-                  {t.is_root && <span className="text-small font-medium rounded px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-ink-2">Client</span>}
+                  {t.is_root && <span className="text-small rounded px-1.5 py-px flex-shrink-0 bg-trs-field text-trs-muted">Client</span>}
                   <span className="ml-auto text-small flex-shrink-0 tabular-nums text-trs-subtle">{t.last_message_at ? timeAgo(t.last_message_at) : ''}</span>
                 </span>
                 {t.party.company && <span className="block text-small truncate text-trs-muted">{t.party.company}</span>}
@@ -468,14 +468,14 @@ function DraftHistorySection({
                   <span>{isCurrent ? 'Current' : isSent ? 'Sent' : 'Older'}</span>
                   <span className="ml-auto tabular-nums text-trs-subtle">{timeAgo(item.created_at)}</span>
                 </p>
-                <p className="m-0 mb-2 text-small leading-[1.5] line-clamp-2 text-trs-ink-2">{snippet}{item.body.length > 90 ? '…' : ''}</p>
+                <p className="m-0 mb-2 text-small leading-[1.5] line-clamp-2 text-trs-muted">{snippet}{item.body.length > 90 ? '…' : ''}</p>
                 <p className="m-0 flex items-center gap-3 text-small">
                   <Btn level="tertiary" size="xs" onClick={() => setPreview(expanded ? null : item.id)} aria-expanded={expanded} className={cn(LINK, 'text-small')}>{expanded ? 'Hide' : 'Preview'}</Btn>
                   <Btn level="tertiary" size="xs" onClick={() => onRestore(item.body, item.generated_by)} className={cn(LINK, 'text-small')}>{isCurrent ? 'Reload into composer' : 'Load into composer'}</Btn>
                 </p>
                 {expanded && (
                   <div className="mt-2 p-2.5 rounded max-h-44 overflow-y-auto bg-trs-field">
-                    <pre className="m-0 text-small whitespace-pre-wrap leading-[1.6] font-[inherit] text-trs-ink-2">{item.body}</pre>
+                    <pre className="m-0 text-small whitespace-pre-wrap leading-[1.6] font-[inherit] text-trs-muted">{item.body}</pre>
                   </div>
                 )}
               </div>

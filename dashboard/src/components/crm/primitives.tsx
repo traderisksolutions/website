@@ -29,7 +29,7 @@ const TONE_CLASS: Record<StageTone, string> = {
 
 export function Chip({ tone = 'neutral', children, className, title }: { tone?: StageTone; children: React.ReactNode; className?: string; title?: string }) {
   return (
-    <span title={title} className={cn('inline-flex items-center gap-1.5 rounded pl-1.5 pr-2 py-px text-small font-medium whitespace-nowrap leading-[18px] border', TONE_CLASS[tone], className)}>
+    <span title={title} className={cn('inline-flex items-center gap-1.5 rounded pl-1.5 pr-2 py-px text-small whitespace-nowrap leading-[18px] border', TONE_CLASS[tone], className)}>
       <span aria-hidden className="inline-block w-1.5 h-1.5 rounded-full flex-none bg-current" />
       {children}
     </span>
@@ -50,7 +50,7 @@ export function SectionCard({ title, actions, children, className, padded = true
     <section className={cn('min-w-0 pb-6 [section+&]:pt-6 [section+&]:border-t border-trs-line', className)}>
       {(title || actions) && (
         <header className={cn('flex items-center gap-3 mb-3 flex-wrap', title ? 'justify-between' : 'justify-end')}>
-          {title && <h2 className="m-0 text-heading font-medium leading-tight text-trs-ink">{title}</h2>}
+          {title && <h2 className="m-0 text-heading font-semibold leading-tight text-trs-ink">{title}</h2>}
           {actions && <div className="flex items-center gap-2 flex-wrap">{actions}</div>}
         </header>
       )}
@@ -158,7 +158,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-body font-medium mb-1.5 text-trs-ink">{label}</span>
+      <span className="block text-center text-body font-semibold mb-1.5 text-trs-ink">{label}</span>
       {children}
       {hint && <span className="block text-small mt-1 text-trs-muted">{hint}</span>}
     </label>
@@ -173,7 +173,7 @@ export function Avatar({ name, className }: { name: string; className?: string }
   const parts = name.replace(/[^a-zA-Z ]/g, '').trim().split(/\s+/).filter(Boolean)
   const ini = parts.length === 0 ? '?' : parts.length === 1 ? parts[0].slice(0, 2).toUpperCase() : (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
   return (
-    <span className={cn('inline-flex items-center justify-center rounded-full text-small font-medium flex-shrink-0 bg-trs-field text-trs-ink', className ?? 'w-8 h-8')}>
+    <span className={cn('inline-flex items-center justify-center rounded-full text-small flex-shrink-0 bg-trs-field text-trs-muted', className ?? 'w-8 h-8')}>
       {ini}
     </span>
   )

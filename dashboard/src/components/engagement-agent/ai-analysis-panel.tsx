@@ -89,7 +89,7 @@ export function AiAnalysisPanel({
           <Tip text="Generated each time the contact sends a new email. Summarises the thread and suggests a next step." />
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {regenErr && <span className="text-small max-w-[120px] truncate text-trs-ink-2" role="alert">{regenErr}</span>}
+          {regenErr && <span className="text-small max-w-[120px] truncate text-trs-muted" role="alert">{regenErr}</span>}
           {threadId && latestMessageId && (
             <Btn
               level="tertiary"
@@ -162,7 +162,7 @@ export function AiAnalysisPanel({
                 {older.map(s => (
                   <div key={s.id} className="px-3 py-2.5 rounded bg-trs-field">
                     <p className="text-small m-0 mb-1 text-trs-subtle">{fmtDateTime(s.created_at)}</p>
-                    <p className="text-small leading-[1.55] m-0 text-trs-ink-2">{s.summary}</p>
+                    <p className="text-small leading-[1.55] m-0 text-trs-muted">{s.summary}</p>
                     {s.next_action && (
                       <p className="text-small mt-1 m-0 text-trs-muted">Next: {s.next_action}</p>
                     )}

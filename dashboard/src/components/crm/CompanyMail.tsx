@@ -180,7 +180,7 @@ export function CompanyMail({ threads, hidden = 0, companyId, companyName, onCom
                     <Btn size="xs" level="tertiary" onClick={() => setSelectedId(null)} className="md:hidden mb-1">
                       <ArrowLeft size={12} /> All threads
                     </Btn>
-                    <p className="text-heading font-medium m-0 leading-snug text-trs-ink" title={current.subject ?? undefined}>{threadTitle(current)}</p>
+                    <p className="text-heading font-semibold m-0 leading-snug text-trs-ink" title={current.subject ?? undefined}>{threadTitle(current)}</p>
                     <p className="text-body m-0 mt-0.5 text-trs-muted">
                       {current.contact?.name ?? current.contact?.email ?? 'Unknown contact'} · {messages?.length ?? 0} message{(messages?.length ?? 0) === 1 ? '' : 's'}
                       {current.caseIds.length > 0 && <> · <Link href={`/nexus/cases?case=${current.caseIds[0]}`} className="underline underline-offset-4 text-trs-ink">in a case</Link></>}

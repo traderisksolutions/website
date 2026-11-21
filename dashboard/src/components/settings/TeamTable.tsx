@@ -102,7 +102,7 @@ export function TeamTable() {
                 <span className="flex items-center gap-3">
                   <PersonTag email={u.email} staff={staffMap} size="md" />
                   <span className="min-w-0">
-                    <span className="block text-body font-medium leading-tight truncate text-trs-ink">{u.name}{u.isSelf && <span className="ml-1.5 text-small font-normal text-trs-muted">(you)</span>}</span>
+                    <span className="block text-body font-medium leading-tight truncate text-trs-ink">{u.name}{u.isSelf && <span className="ml-1.5 text-small text-trs-muted">(you)</span>}</span>
                     <span className="block text-small mt-0.5 truncate text-trs-muted">{u.email}</span>
                   </span>
                 </span>

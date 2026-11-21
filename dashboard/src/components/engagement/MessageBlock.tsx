@@ -370,7 +370,7 @@ function Attachments({ list }: { list: NonNullable<RealMsg['attachments']> }) {
           const href = `/api/engagement/attachments/${a.id}/download`
           return (
             <li key={a.id} className="flex items-center gap-3 px-3.5 py-3 rounded bg-white border border-trs-line">
-              <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small font-semibold bg-trs-field text-trs-ink-2" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
+              <span className="w-10 h-11 rounded flex-shrink-0 inline-flex items-center justify-center text-small bg-trs-field text-trs-muted" aria-hidden>{fileBadge(a.filename, a.mime_type)}</span>
               <span className="min-w-0 flex-1">
                 <a href={href} target="_blank" rel="noreferrer" className="block text-body font-medium truncate no-underline hover:underline text-trs-ink" >{a.filename}</a>
                 <span className="block mt-0.5 text-small text-trs-subtle" >
@@ -396,7 +396,7 @@ function OriginalDialog({ open, onClose, msg, name }: { open: boolean; onClose: 
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className="max-w-[min(960px,calc(100vw-32px))] max-h-[85vh] overflow-y-auto p-0 gap-0">
         <DialogHeader className="px-6 pt-5 pb-3 pr-14 border-b border-trs-line">
-          <DialogTitle className="text-heading font-medium text-trs-ink" >Original message</DialogTitle>
+          <DialogTitle className="text-heading font-semibold text-trs-ink" >Original message</DialogTitle>
           <p className="m-0 text-body text-trs-muted" >{name} · {fmtWhen(msg.sent_at)}</p>
           {msg.body_html && msg.body_text && (
             <div className="mt-2 flex items-center gap-3 text-body">

@@ -162,7 +162,7 @@ function InsurersTab({ tables, loading, onUpload, onEmail }: {
       .map(n => ({ key: n, insurer: n, label: shortInsurer(n), rates: 'Tier C · On request', plan: undefined })),
   ]
   const who = (name: string | null) => contactsFor(name ?? '', contacts)
-  const h2 = 'm-0 text-heading font-medium '
+  const h2 = 'm-0 text-heading font-semibold'
 
   return (
     <div className="flex flex-col gap-10">

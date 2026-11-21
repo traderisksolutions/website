@@ -23,7 +23,7 @@ type Save = (part: Part, body: unknown) => Promise<string | null>
 
 const Card = ({ title, meta, children }: { title: string; meta?: React.ReactNode; children: React.ReactNode }) => (
   <section className="flex min-w-0 flex-col overflow-hidden rounded border border-trs-line-2 bg-white">
-    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-body font-semibold">{title}</h3><span className="flex items-center gap-2 text-small font-normal text-trs-muted">{meta}</span></header>
+    <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-trs-line px-4 py-1.5 text-trs-ink"><h3 className="m-0 text-body font-semibold">{title}</h3><span className="flex items-center gap-2 text-small text-trs-muted">{meta}</span></header>
     {children}
   </section>
 )
@@ -49,7 +49,7 @@ export function LinesLibrary() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
+    <div className="mx-auto w-full px-4 sm:px-6 lg:px-10 py-6 flex flex-col gap-5 min-w-0 max-w-[1440px]">
       <PageHeader title="Lines" meta={<span className="text-body text-trs-muted">{LINES.length} lines · starting text from the 19 Nov 2026 mail study</span>} />
       <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Lines" className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">

@@ -186,7 +186,7 @@ function Review() {
       <Breadcrumbs current={{ label: item.title, href: `/today/${item.id}` }} fallback={{ label: 'Today', href: '/today' }} />
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="m-0 text-title font-medium leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
+          <h1 className="m-0 text-title font-semibold leading-[1.15] text-trs-ink [text-wrap:balance]">{title}</h1>
           <div className="mt-1 text-body text-trs-muted">{forward ? `${item.title} · ${facts}` : facts}</div>
         </div>
       </header>
@@ -205,7 +205,7 @@ function Review() {
         <section className="rounded border border-trs-line bg-white min-w-0 flex flex-col" aria-label="Draft">
           {item.needs_human && (
             <div className="px-4 py-3 border-b border-trs-line">
-              <div className="text-small font-semibold text-trs-neg">Decision</div>
+              <div className="text-small text-trs-neg">Decision</div>
               <p className="m-0 mt-1 text-body text-trs-ink">{item.needs_human}</p>
             </div>
           )}

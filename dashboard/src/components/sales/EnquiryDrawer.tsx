@@ -69,7 +69,7 @@ export function EnquiryDrawer({ id, onClose, onPrev, onNext, onChanged }: {
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-trs-line">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-heading font-medium leading-[1.2] text-balance">{it ? it.company_name ?? 'No company yet' : 'Enquiry'}</h2>
+            <h2 className="m-0 text-heading font-semibold leading-[1.2] text-balance">{it ? it.company_name ?? 'No company yet' : 'Enquiry'}</h2>
             {it && <p className="m-0 mt-2 text-body text-trs-muted">
               {it.status === 'partial' ? `Unfinished · last saved ${fmtWhen(it.updated_at)}` : `Submitted ${fmtWhen(it.submitted_at)}`}
             </p>}

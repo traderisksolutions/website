@@ -28,7 +28,7 @@ export function BusinessNumbers({ companyId }: { companyId: string }) {
   ]
   return (
     <section className="mb-4 min-w-0" aria-label="Business numbers">
-      <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted">Numbers</h2>
+      <h2 className="m-0 mb-2 text-small text-trs-muted">Numbers</h2>
       <dl className="m-0 grid grid-cols-1 sm:grid-cols-[200px_minmax(0,1fr)] gap-x-4 gap-y-1 text-body">
         {items.map(([k, v]) => <div key={k} className="contents"><dt className="text-trs-muted">{k}</dt><dd className="m-0 tabular-nums text-trs-ink">{v}</dd></div>)}
       </dl>

@@ -48,7 +48,7 @@ export function ApprovedExamplesPanel({ examples }: ApprovedExamplesPanelProps) 
                 onClick={() => setOpenIdx(openIdx === i ? null : i)}
                 className="w-full h-auto justify-start items-start gap-2 px-2.5 py-2 text-left whitespace-normal border-0 rounded-none font-normal"
               >
-                <span className="text-small font-semibold text-trs-ink-2 bg-trs-field px-1.5 py-[2px] rounded flex-shrink-0 mt-0.5">
+                <span className="text-small text-trs-muted bg-trs-field px-1.5 py-[2px] rounded flex-shrink-0 mt-0.5">
                   {ex.score}/5
                 </span>
                 <p className="text-small text-trs-muted leading-[1.5] line-clamp-2 m-0 flex-1">

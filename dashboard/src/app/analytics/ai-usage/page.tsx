@@ -104,7 +104,7 @@ export default function AISpendPage() {
         {/* The figure lives in the page's own header line. */}
         <header className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-trs-line">
           <div>
-            <h1 className="text-heading font-medium text-trs-ink">AI spend</h1>
+            <h1 className="text-heading font-semibold text-trs-ink">AI spend</h1>
             <p className="mt-1.5 text-body text-trs-muted">
               {loading && !d ? 'Reading the ledger…' : (
                 <>

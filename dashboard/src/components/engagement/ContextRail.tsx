@@ -38,7 +38,7 @@ import { companyDetail } from '@/app/companies/actions'
 type Detail = { policies: Policy[]; payments: PaymentDerived[]; paymentSummary: PaymentSummary }
 
 const KIND_LABEL: Record<string, string> = { client: 'Client', insurer: 'Insurer', prospect: 'Prospect', partner: 'Referral', other: 'Company' }
-const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-small text-trs-ink hover:underline'
+const QUIET_LINK = 'bg-transparent border-0 p-0 cursor-pointer text-small text-trs-muted hover:underline'
 
 export function ContextRail({ lead, messages, threadId, conversationThreadId, activeThreadId, onSelectThread, onStatus, onTransfer, onRestoreDraft, summaries, summariesLoading, latestMessageId, ragSources, onRefreshSummaries, taskRefresh, onClose, onAddTask, onDraftOpen }: {
   lead: Lead

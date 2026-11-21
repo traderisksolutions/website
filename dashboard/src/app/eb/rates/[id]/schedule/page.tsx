@@ -106,7 +106,7 @@ export default function SchedulePage() {
 
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="m-0 text-title font-medium leading-[1.08]">
+            <h1 className="m-0 text-title font-semibold leading-[1.08]">
               {t?.insurerName || 'Benefit schedule'}
             </h1>
             <p className="m-0 text-body mt-2 tabular-nums text-trs-muted" >
@@ -138,7 +138,7 @@ export default function SchedulePage() {
         {error && <p className="text-small mb-4 text-trs-neg" >{error}</p>}
 
         {t?.notes && (
-          <p className="text-small mb-6 px-3 py-2.5 rounded border border-trs-line bg-trs-tint text-trs-ink-2" >
+          <p className="text-small mb-6 px-3 py-2.5 rounded border border-trs-line bg-trs-tint text-trs-muted" >
             {t.notes}
           </p>
         )}
@@ -151,7 +151,7 @@ export default function SchedulePage() {
 
         {grids.map(g => (
           <section key={g.product} className="mb-8">
-            <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
+            <h2 className="m-0 mb-2 text-small text-trs-muted" >
               {g.product}
             </h2>
             <Register label={g.product} minWidth={260 + g.plans.length * 150}>
@@ -204,7 +204,7 @@ export default function SchedulePage() {
 
         {!!t?.unmatched?.length && (
           <section className="mb-8">
-            <h2 className="m-0 mb-2 text-small font-semibold text-trs-muted" >
+            <h2 className="m-0 mb-2 text-small text-trs-muted" >
               Printed in the brochure, not in the canonical schedule
             </h2>
             <div className="border border-trs-line rounded overflow-hidden">

@@ -132,7 +132,7 @@ export function CompaniesBoard({ initial }: { initial: BoardPayload | null }) {
               </p>
             )}
             {visible.length === 0 ? (
-              <p className="py-16 text-center text-heading m-0 text-trs-muted">No companies match. <Btn level="tertiary" size="xs" onClick={() => { setF(EMPTY); setQ('') }} className="h-auto p-0 border-0 underline bg-transparent hover:bg-transparent font-normal text-heading text-trs-ink">Clear filters</Btn></p>
+              <p className="py-16 text-center text-body m-0 text-trs-muted">No companies match. <Btn level="tertiary" size="xs" onClick={() => { setF(EMPTY); setQ('') }} className="h-auto p-0 border-0 underline bg-transparent hover:bg-transparent font-semibold text-heading text-trs-ink">Clear filters</Btn></p>
             ) : (
               <CompanyTable rows={visible} today={today} staff={staff} workloads={workloads} selectedId={null} onSelect={select} sort={sort} onSort={onSort} highlight={q} />
             )}

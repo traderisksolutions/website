@@ -122,7 +122,7 @@ export function FileDialog({ open, onClose, onFiled, ...ref }: FileRef & { open:
               ]} />
             </Field>
             <Field label="Plan year"><p className="m-0 text-body text-trs-ink">{policy?.plan_year ?? '—'}</p></Field>
-            <Field label="Saves to"><p className="m-0 text-small text-trs-ink break-words font-mono">{path ?? '—'}</p></Field>
+            <Field label="Saves to"><p className="m-0 text-small text-trs-muted break-words font-mono">{path ?? '—'}</p></Field>
             {error && <p className="m-0 text-small text-trs-neg" role="alert">{error}</p>}
             <div className="flex justify-end gap-2 pt-1">
               <Btn type="button" level="tertiary" onClick={onClose}>Cancel</Btn>

@@ -124,7 +124,7 @@ function AddContactDialog({ open, onOpenChange, onSaved }: { open: boolean; onOp
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle className="text-heading font-medium">Add contact</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle className="text-heading font-semibold">Add contact</DialogTitle></DialogHeader>
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Field label="First name"><Input value={form.first_name} onChange={e => set('first_name', e.target.value)} /></Field>

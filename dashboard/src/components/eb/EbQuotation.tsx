@@ -424,8 +424,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4" aria-labelledby="eb-step1">
         <div>
-          <div className="text-small font-semibold text-trs-muted">Step 1</div>
-          <h2 id="eb-step1" className="m-0 text-title font-medium">Pricing</h2>
+          <div className="text-small text-trs-muted">Step 1</div>
+          <h2 id="eb-step1" className="m-0 text-title font-semibold">Pricing</h2>
         </div>
         <div className="grid grid-cols-1 gap-3.5 md:grid-cols-2" role="group" aria-label="Pricing">
           <ChoiceCard pressed={mode === 'brochure'} onClick={() => setMode('brochure')} title="Brochure pricing" line="Priced now from the insurers’ published rates"
@@ -526,8 +526,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       {priced && (
         <section id="eb-options" className="flex flex-col gap-4" aria-labelledby="eb-step2">
           <div>
-            <div className="text-small font-semibold text-trs-muted">Step 2</div>
-            <h2 id="eb-step2" className="m-0 text-title font-medium">Options for the client</h2>
+            <div className="text-small text-trs-muted">Step 2</div>
+            <h2 id="eb-step2" className="m-0 text-title font-semibold">Options for the client</h2>
           </div>
           <EbTiers priced={priced} tier={tier} onTier={chooseTier} lastYearRead={!!lastYear} />
         </section>
@@ -536,8 +536,8 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       {priced && model && members && editState && (
         <section className="flex flex-col gap-4" aria-labelledby="eb-step3">
           <div>
-            <div className="text-small font-semibold text-trs-muted">Step 3</div>
-            <h2 id="eb-step3" className="m-0 text-title font-medium">Compare</h2>
+            <div className="text-small text-trs-muted">Step 3</div>
+            <h2 id="eb-step3" className="m-0 text-title font-semibold">Compare</h2>
             <p className="m-0 mt-1 text-small text-trs-muted">{`${model.employees} employees · ${priced.categories.reduce((a, c) => a + c.lives, 0)} lives${unaged ? ` · ${unaged} without an age, not priced` : ''} · S$ a year, net of GST · ${priced.workbook.name}`}</p>
           </div>
           {mode === 'insurer' && !allCols.some(c => c.kind === 'schedule') && <Chip tone="amber">No insurer schedule read yet</Chip>}

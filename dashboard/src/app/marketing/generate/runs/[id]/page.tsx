@@ -133,7 +133,7 @@ function Run() {
             </SectionCard>
             {run?.status === 'completed' && draft?.markdown && (
               <SectionCard title="Draft">
-                <h3 className="m-0 mb-3 text-heading font-medium">{draft.title}</h3>
+                <h3 className="m-0 mb-3 text-heading font-semibold">{draft.title}</h3>
                 <Prose html={html} />
               </SectionCard>
             )}
@@ -160,14 +160,14 @@ function Inspector({ node, sources, onClose }: { node: RunNode | null; sources: 
         {node.output_summary && <Block title="Output" text={node.output_summary} />}
         {used.length > 0 && (
           <div>
-            <p className="m-0 mb-1.5 text-small font-medium text-trs-muted">Sources</p>
+            <p className="m-0 mb-1.5 text-small text-trs-muted">Sources</p>
             <ul className="m-0 p-0 list-none flex flex-col gap-2">
               {used.map(s => (
                 <li key={s.id} className="rounded p-2.5 border border-trs-line">
                   <p className="m-0 font-medium">{s.title}</p>
                   <p className="m-0 text-small text-trs-muted">{s.used_in.length ? `Facts ${s.used_in.join(', ')}` : 'Loaded, not cited'}{s.score != null ? ` · match ${Math.round(s.score * 100)}%` : ''}</p>
                   {s.excerpt && <p className="m-0 mt-1 text-small">{s.excerpt.slice(0, 200)}{s.excerpt.length > 200 ? '…' : ''}</p>}
-                  {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="text-small underline underline-offset-2 text-trs-ink">Source ↗</a>}
+                  {s.url && <a href={s.url} target="_blank" rel="noreferrer" className="text-small underline underline-offset-2 text-trs-muted">Source ↗</a>}
                 </li>
               ))}
             </ul>
@@ -192,9 +192,9 @@ function Block({ title, text }: { title: string; text: string }) {
   const long = text.length > 600
   return (
     <div>
-      <p className="m-0 mb-1.5 text-small font-medium text-trs-muted">{title}</p>
-      <pre className="m-0 whitespace-pre-wrap break-words rounded bg-trs-tint p-2.5 font-mono text-small leading-[1.5] text-trs-ink">{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
-      {long && <Btn level="tertiary" size="xs" onClick={() => setOpen(v => !v)} className="mt-1 h-auto px-0 border-0 font-normal text-small underline underline-offset-2 text-trs-ink hover:bg-transparent">{open ? 'Show less' : 'Show all'}</Btn>}
+      <p className="m-0 mb-1.5 text-small text-trs-muted">{title}</p>
+      <pre className="m-0 whitespace-pre-wrap break-words rounded bg-trs-tint p-2.5 font-mono text-small leading-[1.5] text-trs-muted">{long && !open ? `${text.slice(0, 600)}…` : text}</pre>
+      {long && <Btn level="tertiary" size="xs" onClick={() => setOpen(v => !v)} className="mt-1 h-auto px-0 border-0 text-small underline underline-offset-2 text-trs-muted hover:bg-transparent">{open ? 'Show less' : 'Show all'}</Btn>}
     </div>
   )
 }

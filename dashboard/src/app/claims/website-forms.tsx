@@ -99,7 +99,7 @@ function LeadCard({ lead, onStatus }: { lead: Lead; onStatus: (id: string, s: st
               onClick={e => { e.stopPropagation(); setStatusMenu(m => !m) }}
               aria-haspopup="menu"
               aria-expanded={statusMenu}
-              className="h-auto gap-1 border-0 px-2 py-0.5 text-small bg-trs-field text-trs-ink-2 hover:bg-trs-field hover:text-trs-ink-2"
+              className="h-auto gap-1 border-0 px-2 py-0.5 text-small bg-trs-field text-trs-muted hover:bg-trs-field hover:text-trs-ink-2"
             >
               {STATUS_LABEL[lead.status] ?? STATUS_LABEL.new} <ChevronDown size={11} />
             </Btn>
@@ -237,9 +237,9 @@ export function WebsiteForms({ onCount }: { onCount?: (n: number) => void }) {
             {Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-16 rounded animate-pulse bg-trs-field" />)}
           </div>
         ) : error ? (
-          <p className="py-16 text-center text-heading m-0 text-trs-neg">{error}</p>
+          <p className="py-16 text-center text-body m-0 text-trs-neg">{error}</p>
         ) : filtered.length === 0 ? (
-          <p className="py-16 text-center text-heading m-0 text-trs-muted">{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
+          <p className="py-16 text-center text-body m-0 text-trs-muted">{filter === 'new' ? 'No new forms.' : 'No forms yet.'}</p>
         ) : (
           <div className="flex flex-col gap-3">
             {filtered.map(lead => <LeadCard key={lead.id} lead={lead} onStatus={handleStatus} />)}

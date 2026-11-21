@@ -112,7 +112,7 @@ function SearchConsole() {
       {data && status === 'connected' && (
         <div className={cn('flex flex-col gap-8', loading && 'opacity-60')}>
           <section>
-            <h2 className="m-0 mb-3 text-heading font-medium">Next actions <span className="font-normal text-trs-muted">· ranked by impressions, brand searches excluded</span></h2>
+            <h2 className="m-0 mb-3 text-heading font-semibold">Next actions <span className="font-normal text-trs-muted">· ranked by impressions, brand searches excluded</span></h2>
             <Register label="Actions" minWidth={900}>
               <RegisterHead>
                 <RegisterTh first hint="The Google search, and the page of ours it lands on">Search</RegisterTh>
@@ -138,7 +138,7 @@ function SearchConsole() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-heading font-medium">Top searches <span className="font-normal text-trs-muted">· last 28 days</span></h2>
+            <h2 className="m-0 mb-3 text-heading font-semibold">Top searches <span className="font-normal text-trs-muted">· last 28 days</span></h2>
             <Register label="Top searches" minWidth={720}>
               <RegisterHead><RegisterTh first>Search</RegisterTh><RegisterTh align="right">Impressions</RegisterTh><RegisterTh align="right">Clicks</RegisterTh><RegisterTh align="right">Click rate</RegisterTh><RegisterTh align="right" last>Position</RegisterTh></RegisterHead>
               <tbody>
@@ -148,7 +148,7 @@ function SearchConsole() {
           </section>
 
           <section>
-            <h2 className="m-0 mb-3 text-heading font-medium">Top pages <span className="font-normal text-trs-muted">· last 28 days</span></h2>
+            <h2 className="m-0 mb-3 text-heading font-semibold">Top pages <span className="font-normal text-trs-muted">· last 28 days</span></h2>
             <Register label="Top pages" minWidth={720}>
               <RegisterHead><RegisterTh first>Page</RegisterTh><RegisterTh align="right">Impressions</RegisterTh><RegisterTh align="right">Clicks</RegisterTh><RegisterTh align="right">Click rate</RegisterTh><RegisterTh align="right" last>Position</RegisterTh></RegisterHead>
               <tbody>

@@ -42,7 +42,7 @@ async function oldSearch(q: string, signal: AbortSignal): Promise<SearchAnswer> 
 
 const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <li className="pt-2">
-    <span className="block px-2.5 pb-1 text-small font-semibold text-trs-muted">{title}</span>
+    <span className="block px-2.5 pb-1 text-small text-trs-muted">{title}</span>
     <ul className="m-0 list-none p-0">{children}</ul>
   </li>
 )
@@ -121,7 +121,7 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
                       <span className="flex-none font-mono text-small text-trs-muted">{fmtDay(t.lastAt)}</span>
                     </span>
                     {t.conversations && t.conversations.length > 1 && t.conversations.map(v => (
-                      <span key={v.subject} className="flex w-full min-w-0 gap-2 pl-3 text-small text-trs-ink-2">
+                      <span key={v.subject} className="flex w-full min-w-0 gap-2 pl-3 text-small text-trs-muted">
                         <span className="min-w-0 flex-1 truncate">{v.subject}</span>
                         <span className="flex-none text-trs-muted">{[v.people[0], v.insurer].filter(Boolean).join(' · ')} · {v.count} email{v.count === 1 ? '' : 's'} · {v.side === 'insurer' ? 'Insurer' : v.side === 'client' ? 'Client' : ''}</span>
                       </span>

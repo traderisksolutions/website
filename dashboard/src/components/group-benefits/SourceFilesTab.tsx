@@ -28,7 +28,7 @@ const STATUS: Record<Row['status'], { label: string; tone: string }> = {
   not_read: { label: 'Not read', tone: 'text-trs-muted' },
 }
 const KIND: Record<string, string> = { calculator: 'Calculator', brochure: 'Brochure', workbook: 'TRS workbook', other: 'Other' }
-const CHIP = 'inline-flex items-center rounded bg-trs-field text-small font-medium px-2 py-0.5 whitespace-nowrap'
+const CHIP = 'inline-flex items-center rounded bg-trs-field text-small px-2 py-0.5 whitespace-nowrap'
 
 const day = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-SG', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 const size = (b: number | null) => b == null ? '—' : b > 1_048_576 ? `${(b / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`

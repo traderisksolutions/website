@@ -161,7 +161,7 @@ export function LinkCompanyPopover({ threadId, change = false, forClient = false
             {typed && !exact && (
               <li>
                 <button type="button" onClick={() => void file({ id: null, name: typed })} className={cn(ROW, 'font-medium')}>
-                  + Add “{typed}” as a new company{domain?.domain ? <span className="ml-1.5 font-normal text-small text-trs-subtle">{domain.domain}</span> : null}
+                  + Add “{typed}” as a new company{domain?.domain ? <span className="ml-1.5 text-small text-trs-subtle">{domain.domain}</span> : null}
                 </button>
               </li>
             )}

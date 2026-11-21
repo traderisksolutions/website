@@ -56,7 +56,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
       <BusinessNumbers companyId={companyId} />
       {steps.length > 0 && (
         <section className="flex flex-col gap-2 min-w-0 mb-2" aria-label="Next steps">
-          <h2 className="m-0 text-small font-semibold text-trs-muted">Next steps</h2>
+          <h2 className="m-0 text-small text-trs-muted">Next steps</h2>
           <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
             {steps.map(st => {
               const lane = st.needs_human ? 'Decide' : st.has_draft ? 'Send' : st.status === 'trs_to_act' || st.status === 'stalled' ? 'Act' : 'Waiting'
@@ -97,7 +97,7 @@ export function CompanyKnowledge({ companyId }: { companyId: string }) {
                 {open === e.id && e.summary && <pre className="m-0 mt-1.5 whitespace-pre-wrap font-sans text-body leading-relaxed text-trs-ink-2">{e.summary}</pre>}
                 {(e.thread_id || e.links.length > 0) && (
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-small">
-                    {e.thread_id && <Btn level="tertiary" onClick={() => setThread(e.thread_id)} className="h-auto p-0 border-0 font-normal text-small text-trs-muted hover:bg-transparent hover:text-trs-ink underline">Thread</Btn>}
+                    {e.thread_id && <Btn level="tertiary" onClick={() => setThread(e.thread_id)} className="h-auto p-0 border-0 text-small text-trs-muted hover:bg-transparent hover:text-trs-ink underline">Thread</Btn>}
                     {e.links.map(l => <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="text-trs-muted hover:text-trs-ink">{l.label}</a>)}
                   </div>
                 )}

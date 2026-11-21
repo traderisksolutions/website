@@ -27,7 +27,7 @@ const TONE: Record<BadgeTone, string> = {
   amber: 'bg-trs-warn-bg text-trs-warn', orange: 'bg-trs-warn-bg text-trs-warn', red: 'bg-trs-field text-trs-ink-2',
 }
 export function Tag({ tone, children, title, onClick, className }: { tone: BadgeTone; children: React.ReactNode; title?: string; onClick?: () => void; className?: string }) {
-  const cls = cn('inline-flex items-center gap-1 px-2 h-6 text-small font-medium whitespace-nowrap leading-none', TONE[tone], onClick && 'cursor-pointer', className)
+  const cls = cn('inline-flex items-center gap-1 px-2 h-6 text-small whitespace-nowrap leading-none', TONE[tone], onClick && 'cursor-pointer', className)
   return onClick ? <Btn level="tertiary" size="xs" onClick={e => { e.stopPropagation(); onClick() }} title={title} className={cn(cls, 'border-0')}>{children}</Btn> : <span title={title} className={cls}>{children}</span>
 }
 export function StageTag({ stage }: { stage: string }) {

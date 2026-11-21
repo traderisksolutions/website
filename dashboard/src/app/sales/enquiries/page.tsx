@@ -83,7 +83,7 @@ function Enquiries() {
     <AppSplitLayout className="bg-white">
       <AppMainPanel className="bg-white">
         <div className="flex-shrink-0 px-6 sm:px-12 pt-10 text-trs-ink">
-          <h1 className="m-0 text-title font-medium leading-[1.08]">Enquiries</h1>
+          <h1 className="m-0 text-title font-semibold leading-[1.08]">Enquiries</h1>
           <p className="m-0 mt-2 text-body text-trs-muted">
             {!siteCounts ? 'Loading…' : <>{siteName} · {siteCounts.total} submission{siteCounts.total === 1 ? '' : 's'} · {siteCounts.open} new</>}
           </p>

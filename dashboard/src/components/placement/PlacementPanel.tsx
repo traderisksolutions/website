@@ -238,7 +238,7 @@ function LineHeader({ pos, label, onNewRound, onOpenPending, onIssueDn, policyId
             title={l.insurer_confirmed_at ? undefined : 'The insurer has not confirmed cover yet'}>Issue debit note</Btn>
         )}
         {!finished && l.status !== 'bound' && <Btn size="xs" level="tertiary" className={ROW_BTN} onClick={onNewRound}>New round</Btn>}
-        {policyId && <Link href={`/policies/${policyId}`} className="text-small underline underline-offset-[3px] text-trs-ink">Policy</Link>}
+        {policyId && <Link href={`/policies/${policyId}`} className="text-small underline underline-offset-[3px] text-trs-muted">Policy</Link>}
       </span>
     </div>
   )

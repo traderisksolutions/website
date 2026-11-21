@@ -129,7 +129,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       onError={setError} />
   )
   const commission = toClient && <CommissionCheck attachments={files} onChange={setCheck} context={{ resource_type: 'ai_draft', resource_id: d.id }} />
-  const updated = savedAt && <span className="text-small font-medium text-trs-green" title={new Date(savedAt).toLocaleString('en-SG')}>Updated {timeAgo(savedAt)}</span>
+  const updated = savedAt && <span className="text-small text-trs-green" title={new Date(savedAt).toLocaleString('en-SG')}>Updated {timeAgo(savedAt)}</span>
   const threadLink = thread && <OpenThread threadId={thread} owner={d.private} onNotice={onNotice} />
   const frame = bare ? '' : 'rounded border border-trs-line-2 bg-white'
 
@@ -185,7 +185,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
       <div className="text-body font-medium text-trs-ink">{d.subject || '(no subject)'}</div>
       <div className={`text-body leading-[1.5] text-trs-ink-2 whitespace-pre-line ${full ? '' : 'line-clamp-6'}`}>{d.body}</div>
       {d.body.split('\n').length > 6 || d.body.length > 480
-        ? <Btn level="tertiary" onClick={() => setFull(f => !f)} aria-expanded={full} className="self-start h-auto border-0 bg-transparent p-0 font-normal text-small text-trs-green-2 underline underline-offset-[3px] hover:bg-transparent hover:text-trs-green-2">{full ? 'Show less' : 'Show full email'}</Btn>
+        ? <Btn level="tertiary" onClick={() => setFull(f => !f)} aria-expanded={full} className="self-start h-auto border-0 bg-transparent p-0 text-small text-trs-green-2 underline underline-offset-[3px] hover:bg-transparent hover:text-trs-green-2">{full ? 'Show less' : 'Show full email'}</Btn>
         : null}
       {filesBlock}
       {commission}
@@ -231,7 +231,7 @@ function Drop({ onFiles, className, children, as = 'div' }: { onFiles: (files: F
       onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(false) }}
       onDrop={e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); setOver(false); onFiles(Array.from(e.dataTransfer.files)) }}>
       {children}
-      {over && <span className="text-small font-medium text-trs-green">Drop to attach</span>}
+      {over && <span className="text-small text-trs-green">Drop to attach</span>}
     </Tag>
   )
 }
@@ -279,7 +279,7 @@ function DraftFiles({ files, busy, disabled, ownThread, threads, onAdd, onRemove
       {picking && (
         <div className="flex flex-col gap-1 rounded border border-trs-line-2 p-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-small font-semibold text-trs-ink">Files on the client’s threads</span>
+            <span className="text-small text-trs-muted">Files on the client’s threads</span>
             <Btn size="xs" level="tertiary" onClick={() => input.current?.click()} disabled={busy}>From computer</Btn>
           </div>
           {!found ? <InlineSpinner label="Reading the threads’ files…" />

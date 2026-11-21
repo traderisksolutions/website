@@ -36,7 +36,7 @@ function Tile({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="rounded px-5 py-4 bg-trs-field">
       <p className="m-0 text-small text-trs-muted">{label}</p>
-      <p className="m-0 mt-2 text-title font-medium leading-none tabular-nums text-trs-ink">{value}</p>
+      <p className="m-0 mt-2 text-title font-semibold leading-none tabular-nums text-trs-ink">{value}</p>
     </div>
   )
 }
@@ -46,7 +46,7 @@ function Split({ title, data }: { title: string; data: Record<string, number> })
   const total = entries.reduce((s, [, v]) => s + v, 0) || 1
   return (
     <div>
-      <h3 className="m-0 mb-3 text-heading font-medium text-trs-ink">{title}</h3>
+      <h3 className="m-0 mb-3 text-heading font-semibold text-trs-ink">{title}</h3>
       {entries.length === 0 ? (
         <p className="m-0 text-body text-trs-muted">No data yet.</p>
       ) : (
@@ -115,7 +115,7 @@ const RECON_LABEL: Record<Recon, string> = {
 }
 
 // One neutral chip, used only to mark a row that arrived since the last poll. State is words.
-const CHIP = 'inline-block whitespace-nowrap rounded px-2 py-0.5 text-small font-medium leading-4 bg-trs-field text-trs-ink-2'
+const CHIP = 'inline-block whitespace-nowrap rounded px-2 py-0.5 text-small leading-4 bg-trs-field text-trs-muted'
 
 type JourneyEvent = {
   id: string
@@ -358,7 +358,7 @@ export default function RoadplusReconPage() {
         {/* Header */}
         <div className="flex items-end justify-between gap-6 flex-wrap">
           <div className="min-w-0">
-            <h1 className="m-0 text-title font-medium leading-[1.08]">RoadPlus reconciliation</h1>
+            <h1 className="m-0 text-title font-semibold leading-[1.08]">RoadPlus reconciliation</h1>
             <p className="m-0 mt-2 text-body text-trs-muted">
               Every purchase attempt, its payment and its journey trace, read live from the roadplus database. Read-only.
             </p>
@@ -499,7 +499,7 @@ export default function RoadplusReconPage() {
                           <RegisterCell align="right" primary={p.cover_days ?? '—'} />
                           <RegisterCell align="right"><span className="text-body tabular-nums text-trs-muted">{fmtMoney(p.quoted_premium, p.currency)}</span></RegisterCell>
                           <RegisterCell align="right"><span className="text-body tabular-nums font-medium text-trs-ink">{fmtMoney(p.amount, p.currency)}</span></RegisterCell>
-                          <RegisterCell><span className="font-mono text-small text-trs-ink">{p.policy_no ?? '—'}</span></RegisterCell>
+                          <RegisterCell><span className="font-mono text-small text-trs-muted">{p.policy_no ?? '—'}</span></RegisterCell>
                           <RegisterCell><span className="font-mono text-small text-trs-muted">{p.policy_id ?? '—'}</span></RegisterCell>
                           <RegisterCell last><span className="text-body text-trs-muted">{p.source ?? '—'}</span></RegisterCell>
                         </RegisterRow>
@@ -536,9 +536,9 @@ export default function RoadplusReconPage() {
             {jLoading ? (
               <LoadingRows />
             ) : !jSearched ? (
-              <p className="m-0 py-16 text-center text-heading text-trs-muted">Enter a reference from a customer&rsquo;s error message, or a policy id. Recent failures lists the latest failed steps.</p>
+              <p className="m-0 py-16 text-center text-body text-trs-muted">Enter a reference from a customer&rsquo;s error message, or a policy id. Recent failures lists the latest failed steps.</p>
             ) : journey.length === 0 ? (
-              <p className="m-0 py-16 text-center text-heading text-trs-muted">No journey events found.</p>
+              <p className="m-0 py-16 text-center text-body text-trs-muted">No journey events found.</p>
             ) : (
               <Register label="Journey events" minWidth={840}>
                 <RegisterHead>
@@ -590,9 +590,9 @@ export default function RoadplusReconPage() {
                 {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 rounded bg-trs-field animate-pulse" />)}
               </div>
             ) : !analytics || analytics.configured === false ? (
-              <p className="m-0 py-16 text-center text-heading text-trs-muted">Not connected. Set the roadplus database env vars.</p>
+              <p className="m-0 py-16 text-center text-body text-trs-muted">Not connected. Set the roadplus database env vars.</p>
             ) : analytics.error ? (
-              <p className="m-0 py-16 text-center text-heading text-trs-muted">{analytics.error}</p>
+              <p className="m-0 py-16 text-center text-body text-trs-muted">{analytics.error}</p>
             ) : (
               <div className="space-y-10">
                 {/* stat tiles */}
@@ -611,7 +611,7 @@ export default function RoadplusReconPage() {
 
                 {/* funnel */}
                 <div>
-                  <h3 className="m-0 mb-3 text-heading font-medium flex items-center text-trs-ink">
+                  <h3 className="m-0 mb-3 text-heading font-semibold flex items-center text-trs-ink">
                     Conversion funnel
                     <Tip text="Unique journeys reaching each step. The right-hand figure is the drop from the previous step." />
                   </h3>
@@ -627,7 +627,7 @@ export default function RoadplusReconPage() {
                             <div className="w-40 shrink-0 text-body text-trs-ink-2">{STEP_LABEL[f.step] ?? f.step}</div>
                             <div className="h-6 flex-1 overflow-hidden rounded bg-trs-field">
                               <div
-                                className="flex h-full items-center rounded px-2 text-small font-medium text-white tabular-nums bg-trs-ink"
+                                className="flex h-full items-center rounded px-2 text-small text-white tabular-nums bg-trs-ink"
                                 style={{ width: `${Math.max(4, (f.journeys / max) * 100)}%` /* drift-ok: bar width from data */ }}
                               >
                                 {f.journeys}

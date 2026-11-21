@@ -69,7 +69,7 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
     <Dialog open={!!threadId} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className={dialogCls}>
         <div className="sticky top-0 z-10 bg-white border-b border-trs-line px-5 py-3 flex items-center justify-between gap-3">
-          <DialogTitle className="m-0 text-heading font-medium truncate">{thread?.subject ?? 'Thread'}</DialogTitle>
+          <DialogTitle className="m-0 text-heading font-semibold truncate">{thread?.subject ?? 'Thread'}</DialogTitle>
           {threadId && <a className="text-body text-trs-muted no-underline hover:underline shrink-0" href={`/engagement?thread=${threadId}`}>Open in Inbox</a>}
         </div>
         <div className="px-5 py-4 flex flex-col gap-3">
@@ -100,7 +100,7 @@ export function DocModal({ doc, onClose }: { doc: { title: string; drive_url: st
     <Dialog open={!!doc} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className={dialogCls}>
         <div className="sticky top-0 z-10 bg-white border-b border-trs-line px-5 py-3 flex items-center justify-between gap-3">
-          <DialogTitle className="m-0 text-heading font-medium truncate">{doc?.title ?? 'Document'}</DialogTitle>
+          <DialogTitle className="m-0 text-heading font-semibold truncate">{doc?.title ?? 'Document'}</DialogTitle>
           {doc?.drive_url && <a className="text-body text-trs-muted no-underline hover:underline shrink-0" href={doc.drive_url} target="_blank" rel="noreferrer">Open in Drive</a>}
         </div>
         {preview
