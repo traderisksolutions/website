@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Email attachments: a Drive copy on first open
+
+- **Attachments** are fetched from Gmail once, the first time anyone opens them, and kept in the Shared Drive (`email_attachments.drive_file_id`, `20261121_y_attachment_drive_copy.sql`); every later read comes from Drive: no Gmail call, about 1.7 s instead of 11 s on a 150 KB PDF. Files over 25 MB stay on Gmail. `storage_url` is unchanged (11,556 old paths other records still match). No running cost: Drive pooled storage, free API.
+
 ## 2026-11-21 — AI Agents, monitoring
 
 - **AI Agents** on the top bar (Agents · Usage), read on the server from the usage log: each agent's source pages, model, key (own, shared or missing), status, runs, failures and S$; an agent's workflow, runs a day and functions; usage by agent and model (AGT-001, AGT-002). AI spend moves from the avatar menu to AI Agents › Usage. Instructions and Knowledge (versioned text) follow once the agents read them.
