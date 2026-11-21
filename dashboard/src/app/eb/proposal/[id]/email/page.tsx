@@ -19,6 +19,7 @@ import { RichEditor } from '@/components/RichEditor'
 import { Checks, MarkSent, PdfPreview, useQuotation } from '@/components/eb/proposal-shared'
 import { CommissionCheck, type CommissionState } from '@/components/email/CommissionCheck'
 import type { ProposalCheck } from '@/lib/gb/eb-proposal'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 type Draft = { draftId: string; to: string; cc: string[]; subject: string; html: string; attachment: { filename: string; mime_type: string; storage_url: string }; threadId: string | null }
 type Sender = { email: string; label: string; type: 'shared' | 'personal' }
@@ -64,7 +65,7 @@ export default function ProposalEmailPage({ params }: { params: Promise<{ id: st
     if (q.sent_at) return
     if (q.draft_sent) { setUnmarked(true); return }
     void prepare()
-    fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => (r.ok ? r.json() : [])).then((s: Sender[]) => { const list = Array.isArray(s) ? s : []; setSenders(list); if (list[0]) setFrom(list[0].email) }).catch(() => {})
+    inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => (r.ok ? r.json() : [])).then((s: Sender[]) => { const list = Array.isArray(s) ? s : []; setSenders(list); if (list[0]) setFrom(list[0].email) }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q?.id])
 

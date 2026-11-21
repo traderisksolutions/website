@@ -20,6 +20,7 @@ import { peopleHits, searchTerms, hasEvery, type SearchAnswer, type ThreadHit } 
 import { threadHref } from '@/lib/today/desk'
 import type { Conversation } from '@/lib/mail/conversations'
 import { usePrivateThread } from '@/components/today/desk/PrivateThread'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 export type PageLink = { label: string; href: string }
 
@@ -65,7 +66,7 @@ export function Spotlight({ open, onOpenChange, pages }: { open: boolean; onOpen
     const ctl = new AbortController()
     const timer = setTimeout(() => {
       setBusy(true); setError(null)
-      fetch(`/api/search?q=${encodeURIComponent(t)}`, { cache: 'no-store', signal: ctl.signal })
+      inboxFetch(`/api/search?q=${encodeURIComponent(t)}`, { cache: 'no-store', signal: ctl.signal })
         .then(async r => {
           const j = await r.json().catch(() => ({})) as SearchAnswer | { index: false; error?: string }
           if (!r.ok) throw new Error((j as { error?: string }).error ?? `Error ${r.status}`)

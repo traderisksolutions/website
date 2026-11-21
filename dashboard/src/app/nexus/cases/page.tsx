@@ -20,6 +20,7 @@ import { fmtDate, timeAgo } from '@/lib/format'
 import { companyDetail, searchCompanies } from '@/app/companies/actions'
 import { listSignatures } from '@/app/settings/actions'
 import { nexusFetch } from '@/lib/nexus/fetch'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -3062,7 +3063,7 @@ function NexusStepCompose({
   useEffect(() => {
     Promise.all([
       listSignatures().then(r => r.ok ? r.data : []).catch(() => []),
-      fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([sigs, sndrs]) => {
       const sigArr = Array.isArray(sigs) ? sigs : []
       setSignatures(sigArr)

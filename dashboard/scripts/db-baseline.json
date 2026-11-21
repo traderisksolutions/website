@@ -71,14 +71,6 @@
   "sb": 1,
   "fetch": 0
  },
- "src/app/api/email/attachments/for-thread/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/email/available-senders/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/email/ingest/route.ts": {
   "sb": 0,
   "fetch": 33
@@ -90,46 +82,6 @@
  "src/app/api/engagement/attachments/[id]/download/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/engagement/conversation/promote/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
- "src/app/api/engagement/conversation/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/engagement/draft/route.ts": {
-  "sb": 0,
-  "fetch": 19
- },
- "src/app/api/engagement/drafts/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/engagement/drafts/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/engagement/refresh-summary/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/engagement/thread-summaries/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/engagement/thread/[id]/company/route.ts": {
-  "sb": 2,
-  "fetch": 1
- },
- "src/app/api/engagement/thread/[id]/party/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/engagement/thread/route.ts": {
-  "sb": 0,
-  "fetch": 5
  },
  "src/app/api/followups/route.ts": {
   "sb": 7,
@@ -178,18 +130,6 @@
  "src/app/api/group-benefits/sources/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/inbound/auto-draft/route.ts": {
-  "sb": 0,
-  "fetch": 10
- },
- "src/app/api/inbound/reply/route.ts": {
-  "sb": 0,
-  "fetch": 9
- },
- "src/app/api/leads/route.ts": {
-  "sb": 0,
-  "fetch": 6
  },
  "src/app/api/letters/appointment/route.ts": {
   "sb": 7,
@@ -734,6 +674,66 @@
  "src/lib/hr/links.ts": {
   "sb": 19,
   "fetch": 0
+ },
+ "src/lib/inbox/handlers/email-attachments-for-thread.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/email-available-senders.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-conversation-promote.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/inbox/handlers/engagement-conversation.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/inbox/handlers/engagement-draft.ts": {
+  "sb": 0,
+  "fetch": 19
+ },
+ "src/lib/inbox/handlers/engagement-drafts-id.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/engagement-drafts.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-refresh-summary.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/inbox/handlers/engagement-thread-id-company.ts": {
+  "sb": 2,
+  "fetch": 1
+ },
+ "src/lib/inbox/handlers/engagement-thread-id-party.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/inbox/handlers/engagement-thread-summaries.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/inbox/handlers/engagement-thread.ts": {
+  "sb": 0,
+  "fetch": 5
+ },
+ "src/lib/inbox/handlers/inbound-auto-draft.ts": {
+  "sb": 0,
+  "fetch": 10
+ },
+ "src/lib/inbox/handlers/inbound-reply.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/lib/inbox/handlers/leads.ts": {
+  "sb": 0,
+  "fetch": 6
  },
  "src/lib/insurer-products.ts": {
   "sb": 16,

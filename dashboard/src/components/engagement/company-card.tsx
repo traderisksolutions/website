@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { StaffMember } from '@/lib/crm/staff'
 import type { CompanyCard } from '@/lib/engagement/company-card'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /**
  * The Inbox's reads about people and companies beside a thread. The team (who is signed in, the
@@ -27,7 +28,7 @@ export function seedCompanyCard(id: string, card: CompanyCard) {
 function loadCard(id: string, rev: number): Promise<CompanyCard> {
   const hit = cache.get(id)
   if (hit && hit.rev >= rev && Date.now() - hit.at < 60_000) return hit.p
-  const p = fetch(`/api/engagement/company-card?id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+  const p = inboxFetch(`/api/engagement/company-card?id=${encodeURIComponent(id)}`, { cache: 'no-store' })
     .then(r => r.ok ? r.json() as Promise<CompanyCard> : { company: null, tasks: [] })
   cache.set(id, { at: Date.now(), rev, p })
   p.catch(() => cache.delete(id))

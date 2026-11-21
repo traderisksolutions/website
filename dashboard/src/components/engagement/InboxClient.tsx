@@ -21,6 +21,7 @@ import { InboxTeamProvider, seedCompanyCard } from '@/components/engagement/comp
 import { firstPaintKey, keepFirstPaint } from '@/components/engagement/first-paint'
 import { seesAllMail } from '@/lib/mail/visibility'
 import { pageUser } from '@/lib/supabase/client'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /**
  * The Inbox's interactive body (/engagement). The page reads the first screen on the server and
@@ -47,13 +48,13 @@ async function fetchPage(p: { offset: number; view: string; mailbox: string; q: 
 
 /** Website-form and email leads in an engaged status: they sit in the main list beside the threads. */
 async function fetchFormLeads(): Promise<Lead[]> {
-  const res = await fetch('/api/leads', { cache: 'no-store' }).catch(() => null)
+  const res = await inboxFetch('/api/leads', { cache: 'no-store' }).catch(() => null)
   const raw: unknown = res?.ok ? await res.json().catch(() => []) : []
   return (Array.isArray(raw) ? raw as Lead[] : []).filter(l => EMAIL_SOURCES.has(l.source) && ENGAGED_STATUSES.has(l.status))
 }
 
 async function patchStatus(id: string, status: string) {
-  await fetch('/api/leads', {
+  await inboxFetch('/api/leads', {
     method:  'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ id, status }),
@@ -68,7 +69,7 @@ async function fetchThread(
     ? `thread_id=${encodeURIComponent(threadId)}`
     : email ? `email=${encodeURIComponent(email)}` : null
   if (!param) return { thread: null, messages: [] }
-  const res = await fetch(`/api/engagement/thread?${param}`, { cache: 'no-store' })
+  const res = await inboxFetch(`/api/engagement/thread?${param}`, { cache: 'no-store' })
   // A colleague's private thread: listed for everyone, opened only by those it is visible to.
   if (res.status === 403) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'This email lives in a colleague’s inbox.')
   if (!res.ok) return { thread: null, messages: [] }
@@ -327,7 +328,7 @@ export function InboxClient({ initial }: { initial: InboxFirst | null }) {
   async function handleTransfer(id: string, note: string) {
     const lead = byId[id]
     patchLead(l => l.id === id, l => ({ ...l, segment: 'existing_client', segment_note: note || null }))
-    await fetch('/api/leads', {
+    await inboxFetch('/api/leads', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, segment: 'existing_client', segment_note: note || null }),
     })
@@ -382,7 +383,7 @@ export function InboxClient({ initial }: { initial: InboxFirst | null }) {
   // Refresh: one Gmail read on demand, then the list read fresh (registered for the navigator's Sync).
   const handleRefresh = useCallback(() => {
     setRefreshing(true)
-    fetch('/api/email/ingest-trigger', { method: 'POST' })
+    inboxFetch('/api/email/ingest-trigger', { method: 'POST' })
       .catch(() => {})
       .finally(() => { void load({ fresh: true }); refreshSelectedThreadRef.current() })
   }, [load, setRefreshing])
@@ -407,7 +408,7 @@ export function InboxClient({ initial }: { initial: InboxFirst | null }) {
   // it in red with Retry.
   const handleLinkCompany = useCallback(async (threadId: string, companyId: string | null, companyName: string): Promise<LinkResult> => {
     try {
-      const res = await fetch(`/api/engagement/thread/${threadId}/company`, {
+      const res = await inboxFetch(`/api/engagement/thread/${threadId}/company`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ companyId, name: companyName }),
       })

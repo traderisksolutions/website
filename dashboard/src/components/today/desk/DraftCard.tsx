@@ -21,11 +21,12 @@ import { CommissionCheck, type CommissionState } from '@/components/email/Commis
 import { InlineConfirm } from './InlineConfirm'
 import { OpenThread } from './PrivateThread'
 import type { DraftAge } from '@/lib/today/old-drafts'
+import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
 
 let senderOnce: Promise<string | null> | null = null
 /** The signed-in person's own mailbox, else the first they may send from. */
 function sender(): Promise<string | null> {
-  senderOnce ??= fetch('/api/email/available-senders', { cache: 'no-store' })
+  senderOnce ??= inboxFetch('/api/email/available-senders', { cache: 'no-store' })
     .then(r => (r.ok ? r.json() : []))
     .then((rows: { email: string; type: string }[]) => (Array.isArray(rows) && rows.length ? rows.find(r => r.type === 'personal')?.email ?? rows[0].email : null))
     .catch(() => null)
@@ -103,7 +104,7 @@ export function DraftCard({ draft: d, onSent, onDiscarded, onSaved, onRedone, th
   async function discard() {
     if (!(await confirm({ title: 'Discard this email?', body: `To ${nameOf(d)}. The thread stays on Today.`, action: 'Discard', danger: true }))) return
     setBusy('discard'); setError(null)
-    try { await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId: d.id, status: 'rejected' } }); onDiscarded() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
+    try { await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId: d.id, status: 'rejected' } }); onDiscarded() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
   async function redo() {
     setBusy('redo'); setError(null)
@@ -248,7 +249,7 @@ function DraftFiles({ files, busy, disabled, ownThread, threads, onAdd, onRemove
   useEffect(() => {
     if (!picking || found) return
     void Promise.all(threadKey.split(',').filter(Boolean).map(id =>
-      fetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
+      inboxFetch(`/api/email/attachments/for-thread?thread_id=${encodeURIComponent(id)}`, { cache: 'no-store' })
         .then(r => (r.ok ? r.json() : [])).then((rows: Omit<ThreadFile, 'threadId'>[]) => (Array.isArray(rows) ? rows.map(f => ({ ...f, threadId: id })) : []))
         .catch(() => [] as ThreadFile[]),
     )).then(all => setFound(all.flat()))

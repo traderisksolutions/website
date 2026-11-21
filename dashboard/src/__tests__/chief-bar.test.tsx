@@ -7,8 +7,15 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { ChiefBar } from '@/components/engagement/ChiefBar'
 import type { Bar } from '@/lib/chief/bar'
 
-// The bar's Placements calls go through a server action (src/lib/placement/fetch.ts); in the test
+// The bar's Inbox and Placements calls go through server actions (src/lib/placement/fetch.ts); in the test
 // they go to the stubbed fetch below, with the same paths and bodies.
+vi.mock('@/lib/inbox/fetch', async () => {
+  const { callApi } = await import('@/components/placement/shared')
+  return {
+    inboxFetch: (url: string, init?: RequestInit) => fetch(url, init),
+    callInbox: (url: string, init?: { method?: string; body?: unknown }) => callApi(url, init),
+  }
+})
 vi.mock('@/lib/placement/fetch', async () => {
   const { callApi } = await import('@/components/placement/shared')
   return {

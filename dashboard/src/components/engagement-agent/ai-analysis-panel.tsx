@@ -11,6 +11,7 @@ import { EmailTypeBadge } from './email-type-badge'
 import { DraftProvenancePanel } from './draft-provenance-panel'
 import { EvaluationSummary } from './evaluation-summary'
 import { InlineProgress, useFauxProgress } from '@/components/engagement/InlineProgress'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /** Summary, next action and draft provenance for the open thread. Quiet AI: ink text on white,
  *  one field-grey block for the next action, text links for the actions. */
@@ -52,7 +53,7 @@ export function AiAnalysisPanel({
   useEffect(() => {
     setMeta(null)
     if (!threadId) return
-    fetch(`/api/engagement/draft-meta?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
+    inboxFetch(`/api/engagement/draft-meta?thread_id=${encodeURIComponent(threadId)}`, { cache: 'no-store' })
       .then(r => r.json())
       .then(data => { if (data && !data.error) setMeta(data) })
       .catch(() => {})
@@ -62,7 +63,7 @@ export function AiAnalysisPanel({
     if (!threadId || !latestMessageId) return
     setRegenerating(true); setRegenErr(null)
     try {
-      const res = await fetch('/api/engagement/refresh-summary', {
+      const res = await inboxFetch('/api/engagement/refresh-summary', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ thread_id: threadId, message_id: latestMessageId }),
       })

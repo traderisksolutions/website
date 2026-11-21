@@ -18,6 +18,7 @@ import { participantsLine, type DeskSide, type Participant } from '@/lib/today/d
 import type { Conversation } from '@/lib/mail/conversations'
 import type { Suggestion } from '@/lib/today/learn-server'
 import type { SearchAnswer } from '@/lib/search/query'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 type Conv = { thread_id: string; subject: string | null; display_subject: string | null; snippet: string | null; match?: string | null; first_name: string | null; last_name: string | null; email: string | null; companyId: string | null; companyName: string | null; companyKind: string | null; clientCompanyId: string | null; created_at: string; last_message_at?: string | null; participants?: Participant[]; conversations?: Conversation[]; private?: { owner: string | null } }
 /** `via`: the conversation picked inside a thread that holds more than one; its side was set from it. */
@@ -30,7 +31,7 @@ const senderOf = (c: Conv) => [c.first_name, c.last_name].filter(Boolean).join('
 
 /** Threads from the search index, shaped as the list reads them; null when the index is not there. */
 async function searchIndex(q: string, signal: AbortSignal): Promise<Conv[] | null> {
-  const r = await fetch(`/api/search?q=${encodeURIComponent(q)}&limit=200`, { cache: 'no-store', signal })
+  const r = await inboxFetch(`/api/search?q=${encodeURIComponent(q)}&limit=200`, { cache: 'no-store', signal })
   const j = await r.json().catch(() => null) as SearchAnswer | { index: false } | null
   if (!r.ok || !j || !j.index) return null
   return j.threads.map(t => ({

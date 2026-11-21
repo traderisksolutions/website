@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 import { ActionItem, AiRow, Buttons, Group } from './rail-bits'
 import { firstPaintKey, takeFirstPaint } from './first-paint'
 import { callPlacements } from '@/lib/placement/fetch'
+import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 /** The shared field at rail height (32, the rail's button height). */
@@ -62,7 +63,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const [elsewhere, setElsewhere] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    try { setBar(await callApi<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
+    try { setBar(await callInbox<Bar>(`/api/threads/${threadId}/bar`)); setError(null) } catch (e) { setError(errText(e)) }
   }, [threadId])
 
   // The open thread's bar comes with the page on first paint (first-paint.ts); every other read is the API's.
@@ -73,7 +74,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   }, [load, refreshKey, threadId])
   useEffect(() => { onOpenChange?.(open !== null) }, [open, onOpenChange])
   useEffect(() => {
-    fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
+    inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).then((rows: { email: string; type: string }[]) => {
       if (Array.isArray(rows) && rows.length) setFrom(rows.find(r => r.type === 'personal')?.email ?? rows[0].email)
     }).catch(() => {})
   }, [])
@@ -82,7 +83,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
     setBusy(label); setError(null)
     try { await fn(); await load() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  const post = (body: unknown) => callApi<{ draftId?: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body })
+  const post = (body: unknown) => callInbox<{ draftId?: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body })
 
   const chaser = () => run('chaser', async () => { const r = await post({ action: 'chaser' }); if (r.draftId) setOpen(r.draftId) })
   const reply = () => run('reply', async () => {
@@ -101,7 +102,7 @@ export function ChiefBar({ threadId, refreshKey, onOpenChange, actionsFooter, ai
   const noAction = () => run('none', async () => { await post({ action: 'no_action' }) })
   const clear = () => run('clear', async () => { await post({ action: 'clear' }) })
   const suggest = (key: string) => run(key, async () => {
-    const r = await callApi<{ quotationId: string; summary: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body: { action: 'suggest', key } })
+    const r = await callInbox<{ quotationId: string; summary: string }>(`/api/threads/${threadId}/bar`, { method: 'POST', body: { action: 'suggest', key } })
     setOutcome(o => ({ ...o, [key]: r }))
   })
   const dismiss = (key: string) => run(`dismiss:${key}`, async () => { await post({ action: 'dismiss', key }) })
@@ -282,7 +283,7 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
   }
   async function discard() {
     setBusy('discard'); setError(null)
-    try { await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId: draft.id, status: 'rejected' } }); onDone() }
+    try { await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId: draft.id, status: 'rejected' } }); onDone() }
     catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
 
@@ -331,7 +332,7 @@ function Enquiry({ enquiry, from, open, setOpen, reload }: { enquiry: NonNullabl
     const t = textOf(r)
     setPhases(p => ({ ...p, [dispatchId]: 'sending' }))
     try {
-      await callApi('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: t.body } })
+      await callInbox('/api/engagement/draft', { method: 'PATCH', body: { draftId, status: 'approved', content: t.body } })
       const sent = await mail(draftId, to, t.subject, emailReadyHtml(draftBodyToHtml(t.body)), from, r.attachments)
       await callPlacements('/api/placements/dispatches/sent', { method: 'POST', body: { draft_id: draftId, gmail_thread_id: sent.gmailThreadId ?? null, gmail_message_id: sent.gmailMessageId ?? null, rfc822_message_id: sent.rfc822MessageId ?? null, from_email: sent.fromEmail ?? from, subject: sent.subject ?? t.subject } })
       setPhases(p => ({ ...p, [dispatchId]: 'sent' }))

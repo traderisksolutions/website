@@ -15,6 +15,7 @@ import { InlineReplyRow, ReplyExpandButton } from '@/components/inbound/inline-r
 import type { Lead, Filter } from '@/components/inbound/types'
 import { WA_SOURCES, EMAIL_SOURCES, ALL_SOURCES } from '@/components/inbound/constants'
 import { channelOf, messagePreview, timeAgo } from '@/components/inbound/helpers'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /** The channel as a word, for the identity cell's second line when the lead has no company. */
 function channelLabel(source: string): string {
@@ -27,7 +28,7 @@ function channelLabel(source: string): string {
 // ── API ───────────────────────────────────────────────────────────────────────
 
 async function fetchLeads(): Promise<Lead[]> {
-  const res = await fetch('/api/leads', { cache: 'no-store' })
+  const res = await inboxFetch('/api/leads', { cache: 'no-store' })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const raw = await res.json()
   const all: Lead[] = Array.isArray(raw) ? raw : []
@@ -35,7 +36,7 @@ async function fetchLeads(): Promise<Lead[]> {
 }
 
 async function patchStatus(id: string, status: string) {
-  await fetch('/api/leads', {
+  await inboxFetch('/api/leads', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, status }),
@@ -43,7 +44,7 @@ async function patchStatus(id: string, status: string) {
 }
 
 async function patchNotes(id: string, notes: string) {
-  await fetch('/api/leads', {
+  await inboxFetch('/api/leads', {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, notes }),

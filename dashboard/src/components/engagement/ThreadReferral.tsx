@@ -11,6 +11,7 @@ import { callApi, errText } from '@/components/placement/shared'
 import type { ThreadReferral as Referral } from '@/lib/crm/thread-referral'
 import { ERROR, InfoRow, MUTED, SECOND } from './rail-bits'
 import { firstPaintKey, takeFirstPaint } from './first-paint'
+import { callInbox } from '@/lib/inbox/fetch'
 
 const READ_BY = { address: 'Address', signature: 'Signature', voice: 'Wording' } as const
 
@@ -29,14 +30,14 @@ export function ThreadReferral({ threadId, kind }: {
     // A thread with no reading shows no row, so a failed read stays quiet.
     const kept = takeFirstPaint<Referral>(firstPaintKey.referral(threadId))
     if (kept) setState(kept)
-    else callApi<Referral>(`/api/engagement/thread/${threadId}/referral`).then(r => { if (live) setState(r) }).catch(() => {})
+    else callInbox<Referral>(`/api/engagement/thread/${threadId}/referral`).then(r => { if (live) setState(r) }).catch(() => {})
     return () => { live = false }
   }, [threadId, kind])
 
   async function mark(referral: boolean | null) {
     setBusy(true); setError(null)
     try {
-      setState(await callApi<Referral>(`/api/engagement/thread/${threadId}/referral`, { method: 'POST', body: { referral } }))
+      setState(await callInbox<Referral>(`/api/engagement/thread/${threadId}/referral`, { method: 'POST', body: { referral } }))
     } catch (e) { setError(errText(e)) } finally { setBusy(false) }
   }
 

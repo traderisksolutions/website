@@ -3,19 +3,24 @@
  * Inbox rail offers to mark a thread the rules read as a referral's.
  * Read-only: the journeys look, they never set a kind or mark a thread.
  */
+import { threadReferral } from '../../src/lib/crm/thread-referral'
+import { threadVisibleTo } from '../../src/lib/mail/visibility-server'
 import { test, expect } from '@playwright/test'
 import { dbRows, openClean } from './helpers'
 
+const JOURNEY_USER = process.env.JOURNEY_USER_EMAIL ?? 'nathan.budiutomo@trade-risksol.com'
+
 /** A thread the viewer may open that the rules read as a referral's and no person has marked. */
-async function suggested(page: import('@playwright/test').Page): Promise<string | null> {
+async function suggested(_page: import('@playwright/test').Page): Promise<string | null> {
   const checked = await dbRows<{ domain: string | null; domains: string[] | null }>('companies?kind=eq.partner&confirmed_at=not.is.null&select=domain,domains&limit=50')
   const domains = [...new Set(checked.flatMap(c => [c.domain, ...(c.domains ?? [])]).filter((d): d is string => !!d))]
   for (const d of domains) {
     const mail = await dbRows<{ thread_id: string }>(`email_messages?from_address=ilike.*@${encodeURIComponent(d)}*&direction=eq.inbound&deleted_at=is.null&select=thread_id&order=sent_at.desc&limit=10`)
     for (const id of new Set(mail.map(m => m.thread_id))) {
-      const res = await page.request.get(`/api/engagement/thread/${id}/referral`)
-      if (!res.ok()) continue
-      const r = await res.json() as { tag: unknown; suggestion: unknown }
+      // The referral read is a server action now; the journey reads the same thing from the library,
+      // with the route's rule: only threads the journey user may see.
+      if (!(await threadVisibleTo(id, JOURNEY_USER))) continue
+      const r = await threadReferral(id) as { tag: unknown; suggestion: unknown }
       if (r.suggestion && !r.tag) return id
     }
   }

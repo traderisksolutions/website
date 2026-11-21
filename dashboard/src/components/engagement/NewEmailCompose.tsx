@@ -14,6 +14,7 @@ import {
   FieldRow, RecipientChip, QuietSelect, AttachmentChip, TbMenu, TbMenuItem, externalDomain,
 } from '@/components/engagement-agent/compose-toolbar'
 import { nexusFetch } from '@/lib/nexus/fetch'
+import { inboxFetch } from '@/lib/inbox/fetch'
 
 /**
  * Standalone "new email" composer for a recipient with no existing thread — so a
@@ -90,7 +91,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
+      inboxFetch('/api/email/available-senders', { cache: 'no-store' }).then(r => r.ok ? r.json() : []).catch(() => []),
       listSignatures().then(r => r.ok ? r.data : []).catch(() => []),
     ]).then(([snd, sg]) => {
       const s = Array.isArray(snd) ? snd : []; setSenders(s); if (s[0]) setFromEmail(s[0].email)
@@ -105,7 +106,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
     if (!to.trim()) { setError('A recipient is required to save a draft.'); return }
     setSavingDraft(true); setError(null); setDraftSaved(false)
     try {
-      const res = await fetch('/api/engagement/drafts', {
+      const res = await inboxFetch('/api/engagement/drafts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: draftId, toEmail: to.trim(), toName: initial.toName, cc, subject, body, attachment: initial.attachment, companyId: initial.companyId }),
       })
@@ -156,7 +157,7 @@ export function NewEmailCompose({ initial, onClose, onSent }: {
         ))
       }
 
-      if (draftId) void fetch(`/api/engagement/drafts/${draftId}`, { method: 'DELETE' }).catch(() => {})
+      if (draftId) void inboxFetch(`/api/engagement/drafts/${draftId}`, { method: 'DELETE' }).catch(() => {})
 
       onSent?.(sendData.threadDbId ?? null)
       onClose()
