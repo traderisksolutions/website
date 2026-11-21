@@ -206,11 +206,14 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
     if (offset === 0 && include && UUID.test(include) && !ids.includes(include) && rows.some(r => r.id === include)) ids.push(include)
     const have = new Map(threads.map(t => [t.id, t]))
     const want = ids.filter(id => !have.has(id))
-    for (let i = 0; i < want.length; i += 50) {
-      const r = await fetch(`${SB_URL}/rest/v1/email_threads?id=in.(${want.slice(i, i + 50).join(',')})&select=${COLS}&deleted_at=is.null`, { headers: sbHeaders(), cache: 'no-store' })
+    const batches = []
+    for (let i = 0; i < want.length; i += 50) batches.push(want.slice(i, i + 50))
+    // The batches read together, not one after another (21 Nov 2026: the Inbox waited on each).
+    for (const got of await Promise.all(batches.map(async part => {
+      const r = await fetch(`${SB_URL}/rest/v1/email_threads?id=in.(${part.join(',')})&select=${COLS}&deleted_at=is.null`, { headers: sbHeaders(), cache: 'no-store' })
       if (!r.ok) throw new Error(`Thread read failed (${r.status})`)
-      for (const t of await r.json() as ThreadRow[]) have.set(t.id, t)
-    }
+      return await r.json() as ThreadRow[]
+    }))) for (const t of got) have.set(t.id, t)
     threads = ids.flatMap(id => have.get(id) ?? [])
     page = { total: p.total, counts: p.counts, nextOffset: p.nextOffset, offset, mailboxes: seesAllMail(viewer) ? personalMailboxes(rows) : [] }
   }
@@ -218,11 +221,12 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
   // colleague's own mailbox is marked with its owner and opens only for those it is visible to.
   // Its email text (snippet, the matched passage) is withheld from the others.
   const ok = openIds ?? await visibleThreadIds(threads.map(t => t.id), viewer)
-  const owners = await ownersOf(threads.filter(t => !ok.has(t.id)).map(t => t.id))
-  const boxes = await mailboxesByThread(threads.map(t => t.id))
   const answer = (rows: Lead[]): InboxConversations => ({ rows, page })
   if (threads.length === 0) return answer([])
 
+  // Owners, mailboxes, contacts, insurer links and the messages each need only the thread list,
+  // so they are read together (21 Nov 2026: read one after another they were most of the Inbox's
+  // first-screen time).
   // 2. Batch-fetch contacts for linked threads
   const contactIds = Array.from(new Set(threads.filter(t => t.contact_id).map(t => t.contact_id!)))
   type ContactRow = { id: string; first_name: string | null; last_name: string | null; email: string | null }
@@ -231,21 +235,6 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
   const clientOf = new Map<string, string>()
   const namedOf = new Map<string, string>()
   const counterpartyIds = threads.filter(t => t.companies?.kind === 'insurer' || t.companies?.kind === 'partner').map(t => t.id)
-  const [cRes, tiRes] = await Promise.all([
-    contactIds.length > 0 ? fetch(`${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`, { headers: sbHeaders(), cache: 'no-store' }) : null,
-    counterpartyIds.length > 0 ? fetch(`${SB_URL}/rest/v1/thread_insurers?thread_id=in.(${counterpartyIds.join(',')})&select=thread_id,client_company_id,reason&order=last_message_at.desc.nullslast`, { headers: sbHeaders(), cache: 'no-store' }) : null,
-  ])
-  if (cRes) {
-    const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
-    for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
-  }
-  if (tiRes) {
-    const rows: { thread_id: string; client_company_id: string | null; reason: string | null }[] = tiRes.ok ? await tiRes.json() : []
-    for (const r of (Array.isArray(rows) ? rows : [])) {
-      if (r.client_company_id && !clientOf.has(r.thread_id)) clientOf.set(r.thread_id, r.client_company_id)
-      else if (!r.client_company_id && r.reason?.startsWith('named: ') && !namedOf.has(r.thread_id)) namedOf.set(r.thread_id, r.reason.slice('named: '.length))
-    }
-  }
 
   // 3. For all threads, look up sender email from email_messages as fallback
   //    — includes both inbound AND outbound because forwarded emails are stored as outbound
@@ -254,7 +243,7 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
   const lastDirection = new Map<string, 'inbound' | 'outbound'>() // thread_id -> direction of the last real message
   const chaseDue = new Map<string, string>() // thread_id -> the day a chaser is due, when TRS wrote last
   let threadMsgs: ConvMessage[] = []
-  if (allThreadIds.length > 0) {
+  const readMessages = async () => {
     // Prefer inbound messages first (direct client email). Every row: the API stops at 1,000,
     // which left the newest messages of the list unread and their status wrong.
     const msgs = await fetchAllRows<{ id: string; thread_id: string; from_address: string | null; direction: string; subject: string | null; sent_at: string | null }>(
@@ -284,6 +273,24 @@ export async function inboxConversations(sp: URLSearchParams, viewer: string | n
           threadSenderMap.set(p.thread_id, p.email)
         }
       }
+    }
+  }
+  const [owners, boxes, cRes, tiRes] = await Promise.all([
+    ownersOf(threads.filter(t => !ok.has(t.id)).map(t => t.id)),
+    mailboxesByThread(allThreadIds),
+    contactIds.length > 0 ? fetch(`${SB_URL}/rest/v1/contacts?id=in.(${contactIds.join(',')})&select=id,first_name,last_name,email`, { headers: sbHeaders(), cache: 'no-store' }) : null,
+    counterpartyIds.length > 0 ? fetch(`${SB_URL}/rest/v1/thread_insurers?thread_id=in.(${counterpartyIds.join(',')})&select=thread_id,client_company_id,reason&order=last_message_at.desc.nullslast`, { headers: sbHeaders(), cache: 'no-store' }) : null,
+    readMessages(),
+  ])
+  if (cRes) {
+    const rows: ContactRow[] = cRes.ok ? await cRes.json() : []
+    for (const c of (Array.isArray(rows) ? rows : [])) contactMap.set(c.id, c)
+  }
+  if (tiRes) {
+    const rows: { thread_id: string; client_company_id: string | null; reason: string | null }[] = tiRes.ok ? await tiRes.json() : []
+    for (const r of (Array.isArray(rows) ? rows : [])) {
+      if (r.client_company_id && !clientOf.has(r.thread_id)) clientOf.set(r.thread_id, r.client_company_id)
+      else if (!r.client_company_id && r.reason?.startsWith('named: ') && !namedOf.has(r.thread_id)) namedOf.set(r.thread_id, r.reason.slice('named: '.length))
     }
   }
 
