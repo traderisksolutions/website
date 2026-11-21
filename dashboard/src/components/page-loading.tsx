@@ -9,7 +9,7 @@ import { Spinner } from '@/components/crm/primitives'
 export function PageLoading({ label }: { label?: string }) {
   return (
     <PageFrame>
-      <span className="trs-sk h-[22px] w-[220px]" aria-hidden />
+      <span className="trs-sk h-6 w-56" aria-hidden />
       <Spinner label={label} rows={8} />
     </PageFrame>
   )
