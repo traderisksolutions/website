@@ -6,7 +6,7 @@ Every running cost the dashboard adds, and every one proposed. Nothing in **Prop
 
 | Item | Since | Cost a month | What it buys |
 | --- | --- | --- | --- |
-| Cloud Scheduler, 12 jobs (3 free) | 21 Nov 2026 | about 0.90 | One scheduler for every timed job; the 8 Vercel crons move here once a clean day is confirmed |
+| Cloud Scheduler, 12 jobs (3 free) | 21 Nov 2026 | about 0.90 | One scheduler for every timed job; the Vercel crons were removed 21 Nov 2026 after a clean night |
 | Secret Manager, 1 secret (PGRST_DB_URI) | 21 Nov 2026 | about 0.06 | The database login kept out of plain settings after the rotation |
 
 ## Proposed

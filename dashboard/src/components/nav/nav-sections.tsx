@@ -51,8 +51,7 @@ export const PLACES: Place[] = [
   { label: 'Employment Benefits', href: '/eb', icon: HeartPulse, tabs: [
     { title: 'New quotation', href: '/eb' },
     { title: 'Quotation register', href: '/eb/quotations' },
-    // 21 Nov 2026: Products, the workbook beside the rate tables (docs/eb-v2.md P3).
-    { title: 'Products', href: '/eb/products' },
+    // Jarod, 21 Nov 2026: Products is off the tabs; /eb/products keeps its address.
     // 21 Nov 2026: After binding, bills, movements and claims per EB policy (docs/eb-v2.md P6).
     { title: 'After binding', href: '/eb/after-binding' },
     { title: 'Brochures', href: '/brochures' },
