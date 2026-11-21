@@ -20,6 +20,7 @@ import { DEFAULT_BUCKETS, PIPE_BUCKETS, PIPE_BUCKET_NAME, pipelineMeta, taskName
 import { OPEN_STAGES, STAGE_NAME } from '@/lib/renewals/rules'
 import type { PipelineRow, PipelineView } from '@/lib/renewals/pipeline-store'
 import { RiskChips, StageChip, ownerName, plainDays } from './bits'
+import { callRenewals } from '@/lib/renewals/fetch'
 
 type View = PipelineView | { tables: false; today: string; rows: [] }
 const OPEN = 'open'
@@ -37,7 +38,7 @@ export function RenewalsList() {
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(() => callApi<View>('/api/renewals/pipeline').then(setView).catch(e => setError(errText(e))), [])
+  const load = useCallback(() => callRenewals<View>('/api/renewals/pipeline').then(setView).catch(e => setError(errText(e))), [])
   useEffect(() => { void load() }, [load])
 
   const rows: PipelineRow[] = useMemo(() => (view?.tables ? view.rows : []), [view])
@@ -54,7 +55,7 @@ export function RenewalsList() {
   async function openDue() {
     setOpening(true); setError(null); setNote(null)
     try {
-      const d = await callApi<{ tables: boolean; opened: number; due: number }>('/api/renewals/open', { method: 'POST' })
+      const d = await callRenewals<{ tables: boolean; opened: number; due: number }>('/api/renewals/open', { method: 'POST' })
       setNote(d.tables ? `Opened ${d.opened} of ${d.due} due.` : 'Renewal records are not set up yet.')
       await load()
     } catch (e) { setError(errText(e)) } finally { setOpening(false) }

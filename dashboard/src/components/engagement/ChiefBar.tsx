@@ -21,6 +21,7 @@ import { ActionItem, AiRow, Buttons, Group } from './rail-bits'
 import { firstPaintKey, takeFirstPaint } from './first-paint'
 import { callPlacements } from '@/lib/placement/fetch'
 import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
+import { callWork } from '@/lib/work/fetch'
 
 const OPS_EMAIL = 'operations@trade-risksol.com'
 /** The shared field at rail height (32, the rail's button height). */
@@ -277,7 +278,7 @@ function DraftRow({ draft, from, open, onToggle, onDone }: { draft: BarDraft; fr
       const { draftId } = await callApi<{ draftId: string }>(`/api/drafts/${draft.id}`, { method: 'POST', body: { action: 'prepare' } })
       const copy = cc.split(/[,;\s]+/).map(x => x.trim()).filter(x => x.includes('@'))
       await callApi('/api/email/send', { method: 'POST', body: { draftId, toEmail: to.trim(), customSubject: subject, fromEmail: from, cc: copy.length ? copy : undefined, attachments: draft.attachments.length ? draft.attachments : undefined } })
-      if (draft.workItemId) await callApi(`/api/work/${draft.workItemId}`, { method: 'POST', body: { action: 'sent' } }).catch(() => null)
+      if (draft.workItemId) await callWork(`/api/work/${draft.workItemId}`, { method: 'POST', body: { action: 'sent' } }).catch(() => null)
       onDone()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }

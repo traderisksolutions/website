@@ -13,6 +13,7 @@ import { actorName } from '@/lib/cases/names'
 import type { CaseMemory } from '@/lib/cases/memory-store'
 import { Register } from '@/components/ui/register'
 import { headingCls, ReadNewButton } from './shared'
+import { callWork } from '@/lib/work/fetch'
 
 export function ResumePoint({ id, onChanged, onNotice, onError }: {
   id: string
@@ -24,7 +25,7 @@ export function ResumePoint({ id, onChanged, onNotice, onError }: {
   const [memory, setMemory] = useState<CaseMemory | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
 
-  const load = useCallback(() => callApi<CaseMemory>(`/api/work/${id}/memory`), [id])
+  const load = useCallback(() => callWork<CaseMemory>(`/api/work/${id}/memory`), [id])
   useEffect(() => {
     setMemory(null); setFailed(null)
     load().then(setMemory).catch(e => setFailed(errText(e)))

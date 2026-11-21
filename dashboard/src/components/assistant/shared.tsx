@@ -11,6 +11,8 @@ import { Btn, Chip, Spinner } from '@/components/crm/primitives'
 import { callApi, errText } from '@/components/placement/shared'
 import { LATER_CHOICES, LATER_LABEL, type LaterChoice } from '@/lib/today/rules'
 import type { ThreadView } from '@/lib/today/data'
+import { callToday } from '@/lib/today/fetch'
+import { callWork } from '@/lib/work/fetch'
 
 export const CASE_TYPE: Record<string, string> = {
   claim: 'Claim', renewal: 'Renewal', new_quote: 'Quote', endorsement: 'Endorsement', member_movement: 'Members',
@@ -39,7 +41,7 @@ export function LaterMenu({ itemId, onSet, onError, level = 'tertiary', size = '
   const [busy, setBusy] = useState(false)
   async function pick(c: LaterChoice) {
     setBusy(true)
-    try { await callApi(`/api/work/${itemId}/later`, { method: 'POST', body: { choice: c } }); onSet(LATER_LABEL[c]) }
+    try { await callWork(`/api/work/${itemId}/later`, { method: 'POST', body: { choice: c } }); onSet(LATER_LABEL[c]) }
     catch (e) { onError(errText(e)) } finally { setBusy(false) }
   }
   return (
@@ -63,7 +65,7 @@ export function ThreadModal({ threadId, onClose }: { threadId: string | null; on
   useEffect(() => {
     if (!threadId) return
     setThread(null); setError(null)
-    callApi<{ thread: ThreadView }>(`/api/today/thread/${threadId}`).then(d => setThread(d.thread)).catch(e => setError(errText(e)))
+    callToday<{ thread: ThreadView }>(`/api/today/thread/${threadId}`).then(d => setThread(d.thread)).catch(e => setError(errText(e)))
   }, [threadId])
   return (
     <Dialog open={!!threadId} onOpenChange={o => { if (!o) onClose() }}>

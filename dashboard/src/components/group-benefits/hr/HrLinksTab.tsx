@@ -8,8 +8,9 @@ import { Btn } from '@/components/crm/primitives'
 import type { HrLink } from '@/lib/hr/types'
 import { SendLinkDialog, type CompanyPick } from './SendLinkDialog'
 import { CHIP, fmtDate, linkStatusWord, MIGRATION_PENDING_LINE, type HrLinkDetailResponse, type HrLinkRow, type HrLinksListResponse } from './labels'
-import type { EbPolicyRow } from '@/app/api/eb/policies/route'
+import type { EbPolicyRow } from '@/lib/gb/handlers/eb-policies'
 import { placementsFetch } from '@/lib/placement/fetch'
+import { ebFetch } from '@/lib/gb/fetch'
 
 
 /**
@@ -37,7 +38,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
 
   useEffect(() => { if (openSend) setDialog(true) }, [openSend])
   useEffect(() => {
-    fetch('/api/eb/policies', { cache: 'no-store' }).then(r => r.ok ? r.json() : { policies: [] })
+    ebFetch('/api/eb/policies', { cache: 'no-store' }).then(r => r.ok ? r.json() : { policies: [] })
       .then((d: { policies?: EbPolicyRow[] }) => setPolicies(new Map((d.policies ?? []).map(p => [p.id, p]))))
       .catch(() => {})
   }, [])
@@ -47,7 +48,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
     if (!policy.placement_line_id) { setError('The policy has no placement line; open the company and recreate the placement.'); return }
     setPricing(r.id); setError(null)
     try {
-      const dr = await fetch(`/api/group-benefits/hr-links/${r.id}`, { cache: 'no-store' })
+      const dr = await ebFetch(`/api/group-benefits/hr-links/${r.id}`, { cache: 'no-store' })
       const dd = await dr.json().catch(() => ({})) as HrLinkDetailResponse
       const submissionId = dd.submission?.status === 'submitted' ? dd.submission.id : null
       if (!dr.ok || !submissionId) { setError(dd.error ?? 'The link has no submitted list yet.'); return }
@@ -65,7 +66,7 @@ export function HrLinksTab({ openSend, initialCompany, initialEffectiveDate, ini
   const load = useCallback(async () => {
     setLoading(true); setError(null)
     try {
-      const res = await fetch('/api/group-benefits/hr-links', { cache: 'no-store' })
+      const res = await ebFetch('/api/group-benefits/hr-links', { cache: 'no-store' })
       const d = await res.json().catch(() => ({})) as HrLinksListResponse
       if (d.migrationPending) { setPending(true); setRows([]); return }
       if (!res.ok) { setError(d.error ?? `Could not load links (${res.status}).`); setRows([]); return }

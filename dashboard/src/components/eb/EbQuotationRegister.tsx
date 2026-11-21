@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { inputCls, Segmented } from '@/components/crm/primitives'
 import { Register, RegisterHead, RegisterTh, RegisterRow, RegisterCell, RegisterEmpty } from '@/components/ui/register'
 import { fmtDate, fmtDay, timeAgo } from '@/lib/format'
+import { ebFetch } from '@/lib/gb/fetch'
 
 export type EbRegisterItem = {
   id: string; company_id: string | null; company_name: string; effective_date: string | null; basis: string | null
@@ -31,7 +32,7 @@ export function EbQuotationRegister({ companyId }: { companyId?: string }) {
   const load = useCallback(async () => {
     setError(null)
     try {
-      const res = await fetch(companyId ? `/api/eb/quotations?company=${encodeURIComponent(companyId)}` : '/api/eb/quotations', { cache: 'no-store' })
+      const res = await ebFetch(companyId ? `/api/eb/quotations?company=${encodeURIComponent(companyId)}` : '/api/eb/quotations', { cache: 'no-store' })
       const d = await res.json().catch(() => null) as { quotations?: EbRegisterItem[]; error?: string } | null
       if (!res.ok || !Array.isArray(d?.quotations)) { setError(d?.error ?? `The register could not be loaded (${res.status}).`); setRows([]); return }
       setRows(d.quotations)

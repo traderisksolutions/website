@@ -22,6 +22,7 @@ import { InlineConfirm } from './InlineConfirm'
 import { OpenThread } from './PrivateThread'
 import type { DraftAge } from '@/lib/today/old-drafts'
 import { inboxFetch, callInbox } from '@/lib/inbox/fetch'
+import { callWork } from '@/lib/work/fetch'
 
 let senderOnce: Promise<string | null> | null = null
 /** The signed-in person's own mailbox, else the first they may send from. */
@@ -43,7 +44,7 @@ export async function sendDraft(d: DeskDraft, e: { to: string; cc: string; subje
   const copy = e.cc.split(/[,;\s]+/).map(x => x.trim()).filter(x => x.includes('@'))
   const files = e.attachments ?? d.attachments
   await callApi('/api/email/send', { method: 'POST', body: { draftId, toEmail: e.to.trim(), customSubject: e.subject, fromEmail: await sender() ?? undefined, cc: copy.length ? copy : undefined, attachments: files.length ? files : undefined } })
-  if (d.workItemId) await callApi(`/api/work/${d.workItemId}`, { method: 'POST', body: { action: 'sent' } }).catch(() => null)
+  if (d.workItemId) await callWork(`/api/work/${d.workItemId}`, { method: 'POST', body: { action: 'sent' } }).catch(() => null)
 }
 
 const nameOf = (d: DeskDraft) => d.person ?? d.to

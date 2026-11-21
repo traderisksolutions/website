@@ -26,6 +26,7 @@ import type { RowFacts } from '@/lib/today/substance'
 import { CalendarEmbedded } from '@/components/calendar/embed'
 import CalendarPage from '@/app/calendar/page'
 import { RenewalsDue } from '@/components/renewals/RenewalsDue'
+import { callToday } from '@/lib/today/fetch'
 
 type View = 'client' | 'email' | 'calendar'
 type Desk = { rows: DeskRow[]; owners: string[]; me: string; who: string; projects?: boolean }
@@ -62,7 +63,7 @@ function TodayPage() {
   const load = useCallback(() => {
     const q = who ? `?who=${encodeURIComponent(who)}` : ''
     setError(null)
-    callApi<Desk>(`/api/today/desk${q}`).then(d => {
+    callToday<Desk>(`/api/today/desk${q}`).then(d => {
       setDesk(d)
       // The first time, open the client asked for (?client=), else the client at the top.
       const asked = client ? d.rows.filter(r => r.companyId === client).map(r => r.key) : []
@@ -72,14 +73,14 @@ function TodayPage() {
   const retry = () => { setDesk(null); load() }
   useEffect(() => { if (!old) load() }, [load, old])
   // Suggestions are code-scored (no model): safe to count on load.
-  useEffect(() => { if (!old && !adding) callApi<{ suggestions: unknown[] }>('/api/today/desk/suggest').then(r => setSuggestCount(r.suggestions.length)).catch(() => setSuggestCount(null)) }, [old, adding])
+  useEffect(() => { if (!old && !adding) callToday<{ suggestions: unknown[] }>('/api/today/desk/suggest').then(r => setSuggestCount(r.suggestions.length)).catch(() => setSuggestCount(null)) }, [old, adding])
 
   const rows = useMemo(() => desk?.rows ?? [], [desk])
   // Facts after the rows: one read for every client on the page; the page never waits for it.
   const companyKey = useMemo(() => Array.from(new Set(rows.map(r => r.companyId).filter(Boolean))).sort().join(','), [rows])
   useEffect(() => {
     if (!companyKey) return
-    callApi<{ facts: Record<string, RowFacts> }>(`/api/today/desk/facts?ids=${companyKey}`).then(r => setFacts(r.facts)).catch(() => setFacts({}))
+    callToday<{ facts: Record<string, RowFacts> }>(`/api/today/desk/facts?ids=${companyKey}`).then(r => setFacts(r.facts)).catch(() => setFacts({}))
   }, [companyKey])
   const emails = useMemo(() => emailList(rows), [rows])
   const toClient = emails.filter(d => d.side === 'client').length

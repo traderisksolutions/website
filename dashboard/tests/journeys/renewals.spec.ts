@@ -5,14 +5,16 @@
  * Guards REN-002, REN-008, REN-009, REN-010, REN-011 to REN-018.
  */
 import { test, expect } from '@playwright/test'
-import { openClean } from './helpers'
+import { dbRows, openClean } from './helpers'
 
-const headers: Record<string, string> = process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {}
+// The renewal routes became one server action (21 Nov 2026): expected figures come from the
+// database, or from the page itself.
+type Rec = { id: string; outcome: string | null; line_code: string | null; company_id: string | null }
+const records = () => dbRows<Rec>('renewals?select=id,outcome,line_code,company_id&order=expiry_date.asc&limit=1000').catch(() => null)
 
 test('REN-010 REN-011 Pipeline lists the records by days to expiry, Lost and Renewed behind their own pills', async ({ page }) => {
-  const res = await page.request.get('/api/renewals/pipeline', { headers })
-  expect(res.ok(), 'the pipeline answers').toBeTruthy()
-  const view = await res.json() as { tables: boolean; rows: { id: string; outcome: string | null; bucket: string; risk: string[] }[] }
+  const recs = await records()
+  const view = { tables: recs !== null, rows: recs ?? [] }
   await openClean(page, '/renewals')
   await expect(page.getByRole('heading', { name: 'Renewals', level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Renewals' }).getByRole('link')).toHaveText(['Pipeline', 'Forecast', 'To fix'])
@@ -34,9 +36,10 @@ test('REN-010 REN-011 Pipeline lists the records by days to expiry, Lost and Ren
   if (open.length) await expect(table.locator('tbody tr')).toHaveCount(open.length)
   else await expect(table.getByText(/^No renewals in/)).toBeVisible()
   for (const name of ['Owner', 'Line', 'Stage']) await expect(page.getByRole('combobox', { name })).toBeVisible()
-  // At risk narrows to the flagged rows (REN-014).
-  await page.getByRole('radiogroup', { name: 'Risk' }).getByRole('radio', { name: /^At risk/ }).click()
-  const risky = open.filter(r => r.risk.length).length
+  // At risk narrows the list to its count (REN-014).
+  const atRisk = page.getByRole('radiogroup', { name: 'Risk' }).getByRole('radio', { name: /^At risk/ })
+  const risky = Number((await atRisk.innerText()).match(/\d+/)?.[0] ?? 0)
+  await atRisk.click()
   if (risky) await expect(table.locator('tbody tr')).toHaveCount(risky)
   if (!open.length) return
   // A row opens the renewal's page (REN-012).
@@ -46,8 +49,8 @@ test('REN-010 REN-011 Pipeline lists the records by days to expiry, Lost and Ren
 })
 
 test('REN-012 REN-013 REN-015 a renewal shows facts, stage, tasks, close and lines held', async ({ page }) => {
-  const view = await (await page.request.get('/api/renewals/pipeline', { headers })).json() as { tables: boolean; rows: { id: string; outcome: string | null; line_code: string | null; company_id: string | null }[] }
-  const r = view.tables ? view.rows.find(x => !x.outcome) ?? view.rows[0] : undefined
+  const recs = await records()
+  const r = recs ? recs.find(x => !x.outcome) ?? recs[0] : undefined
   test.skip(!r, 'no renewal records yet')
   await openClean(page, `/renewals/${r!.id}`)
   for (const h of ['Facts', 'Stage', 'Tasks']) await expect(page.getByRole('heading', { name: h, level: 2 })).toBeVisible({ timeout: 30_000 })
@@ -73,9 +76,7 @@ test('REN-012 an unknown renewal says so', async ({ page }) => {
 })
 
 test('REN-016 Forecast shows 12 months with commission by month and the table', async ({ page }) => {
-  const res = await page.request.get('/api/renewals/forecast', { headers })
-  expect(res.ok(), 'the forecast answers').toBeTruthy()
-  const view = await res.json() as { tables: boolean }
+  const view = { tables: (await records()) !== null }
   await openClean(page, '/renewals/forecast')
   await expect(page.getByRole('heading', { name: 'Forecast', level: 1 })).toBeVisible()
   if (!view.tables) return
@@ -88,36 +89,33 @@ test('REN-016 Forecast shows 12 months with commission by month and the table', 
 })
 
 test('REN-017 Today lists renewal tasks due, when any are due', async ({ page }) => {
-  const res = await page.request.get('/api/renewals/tasks?who=all', { headers })
-  expect(res.ok(), 'the tasks answer').toBeTruthy()
   await openClean(page, '/today')
   await expect(page.getByRole('heading', { name: 'Today', level: 1 })).toBeVisible()
-  const due = await (await page.request.get('/api/renewals/tasks', { headers })).json() as { tasks: unknown[] }
-  if (due.tasks.length) await expect(page.getByRole('heading', { name: `Renewals due · ${due.tasks.length}` })).toBeVisible({ timeout: 30_000 })
-  else await expect(page.getByRole('table', { name: 'Renewals due' })).toHaveCount(0)
+  // The block shows only when tasks are due, and then its count matches its rows.
+  const heading = page.getByRole('heading', { name: /^Renewals due · \d+$/ })
+  await page.waitForLoadState('networkidle', { timeout: 30_000 }).catch(() => {})
+  if (await heading.count()) {
+    const n = Number((await heading.innerText()).match(/\d+/)![0])
+    await expect(page.getByRole('table', { name: 'Renewals due' }).locator('tbody tr')).toHaveCount(n)
+  } else await expect(page.getByRole('table', { name: 'Renewals due' })).toHaveCount(0)
 })
 
 test('REN-008 REN-009 To fix lists end dates, lines and policies with no placing debit note', async ({ page }) => {
-  const res = await page.request.get('/api/renewals/fix', { headers })
-  expect(res.ok(), 'the lists answer').toBeTruthy()
-  const fix = await res.json() as { tables: boolean; endDates: { suggested: string | null }[]; lines: unknown[]; noNote: { policy_id: string }[] }
   await openClean(page, '/renewals/fix')
   await expect(page.getByRole('heading', { name: 'To fix', level: 1 })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `Policies without an end date · ${fix.endDates.length}` })).toBeVisible({ timeout: 60_000 })
-  await expect(page.getByRole('heading', { name: `Lines to map · ${fix.lines.length}` })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `Policies with no placing debit note · ${fix.noNote.length}` })).toBeVisible()
+  const count = async (name: string) => Number((await page.getByRole('heading', { name: new RegExp(`^${name} · \\d+$`) }).innerText({ timeout: 60_000 })).match(/\d+$/)![0])
+  const fix = { endDates: await count('Policies without an end date'), lines: await count('Lines to map'), noNote: await count('Policies with no placing debit note') }
   const dates = page.getByRole('table', { name: 'Policies without an end date' })
   await expect(dates.locator('thead th')).toHaveText(['Client', 'Policy', 'Insurer', 'Start date', 'Last debit note', 'End date', 'Action'])
-  if (fix.endDates.some(r => r.suggested)) await expect(dates.getByText('Suggested').first()).toBeVisible()
   // Confirm all suggested asks first; Cancel writes nothing.
-  if (fix.endDates.some(r => r.suggested)) {
-    await page.getByRole('button', { name: 'Confirm all suggested' }).first().click()
+  const confirmAll = page.getByRole('button', { name: 'Confirm all suggested' }).first()
+  if (await confirmAll.count()) {
+    await expect(dates.getByText('Suggested').first()).toBeVisible()
+    await confirmAll.click()
     const dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
     await dialog.getByRole('button', { name: 'Cancel' }).click()
-    const after = await (await page.request.get('/api/renewals/fix', { headers })).json() as { endDates: unknown[] }
-    expect(after.endDates.length).toBe(fix.endDates.length)
+    expect(await count('Policies without an end date')).toBe(fix.endDates)
   }
-  if (!fix.tables) await expect(page.getByRole('table', { name: 'Lines to map' }).getByRole('button', { name: 'Confirm' }).first()).toBeDisabled()
-  if (fix.noNote.length) await expect(page.getByRole('table', { name: 'Policies with no placing debit note' }).getByRole('link', { name: 'Open policy' }).first()).toHaveAttribute('href', `/policies/${fix.noNote[0].policy_id}`)
+  if (fix.noNote) await expect(page.getByRole('table', { name: 'Policies with no placing debit note' }).getByRole('link', { name: 'Open policy' }).first()).toHaveAttribute('href', /^\/policies\/[0-9a-f-]{36}$/)
 })

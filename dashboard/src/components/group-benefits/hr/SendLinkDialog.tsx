@@ -11,6 +11,7 @@ import { defaultMessage, EMAIL_OK, fmtLongDate, type HrLinkCreateResponse } from
 const FROM_LINE = 'Trade Risk Solutions Operations · operations@trade-risksol.com · reply-to the same'
 
 import { CompanyField, type CompanyPick } from '../CompanyField'
+import { ebFetch } from '@/lib/gb/fetch'
 export type { CompanyPick }
 
 /**
@@ -64,7 +65,7 @@ export function SendLinkDialog({ open, onClose, onSent, initialCompany, initialE
     if (problems.length) { setError(problems[0]); return }
     setSending(true); setError(null)
     try {
-      const res = await fetch('/api/group-benefits/hr-links', {
+      const res = await ebFetch('/api/group-benefits/hr-links', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company_id: company.id, company_name: company.name.trim(), quotation_id: quotationId ?? null,

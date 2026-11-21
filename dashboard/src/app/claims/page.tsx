@@ -19,6 +19,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ClaimsTabs } from '@/components/claims/ClaimsTabs'
 import { unwrap } from '@/lib/action-result'
 import { claim, claimAction, claimsRegister, openClaim } from './actions'
+import { callWork } from '@/lib/work/fetch'
 
 type View = Bucket | 'forms'
 type Who = 'mine' | 'all'
@@ -347,7 +348,7 @@ function Drafts({ id, drafts, onDone, onError }: { id: string; drafts: ClaimDeta
   const [subject, setSubject] = useState(current?.subject ?? '')
   const [body, setBody] = useState(current?.body ?? '')
   useEffect(() => { setTo(current?.to ?? ''); setCc(current?.cc ?? ''); setSubject(current?.subject ?? ''); setBody(current?.body ?? ''); setEditing(false) }, [current?.id]) // eslint-disable-line react-hooks/exhaustive-deps
-  const post = (b: unknown) => callApi<{ draftId?: string }>(`/api/work/${id}`, { method: 'POST', body: b })
+  const post = (b: unknown) => callWork<{ draftId?: string }>(`/api/work/${id}`, { method: 'POST', body: b })
   async function run(label: string, fn: () => Promise<string>) {
     setBusy(label)
     try { onDone(await fn()) } catch (e) { onError(errText(e)) } finally { setBusy(null) }

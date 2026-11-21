@@ -13,6 +13,8 @@ import { callApi, errText } from '@/components/placement/shared'
 import { CASE_TYPES, STATUSES, type ItemDetail, type ItemEdit } from '@/lib/today/data'
 import { LEVEL_LABEL, type PendingLevel } from '@/lib/today/pending'
 import { CASE_TYPE, STATUS } from './shared'
+import { callToday } from '@/lib/today/fetch'
+import { callWork } from '@/lib/work/fetch'
 
 type Options = { staff: { email: string; name: string }[]; policies: { id: string; label: string }[]; companies: { id: string; name: string }[] }
 
@@ -33,7 +35,7 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
     const q = new URLSearchParams()
     if (form.company_id) q.set('company_id', form.company_id)
     if (query.trim().length >= 2) q.set('q', query.trim())
-    const t = setTimeout(() => { callApi<Options>(`/api/today/edit-options?${q}`).then(setOpts).catch(e => onError(errText(e))) }, query ? 250 : 0)
+    const t = setTimeout(() => { callToday<Options>(`/api/today/edit-options?${q}`).then(setOpts).catch(e => onError(errText(e))) }, query ? 250 : 0)
     return () => clearTimeout(t)
   }, [form.company_id, query, onError])
 
@@ -48,7 +50,7 @@ export function CaseEditor({ item, onSaved, onError }: { item: ItemDetail; onSav
       for (const k of Object.keys(form) as (keyof ItemEdit)[]) if ((form[k] ?? null) !== (was[k] ?? null)) (diff as Record<string, unknown>)[k] = form[k] ?? null
       if (form.deadline_basis && diff.deadline === undefined) delete diff.deadline_basis
       if (!Object.keys(diff).length) { onSaved('Nothing changed.'); return }
-      const r = await callApi<{ changes: Record<string, unknown> }>(`/api/work/${item.id}/edit`, { method: 'POST', body: { item: diff } })
+      const r = await callWork<{ changes: Record<string, unknown> }>(`/api/work/${item.id}/edit`, { method: 'POST', body: { item: diff } })
       const n = Object.keys(r.changes).length
       onSaved(n ? `Saved ${n} change${n === 1 ? '' : 's'}.` : 'Nothing changed.')
     } catch (e) { onError(errText(e)) } finally { setBusy(false) }
@@ -124,7 +126,7 @@ export function AttachmentPicker({ itemId, draftId, files, documents, onChanged,
   const [busy, setBusy] = useState(false)
   async function apply(keep: string[], add: string[]) {
     setBusy(true)
-    try { await callApi(`/api/work/${itemId}/edit`, { method: 'POST', body: { attachments: { draft_id: draftId, keep, add } } }); setOpen(false); onChanged() }
+    try { await callWork(`/api/work/${itemId}/edit`, { method: 'POST', body: { attachments: { draft_id: draftId, keep, add } } }); setOpen(false); onChanged() }
     catch (e) { onError(errText(e)) } finally { setBusy(false) }
   }
   const have = new Set(files)

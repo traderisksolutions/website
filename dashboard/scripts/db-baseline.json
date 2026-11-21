@@ -7,14 +7,6 @@
   "sb": 2,
   "fetch": 1
  },
- "src/app/api/ai/status/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/analytics/ai-usage/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
  "src/app/api/audit-log/route.ts": {
   "sb": 0,
   "fetch": 2
@@ -63,14 +55,6 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/eb/policies/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/eb/quotations/[id]/sent/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
  "src/app/api/email/ingest/route.ts": {
   "sb": 0,
   "fetch": 33
@@ -91,43 +75,15 @@
   "sb": 3,
   "fetch": 0
  },
- "src/app/api/group-benefits/census/sources/route.ts": {
-  "sb": 9,
-  "fetch": 0
- },
- "src/app/api/group-benefits/insurer-contacts/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
  "src/app/api/group-benefits/last-year/read/route.ts": {
   "sb": 1,
   "fetch": 0
- },
- "src/app/api/group-benefits/rate-tables/[id]/approve/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/group-benefits/rate-tables/[id]/extract/route.ts": {
-  "sb": 0,
-  "fetch": 14
  },
  "src/app/api/group-benefits/rate-tables/[id]/pdf/route.ts": {
   "sb": 0,
   "fetch": 1
  },
- "src/app/api/group-benefits/rate-tables/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 11
- },
- "src/app/api/group-benefits/rate-tables/[id]/schedule/route.ts": {
-  "sb": 0,
-  "fetch": 13
- },
  "src/app/api/group-benefits/rate-tables/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/group-benefits/sources/route.ts": {
   "sb": 0,
   "fetch": 2
  },
@@ -155,21 +111,9 @@
   "sb": 6,
   "fetch": 0
  },
- "src/app/api/today/desk/detail/route.ts": {
-  "sb": 2,
-  "fetch": 0
- },
- "src/app/api/today/eb-renewals/route.ts": {
-  "sb": 4,
-  "fetch": 0
- },
  "src/app/api/unsubscribe/route.ts": {
   "sb": 0,
   "fetch": 2
- },
- "src/app/api/work/[id]/edit/route.ts": {
-  "sb": 4,
-  "fetch": 0
  },
  "src/app/claims/documents/page.tsx": {
   "sb": 1,
@@ -314,6 +258,10 @@
  "src/lib/agents/endorsement/main.ts": {
   "sb": 1,
   "fetch": 0
+ },
+ "src/lib/agents/handlers/ai-status.ts": {
+  "sb": 0,
+  "fetch": 2
  },
  "src/lib/ai-call.ts": {
   "sb": 1,
@@ -622,6 +570,42 @@
  "src/lib/gb/eb-proposal-store.ts": {
   "sb": 19,
   "fetch": 0
+ },
+ "src/lib/gb/handlers/eb-policies.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/gb/handlers/eb-quotations-id-sent.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/gb/handlers/gb-census-sources.ts": {
+  "sb": 9,
+  "fetch": 0
+ },
+ "src/lib/gb/handlers/gb-insurer-contacts.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/gb/handlers/gb-rate-tables-id-approve.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/gb/handlers/gb-rate-tables-id-extract.ts": {
+  "sb": 0,
+  "fetch": 14
+ },
+ "src/lib/gb/handlers/gb-rate-tables-id-schedule.ts": {
+  "sb": 0,
+  "fetch": 13
+ },
+ "src/lib/gb/handlers/gb-rate-tables-id.ts": {
+  "sb": 0,
+  "fetch": 11
+ },
+ "src/lib/gb/handlers/gb-sources.ts": {
+  "sb": 0,
+  "fetch": 2
  },
  "src/lib/gb/intake.ts": {
   "sb": 0,
@@ -1075,6 +1059,14 @@
   "sb": 1,
   "fetch": 0
  },
+ "src/lib/today/handlers/desk-detail.ts": {
+  "sb": 2,
+  "fetch": 0
+ },
+ "src/lib/today/handlers/eb-renewals.ts": {
+  "sb": 4,
+  "fetch": 0
+ },
  "src/lib/today/learn-server.ts": {
   "sb": 9,
   "fetch": 0
@@ -1086,5 +1078,9 @@
  "src/lib/voice.ts": {
   "sb": 0,
   "fetch": 1
+ },
+ "src/lib/work/handlers/id-edit.ts": {
+  "sb": 4,
+  "fetch": 0
  }
 }

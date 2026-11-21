@@ -21,6 +21,7 @@ import { taskName } from '@/lib/renewals/pipeline'
 import { LOSS_NAME, LOSS_REASONS, OPEN_STAGES, STAGE_NAME, isOpenStage, type LossReason, type OpenStage } from '@/lib/renewals/rules'
 import type { RenewalDetail as Detail } from '@/lib/renewals/pipeline-store'
 import { RiskChips, StageChip, ownerName, plainDays } from './bits'
+import { renewalsFetch, callRenewals } from '@/lib/renewals/fetch'
 
 const h2 = 'm-0 mb-3 text-body font-semibold text-trs-ink'
 const dt = 'text-small text-trs-muted'
@@ -38,7 +39,7 @@ export function RenewalDetail({ id }: { id: string }) {
   const [reason, setReason] = useState<LossReason | ''>('')
   const [lossNote, setLossNote] = useState('')
 
-  const load = useCallback(() => fetch(`/api/renewals/${id}`, { cache: 'no-store' }).then(async res => {
+  const load = useCallback(() => renewalsFetch(`/api/renewals/${id}`, { cache: 'no-store' }).then(async res => {
     if (res.status === 404) { setMissing(true); return }
     const d = await res.json()
     if (!res.ok) throw new Error(d?.error ?? `Request failed (${res.status}).`)
@@ -55,19 +56,19 @@ export function RenewalDetail({ id }: { id: string }) {
     setBusy(key); setError(null)
     try { await fn(); await load() } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  const setStage = (stage: OpenStage) => run('stage', () => callApi('/api/renewals', { method: 'PATCH', body: { id, stage } }))
-  const tick = (kind: string, done: boolean) => run(`task${kind}`, () => callApi(`/api/renewals/${id}/tasks`, { method: 'POST', body: { kind, done } }))
+  const setStage = (stage: OpenStage) => run('stage', () => callRenewals('/api/renewals', { method: 'PATCH', body: { id, stage } }))
+  const tick = (kind: string, done: boolean) => run(`task${kind}`, () => callRenewals(`/api/renewals/${id}/tasks`, { method: 'POST', body: { kind, done } }))
 
   async function closeRenewed() {
     const p = r?.policies.find(x => x.id === pick)
     if (!p) return
     if (!(await confirm({ title: 'Close as Renewed?', body: `The new term is ${p.policy_number ?? p.class_of_insurance ?? 'the chosen policy'}${p.end_date ? `, to ${fmtDate(p.end_date)}` : ''}. A closed renewal does not change.`, action: 'Close as Renewed' }))) return
-    await run('close', () => callApi('/api/renewals', { method: 'PATCH', body: { id, outcome: 'renewed', renewed_policy_id: p.id } }))
+    await run('close', () => callRenewals('/api/renewals', { method: 'PATCH', body: { id, outcome: 'renewed', renewed_policy_id: p.id } }))
   }
   async function closeLost() {
     if (!reason) return
     if (!(await confirm({ title: 'Close as Lost?', body: `Reason: ${LOSS_NAME[reason]}. A closed renewal does not change.`, action: 'Close as Lost', danger: true }))) return
-    await run('close', () => callApi('/api/renewals', { method: 'PATCH', body: { id, outcome: 'lost', loss_reason: reason, loss_note: lossNote } }))
+    await run('close', () => callRenewals('/api/renewals', { method: 'PATCH', body: { id, outcome: 'lost', loss_reason: reason, loss_note: lossNote } }))
   }
 
   if (missing) return <div className="px-4 md:px-8 py-6"><Empty action={<LinkBtn href="/renewals">Pipeline</LinkBtn>}>This renewal is not on the list.</Empty></div>

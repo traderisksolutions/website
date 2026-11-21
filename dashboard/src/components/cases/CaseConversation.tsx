@@ -15,6 +15,7 @@ import type { CaseMemory } from '@/lib/cases/memory-store'
 import { actorName } from '@/lib/cases/names'
 import { Register } from '@/components/ui/register'
 import { count, headingCls, ReadNewButton } from './shared'
+import { callWork } from '@/lib/work/fetch'
 
 const SIDES = [{ key: 'client', name: 'Client' }, { key: 'insurer', name: 'Insurer' }] as const
 /** An email's words without the blank lines between them. */
@@ -32,7 +33,7 @@ export function CaseConversation({ id, onOpenThread, onChanged, onNotice, onErro
   const [failed, setFailed] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const [sources, memory] = await Promise.all([callApi<CaseSources>(`/api/work/${id}/sources`), callApi<CaseMemory>(`/api/work/${id}/memory`)])
+    const [sources, memory] = await Promise.all([callWork<CaseSources>(`/api/work/${id}/sources`), callWork<CaseMemory>(`/api/work/${id}/memory`)])
     return { sources, memory }
   }, [id])
   useEffect(() => {

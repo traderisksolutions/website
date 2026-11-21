@@ -42,6 +42,7 @@ import { ProposalSection } from './ProposalSection'
 import { EbCensusReview, EbOptionalFiles } from './EbCensusReview'
 import { EbRoutes } from './EbRoutes'
 import { fmtMoney0 } from './eb-format'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Mode = 'brochure' | 'insurer'
 type Src = { name: string; upload?: File; attachmentId?: string }
@@ -115,7 +116,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
     if (!threadId && !pick.id) return
     const q = new URLSearchParams(); if (threadId) q.set('thread', threadId); if (pick.id) q.set('company', pick.id)
     let cancelled = false
-    fetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: FoundFile[]; documents?: FoundFile[]; schedules?: FoundFile[]; optional?: (FoundFile & { kind: string })[]; threads?: number; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
+    ebFetch(`/api/group-benefits/census/sources?${q}`, { cache: 'no-store' }).then(r => r.json()).then((d: { sources?: FoundFile[]; documents?: FoundFile[]; schedules?: FoundFile[]; optional?: (FoundFile & { kind: string })[]; threads?: number; companyId?: string | null; companyName?: string | null; currentInsurer?: string | null }) => {
       if (cancelled) return
       setSources(d.sources ?? []); setDocs(d.documents ?? []); setSchedSources(d.schedules ?? []); setOptional(d.optional ?? []); setThreads(d.threads ?? null)
       if (d.companyName) setPick(p => p.name ? p : { id: d.companyId ?? null, name: d.companyName! })
@@ -142,7 +143,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   useEffect(() => {
     if (!pick.id || quotationId || hrLinkId) return
     let cancelled = false
-    fetch(`/api/eb/scheme?company=${pick.id}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
+    ebFetch(`/api/eb/scheme?company=${pick.id}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
       if (cancelled || !d.tables || !d.scheme) return
       const sc = d.scheme
       setScheme({ plan_year: sc.plan_year, census: sc.census ? { at: sc.census_read_at, by: sc.census_read_by } : null, last_year: sc.last_year ? { at: sc.last_year_read_at, by: sc.last_year_read_by } : null })
@@ -170,7 +171,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   useEffect(() => {
     if (!pick.id || !/^\d{4}-\d{2}-\d{2}$/.test(effDate)) return
     let cancelled = false
-    fetch(`/api/eb/scheme?company=${pick.id}&effective=${effDate}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
+    ebFetch(`/api/eb/scheme?company=${pick.id}&effective=${effDate}`, { cache: 'no-store' }).then(r => r.json()).then((d: SchemeAnswer) => {
       if (!cancelled && d.tables) setPrevious(d.previous ?? null)
     }).catch(() => {})
     return () => { cancelled = true }
@@ -185,7 +186,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
       body.last_year = lastYear
       body.last_year_files = [...uploads.map(f => ({ name: f.name })), ...docIds.map(id => ({ name: docs.find(x => x.attachment_id === id)?.filename ?? 'Document', attachment_id: id }))]
     }
-    void fetch('/api/eb/scheme', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json()).then((d: { scheme?: SchemeAnswer['scheme'] }) => {
+    void ebFetch('/api/eb/scheme', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json()).then((d: { scheme?: SchemeAnswer['scheme'] }) => {
       const sc = d.scheme
       if (!sc) return
       fromScheme.current = { census: !!sc.census, lastYear: !!sc.last_year }
@@ -204,7 +205,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   useEffect(() => {
     if (!hrLinkId) return
     let cancelled = false
-    fetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' })
+    ebFetch(`/api/group-benefits/hr-links/${hrLinkId}/census`, { cache: 'no-store' })
       .then(async r => ({ ok: r.ok, status: r.status, d: await r.json().catch(() => ({})) as { census?: Member[]; company?: { id: string | null; name: string | null }; effective_date?: string | null; reference?: string; error?: string } }))
       .then(({ ok, status, d }) => {
         if (cancelled) return
@@ -221,7 +222,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   useEffect(() => {
     if (!quotationId) return
     let cancelled = false
-    fetch(`/api/eb/quotations/${quotationId}?edit=1`, { cache: 'no-store' }).then(async r => {
+    ebFetch(`/api/eb/quotations/${quotationId}?edit=1`, { cache: 'no-store' }).then(async r => {
       const d = await r.json().catch(() => ({})) as Reopened & { error?: string }
       if (cancelled) return
       if (!r.ok || !d.quotation) { setError(d.error ?? `The quotation could not be opened (${r.status}).`); return }
@@ -347,7 +348,7 @@ export function EbQuotation({ threadId, companyId = null, hrLinkId = null, quota
   async function generate(keep?: Keep) {
     setBusy(true); setError(null)
     try {
-      const res = await fetch('/api/eb/price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+      const res = await ebFetch('/api/eb/price', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
         effective_date: effDate, basis, current_insurer: current.startsWith(UNKNOWN_INSURER) ? current.slice(UNKNOWN_INSURER.length) : current || null,
         last_year: lastYear, categories: chosen.map(c => ({ name: c.name, members: c.members, today: c.today })),
       }) })

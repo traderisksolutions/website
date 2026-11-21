@@ -38,6 +38,8 @@ import { CaseBrief } from '@/components/cases/CaseBrief'
 import { CaseComparison } from '@/components/cases/CaseComparison'
 import { CaseRounds } from '@/components/cases/CaseRounds'
 import { ResumePoint } from '@/components/cases/ResumePoint'
+import { callToday } from '@/lib/today/fetch'
+import { callWork } from '@/lib/work/fetch'
 
 const FLOW_TIP: Record<RenewalFlow, string> = {
   hold: 'Hold: loss ratio under the hold threshold and exposure steady. Ask the current insurer on the same basis. Open the renewal method.',
@@ -97,7 +99,7 @@ function Review() {
 
   const load = useCallback(() => {
     setItem(null); setError(null)
-    callApi<{ item: ItemDetail; staff: Staff[] }>(`/api/today/${id}`).then(d => {
+    callToday<{ item: ItemDetail; staff: Staff[] }>(`/api/today/${id}`).then(d => {
       setItem(d.item); setStaff(d.staff)
       setMain(d.item.draft ? asEdit(d.item.draft) : null)
       setPairs(Object.fromEntries(d.item.paired.map(p => [p.id, asEdit(p)])))
@@ -108,7 +110,7 @@ function Review() {
 
   /** After a change in a section: the case's record again, leaving the drafts being edited as they are. */
   const refresh = useCallback(() => {
-    callApi<{ item: ItemDetail }>(`/api/today/${id}`).then(d => setItem(cur => cur && {
+    callToday<{ item: ItemDetail }>(`/api/today/${id}`).then(d => setItem(cur => cur && {
       ...cur, events: d.item.events, threads: d.item.threads, ledger: d.item.ledger, status: d.item.status,
       next_action: d.item.next_action, summary: d.item.summary, needs_human: d.item.needs_human,
     })).catch(() => null)
@@ -134,7 +136,7 @@ function Review() {
     setBusy(label); setError(null)
     try { setNotice(await fn()) } catch (e) { setError(errText(e)) } finally { setBusy(null) }
   }
-  const work = (body: unknown) => callApi<{ draftId?: string }>(`/api/work/${id}`, { method: 'POST', body })
+  const work = (body: unknown) => callWork<{ draftId?: string }>(`/api/work/${id}`, { method: 'POST', body })
 
   async function saveAll() {
     if (!item) return
@@ -281,12 +283,12 @@ function Review() {
                       )}
                       {r.status === 'waived' && (
                         <button type="button" className={quietLink}
-                          onClick={() => callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'needed' } }).then(load).catch(e => setError(errText(e)))}>
+                          onClick={() => callWork(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'needed' } }).then(load).catch(e => setError(errText(e)))}>
                           Need it
                         </button>
                       )}
                       {waiving === r.kind && (
-                        <form className="basis-full flex gap-1.5 items-center" onSubmit={e => { e.preventDefault(); if (!waiveNote.trim()) return; callApi(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'waived', note: waiveNote.trim() } }).then(() => { setWaiving(null); load() }).catch(e => setError(errText(e))) }}>
+                        <form className="basis-full flex gap-1.5 items-center" onSubmit={e => { e.preventDefault(); if (!waiveNote.trim()) return; callWork(`/api/work/${item.id}/documents`, { method: 'POST', body: { kind: r.kind, status: 'waived', note: waiveNote.trim() } }).then(() => { setWaiving(null); load() }).catch(e => setError(errText(e))) }}>
                           <input id={`waive-${r.kind}`} className={inputCls} placeholder="Why it is not needed" value={waiveNote} onChange={e => setWaiveNote(e.target.value)} />
                           <Btn size="xs" type="submit">Waive</Btn>
                           <Btn size="xs" type="button" onClick={() => setWaiving(null)}>Cancel</Btn>
@@ -308,7 +310,7 @@ function Review() {
             {item.company_id && (
               <AppointmentLetterDialog open={letterOpen} onClose={() => setLetterOpen(false)} companyId={item.company_id}
                 onAttach={item.draft ? async (documentId: string) => {
-                  await callApi(`/api/work/${item.id}/edit`, { method: 'POST', body: { attachments: { draft_id: item.draft!.id, keep: item.draft!.attachments.map(a => a.filename), add: [documentId] } } })
+                  await callWork(`/api/work/${item.id}/edit`, { method: 'POST', body: { attachments: { draft_id: item.draft!.id, keep: item.draft!.attachments.map(a => a.filename), add: [documentId] } } })
                   load()
                 } : undefined} />
             )}

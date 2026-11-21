@@ -14,6 +14,7 @@ import { NEEDS, NEED_NAME, isNeed, type Need } from '@/lib/cases/compare'
 import type { CaseMemory, Note } from '@/lib/cases/memory-store'
 import { Register } from '@/components/ui/register'
 import { selectCls } from './shared'
+import { callWork } from '@/lib/work/fetch'
 
 const WISH = 'wish'
 const wishesOf = (m: CaseMemory) => m.sections.find(s => s.section === WISH)?.notes ?? []
@@ -43,13 +44,13 @@ export function WishListDialog({ caseId, title, onClose, onChanged }: {
 
   useEffect(() => {
     setMemory(null); setError(null); setText(''); setNeed('must')
-    if (caseId) callApi<CaseMemory>(`/api/work/${caseId}/memory`).then(setMemory).catch(e => setError(errText(e)))
+    if (caseId) callWork<CaseMemory>(`/api/work/${caseId}/memory`).then(setMemory).catch(e => setError(errText(e)))
   }, [caseId])
 
   const post = useCallback(async (key: string, body: Record<string, unknown>) => {
     setBusy(key); setError(null)
     try {
-      const d = await callApi<{ memory: CaseMemory }>(`/api/work/${caseId}/memory`, { method: 'POST', body })
+      const d = await callWork<{ memory: CaseMemory }>(`/api/work/${caseId}/memory`, { method: 'POST', body })
       setMemory(d.memory)
       onChanged?.()
       return true

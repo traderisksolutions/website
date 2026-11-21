@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Register } from '@/components/ui/register'
 import { shortDate } from './proposal-shared'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type Row = { id: string; version: number; created_at: string; created_by: string | null; sent_at: string | null; sent_to: string | null; products: string[]; totals: number[]; lowest: number | null; lives: number; period: string; thread_id: string | null }
 const f0 = (n: number) => Math.round(n).toLocaleString('en-SG')
@@ -18,7 +19,7 @@ export function ProposalTrack({ companyId, justSent }: { companyId: string; just
   const [rows, setRows] = useState<Row[] | null>(null)
   useEffect(() => {
     let off = false
-    fetch(`/api/eb/quotations?company=${companyId}`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : { quotations: [] })).then(d => { if (!off) setRows(d.quotations ?? []) }).catch(() => { if (!off) setRows([]) })
+    ebFetch(`/api/eb/quotations?company=${companyId}`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : { quotations: [] })).then(d => { if (!off) setRows(d.quotations ?? []) }).catch(() => { if (!off) setRows([]) })
     return () => { off = true }
   }, [companyId])
   if (!rows?.length) return null

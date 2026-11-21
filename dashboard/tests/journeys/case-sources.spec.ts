@@ -8,8 +8,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { dbRows, openClean } from './helpers'
 
-const headers: Record<string, string> = process.env.WEB_API_KEY ? { 'x-api-key': process.env.WEB_API_KEY } : {}
-type Sources = { picked: unknown[]; proposed: unknown[]; recent: unknown[]; older: unknown[]; buckets: { client: unknown[]; insurer: unknown[] } }
 
 /** An open case with an email from its client or an insurer that the signed-in person may see; with `offers`, one that also has a thread to tick. Looked up once per worker. */
 const found: { any?: string | null; offers?: string | null } = {}
@@ -18,13 +16,16 @@ async function openCase(page: Page, offers = false): Promise<string | null> {
   if (found[key] !== undefined) return found[key] ?? null
   const rows = await dbRows<{ work_item_id: string }>('work_item_threads?select=work_item_id,work_items!inner(closed_at)&work_items.closed_at=is.null&order=created_at.desc&limit=60')
   const ids = Array.from(new Set(rows.map(r => r.work_item_id))).slice(0, 25)
-  for (const id of ids) {
-    const res = await page.request.get(`/api/work/${id}/sources`, { headers })
-    if (!res.ok()) continue
-    const s = await res.json() as Sources
-    if (!s.picked.length || s.buckets.client.length + s.buckets.insurer.length === 0) continue
+  // The case routes became one server action (21 Nov 2026): each candidate is read off its Sources page.
+  const counted = async (groups: import('@playwright/test').Locator, name: RegExp) => Number((await groups.getByRole('radio', { name }).innerText()).match(/(\d+)\s*$/)?.[1] ?? 0)
+  for (const id of ids.slice(0, 12)) {
+    await openClean(page, `/today/${id}?section=sources`)
+    const groups = page.getByRole('region', { name: 'Sources' }).getByRole('radiogroup', { name: 'Sources' })
+    if (!(await groups.isVisible({ timeout: 30_000 }).catch(() => false))) continue
+    if (!(await counted(groups, /^On case/))) continue
     found.any ??= id
-    if (s.proposed.length + s.recent.length + s.older.length > 0) found.offers ??= id
+    const offered = (await counted(groups, /^Proposed/)) + (await counted(groups, /^Recent/)) + (await counted(groups, /^Over 90 days/))
+    if (offered > 0) found.offers ??= id
     if (found[key]) return found[key] ?? null
   }
   return (found[key] = null)
@@ -162,9 +163,10 @@ test('CSE-014 Brief opens on the five parts in one table; Add note asks for a se
 /** An open renewal or new-quote case whose line of insurance has a document checklist. */
 async function checklistCase(page: Page): Promise<string | null> {
   const rows = await dbRows<{ id: string }>('work_items?closed_at=is.null&case_type=in.(renewal,new_quote)&select=id&order=created_at.desc&limit=40')
-  for (const { id } of rows) {
-    const res = await page.request.get(`/api/work/${id}/brief`, { headers })
-    if (res.ok() && (await res.json() as { checklist: { total: number } | null }).checklist?.total) return id
+  for (const { id } of rows.slice(0, 12)) {
+    await openClean(page, `/today/${id}?section=brief`)
+    const docs = page.getByRole('region', { name: 'Brief' }).getByRole('table', { name: 'Documents' })
+    if (await docs.isVisible({ timeout: 30_000 }).catch(() => false) && await docs.locator('tbody tr').count()) return id
   }
   return null
 }

@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { Btn } from '@/components/crm/primitives'
 import { fmtDateTime } from '@/lib/format'
 import { headingCls } from '@/components/cases/shared'
+import { ebFetch } from '@/lib/gb/fetch'
 
 type File = { name: string; driveFileId: string | null; modifiedAt: string | null; readAt: string }
 
@@ -17,12 +18,12 @@ export function WorkbookReload() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
-    fetch('/api/eb/workbook', { cache: 'no-store' }).then(r => r.json()).then((d: { file?: File | null }) => setFile(d.file ?? null)).catch(() => setFile(null))
+    ebFetch('/api/eb/workbook', { cache: 'no-store' }).then(r => r.json()).then((d: { file?: File | null }) => setFile(d.file ?? null)).catch(() => setFile(null))
   }, [])
   async function reload() {
     setBusy(true); setError(null)
     try {
-      const res = await fetch('/api/eb/workbook', { method: 'POST' })
+      const res = await ebFetch('/api/eb/workbook', { method: 'POST' })
       const d = await res.json().catch(() => ({})) as { file?: File; error?: string }
       if (!res.ok || !d.file) { setError(d.error ?? `The workbook was not reloaded (${res.status}).`); return }
       setFile(d.file)

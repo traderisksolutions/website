@@ -20,6 +20,7 @@ import { MoveThreadDialog, type Conflict } from './MoveThreadDialog'
 import { count, subjectBtn } from './shared'
 import { Register } from '@/components/ui/register'
 import { SideSelect, type From } from './SideSelect'
+import { workFetch, callWork } from '@/lib/work/fetch'
 
 type Tab = 'proposed' | 'recent' | 'older' | 'on' | 'removed'
 /** What the rule matched, in the words of the column. */
@@ -33,7 +34,7 @@ const matchedOn = (t: Candidate | Proposal) => {
 type PickAnswer = { ok?: boolean; error?: string; side?: Side; conflict?: Conflict['held'] }
 /** The pick, read whole: a 409 carries the case that holds the thread, which callApi drops. */
 async function pick(id: string, threadId: string, move: boolean): Promise<{ status: number; body: PickAnswer }> {
-  const res = await fetch(`/api/work/${id}/sources`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', body: JSON.stringify({ action: 'pick', thread_id: threadId, move }) })
+  const res = await workFetch(`/api/work/${id}/sources`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store', body: JSON.stringify({ action: 'pick', thread_id: threadId, move }) })
   const body = await res.json().catch(() => ({})) as PickAnswer
   return { status: res.status, body }
 }
@@ -56,7 +57,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
   const [busy, setBusy] = useState<string | null>(null)
   const [conflicts, setConflicts] = useState<Conflict[]>([])
 
-  const load = useCallback(() => callApi<CaseSources>(`/api/work/${id}/sources`), [id])
+  const load = useCallback(() => callWork<CaseSources>(`/api/work/${id}/sources`), [id])
   useEffect(() => {
     setData(null); setFailed(null)
     load().then(d => {
@@ -85,7 +86,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
         const { status, body } = await pick(id, t.id, move)
         if (status === 409 && body.conflict) { held.push({ thread_id: t.id, subject: t.subject, held: body.conflict }); continue }
         if (status >= 400) { errors.push(body.error ?? `Request failed (${status}).`); continue }
-        if (t.insurer || (body.side && body.side !== t.side)) await callApi(`/api/work/${id}/sources`, { method: 'POST', body: { action: 'side', thread_id: t.id, side: t.side, insurer_id: t.insurer } })
+        if (t.insurer || (body.side && body.side !== t.side)) await callWork(`/api/work/${id}/sources`, { method: 'POST', body: { action: 'side', thread_id: t.id, side: t.side, insurer_id: t.insurer } })
         added++
       } catch (e) { errors.push(errText(e)) }
     }
@@ -100,7 +101,7 @@ export function CaseSourcesPanel({ id, staff, onOpenThread, onChanged, onNotice,
   async function act(action: 'exclude' | 'restore' | 'side', threadId: string, done: string | null, from?: From) {
     setBusy(threadId); onError(null)
     try {
-      const d = await callApi<{ sources: CaseSources }>(`/api/work/${id}/sources`, { method: 'POST', body: { action, thread_id: threadId, side: from?.side, insurer_id: from?.insurer } })
+      const d = await callWork<{ sources: CaseSources }>(`/api/work/${id}/sources`, { method: 'POST', body: { action, thread_id: threadId, side: from?.side, insurer_id: from?.insurer } })
       setData(d.sources)
       if (done) onNotice(done)
       onChanged()

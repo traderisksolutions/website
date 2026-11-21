@@ -19,6 +19,7 @@ import type { Member } from '@/lib/gb-quote'
 import { compareSheet, type CompareModel, type EbColumn } from '@/lib/gb/eb-compare'
 import { proposalChecks, snapshotFromCompare, type EditState } from '@/lib/gb/eb-proposal'
 import { fmtMoney0 } from './eb-format'
+import { ebFetch } from '@/lib/gb/fetch'
 
 export function ProposalSection({ model, cols, members, company, companyId, threadId, effectiveDate, basis, workbook, savedId, onSaved, initialInclude, edit }: {
   model: CompareModel; cols: EbColumn[]; members: Member[]; company: string; companyId: string | null; threadId: string | null
@@ -52,7 +53,7 @@ export function ProposalSection({ model, cols, members, company, companyId, thre
     if (then === 'prepare' && savedId && saved?.key === key) { router.push(`/eb/proposal/${savedId}`); return }
     setBusy(then); setError(null)
     try {
-      const res = await fetch('/api/eb/quotations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapshot, company_id: companyId, thread_id: threadId, id: savedId }) })
+      const res = await ebFetch('/api/eb/quotations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ snapshot, company_id: companyId, thread_id: threadId, id: savedId }) })
       const d = await res.json().catch(() => ({})) as { id?: string; version?: number; error?: string }
       if (!res.ok || !d.id) { setError(d.error ?? `The quotation was not saved (${res.status}).`); return }
       onSaved(d.id)

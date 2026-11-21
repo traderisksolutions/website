@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, type AlertRow } from '@/components/ui/Alert'
+import { agentsFetch } from '@/lib/agents/fetch'
 
 type Affected = {
   agent: string
@@ -60,7 +61,7 @@ export function AiCreditsAlert() {
       const kept = JSON.parse(localStorage.getItem(STATUS_KEY) ?? 'null') as { at: number; d: Payload } | null
       if (!force && kept && Date.now() - kept.at < STATUS_TTL) { setD(kept.d); return }
     } catch { /* storage blocked: ask the server */ }
-    fetch('/api/ai/status', { cache: 'no-store' })
+    agentsFetch('/api/ai/status', { cache: 'no-store' })
       .then(r => r.ok ? r.json() : null)
       .then(j => {
         if (!j || j.error) return

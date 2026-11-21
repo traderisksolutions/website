@@ -17,6 +17,7 @@ import { Register, RegisterCell, RegisterEmpty, RegisterHead, RegisterRow, Regis
 import { fmtDate } from '@/lib/format'
 import { LINES, lineName, type LineCode } from '@/lib/renewals/lines'
 import type { EndDateFix, FixView, LineFix } from '@/lib/renewals/store'
+import { callRenewals } from '@/lib/renewals/fetch'
 
 const h2 = 'm-0 text-body font-medium text-trs-ink'
 
@@ -41,7 +42,7 @@ export function RenewalsFix() {
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(() => callApi<FixView>('/api/renewals/fix').then(v => {
+  const load = useCallback(() => callRenewals<FixView>('/api/renewals/fix').then(v => {
     setView(v)
     setDates(Object.fromEntries(v.endDates.map(r => [r.policy_id, r.suggested ?? ''])))
     setLines(Object.fromEntries(v.lines.map(r => [r.key, r.suggested])))
@@ -51,7 +52,7 @@ export function RenewalsFix() {
   async function saveDates(items: { policy_id: string; end_date: string }[], key: string) {
     setBusy(key); setError(null); setNote(null)
     try {
-      const d = await callApi<{ written: number }>('/api/renewals/fix', { method: 'POST', body: { action: 'end_dates', items } })
+      const d = await callRenewals<{ written: number }>('/api/renewals/fix', { method: 'POST', body: { action: 'end_dates', items } })
       setNote(`${d.written} end ${d.written === 1 ? 'date' : 'dates'} written.`)
       await load()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
@@ -59,7 +60,7 @@ export function RenewalsFix() {
   async function saveLines(items: { spelling: string; line_code: LineCode }[], key: string) {
     setBusy(key); setError(null); setNote(null)
     try {
-      const d = await callApi<{ tables: boolean; spellings: number; policies: number }>('/api/renewals/fix', { method: 'POST', body: { action: 'lines', items } })
+      const d = await callRenewals<{ tables: boolean; spellings: number; policies: number }>('/api/renewals/fix', { method: 'POST', body: { action: 'lines', items } })
       setNote(d.tables ? `${d.spellings} ${d.spellings === 1 ? 'spelling' : 'spellings'} confirmed · ${d.policies} ${d.policies === 1 ? 'policy' : 'policies'} updated.` : 'Lines can be confirmed once renewal records are set up.')
       await load()
     } catch (e) { setError(errText(e)) } finally { setBusy(null) }
