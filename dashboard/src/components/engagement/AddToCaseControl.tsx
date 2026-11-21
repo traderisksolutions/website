@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { btnClass } from '@/components/crm/primitives'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 type CaseRow = { id: string; name: string; status: string }
 
@@ -29,7 +30,7 @@ export function AddToCaseControl({ threadId }: { threadId: string | null }) {
     const next = !open
     setOpen(next)
     if (next && cases === null) {
-      const res  = await fetch('/api/nexus/cases', { cache: 'no-store' })
+      const res  = await nexusFetch('/api/nexus/cases', { cache: 'no-store' })
       const rows = res.ok ? await res.json() : []
       setCases((Array.isArray(rows) ? rows : []).filter((c: CaseRow) => c.status === 'open'))
     }
@@ -39,7 +40,7 @@ export function AddToCaseControl({ threadId }: { threadId: string | null }) {
     if (!threadId) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/nexus/cases/${c.id}/threads`, {
+      const res = await nexusFetch(`/api/nexus/cases/${c.id}/threads`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ thread_id: threadId, party_type: 'other' }),
       })

@@ -19,6 +19,7 @@ import { usePolledRefresh } from '@/hooks/usePolledRefresh'
 import { fmtDate, timeAgo } from '@/lib/format'
 import { companyDetail, searchCompanies } from '@/app/companies/actions'
 import { listSignatures } from '@/app/settings/actions'
+import { nexusFetch } from '@/lib/nexus/fetch'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -302,7 +303,7 @@ export default function NexusPage() {
   const loadCases = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/nexus/cases', { cache: 'no-store' })
+      const res = await nexusFetch('/api/nexus/cases', { cache: 'no-store' })
       const data = res.ok ? await res.json() : []
       setCases(Array.isArray(data) ? data : [])
       if (!selectedId && Array.isArray(data) && data.length > 0) {
@@ -347,7 +348,7 @@ export default function NexusPage() {
   )
 
   async function handleCreate(name: string, description: string, companyId: string | null, companyName: string | null) {
-    const res = await fetch('/api/nexus/cases', {
+    const res = await nexusFetch('/api/nexus/cases', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, description, companyId: companyId ?? undefined, companyName: companyName ?? undefined }),
@@ -362,7 +363,7 @@ export default function NexusPage() {
   }
 
   async function handleDeleteCase(id: string) {
-    await fetch(`/api/nexus/cases/${id}`, { method: 'DELETE' })
+    await nexusFetch(`/api/nexus/cases/${id}`, { method: 'DELETE' })
     setCases(prev => prev.filter(c => c.id !== id))
     if (selectedId === id) setSelectedId(cases.find(c => c.id !== id)?.id ?? null)
   }
@@ -628,7 +629,7 @@ function CaseDetailPanel({
   const loadRuns = useCallback(async () => {
     setRunsLoading(true)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
+      const res = await nexusFetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
       if (res.ok) setRuns(await res.json())
     } finally { setRunsLoading(false) }
   }, [caseData.id])
@@ -637,7 +638,7 @@ function CaseDetailPanel({
     setLoading(true)
     try {
       const [detailRes] = await Promise.all([
-        fetch(`/api/nexus/cases/${caseData.id}`, { cache: 'no-store' }),
+        nexusFetch(`/api/nexus/cases/${caseData.id}`, { cache: 'no-store' }),
         loadRuns(),
       ])
       if (detailRes.ok) setDetail(await detailRes.json())
@@ -707,7 +708,7 @@ function CaseDetailPanel({
     setAnalyzing(true)
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
+        const res = await nexusFetch(`/api/nexus/cases/${caseData.id}/runs`, { cache: 'no-store' })
         if (!res.ok) return
         const runs: RunSummary[] = await res.json()
         if (!Array.isArray(runs) || runs.length === 0) return
@@ -741,7 +742,7 @@ function CaseDetailPanel({
     const name = titleValue.trim()
     setEditingTitle(false)
     if (!name || name === caseData.name) { setTitleValue(caseData.name); return }
-    await fetch(`/api/nexus/cases/${caseData.id}`, {
+    await nexusFetch(`/api/nexus/cases/${caseData.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     }).catch(() => {})
@@ -764,7 +765,7 @@ function CaseDetailPanel({
 
   async function pinRun(runId: string, pinned: boolean) {
     setRuns(prev => prev.map(r => r.id === runId ? { ...r, pinned } : r))
-    await fetch(`/api/nexus/cases/${caseData.id}/runs`, {
+    await nexusFetch(`/api/nexus/cases/${caseData.id}/runs`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ runId, pinned }),
@@ -772,19 +773,19 @@ function CaseDetailPanel({
   }
 
   async function pruneRuns() {
-    await fetch(`/api/nexus/cases/${caseData.id}/runs?keep=15`, { method: 'DELETE' })
+    await nexusFetch(`/api/nexus/cases/${caseData.id}/runs?keep=15`, { method: 'DELETE' })
     loadRuns()
   }
 
   function openCompose(state: ComposeState) { setComposeState(state) }
 
   async function unlinkThread(threadId: string) {
-    await fetch(`/api/nexus/cases/${caseData.id}/threads?thread_id=${threadId}`, { method: 'DELETE' })
+    await nexusFetch(`/api/nexus/cases/${caseData.id}/threads?thread_id=${threadId}`, { method: 'DELETE' })
     load()
   }
 
   async function updatePartyType(threadId: string, partyType: string) {
-    await fetch(`/api/nexus/cases/${caseData.id}/threads`, {
+    await nexusFetch(`/api/nexus/cases/${caseData.id}/threads`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ thread_id: threadId, party_type: partyType }),
@@ -2016,7 +2017,7 @@ function NextStepsSection({
     if (!toEmail) return
     setStepDraftState(prev => ({ ...prev, [key]: { status: 'creating' } }))
     try {
-      const res = await fetch('/api/nexus/step-draft', {
+      const res = await nexusFetch('/api/nexus/step-draft', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ case_id: caseId, action: step.action, rationale: step.rationale, party_type: step.party_type ?? step.owner, to_email: toEmail }),
@@ -2287,7 +2288,7 @@ function RunComparisonBanner({
     if (prevStepsLoaded) return
     setPrevStepsLoaded(true)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}/runs/${previousRun.id}`, { cache: 'no-store' })
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}/runs/${previousRun.id}`, { cache: 'no-store' })
       if (res.ok) {
         const sa = await res.json()
         setPrevSteps(Array.isArray(sa?.recommended_next_steps) ? sa.recommended_next_steps : [])
@@ -2393,7 +2394,7 @@ function RunHistoryView({
     if (rawJson[runId]) { setExpandedId(prev => prev === runId ? null : runId); return }
     setRawLoading(runId)
     try {
-      const res = await fetch(`/api/nexus/cases/${caseId}/runs/${runId}`, { cache: 'no-store' })
+      const res = await nexusFetch(`/api/nexus/cases/${caseId}/runs/${runId}`, { cache: 'no-store' })
       if (res.ok) {
         const data = await res.json()
         setRawJson(prev => ({ ...prev, [runId]: JSON.stringify(data, null, 2) }))
@@ -3091,7 +3092,7 @@ function NexusStepCompose({
       const bodyHtml = draftHtml + sigHtml
       const toFirst  = toList.split(',')[0]?.trim() ?? ''
 
-      const draftRes = await fetch('/api/nexus/draft-create', {
+      const draftRes = await nexusFetch('/api/nexus/draft-create', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3393,7 +3394,7 @@ function ThreadLinkerModal({
   async function unlink(threadId: string) {
     setUnlinking(threadId)
     try {
-      await fetch(`/api/nexus/cases/${caseId}/threads?thread_id=${threadId}`, { method: 'DELETE' })
+      await nexusFetch(`/api/nexus/cases/${caseId}/threads?thread_id=${threadId}`, { method: 'DELETE' })
       onLink()
     } finally { setUnlinking(null) }
   }
@@ -3409,9 +3410,9 @@ function ThreadLinkerModal({
   useEffect(() => {
     setLoading(true)
     Promise.all([
-      fetch(`/api/nexus/cases/${caseId}/suggest`, { cache: 'no-store' })
+      nexusFetch(`/api/nexus/cases/${caseId}/suggest`, { cache: 'no-store' })
         .then(r => r.ok ? r.json() : []).catch(() => []),
-      fetch(`/api/nexus/cases/${caseId}/suggest?all=1`, { cache: 'no-store' })
+      nexusFetch(`/api/nexus/cases/${caseId}/suggest?all=1`, { cache: 'no-store' })
         .then(r => r.ok ? r.json() : []).catch(() => []),
     ]).then(([sugg, all]) => {
       const suggestions = Array.isArray(sugg) ? sugg : []
@@ -3433,7 +3434,7 @@ function ThreadLinkerModal({
     setLinking(true)
     try {
       await Promise.all(toLink.map(threadId =>
-        fetch(`/api/nexus/cases/${caseId}/threads`, {
+        nexusFetch(`/api/nexus/cases/${caseId}/threads`, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({

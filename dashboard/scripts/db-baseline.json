@@ -203,62 +203,6 @@
   "sb": 0,
   "fetch": 2
  },
- "src/app/api/nexus/cases/[id]/analyze/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/nexus/cases/[id]/company/route.ts": {
-  "sb": 3,
-  "fetch": 0
- },
- "src/app/api/nexus/cases/[id]/edit-analysis/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/cases/[id]/rescan-reanalyze/route.ts": {
-  "sb": 0,
-  "fetch": 3
- },
- "src/app/api/nexus/cases/[id]/restore-analysis/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/cases/[id]/route.ts": {
-  "sb": 0,
-  "fetch": 9
- },
- "src/app/api/nexus/cases/[id]/runs/[runId]/route.ts": {
-  "sb": 0,
-  "fetch": 1
- },
- "src/app/api/nexus/cases/[id]/runs/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/nexus/cases/[id]/suggest/route.ts": {
-  "sb": 0,
-  "fetch": 8
- },
- "src/app/api/nexus/cases/[id]/threads/route.ts": {
-  "sb": 0,
-  "fetch": 6
- },
- "src/app/api/nexus/cases/route.ts": {
-  "sb": 0,
-  "fetch": 4
- },
- "src/app/api/nexus/draft-create/route.ts": {
-  "sb": 0,
-  "fetch": 2
- },
- "src/app/api/nexus/follow-ups/[id]/route.ts": {
-  "sb": 1,
-  "fetch": 0
- },
- "src/app/api/nexus/step-draft/route.ts": {
-  "sb": 0,
-  "fetch": 5
- },
  "src/app/api/placements/[id]/log/route.ts": {
   "sb": 1,
   "fetch": 0
@@ -922,6 +866,62 @@
  "src/lib/nexus/company-view.ts": {
   "sb": 15,
   "fetch": 0
+ },
+ "src/lib/nexus/handlers/cases-id-analyze.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/nexus/handlers/cases-id-company.ts": {
+  "sb": 3,
+  "fetch": 0
+ },
+ "src/lib/nexus/handlers/cases-id-edit-analysis.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/cases-id-rescan-reanalyze.ts": {
+  "sb": 0,
+  "fetch": 3
+ },
+ "src/lib/nexus/handlers/cases-id-restore-analysis.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/cases-id-runs-runId.ts": {
+  "sb": 0,
+  "fetch": 1
+ },
+ "src/lib/nexus/handlers/cases-id-runs.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/nexus/handlers/cases-id-suggest.ts": {
+  "sb": 0,
+  "fetch": 8
+ },
+ "src/lib/nexus/handlers/cases-id-threads.ts": {
+  "sb": 0,
+  "fetch": 6
+ },
+ "src/lib/nexus/handlers/cases-id.ts": {
+  "sb": 0,
+  "fetch": 9
+ },
+ "src/lib/nexus/handlers/cases.ts": {
+  "sb": 0,
+  "fetch": 4
+ },
+ "src/lib/nexus/handlers/draft-create.ts": {
+  "sb": 0,
+  "fetch": 2
+ },
+ "src/lib/nexus/handlers/follow-ups-id.ts": {
+  "sb": 1,
+  "fetch": 0
+ },
+ "src/lib/nexus/handlers/step-draft.ts": {
+  "sb": 0,
+  "fetch": 5
  },
  "src/lib/nexus/ledger.ts": {
   "sb": 2,
