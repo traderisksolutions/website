@@ -2,11 +2,11 @@
 import { test, expect } from '@playwright/test'
 import { companyId, dbRows, openClean } from './helpers'
 
-test('Employment Benefits tabs are New quotation, Quotation register, Products and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
+test('Employment Benefits tabs are New quotation, Quotation register, Products, After binding and Brochures; Quotes is off the bar, RoadPlus its own place', async ({ page }) => {
   await openClean(page, '/eb/quotations')
   await expect(page.locator('header').getByRole('link', { name: 'Employment Benefits', exact: true })).toHaveAttribute('aria-current', 'page')
   const tabs = page.getByRole('navigation', { name: 'Employment Benefits' })
-  await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Products', 'Brochures'])
+  await expect(tabs.getByRole('link')).toHaveText(['New quotation', 'Quotation register', 'Products', 'After binding', 'Brochures'])
   await expect(tabs.getByRole('link', { name: 'Quotation register', exact: true })).toHaveAttribute('aria-current', 'page')
   await expect(page.getByRole('heading', { name: 'Quotation register', level: 1 })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Quotes' })).toHaveCount(0)
@@ -106,4 +106,12 @@ test('EB-075 a proposal lists its insurers: route with why, status, the date of 
   await expect(t.locator('thead th')).toHaveText(['Insurer', 'Route', 'Status', 'Since', 'Note'])
   await expect(t.getByText(/^(Brochure price|Insurer to quote)$/).first()).toBeVisible()
   await expect(t.getByRole('combobox', { name: /^Status: / }).first()).toBeVisible()
+})
+
+test('EB-076 After binding: every EB policy with its bill against the quotation or policy, movements without a note, claims and loss ratio', async ({ page }) => {
+  await openClean(page, '/eb/after-binding')
+  const t = page.getByRole('table', { name: 'After binding' })
+  await expect(t).toBeVisible({ timeout: 60_000 })
+  await expect(t.locator('thead th')).toHaveText(['Client', 'Insurer', 'Period', 'Billed', 'Expected', 'Bill', 'Movements', 'Without a note', 'Claims', 'Settled', 'Loss ratio'])
+  expect(await t.locator('tbody tr').count()).toBeGreaterThan(0)
 })

@@ -275,6 +275,13 @@ Copy: say what something is and what it waits on. Name the person or insurer, gi
 
 Every phase: `npm run check`, a journey per behaviour (`tests/journeys/`), entry in `docs/changelog.md`, deploy only on Jarod's "ok deploy".
 
+### P6 status (21 Nov 2026, EB-076)
+
+| Gap | Status | What exists |
+| --- | --- | --- |
+| G27 Bill audit, movements, claims | **First cut** | Employment Benefits › After binding. 21 Nov: 43 EB policies; 2 have a quotation or policy premium to check the bill against (41 have neither); 64 movement lists on 18 policies, 2 followed by an endorsement note within 60 days; 196 claims, a loss ratio on 15 policies. Member-level bill audit (people billed after leaving) needs the insurer's member listing read per bill: not built. |
+| G28 Insurer templates | Not done | |
+
 ### P3 status (21 Nov 2026, branch eb-library-2026-11-21, EB-073)
 
 | Gap | Status | What exists |

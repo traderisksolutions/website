@@ -4,6 +4,10 @@ Dated record of significant changes to the TRS dashboard, for documentation and 
 
 ---
 
+## 2026-11-21 — Employment Benefits › After binding
+
+- **After binding** (`/eb/after-binding`, a new Employment Benefits tab): per EB policy, premium billed against the kept quotation or the policy's premium; member movement lists and how many have no endorsement note within 60 days; claims settled and the loss ratio (EB-076). Read only; no model.
+
 ## 2026-11-21 — Email attachments: a Drive copy on first open
 
 - **Attachments** are fetched from Gmail once, the first time anyone opens them, and kept in the Shared Drive (`email_attachments.drive_file_id`, `20261121_y_attachment_drive_copy.sql`); every later read comes from Drive: no Gmail call, about 1.7 s instead of 11 s on a 150 KB PDF. Files over 25 MB stay on Gmail. `storage_url` is unchanged (11,556 old paths other records still match). No running cost: Drive pooled storage, free API.
